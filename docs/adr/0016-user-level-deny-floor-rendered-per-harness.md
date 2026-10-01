@@ -105,8 +105,9 @@ invalid one stops the run with exit 2, so an entry the parser would drop never b
   writes his approvals, is never touched.
 - **Kiro:** nothing is rendered (below).
 - **Windows:** `install.ps1` renders the Codex file and merges the deny floor into the Claude Code
-  settings with the same grammar and validation. **Untested**: no PowerShell runtime was available, and
-  it has never run.
+  settings with the same grammar and validation. ~~**Untested**: no PowerShell runtime was available, and
+  it has never run.~~ Tested on a Windows CI runner since ADR-0010's 2026-10-01 amendment on Windows,
+  Linux and Kiro CLI.
 
 On the reference machine today, read 2026-10-01 and not installed: 20 of the 101 floor rules are
 already in his deny list, and the merge would add 81. His other 19 entries are kept. The installer was
@@ -146,7 +147,7 @@ contradict or weaken*. The floor never allows anything the guard denies, and it 
 | Codex app / IDE extension | same file | not measured |
 | **Kiro IDE** 1.0.437 | **nothing** | The shipped bundle reads `.kiro/settings/permissions.yaml` or `permissions.json` at user and workspace scope, with rules of the shape `{capability: "shell", match: […], effect: "deny"}`, and migrates a legacy `kiroAgent.commandDenylist` setting into it (*read from the bundle's `extension.js`*, not documented and not exercised). Its matching semantics, its precedence between user and workspace, and whether a deny can be overridden are not established. Nothing can be exercised without a subscription (ADR-0003). So nothing is rendered, and the floor does not exist in Kiro. |
 | Kiro CLI, Claude desktop / Cowork, ChatGPT desktop | nothing | no user-level command-rule layer is known (ADR-0010, ADR-0013) |
-| Windows | `install.ps1` | written, **untested** |
+| Windows | `install.ps1` | ~~written, **untested**~~ **tested on a Windows CI runner** under Windows PowerShell 5.1 and PowerShell 7, throwaway profiles only (ADR-0010's 2026-10-01 amendment on Windows, Linux and Kiro CLI): the settings union merge and the Codex rules file are written correctly. **Not enforced-measured**: no Claude Code or Codex ran against the result on Windows |
 
 ### Precedence, with sources
 
@@ -231,7 +232,9 @@ the Codex probe uses `npm publish`.
 - Bad: on the reference machine the floor narrows four user-level allows (`Edit`, `Write`, `git
   push:*`, `npm:*`). At project level it also narrows `rm:*` and `gh repo *`, as listed in the table
   above. Every other entry turns today's prompt into a denial. Each is the owner's to ratify.
-- Bad: Kiro carries no floor, and the Windows installer is untested.
+- Bad: Kiro carries no floor~~, and the Windows installer is untested~~. The Windows installer is
+  tested in CI since ADR-0010's 2026-10-01 amendment on Windows, Linux and Kiro CLI; whether the floor
+  is enforced on Windows is not measured.
 - Version cut (ADR-0002): **minor**. It is a new protection, and nothing an adopter had is weakened.
 
 ## Links

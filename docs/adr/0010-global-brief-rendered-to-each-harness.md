@@ -55,13 +55,15 @@ the owner's go.
 - **Not covered by this rendering (dichotomy of control, ADR-0004):** the Claude desktop app and Cowork,
   and the ChatGPT desktop app. Their custom instructions are hypothesised to live in the account,
   cloud-side, with no local user-level file to render to. This is to be measured per surface
-  (ADR-0006). Kiro CLI's user-level brief location is not determined either.
+  (ADR-0006). ~~Kiro CLI's user-level brief location is not determined either.~~ Determined from the
+  vendor docs: see the 2026-10-01 amendment on Windows, Linux and Kiro CLI below.
 - Good: `install.sh --check` detects drift. The test suite (`global/install.test.sh`) covers dry-run,
   fresh install, idempotence, drift and refusing an unmanaged file. It was run against throwaway HOME
   directories, never the real one. Mutating the managed-file check made three assertions fail, which
   shows the refusal tests can fail.
-- Bad: **`install.ps1` is untested.** No PowerShell runtime was available, and it has never run on
-  Windows.
+- Bad: ~~**`install.ps1` is untested.** No PowerShell runtime was available, and it has never run on
+  Windows.~~ It now runs on a Windows CI runner; see the amendment on Windows, Linux and Kiro CLI
+  below for what that covers and what it does not.
 - Bad: a local edit to a managed file is overwritten on the next install. `--check` reports it as drift
   first.
 - Bad: the brief costs context in every session. It is under 4 KB (`wc -c global/AGENTS.md`), far under Kiro's 50,000-character
@@ -120,6 +122,115 @@ Bounds on that claim:
   including its model choice and plugins. The token deltas therefore cannot be attributed to the brief
   alone, and they are not used as evidence: Codex input 19,693 against 13,776, Claude cache-creation
   11,537 against 7,330. The evidence is the `NOT_IN_CONTEXT` answer, set against the verbatim answer.
+
+## Amendment 2026-10-01: Windows runs in CI, Linux runs under dash, Kiro CLI shares the Kiro target
+
+Issue #9 (Principle 1: the policies must be replicable on Windows and Linux; Kiro CLI is a target
+surface under ADR-0006).
+
+### Windows: `install.ps1` runs on a real Windows host
+
+`.github/workflows/tests.yml` has a `windows` job on `windows-latest`. It runs
+`global/install.test.ps1` twice, once under **Windows PowerShell 5.1** (`powershell`, what a stock
+Windows ships) and once under **PowerShell 7** (`pwsh`). The test runs the installer with the same
+executable that runs the test, so each leg tests the installer on that PowerShell. Every run writes only
+under throwaway `USERPROFILE` directories in `RUNNER_TEMP`. The runner's git checks out with
+`core.autocrlf=true`, so the source tree carries CRLF. The job prints both facts.
+
+The suite mirrors `install.test.sh` for every feature `install.ps1` carries: dry-run writes nothing and
+prints targets and the merge; fresh install; `-Check` after install; the deny floor in both harnesses'
+formats; an idempotent re-run leaves every file byte-identical; drift is detected and repaired; a
+removed floor rule is counted and restored; a missing Codex rules file is detected; an unmanaged brief
+is refused (exit 3) and left untouched; a union merge into an existing settings file keeps every key,
+hook and rule, keeps a backup byte for byte, and a re-merge is byte-identical; invalid JSON and a
+non-array `permissions.deny` are refused and left untouched; `-Overlay none`; an overlay floor entry
+reaches both harnesses; five invalid entries each stop the run with exit 2 and nothing written; usage
+errors exit 2.
+
+It also checks something `install.test.sh` cannot: that the Windows rendering of the brief is
+**byte-identical to the POSIX one**. The rendered file has no CR byte and no BOM, and its marker's
+`sha256` equals the sha256 of the LF form of `global/AGENTS.md` + `overlay/AGENTS.md`, which is what
+`install.sh` hashes.
+
+**Fixed in `install.ps1` to get there.** These were found by reading the script against the
+PowerShell semantics while writing the suite. The CI run is what shows the fixed script works. It does
+not show which of these would have failed on its own, because the unfixed script was never run:
+
+- A usage error called `Write-Error` under `$ErrorActionPreference = 'Stop'`. That throws, so the
+  process exits 1, not the 2 the header promises. Usage errors now write to stderr and `exit 2`.
+- `Get-Rendered` returned a `byte[]` from a function, which PowerShell unrolls into the pipeline as
+  separate objects. It now returns the array whole, and `Invoke-Target` types it as `byte[]`.
+- The installed-versus-rendered comparison called Linq's generic `SequenceEqual`, which depends on
+  PowerShell inferring the generic type. It now compares the two byte arrays as Base64 strings.
+- The source was hashed and copied as checked out. Under `core.autocrlf=true` that is CRLF, so the
+  rendered brief would carry CRLF and a different `sha256` from the POSIX rendering of the same
+  commit. The brief sources are now read with CRLF turned into LF.
+
+### Parity: what `install.ps1` covers against `install.sh`
+
+| Feature | `install.sh` (macOS, Linux) | `install.ps1` (Windows) |
+| --- | --- | --- |
+| Brief to Claude Code, `~/.claude/CLAUDE.md` | yes | **yes**, CI-tested on Windows |
+| Brief to Codex, `$CODEX_HOME/AGENTS.md` | yes | **yes**, CI-tested |
+| Brief to Kiro (IDE and CLI), `~/.kiro/steering/workstation-global-brief.md` | yes | **yes**, CI-tested (under `%USERPROFILE%`) |
+| Owner overlay appended; `--overlay=none` / `-Overlay none` | yes | **yes**, CI-tested |
+| `--dry-run` / `--check`, refuse an unmanaged file (exit 3), idempotent re-run | yes | **yes**, CI-tested |
+| Deny floor merged into `~/.claude/settings.json` (union, backup, refuse a bad shape) | yes, with `jq` | **yes**, with `ConvertFrom-Json`/`ConvertTo-Json`; CI-tested. The dry-run lists the rules it would add; it does not print a full semantic diff as `install.sh` does |
+| Deny floor rendered to Codex, `rules/workstation-deny-floor.rules` | yes | **yes**, CI-tested. Not parsed by `codex execpolicy` on Windows: `codex` is not on the runner |
+| HITL escalation guard: hook script, `hitl.conf`, and its `PreToolUse` entry in settings (ADR-0013) | yes | **no**. Not ported. On Windows the escalation rules are instructions only |
+| Clipboard guard script and settings (ADR-0011) | installed on macOS and Linux; the watcher runs only on macOS (LaunchAgent written, never loaded); Linux prints `SKIP` | **no**. ADR-0011 has design notes for Windows only |
+| MCP definition (ADR-0017) | **not in this installer**: rendered by `global/mcp/mcp_render.py` | **not in this installer either**. `mcp_render.py` has a Windows path for the Claude desktop config and refuses secrets on Windows (no launcher); its suite does not run on the Windows job |
+| `XDG_DATA_HOME` honoured | yes, tested since this amendment | not applicable: nothing is installed under a data directory |
+
+### Linux: what the ubuntu suite actually exercises
+
+The `suites` job already ran `install.test.sh` on `ubuntu-latest`. Its invocations are `sh install.sh`,
+and on that image `/bin/sh` is **dash**. A new first step prints `ls -l /bin/sh` and fails the Linux
+leg unless `readlink -f /bin/sh` is `dash`. So a green ubuntu run is a run under dash, and that stays
+true only while the step stays green. On macOS the same step only prints, and `/bin/sh` there is bash
+in POSIX mode. The Linux leg exercises the brief, the hook (installed with its `#!/bin/sh` shebang and
+run through `sh`), the deny floor, the clipboard script with no watcher, and that no plist is written off
+macOS. `codex` is not on the runner, so the Codex rules file is checked by text, not by `codex
+execpolicy`.
+
+**A gap closed here:** `XDG_DATA_HOME` is the Linux convention, and `install.sh` honours it, but no
+test set it. Test 12 now does: the hook and its config land under it, nothing lands under
+`~/.local/share`, the settings entry runs the hook from there, and `--check` is clean. Calibrated: in a
+scratch copy where `install.sh` ignores `XDG_DATA_HOME`, two of the four assertions fail.
+
+**Not covered on Linux:** the hook installed as a `PreToolUse` entry is not run by a real Claude Code
+on Linux. That is the same gap as on macOS CI.
+
+### Kiro CLI: the same global steering directory as Kiro IDE
+
+**Documented.** Kiro's steering page, <https://kiro.dev/docs/steering/> (the old CLI-specific
+<https://kiro.dev/docs/cli/steering/> now redirects there; fetched 2026-10-01), has a capability table
+with IDE, CLI, Web and Mobile columns. Its row *"Global steering (`~/.kiro/steering/`)"* is marked
+supported for IDE and CLI. The page says *"Global steering files reside in your home directory under
+`~/.kiro/steering/`, and apply to all workspaces"*, and its CLI instructions say to create a `.md` file
+*"in `.kiro/steering/` (workspace scope) or `~/.kiro/steering/` (global scope)"*.
+
+**So no new target is needed.** The installers already render
+`~/.kiro/steering/workstation-global-brief.md` for Kiro IDE, and Kiro CLI reads the same directory.
+The existing tests (`install.test.sh` and `install.test.ps1`, "written" and "kiro front matter") cover
+that file. The decision table above now holds for both Kiro surfaces.
+
+Three caveats, all from the same page:
+
+- **Inclusion modes.** The table marks inclusion modes supported on the CLI, but a note on the same
+  page says *"On Kiro CLI, inclusion modes are not currently supported. All steering files in the
+  `.kiro/steering/` directory are loaded automatically."* The page contradicts itself. Either reading
+  loads this file, because its mode is `always`. Whether the CLI shows the front matter to the model as
+  text is not known.
+- **Custom agents.** *"When using custom agents, steering files are not automatically included. You
+  must explicitly add them to the agent's `resources` configuration to load steering context."* A Kiro
+  CLI session that runs a custom agent without such a `resources` entry does not load this brief. This
+  repository renders no Kiro agent configuration, so that gap is stated, not closed.
+- **Windows.** The page writes the path as `~/.kiro/steering/`. That Kiro resolves `~` to
+  `%USERPROFILE%` on Windows, which is where `install.ps1` writes, is **assumed**.
+
+**Evidence level: documented.** Kiro CLI is not installed on the reference workstation, and Kiro has no
+active subscription (ADR-0003), so nothing was loaded or measured.
 
 ## Links
 
