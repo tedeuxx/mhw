@@ -25,6 +25,21 @@ key.
   declaration required by `AGENTS.md`, Principle 1. Any access mode a control does not reach is stated
   as a gap.
 
+### Recognised access-mode states
+
+- **subscription login**: the reference mode for Claude and Codex. Every control must work under it.
+- **API key**: optional, never assumed.
+- **no active subscription**: a target distribution the policy set supports for adopters, with no
+  active subscription on the reference install. This is the state of **Kiro IDE and Kiro CLI**. The
+  owner: *"considere kiro-ide/cli como uma distribuicao alvo valida embora nao tenhamos subscription
+  ativa no tier pessoal"*.
+
+**What the "no active subscription" state costs.** Controls for these targets can be authored and
+statically checked, but on the reference install they will likely not be exercised end-to-end in a live
+session. Their evidence level is therefore **capped at *documented* or *installed***, never *measured*,
+until a subscription or a test account exists. Reporting them as measured would claim the stronger
+evidence on the weaker, which `AGENTS.md`'s hard rules forbid.
+
 ## Hypotheses to be measured
 
 None of these is asserted. Each one is unverified until it is **measured** on the reference install,

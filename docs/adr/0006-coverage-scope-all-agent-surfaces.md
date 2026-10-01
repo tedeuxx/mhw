@@ -42,7 +42,9 @@ name, account or folder is recorded here.
 - **Claude family:** Claude Code (CLI and IDE), the Claude desktop app including Cowork, and its local
   MCP and extension configuration.
 - **OpenAI family:** Codex (CLI and app), and the agentic or "work" surfaces of the ChatGPT desktop app.
-- **Kiro:** remains in scope, as before.
+- ~~**Kiro:** remains in scope, as before.~~ Struck by the 2026-10-01 amendment below: Kiro is two
+  surfaces, not one.
+- **Kiro:** Kiro IDE and Kiro CLI, as two separate surfaces.
 
 ## Consequences
 
@@ -55,6 +57,17 @@ name, account or folder is recorded here.
   can silently miss another.
 - **Candidate control, proposed only:** a single source for MCP configuration across surfaces, rendered
   into each surface's config. Not decided.
+
+## Amendment 2026-10-01: Kiro IDE and Kiro CLI are two target surfaces
+
+The owner: *"considere kiro-ide/cli como uma distribuicao alvo valida embora nao tenhamos subscription
+ativa no tier pessoal"* ("consider Kiro IDE/CLI a valid target distribution, even though we have no
+active personal-tier subscription").
+
+Kiro IDE and Kiro CLI are each in scope, as separate surfaces, each with its own inventory of
+enforcement points. On the reference install their access mode is **no active subscription**
+(ADR-0003). Their controls can be authored and statically checked, but their evidence level is capped
+at *documented* or *installed* until a subscription or a test account exists.
 
 ## Links
 

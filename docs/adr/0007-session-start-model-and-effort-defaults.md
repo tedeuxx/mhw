@@ -24,7 +24,8 @@ dropped from the table.
 | --- | --- | --- | --- |
 | Claude Code | yes (user-level settings) | `opus[1m]` | `effortLevel` = `medium` |
 | Codex | yes (user-level config) | a top-tier GPT model (`model`) | `model_reasoning_effort` = `medium` |
-| Kiro | to be measured | to be measured | to be measured |
+| Kiro IDE | to be measured (no active subscription, ADR-0003) | to be measured | to be measured |
+| Kiro CLI | to be measured (no active subscription, ADR-0003) | to be measured | to be measured |
 | Claude desktop app / Cowork | to be measured | to be measured | to be measured |
 | ChatGPT desktop app ("work" surfaces) | to be measured | to be measured | to be measured |
 
