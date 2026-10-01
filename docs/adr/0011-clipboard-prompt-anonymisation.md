@@ -475,9 +475,16 @@ Option 1 of this record, alone: harness-level prompt hooks.
   - It never reads or writes the system clipboard, never calls `osascript` or `launchctl`, and writes
     no file.
   - Tested on a real `prompt-hook` process in a throwaway home (file salt), with fake `pbcopy`,
-    `pbpaste`, `osascript`, `security` and `launchctl` on `PATH` that record any call. None were called,
-    and no file changed. A second test asserts the source names no clipboard, dialog, notification or
-    launchd tool.
+    `pbpaste`, `osascript` and `launchctl` on `PATH` that record any call. None were called, and no file
+    changed. A second test asserts the source names no clipboard, dialog, notification or launchd tool.
+  - **A `PATH` fake cannot see `security`:** the code calls `/usr/bin/security` by absolute path. (The
+    test also places a fake `security` on `PATH`; it proves nothing.) The `security` evidence is the
+    injected-runner tests instead:
+    - **file-salt branch:** a test replaces `subprocess.run`, `subprocess.Popen` and the lock probe, and
+      asserts the hook starts **no** process and never probes the Keychain. Mutation-checked: an
+      unconditional `/usr/bin/security` call on that branch, the lens's mutant, turns it red, and so does
+      running the lock probe there;
+    - **Keychain branch:** see below.
   - **It does read the login Keychain**, once per prompt, whenever a term list exists. The owner has
     added a term (Issue #5), so this is the production path on his machine. The salt item was created by
     `/usr/bin/security`, so its access list trusts that tool. An in-process read from `python3` with user
@@ -488,6 +495,10 @@ Option 1 of this record, alone: harness-level prompt hooks.
       then `SecKeychainGetStatus`). Only if the keychain reports unlocked does it run
       `security find-generic-password … -w`. It never runs `security -i`, and it gives that process no
       stdin.
+    - **That switch does not reach `security`.** `SecKeychainSetUserInteractionAllowed` is
+      per-process, *measured by the lens* on this PR. Turning interaction off in the hook therefore
+      does nothing for the `security` child. The gate keeps `security` from running against a locked
+      keychain; it does not make `security` itself non-interactive.
     - **Bound.** The read has a 2-second timeout.
     - **Locked, unknown, slow or missing:** term matching is skipped for that prompt, with a visible
       *"NOT checked"* warning. The generic categories still apply.

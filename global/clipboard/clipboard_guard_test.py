@@ -344,6 +344,27 @@ class PromptHook(unittest.TestCase):
         finally:
             g.subprocess.run, g.keychain_unlocked = real_run, real_probe
 
+    def test_file_salt_branch_starts_no_process(self):
+        """With salt_store=file the hook must start no subprocess at all, `security` included. A PATH
+        fake cannot see /usr/bin/security (absolute path), so this injects at subprocess.run itself."""
+        d, conf = hook_conf("hook-file-noproc")
+        salt = g.SaltStore(conf).get_or_create()
+        g.add_term_hashes(conf["terms_file"], [g.term_hash(salt, f) for f in g.term_forms(TERM)])
+        calls = []
+        real_run, real_popen, real_probe = g.subprocess.run, g.subprocess.Popen, g.keychain_unlocked
+
+        def record(*a, **k):
+            calls.append(a[0] if a else k.get("args"))
+            raise AssertionError("the file-salt hook path started a process")
+        try:
+            g.subprocess.run = g.subprocess.Popen = record
+            g.keychain_unlocked = lambda *a: calls.append("keychain_unlocked") or True
+            out, raw = decide_default_salts(conf, "notes for " + TERM)
+        finally:
+            g.subprocess.run, g.subprocess.Popen, g.keychain_unlocked = real_run, real_popen, real_probe
+        self.assertEqual(calls, [], "the file-salt branch touched the Keychain or started a process")
+        self.assertEqual(out["decision"], "block")
+
     @unittest.skipUnless(DARWIN and os.path.exists("/usr/bin/security"), "macOS Keychain only")
     def test_hook_process_reads_a_real_namespaced_keychain_salt(self):
         """A real prompt-hook process against the login Keychain, through the real lock probe and the
@@ -432,8 +453,10 @@ class PromptHook(unittest.TestCase):
 
     def test_hook_process_writes_nothing_and_touches_no_os_surface(self):
         """A real `prompt-hook` process, as a harness runs it, in a throwaway HOME, with fake pbcopy,
-        pbpaste, osascript and security on PATH that record any call: the filter must call none of
-        them (no clipboard, no OS dialog or notification), print only its JSON and write no file."""
+        pbpaste, osascript and launchctl on PATH that record any call: the filter must call none of
+        them (no clipboard, no OS dialog or notification), print only its JSON and write no file.
+        The fake `security` here proves NOTHING: the code calls /usr/bin/security by absolute path,
+        which a PATH fake never sees. test_file_salt_branch_starts_no_process covers that."""
         d, conf_unused = hook_conf("hook-proc")
         conf_path = os.path.join(d, "clipboard.conf")
         home = os.path.join(d, "home")
