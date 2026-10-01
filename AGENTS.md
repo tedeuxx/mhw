@@ -5,10 +5,24 @@ whatever comes next). It is authored, not generated.
 
 ## Fundamental purpose
 
-This repository is the **governed configuration of the owner's personal workstation** (a Mac mini) for
-every AI agent harness he runs on it. It exists to protect him — as a private individual — from
-**individual, civil and intellectual-property risk** arising from his personal activity tied to his
-public professional persona.
+This repository is the owner's **LLM firewall**. It is a protection layer for his individual liability,
+enforcing ethical principles that he defines and regulates. It sits between him and every AI agent
+harness on his personal workstation (a Mac mini), and it is expressed as that workstation's governed
+configuration. It exists to protect him, as a private individual, from **individual, civil and
+intellectual-property risk** arising from his personal activity tied to his public professional persona.
+
+Its job is to **sanitise prompts** in both directions it can reach:
+
+- **external**: prompts that leave the machine for an LLM provider or any other service;
+- **internal**: prompts passed between agents (agent ↔ subagent).
+
+What it removes from them:
+
+- workstation security risks (secrets, credentials);
+- personal data and PII;
+- client and employer confidential data;
+- sensitive personal data, such as health data and the other categories LGPD treats as *dados pessoais
+  sensíveis*.
 
 Concretely, it must keep three things true on this machine:
 
