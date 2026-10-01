@@ -19,6 +19,21 @@ The full mission, the principles and the hard rules for agents working here are 
 are still proposed rather than accepted, and the global brief is the only thing installed from here so
 far.
 
+## This repository vs the plugin
+
+This repository is the firewall: the personal protection floor. The owner's public plugin,
+[`tadeumendonca-skills`](https://github.com/tedeuxx/tadeumendonca-skills), is the way of working:
+personas, the delivery loop, skills and project hooks. The plugin may add controls but never weaken the
+floor ([ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md)). Being the last barrier is the
+firewall's purpose, not yet its mechanism: today its one installed control is a user-level instruction,
+which project configuration can override.
+
+| Layer | Owns | May it weaken the floor? |
+| --- | --- | --- |
+| This repository | The protection floor | It is the floor |
+| `tadeumendonca-skills` | The way of working | No, it may only add controls |
+| A project's own config | That project's needs | No |
+
 ## Install
 
 The global brief has one source, `global/AGENTS.md`, rendered into each harness's user-level location

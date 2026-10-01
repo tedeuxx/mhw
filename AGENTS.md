@@ -120,6 +120,15 @@ Concretely, it must keep three things true on this machine:
 
    (Owner, 2026-10-01.)
 
+## This repository vs the plugin
+
+**This repository is the firewall**: the personal protection floor every session passes through. The
+owner's `tadeumendonca-skills` plugin is the **way of working**: personas, the delivery loop, skills
+and project hooks. The plugin may add controls and must never weaken the floor. This repository carries
+no way-of-working content. "Last barrier" is the firewall's purpose. It is not yet its mechanism: today
+its only installed control is a user-level instruction, and user level is low precedence in every
+harness. See [ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md).
+
 ## The model: corporate workstation governance, applied to one person
 
 Corporate organisations govern workstations in **layers with precedence**: an organisation-wide
