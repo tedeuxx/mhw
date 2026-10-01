@@ -173,17 +173,27 @@ The source of truth for every layer lives here, versioned; what is installed on 
 
 ## Status
 
-Bootstrapped 2026-10-01. The policy itself is being defined through an interview with the owner;
-the global brief (`global/AGENTS.md`) is installed from here into the three user-level locations at
-version 0.3.0. Its evidence level is *loaded* in Claude Code and Codex, measured headless on
-2026-10-01, and *documented* for Kiro (ADR-0010). Nothing else in the machine's configuration is
-managed from here yet. The deny floor (ADR-0016, accepted) is *enforced* in Claude Code and Codex when
-installed, measured headless in throwaway homes. It is *installed* on the reference machine since
-2026-10-01, with `install.sh --check` clean; enforcement there was not re-measured. Kiro carries no
-floor. The macOS clipboard watcher (ADR-0011's 2026-10-01 amendment) is written
-and tested in throwaway directories. Its LaunchAgent has never been loaded, so its on-screen notices
-are unverified. Its default mode, `offer`, changes nothing without the owner's click, and awaits his
-ratification. Linux and Windows have design notes only. One MCP definition, kept in the untracked local
-overlay and rendered into Codex, Claude Code, the Claude desktop app and Kiro with credentials read from
-the Keychain at launch (ADR-0017, proposed), is written and tested in throwaway homes. It is not
-installed, and installing it into the owner's real configuration is his act.
+Bootstrapped 2026-10-01. The policy itself is being defined through an interview with the owner.
+On 2026-10-01, with the owner's go (Issue #4,
+[comment](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/4#issuecomment-5937083996)),
+`global/install.sh` ran against the reference machine from `main` at v0.7.0 (`093f84f`). It exited 0,
+and `install.sh --check` then exited 0 with every target OK. Here is what the reference machine carries
+from here now, and at what evidence level:
+
+- **Global brief** (`global/AGENTS.md`, ADR-0010): *installed* into the three user-level locations at
+  v0.7.0. Its evidence level is *loaded* in Claude Code and Codex, measured headless on 2026-10-01, and
+  *documented* for Kiro.
+- **HITL escalation guard** (ADR-0013): its hook entry in the Claude Code user settings is *installed*
+  (`--check`: "hook entry … present"). That it fires on the reference machine was not re-measured.
+- **Deny floor** (ADR-0016, accepted): *installed*, with all 101 rules present per `--check`. It is
+  *enforced* in Claude Code and Codex, as measured headless in throwaway homes. Enforcement on the
+  reference machine was not re-measured. Kiro carries no floor.
+- **Clipboard watcher** (ADR-0011's 2026-10-01 amendment, macOS): its guard files and LaunchAgent plist
+  are *written* but **not loaded**. Loading it is Issue #5. So its on-screen notices are unverified. Its
+  default mode, `offer`, changes nothing without the owner's click, and awaits his ratification. Linux
+  and Windows have design notes only.
+- **MCP definition** (ADR-0017, proposed): one definition, kept in the untracked local overlay and
+  rendered into Codex, Claude Code, the Claude desktop app and Kiro with credentials read from the
+  Keychain at launch. It is written and tested in throwaway homes. `install.sh` does not run its
+  renderer, and the renderer has **not** been run on the reference machine (Issue #8). Installing it
+  into the owner's real configuration is his act.

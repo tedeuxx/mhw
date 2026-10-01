@@ -110,9 +110,12 @@ invalid one stops the run with exit 2, so an entry the parser would drop never b
   it has never run.~~ Tested on a Windows CI runner since ADR-0010's 2026-10-01 amendment on Windows,
   Linux and Kiro CLI.
 
-On the reference machine today, read 2026-10-01 and not installed: 20 of the 101 floor rules are
-already in his deny list, and the merge would add 81. His other 19 entries are kept. The installer was
-**not** run against his real HOME; that needs his go.
+~~On the reference machine today, read 2026-10-01 and not installed:~~ **Pre-install state** (read
+2026-10-01, before the installer ran on the reference machine): 20 of the 101 floor rules are
+already in his deny list, and the merge would add 81. His other 19 entries are kept. ~~The installer was
+**not** run against his real HOME; that needs his go.~~ (Struck 2026-10-01: the owner ratified and the
+installer ran on the reference machine. See the amendment "2026-10-01: ratified by the owner and
+installed on the reference workstation" below.)
 
 **What the floor takes away from something allowed today.** This is the complete list, because he
 ratifies it. An allow entry counts as narrowed when a floor rule denies part of what it allows. That
@@ -272,8 +275,8 @@ shows the rules are present. It does not show that a harness refuses a command t
 evidence is still the headless measurement in throwaway homes ("Per harness: evidence level").
 
 **What this changes in the body above.** The sentence "The installer was **not** run against his real
-HOME; that needs his go" no longer holds, and the 2026-10-01 counts beside it are the state before
-installation. The rest stands: Kiro still carries no floor, Windows is still not enforced-measured,
+HOME; that needs his go" no longer holds and is struck in place. The 2026-10-01 counts beside it are
+marked as the pre-install state. The rest stands: Kiro still carries no floor, Windows is still not enforced-measured,
 and every escape in "What a deny cannot do" still escapes.
 
 ## Links
