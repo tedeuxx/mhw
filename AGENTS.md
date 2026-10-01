@@ -24,6 +24,11 @@ What it removes from them:
 - sensitive personal data, such as health data and the other categories LGPD treats as *dados pessoais
   sensíveis*.
 
+Its ethical foundation is **Stoic ethics, the good life** (owner); how that maps onto firewall
+behaviour is proposed in [ADR-0004](docs/adr/0004-stoic-ethical-foundation.md). On detection the
+response is **human-in-the-loop only, with no auditable record kept on the workstation**
+([ADR-0005](docs/adr/0005-detection-response-hitl-without-log.md)).
+
 Concretely, it must keep three things true on this machine:
 
 1. **Client and employer confidentiality is never breached.** Material belonging to a current or past
