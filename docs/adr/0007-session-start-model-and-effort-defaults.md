@@ -15,16 +15,18 @@ usuario/wokstation os padroes de model effort de inicio de sessao"*.
 **Observed baseline on the reference install, 2026-10-01**, from the user-level configs. The values
 were re-read by this record's author.
 
-| Surface | Default model | Default effort |
-| --- | --- | --- |
-| Claude Code | `opus[1m]` | `effortLevel` = `medium` |
-| Codex | a top-tier GPT model (`model`) | `model_reasoning_effort` = `medium` |
-| Kiro | not yet observed | not yet observed |
-| Claude desktop app / Cowork | not yet observed | not yet observed |
-| ChatGPT desktop app | not yet observed | not yet observed |
+**The default is declared for each supported harness**: *"para cada harness suportado"* (owner). The
+table has one row per supported harness or surface (ADR-0006), and none is omitted. A row not yet
+measured says so. A harness that cannot honour a configurable default says so in its row, and is never
+dropped from the table.
 
-For the last three, **whether the surface exposes a configurable default at all** still has to be
-measured.
+| Harness / surface | Honours a configurable default? | Default model | Default effort |
+| --- | --- | --- | --- |
+| Claude Code | yes (user-level settings) | `opus[1m]` | `effortLevel` = `medium` |
+| Codex | yes (user-level config) | a top-tier GPT model (`model`) | `model_reasoning_effort` = `medium` |
+| Kiro | to be measured | to be measured | to be measured |
+| Claude desktop app / Cowork | to be measured | to be measured | to be measured |
+| ChatGPT desktop app ("work" surfaces) | to be measured | to be measured | to be measured |
 
 ## Decision drivers
 
@@ -45,7 +47,7 @@ measured.
 
 **Proposed: option 1.**
 
-- **The policy** is one declared default per surface, expressed as a class: *the vendor's top model
+- **The policy** is one declared default for each supported harness, one table row each, expressed as a class: *the vendor's top model
   available on the active subscription, at medium effort.*
 - **The rendering** is the concrete value per surface, recorded beside the class and updated when the
   vendor's identifiers change.
