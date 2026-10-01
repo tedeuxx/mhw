@@ -80,7 +80,7 @@ in a `cmd` word, because Claude reads it as a wildcard and Codex as a literal ch
 harnesses would disagree about one entry. Every line is validated before anything is written. An
 invalid one stops the run with exit 2, so an entry the parser would drop never becomes a silent hole.
 
-### The floor (96 Claude rules from 82 `cmd` and 7 `file` entries)
+### The floor (101 Claude rules from 87 `cmd` and 7 `file` entries)
 
 | Category | Entries | Why it is on the floor |
 | --- | --- | --- |
@@ -88,7 +88,8 @@ invalid one stops the run with exit 2, so an entry the parser would drop never b
 | Reading a credential into context | `gh auth token`; `security find-generic-password`, `find-internet-password`, `dump-keychain`; `aws configure export-credentials`, `aws configure get aws_secret_access_key`, `aws secretsmanager get-secret-value`; file reads and writes of `~/.ssh/id_*`, `~/.aws/credentials`, `~/.netrc`, `~/.config/gh/hosts.yml`, `~/.docker/config.json`, `~/.codex/auth.json`, `~/.claude/.credentials.json` | The firewall's first job is that secrets do not reach a model provider (`AGENTS.md`, "How: the LLM firewall") |
 | Writing or deleting a secret | `gh secret set/delete/remove`; `aws secretsmanager create-secret/put-secret-value/update-secret/delete-secret`; `aws ssm put-parameter`; `aws iam create-access-key`; `security add-/delete-generic-password`, `add-/delete-internet-password` | A secret is set by the human, never by an agent |
 | Rewriting history | `git push --force`, `--force-with-lease`, `--force-if-includes`, `-f`, `--mirror`; `git reset --hard`; `git filter-branch`, `filter-repo`; `git reflog expire/delete`; `git gc --prune=now` | Others may hold the old history; the last three destroy what makes a rewrite recoverable |
-| Destructive deletes | `rm` with `-rf`, `-fr`, `-Rf`, `-fR`, `-r -f`, `-f -r`, `-R -f`, `-f -R`, `--recursive --force`, `--force --recursive`; `git clean -f` and ten combined spellings with `d` and `x` | Untracked files have no other copy. The flags are a set, not a token, so each spelling is its own entry |
+| Destructive deletes | `rm` with `-rf`, `-fr`, `-Rf`, `-fR`, `-r -f`, `-f -r`, `-R -f`, `-f -R`, `--recursive --force`, `--force --recursive`; `git clean -f`, ten combined spellings with `d` and `x`, `--force`, `-d -f`, `-x -f` | Untracked files have no other copy. The flags are a set, not a token, so each spelling is its own entry |
+| Mutating infrastructure outside a pipeline | `terraform apply`, `terraform destroy` | A destroyed resource is not restored by a revert. No layer on the reference machine allows either; his repositories allow only `plan`, `fmt`, `validate` and `init` |
 | Publishing, releasing, exposing a repository | `gh repo delete/archive/rename`, `gh repo edit --visibility`; `gh release create/delete/edit/upload`; `gh gist create`; `npm publish/unpublish`, `pnpm publish`, `yarn publish`, `yarn npm publish`, `cargo publish`, `twine upload`, `gem push`, `docker push` | What is published under his name cannot be unpublished from everyone who saw it (`AGENTS.md`, "Concretely", item 2) |
 
 ### Rendering and installing
@@ -107,11 +108,33 @@ invalid one stops the run with exit 2, so an entry the parser would drop never b
   settings with the same grammar and validation. **Untested**: no PowerShell runtime was available, and
   it has never run.
 
-On the reference machine today, read 2026-10-01 and not installed: 20 of the 96 floor rules are already
-in his deny list, and the merge would add 76. His other 19 entries are kept. Under his current allow
-list, the floor narrows two entries: `Bash(git push:*)` (newly `--force-if-includes` and `--mirror`; he
-already denies the other three force spellings) and `Bash(npm:*)` (`publish`, `unpublish`). The
-installer was **not** run against his real HOME; that needs his go.
+On the reference machine today, read 2026-10-01 and not installed: 20 of the 101 floor rules are
+already in his deny list, and the merge would add 81. His other 19 entries are kept. The installer was
+**not** run against his real HOME; that needs his go.
+
+**What the floor takes away from something allowed today.** This is the complete list, because he
+ratifies it. An allow entry counts as narrowed when a floor rule denies part of what it allows. That
+happens when a `Bash` rule's words equal the allow's prefix or extend it, or when an `Edit(<path>)` rule
+meets a bare `Edit` or `Write` allow. Computed against the rendered floor, and calibrated against the
+known-present `npm:*` hit:
+
+| Layer | Allow entry | What the floor now denies inside it |
+| --- | --- | --- |
+| user (`~/.claude/settings.json`) | `Edit` | edits of the 7 credential files |
+| user | `Write` | the same 7 files. That an `Edit(<path>)` rule also covers the `Write` tool is *documented* (<https://code.claude.com/docs/en/permissions>), **not measured** |
+| user | `Bash(git push:*)` | `--force`, `--force-with-lease`, `-f` (already in his deny list), and newly `--force-if-includes` and `--mirror` |
+| user | `Bash(npm:*)` | `npm publish`, `npm unpublish` |
+| project (`tadeumendonca-io`, `tadeumendonca-skills`, committed `settings.json`) | `Edit`, `Write`, `Bash(git push:*)`, `Bash(npm:*)` | as above |
+| project (same two files) | `Bash(rm:*)` | the 10 recursive-force spellings. The plugin guard already denies all of them |
+| project local (`tadeumendonca-skills/.claude/settings.local.json`) | `Bash(gh repo *)` | `gh repo delete`, `archive`, `rename`: the plugin guard already denies these. **And `gh repo edit --visibility`, which the plugin guard does not deny** |
+
+Everything else in the floor, including `sudo`, the credential-file reads, `terraform apply/destroy`
+and the secret commands, is allowed by no layer today. There it changes a permission prompt into a
+denial, which is still a change he ratifies.
+
+**Overlap with the plugin guard is deliberate.** The floor sits in a layer a project cannot disable,
+and the guard sits in one it can. Issue #4's "must not duplicate or weaken" is read as *must not
+contradict or weaken*. The floor never allows anything the guard denies, and it never removes a rule.
 
 ### Per harness: evidence level
 
@@ -159,6 +182,10 @@ execpolicy check`, these escape it:
 | `/bin/rm -rf x` (absolute path) | no match; `forbidden` only with `--resolve-host-executables` |
 | `rm -rfv x` (one more flag letter) | no match |
 | `env rm -rf x` (a wrapper) | no match |
+| `claude -p hi --dangerously-skip-permissions` (bypass flag after another option: the headless form an agent would use to launch one) | no match |
+| `codex exec --json --dangerously-bypass-approvals-and-sandbox hi` (same) | no match |
+| `git clean -q -f`, `git clean -d -x -f` (`-f` not in the first two positions) | no match. `--force -d`, `-d -f` and `-x -f` are forbidden |
+| `terraform -chdir=iac apply` (a global option before the subcommand; his repositories use this form for `plan`) | no match. `terraform apply -auto-approve` and `terraform destroy` are forbidden, and `terraform plan` is untouched |
 
 Claude Code's prefix has the same shape: a token-bounded prefix, so a flag later in the command and
 `git -C <dir>` are not covered. That is *documented* in the plugin's `devops` skill, measured there on
@@ -175,6 +202,10 @@ Measured over-matches, accepted as the price of a prefix:
 - `npm publish --dry-run` is forbidden.
 - `sudo` is forbidden whole.
 - `codex exec -s danger-full-access` is forbidden even when the owner types it into an agent on purpose.
+- `aws ssm put-parameter --type String` (a non-secret parameter) and `aws secretsmanager
+  get-secret-value` are forbidden. The plugin guard allows both on purpose: it denies `put-parameter`
+  only for `SecureString`, and it does not deny `get-secret-value`. Being stricter than the plugin is
+  intended here, and it is listed so it is not mistaken for a contradiction.
 
 A deny only constrains what an agent runs. The owner's own terminal is untouched.
 
@@ -197,8 +228,9 @@ the Codex probe uses `npm publish`.
   entry it added from one he wrote.
 - Bad: the first merge re-serializes `~/.claude/settings.json` (ADR-0013 already has this cost). The
   dry-run says so and shows the semantic diff.
-- Bad: on the reference machine the floor narrows two current allows (`git push:*` and `npm:*`), and
-  `sudo` and credential-file reads are new denials. Each is the owner's to ratify.
+- Bad: on the reference machine the floor narrows four user-level allows (`Edit`, `Write`, `git
+  push:*`, `npm:*`). At project level it also narrows `rm:*` and `gh repo *`, as listed in the table
+  above. Every other entry turns today's prompt into a denial. Each is the owner's to ratify.
 - Bad: Kiro carries no floor, and the Windows installer is untested.
 - Version cut (ADR-0002): **minor**. It is a new protection, and nothing an adopter had is weakened.
 
