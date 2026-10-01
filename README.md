@@ -266,6 +266,14 @@ configuration ([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)).
 | bump-my-version | CI only (not installed locally) |
 | Homebrew | 7.0.7 |
 
+### Local persistence on this machine
+
+What each agent surface stores locally (transcripts, history, memory, uploads, caches, logs), its
+retention and the setting that controls it are inventoried per surface, from metadata only, in
+[`docs/persistence-inventory.md`](docs/persistence-inventory.md). The stores that conflict with
+[ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md), and the candidate
+controls (proposed, not installed), are in that record's 2026-10-01 amendment.
+
 ### Global brief on this machine
 
 Installed by `global/install.sh` into all three user-level locations above, and `--check` reports them
