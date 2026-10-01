@@ -14,7 +14,9 @@ intellectual-property risk** arising from his personal activity tied to his publ
 It covers **every agent surface of both vendor families**, not only the CLIs: Claude Code, the Claude
 desktop app including Cowork and its local MCP/extension config, Codex (CLI and app), the ChatGPT
 desktop app's agentic "work" surfaces, and Kiro
-([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)).
+([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)). Each surface's session-start default
+model and effort is standardised at user level
+([ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md), proposed).
 
 Its job is to **sanitise prompts** in both directions it can reach:
 
