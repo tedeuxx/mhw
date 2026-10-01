@@ -22,6 +22,19 @@ Concretely, it must keep three things true on this machine:
 3. **The controls are uniform across harnesses.** One policy, expressed in each harness's own
    mechanism, so that switching tools never silently drops a protection.
 
+## Principles
+
+1. **Compatible distributions and environments.** The owner's macOS machine is the reference
+   installation and must stay fully supported. The policies themselves must be **replicable by other
+   people on their own workstations, Windows and Linux included**. The repository is therefore a
+   portable policy set, not a dump of one machine:
+   - owner-specific values (paths, accounts, his own repositories) live in an **overlay** kept
+     separate from the generic policy;
+   - every control declares **which OS × harness combinations enforce it**, and where one cannot, the
+     gap is stated rather than hidden.
+
+   (Owner, 2026-10-01.)
+
 ## The model: corporate workstation governance, applied to one person
 
 Corporate organisations govern workstations in **layers with precedence**: an organisation-wide
