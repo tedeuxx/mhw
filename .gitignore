@@ -8,3 +8,6 @@ auth.json
 **/secrets/
 *.local.json
 .DS_Store
+
+# Agent worktrees — they appear untracked in the main checkout.
+.claude/worktrees/
