@@ -8,6 +8,7 @@ auth.json
 **/secrets/
 *.local.json
 .DS_Store
+__pycache__/
 
 # Agent worktrees — they appear untracked in the main checkout.
 .claude/worktrees/

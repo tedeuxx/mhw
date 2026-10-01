@@ -21,7 +21,12 @@ targets() {
   echo "$1/.claude/CLAUDE.md $1/.codex/AGENTS.md $1/.kiro/steering/workstation-global-brief.md"
   echo "$(data "$1")/hitl-escalation-guard.sh $(data "$1")/hitl.conf $1/.claude/settings.json"
   echo "$1/.codex/rules/workstation-deny-floor.rules"
+  echo "$(data "$1")/clipboard_guard.py $(data "$1")/clipboard.conf"
+  if [ "$darwin" = 1 ]; then plist "$1"; fi
 }
+darwin=0; [ "$(uname -s)" = Darwin ] && darwin=1
+plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
+clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
 ours() { # number of hook entries of ours in a settings file
   jq '[.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"))] | length' "$1"
@@ -54,7 +59,7 @@ fi
 
 # 2. fresh install
 h="$base/home-fresh"; mkdir -p "$h"
-HOME="$h" sh "$inst"; expect "fresh install" 0 $?
+HOME="$h" sh "$inst" > "$base/fresh.out"; expect "fresh install" 0 $?
 for f in $(targets "$h"); do
   if [ -f "$f" ]; then ok "written: ${f#"$h"/}"; else ko "missing: ${f#"$h"/}"; fi
 done
@@ -118,6 +123,37 @@ else
   echo "SKIP  codex not on PATH: the rendered rules file was not parsed by Codex here"
 fi
 
+# 2c. the clipboard guard (ADR-0011): script, merged settings, and on macOS the LaunchAgent plist
+cg="$(data "$h")/clipboard_guard.py"
+if sed 2d "$cg" | cmp -s - "$clip_src" && sed -n 2p "$cg" | grep -q '^# managed-by: personal-multi-harness-workstation-configuration'; then
+  ok "clipboard guard installed: the source plus a marker on line 2"
+else
+  ko "installed clipboard guard differs from its source"
+fi
+cc="$(data "$h")/clipboard.conf"
+if grep -qx 'mode=offer' "$cc" && grep -qx 'button_clean=Limpar' "$cc"; then
+  ok "clipboard settings carry the generic default (offer) and the overlay's notices"
+else
+  ko "clipboard settings wrong"
+fi
+if [ -e "$(data "$h")/local-overlay" ]; then ko "the installer created the local overlay (term list or salt)"; else ok "the installer wrote no term list and no salt"; fi
+if [ "$darwin" = 1 ]; then
+  p=$(plist "$h")
+  if plutil -lint "$p" > /dev/null; then ok "the LaunchAgent plist is valid"; else ko "the LaunchAgent plist does not lint"; fi
+  if [ "$(plutil -extract ProgramArguments.3 raw "$p")" = "$cg" ] \
+     && [ "$(plutil -extract ProgramArguments.0 raw "$p")" = /usr/bin/python3 ] \
+     && [ "$(plutil -extract StandardOutPath raw "$p")" = /dev/null ] \
+     && [ "$(plutil -extract StandardErrorPath raw "$p")" = /dev/null ] \
+     && [ "$(plutil -extract KeepAlive.SuccessfulExit raw "$p")" = false ]; then
+    ok "the plist runs the installed guard with stock python3, output to /dev/null"
+  else
+    ko "the plist's program or output paths are wrong"
+  fi
+  if grep -q '^NOTE .*not loaded' "$base/fresh.out"; then ok "install says it did not load the agent"; else ko "install did not say the agent is unloaded"; fi
+else
+  if [ -e "$(plist "$h")" ]; then ko "a plist was written on a non-macOS system"; else ok "no plist off macOS"; fi
+fi
+
 # 3. idempotent re-run
 before=$(fingerprint "$h")
 HOME="$h" sh "$inst"; expect "re-run" 0 $?
@@ -139,6 +175,16 @@ HOME="$h" sh "$inst" > /dev/null; expect "install restores the removed rule" 0 $
 if [ "$(has_rule "$h/.claude/settings.json" 'Bash(rm -rf:*)')" -eq 1 ]; then ok "the removed rule is back, once"; else ko "the removed rule was not restored"; fi
 rm "$h/.codex/rules/workstation-deny-floor.rules"
 HOME="$h" sh "$inst" --check; expect "check detects a missing codex rules file" 1 $?
+HOME="$h" sh "$inst" > /dev/null
+echo "mode=sanitise" >> "$(data "$h")/clipboard.conf"
+HOME="$h" sh "$inst" --check; expect "check detects a hand-edited clipboard setting" 1 $?
+HOME="$h" sh "$inst" > /dev/null
+if [ "$darwin" = 1 ]; then
+  sed 's#<string>/dev/null</string>#<string>/tmp/clip.log</string>#' "$(plist "$h")" > "$base/p.plist" && cp "$base/p.plist" "$(plist "$h")"
+  HOME="$h" sh "$inst" --check; expect "check detects a plist that would log" 1 $?
+  HOME="$h" sh "$inst" > /dev/null; expect "install repairs the plist" 0 $?
+  if grep -q '/tmp/clip.log' "$(plist "$h")"; then ko "the plist still points at a log"; else ok "the repaired plist logs nowhere"; fi
+fi
 
 # 5. refuse an unmanaged file
 h="$base/home-unmanaged"; mkdir -p "$h/.claude"
@@ -224,6 +270,7 @@ out=$(jq -cn --arg l "$long" '{tool_name:"AskUserQuestion",tool_input:{questions
 if [ -z "$out" ]; then ok "generic install does not check question length"; else ko "generic install checked length"; fi
 out=$(jq -cn '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:"a"},{question:"b"}]}}' | sh "$(data "$h")/hitl-escalation-guard.sh")
 if printf '%s' "$out" | jq -r .systemMessage | grep -q '^HITL guard (ADR-0013)'; then ok "generic install notifies in the default English"; else ko "generic notice wrong"; fi
+if grep -q '^button_clean=' "$(data "$h")/clipboard.conf"; then ko "overlay leaked into generic clipboard settings"; else ok "generic clipboard settings carry no owner overlay"; fi
 
 # 10. a permissions section of the wrong shape is refused and left untouched
 h="$base/home-badperms"; mkdir -p "$h/.claude"
