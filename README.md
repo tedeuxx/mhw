@@ -107,9 +107,9 @@ The global brief has one source, `global/AGENTS.md`, rendered into each harness'
 | --- | --- |
 | Claude Code | `~/.claude/CLAUDE.md` |
 | Codex | `${CODEX_HOME:-~/.codex}/AGENTS.md` |
-| Kiro | `~/.kiro/steering/workstation-global-brief.md` (with `inclusion: always` front matter) |
+| Kiro (IDE and CLI) | `~/.kiro/steering/workstation-global-brief.md` (with `inclusion: always` front matter). Kiro CLI reads the same global steering directory, documented; a custom agent loads it only if listed in its `resources` |
 
-macOS and Linux:
+macOS and Linux (CI runs the suite on macOS and on Ubuntu, where `/bin/sh` is dash):
 
 ```sh
 sh global/install.sh            # install or update every target
@@ -117,7 +117,10 @@ sh global/install.sh --dry-run  # print exactly what would be written where; wri
 sh global/install.sh --check    # exit non-zero if a target is missing, drifted or unmanaged
 ```
 
-Windows (PowerShell), written to mirror `install.sh` and **not yet run on Windows**:
+Windows (PowerShell). Tested in CI on a Windows runner under Windows PowerShell 5.1 and PowerShell 7
+(`global/install.test.ps1`). It renders the brief and the deny floor only: the HITL guard and the
+clipboard guard are not ported. The per-feature parity table is in
+[ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md):
 
 ```powershell
 .\global\install.ps1
@@ -241,7 +244,7 @@ whenever a tool updates.
 | Codex CLI | 0.155.0-alpha.16.4, bundled with the ChatGPT desktop app |
 | ChatGPT desktop app | installed |
 | Kiro IDE | 1.0.437 |
-| Kiro CLI | not installed |
+| Kiro CLI | not installed (its global brief location is documented: `~/.kiro/steering/`, ADR-0010) |
 
 ### Access modes
 

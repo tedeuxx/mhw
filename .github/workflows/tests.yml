@@ -47,6 +47,17 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+      # Evidence for Principle 1 (Issue #9): which POSIX sh runs the suites. On ubuntu /bin/sh is dash,
+      # the strictest common POSIX sh; this step fails if that ever stops being true, so a green ubuntu
+      # run is a dash run. On macOS /bin/sh is bash in POSIX mode.
+      - name: which /bin/sh runs the suites
+        run: |
+          ls -l /bin/sh
+          if [ "$RUNNER_OS" = Linux ]; then
+            target=$(readlink -f /bin/sh)
+            echo "/bin/sh -> $target"
+            [ "$(basename "$target")" = dash ] || { echo "expected dash as /bin/sh on Linux"; exit 1; }
+          fi
       - name: hook suite
         run: sh global/hooks/hitl-escalation-guard.test.sh "$RUNNER_TEMP/guard"
       - name: installer suite
@@ -61,3 +72,29 @@ jobs:
         run: |
           python3 --version
           python3 -B global/mcp/mcp_render_test.py "$RUNNER_TEMP/mcp"
+
+  # install.ps1 on a real Windows host (Issue #9, ADR-0010). Throwaway USERPROFILEs under RUNNER_TEMP
+  # only. Runs under Windows PowerShell 5.1 (what a stock Windows has) and PowerShell 7. The runner's git
+  # checks out with core.autocrlf=true, so this also exercises a CRLF source tree.
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        ps: [powershell, pwsh]
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      # actions/checkout v6.1.0 (same pin as version-main.yml, verified with git ls-remote 2026-10-01)
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: installer suite (install.ps1 under ${{ matrix.ps }})
+        shell: pwsh
+        env:
+          PS_EXE: ${{ matrix.ps }}
+        run: |
+          git config --get core.autocrlf
+          & $env:PS_EXE -NoProfile -Command '$PSVersionTable | Format-Table -AutoSize | Out-String'
+          & $env:PS_EXE -NoProfile -NonInteractive -ExecutionPolicy Bypass -File global\install.test.ps1 "$env:RUNNER_TEMP\install-$env:PS_EXE"
+          exit $LASTEXITCODE
