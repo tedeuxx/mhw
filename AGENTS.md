@@ -5,6 +5,11 @@ whatever comes next). It is authored, not generated.
 
 ## Fundamental purpose
 
+This repository is the **master of first principles** for the owner as an individual interacting with
+his AI workstation. It protects him from third-party risk, and it also places **ethical locks on what he
+himself seeks to achieve**; the concrete locks are pending an interview with him
+([ADR-0015](docs/adr/0015-master-of-first-principles-ethical-locks-on-own-aims.md)).
+
 ### Mission
 
 In the owner's words:

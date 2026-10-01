@@ -11,6 +11,10 @@ credentials, personal data, client and employer confidential data, and sensitive
 policy is expressed in each harness's own mechanism, so switching tools never silently drops a
 protection.
 
+It is also the owner's master of first principles: it places ethical locks on what he himself seeks
+to achieve, and those locks are still being defined with him
+([ADR-0015](docs/adr/0015-master-of-first-principles-ethical-locks-on-own-aims.md)).
+
 The full mission, the principles and the hard rules for agents working here are in
 [`AGENTS.md`](AGENTS.md). The brief installed into every session is
 [`global/AGENTS.md`](global/AGENTS.md).
@@ -33,6 +37,60 @@ which project configuration can override.
 | This repository | The protection floor | It is the floor |
 | `tadeumendonca-skills` | The way of working | No, it may only add controls |
 | A project's own config | That project's needs | No |
+
+## Architecture of the personal workstation configuration
+
+```mermaid
+flowchart TB
+  owner(["Owner — human in the loop"])
+
+  subgraph WS["Personal workstation · macOS reference · Linux · Windows"]
+    clip["OS clipboard watcher<br/>ADR-0011 · planned"]:::oursPlanned
+
+    subgraph LAYERS["Configuration layers per harness"]
+      managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
+      ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · installed"]:::ours
+      uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · in PR"]:::oursPlanned
+      plugin["Plugin · tadeumendonca-skills<br/>personas · skills · loop · project hooks"]
+      project["Project config<br/>AGENTS.md · .claude/ · .codex/rules"]
+      local["Local overrides · untracked"]
+    end
+
+    subgraph HARN["Harnesses"]
+      cc["Claude Code"]
+      cx["Codex CLI / app"]
+      kiro["Kiro IDE / CLI"]
+    end
+
+    proxy["Local sanitising proxy<br/>ADR-0003 · contingent on measurement"]:::oursPlanned
+    desk["Claude desktop · Cowork · ChatGPT desktop"]
+  end
+
+  subgraph CLOUD["Outside local reach · dichotomy of control"]
+    acct["Account-side custom instructions"]
+    llm[("LLM providers")]
+  end
+
+  owner -->|copy / paste| clip
+  clip --> HARN
+  clip --> desk
+  managed --- ubrief --- uhooks --- plugin --- project --- local
+  LAYERS -. govern .-> HARN
+  HARN --> proxy --> llm
+  desk --> acct --> llm
+  HARN -->|"intervention notice: category + mitigation"| owner
+
+  classDef ours fill:#1f6feb,stroke:#0b3d91,color:#ffffff,stroke-width:2px
+  classDef oursPlanned fill:#9ec5fe,stroke:#1f6feb,color:#0b1f44,stroke-width:2px,stroke-dasharray:5 4
+```
+
+Legend: solid dark blue means distributed and installed by this repository; light blue dashed means
+distributed by this repository but planned, proposed or still in a pull request; unshaded means not
+this repository.
+
+The vertical order of the layers is the firewall's view, floor first. It is not the harnesses'
+override precedence, where a project value usually beats a user-level one; see
+[ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md).
 
 ## Install
 
