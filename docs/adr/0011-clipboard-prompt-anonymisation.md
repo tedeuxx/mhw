@@ -365,8 +365,9 @@ owner's go recorded on Issue #4 (<https://github.com/tedeuxx/personal-multi-harn
 `clipboard_guard.py`, `clipboard.conf` and LaunchAgent plist. The comment records them as written and
 not loaded at that point.
 
-**Loaded.** After that the owner said *"sim, pode ligar"* (his words as relayed by the main session;
-not yet recorded on Issue #5), and the main session ran `launchctl bootstrap gui/<uid> <plist>`, which
+**Loaded.** After that the main session asked *"posso ligar o vigia agora, carregando o LaunchAgent?"*
+and the owner answered *"sim, pode ligar"*, as recorded on Issue #5
+(<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5937296055>). Then the main session ran `launchctl bootstrap gui/<uid> <plist>`, which
 exited 0. Read independently afterwards with
 `launchctl print gui/<uid>/local.personal-multi-harness-workstation-configuration.clipboard-guard`:
 `state = running`, a running `pid`, `runs = 1`, `last exit code = (never exited)`.
