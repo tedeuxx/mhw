@@ -64,7 +64,7 @@ personal by policy and never persists employer or client confidential data
 ([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)). Clipboard-borne
 prompts are checked automatically for employer and client references
 ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed; the macOS watcher
-is written and tested, not installed). Operational
+is installed and loaded on the reference machine in the ratified `offer` mode). Operational
 judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
 the owner ([ADR-0012](docs/adr/0012-operational-judgement-delegated-to-the-harness.md)). How agents
 escalate a pending decision or action to the owner is calibrated here: generic rules in the global
@@ -134,11 +134,13 @@ Concretely, it must keep three things true on this machine:
 **This repository is the firewall**: the personal protection floor every session passes through. The
 owner's `tadeumendonca-skills` plugin is the **way of working**: personas, the delivery loop, skills
 and project hooks. The plugin may add controls and must never weaken the floor. This repository carries
-no way-of-working content. "Last barrier" is the firewall's purpose. It is not yet its mechanism: today
-its only installed control is a user-level instruction, and user level is low precedence in every
-harness. See [ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md). Its first mechanical
-control, a user-level deny floor rendered to Claude Code and Codex, is written and tested and not yet
-installed ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md), proposed).
+no way-of-working content. "Last barrier" is the firewall's purpose. The global brief is a user-level
+instruction, and user level is low precedence in every harness. See
+[ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md). Its first mechanical control, a
+user-level deny floor rendered to Claude Code and Codex, is accepted and was installed on the reference
+workstation on 2026-10-01
+([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)). It is a prefix floor, not a
+wall.
 
 ## The model: corporate workstation governance, applied to one person
 
@@ -171,16 +173,29 @@ The source of truth for every layer lives here, versioned; what is installed on 
 
 ## Status
 
-Bootstrapped 2026-10-01. The policy itself is being defined through an interview with the owner;
-the global brief (`global/AGENTS.md`) is installed from here into the three user-level locations at
-version 0.3.0. Its evidence level is *loaded* in Claude Code and Codex, measured headless on
-2026-10-01, and *documented* for Kiro (ADR-0010). Nothing else in the machine's configuration is
-managed from here yet. The deny floor (ADR-0016) is *enforced* in Claude Code and Codex when installed,
-measured headless in throwaway homes, and is not installed on the reference machine until the owner's
-go. Kiro carries no floor. The macOS clipboard watcher (ADR-0011's 2026-10-01 amendment) is written
-and tested in throwaway directories. Its LaunchAgent has never been loaded, so its on-screen notices
-are unverified. Its default mode, `offer`, changes nothing without the owner's click, and awaits his
-ratification. Linux and Windows have design notes only. One MCP definition, kept in the untracked local
-overlay and rendered into Codex, Claude Code, the Claude desktop app and Kiro with credentials read from
-the Keychain at launch (ADR-0017, proposed), is written and tested in throwaway homes. It is not
-installed, and installing it into the owner's real configuration is his act.
+Bootstrapped 2026-10-01. The policy itself is being defined through an interview with the owner.
+On 2026-10-01, with the owner's go (Issue #4,
+[comment](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/4#issuecomment-5937083996)),
+`global/install.sh` ran against the reference machine from `main` at v0.7.0 (`093f84f`). It exited 0,
+and `install.sh --check` then exited 0 with every target OK. Here is what the reference machine carries
+from here now, and at what evidence level:
+
+- **Global brief** (`global/AGENTS.md`, ADR-0010): *installed* into the three user-level locations at
+  v0.7.0. Its evidence level is *loaded* in Claude Code and Codex, measured headless on 2026-10-01, and
+  *documented* for Kiro.
+- **HITL escalation guard** (ADR-0013): its hook entry in the Claude Code user settings is *installed*
+  (`--check`: "hook entry … present"). That it fires on the reference machine was not re-measured.
+- **Deny floor** (ADR-0016, accepted): *installed*, with all 101 rules present per `--check`. It is
+  *enforced* in Claude Code and Codex, as measured headless in throwaway homes. Enforcement on the
+  reference machine was not re-measured. Kiro carries no floor.
+- **Clipboard watcher** (ADR-0011, macOS): *installed* by the same run, then *loaded* on the owner's go
+  (`launchctl print` shows it running, never exited; ADR-0011's second 2026-10-01 amendment). Its mode is
+  `offer`, ratified by the owner on Issue #5. It changes nothing without his click. Its on-screen
+  notices are still unverified, and no term has been added with `add-term` yet. ADR-0011 stays proposed
+  for the open ADR-0012 agent-route question and for the categories and salt store. Linux and Windows
+  have design notes only.
+- **MCP definition** (ADR-0017, proposed): one definition, kept in the untracked local overlay and
+  rendered into Codex, Claude Code, the Claude desktop app and Kiro with credentials read from the
+  Keychain at launch. It is written and tested in throwaway homes. `install.sh` does not run its
+  renderer, and the renderer has **not** been run on the reference machine (Issue #8). Installing it
+  into the owner's real configuration is his act.

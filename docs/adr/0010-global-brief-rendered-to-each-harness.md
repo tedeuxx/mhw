@@ -211,7 +211,7 @@ clipboard guard (not rendered on Windows). The brief grows by 38 bytes, to 4,891
 | Deny floor merged into `~/.claude/settings.json` (union, backup, refuse a bad shape) | yes, with `jq` | **yes**, with `ConvertFrom-Json`/`ConvertTo-Json`; CI-tested. The dry-run lists the rules it would add; it does not print a full semantic diff as `install.sh` does |
 | Deny floor rendered to Codex, `rules/workstation-deny-floor.rules` | yes | **yes**, CI-tested. Not parsed by `codex execpolicy` on Windows: `codex` is not on the runner |
 | HITL escalation guard: hook script, `hitl.conf`, and its `PreToolUse` entry in settings (ADR-0013) | yes | **no**. Not ported. On Windows the escalation rules are instructions only |
-| Clipboard guard script and settings (ADR-0011) | installed on macOS and Linux; the watcher runs only on macOS (LaunchAgent written, never loaded); Linux prints `SKIP` | **no**. ADR-0011 has design notes for Windows only |
+| Clipboard guard script and settings (ADR-0011) | installed on macOS and Linux; the watcher runs only on macOS (LaunchAgent written, ~~never loaded~~ never loaded *by the installer*; on the reference machine it was loaded separately on the owner's go, 2026-10-01, see ADR-0011's second 2026-10-01 amendment); Linux prints `SKIP` | **no**. ADR-0011 has design notes for Windows only |
 | MCP definition (ADR-0017) | **not in this installer**: rendered by `global/mcp/mcp_render.py` | **not in this installer either**. `mcp_render.py` has a Windows path for the Claude desktop config and refuses secrets on Windows (no launcher); its suite does not run on the Windows job |
 | `XDG_DATA_HOME` honoured | yes, tested since this amendment | not applicable: nothing is installed under a data directory |
 

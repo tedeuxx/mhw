@@ -124,6 +124,16 @@ Two facts from the decision table, measured for ADR-0016 rather than read:
   rules stays **unmeasured**. The evaluator returns the most restrictive decision across the files it
   is given, but that does not show the runtime evaluates both layers together.
 
+**Appended 2026-10-01: ADR-0016 is now accepted, and installed on the reference machine.** The
+paragraph above says "ADR-0016 (proposed)" and "It is not yet installed on the reference machine".
+Both were true when written and are no longer current. The owner ratified the floor and the installer
+run on Issue #4
+(<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/4#issuecomment-5937083996>).
+The installer then ran on the reference machine with `install.sh --check` clean. Details and evidence
+levels are in ADR-0016's amendment "2026-10-01: ratified by the owner and installed on the reference
+workstation". Enforcement on the reference machine itself was not re-measured. Promoting the floor to
+the managed layer is still the proposed consequence above, undecided.
+
 ## Links
 
 - `AGENTS.md`, "Fundamental purpose" and "The model: corporate workstation governance, applied to one

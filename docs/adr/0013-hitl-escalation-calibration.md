@@ -48,8 +48,10 @@ standard". They were re-read for this record, not inherited from the brief that 
   reference install (`enabledPlugins`), so this guard fires in every Claude Code session today.
 - **It is routed live, and that is measured.** On Claude Code 2.1.285, a real session transcript
   carries the tool result `PreToolUse:AskUserQuestion hook error: Blocked: AskUserQuestion carries 2
-  questions…`. That is the plugin's hook. This repository's own registration has not fired yet,
-  because it is not installed yet.
+  questions…`. That is the plugin's hook. ~~This repository's own registration has not fired yet,
+  because it is not installed yet.~~ *(Struck 2026-10-01: the guard and its settings hook entry were
+  installed on the reference machine, with `install.sh --check` clean (Issue #4, <https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/4#issuecomment-5937083996>). Whether this
+  repository's registration has fired there is not measured.)*
 - **The plugin's five rules are text in two other repositories' root `CLAUDE.md` files.** In a
   session rooted anywhere else, no brief carried them. The user-level brief rendered from this
   repository is the first carrier that reaches every session.
@@ -180,7 +182,7 @@ there. On the reference Mac they run under its `sh`.
 
 | Harness / surface | Mechanism | Evidence level |
 | --- | --- | --- |
-| **Claude Code** (macOS, Linux) | user-level `PreToolUse(AskUserQuestion)` hook: **refuses** over-count and over-length pickers before display, and notifies the owner | the script and the settings merge are **tested** in throwaway HOMEs. **Not installed** on the reference machine until the owner's go. Hook routing for this matcher is **measured** for the plugin's registration on 2.1.285, not yet for this one. That `systemMessage` reaches the owner is **read from the 2.1.286 bundle's hook schema** (*"Warning message shown to the user"*), not watched live. |
+| **Claude Code** (macOS, Linux) | user-level `PreToolUse(AskUserQuestion)` hook: **refuses** over-count and over-length pickers before display, and notifies the owner | the script and the settings merge are **tested** in throwaway HOMEs. ~~**Not installed** on the reference machine until the owner's go.~~ **Installed** on the reference machine 2026-10-01, `--check` clean (Issue #4, <https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/4#issuecomment-5937083996>); firing there not re-measured. Hook routing for this matcher is **measured** for the plugin's registration on 2.1.285, not yet for this one. That `systemMessage` reaches the owner is **read from the 2.1.286 bundle's hook schema** (*"Warning message shown to the user"*), not watched live. |
 | Claude Code, headless (`claude -p`) | none | `AskUserQuestion` is absent there (plugin's measurement), so the hook never fires and prose numbering is not caught |
 | **Codex** (CLI and IDE extension) | instruction, through `~/.codex/AGENTS.md` | *instruction only*. Codex has user-level hooks with a trust hash in `config.toml` (*documented* by the plugin's Codex probe on an earlier build). Codex 0.159.2 has a `request_user_input` tool (*"one to three short questions"*, payload `questions[].question`, read from binary strings, which is the same field the guard reads). **Not registered**, for two reasons. Whether that tool is routed to a pre-tool hook is unmeasured, and it is gated to some modes. Registering would also mean writing a `trusted_hash` into the owner's `config.toml`, which grants trust without a human checkpoint. |
 | **Kiro IDE** | instruction, through the global steering file | *instruction only*. The 1.0.437 bundle has a global hooks directory (`getGlobalHooksDirectory` → `~/.kiro/hooks`, `*.json`), a `preToolUse` event and a `userInput` tool (*read from the shipped bundle*). The hook output schema and whether it can refuse `userInput` are not established, and nothing can be exercised without a subscription (ADR-0003). |
