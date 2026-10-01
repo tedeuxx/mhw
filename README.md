@@ -19,11 +19,17 @@ The full mission, the principles and the hard rules for agents working here are 
 [`AGENTS.md`](AGENTS.md). The brief installed into every session is
 [`global/AGENTS.md`](global/AGENTS.md).
 
-**Status:** bootstrapped 2026-10-01. The policy is still being defined with the owner; several decisions
-are still proposed rather than accepted, and the global brief is the only thing installed from here so
-far. The user-level deny floor ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md),
-proposed) is written and tested and is not yet installed on the reference machine. So is the macOS
-clipboard watcher ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed).
+**Status:** bootstrapped 2026-10-01. The policy is still being defined with the owner, and several
+decisions are still proposed rather than accepted. On 2026-10-01 `global/install.sh` ran on the
+reference machine from v0.7.0 with `--check` clean (Issue #4). That installed the global brief, the
+HITL escalation guard ([ADR-0013](docs/adr/0013-hitl-escalation-calibration.md); firing there not
+re-measured) and the user-level deny floor
+([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md), accepted; enforcement there
+not re-measured). The macOS clipboard watcher
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed) is installed but not
+loaded (Issue #5). The MCP renderer
+([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md), proposed) has not been run
+there (Issue #8). Per-component evidence levels are in [`AGENTS.md`](AGENTS.md), "Status".
 
 ## This repository vs the plugin
 
@@ -50,12 +56,12 @@ flowchart TB
   owner(["Owner — human in the loop"])
 
   subgraph WS["Personal workstation · macOS reference · Linux · Windows"]
-    clip["OS clipboard watcher<br/>ADR-0011 · macOS written, not installed"]:::oursPlanned
+    clip["OS clipboard watcher<br/>ADR-0011 · installed, not loaded (#5)"]:::oursPlanned
 
     subgraph LAYERS["Configuration layers per harness"]
       managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
       ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · loaded: Claude Code, Codex (headless)"]:::ours
-      uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · PR #2"]:::oursPlanned
+      uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · installed (firing not re-measured)"]:::ours
       udeny["User level · deny floor<br/>Claude permissions.deny · Codex rules<br/>ADR-0016 · accepted · installed"]:::ours
       plugin["Plugin · tadeumendonca-skills<br/>personas · skills · loop · project hooks"]
       project["Project config<br/>AGENTS.md · .claude/ · .codex/rules"]
@@ -91,7 +97,8 @@ flowchart TB
 ```
 
 Legend: solid dark blue means distributed and installed by this repository; light blue dashed means
-distributed by this repository but planned, proposed or still in a pull request (ADR-0013 is PR #2);
+distributed by this repository but planned, proposed, still in a pull request, or installed but not
+active (the clipboard watcher is installed and not loaded);
 unshaded means not this repository.
 
 The vertical order of the layers is the firewall's view, floor first. It is not the harnesses'
@@ -314,7 +321,7 @@ for them, are in that record's 2026-10-01 amendment. The controls are proposed, 
 ### Global brief on this machine
 
 Installed by `global/install.sh` into all three user-level locations above, and `--check` reports them
-in sync at version 0.3.0. **Evidence level: loaded for Claude Code and Codex, measured headless
+in sync at version 0.7.0 (the 2026-10-01 install, Issue #4). **Evidence level: loaded for Claude Code and Codex, measured headless
 (2026-10-01). Kiro remains documented.** A fresh `claude -p` and a fresh `codex exec`, each run with
 tools disabled in an unrelated empty directory, quoted the brief's title and rule 1 verbatim. Each
 calibration run returned `NOT_IN_CONTEXT` once the user-level brief was removed from its sources.
