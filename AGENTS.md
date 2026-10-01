@@ -31,9 +31,32 @@ Concretely, it must keep three things true on this machine:
    - owner-specific values (paths, accounts, his own repositories) live in an **overlay** kept
      separate from the generic policy;
    - every control declares **which OS × harness combinations enforce it**, and where one cannot, the
-     gap is stated rather than hidden.
+     gap is stated rather than hidden;
+   - the repository declares, **per harness, the minimum harness version** that supports every feature
+     the policy set relies on, and states **how that minimum was established** — *measured* (exercised
+     on that version), *documented* (taken from the vendor's documentation or changelog) or *assumed*
+     (neither). Those are three different evidence levels and are never presented as one. No minimum is
+     declared yet; none has been measured.
 
    (Owner, 2026-10-01.)
+
+2. **MADR discipline.** Significant policy and architecture decisions about this repository are
+   recorded as **Architecture Decision Records in MADR format**, in [`docs/adr/`](docs/adr/):
+   - **significance gate** — an ADR is owed when a change alters the personal policy floor, adds or
+     removes a control, changes how a harness or OS is supported, introduces a new tool-class or
+     dependency, alters a previously recorded decision, or sets a cross-cutting pattern; a routine
+     in-pattern change records none;
+   - **format** — MADR sections: title, status, context and problem, decision drivers, considered
+     options (the chosen path and at least the strongest rejected alternative, each with its
+     trade-off), decision outcome, consequences (good and bad), links;
+   - **numbering** — zero-padded and sequential (`0001`, `0002`, …), filename `NNNN-kebab-title.md`;
+   - **status** — `proposed → accepted → superseded` (or `rejected`); a record becomes `accepted` only
+     on the owner's ratification;
+   - **changing a decision** — an accepted record is amended by appending and striking in place
+     (`~~…~~`), never rewritten; a reversed decision is superseded by a new record, and a record leaves
+     the library only with a recorded trace of what replaced it, never as a silent absence.
+
+   (Owner, 2026-10-01. Adopted in [ADR-0001](docs/adr/0001-record-decisions-as-madr.md).)
 
 ## The model: corporate workstation governance, applied to one person
 
