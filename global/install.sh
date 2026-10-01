@@ -1,6 +1,6 @@
 #!/bin/sh
-# Render the global brief to each harness, install the HITL escalation guard, and install the user-level
-# deny floor (ADR-0010, ADR-0013, ADR-0016).
+# Render the global brief to each harness, install the HITL escalation guard, install the user-level
+# deny floor, and install the clipboard guard (ADR-0010, ADR-0013, ADR-0016, ADR-0011).
 #
 #   install.sh                  install or update every managed target
 #   install.sh --dry-run        print exactly what would be written or merged where; write nothing
@@ -12,6 +12,8 @@
 # its first five lines; an unmanaged file is never overwritten. ~/.claude/settings.json is never
 # replaced: one hook entry and the deny floor's entries are merged into it with jq, every other key, hook
 # and permission rule is kept (no existing deny entry is ever removed), and a backup is left beside it.
+# On macOS the clipboard guard's LaunchAgent plist is WRITTEN, never loaded: launchctl is the owner's act.
+# The clipboard term list is never written by this installer (only `clipboard_guard.py add-term` does).
 set -eu
 
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
@@ -23,6 +25,9 @@ src="$script_dir/AGENTS.md"
 hook_src="$script_dir/hooks/hitl-escalation-guard.sh"
 conf_src="$script_dir/hitl.conf"
 floor_src="$script_dir/deny-floor.conf"
+clip_src="$script_dir/clipboard/clipboard_guard.py"
+clip_conf_src="$script_dir/clipboard.conf"
+CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-guard"
 
 mode=install
 overlay="$repo_root/overlay"
@@ -32,12 +37,12 @@ for arg in "$@"; do
     --check) mode=check ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
 
-for f in "$src" "$hook_src" "$conf_src" "$floor_src"; do
+for f in "$src" "$hook_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -48,6 +53,9 @@ fi
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/personal-multi-harness-workstation-configuration"
 hook_dest="$data_dir/hitl-escalation-guard.sh"
 settings="$HOME/.claude/settings.json"
+clip_dest="$data_dir/clipboard_guard.py"
+clip_conf_dest="$data_dir/clipboard.conf"
+clip_plist="$HOME/Library/LaunchAgents/$CLIP_LABEL.plist"
 codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-deny-floor.rules"
 
 sha256_of() {
@@ -118,6 +126,13 @@ if ! awk -v claude="$floor_claude" -v codex="$floor_codex" '
 fi
 : >> "$floor_codex"
 
+# The clipboard guard's settings: generic defaults, then the overlay's (last value of a key wins).
+clip_conf="$work/clipboard.conf"
+cat "$clip_conf_src" > "$clip_conf"
+if [ -n "$overlay" ] && [ -f "$overlay/clipboard.conf" ]; then cat "$overlay/clipboard.conf" >> "$clip_conf"; fi
+
+xml_escape() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+
 status=0
 raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
 
@@ -154,6 +169,44 @@ render() {
         printf '# The workstation deny floor (ADR-0016). A prefix rule matches the command words from the\n'
         printf '# program name on; another spelling, a wrapper or a script is not matched.\n'
         awk '{ printf "prefix_rule(pattern=["; for (i = 1; i <= NF; i++) printf "%s\"%s\"", (i > 1 ? ", " : ""), $i; print "], decision=\"forbidden\")" }' "$floor_codex"
+      } > "$2"
+      ;;
+    clipscript)
+      {
+        sed -n 1p "$clip_src"
+        printf '# %s; source: global/clipboard/clipboard_guard.py; version: %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$version"
+        sed 1d "$clip_src"
+      } > "$2"
+      ;;
+    clipconf)
+      {
+        printf '# %s; source: global/clipboard.conf + overlay; version: %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$version"
+        cat "$clip_conf"
+      } > "$2"
+      ;;
+    plist)
+      # No log: launchd's stdout and stderr go to /dev/null, and the guard itself writes nothing.
+      script_x=$(xml_escape "$clip_dest")
+      conf_x=$(xml_escape "$clip_conf_dest")
+      {
+        printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>'
+        printf '<!-- %s; source: global/install.sh (clipboard guard, ADR-0011); version: %s; do not edit, re-run the installer -->\n' \
+          "$MARKER_ID" "$version"
+        printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+          '<plist version="1.0">' '<dict>' \
+          '  <key>Label</key>' "  <string>$CLIP_LABEL</string>" \
+          '  <key>ProgramArguments</key>' '  <array>' \
+          '    <string>/usr/bin/python3</string>' '    <string>-I</string>' '    <string>-B</string>' \
+          "    <string>$script_x</string>" '    <string>watch</string>' '    <string>--config</string>' \
+          "    <string>$conf_x</string>" '  </array>' \
+          '  <key>RunAtLoad</key>' '  <true/>' '  <key>KeepAlive</key>' '  <true/>' \
+          '  <key>ThrottleInterval</key>' '  <integer>30</integer>' \
+          '  <key>LimitLoadToSessionType</key>' '  <string>Aqua</string>' \
+          '  <key>StandardOutPath</key>' '  <string>/dev/null</string>' \
+          '  <key>StandardErrorPath</key>' '  <string>/dev/null</string>' \
+          '</dict>' '</plist>'
       } > "$2"
       ;;
   esac
@@ -306,6 +359,22 @@ process kiro "$HOME/.kiro/steering/workstation-global-brief.md"
 process hook "$hook_dest"
 process conf "$data_dir/hitl.conf"
 process codexrules "$codex_rules"
+process clipscript "$clip_dest"
+process clipconf "$clip_conf_dest"
+if [ "$(uname -s)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then
+  # /usr/bin/python3 is a Command Line Tools shim: without them it opens an install prompt instead of
+  # running, and a KeepAlive agent would raise that prompt again after every throttle interval.
+  echo "REFUSE  $clip_plist: the Command Line Tools (which provide /usr/bin/python3) are not installed" >&2
+  raise 2
+elif [ "$(uname -s)" = Darwin ]; then
+  process plist "$clip_plist"
+  if [ "$mode" = install ]; then
+    echo "NOTE    the clipboard guard is not loaded by this installer. To start it (or restart after an update):"
+    echo "        launchctl bootstrap gui/\$(id -u) $clip_plist   then   launchctl kickstart -k gui/\$(id -u)/$CLIP_LABEL"
+  fi
+else
+  echo "SKIP    clipboard watcher: macOS only; Linux and Windows are design notes in ADR-0011"
+fi
 merge_settings
 
 exit "$status"

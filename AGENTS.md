@@ -63,7 +63,8 @@ response is **human-in-the-loop only, with no auditable record kept on the works
 personal by policy and never persists employer or client confidential data
 ([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)). Clipboard-borne
 prompts are checked automatically for employer and client references
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed). Operational
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed; the macOS watcher
+is written and tested, not installed). Operational
 judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
 the owner ([ADR-0012](docs/adr/0012-operational-judgement-delegated-to-the-harness.md)). How agents
 escalate a pending decision or action to the owner is calibrated here: generic rules in the global
@@ -176,4 +177,7 @@ version 0.3.0. Its evidence level is *loaded* in Claude Code and Codex, measured
 2026-10-01, and *documented* for Kiro (ADR-0010). Nothing else in the machine's configuration is
 managed from here yet. The deny floor (ADR-0016) is *enforced* in Claude Code and Codex when installed,
 measured headless in throwaway homes, and is not installed on the reference machine until the owner's
-go. Kiro carries no floor.
+go. Kiro carries no floor. The macOS clipboard watcher (ADR-0011's 2026-10-01 amendment) is written
+and tested in throwaway directories. Its LaunchAgent has never been loaded, so its on-screen notices
+are unverified. Its default mode, `offer`, changes nothing without the owner's click, and awaits his
+ratification. Linux and Windows have design notes only.

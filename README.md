@@ -22,7 +22,8 @@ The full mission, the principles and the hard rules for agents working here are 
 **Status:** bootstrapped 2026-10-01. The policy is still being defined with the owner; several decisions
 are still proposed rather than accepted, and the global brief is the only thing installed from here so
 far. The user-level deny floor ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md),
-proposed) is written and tested and is not yet installed on the reference machine.
+proposed) is written and tested and is not yet installed on the reference machine. So is the macOS
+clipboard watcher ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed).
 
 ## This repository vs the plugin
 
@@ -49,7 +50,7 @@ flowchart TB
   owner(["Owner — human in the loop"])
 
   subgraph WS["Personal workstation · macOS reference · Linux · Windows"]
-    clip["OS clipboard watcher<br/>ADR-0011 · planned"]:::oursPlanned
+    clip["OS clipboard watcher<br/>ADR-0011 · macOS written, not installed"]:::oursPlanned
 
     subgraph LAYERS["Configuration layers per harness"]
       managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
@@ -142,6 +143,32 @@ unreadable file is in the way.
 
 `global/install.test.sh <base dir>` exercises the installer against throwaway home directories, never
 the real one.
+
+### Clipboard watcher (macOS)
+
+On macOS the same run installs the clipboard guard
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), 2026-10-01 amendment):
+
+- the script and its settings (`global/clipboard.conf`, then `overlay/clipboard.conf`) under
+  `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/`;
+- the LaunchAgent plist under `~/Library/LaunchAgents/`.
+
+It needs the Command Line Tools, which provide `/usr/bin/python3`. **The installer writes the plist and
+never loads it.** To start the watcher:
+
+```sh
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist
+```
+
+Add an employer or client term from **your own terminal, outside any agent session**. The term is read
+with echo off and only its salted hash is stored, in the local overlay outside this repository:
+
+```sh
+/usr/bin/python3 ~/.local/share/personal-multi-harness-workstation-configuration/clipboard_guard.py add-term
+```
+
+`python3 -B global/clipboard/clipboard_guard_test.py <empty dir>` runs its suite. On macOS the suite
+uses a private named pasteboard and a namespaced Keychain item, and deletes both.
 
 ## Decisions
 

@@ -23,6 +23,14 @@ jobs:
           shellcheck --version
           shellcheck -s sh global/install.sh global/install.test.sh \
             global/hooks/hitl-escalation-guard.sh global/hooks/hitl-escalation-guard.test.sh
+      - name: python compile check, warnings as errors (the runner's python3; no third-party linter)
+        run: |
+          python3 --version
+          python3 -W error -c 'import sys
+          for f in sys.argv[1:]:
+              with open(f, encoding="utf-8") as fh:
+                  compile(fh.read(), f, "exec")' \
+            global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py
 
   suites:
     strategy:
@@ -41,3 +49,7 @@ jobs:
         run: sh global/hooks/hitl-escalation-guard.test.sh "$RUNNER_TEMP/guard"
       - name: installer suite
         run: sh global/install.test.sh "$RUNNER_TEMP/install"
+      # ADR-0011. On macOS it also exercises a private NAMED pasteboard (never the general one) and,
+      # when the runner's login Keychain is writable, one namespaced item that the test deletes.
+      - name: clipboard guard suite
+        run: python3 -B global/clipboard/clipboard_guard_test.py "$RUNNER_TEMP/clipboard"

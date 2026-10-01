@@ -96,7 +96,217 @@ Pasting is the main way third-party text reaches a prompt. That includes the clo
   CLI prompt outside any agent session.
 - Bad: on Wayland, automatic watching may not be possible at all. If it is not, that is stated as a gap
   (ADR-0004, dichotomy of control).
-- No code is built by this record.
+- ~~No code is built by this record.~~ *(Struck by the 2026-10-01 amendment below: the macOS watcher is
+  now built. The record's status is unchanged.)*
+
+## Amendment 2026-10-01: the macOS watcher is built (Issue #5), and the mechanism is still proposed
+
+Issue #5 asked for the automatic watcher on macOS, the reference installation. It is written and
+tested, and it is **not installed** on the reference machine. The status stays **proposed** until the
+owner ratifies the default mode, the categories and the salt store below.
+
+### Where it lives
+
+| File | Role |
+| --- | --- |
+| `global/clipboard/clipboard_guard.py` | detector, salt store, term list, watcher and the `add-term` CLI. Standard library only |
+| `global/clipboard/clipboard_guard_test.py` | its suite, run in a throwaway directory |
+| `global/clipboard.conf` | generic settings (mode, poll interval, size cap) |
+| `overlay/clipboard.conf` | the owner's notice and button wording in Portuguese. **No terms**: the term list never enters this repository |
+| `global/install.sh` | renders the script and the merged settings into `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/`, and on macOS the LaunchAgent plist `~/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist`. All three carry the managed marker, so `--check` reports drift. The installer **writes the plist and never loads it**; `launchctl bootstrap` is the owner's act |
+
+### Implementation language: the Command Line Tools `python3`
+
+Measured on the reference machine (macOS 26.6.2, arm64) on 2026-10-01: `/usr/bin/python3` (3.9.6) and
+`/usr/bin/swift` are the same 78-link Command Line Tools shim, so neither is on a stock macOS without
+the CLT. `osascript` is truly stock, but JavaScript for Automation has no SHA-256/HMAC primitive. That
+would mean hand-writing the hash, which is the least auditable option. **Chosen: `/usr/bin/python3`,
+standard library only** (`hmac`, `hashlib`, `unicodedata`, `ctypes`, `termios`), compatible with 3.9.
+The pasteboard is reached through the Objective-C runtime with `ctypes`, with no PyObjC. **Precondition:**
+the installer refuses to write the plist (exit 2) when `xcode-select -p` fails. Without the CLT the shim
+opens an install prompt instead of running, and a `KeepAlive` agent would re-raise it after every
+throttle interval.
+
+### The salt store: the login Keychain, with a user-only file as the fallback
+
+- **macOS default: Keychain**, as a generic password (service
+  `personal-multi-harness-workstation-configuration.clipboard-salt`, account `$USER`). It is written
+  through `security -i` with the command on **stdin**, so the salt never appears in a process's argv.
+  Read with `security find-generic-password -w`. **Measured** 2026-10-01: a throwaway namespaced item
+  was added, read back and deleted from a non-interactive session with no prompt (exit code 44, not
+  found, after the delete). The suite repeats this with its own namespaced item and asserts that it is
+  gone afterwards.
+- **Fallback (`salt_store=file`, the default off macOS):** a 0600 file in a 0700 directory, outside every
+  repository: `<data dir>/local-overlay/clipboard-salt`.
+
+### The term list
+
+- **Path:** `<data dir>/local-overlay/clipboard-terms`, a 0600 file in a 0700 directory. It is written
+  only by `add-term`; the installer never touches it (tested).
+- **Content:** one HMAC-SHA256(salt, normalised term) per line, never plaintext.
+- **Normalisation:** a word is a run of letters, digits and combining marks. Accents are dropped (NFKD)
+  and case is folded; everything else separates words.
+- **Forms stored per multi-word term:** the words joined by a space, and run together. So "Acme Corp"
+  also matches `AcmeCorp`, `acme_corp` and `ACME-corp`.
+- **Size:** 1 to 6 words, and at least 3 letters or digits.
+- **Matching:** every 1- to 6-word window of the copied text is hashed and compared, so a term matches
+  only as whole words.
+- **This repository ships zero terms.** The tests use made-up ones.
+
+`clipboard_guard.py add-term` is the only way in:
+
+- It takes **no argument**. A term given in argv is refused, and nothing is written (tested).
+- It refuses when stdin is not a terminal (a pipe, tested).
+- It refuses when an agent-session marker is set. The markers are `CLAUDECODE`,
+  `CLAUDE_CODE_ENTRYPOINT`, `AI_AGENT`, `CODEX_SANDBOX` and `CODEX_SANDBOX_NETWORK_DISABLED`. The
+  Claude Code ones were *measured* present in this build's agent environment. The Codex names are
+  *assumed*.
+- It reads the term from `/dev/tty` **with echo turned off before the prompt appears**, twice, and keeps
+  it only if both entries are equal. Tested in a pseudo-terminal: the term never appears in the
+  terminal output.
+- It creates the salt on first use and appends only hashes. It prints a count, never the term.
+
+**Limit:** the refusals are a speed bump, not a lock. Anything that can drive a pseudo-terminal and
+clear those variables, as the test itself does, gets through.
+
+### Generic categories (no list needed)
+
+They are deliberately **conservative**: a fixed prefix, a checksum or a reserved shape.
+
+| Category | Detected | Deliberately not detected |
+| --- | --- | --- |
+| `credential` | PEM private-key blocks (to the `END` line, or to the end of the text); AWS access key IDs; GitHub tokens and fine-grained PATs; GitLab PATs; Slack tokens and webhooks; Google API keys; Stripe live keys; Anthropic and OpenAI keys; npm tokens; JWTs (all gitleaks-style fixed prefixes) | unprefixed high-entropy strings, where the false positives are |
+| `email` | addresses with a dotted domain | the `git@` SSH user, and the reserved example/test/invalid/localhost domains |
+| `payment-card` | 15 or 16 digits, optionally grouped by spaces or dashes, with a card-network prefix **and** a valid Luhn check digit | other lengths, and numbers failing either check |
+| `cpf`, `cnpj` | the formatted Brazilian identifiers (`000.000.000-00`, `00.000.000/0000-00`) with valid check digits | the unformatted 11- and 14-digit forms (too many false positives) |
+| `employer-client-term` | the hashed list above | variants nobody added: misspellings, abbreviations, paraphrases |
+
+Phone numbers, names and addresses are **not** detected: no conservative pattern exists for them.
+
+### The watcher
+
+- A LaunchAgent (`RunAtLoad`, `KeepAlive`, `ThrottleInterval` 30 s, `LimitLoadToSessionType` Aqua)
+  runs `/usr/bin/python3 -I -B <data dir>/clipboard_guard.py watch --config <data dir>/clipboard.conf`.
+  `-I` ignores the environment and user site packages; `-B` writes no bytecode.
+- It polls `NSPasteboard.changeCount` every second (`poll_seconds`). It checks the item already on the
+  clipboard at start, then each new one.
+- **Skip:** if any type of the item is `org.nspasteboard.ConcealedType`, `TransientType` or
+  `AutoGeneratedType`, or any type name contains `nspasteboard-concealed`, `-transient` or
+  `-autogenerated`, the item is **never read past its type list**. Tested with a fake pasteboard that
+  fails the test if read, and on a real private named pasteboard.
+  - The substring clause exists because KeePassXC declares the marker as the MIME name
+    `application/x-nspasteboard-concealed-type` on macOS (*read in its source*, `src/gui/Clipboard.cpp`,
+    2026-10-01). Whether Qt turns that into the exact UTI was not established.
+  - Which password managers set these markers at all is still **not measured** (the "Evidence on the
+    interception points" section above).
+- **Only the plain-text flavour is checked.** Images, files and other flavours without a text form are
+  not.
+- **Size cap:** an item over `max_bytes` (1,000,000) is **not checked, and the owner is told so**.
+  *Measured:* a 1,000,000-byte item takes about 3.2 s to scan on the stock 3.9.6 interpreter (Apple
+  Silicon).
+- **No log:**
+  - The plist sends stdout and stderr to `/dev/null`.
+  - The guard writes no file. Tested by snapshotting a throwaway home before and after both the
+    in-process loop and a real `watch` process.
+  - An internal error is reported by its exception **class name only**, because an exception's message
+    can quote the input. One notice per item, not one per poll.
+- **Notices:**
+  - They go through `osascript` with a fixed script. The text is a template plus category names, passed
+    as argv items, so the copied content is never an argument (tested).
+  - Notices name the category and the mitigation, never the content or the term (tested against every
+    synthetic secret).
+
+### The mode switch, and the default chosen: `offer`
+
+The task offered two behaviours. ADR-0011's obligation above says *"HITL on detection, not silent
+rewrite"*. ADR-0012 and ADR-0005's later amendments say *mitigate proactively, then notify* for
+recognised cases. **Both are implemented, behind `mode=` in `clipboard.conf`:**
+
+- **`offer` (the default):**
+  - A dialog names the categories and offers Keep (the default button), Clear or Clean.
+  - Nothing changes unless the owner picks Clean or Clear. A timeout (120 s), a dismissal, an
+    `osascript` failure, or ambiguous button labels all mean **Keep**.
+- **`sanitise`:** the item is replaced at once with a redacted plain-text copy (`[REDACTED:<category>]`
+  per finding), then a notice says so.
+
+**Why `offer` is the default:** it is the **reversible** choice. Sanitising destroys the original, and
+by ADR-0005 no copy is kept to restore it. While this mechanism is proposed, the irreversible behaviour
+should not be on by default. **The owner ratifies one of the two**; if `sanitise`, it is one line in
+`overlay/clipboard.conf`.
+
+**Behaviour shared by both modes:**
+
+- Cleaning replaces the **whole item** with plain text. A rich-text or HTML flavour carrying the
+  original would otherwise survive (tested on a real pasteboard).
+- Before any write the change count is re-read. If the owner copied something else meanwhile, nothing
+  is written and he is told.
+- Replacement tokens are not reversible.
+
+### Evidence levels
+
+| Claim | Level |
+| --- | --- |
+| A private named pasteboard is read and written through `ctypes` from the CLT `python3` | **measured** |
+| Concealed, transient and auto-generated items are skipped unread; cleaning removes the rich flavours | **tested** (fake and real named pasteboard) |
+| Keychain salt via `security -i` on stdin: no prompt, never in argv | **measured** (probe) and **tested** (namespaced item, deleted) |
+| The watcher writes nothing to disk and prints nothing | **tested** (in-process, and a real `watch` subprocess in a throwaway home) |
+| Notices never contain the content | **tested** |
+| `add-term` reads with echo off, refuses argv, pipes and agent markers | **tested** (pseudo-terminal) |
+| The plist lints, points stdout/stderr at `/dev/null`, and `--check` reports its drift | **tested** (`plutil -lint`, throwaway HOME) |
+| The two AppleScripts compile | **tested** (`osacompile`, which displays nothing) |
+| The plist starts the watcher at login, and the notification and dialog reach the owner on screen | **not verified**: never loaded on the reference machine. `osascript` notifications are attributed to Script Editor and need its notification permission; the dialog may open behind other windows |
+| Which password managers set the nspasteboard markers | **not measured** (KeePassXC: *read in its source*) |
+
+### Gaps, stated rather than hidden
+
+- **The watcher is not a barrier.** A paste within the poll interval plus the scan time (up to about
+  4 s for a 1 MB item) beats it. Cleaning happens *after* the copy, not between the copy and the paste.
+- **Harness transcripts are untouched.** Text pasted before the check, or kept by the owner's choice,
+  still reaches any harness and its transcript (ADR-0005, ADR-0008).
+- **Notification Center keeps the notices.** They hold category names only.
+- **Memory residue:** the guard keeps no copy, but Python strings cannot be wiped, so the text lives in
+  the process's memory until it is collected.
+- **The term list's protection is the salt.** Anyone holding both the salt and the hash file can test
+  guesses against them; a single-word term is short enough to guess.
+- **Two decisions conflict, and it is the owner's call.** ADR-0012 has the *agent* capture terms;
+  `add-term` refuses agent sessions, because a term typed into an agent session is already in its
+  transcript. As built, the only route in is the owner at a terminal.
+- **Universal Clipboard** items from his other Apple devices should arrive as ordinary pasteboard
+  changes and be checked like any other. This is *assumed*: neither read nor measured.
+
+### Linux and Windows: design notes, nothing built
+
+- **Linux, X11:** any X client can read the `CLIPBOARD` selection, so background watching is possible.
+  The XFixes `SelectionNotify` event would be the change signal. Both points are *assumed*: not read
+  today and not measured, with no Linux machine in reach. Writing a cleaned copy means owning the selection until another client takes
+  it, so the watcher must stay running as the selection owner.
+- **Linux, Wayland:**
+  - The core protocol gives the selection only to the focused client: `wl_data_device.selection` is sent
+    *"immediately before receiving keyboard focus and when a new selection is set while the client has
+    keyboard focus"* (*documented*, `wayland.xml`, read 2026-10-01). **A background watcher cannot see
+    the clipboard through the core protocol.**
+  - The way out is `ext-data-control-v1`, *"allows a privileged client to control data devices. In the
+    role of a clipboard manager"* (*documented*, wayland-protocols `staging/`, read 2026-10-01), or its
+    predecessor `wlr-data-control`. It exists only where the compositor implements it.
+  - **Which compositors do is not measured here.** Where none does, automatic watching is **not
+    possible**, and that is a gap (dichotomy of control).
+  - The password-manager marker there is the MIME type `x-kde-passwordManagerHint` = `secret` (KeePassXC
+    sets it, *read in its source* 2026-10-01).
+- **Windows:**
+  - The change signal is `AddClipboardFormatListener` / `WM_CLIPBOARDUPDATE`. Microsoft says
+    `GetClipboardSequenceNumber` *"is a not a notification method and should not be used in a polling
+    loop"* (*documented*, `using-the-clipboard.md`, read 2026-10-01).
+  - The markers are the registered formats `ExcludeClipboardContentFromMonitorProcessing`,
+    `CanIncludeInClipboardHistory` and `CanUploadToCloudClipboard` (*documented*,
+    `clipboard-formats.md`, read 2026-10-01; KeePassXC sets all three).
+  - Windows clipboard history and cloud clipboard are themselves **persistence surfaces** (ADR-0008) the
+    watcher does not govern.
+  - `install.ps1` installs nothing for the clipboard.
+
+### Version cut (ADR-0002)
+
+**Minor.** It is a new protection, and it adds new installer targets. Nothing an adopter had is
+weakened, and the watcher runs only once they load it.
 
 ## Links
 
