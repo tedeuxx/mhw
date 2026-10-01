@@ -50,10 +50,30 @@ ENV_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 SERVICE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._@:+-]{0,127}$")
 # A key NAME that suggests a credential. Used to refuse a plain env value in the definition, and by
 # --scan to list keys in the surfaces. A false positive is visible and has an escape (not_secret).
-CRED_RE = re.compile(r"(TOKEN|SECRET|PASSW(OR)?D|PASSPHRASE|API[_-]?KEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|"
-                     r"CLIENT[_-]?KEY|CREDENTIAL|AUTH|BEARER|COOKIE|SESSION)", re.I)
+CRED_RE = re.compile(r"(TOKEN|SECRET|PASSW(OR)?D|PASSPHRASE|PWD|API[_-]?KEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|"
+                     r"CLIENT[_-]?KEY|CREDENTIAL|AUTH|BEARER|COOKIE|SESSION|DSN|SIGNATURE|"
+                     r"(^|[_.-])(PAT|KEY|KEYS|APIKEY|CERT)([_.-]|$))", re.I)
 ARG_FLAG_RE = re.compile(r"^(--?[A-Za-z0-9_.-]+)(=.*)?$", re.S)
 URL_CRED_RE = re.compile(r"(://[^/@\s]+:[^/@\s]+@)|([?&][A-Za-z0-9_.-]*(token|key|secret|passw|auth)[A-Za-z0-9_.-]*=)", re.I)
+# A credential-looking VALUE, whatever its key is called: userinfo or a credential query parameter in a
+# URL, an Authorization-style header, a bearer/basic scheme, a private key block, or a well-known token
+# prefix. A hit is refused and reported by location only; the value is never echoed.
+VALUE_CRED_RES = (
+    URL_CRED_RE,
+    re.compile(r"(authorization|proxy-authorization|x-api-key|api[-_]?key|[a-z-]*token|secret|password|cookie)"
+               r"\s*:\s*\S", re.I),
+    re.compile(r"\b(bearer|basic|token)\s+[A-Za-z0-9._~+/=-]{8,}", re.I),
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{16,}|"
+               r"sk-[A-Za-z0-9_-]{16,}|(sk|rk|pk)_(live|test)_[A-Za-z0-9]{10,}|xox[abposr]-[A-Za-z0-9-]{10,}|"
+               r"AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|npm_[A-Za-z0-9]{30,})"),
+)
+
+
+def looks_like_credential_value(s):
+    return any(rx.search(s) for rx in VALUE_CRED_RES)
+
+
 AGENT_ENV = ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CODEX_SANDBOX", "CODEX_SANDBOX_NETWORK_DISABLED")
 
 
@@ -179,6 +199,16 @@ def validate(doc, platform=sys.platform):
             elif CRED_RE.search(k) and k not in reviewed:
                 errs.append("%s: env %r looks like a credential, so its value may not be written in plain text. "
                             "Move it to \"secrets\", or list it in \"not_secret\" if it is not one" % (where, k))
+        if isinstance(cmd, str) and looks_like_credential_value(cmd):
+            errs.append("%s: \"command\" carries a credential-looking value (not shown)" % where)
+        for k, v in env.items():
+            if looks_like_credential_value(v):
+                errs.append("%s: the value of env %r looks like a credential (not shown). Put the whole value in "
+                            "the Keychain and reference it under \"secrets\"" % (where, k))
+        for i, a in enumerate(args):
+            if looks_like_credential_value(a):
+                errs.append("%s: args[%d] looks like a credential (not shown). Pass it through \"secrets\" (an "
+                            "environment variable) instead of the command line" % (where, i))
         for i, a in enumerate(args):
             m = ARG_FLAG_RE.match(a)
             if m and CRED_RE.search(m.group(1)) and m.group(1) not in reviewed:
@@ -379,11 +409,16 @@ def atomic_write(path, text, backup):
         if backup:
             shutil.copy2(path, path + ".pmhwc-backup")
     tmp = "%s.new.%d" % (path, os.getpid())
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write(text)
-    os.chmod(tmp, mode)
-    os.replace(tmp, path)
+    try:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
 
 
 def change_summary(before, after):
@@ -397,11 +432,24 @@ def change_summary(before, after):
     return "; ".join(parts) or "no server change"
 
 
-def owner_act_refusal(home_dir, env, real_home):
-    """An agent session may render into a throwaway HOME, never into the owner's real one."""
-    if real_home and os.path.realpath(home_dir) == os.path.realpath(real_home) and any(env.get(v) for v in AGENT_ENV):
-        return ("writing the real home's harness configs is the owner's act (ADR-0017); this process runs "
-                "inside an agent session. Run it from your own terminal")
+def _inside(path, root):
+    path, root = os.path.realpath(path), os.path.realpath(root)
+    return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
+
+
+def owner_act_refusal(home_dir, targets, env, real_home):
+    """An agent session may render only into a throwaway HOME: never the owner's real one, never an
+    ancestor of it, and never a write target outside that HOME (CODEX_HOME, XDG_DATA_HOME and APPDATA
+    all move targets). A speed bump keyed on environment markers, not a control."""
+    if not any(env.get(v) for v in AGENT_ENV):
+        return None
+    why = ("writing harness configs outside a throwaway HOME is the owner's act (ADR-0017), and this process "
+           "runs inside an agent session. Run it from your own terminal")
+    if real_home and _inside(real_home, home_dir):
+        return why + " (HOME is the real home, or contains it)"
+    outside = [t for t in targets if not _inside(t, home_dir)]
+    if outside:
+        return why + " (%s is outside HOME)" % outside[0]
     return None
 
 
@@ -534,7 +582,9 @@ def load_manifest():
 
 def render(mode, source, surfaces, adopt):
     if mode == "install":
-        why = owner_act_refusal(home(), os.environ, real_home_dir())
+        targets = [launcher_dest(), manifest_path()]
+        targets += [t[0] for t in (surface_target(x) for x in surfaces) if t is not None]
+        why = owner_act_refusal(home(), targets, os.environ, real_home_dir())
         if why:
             raise Refuse(2, why)
     if committable(source):
@@ -594,13 +644,15 @@ def scan_server(server):
     env = server.get("env")
     if isinstance(env, dict):
         for k, v in env.items():
-            if CRED_RE.search(str(k)) and isinstance(v, str) and v:
+            if isinstance(v, str) and v and (CRED_RE.search(str(k)) or looks_like_credential_value(v)):
                 yield "env.%s" % k
     args = server.get("args")
     if isinstance(args, list):
         for i, a in enumerate(args):
             m = ARG_FLAG_RE.match(a) if isinstance(a, str) else None
-            if m and CRED_RE.search(m.group(1)):
+            if isinstance(a, str) and looks_like_credential_value(a):
+                yield "args[%d] <credential-looking value>" % i
+            elif m and CRED_RE.search(m.group(1)):
                 if m.group(2) and len(m.group(2)) > 1:
                     yield "args[%d] %s=<value>" % (i, m.group(1))
                 elif i + 1 < len(args) and isinstance(args[i + 1], str) and not args[i + 1].startswith("-"):
@@ -617,6 +669,13 @@ def scan(surfaces):
         target = surface_target(surface)
         if target is None:
             continue
+        folder, base = os.path.split(target[0])
+        if os.path.isdir(folder):
+            for f in sorted(os.listdir(folder)):
+                if re.fullmatch(re.escape(base) + r"\.new\.[0-9]+", f):
+                    found += 1
+                    print("%s\ttemp\t%s\t-\ta leftover temporary copy of the config (delete it)" % (
+                        surface, os.path.join(folder, f)))
         for path, kind in ((target[0], "config"), (target[0] + ".pmhwc-backup", "backup")):
             if not os.path.exists(path):
                 continue

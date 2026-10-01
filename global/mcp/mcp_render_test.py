@@ -169,6 +169,34 @@ class Definition(unittest.TestCase):
             with self.subTest(label):
                 self.assertNotEqual(r.validate({"version": 1, "servers": servers}, "darwin"), [], label)
 
+    def test_credentials_are_refused_by_value_whatever_the_key_is_called(self):
+        # Assembled at run time so this file holds nothing a secret scanner would flag.
+        gh = "gh" + "p_" + "Q" * 36
+        cases = {
+            "token prefix under an innocuous name": {"env": {"SETTING": gh}},
+            "url with a password": {"env": {"DATABASE_URL": "postgres://u:" + "pw" * 6 + "@db.example/x"}},
+            "url with a token query": {"args": ["https://h.example/mcp?access_token=" + "z" * 20]},
+            "authorization header arg": {"args": ["--header", "Authorization: Bearer " + "y" * 24]},
+            "custom header arg": {"args": ["-H", "X-Api-Key: " + "k" * 20]},
+            "private key block": {"env": {"CFG": "-----BEGIN RSA " + "PRIVATE KEY-----"}},
+            "credential-looking name, wider set": {"env": {"GH_PAT": "x"}},
+            "bare KEY name": {"env": {"STRIPE_KEY": "x"}},
+        }
+        for label, extra in cases.items():
+            with self.subTest(label):
+                server = dict({"command": "x"}, **extra)
+                errs = r.validate({"version": 1, "servers": {"s": server}}, "darwin")
+                self.assertNotEqual(errs, [], label)
+                for v in list(extra.get("env", {}).values()) + extra.get("args", []):
+                    if len(v) > 4:
+                        self.assertFalse(any(v in e for e in errs), "an error message echoed the value")
+        h = mk_home("home-value-cred")
+        write_source(h, {"version": 1, "servers": {"s": {"command": "x", "env": {"SETTING": gh}}}})
+        for mode in ("--dry-run", "--check"):
+            p = run(h, mode)
+            self.assertEqual(p.returncode, 2)
+            self.assertNotIn(gh, p.stdout + p.stderr, mode)
+
     def test_not_secret_is_the_reviewed_escape(self):
         doc = {"version": 1, "servers": {"s": {"command": "x", "env": {"AUTH_MODE": "device"},
                                                "args": ["--token-file", "/p"], "not_secret": ["AUTH_MODE", "--token-file"]}}}
@@ -431,10 +459,36 @@ class Render(unittest.TestCase):
         self.assertEqual(read(t["codex"]), 'model = \n')
 
     def test_an_agent_session_may_not_write_the_real_home(self):
-        self.assertIsNotNone(r.owner_act_refusal("/h/real", {"CLAUDECODE": "1"}, "/h/real"))
-        self.assertIsNotNone(r.owner_act_refusal("/h/real", {"CODEX_SANDBOX": "seatbelt"}, "/h/real"))
-        self.assertIsNone(r.owner_act_refusal("/h/throwaway", {"CLAUDECODE": "1"}, "/h/real"))
-        self.assertIsNone(r.owner_act_refusal("/h/real", {}, "/h/real"))
+        inside = ["/h/throwaway/.codex/config.toml", "/h/throwaway/.local/share/x/mcp-launch.sh"]
+        agent = {"CLAUDECODE": "1"}
+        self.assertIsNotNone(r.owner_act_refusal("/h/real", ["/h/real/.codex/config.toml"], agent, "/h/real"))
+        self.assertIsNotNone(r.owner_act_refusal("/h/real", [], {"CODEX_SANDBOX": "seatbelt"}, "/h/real"))
+        self.assertIsNotNone(r.owner_act_refusal("/h", ["/h/.codex/config.toml"], agent, "/h/real"),
+                             "a HOME that contains the real home")
+        self.assertIsNotNone(r.owner_act_refusal("/h/throwaway", inside + ["/h/real/.codex/config.toml"], agent, "/h/real"),
+                             "one target outside HOME")
+        self.assertIsNone(r.owner_act_refusal("/h/throwaway", inside, agent, "/h/real"))
+        self.assertIsNone(r.owner_act_refusal("/h/real", ["/h/real/.codex/config.toml"], {}, "/h/real"))
+
+    def test_an_agent_session_may_not_redirect_a_write_outside_home(self):
+        # CODEX_HOME and XDG_DATA_HOME move write targets; HOME alone is not the boundary.
+        for var, rel in (("CODEX_HOME", "elsewhere-codex"), ("XDG_DATA_HOME", "elsewhere-data")):
+            with self.subTest(var):
+                h = mk_home("home-redirect-" + var)
+                elsewhere = os.path.join(BASE, rel)
+                shutil.rmtree(elsewhere, ignore_errors=True)
+                os.makedirs(elsewhere)
+                src = write_source(h, source_doc())
+                before_h, before_e = fingerprint(h), fingerprint(elsewhere)
+                p = run(h, "--source=" + src, env=clean_env(h, CLAUDECODE="1", **{var: elsewhere}))
+                self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+                self.assertIn("outside HOME", p.stderr)
+                self.assertEqual(fingerprint(h), before_h)
+                self.assertEqual(fingerprint(elsewhere), before_e)
+        h = mk_home("home-agent-inside")
+        write_source(h, source_doc())
+        p = run(h, env=clean_env(h, CLAUDECODE="1"))
+        self.assertEqual(p.returncode, 0, "an agent may still render into a throwaway HOME: " + p.stderr)
 
 
 class Secrets(unittest.TestCase):
@@ -446,9 +500,18 @@ class Secrets(unittest.TestCase):
         out = os.path.join(BASE, "out-env.txt")
         if os.path.exists(out):
             os.remove(out)
-        p = subprocess.run([cx["command"]] + cx["args"], env=server_env, capture_output=True, text=True)
+        # Inherited tracing must not print the value: SHELLOPTS reaches /bin/sh where it is bash (macOS).
+        env = dict(server_env, SHELLOPTS="xtrace")
+        p = subprocess.run([cx["command"]] + cx["args"], env=env, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(read(out), sha(value), "the server did not receive the secret")
+        self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under SHELLOPTS=xtrace")
+        p = subprocess.run(["sh", "-x"] + [cx["command"]] + cx["args"], env=server_env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under sh -x")
+        if shutil.which("bash"):
+            p = subprocess.run(["bash", "-x"] + [cx["command"]] + cx["args"], env=env, capture_output=True, text=True)
+            self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under bash -x")
 
     def test_env_indirection_renders_names_only_and_launches_with_the_value(self):
         h = mk_home("home-env-secret")
@@ -497,6 +560,16 @@ class Secrets(unittest.TestCase):
         cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
         p = subprocess.run([cx["command"]] + cx["args"], env=clean_env(REAL_HOME), capture_output=True, text=True)
         self.assertEqual(p.returncode, 3, "the launcher started a server after its Keychain item was deleted")
+        # A non-printable value: `security -w` would hand it over hex-encoded, so the launcher refuses.
+        cmd = 'add-generic-password -s "%s" -a "%s" -X "0001ff41"\n' % (service, account)
+        try:
+            self.assertEqual(subprocess.run(["/usr/bin/security", "-i"], input=cmd.encode(), capture_output=True).returncode, 0)
+            q = subprocess.run([cx["command"]] + cx["args"], env=clean_env(REAL_HOME), capture_output=True, text=True)
+            self.assertEqual(q.returncode, 3, q.stderr)
+            self.assertIn("not printable text", q.stderr)
+        finally:
+            subprocess.run(["/usr/bin/security", "delete-generic-password", "-s", service, "-a", account],
+                           capture_output=True)
         self.assertIn("no readable Keychain item", p.stderr)
         self.assertNotIn(value, p.stderr)
 
@@ -528,6 +601,9 @@ class Scan(unittest.TestCase):
                                                 "headers": {"Authorization": vals[4]}},
                                       "svc-u": {"url": "https://h/mcp?access_token=" + vals[5]}}}, fh)
         shutil.copy(t["kiro"], t["kiro"] + ".pmhwc-backup")
+        shutil.copy(t["kiro"], t["kiro"] + ".new.4242")
+        with open(t["claude-code"], "w") as fh:
+            json.dump({"mcpServers": {"svc-c": {"command": "x", "env": {"SETTING": "gh" + "p_" + "W" * 36}}}}, fh)
         p = run(h, "--scan")
         self.assertEqual(p.returncode, 0, p.stderr)
         for v in vals:
@@ -537,6 +613,9 @@ class Scan(unittest.TestCase):
             self.assertIn(expect, p.stdout)
         self.assertNotIn("REGION", p.stdout)
         self.assertIn("backup\t%s.pmhwc-backup" % t["kiro"], p.stdout)
+        self.assertIn("temp\t%s.new.4242" % t["kiro"], p.stdout)
+        self.assertIn("svc-c\tenv.SETTING", p.stdout, "a credential-shaped value under an innocuous name")
+        self.assertNotIn("W" * 36, p.stdout + p.stderr)
 
     def test_scan_is_owner_run_only(self):
         h = mk_home("home-scan-agent")

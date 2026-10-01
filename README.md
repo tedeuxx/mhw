@@ -194,8 +194,11 @@ python3 global/mcp/mcp_render.py            # render (a backup is kept beside ea
 python3 global/mcp/mcp_render.py --check    # exit 1 on drift
 ```
 
-It needs Python 3.11 or later. **It is not installed on the reference machine.** It refuses to write the
-real home from inside an agent session, and the migration steps are in ADR-0017.
+It needs Python 3.11 or later. **It is not installed on the reference machine.** Inside an agent session
+it refuses `--scan`, and refuses any write outside a throwaway home (`CODEX_HOME` and `XDG_DATA_HOME`
+included). That refusal reads environment markers a process can unset: it is a speed bump, not a
+control. Before installing, quit the apps that write these files, including every running Claude Code
+CLI session. The migration steps are in ADR-0017.
 `python3 -B global/mcp/mcp_render_test.py <empty dir>` runs its suite in throwaway homes.
 
 ## Decisions

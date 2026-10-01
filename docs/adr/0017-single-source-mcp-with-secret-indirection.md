@@ -79,18 +79,35 @@ copy dropped into this repository is not committable by accident. The repository
 - `global/mcp/mcp-servers.example.json`, three synthetic servers named `example-*`.
 
 Per server: `command`, `args`, `env` (non-secret values only), `secrets` (`NAME` →
-`keychain:<service>` or `env:<VAR>`), `surfaces` (default all), `not_secret`. **Two checks a schema
-cannot express:** an `env` name that looks like a credential (`TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`,
-`AUTH`, …) and an `args` flag that does (`--api-key=…`) are refused, unless the owner lists them in
-`not_secret`. The refusal is loud and names the key, and `not_secret` is the reviewed escape. Only local
-`stdio` servers are in the schema.
+`keychain:<service>` or `env:<VAR>`), `surfaces` (default all), `not_secret`. **Checks a schema
+cannot express, all loud, all naming a location and never a value:**
+
+- **By name:** an `env` name that looks like a credential (`TOKEN`, `SECRET`, `PASSWORD`, `PWD`,
+  `API_KEY`, `AUTH`, `DSN`, a `PAT` or `KEY` word such as `GH_PAT` or `STRIPE_KEY`, …) and an `args` flag
+  that does (`--api-key=…`). The owner can list a reviewed name in `not_secret`.
+- **By value, whatever the key is called:** an `env` value, an argument or the command carrying userinfo
+  or a credential query parameter in a URL (`postgres://user:pass@…`, `?access_token=…`), an
+  Authorization-style header (`Authorization: Bearer …`, `X-Api-Key: …`), a bearer or basic scheme, a
+  private-key block, or a well-known token prefix (GitHub, GitLab, OpenAI-style `sk-`, Stripe, Slack,
+  AWS access key id, Google API key, npm). There is no escape for these: the whole value goes into the
+  Keychain under `secrets`. So a `--dry-run` or `--check` of such a definition stops at validation and
+  shows nothing of it.
+- **The limit, stated:** a credential with no recognisable shape, under a name that suggests nothing,
+  passes. Both checks are heuristics, and the miss is silent.
+
+Only local `stdio` servers are in the schema.
 
 ### The launcher: the value is read at process start
 
 A server with `secrets` is rendered as `mcp-launch.sh --secret NAME=keychain:<service> … -- <command>
 <args>`. The launcher reads each value (`/usr/bin/security find-generic-password -s <service> -w`, or
 the named variable), exports it as `NAME`, and `exec`s the server. The value travels through the tool's
-stdout into the launcher's shell, never through any process's argv. **A missing, locked or empty secret
+stdout into the launcher's shell, never through any process's argv. The launcher switches tracing off
+before anything else, because an inherited `SHELLOPTS=xtrace`, `sh -x` or `bash -x` would otherwise
+print each value to stderr, which the surfaces keep in their MCP server logs (the suite runs all three
+and asserts the value never appears). `-w` prints a value that is not printable text as hex,
+**byte-identical** to a printable value that happens to be hex (measured with synthetic items), so the
+launcher first reads the form with `-g` and refuses the hex case with exit 3. **A missing, locked or empty secret
 stops the launch** with a message naming `NAME` and its source, never the value, so the surface shows a
 failed server instead of starting one without its credential. The renderer installs the launcher, with
 the usual marker line, beside the other managed files. It refuses to render anything if an unmanaged
@@ -128,12 +145,14 @@ entries, which may hold credentials. `--check` reports drift per file (exit 1). 
 
 `mcp_render.py --scan` reads each surface's MCP section, **and each `.pmhwc-backup`**, and prints
 `surface · config|backup · file · server · location`, where location is a key path (`env.X`,
-`headers.Authorization`, `bearer_token`, `args[3] --api-key <value>`, a URL with userinfo or a
-credential-like query parameter). **It never prints a value**; a test plants six synthetic values and
-asserts none reaches its output. It refuses to run when the process carries an agent session's
+`headers.Authorization`, `bearer_token`, `args[3] --api-key <value>`, `args[2] <credential-looking
+value>`, a URL with userinfo or a credential-like query parameter). It applies the same value shapes as
+validation, so a token under an innocuous name is listed too. It also lists any leftover
+`<file>.new.<pid>` temporary copy, which an interrupted write could leave beside a config. **It never
+prints a value**; a test plants seven synthetic values and asserts none reaches its output. It refuses to run when the process carries an agent session's
 environment markers (`CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `CODEX_SANDBOX`,
-`CODEX_SANDBOX_NETWORK_DISABLED`). It is name-based: a credential under an innocuous key name is not
-listed, and nothing announces that miss.
+`CODEX_SANDBOX_NETWORK_DISABLED`). Like validation, it misses a credential with no recognisable name
+or shape, and nothing announces that miss.
 
 ### Measured: no rendered file holds a secret value
 
@@ -188,15 +207,19 @@ rewritten `HOME` would get a failed server, loudly. Whether any surface does is 
   3.11+ (macOS's stock `/usr/bin/python3` is 3.9, so it refuses there with a message).
 - Bad: a server that takes its credential as a command-line argument cannot be migrated without putting
   the value in argv, which the launcher deliberately does not do.
-- Bad: the agent-session refusals (`--scan`, and writing the real `HOME`) read environment markers. They
-  are a speed bump, not a control. The two Codex names are strings in the shipped Codex binary; that
-  a Codex session sets them is **not measured**.
+- Bad: the agent-session refusals read environment markers. Under them, `--scan` refuses, and an
+  install refuses unless **every** write target (the launcher, the manifest, the Codex config and each
+  JSON config) is inside `HOME` and `HOME` neither is nor contains the real home. `CODEX_HOME`,
+  `XDG_DATA_HOME` and `APPDATA` move targets, so `HOME` alone was not the boundary (an independent review
+  measured a write outside it; the suite now covers both variables). It is still a speed bump, not a
+  control: a process can unset the markers. The two Codex names are strings in the shipped Codex
+  binary; that a Codex session sets them is **not measured**.
 - Version cut (ADR-0002): **minor**: a new control, and nothing an adopter had is weakened.
 
 ## Installing it is the owner's act
 
-The renderer refuses to write the real `HOME` from inside an agent session. From his own terminal, the
-steps are:
+From inside an agent session the renderer refuses any write outside a throwaway `HOME`. From his own
+terminal, the steps are:
 
 1. `python3 global/mcp/mcp_render.py --scan`: the list of credential-looking keys.
 2. For each credential: `security add-generic-password -s <service> -a "$USER" -w`, typing the value at
@@ -204,9 +227,11 @@ steps are:
 3. Write the definition in the local overlay (start from `global/mcp/mcp-servers.example.json`).
 4. Remove the hand-written Codex tables that the definition now owns. For the JSON surfaces,
    `--adopt` replaces them.
-5. Quit the apps, then `--dry-run`, then install, then `--check`.
-6. Delete the backups that still hold plaintext values (`--scan` lists them), and rotate those
-   credentials.
+5. Quit the apps that write these files: the Claude desktop app, the ChatGPT desktop app (Codex),
+   Kiro, and **every running Claude Code CLI session**, which rewrites `~/.claude.json` while it runs.
+   Then `--dry-run`, install, and `--check`.
+6. Delete the backups and leftover temporary copies that still hold plaintext values (`--scan` lists
+   them), and rotate those credentials.
 
 ## Links
 

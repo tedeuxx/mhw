@@ -15,6 +15,10 @@
 # server, so the server is the process the harness talks to. A missing or empty secret stops the
 # launch with a message naming NAME and its source, never the value: the harness reports the server
 # as failed, which is visible, instead of starting it without its credential.
+#
+# Tracing is switched off first: an inherited SHELLOPTS=xtrace, or `sh -x`, would otherwise print every
+# value this script handles to stderr, which harnesses keep in their MCP server logs.
+set +x
 set -eu
 
 die() {
@@ -43,6 +47,18 @@ while [ $# -gt 0 ]; do
         keychain:?*)
           service=${src#keychain:}
           [ -x /usr/bin/security ] || die "secret $name: keychain: needs macOS (/usr/bin/security not found)"
+          # `-w` prints a non-printable value as hex, byte-identical to a printable value that happens
+          # to be hex (measured), so the form is read first with -g, which marks the hex case "0x".
+          if ! form=$(/usr/bin/security find-generic-password -s "$service" -g 2>&1 >/dev/null); then
+            die "secret $name: no readable Keychain item for service '$service' (absent, or the Keychain is locked)" 3
+          fi
+          case $form in
+            *"password: 0x"*)
+              unset form
+              die "secret $name: the Keychain value for '$service' is not printable text, and security would hand it over hex-encoded; store it as text" 3
+              ;;
+          esac
+          unset form
           if ! value=$(/usr/bin/security find-generic-password -s "$service" -w 2>/dev/null); then
             die "secret $name: no readable Keychain item for service '$service' (absent, or the Keychain is locked)" 3
           fi
