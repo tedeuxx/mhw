@@ -130,12 +130,19 @@ overlay.
 | `global/AGENTS.md` | the generic rules | every harness's user-level brief (ADR-0010) |
 | `overlay/AGENTS.md` | his language rule and his limits, in words | appended to that brief |
 | `global/hitl.conf` | `max_questions=1`, `max_question_chars=0` (length off) | the guard's config |
-| `overlay/hitl.conf` | `max_question_chars=280` (*proposed* reading of "tweet") | appended; the last value wins |
+| `overlay/hitl.conf` | `max_question_chars=280` (*proposed* reading of "tweet"), and the owner notice in Portuguese (`notice_count`, `notice_length`) | appended; the last value wins |
 
 `max_questions=1` is generic rather than personal, because a second question can be lost on some
 surfaces without anything reporting the loss. How short an interruption must be is personal, so the
-length check is off unless an overlay sets it. An adopter replaces `overlay/`, or installs with
+length check is off unless an overlay sets it. **For both limits, `0` means the check is off.** The
+owner notice defaults to built-in English; an overlay sets it in the owner's language, with the
+placeholders `{count}`, `{chars}` and `{max}`. An adopter replaces `overlay/`, or installs with
 `--overlay=none`.
+
+The config format is `key=value`, one per line. Spaces around keys and numbers are ignored, `#`
+starts a comment, and a last line with no trailing newline is read. A numeric value that is not a
+non-negative integer is ignored, and the built-in default applies. Tests cover each of these cases,
+because a value the parser drops silently turns a check off.
 
 ### The guard: `global/hooks/hitl-escalation-guard.sh`
 
@@ -146,8 +153,9 @@ length check is off unless an overlay sets it. An adopter replaces `overlay/`, o
   It returns no decision and leaves those to the runtime's schema.
 - **Claude Code output:** a `deny`, whose reason tells the agent how to re-ask (first question only,
   or a shorter stem, never prose). It also carries a **`systemMessage` for the owner** stating the
-  category and the mitigation, never the question text. That is the ADR-0005 intervention report,
-  issued by the hook instead of left to the model's memory. A test asserts the text is never echoed.
+  category and the mitigation, never the question text, in the overlay's language. That is the
+  ADR-0005 intervention report, issued by the hook instead of left to the model's memory. A test
+  asserts the text is never echoed. The deny reason addressed to the agent stays in English.
 - **Codex output** (`--format=codex`): `{"decision":"block","reason":…}`, the vocabulary the plugin's
   Codex probe measured. Written and tested; **not registered** (below).
 
@@ -162,6 +170,11 @@ checkout, so a branch switch cannot change what runs. It then **merges** one
 - it leaves `settings.json.pmhwc-backup` beside the file;
 - `--dry-run` prints the semantic diff and writes nothing;
 - `--check` reports a missing or stale entry.
+
+CI (`.github/workflows/tests.yml`) runs both suites on Ubuntu and macOS, plus `shellcheck`, on every
+pull request into `main`. It uses read-only permissions and the same pinned checkout commit as
+`version-main.yml`. On Ubuntu `sh` is `dash`, so the suites also run under a second POSIX shell
+there. On the reference Mac they run under its `sh`.
 
 ### Per harness: what is enforced, warned, or instruction only
 
@@ -202,8 +215,8 @@ repository; it is named here, not filed. If either is removed, the other still h
   the settings, so `jq` is present at install time; its later removal is silent.
 - Bad: the agent can evade a refusal by asking in prose. The deny reason forbids it, but only the
   instruction holds it. Two asks in prose are caught by no layer, on any harness.
-- Bad: 280 characters is a proposed reading. The notice is in English, although he converses in
-  Portuguese.
+- Bad: 280 characters is a proposed reading. The Portuguese notice text is the agent's wording, not
+  his.
 - Bad: the first merge re-serializes `~/.claude/settings.json`. It currently uses a non-jq layout
   (4-space indent, `" : "`, escaped `\/`), so whitespace and escaping change. The dry-run says so and
   shows the semantic diff. Later runs that find the entry in place write nothing.

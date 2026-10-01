@@ -67,6 +67,7 @@ fi
 long=$(awk 'BEGIN { for (i = 0; i < 281; i++) printf "x" }')
 out=$(jq -cn --arg l "$long" '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:$l}]}}' | sh "$hook")
 if printf '%s' "$out" | grep -q 'limit is 280'; then ok "the installed hook reads the overlay's 280 limit"; else ko "overlay limit not applied"; fi
+if printf '%s' "$out" | jq -r .systemMessage | grep -q '^Guarda HITL (ADR-0013)'; then ok "the owner notice is in the overlay's language"; else ko "owner notice not from overlay"; fi
 HOME="$h" sh "$inst" --check; expect "check after install" 0 $?
 
 # 3. idempotent re-run
@@ -117,7 +118,7 @@ else
   ko "pre-existing content changed"
 fi
 if [ "$(jq -S . "$s.pmhwc-backup")" = "$orig" ]; then ok "backup holds the previous settings"; else ko "backup missing or wrong"; fi
-if [ "$(stat -f %Lp "$s" 2>/dev/null || stat -c %a "$s")" = 600 ]; then ok "file mode preserved (600)"; else ko "file mode changed"; fi
+if [ "$(stat -c %a "$s" 2>/dev/null || stat -f %Lp "$s")" = 600 ]; then ok "file mode preserved (600)"; else ko "file mode changed"; fi
 snap=$(cksum < "$s")
 HOME="$h" sh "$inst" > /dev/null; expect "re-merge" 0 $?
 if [ "$(cksum < "$s")" = "$snap" ]; then ok "re-merge left settings byte-identical"; else ko "re-merge rewrote settings"; fi
@@ -136,6 +137,16 @@ else
   ko "foreign hook lost"
 fi
 
+# 7b. a group that held only a stale entry of ours is removed, not left empty
+groups=$(jq '.hooks.PreToolUse | length' "$s")
+jq '.hooks.PreToolUse += [{matcher: "AskUserQuestion", hooks: [{type: "command", command: "/stale/personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"}]}]' "$s" > "$base/s.json" && cp "$base/s.json" "$s"
+HOME="$h" sh "$inst" > /dev/null; expect "merge with a stale-only group" 0 $?
+if [ "$(jq '.hooks.PreToolUse | length' "$s")" -eq "$groups" ] && jq -e 'all(.hooks.PreToolUse[]; (.hooks | length) > 0)' "$s" >/dev/null; then
+  ok "the emptied group is removed and no empty group remains"
+else
+  ko "group count $(jq '.hooks.PreToolUse | length' "$s"), expected $groups"
+fi
+
 # 8. invalid settings are refused and left untouched
 h="$base/home-badjson"; mkdir -p "$h/.claude"
 echo '{ "model": ' > "$h/.claude/settings.json"
@@ -149,6 +160,8 @@ HOME="$h" sh "$inst" --overlay=none > /dev/null; expect "install without overlay
 if grep -q '^## Owner overlay' "$h/.claude/CLAUDE.md"; then ko "overlay leaked into generic brief"; else ok "generic brief has no owner overlay"; fi
 out=$(jq -cn --arg l "$long" '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:$l}]}}' | sh "$(data "$h")/hitl-escalation-guard.sh")
 if [ -z "$out" ]; then ok "generic install does not check question length"; else ko "generic install checked length"; fi
+out=$(jq -cn '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:"a"},{question:"b"}]}}' | sh "$(data "$h")/hitl-escalation-guard.sh")
+if printf '%s' "$out" | jq -r .systemMessage | grep -q '^HITL guard (ADR-0013)'; then ok "generic install notifies in the default English"; else ko "generic notice wrong"; fi
 
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

@@ -28,7 +28,7 @@ deny() { # $1 label, $2 conf, $3 payload, $4 text the reason must carry
   out=$(run "$2" "$3")
   if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 \
      && printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -qF "$4" \
-     && printf '%s' "$out" | jq -e '.systemMessage | test("ADR-0013") and test("Mitigation")' >/dev/null 2>&1; then
+     && printf '%s' "$out" | jq -e '.systemMessage | test("ADR-0013") and (test("[{}]") | not)' >/dev/null 2>&1; then
     ok "$1"
   else
     ko "$1" "expected deny carrying '$4' plus an owner notice, got: ${out:-<empty>}"
@@ -69,6 +69,32 @@ abstain "another tool falls through" "$generic" '{"tool_name":"Bash","tool_input
 printf '%s\n' 'max_questions=banana' 'max_question_chars=-5' > "$base/bad.conf"
 deny "invalid config values fall back to the built-in limit of 1" "$base/bad.conf" "$(q a b)" "limit is 1"
 abstain "a missing config falls back to defaults (length off)" "$base/absent.conf" "$(q "$long281")"
+
+# Config parsing: ordinary spellings must not silently fall back to defaults.
+printf 'max_question_chars=10' > "$base/nonl.conf"
+deny "a last line without a trailing newline is read" "$base/nonl.conf" "$(q 'eleven char')" "limit is 10"
+printf '%s\n' ' max_questions = 3 ' > "$base/spaces.conf"
+abstain "keys and values written with spaces are read (3 questions pass)" "$base/spaces.conf" "$(q a b c)"
+deny "keys and values written with spaces are read (4 questions refused)" "$base/spaces.conf" "$(q a b c d)" "limit is 3"
+printf '%s\n' 'max_questions=0' > "$base/off.conf"
+abstain "max_questions=0 turns the count check off" "$base/off.conf" "$(q a b c d e)"
+
+# The owner notice comes from the config, in the overlay's language, placeholders filled.
+printf '%s\n' 'max_question_chars=280' \
+  'notice_count=Guarda: {count} perguntas, limite {max}. Mitigação: só a primeira.' \
+  'notice_length=Guarda: {chars} caracteres, limite {max}.' > "$base/pt.conf"
+out=$(run "$base/pt.conf" "$(q a b)")
+if [ "$(printf '%s' "$out" | jq -r .systemMessage)" = "Guarda: 2 perguntas, limite 1. Mitigação: só a primeira." ]; then
+  ok "count notice uses the configured template"
+else
+  ko "count notice uses the configured template" "${out:-<empty>}"
+fi
+out=$(run "$base/pt.conf" "$(q "$long281")")
+if [ "$(printf '%s' "$out" | jq -r .systemMessage)" = "Guarda: 281 caracteres, limite 280." ]; then
+  ok "length notice uses the configured template"
+else
+  ko "length notice uses the configured template" "${out:-<empty>}"
+fi
 
 # Codex output vocabulary (written, not registered).
 out=$(run "$generic" '{"tool_name":"request_user_input","tool_input":{"questions":[{"question":"a"},{"question":"b"}]}}' --format=codex)
