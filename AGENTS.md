@@ -5,7 +5,25 @@ whatever comes next). It is authored, not generated.
 
 ## Fundamental purpose
 
-This repository is the owner's **LLM firewall**. It is a protection layer for his individual liability,
+### Mission
+
+In the owner's words:
+
+> *"a sua missao como projeto de manutencao de configuracao de harness em workstation pessoal é me
+> resguardar de violacoes de direitos comercials e propriedade intelectual de terceiros ao longo das
+> minhas atividades profissionais pessoais. somente meu conheicmento individual e aprendizado ao longo
+> da minha atividade profissional e qualquer ambiente é de minha propriedade individual e isso que me
+> ajude a respeitar."*
+
+In English: protect him from **violating third parties' commercial rights and intellectual property**
+in his personal professional activity. **Only his individual knowledge and learning**, gained in any
+environment, is his own property, and this project exists to help him respect that line. The working
+test for where the line falls is proposed in
+[ADR-0009](docs/adr/0009-what-is-mine-individual-knowledge-vs-third-party-property.md).
+
+### How: the LLM firewall
+
+To pursue that mission, this repository is the owner's **LLM firewall**. It is a protection layer for his individual liability,
 enforcing ethical principles that he defines and regulates. It sits between him and every AI agent
 harness on his personal workstation (a Mac mini), and it is expressed as that workstation's governed
 configuration. It exists to protect him, as a private individual, from **individual, civil and
