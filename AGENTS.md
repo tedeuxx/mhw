@@ -58,7 +58,9 @@ response is **human-in-the-loop only, with no auditable record kept on the works
 personal by policy and never persists employer or client confidential data
 ([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)). Clipboard-borne
 prompts are checked automatically for employer and client references
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed).
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed). Operational
+judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
+the owner ([ADR-0012](docs/adr/0012-operational-judgement-delegated-to-the-harness.md)).
 
 Concretely, it must keep three things true on this machine:
 

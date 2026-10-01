@@ -1,0 +1,57 @@
+# 0012 — Operational judgement is delegated to the agent harness, to minimise human error
+
+- **Status:** accepted for the delegation (the owner's decision). The operating rule is proposed.
+- **Date:** 2026-10-01
+- **Deciders:** the owner
+
+## Context and problem
+
+Two questions were open: who decides where the line between his knowledge and third-party property
+falls (ADR-0009), and who enters terms into the hashed list (ADR-0011). The owner answered:
+*"estou delegando responsabilidade para voce de forma a minimizar o erro humano."* ("I am delegating
+responsibility to you, so as to minimise human error.")
+
+## Decision drivers
+
+- Human error is the failure mode the owner wants reduced.
+- Responsibility for the outcome cannot actually move to a tool.
+
+## Considered options
+
+1. **Delegate operational judgement to the agent harness**, under a conservative rule (below).
+2. **The owner decides every case and enters every term by hand.** He keeps full control, but this is
+   exactly the error-prone, attention-heavy path he chose to avoid.
+3. **Delegate without a bias rule.** Fewer interruptions, but an unsure agent may wave third-party
+   material through.
+
+## Decision outcome
+
+**Accepted (his decision): option 1.** The agent applies ADR-0009's test. When it recognises an employer
+or client reference, **the agent**, not the owner by hand, adds the term to ADR-0011's hashed list.
+
+### Operating rule (proposed, not his words)
+
+- **Conservative bias.** When unsure whether something is his knowledge or third-party property, the
+  agent treats it as third-party.
+- **HITL (ADR-0005) only where the conservative choice would block his own legitimate work.** In those
+  cases it asks rather than blocks silently.
+- **Term capture.** A recognised term is hashed immediately, under ADR-0011's scheme. It is never
+  written in plaintext anywhere the agent controls: files, memory, notes, scratch or commit text.
+
+## Consequences
+
+- **Accountability is not transferable.** Legal and contractual responsibility stays with the owner.
+  Delegation reduces how often errors happen; it does not reduce his liability.
+- **Capture after the fact, not prevention.** The agent can only recognise what reaches its context, and
+  by then the term has already passed through that harness's transcript (ADR-0008; documented for Claude
+  Code in ADR-0011).
+- **Recall is imperfect.** A term the agent fails to recognise is neither blocked nor captured.
+- **The conservative bias raises false positives.** More of his legitimate work is treated as
+  third-party, or interrupted.
+- The delegation is only as good as the instruction that carries it, and today that instruction is the
+  global brief, at instruction level (ADR-0010).
+
+## Links
+
+- ADR-0005 (HITL, no log). ADR-0008 (no persistence). ADR-0009 (the test). ADR-0010 (global brief).
+  ADR-0011 (hashed term list).
