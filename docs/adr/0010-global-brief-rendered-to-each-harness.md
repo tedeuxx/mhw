@@ -64,7 +64,7 @@ the owner's go.
   Windows.
 - Bad: a local edit to a managed file is overwritten on the next install. `--check` reports it as drift
   first.
-- Bad: the brief costs context in every session. It is about 3 KB, far under Kiro's 50,000-character
+- Bad: the brief costs context in every session. It is under 4 KB (`wc -c global/AGENTS.md`), far under Kiro's 50,000-character
   steering limit (`hOi=5e4` in the same bundle).
 
 ## Links

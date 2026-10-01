@@ -25,7 +25,8 @@ auditable record on my workstation").
 
 ## Decision outcome
 
-**Chosen: option 1.** On detection the firewall **stops, and the owner decides**. The firewall keeps
+**Chosen: option 1.** ~~On detection the firewall **stops, and the owner decides**.~~ *(Narrowed by
+the second 2026-10-01 amendment below: it now applies only to the residual case.)* The firewall keeps
 **no auditable record** of the detection on the workstation.
 
 This relies on ADR-0003: the hook layer can **block**, and blocking is what a HITL stop needs. Whether
@@ -75,6 +76,21 @@ is not a record.
 **Consequence:** this notice is the firewall's **only observability signal**, so **a silent intervention
 is a defect**. Bad: an in-session notice is written into that harness's transcript like any other
 message. That is the reason the category-only constraint is load-bearing rather than cosmetic.
+
+## Amendment 2026-10-01 (second): recognised cases are mitigated proactively, then reported
+
+Following the owner's instruction recorded in ADR-0012's 2026-10-01 amendment, the response to a
+detection depends on whether the agent recognises the case.
+
+- **Recognised cases** (a client reference, or a solution identified as proprietary): **mitigate
+  proactively, then notify.** Remove the reference, or abstract it, and report the category and the
+  mitigation, never the content (first amendment above).
+- **Stop and ask is reserved for the residual case.** That is where abstraction would destroy the
+  owner's own legitimate content, or where the agent cannot tell whether the mitigation is enough.
+
+The original "stops, and the owner decides" sentence in "Decision outcome" is struck in place, with a
+pointer here. It no longer holds as a blanket rule, only for the residual case. "No auditable record"
+is unchanged.
 
 ## Links
 

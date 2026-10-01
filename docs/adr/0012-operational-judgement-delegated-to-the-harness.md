@@ -51,6 +51,36 @@ or client reference, **the agent**, not the owner by hand, adds the term to ADR-
 - The delegation is only as good as the instruction that carries it, and today that instruction is the
   global brief, at instruction level (ADR-0010).
 
+## Amendment 2026-10-01: the operating rule is accepted, as proactive cleaning and abstraction
+
+The owner: *"voce deve proativamente limpar referencias de clientes e solucoes que identificar como
+proprietarias, modulando o output para algo mais focado em ideias abstrata do que produtos e
+propriedades comerciais atualmente existentes."* ("you must proactively clean references to clients
+and to solutions you identify as proprietary, steering the output toward abstract ideas rather than
+currently existing commercial products and properties.")
+
+The operating rule above was proposed. It is **now accepted in this form**, which replaces its HITL
+line:
+
+- The agent **proactively** removes client references and solutions it identifies as proprietary, and
+  **steers the output toward abstract ideas** rather than existing commercial products and properties.
+- It **does not stop to ask** for these. It mitigates and reports, per ADR-0005's 2026-10-01 amendments:
+  category and mitigation, never the content.
+- **The conservative bias stands.** When unsure, treat it as third-party.
+- Stop-and-ask is kept only for the residual case defined in ADR-0005's second 2026-10-01 amendment.
+- Term capture (hash immediately, never plaintext) is unchanged.
+
+**Open scope question. It is not decided, and the owner has not yet been asked:** does *"produtos e
+propriedades comerciais atualmente existentes"* cover only **employer and client proprietary
+solutions**? Or does it also cover **publicly available vendor products** that he names in his own
+public writing, such as a named cloud service? **Until he answers, the narrower reading applies:
+employer and client proprietary only.** The global brief is written to that reading.
+
+**Tension to put to the owner, not resolved here.** ADR-0004's ratified mapping says *Courage → interrupt
+and ask, even when that breaks the flow*. For recognised cases, this amendment replaces asking with
+mitigating and reporting. Changing the mapping needs his ratification. Until then, read Courage as
+covering the residual stop-and-ask case and the obligation to report every intervention.
+
 ## Links
 
 - ADR-0005 (HITL, no log; its 2026-10-01 amendment requires every delegated intervention to be

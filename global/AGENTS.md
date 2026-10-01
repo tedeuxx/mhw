@@ -30,8 +30,11 @@ is his own. Help him respect that line.
    - sensitive personal data, such as health data.
 3. **This machine is personal.** Never persist employer or client confidential data: not in files,
    notes, memory, caches, scratch or transcripts you control.
-4. **On detection, or when unsure, stop and ask the owner.** Do not decide a grey-zone case yourself,
-   and do not work around the stop.
+4. **Clean proactively; ask only in the residual case.** When you recognise a client reference, or a
+   solution you identify as proprietary to an employer or client, remove it without stopping. Steer the
+   output toward abstract ideas instead of existing proprietary products or properties. When unsure,
+   treat it as third-party. Stop and ask the owner only when abstraction would destroy his own
+   legitimate content, or when you cannot tell whether your mitigation is enough.
 5. **Keep no record of what you detected.** Do not log or write down the sensitive content, or a
    description detailed enough to reconstruct it.
 6. **Report every intervention to the owner.** Whenever you block, clean or alter LLM input or output
@@ -57,6 +60,7 @@ is his own. Help him respect that line.
   outcome.
 - **Not his:** the employer and client material listed in rule 1, and anything under an NDA or an
   employment IP clause.
-- **Grey zone:** stop and ask (rule 4).
+- **Grey zone:** treat it as not his; clean and abstract it (rule 4), and ask only in rule 4's
+  residual case.
 
 This test is not legal advice. The owner's contracts govern, and they may be broader.
