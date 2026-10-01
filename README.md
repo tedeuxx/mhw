@@ -161,8 +161,14 @@ The same run installs the paste filter
 withdrawn"): a user-level `UserPromptSubmit` hook that scans what you submit to Claude Code or Codex,
 pasted content included, for a known employer or client term, a credential, an e-mail address, a payment
 card, a CPF or a CNPJ. On a finding it **blocks** the prompt, names the category, and shows a redacted
-copy you can submit instead. It never rewrites the prompt, never touches the system clipboard and raises
-no OS dialog: nothing outside the harness CLI changes.
+copy you can submit instead. It never rewrites the prompt, never touches the system clipboard, and calls
+no dialog or notification tool. Once you have added a term, it reads the salt from your login Keychain on
+each prompt, but only after a non-interactive check says the keychain is unlocked, and with a 2-second
+limit. Otherwise term matching is skipped with a visible warning. Whether a locked keychain would have
+raised a dialog is not measured: the check exists so that it is never asked.
+
+A blocked prompt is not kept off disk. Claude Code documents that the text can remain in the transcript
+and prompt history. For Codex this is not measured, so assume it persists. See ADR-0011, "Residuals".
 
 - the core and its settings (`global/clipboard.conf`, then `overlay/clipboard.conf`) under
   `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/`;

@@ -235,6 +235,15 @@ def decide(conf, prompt, harness="claude", salts=None):
     return (json.loads(text) if text else None), text
 
 
+def decide_default_salts(conf, prompt):
+    """Like decide(), but the hook builds its own SaltStore, exactly as in production."""
+    out = io.StringIO()
+    payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": prompt}).encode()
+    g.cmd_prompt_hook(conf, "claude", io.BytesIO(payload), out)
+    text = out.getvalue()
+    return (json.loads(text) if text else None), text
+
+
 class PromptHook(unittest.TestCase):
     def assert_no_content(self, text, prompt):
         low = text.lower()
@@ -296,6 +305,92 @@ class PromptHook(unittest.TestCase):
         d, conf = hook_conf("hook-typo", block_categories="credential,emial")
         self.assertEqual(decide(conf, "mail ana@zyxw-mail.zyxw")[0]["decision"], "block")
 
+    def test_hook_keychain_read_is_gated_bounded_and_non_interactive(self):
+        """The hook's Keychain path (the owner's real configuration since he added a term): it calls
+        /usr/bin/security only when the lock probe says the keychain is UNLOCKED, with a timeout and no
+        stdin, never `security -i`; a locked or unknown keychain is never touched and is reported."""
+        d, conf = hook_conf("hook-kc", salt_store="keychain", keychain_service="pmhwc.test.not-real")
+        with_term(conf)
+        calls = []
+
+        def fake_run(argv, **kw):
+            calls.append((list(argv), kw))
+            return subprocess.CompletedProcess(argv, 0, (SALT + "\n").encode(), b"")
+        real_run, real_probe = g.subprocess.run, g.keychain_unlocked
+        try:
+            g.subprocess.run = fake_run
+            for state in (False, None):
+                g.keychain_unlocked = lambda state=state: state
+                out, raw = decide_default_salts(conf, "notes for " + TERM)
+                self.assertEqual(calls, [], "security was called with the keychain %r" % state)
+                self.assertNotIn("decision", out)
+                self.assertIn("NOT checked", out["systemMessage"])
+            g.keychain_unlocked = lambda: True
+            out, raw = decide_default_salts(conf, "notes for " + TERM)
+            self.assertEqual(out["decision"], "block")
+            self.assertEqual(len(calls), 1)
+            argv, kw = calls[0]
+            self.assertEqual(argv[:2], ["/usr/bin/security", "find-generic-password"])
+            self.assertNotIn("-i", argv)
+            self.assertEqual(kw.get("timeout"), g.KEYCHAIN_READ_SECONDS)
+            self.assertLessEqual(g.KEYCHAIN_READ_SECONDS, 2)
+            self.assertIs(kw.get("stdin"), subprocess.DEVNULL)
+
+            def slow(argv, **kw):
+                raise subprocess.TimeoutExpired(argv, kw.get("timeout"))
+            g.subprocess.run = slow
+            out, raw = decide_default_salts(conf, "notes for " + TERM)
+            self.assertIn("NOT checked", out["systemMessage"])
+        finally:
+            g.subprocess.run, g.keychain_unlocked = real_run, real_probe
+
+    @unittest.skipUnless(DARWIN and os.path.exists("/usr/bin/security"), "macOS Keychain only")
+    def test_hook_process_reads_a_real_namespaced_keychain_salt(self):
+        """A real prompt-hook process against the login Keychain, through the real lock probe and the
+        real `security` read, with a namespaced synthetic item that is deleted afterwards."""
+        service = "%s.clipboard-salt.hooktest-%d" % (g.PROJECT, os.getpid())
+        d, conf = hook_conf("hook-kc-real", salt_store="keychain", keychain_service=service)
+        try:
+            try:
+                salt = g.SaltStore(conf).create()
+            except RuntimeError:
+                self.skipTest("the login Keychain is not writable here (locked or absent)")
+            g.add_term_hashes(conf["terms_file"], [g.term_hash(salt, f) for f in g.term_forms(TERM)])
+            payload = json.dumps({"prompt": "ship it for " + TERM}).encode()
+            py = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
+            r = subprocess.run([py, "-I", "-B", g.__file__, "prompt-hook", "--harness", "claude", "--config",
+                                os.path.join(d, "clipboard.conf")], input=payload, capture_output=True, timeout=30)
+            self.assertEqual((r.returncode, r.stderr), (0, b""))
+            out = json.loads(r.stdout)
+            if g.keychain_unlocked() is True:
+                self.assertEqual(out["decision"], "block")
+                self.assertNotIn(b"quillon", r.stdout.lower())
+            else:
+                self.assertIn("NOT checked", out["systemMessage"])
+        finally:
+            subprocess.run(["/usr/bin/security", "delete-generic-password", "-s", service, "-a", g._account()],
+                           capture_output=True)
+        self.assertIsNone(g.SaltStore(conf).get(), "the throwaway Keychain item was not deleted")
+
+    @unittest.skipUnless(DARWIN and os.path.exists("/usr/bin/security"), "macOS Keychain only")
+    def test_lock_probe_reports_a_locked_throwaway_keychain_without_waiting(self):
+        """A THROWAWAY keychain file under the test's base directory (never the login keychain), locked:
+        the probe must say False at once. A probe that waited on an unlock dialog would take seconds."""
+        kc = os.path.join(BASE, "probe.keychain-db")
+        before = subprocess.run(["/usr/bin/security", "list-keychains"], capture_output=True).stdout
+        subprocess.run(["/usr/bin/security", "create-keychain", "-p", "throwaway-test-pw", kc], check=True, capture_output=True)
+        try:
+            self.assertIs(g.keychain_unlocked(kc), True)
+            subprocess.run(["/usr/bin/security", "lock-keychain", kc], check=True, capture_output=True)
+            t = time.monotonic()
+            self.assertIs(g.keychain_unlocked(kc), False)
+            self.assertLess(time.monotonic() - t, 1.0)
+        finally:
+            subprocess.run(["/usr/bin/security", "delete-keychain", kc], capture_output=True)
+        self.assertFalse(os.path.exists(kc))
+        self.assertEqual(subprocess.run(["/usr/bin/security", "list-keychains"], capture_output=True).stdout, before,
+                         "the keychain search list changed")
+
     def test_too_large_warns_and_passes(self):
         d, conf = hook_conf("hook-large", max_bytes="100")
         out, raw = decide(conf, "key " + CREDENTIALS["aws"] + " " + "a" * 200)
@@ -307,10 +402,10 @@ class PromptHook(unittest.TestCase):
         d, conf = hook_conf("hook-nosalt")
         with_term(conf)
         out, _ = decide(conf, "hello " + TERM, salts=FakeSalts(None))
-        self.assertIn("term matching is OFF", out["systemMessage"])
+        self.assertIn("term matching was NOT checked", out["systemMessage"])
         out, _ = decide(conf, "hello key " + CREDENTIALS["aws"], salts=FakeSalts(None))
         self.assertEqual(out["decision"], "block")
-        self.assertIn("term matching is OFF", out["reason"])
+        self.assertIn("term matching was NOT checked", out["reason"])
 
     def test_long_redacted_copy_is_not_shown(self):
         d, conf = hook_conf("hook-long", show_cleaned_chars="50")

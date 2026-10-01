@@ -471,11 +471,38 @@ Option 1 of this record, alone: harness-level prompt hooks.
   internal error lets the prompt through with a `systemMessage` that says it was **not checked**, naming
   only an exception class. A term list whose salt is missing still blocks on the generic categories and
   warns that term matching is off.
-- **It touches nothing outside the harness CLI.** It never reads or writes the system clipboard, raises
-  no OS dialog or notification, and writes no file. Tested on a real `prompt-hook` process in a
-  throwaway home, with fake `pbcopy`, `pbpaste`, `osascript`, `security` and `launchctl` on `PATH` that
-  record any call (none were called, and no file changed). A second test asserts the source names no
-  clipboard, dialog, notification or launchd tool.
+- **What it touches outside the harness CLI, stated exactly.**
+  - It never reads or writes the system clipboard, never calls `osascript` or `launchctl`, and writes
+    no file.
+  - Tested on a real `prompt-hook` process in a throwaway home (file salt), with fake `pbcopy`,
+    `pbpaste`, `osascript`, `security` and `launchctl` on `PATH` that record any call. None were called,
+    and no file changed. A second test asserts the source names no clipboard, dialog, notification or
+    launchd tool.
+  - **It does read the login Keychain**, once per prompt, whenever a term list exists. The owner has
+    added a term (Issue #5), so this is the production path on his machine. The salt item was created by
+    `/usr/bin/security`, so its access list trusts that tool. An in-process read from `python3` with user
+    interaction off fails with `errSecAuthFailed` (-25293): *measured* on a namespaced synthetic item,
+    which was deleted after. The read therefore stays a `security` subprocess, gated and bounded:
+    - **Gate.** The hook first asks Security.framework for the default keychain's lock **status**, with
+      user interaction switched off for its own process (`SecKeychainSetUserInteractionAllowed(false)`,
+      then `SecKeychainGetStatus`). Only if the keychain reports unlocked does it run
+      `security find-generic-password … -w`. It never runs `security -i`, and it gives that process no
+      stdin.
+    - **Bound.** The read has a 2-second timeout.
+    - **Locked, unknown, slow or missing:** term matching is skipped for that prompt, with a visible
+      *"NOT checked"* warning. The generic categories still apply.
+  - **Evidence for the Keychain path:**
+    - *Tested* with an injected runner: no `security` call when the probe says locked or unknown; one
+      call with the timeout and no `-i` when unlocked; a timeout yields the warning. Mutation-checked:
+      the lens's mutant (an interactive read on the hook path), a skipped gate and a dropped timeout each
+      turn the test red.
+    - *Tested* on a throwaway keychain file under the test's own directory, locked: the probe returns
+      locked in well under a second, and the keychain search list is unchanged afterwards.
+    - *Tested* on a real `prompt-hook` process against a namespaced synthetic login-Keychain item, which
+      is deleted afterwards.
+    - **Not measured:** whether `security find-generic-password` would raise an unlock dialog on a
+      locked login keychain. The gate exists so that it is never asked. Also not measured: a keychain
+      that locks in the instant between the probe and the read. That window is not closed.
 - **Tuning:** `block_categories` (all six by default) lets the owner drop a noisy category, such as
   `email` if his own address keeps tripping it. A misspelt name restores all six rather than silently
   switching one off.
@@ -533,7 +560,7 @@ Anthropic clause is undecided.
 
 | Harness | Version | Evidence | Result |
 | --- | --- | --- | --- |
-| Claude Code | 2.1.287 | **measured**, headless: `claude -p --setting-sources project --settings <throwaway settings> --no-session-persistence --tools "" --strict-mcp-config --output-format json`, run in an empty scratch directory. The settings file held only the hook, pointing at this branch's core with a throwaway config (file salt, synthetic term) | **Blocked.** The prompt with the synthetic term returned `num_turns: 0`, `total_cost_usd: 0` and `result` = *"UserPromptSubmit operation blocked by hook:"* + the notice + the redacted copy. There was no *"Original prompt"* line and no term. **Calibration:** the same prompt without the term returned `OK` in 1 turn. Two runs. Afterwards `grep -c` for the term in `~/.claude/history.jsonl` returned 0 |
+| Claude Code | 2.1.287 | **measured**, headless: `claude -p --setting-sources project --settings <throwaway settings> --no-session-persistence --tools "" --strict-mcp-config --output-format json`, run in an empty scratch directory. The settings file held only the hook, pointing at this branch's core with a throwaway config (file salt, synthetic term) | **Blocked.** The prompt with the synthetic term returned `num_turns: 0`, `total_cost_usd: 0` and `result` = *"UserPromptSubmit operation blocked by hook:"* + the notice + the redacted copy. There was no *"Original prompt"* line and no term. **Calibration:** the same prompt without the term returned `OK` in 1 turn. Two runs. The Keychain salt path was **not** part of this run (file salt); it is covered by the tests above |
 | Claude Code | — | **not measured**: an interactive session with a real paste | The `[Pasted text #N]` expansion and the marker lines are *documented* only |
 | Codex CLI | 0.155.0-alpha.16.3 | **measured**, headless: `codex exec --skip-git-repo-check --ephemeral --json -s read-only --disable shell_tool --disable unified_exec --disable memories --dangerously-bypass-hook-trust`. Throwaway `CODEX_HOME` holding only `hooks.json` and a **symlink** to `auth.json` (no copy); deleted after | **Blocked:** `turn.completed` with all-zero usage and no `agent_message`, so the prompt never reached the model. **But the block reason appears in no event of the `--json` stream**, so headless use gets no notice. **Calibration:** the clean prompt returned `OK`. **Untrusted (no bypass flag):** the hook was **skipped with no warning in the stream**, and the prompt with the term was sent and answered. Three runs |
 | Codex CLI | — | **documented**: interactive trust (`/hooks`), and a startup warning when hooks need review | Not measured. Until the owner trusts the entry, **Codex has no paste filter** |
@@ -541,11 +568,19 @@ Anthropic clause is undecided.
 
 ### Residuals, stated rather than hidden
 
-- **A blocked prompt is not kept off disk.** Claude Code: *"The submitted text can still appear in local
-  files such as the session transcript and your prompt history, so a blocking hook isn't a way to keep a
-  secret off disk"* (*documented*). The paste cache (`~/.claude/paste-cache/`) also keeps collapsed
-  pastes (*documented*). The headless run above left nothing in `history.jsonl`. An interactive session
-  is not measured. This is the gap ADR-0008 names, and only cleaning **before** the paste closes it.
+- **A blocked prompt is not kept off disk.**
+  - Claude Code: *"The submitted text can still appear in local files such as the session transcript
+    and your prompt history, so a blocking hook isn't a way to keep a secret off disk"* (*documented*).
+    The paste cache (`~/.claude/paste-cache/`) also keeps collapsed pastes (*documented*).
+  - The headless run above left nothing in `history.jsonl`, but **that check is uncalibrated**: the
+    calibration prompt, which *was* sent, is not in `history.jsonl` either (`grep -c` → 0). So headless
+    `-p` evidently writes no history at all, and the zero says nothing about a block. Interactive
+    sessions are not measured.
+  - **Codex: not measured, assume it persists.** The headless measurement ran with `--ephemeral`, which
+    exists to avoid persisting the session. A plain `grep` of that throwaway `CODEX_HOME` found no copy
+    of the term, but that says nothing about a non-ephemeral session. Treat a prompt blocked in Codex as
+    written to its session store until measured otherwise.
+  - This is the gap ADR-0008 names, and only cleaning **before** the paste closes it.
 - **A headless block exits 0** with `is_error: false` (Claude Code), and Codex's stream carries no
   reason. Automation reading only exit codes cannot see the block.
 - **Typed text is scanned too**, so e-mail addresses in pasted `git log` output or typed by the owner
@@ -556,6 +591,11 @@ Anthropic clause is undecided.
   cloud-side surfaces. The Claude Code IDE extensions share `~/.claude/settings.json`. Whether the hook
   fires there is *not measured*.
 - **Windows:** `install.ps1` does not install the filter. There is no stock Python to run it.
+- **The Command Line Tools shim.** On macOS `/usr/bin/python3` is a CLT shim that opens an install
+  dialog when the CLT are absent. The installer refuses to register the filter when `xcode-select -p`
+  fails, and exits 2. That refusal is not exercised in CI, where the CLT are present. **If the CLT are
+  removed after install, every prompt would invoke the shim.** Nothing re-checks this at prompt time:
+  re-run `install.sh --check` after removing them.
 - Everything under the first amendment's "The term list", "Generic categories" and the salt-store
   sections still holds. So do its add-term "Limit" paragraph and the open ADR-0012 agent-route
   question.

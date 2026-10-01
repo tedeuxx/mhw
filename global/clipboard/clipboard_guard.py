@@ -13,9 +13,10 @@
 #
 # Properties this file must keep, each with a test in clipboard_guard_test.py:
 #   - it writes NOTHING except the term list (add-term only): no log, no history, no cache, no record of
-#     what matched (ADR-0005). It never reads or writes the system clipboard, never raises an OS dialog
-#     or notification, and runs only when a harness CLI calls it (the owner: "nao deve impactar nenhum
-#     outro app ou ux do so");
+#     what matched (ADR-0005). It never reads or writes the system clipboard, calls no dialog or
+#     notification tool, and runs only when a harness CLI calls it (the owner: "nao deve impactar nenhum
+#     outro app ou ux do so"). The prompt hook reads a Keychain salt only after a non-interactive lock
+#     probe says unlocked, with a timeout (SaltStore(interactive=False));
 #   - a notice names categories and the mitigation, never the original content or the matched term;
 #   - the term list holds salted hashes of normalised terms, never plaintext, and add-term reads the
 #     term from the terminal with echo off: never from argv, the environment or a pipe.
@@ -52,8 +53,9 @@ DEFAULTS = {
     "notice_cleaned_too_long": "The redacted copy is {chars} characters, too long to show here.",
     "notice_too_large": "Paste filter (ADR-0011): this prompt is over {max} bytes and was NOT checked.",
     "notice_error": "Paste filter (ADR-0011): internal error ({error}); this prompt was NOT checked.",
-    "notice_no_salt": "Paste filter (ADR-0011): the term list exists but its salt was not found, so "
-                      "employer/client term matching is OFF for this prompt.",
+    "notice_no_salt": "Paste filter (ADR-0011): the term list exists but its salt could not be read without "
+                      "a prompt (Keychain locked, slow or item missing), so employer/client term matching "
+                      "was NOT checked for this prompt.",
 }
 HARNESSES = ("claude", "codex")
 
@@ -265,19 +267,78 @@ def sanitise(text, spans):
 # -------------------------------------------------------------------------------------- salt store
 
 
+KEYCHAIN_READ_SECONDS = 2
+
+
+def keychain_unlocked(path=None):
+    """True when the default keychain (or the keychain file at `path`) is unlocked, False when it is
+    locked, None when that cannot be determined. It asks Security.framework for the keychain's STATUS
+    with user interaction switched off for this process, so it never raises an unlock dialog itself.
+
+    Why a status probe and not an in-process read: the salt item was created by /usr/bin/security, so its
+    access list trusts that tool and not python3. Read in process with interaction off, it fails with
+    errSecAuthFailed (-25293); with interaction on it would ask the owner for access. Measured 2026-10-01
+    on a namespaced synthetic item. So the read stays a `security` subprocess, which the item trusts, and
+    this probe decides whether that read may run at all."""
+    try:
+        import ctypes
+        sec = ctypes.cdll.LoadLibrary("/System/Library/Frameworks/Security.framework/Security")
+        cf = ctypes.cdll.LoadLibrary("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
+        sec.SecKeychainSetUserInteractionAllowed.argtypes = [ctypes.c_ubyte]
+        sec.SecKeychainSetUserInteractionAllowed.restype = ctypes.c_int32
+        sec.SecKeychainCopyDefault.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+        sec.SecKeychainCopyDefault.restype = ctypes.c_int32
+        sec.SecKeychainOpen.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_void_p)]
+        sec.SecKeychainOpen.restype = ctypes.c_int32
+        sec.SecKeychainGetStatus.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)]
+        sec.SecKeychainGetStatus.restype = ctypes.c_int32
+        cf.CFRelease.argtypes = [ctypes.c_void_p]
+        if sec.SecKeychainSetUserInteractionAllowed(0) != 0:
+            return None
+        ref = ctypes.c_void_p()
+        rc = sec.SecKeychainOpen(path.encode(), ctypes.byref(ref)) if path else sec.SecKeychainCopyDefault(ctypes.byref(ref))
+        if rc != 0 or not ref.value:
+            return None
+        status = ctypes.c_uint32()
+        try:
+            rc = sec.SecKeychainGetStatus(ref, ctypes.byref(status))
+        finally:
+            cf.CFRelease(ref)
+        return bool(status.value & 1) if rc == 0 else None      # kSecUnlockStateStatus = 1
+    except (OSError, AttributeError):
+        return None
+
+
 class SaltStore:
     """The salt keys every term hash. macOS: the login Keychain (generic password), written through
     `security -i` on stdin so the value never appears in a process's argv. Elsewhere, or by choice: a
-    user-only file (0600) in the local overlay directory, outside every repository."""
+    user-only file (0600) in the local overlay directory, outside every repository.
 
-    def __init__(self, conf, run=subprocess.run):
+    interactive=False is the prompt hook's mode: the Keychain is read only when keychain_unlocked() says
+    the default keychain is unlocked, and the `security` read is bounded by KEYCHAIN_READ_SECONDS. A
+    locked, unknown or slow keychain yields None, which the hook reports as term matching OFF; it never
+    waits on an unlock dialog. add-term keeps interactive=True: the owner is at his own terminal."""
+
+    def __init__(self, conf, run=None, interactive=True, lock_probe=None):
         self.conf = conf
         self.run = run
+        self.interactive = interactive
+        self.lock_probe = lock_probe
 
     def get(self):
+        run = self.run or subprocess.run
         if self.conf["salt_store"] == "keychain":
-            r = self.run(["/usr/bin/security", "find-generic-password", "-s", self.conf["keychain_service"],
-                          "-a", _account(), "-w"], capture_output=True)
+            argv = ["/usr/bin/security", "find-generic-password", "-s", self.conf["keychain_service"],
+                    "-a", _account(), "-w"]
+            if self.interactive:
+                r = run(argv, capture_output=True)
+            else:
+                if (self.lock_probe or keychain_unlocked)() is not True:
+                    return None
+                try:
+                    r = run(argv, capture_output=True, stdin=subprocess.DEVNULL, timeout=KEYCHAIN_READ_SECONDS)
+                except (OSError, subprocess.SubprocessError):
+                    return None
             value = r.stdout.decode().strip() if r.returncode == 0 else ""
         else:
             try:
@@ -291,7 +352,7 @@ class SaltStore:
         value = secrets.token_hex(32)
         if self.conf["salt_store"] == "keychain":
             cmd = 'add-generic-password -s "%s" -a "%s" -w "%s"\n' % (self.conf["keychain_service"], _account(), value)
-            r = self.run(["/usr/bin/security", "-i"], input=cmd.encode(), capture_output=True)
+            r = (self.run or subprocess.run)(["/usr/bin/security", "-i"], input=cmd.encode(), capture_output=True)
             if r.returncode != 0:
                 raise RuntimeError("could not store the salt in the Keychain")
         else:
@@ -368,7 +429,7 @@ def prompt_decision(conf, prompt, harness, salts=None):
     terms = read_terms(conf["terms_file"])
     salt = None
     if terms:
-        salt = (salts or SaltStore(conf)).get()
+        salt = (salts or SaltStore(conf, interactive=False)).get()
         if not salt:
             warnings.append(_format(conf, "notice_no_salt"))
     blocking = set(c.strip() for c in conf["block_categories"].split(","))
