@@ -1,0 +1,43 @@
+# Run the installer and hook suites, and shellcheck, on every PR into main (ADR-0013).
+# Every test writes only under $RUNNER_TEMP: throwaway HOMEs, never a real one.
+name: tests
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # actions/checkout v6.1.0 (same pin as version-main.yml, verified with git ls-remote 2026-10-01)
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: shellcheck (preinstalled on the runner image)
+        run: |
+          shellcheck --version
+          shellcheck -s sh global/install.sh global/install.test.sh \
+            global/hooks/hitl-escalation-guard.sh global/hooks/hitl-escalation-guard.test.sh
+
+  suites:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      # actions/checkout v6.1.0 (same pin as version-main.yml, verified with git ls-remote 2026-10-01)
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: hook suite
+        run: sh global/hooks/hitl-escalation-guard.test.sh "$RUNNER_TEMP/guard"
+      - name: installer suite
+        run: sh global/install.test.sh "$RUNNER_TEMP/install"

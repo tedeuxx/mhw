@@ -67,7 +67,18 @@ the owner's go.
 - Bad: the brief costs context in every session. It is under 4 KB (`wc -c global/AGENTS.md`), far under Kiro's 50,000-character
   steering limit (`hOi=5e4` in the same bundle).
 
+## Amendment 2026-10-01: the overlay is appended, and the installer also installs the HITL guard
+
+Under ADR-0013, the rendered brief is now `global/AGENTS.md` **followed by** the owner overlay's
+`overlay/AGENTS.md`. The marker's `sha256` covers both, and the marker names its source as
+`global/AGENTS.md + overlay`. `--overlay=none` (`-Overlay none` on Windows) renders the generic brief
+alone. The brief with the overlay is about 5 KB: ~~It is under 4 KB~~ no longer holds.
+
+`install.sh` also installs the HITL escalation guard and its config as managed files, and merges one
+hook entry into `~/.claude/settings.json` (ADR-0013). `install.ps1` renders the overlay but does not
+install the guard.
+
 ## Links
 
 - `AGENTS.md`, "Mission" and "Principles", item 1. ADR-0003 (Kiro access mode). ADR-0004. ADR-0005.
-  ADR-0006. ADR-0008. ADR-0009.
+  ADR-0006. ADR-0008. ADR-0009. ADR-0013.
