@@ -60,7 +60,10 @@ personal by policy and never persists employer or client confidential data
 prompts are checked automatically for employer and client references
 ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed). Operational
 judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
-the owner ([ADR-0012](docs/adr/0012-operational-judgement-delegated-to-the-harness.md)).
+the owner ([ADR-0012](docs/adr/0012-operational-judgement-delegated-to-the-harness.md)). How agents
+escalate a pending decision or action to the owner is calibrated here: generic rules in the global
+brief, his language and limits in [`overlay/`](overlay/), and a user-level guard on Claude Code
+([ADR-0013](docs/adr/0013-hitl-escalation-calibration.md)).
 
 Concretely, it must keep three things true on this machine:
 
