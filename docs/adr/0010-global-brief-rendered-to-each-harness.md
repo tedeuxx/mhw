@@ -186,9 +186,18 @@ invalid-entry cases; and the usage exit code, by both usage cases.
 (`66 passed, 0 failed`) and PowerShell 7 failed the seven formerly-silent checks: a file appears in
 the throwaway profile even when the installer writes nothing. The test now names every file it counts.
 The file is `AppData\Local\Microsoft\PowerShell\StartupProfileData-NonInteractive`, written by
-PowerShell 7 itself when it starts under that profile, so the count leaves `AppData\` out and still
-prints what it skipped. At `11e5f31` both legs pass with `66 passed, 0 failed`. The installer itself
-has no target under `AppData\` (read from the script), so leaving it out hides nothing of ours.
+PowerShell 7 itself when it starts under that profile. ~~so the count leaves `AppData\` out~~ The count
+leaves out only `AppData\Local\Microsoft\PowerShell\` (narrowed after review from all of `AppData\`)
+and still prints what it skipped. At `11e5f31` both legs passed with `66 passed, 0 failed`. The
+installer has no target under `AppData\` (read from the script), so the exclusion hides nothing of ours.
+
+**The brief no longer tells a Windows agent it has a hook.** `global/AGENTS.md` said *"On Claude Code a
+user-level hook refuses a picker … Everywhere else these rules are instructions only"*. That brief is
+rendered byte-identically on Windows, where `install.ps1` installs no hook, so a Windows agent was
+told a control existed that did not. It now reads *"On Claude Code on macOS and Linux a user-level hook
+refuses … Everywhere else, Windows included, these rules are instructions only"*. No other sentence in
+the brief claims a control: it does not mention the deny floor (rendered on Windows too) or the
+clipboard guard (not rendered on Windows). The brief grows by 38 bytes, to 4,891 (`wc -c`).
 
 ### Parity: what `install.ps1` covers against `install.sh`
 
