@@ -10,7 +10,8 @@
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
 # <CODEX_HOME>\rules\workstation-deny-floor.rules. The HITL escalation guard and its hook entry
 # (ADR-0013) are NOT ported to Windows: install.sh carries them, and on Windows the escalation rules are
-# instructions only.
+# instructions only. The paste filter at the harness-CLI prompt (ADR-0011) is not ported either: it runs
+# on the stock /usr/bin/python3, which Windows does not have.
 #
 # Exit codes: 0 ok, 1 drift or missing (-Check), 2 usage or invalid floor entry, 3 an UNMANAGED or
 # unreadable file is in the way.

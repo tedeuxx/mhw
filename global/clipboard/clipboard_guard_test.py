@@ -1,11 +1,13 @@
 #!/usr/bin/python3
-# Tests for clipboard_guard.py (ADR-0011). Everything runs under a throwaway base directory:
+# Tests for clipboard_guard.py, the paste filter at the harness-CLI prompt (ADR-0011). Everything runs
+# under a throwaway base directory:
 #   python3 -B clipboard_guard_test.py <empty-or-new base directory>
 # Every term, token and identifier below is SYNTHETIC, and the credential-shaped ones are assembled at
-# run time so that this file never contains a string a secret scanner would flag. On macOS, the
-# pasteboard tests use a private NAMED pasteboard that is destroyed afterwards (never the general one),
-# and the Keychain test uses a namespaced item that is deleted afterwards.
+# run time so that this file never contains a string a secret scanner would flag. Nothing here reads or
+# writes the system clipboard. On macOS the Keychain test uses a namespaced item that is deleted
+# afterwards.
 import io
+import json
 import os
 import pty
 import select
@@ -64,47 +66,6 @@ CREDENTIALS = {
 }
 
 
-class FakePasteboard:
-    def __init__(self, text=None, types=None, forbid_read=False):
-        self.text = text
-        self.typelist = list(types) if types is not None else ([g.TEXT_TYPE] if text is not None else [])
-        self.count = 1
-        self.forbid_read = forbid_read
-        self.reads = 0
-
-    def change_count(self):
-        return self.count
-
-    def types(self):
-        return list(self.typelist)
-
-    def string(self):
-        if self.forbid_read:
-            raise AssertionError("a marked item was read past its type list")
-        self.reads += 1
-        return self.text
-
-    def set_string(self, s):
-        self.text, self.typelist, self.count = s, [g.TEXT_TYPE], self.count + 1
-
-    def clear(self):
-        self.text, self.typelist, self.count = None, [], self.count + 1
-
-
-class FakeNotifier:
-    def __init__(self, answer="keep"):
-        self.answer = answer
-        self.sent = []
-
-    def notify(self, key, **values):
-        self.sent.append(g.DEFAULTS[key].format(**values))
-        return True
-
-    def offer(self, cats):
-        self.sent.append(g.DEFAULTS["notice_offer"].format(categories=", ".join(cats)))
-        return self.answer
-
-
 class FakeSalts:
     def __init__(self, value=SALT):
         self.value = value
@@ -137,16 +98,6 @@ def tree(d):
             st = os.lstat(p)
             out.append((p, st.st_size, st.st_mtime_ns))
     return sorted(out)
-
-
-def guard(text=None, types=None, mode="offer", answer="keep", terms=(), forbid_read=False, d=None):
-    d = d or os.path.join(BASE, "guard-%d" % time.monotonic_ns())
-    conf = g.load_config(conf_in(d, mode=mode))
-    if terms:
-        g.add_term_hashes(conf["terms_file"], [g.term_hash(SALT, f) for t in terms for f in g.term_forms(t)])
-    pb = FakePasteboard(text, types, forbid_read)
-    n = FakeNotifier(answer)
-    return g.Guard(conf, pb, n, FakeSalts()), pb, n
 
 
 class Normalisation(unittest.TestCase):
@@ -266,254 +217,314 @@ class Patterns(unittest.TestCase):
         self.assertEqual(g.sanitise(text, spans), "x [REDACTED:credential] y")
 
 
-class GuardBehaviour(unittest.TestCase):
-    def test_marked_items_are_never_read(self):
-        qt_style = "com.trolltech.anymime.application--x-nspasteboard-concealed-type"   # hypothetical Qt UTI
-        for marker in g.SKIP_TYPES + (qt_style,):
-            gd, pb, n = guard(CREDENTIALS["aws"], [g.TEXT_TYPE, marker], mode="sanitise", forbid_read=True)
-            self.assertEqual(gd.check(pb.count), "skipped-marked", marker)
-            self.assertEqual((pb.text, n.sent), (CREDENTIALS["aws"], []), marker)
+def hook_conf(name, **over):
+    d = os.path.join(BASE, name)
+    conf = g.load_config(conf_in(d, **over))
+    return d, conf
 
-    def test_sanitise_mode_replaces_then_notifies_category_only(self):
-        text = "deploy for %s with %s" % (TERM, CREDENTIALS["github"])
-        gd, pb, n = guard(text, mode="sanitise", terms=[TERM])
-        self.assertEqual(gd.check(pb.count), "cleaned")
-        self.assertEqual(pb.text, "deploy for [REDACTED:employer-client-term] with [REDACTED:credential]")
-        self.assertEqual(len(n.sent), 1)
-        self.assertIn("employer-client-term, credential", n.sent[0])
-        self.assert_no_content(n.sent, text)
 
-    def test_offer_mode_default_is_keep_and_changes_nothing(self):
-        text = "mail ana@zyxw-mail.zyxw"
-        gd, pb, n = guard(text)
-        self.assertEqual(gd.conf["mode"], "offer")
-        self.assertEqual(gd.check(pb.count), "kept")
-        self.assertEqual((pb.text, pb.count), (text, 1))
-        self.assert_no_content(n.sent, text)
+def with_term(conf, term=TERM):
+    g.add_term_hashes(conf["terms_file"], [g.term_hash(SALT, f) for f in g.term_forms(term)])
 
-    def test_offer_clean_and_clear(self):
-        text = "mail ana@zyxw-mail.zyxw"
-        gd, pb, n = guard(text, answer="clean")
-        self.assertEqual(gd.check(pb.count), "cleaned")
-        self.assertEqual(pb.text, "mail [REDACTED:email]")
-        gd, pb, n = guard(text, answer="clear")
-        self.assertEqual(gd.check(pb.count), "cleared")
-        self.assertIsNone(pb.text)
-        self.assert_no_content(n.sent, text)
 
-    def test_a_newer_copy_is_never_overwritten(self):
-        gd, pb, n = guard("mail ana@zyxw-mail.zyxw", answer="clean")
-        pb.count = 7                               # the owner copied something else during the dialog
-        self.assertEqual(gd.check(1), "changed")
-        self.assertEqual(pb.text, "mail ana@zyxw-mail.zyxw")
-        self.assertIn("Mitigation: none applied", n.sent[-1])
+def decide(conf, prompt, harness="claude", salts=None):
+    out = io.StringIO()
+    payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": prompt}).encode()
+    g.cmd_prompt_hook(conf, harness, io.BytesIO(payload), out, salts or FakeSalts())
+    text = out.getvalue()
+    return (json.loads(text) if text else None), text
 
-    def test_too_large_is_reported_not_silently_passed(self):
-        gd, pb, n = guard("a" * 2_000_000, mode="sanitise")
-        self.assertEqual(gd.check(pb.count), "too-large")
-        self.assertIn("NOT checked", n.sent[0])
 
-    def test_terms_without_salt_are_reported(self):
-        gd, pb, n = guard("hello " + TERM, mode="sanitise", terms=[TERM])
-        gd.salts = FakeSalts(None)
-        self.assertEqual(gd.check(pb.count), "clean")
-        self.assertIn("term matching is OFF", n.sent[0])
+def decide_default_salts(conf, prompt):
+    """Like decide(), but the hook builds its own SaltStore, exactly as in production."""
+    out = io.StringIO()
+    payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": prompt}).encode()
+    g.cmd_prompt_hook(conf, "claude", io.BytesIO(payload), out)
+    text = out.getvalue()
+    return (json.loads(text) if text else None), text
 
-    def test_no_text_item(self):
-        gd, pb, n = guard(None, ["public.png"])
-        self.assertEqual(gd.check(pb.count), "no-text")
 
-    def test_run_writes_nothing_and_prints_nothing(self):
-        d = os.path.join(BASE, "nolog")
-        before_env = dict(os.environ)
-        os.makedirs(os.path.join(d, "home"), exist_ok=True)
-        os.environ.update(HOME=os.path.join(d, "home"), TMPDIR=os.path.join(d, "home"),
-                          XDG_DATA_HOME=os.path.join(d, "home", "data"))
-        try:
-            gd, pb, n = guard("token %s and %s" % (CREDENTIALS["aws"], TERM), mode="sanitise", terms=[TERM], d=d)
-            gd.conf["poll_seconds"] = "1"
-            snap = tree(d)
-            out, err = io.StringIO(), io.StringIO()
-            real = sys.stdout, sys.stderr
-            sys.stdout, sys.stderr = out, err
-            try:
-                g.time.sleep = lambda s: None
-                gd.run(max_cycles=5)
-            finally:
-                sys.stdout, sys.stderr = real
-                g.time.sleep = REAL_SLEEP
-            self.assertEqual(tree(d), snap, "the watcher wrote to disk")
-            self.assertEqual((out.getvalue(), err.getvalue()), ("", ""))
-            self.assertEqual(pb.text, "token [REDACTED:credential] and [REDACTED:employer-client-term]")
-        finally:
-            os.environ.clear()
-            os.environ.update(before_env)
-
-    def test_item_copied_while_the_dialog_is_open_is_still_checked(self):
-        """Regression for the independent lens's probe on 5a080a9: the loop used to re-read the change
-        count after check(), so an item copied during the offer dialog was marked seen unchecked."""
-        second = "second copy with key " + CREDENTIALS["aws"]
-        for answer in ("keep", "clean", "clear"):
-            gd, pb, n = guard("mail ana@zyxw-mail.zyxw", answer=answer)
-            first_offer = n.offer
-            state = {"done": False}
-
-            def offer(cats, pb=pb, state=state, first_offer=first_offer):
-                if not state["done"]:          # the owner copies something else while the dialog is up
-                    state["done"] = True
-                    pb.text, pb.typelist, pb.count = second, [g.TEXT_TYPE], pb.count + 1
-                return first_offer(cats)
-            n.offer = offer
-            g.time.sleep = lambda s: None
-            try:
-                gd.run(max_cycles=6)
-            finally:
-                g.time.sleep = REAL_SLEEP
-            offers = [s for s in n.sent if "Nothing changed yet" in s]
-            self.assertEqual(len(offers), 2, "%s: the item copied during the dialog was never checked" % answer)
-            self.assertIn("credential", offers[1], answer)
-
-    def test_the_guards_own_write_is_not_rechecked(self):
-        gd, pb, n = guard("key " + CREDENTIALS["aws"], mode="sanitise")
-        g.time.sleep = lambda s: None
-        try:
-            gd.run(max_cycles=5)
-        finally:
-            g.time.sleep = REAL_SLEEP
-        self.assertEqual(pb.reads, 1, "the redacted copy the guard wrote was read again as a new item")
-        self.assertEqual(len(n.sent), 1)
-
-    def test_a_failure_on_every_poll_is_reported_once(self):
-        gd, pb, n = guard("x")
-
-        def broken():
-            raise OSError("pasteboard server gone")
-        pb.change_count = broken
-        g.time.sleep = lambda s: None
-        try:
-            gd.run(max_cycles=10)
-        finally:
-            g.time.sleep = REAL_SLEEP
-        self.assertEqual(len(n.sent), 1)
-        self.assertIn("OSError", n.sent[0])
-
-    def test_startup_failure_is_one_notice_and_a_clean_exit(self):
-        conf = g.load_config(conf_in(os.path.join(BASE, "startup")))
-        n = FakeNotifier()
-
-        def backend(name):
-            raise OSError("no AppKit here: SECRETDETAIL")
-        self.assertEqual(g.cmd_watch(conf, backend=backend, notifier=n), 0)
-        self.assertEqual(len(n.sent), 1)
-        self.assertIn("could not start (OSError)", n.sent[0])
-        self.assertNotIn("SECRETDETAIL", n.sent[0])
-
-    def test_one_error_one_notice_with_class_name_only(self):
-        gd, pb, n = guard("x")
-
-        def boom():
-            raise UnicodeDecodeError("utf-8", b"SECRETBYTES", 0, 1, "bad")
-        pb.string = boom
-        g.time.sleep = lambda s: None
-        try:
-            gd.run(max_cycles=4)
-        finally:
-            g.time.sleep = REAL_SLEEP
-        self.assertEqual(len(n.sent), 1)
-        self.assertIn("UnicodeDecodeError", n.sent[0])
-        self.assertNotIn("SECRETBYTES", n.sent[0])
-
-    def assert_no_content(self, notices, text):
-        joined = "\n".join(notices).lower()
-        for word in g.tokens(text):
-            if len(word[2]) >= 4 and word[2] not in ("mail", "with", "deploy", "token"):
-                self.assertNotIn(word[2], joined)
+class PromptHook(unittest.TestCase):
+    def assert_no_content(self, text, prompt):
+        low = text.lower()
+        for word in g.tokens(TERM):
+            self.assertNotIn(word[2], low, "a term word reached the hook output")
         for secret in CREDENTIALS.values():
-            self.assertNotIn(secret.lower(), joined)
+            self.assertNotIn(secret.lower()[:24], low, "a secret reached the hook output")
+        self.assertNotIn("ana@zyxw-mail.zyxw", low)
 
+    def test_clean_prompt_prints_nothing(self):
+        d, conf = hook_conf("hook-clean")
+        with_term(conf)
+        out, raw = decide(conf, "refactor the parser; see commit 3f1e2d4 and git@github.com:o/r.git")
+        self.assertIsNone(out)
+        self.assertEqual(raw, "", "a clean prompt printed something (it would become model context)")
 
-class NotifierArgv(unittest.TestCase):
-    def test_content_never_reaches_osascript(self):
+    def test_every_category_blocks(self):
+        d, conf = hook_conf("hook-each")
+        with_term(conf)
+        cases = {"employer-client-term": "notes for " + TERM.lower(), "email": "mail ana@zyxw-mail.zyxw",
+                 "cpf": "CPF " + cpf("529982247"), "cnpj": "CNPJ " + cnpj("112223330001"),
+                 "payment-card": "card " + luhn_complete("411111111111111")}
+        cases.update({"credential/" + k: "use " + v for k, v in CREDENTIALS.items()})
+        for name, prompt in cases.items():
+            out, raw = decide(conf, prompt)
+            self.assertEqual(out and out.get("decision"), "block", name)
+            self.assertIn(name.split("/")[0], out["reason"], name)
+            self.assert_no_content(raw, prompt)
+
+    def test_the_block_message_never_carries_the_term_or_the_original(self):
+        d, conf = hook_conf("hook-notice")
+        with_term(conf)
+        prompt = "deploy for %s with %s, mail ana@zyxw-mail.zyxw" % (TERM, CREDENTIALS["github"])
+        for harness in ("claude", "codex"):
+            out, raw = decide(conf, prompt, harness)
+            self.assertEqual(out["decision"], "block")
+            self.assertIn("employer-client-term, credential, email", out["reason"])
+            self.assertIn("deploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail "
+                          "[REDACTED:email]", out["reason"], "the redacted copy is missing")
+            self.assert_no_content(raw, prompt)
+        out, _ = decide(conf, prompt, "claude")
+        # Without this flag Claude Code appends "Original prompt:" and the submitted text (documented).
+        self.assertIs(out["hookSpecificOutput"]["suppressOriginalPrompt"], True)
+        self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "UserPromptSubmit")
+        out, _ = decide(conf, prompt, "codex")
+        self.assertNotIn("hookSpecificOutput", out)
+
+    def test_paste_marker_lines_are_not_in_the_copy(self):
+        d, conf = hook_conf("hook-markers")
+        prompt = 'look at this\n<pasted_content id="p1">\nkey %s\n</pasted_content id="p1">\nthanks' % CREDENTIALS["aws"]
+        out, _ = decide(conf, prompt)
+        self.assertIn("look at this\nkey [REDACTED:credential]\nthanks", out["reason"])
+        self.assertNotIn("pasted_content", out["reason"])
+
+    def test_block_categories_narrow_and_a_typo_restores_all(self):
+        d, conf = hook_conf("hook-narrow", block_categories="credential,employer-client-term")
+        self.assertIsNone(decide(conf, "mail ana@zyxw-mail.zyxw")[0])
+        self.assertEqual(decide(conf, "key " + CREDENTIALS["aws"])[0]["decision"], "block")
+        d, conf = hook_conf("hook-typo", block_categories="credential,emial")
+        self.assertEqual(decide(conf, "mail ana@zyxw-mail.zyxw")[0]["decision"], "block")
+
+    def test_hook_keychain_read_is_gated_bounded_and_non_interactive(self):
+        """The hook's Keychain path (the owner's real configuration since he added a term): it calls
+        /usr/bin/security only when the lock probe says the keychain is UNLOCKED, with a timeout and no
+        stdin, never `security -i`; a locked or unknown keychain is never touched and is reported."""
+        d, conf = hook_conf("hook-kc", salt_store="keychain", keychain_service="pmhwc.test.not-real")
+        with_term(conf)
         calls = []
 
-        def run(argv, **kw):
-            calls.append((list(argv), kw.get("input")))
-            return subprocess.CompletedProcess(argv, 0, b"Clean\n", b"")
-        conf = g.load_config(None)
-        nt = g.Notifier(conf, run)
-        self.assertEqual(nt.offer(["credential", "email"]), "clean")
-        self.assertTrue(nt.notify("notice_cleaned", categories="credential"))
-        blob = repr(calls)
-        self.assertNotIn(CREDENTIALS["aws"], blob)
-        self.assertIn("credential", blob)
-        self.assertTrue(all(c[0][0] == "/usr/bin/osascript" for c in calls))
+        def fake_run(argv, **kw):
+            calls.append((list(argv), kw))
+            return subprocess.CompletedProcess(argv, 0, (SALT + "\n").encode(), b"")
+        real_run, real_probe = g.subprocess.run, g.keychain_unlocked
+        try:
+            g.subprocess.run = fake_run
+            for state in (False, None):
+                g.keychain_unlocked = lambda state=state: state
+                out, raw = decide_default_salts(conf, "notes for " + TERM)
+                self.assertEqual(calls, [], "security was called with the keychain %r" % state)
+                self.assertNotIn("decision", out)
+                self.assertIn("NOT checked", out["systemMessage"])
+            g.keychain_unlocked = lambda: True
+            out, raw = decide_default_salts(conf, "notes for " + TERM)
+            self.assertEqual(out["decision"], "block")
+            self.assertEqual(len(calls), 1)
+            argv, kw = calls[0]
+            self.assertEqual(argv[:2], ["/usr/bin/security", "find-generic-password"])
+            self.assertNotIn("-i", argv)
+            self.assertEqual(kw.get("timeout"), g.KEYCHAIN_READ_SECONDS)
+            self.assertLessEqual(g.KEYCHAIN_READ_SECONDS, 2)
+            self.assertIs(kw.get("stdin"), subprocess.DEVNULL)
 
-    def test_timeout_failure_and_missing_osascript_mean_keep_and_no_crash(self):
-        conf = g.load_config(None)
-        gave_up = g.Notifier(conf, lambda a, **k: subprocess.CompletedProcess(a, 0, b"\n", b""))
-        failed = g.Notifier(conf, lambda a, **k: subprocess.CompletedProcess(a, 1, b"", b"x"))
-        self.assertEqual(gave_up.offer(["email"]), "keep")
-        self.assertEqual(failed.offer(["email"]), "keep")
+            def slow(argv, **kw):
+                raise subprocess.TimeoutExpired(argv, kw.get("timeout"))
+            g.subprocess.run = slow
+            out, raw = decide_default_salts(conf, "notes for " + TERM)
+            self.assertIn("NOT checked", out["systemMessage"])
+        finally:
+            g.subprocess.run, g.keychain_unlocked = real_run, real_probe
 
-        def missing(a, **k):
-            raise FileNotFoundError(a[0])
-        self.assertFalse(g.Notifier(conf, missing).notify("notice_error", error="X"))
+    def test_file_salt_branch_starts_no_process(self):
+        """With salt_store=file the hook must start no subprocess at all, `security` included. A PATH
+        fake cannot see /usr/bin/security (absolute path), so this injects at subprocess.run itself."""
+        d, conf = hook_conf("hook-file-noproc")
+        salt = g.SaltStore(conf).get_or_create()
+        g.add_term_hashes(conf["terms_file"], [g.term_hash(salt, f) for f in g.term_forms(TERM)])
+        calls = []
+        real_run, real_popen, real_probe = g.subprocess.run, g.subprocess.Popen, g.keychain_unlocked
 
-    def test_ambiguous_button_labels_mean_keep(self):
-        conf = g.load_config(None)
-        conf["button_clear"] = conf["button_clean"]
-        nt = g.Notifier(conf, lambda a, **k: subprocess.CompletedProcess(a, 0, b"Clean\n", b""))
-        self.assertEqual(nt.offer(["email"]), "keep")
+        def record(*a, **k):
+            calls.append(a[0] if a else k.get("args"))
+            raise AssertionError("the file-salt hook path started a process")
+        try:
+            g.subprocess.run = g.subprocess.Popen = record
+            g.keychain_unlocked = lambda *a: calls.append("keychain_unlocked") or True
+            out, raw = decide_default_salts(conf, "notes for " + TERM)
+        finally:
+            g.subprocess.run, g.subprocess.Popen, g.keychain_unlocked = real_run, real_popen, real_probe
+        self.assertEqual(calls, [], "the file-salt branch touched the Keychain or started a process")
+        self.assertEqual(out["decision"], "block")
 
-    @unittest.skipUnless(DARWIN and os.path.exists("/usr/bin/osacompile"), "macOS only")
-    def test_scripts_compile_without_displaying_anything(self):
-        for i, script in enumerate((g.NOTIFY_SCRIPT, g.OFFER_SCRIPT)):
-            cmd = ["/usr/bin/osacompile", "-o", os.path.join(BASE, "s%d.scpt" % i)]
-            for line in script:
-                cmd += ["-e", line]
-            r = subprocess.run(cmd, capture_output=True)
-            self.assertEqual(r.returncode, 0, r.stderr)
+    @unittest.skipUnless(DARWIN and os.path.exists("/usr/bin/security"), "macOS Keychain only")
+    def test_hook_process_reads_a_real_namespaced_keychain_salt(self):
+        """A real prompt-hook process against the login Keychain, through the real lock probe and the
+        real `security` read, with a namespaced synthetic item that is deleted afterwards."""
+        service = "%s.clipboard-salt.hooktest-%d" % (g.PROJECT, os.getpid())
+        d, conf = hook_conf("hook-kc-real", salt_store="keychain", keychain_service=service)
+        try:
+            try:
+                salt = g.SaltStore(conf).create()
+            except RuntimeError:
+                self.skipTest("the login Keychain is not writable here (locked or absent)")
+            g.add_term_hashes(conf["terms_file"], [g.term_hash(salt, f) for f in g.term_forms(TERM)])
+            payload = json.dumps({"prompt": "ship it for " + TERM}).encode()
+            py = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
+            r = subprocess.run([py, "-I", "-B", g.__file__, "prompt-hook", "--harness", "claude", "--config",
+                                os.path.join(d, "clipboard.conf")], input=payload, capture_output=True, timeout=30)
+            self.assertEqual((r.returncode, r.stderr), (0, b""))
+            out = json.loads(r.stdout)
+            if g.keychain_unlocked() is True:
+                self.assertEqual(out["decision"], "block")
+                self.assertNotIn(b"quillon", r.stdout.lower())
+            else:
+                self.assertIn("NOT checked", out["systemMessage"])
+        finally:
+            subprocess.run(["/usr/bin/security", "delete-generic-password", "-s", service, "-a", g._account()],
+                           capture_output=True)
+        self.assertIsNone(g.SaltStore(conf).get(), "the throwaway Keychain item was not deleted")
 
-    def test_bad_overlay_template_falls_back(self):
-        conf = g.load_config(None)
-        conf["notice_cleared"] = "broken {nope}"
-        sent = []
-        g.Notifier(conf, lambda a, **k: sent.append(a) or subprocess.CompletedProcess(a, 0, b"", b"")).notify(
-            "notice_cleared", categories="email")
-        self.assertIn("clipboard cleared", " ".join(sent[0]))
+    @unittest.skipUnless(DARWIN and os.path.exists("/usr/bin/security"), "macOS Keychain only")
+    def test_lock_probe_reports_a_locked_throwaway_keychain_without_waiting(self):
+        """A THROWAWAY keychain file under the test's base directory (never the login keychain), locked:
+        the probe must say False at once. A probe that waited on an unlock dialog would take seconds."""
+        kc = os.path.join(BASE, "probe.keychain-db")
+        before = subprocess.run(["/usr/bin/security", "list-keychains"], capture_output=True).stdout
+        subprocess.run(["/usr/bin/security", "create-keychain", "-p", "throwaway-test-pw", kc], check=True, capture_output=True)
+        try:
+            self.assertIs(g.keychain_unlocked(kc), True)
+            subprocess.run(["/usr/bin/security", "lock-keychain", kc], check=True, capture_output=True)
+            t = time.monotonic()
+            self.assertIs(g.keychain_unlocked(kc), False)
+            self.assertLess(time.monotonic() - t, 1.0)
+        finally:
+            subprocess.run(["/usr/bin/security", "delete-keychain", kc], capture_output=True)
+        self.assertFalse(os.path.exists(kc))
+        self.assertEqual(subprocess.run(["/usr/bin/security", "list-keychains"], capture_output=True).stdout, before,
+                         "the keychain search list changed")
+
+    def test_too_large_warns_and_passes(self):
+        d, conf = hook_conf("hook-large", max_bytes="100")
+        out, raw = decide(conf, "key " + CREDENTIALS["aws"] + " " + "a" * 200)
+        self.assertNotIn("decision", out)
+        self.assertIn("NOT checked", out["systemMessage"])
+        self.assert_no_content(raw, "")
+
+    def test_missing_salt_warns_and_generic_categories_still_block(self):
+        d, conf = hook_conf("hook-nosalt")
+        with_term(conf)
+        out, _ = decide(conf, "hello " + TERM, salts=FakeSalts(None))
+        self.assertIn("term matching was NOT checked", out["systemMessage"])
+        out, _ = decide(conf, "hello key " + CREDENTIALS["aws"], salts=FakeSalts(None))
+        self.assertEqual(out["decision"], "block")
+        self.assertIn("term matching was NOT checked", out["reason"])
+
+    def test_long_redacted_copy_is_not_shown(self):
+        d, conf = hook_conf("hook-long", show_cleaned_chars="50")
+        out, _ = decide(conf, "key " + CREDENTIALS["aws"] + " " + "word " * 40)
+        self.assertEqual(out["decision"], "block")
+        self.assertIn("too long to show", out["reason"])
+        self.assertNotIn("word word", out["reason"])
+
+    def test_bad_payload_fails_open_visibly_with_class_only(self):
+        d, conf = hook_conf("hook-bad")
+        for raw in (b"not json " + CREDENTIALS["aws"].encode(), json.dumps({"prompt": 3}).encode(), b"[]"):
+            out = io.StringIO()
+            g.cmd_prompt_hook(conf, "claude", io.BytesIO(raw), out, FakeSalts())
+            msg = json.loads(out.getvalue())
+            self.assertNotIn("decision", msg)
+            self.assertIn("NOT checked", msg["systemMessage"])
+            self.assertNotIn(CREDENTIALS["aws"], out.getvalue())
+
+    def test_overlay_template_with_a_bad_placeholder_falls_back(self):
+        d, conf = hook_conf("hook-tmpl")
+        conf["notice_blocked"] = "broken {nope}"
+        out, _ = decide(conf, "key " + CREDENTIALS["aws"])
+        self.assertIn("It was NOT sent", out["reason"])
+
+    def test_hook_process_writes_nothing_and_touches_no_os_surface(self):
+        """A real `prompt-hook` process, as a harness runs it, in a throwaway HOME, with fake pbcopy,
+        pbpaste, osascript and launchctl on PATH that record any call: the filter must call none of
+        them (no clipboard, no OS dialog or notification), print only its JSON and write no file.
+        The fake `security` here proves NOTHING: the code calls /usr/bin/security by absolute path,
+        which a PATH fake never sees. test_file_salt_branch_starts_no_process covers that."""
+        d, conf_unused = hook_conf("hook-proc")
+        conf_path = os.path.join(d, "clipboard.conf")
+        home = os.path.join(d, "home")
+        fakes = os.path.join(d, "fakebin")
+        os.makedirs(home)
+        os.makedirs(fakes)
+        calls = os.path.join(BASE, "hook-proc-calls")
+        for tool in ("pbcopy", "pbpaste", "osascript", "security", "launchctl"):
+            path = os.path.join(fakes, tool)
+            with open(path, "w") as fh:
+                fh.write('#!/bin/sh\necho "%s" >> "%s"\n' % (tool, calls))
+            os.chmod(path, 0o755)
+        g.add_term_hashes(g.load_config(conf_path)["terms_file"], [])
+        salt = g.SaltStore(g.load_config(conf_path)).get_or_create()
+        with_term_conf = g.load_config(conf_path)
+        g.add_term_hashes(with_term_conf["terms_file"], [g.term_hash(salt, f) for f in g.term_forms(TERM)])
+        snap = tree(d)
+        env = {"HOME": home, "TMPDIR": home, "PATH": fakes + ":/usr/bin:/bin"}
+        py = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
+        for prompt, blocked in (("ship it for " + TERM, True), ("ship it", False)):
+            payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": prompt}).encode()
+            r = subprocess.run([py, "-I", "-B", g.__file__, "prompt-hook", "--harness", "claude", "--config", conf_path],
+                               input=payload, capture_output=True, env=env, timeout=60)
+            self.assertEqual((r.returncode, r.stderr), (0, b""), prompt)
+            if blocked:
+                self.assertEqual(json.loads(r.stdout)["decision"], "block")
+                self.assertNotIn(b"quillon", r.stdout.lower())
+            else:
+                self.assertEqual(r.stdout, b"")
+        self.assertEqual(tree(d), snap, "the hook wrote to disk")
+        self.assertFalse(os.path.exists(calls), "the hook called an OS surface: %s" % (read(calls) if os.path.exists(calls) else ""))
+
+    def test_the_source_has_no_os_surface(self):
+        """The owner: "nao deve impactar nenhum outro app ou ux do so". The filter's source names no
+        clipboard, dialog, notification or background-agent tool at all."""
+        src = read(g.__file__)
+        for name in ("pbcopy", "pbpaste", "osascript", "NSPasteboard", "launchctl", "display dialog",
+                     "display notification", "LaunchAgents"):
+            self.assertNotIn(name, src, name)
 
 
 class Config(unittest.TestCase):
-    def test_invalid_values_fall_back_to_the_safest_default(self):
+    def test_invalid_values_fall_back(self):
         d = os.path.join(BASE, "conf")
-        conf = g.load_config(conf_in(d, mode="delete-everything", poll_seconds="-3", max_bytes="lots"))
-        self.assertEqual((conf["mode"], conf["poll_seconds"], conf["max_bytes"]), ("offer", "1", "1000000"))
+        conf = g.load_config(conf_in(d, max_bytes="lots", show_cleaned_chars="-3", block_categories=""))
+        self.assertEqual((conf["max_bytes"], conf["show_cleaned_chars"], conf["block_categories"]),
+                         ("1000000", "8000", ",".join(g.CATEGORY_ORDER)))
 
-    def test_overlay_last_value_wins(self):
-        d = os.path.join(BASE, "conf2")
-        path = conf_in(d, mode="sanitise")
-        with open(path, "a") as fh:
-            fh.write("mode=offer\n# mode=sanitise\n")
-        self.assertEqual(g.load_config(path)["mode"], "offer")
+    def test_retired_watcher_keys_are_ignored(self):
+        d = os.path.join(BASE, "conf-old")
+        conf = g.load_config(conf_in(d, mode="sanitise", poll_seconds="1", button_keep="Keep"))
+        self.assertNotIn("mode", conf)
+        self.assertNotIn("button_keep", conf)
 
     def test_shipped_configs_parse(self):
         repo = os.path.dirname(os.path.dirname(HERE))
-        generic = g.load_config(os.path.join(repo, "global", "clipboard.conf"))
-        self.assertEqual(generic["mode"], "offer")
         joined = os.path.join(BASE, "joined.conf")
         with open(joined, "w", encoding="utf-8") as out:
             for part in ("global/clipboard.conf", "overlay/clipboard.conf"):
                 with open(os.path.join(repo, part), encoding="utf-8") as fh:
                     out.write(fh.read())
+        generic = g.load_config(os.path.join(repo, "global", "clipboard.conf"))
+        self.assertEqual(generic["block_categories"], ",".join(g.CATEGORY_ORDER))
         owner = g.load_config(joined)
-        self.assertEqual(owner["mode"], "offer")
-        self.assertEqual(len({owner["button_keep"], owner["button_clear"], owner["button_clean"]}), 3)
         for key in g.DEFAULTS:
             if key.startswith("notice_"):
-                owner[key].format(categories="credential", max="1", error="X")
-                for label in ("button_keep", "button_clear", "button_clean"):
-                    if key == "notice_offer":
-                        self.assertIn(owner[label], owner[key], "the notice names a button the dialog lacks")
+                self.assertNotEqual(owner[key], g.DEFAULTS[key], "the overlay does not translate " + key)
+                owner[key].format(categories="credential", max="1", error="X", chars=1)
 
 
 class AddTermCli(unittest.TestCase):
@@ -737,53 +748,6 @@ class SecretLineReader(unittest.TestCase):
         self.type_and_finish(self.start(), b"ter\x04\x04")
         self.assertEqual(self.result.get("raised"), "Cancelled")
 
-
-@unittest.skipUnless(DARWIN, "macOS pasteboard only")
-class MacNamedPasteboard(unittest.TestCase):
-    def setUp(self):
-        self.name = "%s.test.%d.%d" % (g.PROJECT, os.getpid(), time.monotonic_ns())
-        self.pb = g.MacPasteboard(self.name)
-
-    def tearDown(self):
-        self.pb.release()
-
-    def test_concealed_item_skipped_and_untouched(self):
-        self.pb.put({g.TEXT_TYPE: CREDENTIALS["aws"], "org.nspasteboard.ConcealedType": ""})
-        gd = g.Guard(g.load_config(conf_in(os.path.join(BASE, "mac1"), mode="sanitise")), self.pb, FakeNotifier(), FakeSalts())
-        self.assertEqual(gd.check(self.pb.change_count()), "skipped-marked")
-        self.assertEqual(self.pb.string(), CREDENTIALS["aws"])
-
-    def test_sanitise_on_a_real_pasteboard(self):
-        self.pb.put({g.TEXT_TYPE: "key " + CREDENTIALS["aws"], "public.html": "<b>key " + CREDENTIALS["aws"] + "</b>"})
-        gd = g.Guard(g.load_config(conf_in(os.path.join(BASE, "mac2"), mode="sanitise")), self.pb, FakeNotifier(), FakeSalts())
-        self.assertEqual(gd.check(self.pb.change_count()), "cleaned")
-        self.assertEqual(self.pb.string(), "key [REDACTED:credential]")
-        # NSStringPboardType is the legacy alias AppKit adds for plain text; the HTML flavour must be gone.
-        self.assertEqual(set(self.pb.types()) - {"NSStringPboardType"}, {g.TEXT_TYPE},
-                         "a rich flavour carrying the original survived")
-
-    def test_watch_process_end_to_end_writes_nothing(self):
-        d = os.path.join(BASE, "mac-e2e")
-        home = os.path.join(d, "home")
-        os.makedirs(home, exist_ok=True)
-        capture = os.path.join(BASE, "mac-e2e-capture")
-        fake = os.path.join(BASE, "fake-osascript")
-        with open(fake, "w") as fh:
-            fh.write('#!/bin/sh\nprintf "%s\\n" "$@" >> "' + capture + '"\n')
-        os.chmod(fake, 0o755)
-        conf = conf_in(d, mode="sanitise", osascript=fake)
-        self.pb.put({g.TEXT_TYPE: "jwt " + CREDENTIALS["jwt"]})
-        snap = tree(d)
-        env = {"HOME": home, "TMPDIR": home, "PATH": "/usr/bin:/bin"}
-        r = subprocess.run(["/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable, "-I", "-B",
-                            g.__file__, "watch", "--config", conf, "--pasteboard", self.name, "--max-cycles", "2"],
-                           capture_output=True, env=env, timeout=60)
-        self.assertEqual((r.returncode, r.stdout, r.stderr), (0, b"", b""))
-        self.assertEqual(tree(d), snap, "the watch process wrote to disk")
-        self.assertEqual(self.pb.string(), "jwt [REDACTED:credential]")
-        notices = read(capture)
-        self.assertIn("credential", notices)
-        self.assertNotIn(CREDENTIALS["jwt"][:20], notices)
 
 
 if __name__ == "__main__":

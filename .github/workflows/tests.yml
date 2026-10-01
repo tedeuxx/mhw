@@ -62,9 +62,9 @@ jobs:
         run: sh global/hooks/hitl-escalation-guard.test.sh "$RUNNER_TEMP/guard"
       - name: installer suite
         run: sh global/install.test.sh "$RUNNER_TEMP/install"
-      # ADR-0011. On macOS it also exercises a private NAMED pasteboard (never the general one) and,
-      # when the runner's login Keychain is writable, one namespaced item that the test deletes.
-      - name: clipboard guard suite
+      # ADR-0011, the paste filter. It never reads or writes the system clipboard. On macOS, when the
+      # runner's login Keychain is writable, it creates one namespaced item and deletes it.
+      - name: paste filter suite
         run: python3 -B global/clipboard/clipboard_guard_test.py "$RUNNER_TEMP/clipboard"
       # ADR-0017. Throwaway HOMEs only. Needs Python 3.11+ (tomllib) for the Codex surface. On macOS,
       # when the runner's login Keychain is writable, one namespaced synthetic item is created and deleted.

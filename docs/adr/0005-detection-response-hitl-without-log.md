@@ -71,7 +71,9 @@ is not a record.
   cleaned.
 - It is **ephemeral**, consistent with keeping no log.
 - It is shown in **the channel the owner actually sees** for that surface: an in-session message for the
-  CLIs, and an OS notification for the clipboard watcher (ADR-0011).
+  CLIs~~, and an OS notification for the clipboard watcher (ADR-0011)~~. *(Struck 2026-10-01: the
+  clipboard watcher is withdrawn. Its replacement, the paste filter, reports in the harness CLI's own
+  block message; ADR-0011, amendment "the always-on watcher is withdrawn".)*
 
 **Consequence:** this notice is the firewall's **only observability signal**, so **a silent intervention
 is a defect**. Bad: an in-session notice is written into that harness's transcript like any other

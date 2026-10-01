@@ -1,6 +1,6 @@
 # 0011 — Clipboard-borne prompts are anonymised and cleaned of employer and client references, automatically
 
-- **Status:** proposed. The requirement is accepted (the owner's words); the mechanism is proposed.
+- **Status:** proposed. The requirement is accepted (the owner's words); the mechanism is proposed. The always-on watcher is withdrawn; see the amendment "the always-on watcher is withdrawn" below.
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -58,9 +58,11 @@ Pasting is the main way third-party text reaches a prompt. That includes the clo
 
 ## Proposed outcome
 
-**Proposed: (c), with (b) automatic.**
+~~**Proposed: (c), with (b) automatic.**~~ *(Struck 2026-10-01: (b) is withdrawn on the owner's correction; what remains is (a), see the amendment "the always-on watcher is withdrawn" below.)*
 
-### The watcher's obligations (proposed)
+### ~~The watcher's obligations (proposed)~~
+
+*(Struck 2026-10-01 with the watcher, see the amendment "the always-on watcher is withdrawn" below. "Keep nothing", "not reversible" and "no silent rewrite" carry over to the paste filter.)*
 
 - **Skip concealed and transient items.** Items marked `ConcealedType` or `TransientType` on macOS, or
   the equivalent where one exists, are never read past the type check. A password must never pass
@@ -114,7 +116,7 @@ watcher is installed and loaded, and the mode is ratified. See the amendment "20
 | `global/clipboard/clipboard_guard_test.py` | its suite, run in a throwaway directory |
 | `global/clipboard.conf` | generic settings (mode, poll interval, size cap) |
 | `overlay/clipboard.conf` | the owner's notice and button wording in Portuguese. **No terms**: the term list never enters this repository |
-| `global/install.sh` | renders the script and the merged settings into `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/`, and on macOS the LaunchAgent plist `~/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist`. All three carry the managed marker, so `--check` reports drift. The installer **writes the plist and never loads it**; `launchctl bootstrap` is the owner's act |
+| `global/install.sh` | ~~renders the script and the merged settings into `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/`, and on macOS the LaunchAgent plist `~/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist`. All three carry the managed marker, so `--check` reports drift. The installer **writes the plist and never loads it**; `launchctl bootstrap` is the owner's act~~ *(struck 2026-10-01: no plist is written any more, and a managed one is removed; see the amendment "the always-on watcher is withdrawn" below)* |
 
 ### Implementation language: the Command Line Tools `python3`
 
@@ -198,7 +200,9 @@ They are deliberately **conservative**: a fixed prefix, a checksum or a reserved
 
 Phone numbers, names and addresses are **not** detected: no conservative pattern exists for them.
 
-### The watcher
+### ~~The watcher~~
+
+*(Struck 2026-10-01 in whole: the watcher is withdrawn, see the amendment "the always-on watcher is withdrawn" below. This section is the record of what was built.)*
 
 - A LaunchAgent (`RunAtLoad`, `KeepAlive` with `SuccessfulExit` false, `ThrottleInterval` 30 s,
   `LimitLoadToSessionType` Aqua) runs
@@ -247,7 +251,9 @@ Phone numbers, names and addresses are **not** detected: no conservative pattern
   - Notices name the category and the mitigation, never the content or the term (tested against every
     synthetic secret).
 
-### The mode switch, and the default chosen: `offer`
+### ~~The mode switch, and the default chosen: `offer`~~
+
+*(Struck 2026-10-01: the mode switch was the watcher's and is removed with it. The `offer` ratification lapses with its object; its "block and offer, never silently rewrite" semantics carry over to the paste filter.)*
 
 The task offered two behaviours. ADR-0011's obligation above says *"HITL on detection, not silent
 rewrite"*. ADR-0012 and ADR-0005's later amendments say *mitigate proactively, then notify* for
@@ -322,7 +328,9 @@ should not be on by default. ~~**The owner ratifies one of the two**; if `saniti
 - **Universal Clipboard** items from his other Apple devices should arrive as ordinary pasteboard
   changes and be checked like any other. This is *assumed*: neither read nor measured.
 
-### Linux and Windows: design notes, nothing built
+### ~~Linux and Windows: design notes, nothing built~~
+
+*(Struck 2026-10-01: these notes are for a background clipboard watcher, which is withdrawn on every OS. The paste filter runs on Linux as on macOS; Windows is not ported.)*
 
 - **Linux, X11:** any X client can read the `CLIPBOARD` selection, so background watching is possible.
   The XFixes `SelectionNotify` event would be the change signal. Both points are *assumed*: not read
@@ -391,6 +399,228 @@ exited 0. Read independently afterwards with
 - **The categories and the salt store.** The first amendment above made them conditions of acceptance
   together with the mode. No recorded ratification covers them, so this amendment does not mark them
   settled. If the owner considers them accepted, recording that is the remaining act.
+
+## Amendment 2026-10-01: the always-on watcher is withdrawn; a paste filter at the harness-CLI prompt replaces it
+
+**Status unchanged: proposed.** This amendment supersedes the watcher. Its sections above are struck
+in place and kept as the record of what was built and why it was removed.
+
+### The owner's words, verbatim
+
+On Issue #5, after seeing the watcher's dialog live
+(<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5937927355>):
+
+> *"nao quero isso cara"* — *"voce inventou algo mto amplo"* — *"eu so quero filtrar o copy paste ao
+> interagir com clis de harness"*
+
+("I don't want this" · "you invented something far too broad" · "I only want to filter copy-paste when
+interacting with harness CLIs".) The watcher was stopped and disabled on the reference machine the same
+minute (`launchctl bootout` exit 0, `launchctl disable` → `disabled`). The term list (hashes only) is
+kept.
+
+Two more lines reached this build through the main session while it was being written. They are quoted
+as relayed; recording them on Issue #5 is the main session's act:
+
+> *"limpeza automatica de piis, customer data, confidential data."* ("automatic cleaning of PII,
+> customer data, confidential data.")
+
+> *"nao deve impactar nenhum outro app ou ux do so"* ("it must not affect any other app or the OS UX.")
+
+The second is a **hard constraint** on every mechanism below: no system-wide clipboard monitoring, no
+global hotkey, no LaunchAgent or daemon, no OS dialog or notification, no Accessibility or Input
+Monitoring permission, and no change to Cmd+V anywhere except a paste into a harness-CLI session. It
+also rules out a fallback that puts a cleaned copy on the system clipboard, because that changes OS
+clipboard state.
+
+### What is withdrawn
+
+- The LaunchAgent. `global/install.sh` no longer writes it. On install, a plist carrying this project's
+  marker is **removed**, and the installer prints `launchctl bootout gui/$(id -u)/<label>` for the owner.
+  It never runs `launchctl` (tested with a fake `launchctl` on `PATH` that records calls). `--check`
+  reports a leftover managed plist as `STALE` (exit 1). A file at that path without the marker is left
+  alone.
+- The watcher code: the pasteboard backend, the polling loop, the `osascript` notifier and dialog, the
+  `offer`/`sanitise` mode switch, and the password-manager type skipping (it existed only because the
+  watcher read every copy). The owner's ratification of `offer` lapses with its object. Its semantics
+  carry over: **the filter blocks and offers a clean copy; it never rewrites silently.**
+- What the watcher alone reached: pastes into the desktop apps and cloud-side surfaces. Nothing in this
+  amendment covers them. That is the cost of the narrower scope the owner asked for.
+
+What stays: the detection core in `global/clipboard/clipboard_guard.py` (term hashes, salt store,
+generic categories, `add-term`), unchanged. The file keeps its name, so the owner's existing term list
+and Keychain salt are found under the same names and nothing is migrated.
+
+### Decision: block at the prompt hook, show a redacted copy
+
+Option 1 of this record, alone: harness-level prompt hooks.
+
+- **Claude Code: a user-level `UserPromptSubmit` hook**, merged into `~/.claude/settings.json` like the
+  HITL hook. Command: `/usr/bin/python3 -I -B "<data dir>/clipboard_guard.py" prompt-hook --harness
+  claude --config "<data dir>/clipboard.conf"`.
+- **Codex: a user-level `${CODEX_HOME:-~/.codex}/hooks.json`**, a managed file with the same command
+  (`--harness codex`). The marker is in the file's `description`, which is documented as metadata. The
+  file carries no version, so a release does not change it. Whether `description` is part of Codex's
+  trust hash is not measured.
+- **On a finding the prompt is blocked.** The message names the categories and shows the prompt with
+  each finding replaced by `[REDACTED:<category>]`, for the owner to submit instead. It never contains
+  the original text or a matched term (tested; mutation-checked). On Claude Code the hook also sets
+  `suppressOriginalPrompt`. Without it the harness appends *"Original prompt:"* and the submitted text
+  to the block message (documented; mutation-checked).
+- **A clean prompt prints nothing.** On both harnesses, plain stdout at exit 0 becomes model context.
+- **Fail direction: open, and visible.** An oversized prompt (`max_bytes`), an unreadable payload or an
+  internal error lets the prompt through with a `systemMessage` that says it was **not checked**, naming
+  only an exception class. A term list whose salt is missing still blocks on the generic categories and
+  warns that term matching is off.
+- **What it touches outside the harness CLI, stated exactly.**
+  - It never reads or writes the system clipboard, never calls `osascript` or `launchctl`, and writes
+    no file.
+  - Tested on a real `prompt-hook` process in a throwaway home (file salt), with fake `pbcopy`,
+    `pbpaste`, `osascript` and `launchctl` on `PATH` that record any call. None were called, and no file
+    changed. A second test asserts the source names no clipboard, dialog, notification or launchd tool.
+  - **A `PATH` fake cannot see `security`:** the code calls `/usr/bin/security` by absolute path. (The
+    test also places a fake `security` on `PATH`; it proves nothing.) The `security` evidence is the
+    injected-runner tests instead:
+    - **file-salt branch:** a test replaces `subprocess.run`, `subprocess.Popen` and the lock probe, and
+      asserts the hook starts **no** process and never probes the Keychain. Mutation-checked: an
+      unconditional `/usr/bin/security` call on that branch, the lens's mutant, turns it red, and so does
+      running the lock probe there;
+    - **Keychain branch:** see below.
+  - **It does read the login Keychain**, once per prompt, whenever a term list exists. The owner has
+    added a term (Issue #5), so this is the production path on his machine. The salt item was created by
+    `/usr/bin/security`, so its access list trusts that tool. An in-process read from `python3` with user
+    interaction off fails with `errSecAuthFailed` (-25293): *measured* on a namespaced synthetic item,
+    which was deleted after. The read therefore stays a `security` subprocess, gated and bounded:
+    - **Gate.** The hook first asks Security.framework for the default keychain's lock **status**, with
+      user interaction switched off for its own process (`SecKeychainSetUserInteractionAllowed(false)`,
+      then `SecKeychainGetStatus`). Only if the keychain reports unlocked does it run
+      `security find-generic-password … -w`. It never runs `security -i`, and it gives that process no
+      stdin.
+    - **That switch does not reach `security`.** `SecKeychainSetUserInteractionAllowed` is
+      per-process, *measured by the lens* on this PR. Turning interaction off in the hook therefore
+      does nothing for the `security` child. The gate keeps `security` from running against a locked
+      keychain; it does not make `security` itself non-interactive.
+    - **Bound.** The read has a 2-second timeout.
+    - **Locked, unknown, slow or missing:** term matching is skipped for that prompt, with a visible
+      *"NOT checked"* warning. The generic categories still apply.
+  - **Evidence for the Keychain path:**
+    - *Tested* with an injected runner: no `security` call when the probe says locked or unknown; one
+      call with the timeout and no `-i` when unlocked; a timeout yields the warning. Mutation-checked:
+      the lens's mutant (an interactive read on the hook path), a skipped gate and a dropped timeout each
+      turn the test red.
+    - *Tested* on a throwaway keychain file under the test's own directory, locked: the probe returns
+      locked in well under a second, and the keychain search list is unchanged afterwards.
+    - *Tested* on a real `prompt-hook` process against a namespaced synthetic login-Keychain item, which
+      is deleted afterwards.
+    - **Not measured:** whether `security find-generic-password` would raise an unlock dialog on a
+      locked login keychain. The gate exists so that it is never asked. Also not measured: a keychain
+      that locks in the instant between the probe and the read. That window is not closed.
+- **Tuning:** `block_categories` (all six by default) lets the owner drop a noisy category, such as
+  `email` if his own address keeps tripping it. A misspelt name restores all six rather than silently
+  switching one off.
+
+**Scope: the whole prompt, not only the pasted part.** The owner asked to filter pastes. But the hook
+cannot tell a paste from typing in general. Claude Code marks a paste only when it collapsed to a
+`[Pasted text #N]` placeholder, and only in sessions that fetch feature flags. Then the content sits
+between `<pasted_content id="…">` lines (documented). A short paste arrives as plain text. So the hook
+scans everything submitted. The cost is that a sensitive string he **typed** is blocked too. The marker
+lines are dropped from the redacted copy, because they are not his text.
+
+### "Automatic cleaning" is NOT met by this mechanism
+
+The addendum asks for automatic cleaning. A prompt hook cannot do it on either harness:
+
+- Claude Code: *"`UserPromptSubmit`: can't replace the prompt; it only injects `additionalContext`
+  alongside it"* (*documented*, <https://code.claude.com/docs/en/hooks>, read 2026-10-01).
+- Codex: the documented outputs are `additionalContext` and `decision: "block"`; no rewrite is
+  documented for this event (*documented*, <https://developers.openai.com/codex/hooks>, read 2026-10-01).
+
+So the filter **blocks and offers**. Re-submitting the redacted copy is the owner's act. This is
+recorded as an unmet part of his requirement, not as coverage.
+
+**Evaluated and NOT built: a terminal-scoped paste filter in iTerm2**, the terminal he runs the CLIs in
+(installed: 3.7.3). It is the one place where cleaning could be automatic without touching other apps.
+The primitives exist (*documented*, iterm2.com, read 2026-10-01):
+
+- a key-binding action *"Invoke Script Function"* that calls a function registered by a Python API
+  script;
+- the session variable `jobName`, *"the name of the current foreground job"*;
+- `Session.async_send_text` to send the cleaned text;
+- `MainMenu.async_select_menu_item` to fall through to the native Paste in every other session.
+
+It was not built, for four reasons, each a measurement still owed:
+
+1. **Owner-side changes to his terminal.** It needs his iTerm2 Python API switched on, an AutoLaunch
+   script, and **Cmd+V rebound in his profile**. That rebinding is the "change to Cmd+V" the
+   constraint allows only for harness sessions. Whether falling through to the native Paste leaves every
+   other session byte-identical (bracketed paste, the multi-line paste warning) is *not measured*.
+2. **`async_send_text` sends keystrokes, not a paste.** A newline in the cleaned text could submit the
+   prompt halfway unless the bracketed-paste markers are emulated. *Not measured.*
+3. **Other paste routes bypass a key binding:** Edit > Paste, the context menu, middle-click,
+   drag-and-drop. And the `jobName` each CLI reports (`claude`, `codex`, `kiro-cli`) is *not measured*.
+4. **It could not be measured in this build** without touching the real iTerm2 preferences, its
+   scripts directory and the real clipboard, which this build may not touch.
+
+**What would settle it:** in a throwaway iTerm2 profile, measure the four points above, including that
+the filter is a no-op in a session whose foreground job is not a harness CLI. That is an owner decision
+before a build. Until then the honest state is **block-and-offer, not automatic**.
+
+**The local sanitising proxy (ADR-0003)** could rewrite in flight, but it is out of scope here: its
+Anthropic clause is undecided.
+
+### Per-harness evidence (2026-10-01)
+
+| Harness | Version | Evidence | Result |
+| --- | --- | --- | --- |
+| Claude Code | 2.1.287 | **measured**, headless: `claude -p --setting-sources project --settings <throwaway settings> --no-session-persistence --tools "" --strict-mcp-config --output-format json`, run in an empty scratch directory. The settings file held only the hook, pointing at this branch's core with a throwaway config (file salt, synthetic term) | **Blocked.** The prompt with the synthetic term returned `num_turns: 0`, `total_cost_usd: 0` and `result` = *"UserPromptSubmit operation blocked by hook:"* + the notice + the redacted copy. There was no *"Original prompt"* line and no term. **Calibration:** the same prompt without the term returned `OK` in 1 turn. Two runs. The Keychain salt path was **not** part of this run (file salt); it is covered by the tests above |
+| Claude Code | — | **not measured**: an interactive session with a real paste | The `[Pasted text #N]` expansion and the marker lines are *documented* only |
+| Codex CLI | 0.155.0-alpha.16.3 | **measured**, headless: `codex exec --skip-git-repo-check --ephemeral --json -s read-only --disable shell_tool --disable unified_exec --disable memories --dangerously-bypass-hook-trust`. Throwaway `CODEX_HOME` holding only `hooks.json` and a **symlink** to `auth.json` (no copy); deleted after | **Blocked:** `turn.completed` with all-zero usage and no `agent_message`, so the prompt never reached the model. **But the block reason appears in no event of the `--json` stream**, so headless use gets no notice. **Calibration:** the clean prompt returned `OK`. **Untrusted (no bypass flag):** the hook was **skipped with no warning in the stream**, and the prompt with the term was sent and answered. Three runs |
+| Codex CLI | — | **documented**: interactive trust (`/hooks`), and a startup warning when hooks need review | Not measured. Until the owner trusts the entry, **Codex has no paste filter** |
+| Kiro CLI | — | **documented only**, no subscription (ADR-0003). <https://kiro.dev/docs/hooks/actions.md>: exit code 2 *"Block execution (PreToolUse, UserPromptSubmit …). STDERR is returned to the agent."* <https://kiro.dev/docs/hooks/types.md>, Prompt Submit: *"Other: Show STDERR warning to user"*. The two pages disagree. Hook files are documented under a project's `.kiro/hooks/`, and no user-level location is documented | **Nothing installed.** Even if it blocks, the documented block sends the reason to the **agent**, so the notice could reach the model. Not built |
+
+### Residuals, stated rather than hidden
+
+- **A blocked prompt is not kept off disk.**
+  - Claude Code: *"The submitted text can still appear in local files such as the session transcript
+    and your prompt history, so a blocking hook isn't a way to keep a secret off disk"* (*documented*).
+    The paste cache (`~/.claude/paste-cache/`) also keeps collapsed pastes (*documented*).
+  - The headless run above left nothing in `history.jsonl`, but **that check is uncalibrated**: the
+    calibration prompt, which *was* sent, is not in `history.jsonl` either (`grep -c` → 0). So headless
+    `-p` evidently writes no history at all, and the zero says nothing about a block. Interactive
+    sessions are not measured.
+  - **Codex: not measured, assume it persists.** The headless measurement ran with `--ephemeral`, which
+    exists to avoid persisting the session. A plain `grep` of that throwaway `CODEX_HOME` found no copy
+    of the term, but that says nothing about a non-ephemeral session. Treat a prompt blocked in Codex as
+    written to its session store until measured otherwise.
+  - This is the gap ADR-0008 names, and only cleaning **before** the paste closes it.
+- **A headless block exits 0** with `is_error: false` (Claude Code), and Codex's stream carries no
+  reason. Automation reading only exit codes cannot see the block.
+- **Typed text is scanned too**, so e-mail addresses in pasted `git log` output or typed by the owner
+  block the prompt. `block_categories` is the switch.
+- **Codex protection depends on an owner act** (trust in `/hooks`), and an untrusted hook is skipped
+  silently in `exec`.
+- **Surfaces outside both CLIs are uncovered:** the desktop apps, Cowork, the IDE agents, Kiro, and
+  cloud-side surfaces. The Claude Code IDE extensions share `~/.claude/settings.json`. Whether the hook
+  fires there is *not measured*.
+- **Windows:** `install.ps1` does not install the filter. There is no stock Python to run it.
+- **The Command Line Tools shim.** On macOS `/usr/bin/python3` is a CLT shim that opens an install
+  dialog when the CLT are absent. The installer refuses to register the filter when `xcode-select -p`
+  fails, and exits 2. That refusal is not exercised in CI, where the CLT are present. **If the CLT are
+  removed after install, every prompt would invoke the shim.** Nothing re-checks this at prompt time:
+  re-run `install.sh --check` after removing them.
+- Everything under the first amendment's "The term list", "Generic categories" and the salt-store
+  sections still holds. So do its add-term "Limit" paragraph and the open ADR-0012 agent-route
+  question.
+
+### Owner acts
+
+1. Re-run `global/install.sh`. It removes the watcher's plist, which is already booted out, and installs
+   the filter.
+2. In Codex, open `/hooks` and trust the paste-filter entry. The installer writes no trust state.
+3. Decide whether the iTerm2 route above should be measured and built.
+
+### Version cut (ADR-0002)
+
+**Major:** it removes a shipped control (the watcher, and its LaunchAgent target).
 
 ## Links
 
