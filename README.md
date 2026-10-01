@@ -21,7 +21,8 @@ The full mission, the principles and the hard rules for agents working here are 
 
 **Status:** bootstrapped 2026-10-01. The policy is still being defined with the owner; several decisions
 are still proposed rather than accepted, and the global brief is the only thing installed from here so
-far.
+far. The user-level deny floor ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md),
+proposed) is written and tested and is not yet installed on the reference machine.
 
 ## This repository vs the plugin
 
@@ -30,7 +31,10 @@ This repository is the firewall: the personal protection floor. The owner's publ
 personas, the delivery loop, skills and project hooks. The plugin may add controls but never weaken the
 floor ([ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md)). Being the last barrier is the
 firewall's purpose, not yet its mechanism: today its one installed control is a user-level instruction,
-which project configuration can override.
+which project configuration can override. The first mechanical control, a user-level deny floor that a
+project cannot carve out in Claude Code, is written and tested
+([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)) and awaits the owner's go to
+install.
 
 | Layer | Owns | May it weaken the floor? |
 | --- | --- | --- |
@@ -51,6 +55,7 @@ flowchart TB
       managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
       ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · loaded: Claude Code, Codex (headless)"]:::ours
       uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · PR #2"]:::oursPlanned
+      udeny["User level · deny floor<br/>Claude permissions.deny · Codex rules<br/>ADR-0016 · proposed"]:::oursPlanned
       plugin["Plugin · tadeumendonca-skills<br/>personas · skills · loop · project hooks"]
       project["Project config<br/>AGENTS.md · .claude/ · .codex/rules"]
       local["Local overrides · untracked"]
@@ -74,7 +79,7 @@ flowchart TB
   owner -->|copy / paste| clip
   clip --> HARN
   clip --> desk
-  managed --- ubrief --- uhooks --- plugin --- project --- local
+  managed --- ubrief --- uhooks --- udeny --- plugin --- project --- local
   LAYERS -. govern .-> HARN
   HARN --> proxy --> llm
   desk --> acct --> llm
@@ -119,9 +124,21 @@ Windows (PowerShell), written to mirror `install.sh` and **not yet run on Window
 .\global\install.ps1 -Check
 ```
 
-Each rendered file carries a marker line with the source version and its SHA-256. The installer never
-overwrites a file without that marker; it refuses and exits 3 instead. Exit codes: `0` ok, `1` drift or
-missing (`--check`), `2` usage, `3` an unmanaged file is in the way.
+The same run installs the user-level deny floor, one source (`global/deny-floor.conf`, plus
+`overlay/deny-floor.conf` when present) rendered per harness
+([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)):
+
+| Harness | Target |
+| --- | --- |
+| Claude Code | `permissions.deny` in `~/.claude/settings.json`, merged as a union: no existing rule is removed, a backup is kept |
+| Codex | `${CODEX_HOME:-~/.codex}/rules/workstation-deny-floor.rules` (`prefix_rule(…, decision="forbidden")`) |
+| Kiro | nothing: no rule layer is established for it |
+
+Each rendered file carries a marker line with the source version (the briefs also carry the SHA-256 of
+their source). The installer never overwrites a file without that marker; it refuses and exits 3
+instead. `~/.claude/settings.json` carries no marker: it is merged, never overwritten. Exit codes: `0`
+ok, `1` drift or missing (`--check`), `2` usage or an invalid deny-floor entry, `3` an unmanaged or
+unreadable file is in the way.
 
 `global/install.test.sh <base dir>` exercises the installer against throwaway home directories, never
 the real one.

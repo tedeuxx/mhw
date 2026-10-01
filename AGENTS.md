@@ -135,7 +135,9 @@ owner's `tadeumendonca-skills` plugin is the **way of working**: personas, the d
 and project hooks. The plugin may add controls and must never weaken the floor. This repository carries
 no way-of-working content. "Last barrier" is the firewall's purpose. It is not yet its mechanism: today
 its only installed control is a user-level instruction, and user level is low precedence in every
-harness. See [ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md).
+harness. See [ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md). Its first mechanical
+control, a user-level deny floor rendered to Claude Code and Codex, is written and tested and not yet
+installed ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md), proposed).
 
 ## The model: corporate workstation governance, applied to one person
 
@@ -172,4 +174,6 @@ Bootstrapped 2026-10-01. The policy itself is being defined through an interview
 the global brief (`global/AGENTS.md`) is installed from here into the three user-level locations at
 version 0.3.0. Its evidence level is *loaded* in Claude Code and Codex, measured headless on
 2026-10-01, and *documented* for Kiro (ADR-0010). Nothing else in the machine's configuration is
-managed from here yet.
+managed from here yet. The deny floor (ADR-0016) is *enforced* in Claude Code and Codex when installed,
+measured headless in throwaway homes, and is not installed on the reference machine until the owner's
+go. Kiro carries no floor.
