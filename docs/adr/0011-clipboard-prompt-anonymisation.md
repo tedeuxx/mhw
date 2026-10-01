@@ -100,5 +100,6 @@ Pasting is the main way third-party text reaches a prompt. That includes the clo
 
 ## Links
 
-- ADR-0003 (h4). ADR-0004. ADR-0005 (HITL, no log). ADR-0006 (surfaces). ADR-0008 (no persistence).
+- ADR-0003 (h4). ADR-0004. ADR-0005 (HITL, no log; its 2026-10-01 amendment covers the watcher's
+  notice, which gives category and surface only and never the content). ADR-0006 (surfaces). ADR-0008 (no persistence).
   ADR-0009 (what is not his). ADR-0012 (who captures terms).

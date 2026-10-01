@@ -45,6 +45,37 @@ its operating mode. That has to be measured per harness.
   harness-native storage. Whether it does, and the equivalent for Codex and Kiro, is still to be
   measured.
 
+## Amendment 2026-10-01: every intervention is reported to the owner
+
+The owner, asked how he will know the firewall is working: *"toda atuacao que voce realizar manualmente
+no trafego de inputs e outputs de llm que cair em uma politica de principios individuais mantidos pela
+sua configuracao de workstation deve informar ao hitl qual a violacao que ia ocorrendo e a mitigacao
+feita."* ("every action you take on LLM input and output traffic that falls under a policy of individual
+principles maintained by your workstation configuration must tell the HITL which violation was about
+to occur and what mitigation was applied.")
+
+**Decision (his):** every intervention by the firewall or agent on LLM input or output traffic that
+falls under one of the owner's policies **MUST notify the owner**. The notice states:
+
+1. **which violation was about to occur**, giving the policy (ADR) and the category;
+2. **the mitigation applied**.
+
+This adds to the decision above and does not replace it. "No auditable record" still holds; the notice
+is not a record.
+
+**Proposed constraints on the notice** (not his words, awaiting ratification):
+
+- It names the **category** and **where it happened**: which surface, and whether input or output. It
+  **never** names the sensitive content or term itself, because then the notice would re-leak what was
+  cleaned.
+- It is **ephemeral**, consistent with keeping no log.
+- It is shown in **the channel the owner actually sees** for that surface: an in-session message for the
+  CLIs, and an OS notification for the clipboard watcher (ADR-0011).
+
+**Consequence:** this notice is the firewall's **only observability signal**, so **a silent intervention
+is a defect**. Bad: an in-session notice is written into that harness's transcript like any other
+message. That is the reason the category-only constraint is load-bearing rather than cosmetic.
+
 ## Links
 
 - ADR-0003: hooks can block; this is the barrier HITL relies on.

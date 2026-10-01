@@ -53,5 +53,6 @@ or client reference, **the agent**, not the owner by hand, adds the term to ADR-
 
 ## Links
 
-- ADR-0005 (HITL, no log). ADR-0008 (no persistence). ADR-0009 (the test). ADR-0010 (global brief).
+- ADR-0005 (HITL, no log; its 2026-10-01 amendment requires every delegated intervention to be
+  reported to the owner). ADR-0008 (no persistence). ADR-0009 (the test). ADR-0010 (global brief).
   ADR-0011 (hashed term list).
