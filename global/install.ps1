@@ -14,8 +14,10 @@
 #
 # Exit codes: 0 ok, 1 drift or missing (-Check), 2 usage or invalid floor entry, 3 an UNMANAGED or
 # unreadable file is in the way.
-# UNTESTED: written to mirror install.sh; it has not been run on Windows or under any PowerShell
-# (ADR-0010, ADR-0016). The settings merge re-serializes the file with ConvertTo-Json.
+# Tested on a Windows CI runner under both Windows PowerShell 5.1 and PowerShell 7 by
+# global/install.test.ps1 (.github/workflows/tests.yml, job windows). The settings merge re-serializes
+# the file with ConvertTo-Json. The source is read with CRLF normalized to LF, so a checkout made with
+# core.autocrlf=true renders the same bytes as install.sh does on macOS and Linux.
 [CmdletBinding()]
 param(
     [switch]$DryRun,
@@ -24,28 +26,40 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
-if ($DryRun -and $Check) { Write-Error 'use -DryRun or -Check, not both'; exit 2 }
+# Usage errors exit 2. Write-Error under ErrorActionPreference=Stop would throw and exit 1 instead.
+function Stop-Usage([string]$msg) { [Console]::Error.WriteLine($msg); exit 2 }
+if ($DryRun -and $Check) { Stop-Usage 'use -DryRun or -Check, not both' }
 $mode = if ($Check) { 'check' } elseif ($DryRun) { 'dry-run' } else { 'install' }
 
 $MarkerId = 'managed-by: personal-multi-harness-workstation-configuration'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptDir
 $src = Join-Path $scriptDir 'AGENTS.md'
-if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Write-Error "source not found: $src"; exit 2 }
+if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Stop-Usage "source not found: $src" }
 
 $toml = Get-Content -LiteralPath (Join-Path $repoRoot '.bumpversion.toml') -Raw
 $m = [regex]::Match($toml, '(?m)^current_version\s*=\s*"([0-9][0-9.]*)"')
-if (-not $m.Success) { Write-Error 'cannot read current_version from .bumpversion.toml'; exit 2 }
+if (-not $m.Success) { Stop-Usage 'cannot read current_version from .bumpversion.toml' }
 $version = $m.Groups[1].Value
 
 if (-not $Overlay) { $Overlay = Join-Path $repoRoot 'overlay' }
-$srcBytes = [System.IO.File]::ReadAllBytes($src)
+# Read a source file as bytes with every CRLF turned into LF (a Windows checkout may carry CRLF).
+function Read-LF([string]$path) {
+    $b = [System.IO.File]::ReadAllBytes($path)
+    $out = [System.Collections.Generic.List[byte]]::new($b.Length)
+    for ($i = 0; $i -lt $b.Length; $i++) {
+        if ($b[$i] -eq 13 -and $i + 1 -lt $b.Length -and $b[$i + 1] -eq 10) { continue }
+        $out.Add($b[$i])
+    }
+    return , $out.ToArray()
+}
+[byte[]]$srcBytes = Read-LF $src
 $from = 'global/AGENTS.md'
 if ($Overlay -ne 'none') {
-    if (-not (Test-Path -LiteralPath $Overlay -PathType Container)) { Write-Error "overlay directory not found: $Overlay"; exit 2 }
+    if (-not (Test-Path -LiteralPath $Overlay -PathType Container)) { Stop-Usage "overlay directory not found: $Overlay" }
     $overlayBrief = Join-Path $Overlay 'AGENTS.md'
     if (Test-Path -LiteralPath $overlayBrief -PathType Leaf) {
-        $srcBytes = [byte[]]($srcBytes + [System.IO.File]::ReadAllBytes($overlayBrief))
+        $srcBytes = [byte[]]($srcBytes + (Read-LF $overlayBrief))
         $from = 'global/AGENTS.md + overlay'
     }
 }
@@ -55,7 +69,7 @@ $utf8 = New-Object System.Text.UTF8Encoding($false)   # no BOM, LF kept as in th
 # The deny floor (ADR-0016): generic entries, then the overlay's. Same grammar and validation as
 # install.sh; an invalid entry stops the run before anything is written.
 $floorSrc = Join-Path $scriptDir 'deny-floor.conf'
-if (-not (Test-Path -LiteralPath $floorSrc -PathType Leaf)) { Write-Error "source not found: $floorSrc"; exit 2 }
+if (-not (Test-Path -LiteralPath $floorSrc -PathType Leaf)) { Stop-Usage "source not found: $floorSrc" }
 $floorLines = @(Get-Content -LiteralPath $floorSrc)
 $floorFrom = 'global/deny-floor.conf'
 if ($Overlay -ne 'none') {
@@ -92,7 +106,7 @@ foreach ($line in $floorLines) {
     }
 }
 if ($floorBad) { exit 2 }
-if ($claudeRules.Count -eq 0) { Write-Error 'the deny floor has no entry'; exit 2 }
+if ($claudeRules.Count -eq 0) { Stop-Usage 'the deny floor has no entry' }
 
 function Get-CodexRules {
     $s = "# $MarkerId; source: $floorFrom; version: $version; do not edit, re-run the installer`n"
@@ -102,7 +116,8 @@ function Get-CodexRules {
         $quoted = ($words | ForEach-Object { '"' + $_ + '"' }) -join ', '
         $s += "prefix_rule(pattern=[$quoted], decision=""forbidden"")`n"
     }
-    return [byte[]]$utf8.GetBytes($s)
+    # The leading comma stops PowerShell unrolling the array into the pipeline.
+    return , ([byte[]]$utf8.GetBytes($s))
 }
 
 function Get-Rendered([string]$kind) {
@@ -110,7 +125,7 @@ function Get-Rendered([string]$kind) {
     $head = ''
     if ($kind -eq 'kiro') { $head = "---`ninclusion: always`n---`n" }
     $head += "<!-- $MarkerId; source: $from; version: $version; sha256: $sha; do not edit, re-run the installer -->`n`n"
-    return [byte[]]($utf8.GetBytes($head) + $srcBytes)
+    return , ([byte[]]($utf8.GetBytes($head) + $srcBytes))
 }
 
 function Test-Managed([string]$path) {
@@ -122,15 +137,16 @@ $script:status = 0
 function Set-Status([int]$code) { if ($code -gt $script:status) { $script:status = $code } }
 
 function Invoke-Target([string]$kind, [string]$dest) {
-    $bytes = Get-Rendered $kind
+    [byte[]]$bytes = Get-Rendered $kind
     if ((Test-Path -LiteralPath $dest) -and -not (Test-Managed $dest)) {
         [Console]::Error.WriteLine("REFUSE  ${dest}: exists and is NOT managed by this project; move it aside or merge it by hand")
         Set-Status 3
         return
     }
     if (Test-Path -LiteralPath $dest) {
+        # Compared as Base64 strings: no reliance on generic-method inference, which differs across versions.
         $current = [System.IO.File]::ReadAllBytes($dest)
-        if ([System.Linq.Enumerable]::SequenceEqual($current, $bytes)) { Write-Output "OK      $dest"; return }
+        if ([Convert]::ToBase64String($current) -ceq [Convert]::ToBase64String($bytes)) { Write-Output "OK      $dest"; return }
     }
     switch ($mode) {
         'check' {

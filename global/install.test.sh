@@ -300,5 +300,21 @@ for e in 'cmd rm "-rf"' 'cmd git push --force*' 'path ~/.ssh' 'file ~/a ~/b' 'cm
   if [ "$rc" -eq 2 ] && [ "$n" -eq 0 ]; then ok "invalid entry refused, nothing written: $e"; else ko "invalid entry '$e': exit $rc, $n file(s)"; fi
 done
 
+# 12. XDG_DATA_HOME is honoured: the hook and its data go there, and the settings entry points there
+h="$base/home-xdg"; x="$base/xdg-data"; mkdir -p "$h" "$x"
+HOME="$h" XDG_DATA_HOME="$x" sh "$inst" > /dev/null; expect "install with XDG_DATA_HOME set" 0 $?
+xd="$x/personal-multi-harness-workstation-configuration"
+if [ -x "$xd/hitl-escalation-guard.sh" ] && [ -f "$xd/hitl.conf" ] && [ ! -e "$(data "$h")" ]; then
+  ok "the hook and its config are under XDG_DATA_HOME, nothing under ~/.local/share"
+else
+  ko "XDG_DATA_HOME not honoured"
+fi
+if jq -e --arg c "\"$xd/hitl-escalation-guard.sh\"" '[.hooks.PreToolUse[].hooks[] | select(.command == $c)] | length == 1' "$h/.claude/settings.json" >/dev/null; then
+  ok "the settings entry runs the hook from XDG_DATA_HOME"
+else
+  ko "the settings entry does not point at XDG_DATA_HOME"
+fi
+HOME="$h" XDG_DATA_HOME="$x" sh "$inst" --check > /dev/null; expect "check with XDG_DATA_HOME set" 0 $?
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
