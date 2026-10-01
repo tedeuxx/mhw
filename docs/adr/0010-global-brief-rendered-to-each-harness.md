@@ -166,6 +166,30 @@ not show which of these would have failed on its own, because the unfixed script
   rendered brief would carry CRLF and a different `sha256` from the POSIX rendering of the same
   commit. The brief sources are now read with CRLF turned into LF.
 
+**The first Windows run was a green that proved less than it said.** Both legs printed
+`59 passed, 0 failed` and exited 0, while seven assertions had thrown before reaching a verdict: a
+helper returned an empty array from a function, PowerShell turned it into `$null`, and `.Count` on it
+is an error under `Set-StrictMode`. Those seven were "dry-run wrote no file", the five invalid-entry
+cases, and "usage errors wrote nothing". The helper now returns a number, and a script-level `trap`
+counts any error raised inside the test as a failure.
+
+**Calibrated by breaking the subject.** Commit `ee1481f` mutated `install.ps1` on purpose (usage
+errors exit 1; CRLF not normalized; an invalid floor entry exits 0; no settings backup) and added one
+deliberate error inside the test, to show the `trap` counts it. Commit `86711c7` reverts it, and its
+tree is identical to `774f047`. On the mutated head both legs went red: Windows PowerShell 5.1
+`55 passed, 12 failed`, PowerShell 7 `53 passed, 14 failed`. Every mutation was caught: the deliberate
+test error, by the `trap`; the CRLF mutation, by three brief assertions; the missing backup, by the
+`trap` (hashing a file that is not there throws); the invalid floor entry exiting 0, by all five
+invalid-entry cases; and the usage exit code, by both usage cases.
+
+**What the now-reachable checks found on unmutated code.** At `86711c7`, Windows PowerShell 5.1 passed
+(`66 passed, 0 failed`) and PowerShell 7 failed the seven formerly-silent checks: a file appears in
+the throwaway profile even when the installer writes nothing. The test now names every file it counts.
+The file is `AppData\Local\Microsoft\PowerShell\StartupProfileData-NonInteractive`, written by
+PowerShell 7 itself when it starts under that profile, so the count leaves `AppData\` out and still
+prints what it skipped. At `11e5f31` both legs pass with `66 passed, 0 failed`. The installer itself
+has no target under `AppData\` (read from the script), so leaving it out hides nothing of ours.
+
 ### Parity: what `install.ps1` covers against `install.sh`
 
 | Feature | `install.sh` (macOS, Linux) | `install.ps1` (Windows) |
@@ -187,7 +211,10 @@ not show which of these would have failed on its own, because the unfixed script
 The `suites` job already ran `install.test.sh` on `ubuntu-latest`. Its invocations are `sh install.sh`,
 and on that image `/bin/sh` is **dash**. A new first step prints `ls -l /bin/sh` and fails the Linux
 leg unless `readlink -f /bin/sh` is `dash`. So a green ubuntu run is a run under dash, and that stays
-true only while the step stays green. On macOS the same step only prints, and `/bin/sh` there is bash
+true only while the step stays green. Measured on this PR's runs: `/bin/sh -> dash`
+(`/usr/bin/dash`), then under it the hook suite (`23 passed, 0 failed`) and the installer suite
+(`86 passed, 0 failed`, the four new `XDG_DATA_HOME` assertions included; Codex parsing `SKIP`). The runner announces that `ubuntu-latest` moves
+to Ubuntu 26 from 2026-10-19; this step is what will say whether dash is still `/bin/sh` there. On macOS the same step only prints, and `/bin/sh` there is bash
 in POSIX mode. The Linux leg exercises the brief, the hook (installed with its `#!/bin/sh` shebang and
 run through `sh`), the deny floor, the clipboard script with no watcher, and that no plist is written off
 macOS. `codex` is not on the runner, so the Codex rules file is checked by text, not by `codex
