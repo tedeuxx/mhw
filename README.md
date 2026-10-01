@@ -49,7 +49,7 @@ flowchart TB
 
     subgraph LAYERS["Configuration layers per harness"]
       managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
-      ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · installed"]:::ours
+      ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · loaded: Claude Code, Codex (headless)"]:::ours
       uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · PR #2"]:::oursPlanned
       plugin["Plugin · tadeumendonca-skills<br/>personas · skills · loop · project hooks"]
       project["Project config<br/>AGENTS.md · .claude/ · .codex/rules"]
@@ -225,5 +225,10 @@ configuration ([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)).
 ### Global brief on this machine
 
 Installed by `global/install.sh` into all three user-level locations above, and `--check` reports them
-in sync at version 0.1.0. **Evidence level: installed.** It has not yet been verified that a fresh
-session of each harness actually loads the brief, so "loaded" and "enforced" are not claimed.
+in sync at version 0.3.0. **Evidence level: loaded for Claude Code and Codex, measured headless
+(2026-10-01). Kiro remains documented.** A fresh `claude -p` and a fresh `codex exec`, each run with
+tools disabled in an unrelated empty directory, quoted the brief's title and rule 1 verbatim. Each
+calibration run returned `NOT_IN_CONTEXT` once the user-level brief was removed from its sources.
+Interactive sessions were not measured. The brief is an instruction, and "enforced" is not claimed.
+Commands and bounds: [ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md), amendment
+2026-10-01 on loading.
