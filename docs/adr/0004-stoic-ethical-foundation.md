@@ -1,6 +1,6 @@
 # 0004 — The firewall's ethical foundation: Stoic ethics
 
-- **Status:** proposed
+- **Status:** accepted — mapping ratified by the owner, 2026-10-01
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -8,12 +8,12 @@
 
 `AGENTS.md` describes this repository as an LLM firewall enforcing ethical principles that the owner
 defines and regulates. Asked which principle he would never negotiate, he answered: *"norteie pelos
-principios estoico de uma boa vida"* ("be guided by the Stoic principles of a good life"). Before a
+principios estoicos de uma boa vida"* ("be guided by the Stoic principles of a good life"). Before a
 principle can be applied, it has to be translated into firewall behaviour.
 
-**What is the owner's and what is not.** The foundation (Stoic ethics, the good life) is his decision.
-**The mapping below is a PROPOSAL written by an agent. It is not his words, and it does not bind
-anything until he ratifies it.**
+The foundation (Stoic ethics, the good life) is his decision. The mapping below was drafted by an agent
+and **ratified by him** on 2026-10-01: asked whether it represents what he meant by a good life, he
+answered *"sim, representa"*.
 
 ## Decision drivers
 
@@ -30,7 +30,7 @@ anything until he ratifies it.**
 3. **A generic compliance framework instead.** Its rules are checkable, but it replaces his chosen
    foundation, so it was rejected.
 
-## Proposed mapping (awaiting ratification)
+## Mapping
 
 | Stoic element | Firewall behaviour |
 | --- | --- |
@@ -42,8 +42,7 @@ anything until he ratifies it.**
 
 ## Decision outcome
 
-**Proposed: option 1.** The foundation is the owner's. The mapping takes effect only once he ratifies
-it, row by row.
+**Chosen: option 1**, with the mapping above as ratified by the owner.
 
 ## Consequences
 
@@ -51,7 +50,8 @@ it, row by row.
   which virtue is unserved?
 - Good: Temperance and Courage align with ADR-0005 (retain nothing; stop and ask).
 - Bad: the mapping is interpretive. A future reader may cite a virtue to justify a rule the owner never
-  endorsed, which is why each row needs his ratification.
+  endorsed; a new rule must cite its own reasons, not only a virtue, and a change to the mapping
+  itself needs his ratification.
 
 ## Links
 

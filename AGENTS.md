@@ -32,7 +32,7 @@ What it removes from them:
   sensíveis*.
 
 Its ethical foundation is **Stoic ethics, the good life** (owner); how that maps onto firewall
-behaviour is proposed in [ADR-0004](docs/adr/0004-stoic-ethical-foundation.md). On detection the
+behaviour is ratified in [ADR-0004](docs/adr/0004-stoic-ethical-foundation.md). On detection the
 response is **human-in-the-loop only, with no auditable record kept on the workstation**
 ([ADR-0005](docs/adr/0005-detection-response-hitl-without-log.md)).
 
