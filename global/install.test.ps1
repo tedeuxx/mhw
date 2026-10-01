@@ -22,6 +22,7 @@ Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue
 $script:pass = 0
 $script:fail = 0
 Write-Output "shell: $shell, PowerShell $($PSVersionTable.PSVersion) $($PSVersionTable.PSEdition)"
+$calibrationProbe = $null.NoSuchProperty   # MUTATION: calibrates the trap
 
 function Ok([string]$d) { $script:pass++; Write-Output "PASS  $d" }
 function Ko([string]$d) { $script:fail++; Write-Output "FAIL  $d" }

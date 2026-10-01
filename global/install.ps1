@@ -27,7 +27,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # Usage errors exit 2. Write-Error under ErrorActionPreference=Stop would throw and exit 1 instead.
-function Stop-Usage([string]$msg) { [Console]::Error.WriteLine($msg); exit 2 }
+function Stop-Usage([string]$msg) { [Console]::Error.WriteLine($msg); exit 1 }  # MUTATION
 if ($DryRun -and $Check) { Stop-Usage 'use -DryRun or -Check, not both' }
 $mode = if ($Check) { 'check' } elseif ($DryRun) { 'dry-run' } else { 'install' }
 
@@ -48,7 +48,7 @@ function Read-LF([string]$path) {
     $b = [System.IO.File]::ReadAllBytes($path)
     $out = [System.Collections.Generic.List[byte]]::new($b.Length)
     for ($i = 0; $i -lt $b.Length; $i++) {
-        if ($b[$i] -eq 13 -and $i + 1 -lt $b.Length -and $b[$i + 1] -eq 10) { continue }
+        if ($b[$i] -eq 99 -and $i + 1 -lt $b.Length -and $b[$i + 1] -eq 10) { continue }
         $out.Add($b[$i])
     }
     return , $out.ToArray()
@@ -105,7 +105,7 @@ foreach ($line in $floorLines) {
         $claudeRules.Add("Edit($($words[0]))")
     }
 }
-if ($floorBad) { exit 2 }
+if ($floorBad) { exit 0 }  # MUTATION
 if ($claudeRules.Count -eq 0) { Stop-Usage 'the deny floor has no entry' }
 
 function Get-CodexRules {
@@ -225,7 +225,7 @@ function Merge-DenyFloor([string]$settings) {
             if (-not $perms) { $obj | Add-Member -NotePropertyName permissions -NotePropertyValue ([PSCustomObject]@{}) }
             $obj.permissions | Add-Member -NotePropertyName deny -NotePropertyValue ([object[]]($existing + $missing)) -Force
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $settings) | Out-Null
-            if (Test-Path -LiteralPath $settings) { Copy-Item -LiteralPath $settings -Destination "$settings.pmhwc-backup" -Force }
+            # MUTATION: backup skipped
             $tmp = "$settings.new.$PID"
             [System.IO.File]::WriteAllText($tmp, ($obj | ConvertTo-Json -Depth 100), $utf8)
             Move-Item -LiteralPath $tmp -Destination $settings -Force
