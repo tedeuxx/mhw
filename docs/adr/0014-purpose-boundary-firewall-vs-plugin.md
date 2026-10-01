@@ -103,10 +103,28 @@ harnesses.
   Codex: `/etc/codex/requirements.toml`. That is the only documented way to make the floor
   non-overridable, which is what "last barrier" means. Costs: it needs admin rights to install and to
   change; it is a new tool-class for this repository (a system-level installer); and it makes undoing a
-  mistake harder, by design. Prerequisite: the firewall has no deny rules or hooks yet, so there is
-  nothing to promote until it does. Kiro has no known equivalent.
+  mistake harder, by design. ~~Prerequisite: the firewall has no deny rules or hooks yet, so there is
+  nothing to promote until it does.~~ (Struck 2026-10-01: see the amendment below.) Kiro has no known
+  equivalent.
+
+## Amendment 2026-10-01: the firewall has deny rules now (ADR-0016)
+
+The struck prerequisite above no longer holds as written. ADR-0016 (proposed) adds a generic user-level
+deny floor, rendered to Claude Code `permissions.deny` and to a Codex user rules file. It is written,
+tested and measured enforced in throwaway homes. It is not yet installed on the reference machine.
+So there is now something to promote to the managed layer; whether to do so is still the proposed
+consequence above, undecided.
+
+Two facts from the decision table, measured for ADR-0016 rather than read:
+
+- **Claude Code:** a trusted project's `permissions.allow` entry did not carve out a user-level deny
+  (one rule, headless, build 2.1.286).
+- **Codex:** a non-default file name in the user `rules/` directory is loaded and enforced (headless
+  `codex exec`, 0.155.0-alpha.16.3). The Codex row's hypothesis on how user rules rank against project
+  rules stays **unmeasured**. The evaluator returns the most restrictive decision across the files it
+  is given, but that does not show the runtime evaluates both layers together.
 
 ## Links
 
 - `AGENTS.md`, "Fundamental purpose" and "The model: corporate workstation governance, applied to one
-  person". ADR-0006 (coverage scope). ADR-0010 (global brief rendering).
+  person". ADR-0006 (coverage scope). ADR-0010 (global brief rendering). ADR-0016 (the deny floor).

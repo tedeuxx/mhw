@@ -20,10 +20,19 @@ data() { echo "$1/.local/share/personal-multi-harness-workstation-configuration"
 targets() {
   echo "$1/.claude/CLAUDE.md $1/.codex/AGENTS.md $1/.kiro/steering/workstation-global-brief.md"
   echo "$(data "$1")/hitl-escalation-guard.sh $(data "$1")/hitl.conf $1/.claude/settings.json"
+  echo "$1/.codex/rules/workstation-deny-floor.rules"
 }
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
 ours() { # number of hook entries of ours in a settings file
   jq '[.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"))] | length' "$1"
+}
+floor_src="$(cd "$(dirname "$0")" && pwd)/deny-floor.conf"
+# Expected Claude rules, derived from the source independently of the installer's awk: a cmd line is
+# one rule, a file line is two (Read and Edit).
+floor_rules=$(awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' "$floor_src")
+floor_cmds=$(awk '$1 == "cmd" { n++ } END { print n }' "$floor_src")
+has_rule() { # $1 settings file, $2 rule; prints how many times the rule is in permissions.deny
+  jq --arg r "$2" '[.permissions.deny[]? | select(. == $r)] | length' "$1"
 }
 
 # 1. dry-run writes nothing
@@ -36,6 +45,11 @@ if grep -q '^WOULD MERGE' "$base/dry.out" && grep -q '^+.*AskUserQuestion' "$bas
   ok "dry-run prints the settings diff"
 else
   ko "dry-run printed no settings diff"
+fi
+if grep -q '^+ *"Bash(git push --force:\*)"' "$base/dry.out" && grep -q '^WOULD WRITE .*/.codex/rules/workstation-deny-floor.rules' "$base/dry.out"; then
+  ok "dry-run prints the deny floor for both harnesses"
+else
+  ko "dry-run did not print the deny floor"
 fi
 
 # 2. fresh install
@@ -70,6 +84,40 @@ if printf '%s' "$out" | grep -q 'limit is 280'; then ok "the installed hook read
 if printf '%s' "$out" | jq -r .systemMessage | grep -q '^Guarda HITL (ADR-0013)'; then ok "the owner notice is in the overlay's language"; else ko "owner notice not from overlay"; fi
 HOME="$h" sh "$inst" --check; expect "check after install" 0 $?
 
+# 2b. the deny floor, rendered for Claude Code and Codex
+s="$h/.claude/settings.json"
+if [ "$(jq '.permissions.deny | length' "$s")" -eq "$floor_rules" ] && [ "$floor_rules" -gt 0 ]; then
+  ok "settings carry every deny-floor rule ($floor_rules), nothing else"
+else
+  ko "deny count $(jq '.permissions.deny | length' "$s"), expected $floor_rules"
+fi
+for r in 'Bash(rm -rf:*)' 'Bash(git push --force:*)' 'Bash(gh auth token:*)' 'Read(~/.ssh/id_*)' 'Edit(~/.aws/credentials)'; do
+  if [ "$(has_rule "$s" "$r")" -eq 1 ]; then ok "deny holds $r once"; else ko "deny lacks $r"; fi
+done
+rules="$h/.codex/rules/workstation-deny-floor.rules"
+if grep -qxF 'prefix_rule(pattern=["git", "push", "--force"], decision="forbidden")' "$rules"; then
+  ok "codex rules carry a forbidden prefix_rule"
+else
+  ko "codex rules lack the force-push rule"
+fi
+if [ "$(grep -c '^prefix_rule(' "$rules")" -eq "$floor_cmds" ] && ! grep -q 'decision="allow"' "$rules"; then
+  ok "codex rules: one forbidden rule per cmd entry ($floor_cmds), no allow"
+else
+  ko "codex rule count $(grep -c '^prefix_rule(' "$rules"), expected $floor_cmds"
+fi
+if command -v codex >/dev/null 2>&1; then
+  # Credential-free: execpolicy only evaluates the rules file against argv; nothing is run.
+  d1=$(codex execpolicy check --rules "$rules" git push --force origin x | jq -r '.decision // "none"')
+  d2=$(codex execpolicy check --rules "$rules" git push origin x | jq -r '.decision // "none"')
+  if [ "$d1" = forbidden ] && [ "$d2" = none ]; then
+    ok "codex execpolicy: rendered file forbids the force-push and leaves a plain push alone"
+  else
+    ko "codex execpolicy decisions: force=$d1 plain=$d2"
+  fi
+else
+  echo "SKIP  codex not on PATH: the rendered rules file was not parsed by Codex here"
+fi
+
 # 3. idempotent re-run
 before=$(fingerprint "$h")
 HOME="$h" sh "$inst"; expect "re-run" 0 $?
@@ -83,6 +131,14 @@ HOME="$h" sh "$inst"; expect "install repairs drift" 0 $?
 HOME="$h" sh "$inst" --check; expect "check clean after repair" 0 $?
 jq 'del(.hooks.PreToolUse)' "$h/.claude/settings.json" > "$base/s.json" && cp "$base/s.json" "$h/.claude/settings.json"
 HOME="$h" sh "$inst" --check; expect "check detects a removed hook entry" 1 $?
+HOME="$h" sh "$inst" > /dev/null; expect "install restores the hook entry" 0 $?
+jq '.permissions.deny -= ["Bash(rm -rf:*)"]' "$h/.claude/settings.json" > "$base/s.json" && cp "$base/s.json" "$h/.claude/settings.json"
+HOME="$h" sh "$inst" --check > "$base/check-deny.out"; expect "check detects a removed deny-floor rule" 1 $?
+if grep -q '1 deny-floor rule(s) missing' "$base/check-deny.out"; then ok "check names how many floor rules are missing"; else ko "check did not count the missing rule"; fi
+HOME="$h" sh "$inst" > /dev/null; expect "install restores the removed rule" 0 $?
+if [ "$(has_rule "$h/.claude/settings.json" 'Bash(rm -rf:*)')" -eq 1 ]; then ok "the removed rule is back, once"; else ko "the removed rule was not restored"; fi
+rm "$h/.codex/rules/workstation-deny-floor.rules"
+HOME="$h" sh "$inst" --check; expect "check detects a missing codex rules file" 1 $?
 
 # 5. refuse an unmanaged file
 h="$base/home-unmanaged"; mkdir -p "$h/.claude"
@@ -98,7 +154,7 @@ cat > "$h/.claude/settings.json" <<'EOF'
 {
     "model" : "some-model",
     "enabledPlugins" : { "a@b" : true },
-    "permissions" : { "ask" : [ "Edit(\/x)" ], "deny" : [ "Bash(rm -rf:*)" ] },
+    "permissions" : { "allow" : [ "Bash(ls:*)" ], "ask" : [ "Edit(\/x)" ], "deny" : [ "Bash(my-own-rule:*)", "Bash(rm -rf:*)" ] },
     "hooks" : {
         "PreToolUse" : [ { "hooks" : [ { "type" : "command", "command" : "\/opt\/status" } ] } ],
         "Stop" : [ { "hooks" : [ { "type" : "command", "command" : "\/opt\/status" } ] } ]
@@ -112,10 +168,16 @@ if [ "$(jq -S . "$h/.claude/settings.json")" = "$orig" ]; then ok "dry-run left 
 if grep -q 're-serialized' "$base/dry6.out"; then ok "dry-run warns that formatting changes"; else ko "dry-run did not warn about formatting"; fi
 HOME="$h" sh "$inst"; expect "merge into existing settings" 0 $?
 s="$h/.claude/settings.json"
-if [ "$(jq -S 'del(.hooks.PreToolUse[-1])' "$s")" = "$orig" ]; then
-  ok "every pre-existing key and hook survives; only our entry was appended"
+if [ "$(jq -S 'del(.hooks.PreToolUse[-1]) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
+  ok "every pre-existing key, hook and rule survives in place; only our entries were appended"
 else
   ko "pre-existing content changed"
+fi
+if [ "$(jq '.permissions.deny | length' "$s")" -eq $((floor_rules + 1)) ] \
+   && [ "$(has_rule "$s" 'Bash(rm -rf:*)')" -eq 1 ] && [ "$(has_rule "$s" 'Bash(my-own-rule:*)')" -eq 1 ]; then
+  ok "deny is a union: a floor rule already present is not duplicated, a foreign rule is kept"
+else
+  ko "deny union wrong: $(jq '.permissions.deny | length' "$s") entries, expected $((floor_rules + 1))"
 fi
 if [ "$(jq -S . "$s.pmhwc-backup")" = "$orig" ]; then ok "backup holds the previous settings"; else ko "backup missing or wrong"; fi
 if [ "$(stat -c %a "$s" 2>/dev/null || stat -f %Lp "$s")" = 600 ]; then ok "file mode preserved (600)"; else ko "file mode changed"; fi
@@ -162,6 +224,34 @@ out=$(jq -cn --arg l "$long" '{tool_name:"AskUserQuestion",tool_input:{questions
 if [ -z "$out" ]; then ok "generic install does not check question length"; else ko "generic install checked length"; fi
 out=$(jq -cn '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:"a"},{question:"b"}]}}' | sh "$(data "$h")/hitl-escalation-guard.sh")
 if printf '%s' "$out" | jq -r .systemMessage | grep -q '^HITL guard (ADR-0013)'; then ok "generic install notifies in the default English"; else ko "generic notice wrong"; fi
+
+# 10. a permissions section of the wrong shape is refused and left untouched
+h="$base/home-badperms"; mkdir -p "$h/.claude"
+echo '{ "permissions": { "deny": "Bash(rm -rf:*)" } }' > "$h/.claude/settings.json"
+bad=$(cksum < "$h/.claude/settings.json")
+HOME="$h" sh "$inst" > /dev/null 2>&1; expect "install refuses a non-array permissions.deny" 3 $?
+if [ "$(cksum < "$h/.claude/settings.json")" = "$bad" ]; then ok "malformed permissions untouched"; else ko "malformed permissions modified"; fi
+
+# 11. an overlay adds floor entries; an invalid entry stops the run before anything is written
+ov="$base/overlay-floor"; mkdir -p "$ov"
+printf '# owner extra\ncmd terraform destroy\n' > "$ov/deny-floor.conf"
+h="$base/home-overlay"; mkdir -p "$h"
+HOME="$h" sh "$inst" --overlay="$ov" > /dev/null; expect "install with an overlay floor" 0 $?
+if [ "$(has_rule "$h/.claude/settings.json" 'Bash(terraform destroy:*)')" -eq 1 ] \
+   && grep -qxF 'prefix_rule(pattern=["terraform", "destroy"], decision="forbidden")' "$h/.codex/rules/workstation-deny-floor.rules"; then
+  ok "the overlay's entry reaches both harnesses"
+else
+  ko "the overlay's entry is missing"
+fi
+i=0
+for e in 'cmd rm "-rf"' 'cmd git push --force*' 'path ~/.ssh' 'file ~/a ~/b' 'cmd'; do
+  i=$((i + 1))
+  printf '%s\n' "$e" > "$ov/deny-floor.conf"
+  h="$base/home-badfloor-$i"; mkdir -p "$h"
+  HOME="$h" sh "$inst" --overlay="$ov" > /dev/null 2>&1; rc=$?
+  n=$(find "$h" -type f | wc -l | tr -d ' ')
+  if [ "$rc" -eq 2 ] && [ "$n" -eq 0 ]; then ok "invalid entry refused, nothing written: $e"; else ko "invalid entry '$e': exit $rc, $n file(s)"; fi
+done
 
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
