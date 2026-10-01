@@ -78,6 +78,49 @@ alone. The brief with the overlay is about 5 KB: ~~It is under 4 KB~~ no longer 
 hook entry into `~/.claude/settings.json` (ADR-0013). `install.ps1` renders the overlay but does not
 install the guard.
 
+## Amendment 2026-10-01: loading measured in Claude Code and Codex (headless), Kiro stays documented
+
+Issue #3 asked for the evidence level to move from *installed* to *loaded*. Measured on the reference
+workstation. `global/install.sh --check` reported all three renderings `OK` at managed version 0.3.0
+(marker `sha256: b1dad692…`, brief plus overlay) before the runs. No `~/.codex/AGENTS.override.md`
+exists (`ls` returned "No such file or directory"), so nothing shadows the Codex rendering.
+
+**Method.** Each harness ran once in a fresh, empty, throwaway directory under the session scratchpad.
+The directory is not inside any repository, and neither it nor any ancestor holds an `AGENTS.md` or
+`CLAUDE.md`. The prompt told the model to use no tool and to read no file. It asked for (1) the brief's
+H1 title and (2) the bold lead sentence of rule 1, or the literal `NOT_IN_CONTEXT` if no brief was in
+context. Only the title suffix `: LLM firewall` and the rule-1 sentence *Third-party property never
+enters your work.* discriminate. The prompt itself says "workstation brief", so those two words prove
+nothing. Each harness then ran a **calibration**: the same prompt, in the same directory, with the
+user-level brief removed from the session's sources. The calibration shows whether the probe can return
+`NOT_IN_CONTEXT`.
+
+| Harness | Version | Run | Exact command shape | Result |
+| --- | --- | --- | --- | --- |
+| Claude Code | 2.1.286 | measurement | `claude -p --tools "" --strict-mcp-config --no-session-persistence --output-format json < question.txt` | **PASS**: returned both strings verbatim. `num_turns: 1`, `permission_denials: []`, no built-in tools available (`--tools ""`), no MCP servers (`--strict-mcp-config`). |
+| Claude Code | 2.1.286 | calibration | same, plus `--setting-sources project` | `NOT_IN_CONTEXT`. Excluding the `user` setting source also excluded `~/.claude/CLAUDE.md` on this build. That was measured here, not read from documentation. |
+| Codex CLI | 0.155.0-alpha.16.4 (bundled with the ChatGPT app), model `gpt-6-astra` | measurement | `codex exec --skip-git-repo-check --ephemeral --json -s read-only --disable shell_tool --disable unified_exec --disable memories -C <dir> - < question.txt` | **PASS**: returned both strings verbatim. The `--json` event stream holds only `agent_message` items, with no command-execution or tool-call item. `--disable memories` rules out recall from Codex's memory store. |
+| Codex CLI | same, `-m gpt-6-astra` pinned | calibration | same, under `env CODEX_HOME=<empty dir>` whose only entry was a **symlink** to `~/.codex/auth.json` (no copy) | `NOT_IN_CONTEXT`. After the run the symlink was still a symlink, so no credential was copied. The directory was deleted immediately. |
+| Kiro (IDE) | 1.0.437 | none | none | Not run. ADR-0003: no active subscription. It stays at **documented / read from the shipped bundle**, as in the decision table above. |
+
+**Evidence level reached: *loaded* for Claude Code and Codex, in their non-interactive modes only.**
+Bounds on that claim:
+
+- **Headless, not interactive.** `claude -p` and `codex exec` were measured. The interactive Claude
+  Code session, the Codex TUI, the Codex app and the ChatGPT desktop app were not. Both CLIs load
+  user-level instructions in the same session bootstrap in both modes. That is a hypothesis, and it was
+  not measured.
+- **One run per arm, one machine, one build each.** A harness update can change the result silently.
+  Re-run the probe when either CLI updates.
+- **"Loaded" is not "obeyed".** The probe shows that the brief's text is in the model's context. It
+  says nothing about whether the model follows the brief. The ADR's *instruction* level, and the
+  absence of any *enforced* claim, are unchanged.
+- **Both calibrations change more than the brief.** An empty `CODEX_HOME` also drops `config.toml`
+  (plugins, MCP servers, profile). `--setting-sources project` also drops `~/.claude/settings.json`,
+  including its model choice and plugins. The token deltas therefore cannot be attributed to the brief
+  alone, and they are not used as evidence: Codex input 19,693 against 13,776, Claude cache-creation
+  11,537 against 7,330. The evidence is the `NOT_IN_CONTEXT` answer, set against the verbatim answer.
+
 ## Links
 
 - `AGENTS.md`, "Mission" and "Principles", item 1. ADR-0003 (Kiro access mode). ADR-0004. ADR-0005.
