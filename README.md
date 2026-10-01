@@ -170,6 +170,34 @@ with echo off and only its salted hash is stored, in the local overlay outside t
 `python3 -B global/clipboard/clipboard_guard_test.py <empty dir>` runs its suite. On macOS the suite
 uses a private named pasteboard and a namespaced Keychain item, and deletes both.
 
+### MCP servers: one definition, credentials at launch
+
+One definition renders each surface's local MCP servers
+([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md), proposed). The definition is
+**not** in this repository: it lives in the untracked local overlay,
+`${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json`.
+Start from the synthetic [`global/mcp/mcp-servers.example.json`](global/mcp/mcp-servers.example.json). A
+credential is never written in it. It is named under `secrets` with its source, and
+`global/mcp/mcp-launch.sh` reads it from the macOS Keychain when the server starts.
+
+| Surface | Target |
+| --- | --- |
+| Codex | `[mcp_servers.*]` in `${CODEX_HOME:-~/.codex}/config.toml`, inside one marked block; nothing outside it is edited |
+| Claude Code | `mcpServers` in `~/.claude.json` (user scope) |
+| Claude desktop app | `mcpServers` in its `claude_desktop_config.json` (macOS, Windows) |
+| Kiro IDE and CLI | `mcpServers` in `~/.kiro/settings/mcp.json` |
+
+```sh
+python3 global/mcp/mcp_render.py --scan     # owner only: credential-looking key NAMES in today's configs
+python3 global/mcp/mcp_render.py --dry-run  # what would change where; never prints a current value
+python3 global/mcp/mcp_render.py            # render (a backup is kept beside each file)
+python3 global/mcp/mcp_render.py --check    # exit 1 on drift
+```
+
+It needs Python 3.11 or later. **It is not installed on the reference machine.** It refuses to write the
+real home from inside an agent session, and the migration steps are in ADR-0017.
+`python3 -B global/mcp/mcp_render_test.py <empty dir>` runs its suite in throwaway homes.
+
 ## Decisions
 
 Every significant decision is an ADR in MADR format in [`docs/adr/`](docs/adr/), numbered
@@ -246,7 +274,9 @@ Listed by category only. Server names and launch commands are deliberately not p
 - file transfer
 
 They are configured independently in the Claude desktop app and in Codex; each surface keeps its own
-configuration ([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)).
+configuration ([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)). A single definition for them
+is written ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) and not yet
+installed.
 
 ### Toolchain
 

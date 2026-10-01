@@ -7,6 +7,8 @@
 auth.json
 **/secrets/
 *.local.json
+# The single-source MCP definition lives only in the untracked local overlay (ADR-0017).
+mcp-servers.json
 .DS_Store
 __pycache__/
 

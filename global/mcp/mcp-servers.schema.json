@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/global/mcp/mcp-servers.schema.json",
+  "title": "Single-source MCP server definition (ADR-0017)",
+  "description": "Lives only in the untracked local overlay. Holds server names, commands, args and NON-secret environment values. A credential is never written here: it is named under secrets with its source and read by global/mcp/mcp-launch.sh when the server starts. global/mcp/mcp_render.py enforces this schema itself (plus two credential-name checks a schema cannot express); this file documents it for editors.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "servers"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1 },
+    "servers": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$" },
+      "additionalProperties": { "$ref": "#/$defs/server" }
+    }
+  },
+  "$defs": {
+    "envName": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command"],
+      "properties": {
+        "description": { "type": "string" },
+        "command": { "type": "string", "minLength": 1, "description": "The program the surface starts (local stdio servers only)." },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "env": {
+          "type": "object",
+          "description": "NON-secret values only. A name that looks like a credential (TOKEN, SECRET, PASSWORD, API_KEY, AUTH, ...) is refused unless listed in not_secret.",
+          "propertyNames": { "$ref": "#/$defs/envName" },
+          "additionalProperties": { "type": "string" }
+        },
+        "secrets": {
+          "type": "object",
+          "description": "Environment variable NAME -> where its value comes from at launch. keychain:<service> is macOS only.",
+          "propertyNames": { "$ref": "#/$defs/envName" },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^(keychain:[A-Za-z0-9][A-Za-z0-9._@:+-]{0,127}|env:[A-Za-z_][A-Za-z0-9_]*)$"
+          }
+        },
+        "surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "enum": ["codex", "claude-code", "claude-desktop", "kiro"] },
+          "description": "Default: every surface."
+        },
+        "not_secret": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "env names or args flags that look like credentials but have been reviewed as not secret."
+        }
+      }
+    }
+  }
+}
