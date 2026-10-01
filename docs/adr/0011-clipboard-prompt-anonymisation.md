@@ -102,8 +102,9 @@ Pasting is the main way third-party text reaches a prompt. That includes the clo
 ## Amendment 2026-10-01: the macOS watcher is built (Issue #5), and the mechanism is still proposed
 
 Issue #5 asked for the automatic watcher on macOS, the reference installation. It is written and
-tested, and it is **not installed** on the reference machine. The status stays **proposed** until the
-owner ratifies the default mode, the categories and the salt store below.
+tested~~, and it is **not installed** on the reference machine~~. The status stays **proposed** until the
+owner ratifies ~~the default mode,~~ the categories and the salt store below. *(Struck 2026-10-01: the
+watcher is installed and loaded, and the mode is ratified. See the amendment "2026-10-01: mode `offer` ratified, and the watcher installed and loaded on the reference machine" below.)*
 
 ### Where it lives
 
@@ -202,7 +203,8 @@ Phone numbers, names and addresses are **not** detected: no conservative pattern
   `SuccessfulExit` false, launchd restarts only after a non-zero exit, so the failure is one notice
   instead of a silent restart every 30 s behind `/dev/null`. A crash later on still exits non-zero and
   is restarted. Tested in process; the launchd restart behaviour itself is *documented*, not measured
-  (the agent was never loaded).
+  ~~(the agent was never loaded)~~ *(struck 2026-10-01: the agent is now loaded. The restart behaviour
+  is still not measured, because no exit has been observed)*.
   - **Residual:** a failure before Python runs the guard's code (a missing interpreter or script) exits
     non-zero with no notice. It is restarted every 30 s and nothing reports it.
 - It polls `NSPasteboard.changeCount` every second (`poll_seconds`). It checks the item already on the
@@ -254,8 +256,8 @@ recognised cases. **Both are implemented, behind `mode=` in `clipboard.conf`:**
 
 **Why `offer` is the default:** it is the **reversible** choice. Sanitising destroys the original, and
 by ADR-0005 no copy is kept to restore it. While this mechanism is proposed, the irreversible behaviour
-should not be on by default. **The owner ratifies one of the two**; if `sanitise`, it is one line in
-`overlay/clipboard.conf`.
+should not be on by default. ~~**The owner ratifies one of the two**; if `sanitise`, it is one line in
+`overlay/clipboard.conf`.~~ *(Struck 2026-10-01: the owner ratified `offer`. See the amendment "2026-10-01: mode `offer` ratified, and the watcher installed and loaded on the reference machine" below.)*
 
 **Behaviour shared by both modes:**
 
@@ -280,7 +282,7 @@ should not be on by default. **The owner ratifies one of the two**; if `sanitise
 | launchd does not restart a job that exited 0 under `SuccessfulExit` false | **documented** (`launchd.plist(5)`), not measured |
 | Any same-user process can read the Keychain salt without a prompt | **measured** (the probe above); the term file's 0600 mode excludes other users only |
 | The two AppleScripts compile | **tested** (`osacompile`, which displays nothing) |
-| The plist starts the watcher at login, and the notification and dialog reach the owner on screen | **not verified**: never loaded on the reference machine. `osascript` notifications are attributed to Script Editor and need its notification permission; the dialog may open behind other windows |
+| The plist starts the watcher at login, and the notification and dialog reach the owner on screen | **not verified**: ~~never loaded on the reference machine~~ loaded on the reference machine since 2026-10-01 (amendment below), but no notification or dialog has been seen on screen yet. `osascript` notifications are attributed to Script Editor and need its notification permission; the dialog may open behind other windows |
 | Which password managers set the nspasteboard markers | **not measured** (KeePassXC: *read in its source*) |
 
 ### Gaps, stated rather than hidden
@@ -346,6 +348,41 @@ should not be on by default. **The owner ratifies one of the two**; if `sanitise
 
 **Minor.** It is a new protection, and it adds new installer targets. Nothing an adopter had is
 weakened, and the watcher runs only once they load it.
+
+## Amendment 2026-10-01: mode `offer` ratified, and the watcher installed and loaded on the reference machine
+
+**Mode.** The owner ratified **`offer`**, as recorded on Issue #5 (<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5937237982>). After both options were
+explained to him (`offer`: a dialog with Keep / Clear / Clean, nothing changes without his click;
+`sanitise`: replace at once and notify afterwards, irreversible), he answered:
+
+> *"offer"*
+
+`offer` is already the shipped default in `global/clipboard.conf`, so no configuration changes. The
+struck "The owner ratifies one of the two" above is answered.
+
+**Installed.** `global/install.sh` ran on the reference machine from v0.7.0 on 2026-10-01, with the
+owner's go recorded on Issue #4 (<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/4#issuecomment-5937083996>). `--check` reported every target OK. That covers this record's
+`clipboard_guard.py`, `clipboard.conf` and LaunchAgent plist. The comment records them as written and
+not loaded at that point.
+
+**Loaded.** After that the owner said *"sim, pode ligar"* (his words as relayed by the main session;
+not yet recorded on Issue #5), and the main session ran `launchctl bootstrap gui/<uid> <plist>`, which
+exited 0. Read independently afterwards with
+`launchctl print gui/<uid>/local.personal-multi-harness-workstation-configuration.clipboard-guard`:
+`state = running`, a running `pid`, `runs = 1`, `last exit code = (never exited)`.
+
+**Evidence level on the reference machine: *loaded* (the process runs).** The rest is not verified:
+- that a notification or the `offer` dialog actually reaches the owner on screen (the evidence table's
+  last-but-one row);
+- that it detects anything there. No term has been added with `add-term`, so only the generic
+  categories are active.
+
+**What stays proposed, and why.** The status stays **proposed**:
+- **The open ADR-0012 question** (whether an agent route for term capture should exist, under "Gaps,
+  stated rather than hidden") is named on Issue #5 as still open.
+- **The categories and the salt store.** The first amendment above made them conditions of acceptance
+  together with the mode. No recorded ratification covers them, so this amendment does not mark them
+  settled. If the owner considers them accepted, recording that is the remaining act.
 
 ## Links
 

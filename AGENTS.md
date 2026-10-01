@@ -64,7 +64,7 @@ personal by policy and never persists employer or client confidential data
 ([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)). Clipboard-borne
 prompts are checked automatically for employer and client references
 ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed; the macOS watcher
-is written and tested, not installed). Operational
+is installed and loaded on the reference machine in the ratified `offer` mode). Operational
 judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
 the owner ([ADR-0012](docs/adr/0012-operational-judgement-delegated-to-the-harness.md)). How agents
 escalate a pending decision or action to the owner is calibrated here: generic rules in the global
@@ -188,10 +188,12 @@ from here now, and at what evidence level:
 - **Deny floor** (ADR-0016, accepted): *installed*, with all 101 rules present per `--check`. It is
   *enforced* in Claude Code and Codex, as measured headless in throwaway homes. Enforcement on the
   reference machine was not re-measured. Kiro carries no floor.
-- **Clipboard watcher** (ADR-0011's 2026-10-01 amendment, macOS): its guard files and LaunchAgent plist
-  are *written* but **not loaded**. Loading it is Issue #5. So its on-screen notices are unverified. Its
-  default mode, `offer`, changes nothing without the owner's click, and awaits his ratification. Linux
-  and Windows have design notes only.
+- **Clipboard watcher** (ADR-0011, macOS): *installed* by the same run, then *loaded* on the owner's go
+  (`launchctl print` shows it running, never exited; ADR-0011's second 2026-10-01 amendment). Its mode is
+  `offer`, ratified by the owner on Issue #5. It changes nothing without his click. Its on-screen
+  notices are still unverified, and no term has been added with `add-term` yet. ADR-0011 stays proposed
+  for the open ADR-0012 agent-route question and for the categories and salt store. Linux and Windows
+  have design notes only.
 - **MCP definition** (ADR-0017, proposed): one definition, kept in the untracked local overlay and
   rendered into Codex, Claude Code, the Claude desktop app and Kiro with credentials read from the
   Keychain at launch. It is written and tested in throwaway homes. `install.sh` does not run its

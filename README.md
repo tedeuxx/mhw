@@ -26,8 +26,8 @@ HITL escalation guard ([ADR-0013](docs/adr/0013-hitl-escalation-calibration.md);
 re-measured) and the user-level deny floor
 ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md), accepted; enforcement there
 not re-measured). The macOS clipboard watcher
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed) is installed but not
-loaded (Issue #5). The MCP renderer
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed) is installed and
+loaded, in the `offer` mode the owner ratified (Issue #5). The MCP renderer
 ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md), proposed) has not been run
 there (Issue #8). Per-component evidence levels are in [`AGENTS.md`](AGENTS.md), "Status".
 
@@ -56,7 +56,7 @@ flowchart TB
   owner(["Owner — human in the loop"])
 
   subgraph WS["Personal workstation · macOS reference · Linux · Windows"]
-    clip["OS clipboard watcher<br/>ADR-0011 · installed, not loaded (#5)"]:::oursPlanned
+    clip["OS clipboard watcher<br/>ADR-0011 · installed, loaded · mode offer"]:::ours
 
     subgraph LAYERS["Configuration layers per harness"]
       managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
@@ -97,8 +97,7 @@ flowchart TB
 ```
 
 Legend: solid dark blue means distributed and installed by this repository; light blue dashed means
-distributed by this repository but planned, proposed, still in a pull request, or installed but not
-active (the clipboard watcher is installed and not loaded);
+distributed by this repository but planned, proposed or still in a pull request;
 unshaded means not this repository.
 
 The vertical order of the layers is the firewall's view, floor first. It is not the harnesses'
