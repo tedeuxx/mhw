@@ -11,6 +11,11 @@ harness on his personal workstation (a Mac mini), and it is expressed as that wo
 configuration. It exists to protect him, as a private individual, from **individual, civil and
 intellectual-property risk** arising from his personal activity tied to his public professional persona.
 
+It covers **every agent surface of both vendor families**, not only the CLIs: Claude Code, the Claude
+desktop app including Cowork and its local MCP/extension config, Codex (CLI and app), the ChatGPT
+desktop app's agentic "work" surfaces, and Kiro
+([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)).
+
 Its job is to **sanitise prompts** in both directions it can reach:
 
 - **external**: prompts that leave the machine for an LLM provider or any other service;
