@@ -56,7 +56,9 @@ behaviour is ratified in [ADR-0004](docs/adr/0004-stoic-ethical-foundation.md). 
 response is **human-in-the-loop only, with no auditable record kept on the workstation**
 ([ADR-0005](docs/adr/0005-detection-response-hitl-without-log.md)). The reference workstation is
 personal by policy and never persists employer or client confidential data
-([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)).
+([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)). Clipboard-borne
+prompts are checked automatically for employer and client references
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed).
 
 Concretely, it must keep three things true on this machine:
 
