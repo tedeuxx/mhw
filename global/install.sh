@@ -196,7 +196,7 @@ render() {
         printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>'
         printf '<!-- %s; source: global/install.sh (clipboard guard, ADR-0011); version: %s; do not edit, re-run the installer -->\n' \
           "$MARKER_ID" "$version"
-        printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+        printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
           '<plist version="1.0">' '<dict>' \
           '  <key>Label</key>' "  <string>$CLIP_LABEL</string>" \
           '  <key>ProgramArguments</key>' '  <array>' \
