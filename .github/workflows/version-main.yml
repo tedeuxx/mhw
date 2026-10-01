@@ -1,0 +1,60 @@
+# On every merged PR into main, bump the part named by its semver label and tag it (ADR-0002).
+name: version-main
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+permissions: {}
+
+concurrency:
+  group: version-main
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Resolve the bump part from the PR label
+        id: part
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          parts="$(jq -r '.[] | select(test("^semver:(major|minor|patch)$")) | sub("^semver:"; "")' <<<"$LABELS")"
+          if [ "$(printf '%s\n' "$parts" | grep -c .)" -ne 1 ]; then
+            echo "::error::merged PR does not carry exactly one semver label; no version cut"
+            exit 1
+          fi
+          echo "part=$parts" >> "$GITHUB_OUTPUT"
+
+      # actions/checkout v6.1.0 (lightweight tag -> commit, verified with git ls-remote 2026-10-01)
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: main
+          fetch-depth: 0
+          # Pushing to a protected main needs a token or ruleset bypass that does not exist yet (ADR-0002).
+          # Until it exists, the default token is used and the push is refused by protection, loudly.
+          token: ${{ secrets.VERSION_BUMP_TOKEN || github.token }}
+
+      # actions/setup-python v6.3.0 (lightweight tag -> commit, verified with git ls-remote 2026-10-01)
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.12"
+
+      - name: Install bump-my-version
+        run: python -m pip install "bump-my-version==1.5.1"
+
+      - name: Bump, commit and tag
+        env:
+          PART: ${{ steps.part.outputs.part }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bump-my-version bump "$PART"
+
+      - name: Push the bump commit and tag
+        run: git push --follow-tags origin HEAD:main

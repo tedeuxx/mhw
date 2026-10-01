@@ -58,6 +58,16 @@ Concretely, it must keep three things true on this machine:
 
    (Owner, 2026-10-01. Adopted in [ADR-0001](docs/adr/0001-record-decisions-as-madr.md).)
 
+3. **Automatic versioning.** Every merge to `main` cuts a **purely numeric SemVer** tag
+   (`vMAJOR.MINOR.PATCH`, no pre-release suffix) with **bump-my-version**, configured in
+   [`.bumpversion.toml`](.bumpversion.toml). The part bumped is chosen by a **predefined cut policy**
+   suited to a policy-set artifact, declared on the pull request as exactly one
+   `semver:major|minor|patch` label; a pull request without exactly one fails a check. The cut policy
+   and the mechanism are in [ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md), which is
+   **proposed** until the owner ratifies the cut table.
+
+   (Owner, 2026-10-01.)
+
 ## The model: corporate workstation governance, applied to one person
 
 Corporate organisations govern workstations in **layers with precedence**: an organisation-wide

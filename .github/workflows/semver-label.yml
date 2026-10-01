@@ -1,0 +1,25 @@
+# Every PR into main must carry exactly one semver:major|minor|patch label (ADR-0002).
+name: semver-label
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions: {}
+
+jobs:
+  semver-label:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require exactly one semver label
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          count="$(jq '[.[] | select(test("^semver:(major|minor|patch)$"))] | length' <<<"$LABELS")"
+          if [ "$count" -ne 1 ]; then
+            echo "::error::expected exactly one semver:major|minor|patch label, found $count"
+            exit 1
+          fi
+          echo "semver label OK: $(jq -r '[.[] | select(test("^semver:"))][0]' <<<"$LABELS")"
