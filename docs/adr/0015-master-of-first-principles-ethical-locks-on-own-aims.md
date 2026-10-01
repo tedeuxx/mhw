@@ -1,6 +1,7 @@
 # 0015 — Master of first principles: ethical locks on the owner's own aims
 
-- **Status:** accepted for the framing (the owner's words, 2026-10-01). **Concrete locks: pending owner
+- **Status:** accepted for the framing (the owner's words, 2026-10-01). Two operating rules below are
+  marked **proposed (agent-written, awaiting owner ratification)**. **Concrete locks: pending owner
   interview.** None is proposed in this record.
 - **Date:** 2026-10-01
 - **Deciders:** the owner
@@ -44,7 +45,8 @@ reaching it, consistent with his principles?". That second question has no recor
 
 - This repository is the **master of first principles** for the owner as an individual interacting
   with his AI workstation. Its scope covers both third-party risk and his own aims.
-- Agents must not help him pursue a goal by means that violate his ratified principles (ADR-0004).
+- **Proposed (agent-written, awaiting owner ratification):** agents must not help him pursue a goal
+  by means that violate his ratified principles (ADR-0004).
 - The locks live here, at the same layer as the firewall, and follow the same rules: one source,
   rendered to every harness, reported at their real evidence level.
 - **Concrete locks: pending owner interview.** The interview has started. This record proposes no lock,
@@ -54,9 +56,10 @@ reaching it, consistent with his principles?". That second question has no recor
 
 - **A lock on his own aims makes the firewall a two-sided control: it can refuse the owner.** To stay
   usable, a refusal must reach him in a form he can answer. That is the human-in-the-loop escalation
-  of ADR-0013, which is in a separate pull request and not yet merged. Until it lands, a refusal has
-  no defined escalation path.
-- **He can change his principles only through the ADR process, never mid-session.** A principle he
+  of ADR-0013, which is in PR #2 and not yet merged. Until it lands, a refusal has no defined
+  escalation path.
+- **Proposed (agent-written, awaiting owner ratification): he can change his principles only through
+  the ADR process, never mid-session.** A principle he
   wants to relax is amended or superseded by a record he ratifies. An instruction typed into a session
   does not unlock it. This keeps a lock from being argued away under pressure, which is the point of
   having one.
@@ -72,4 +75,4 @@ reaching it, consistent with his principles?". That second question has no recor
 ## Links
 
 - `AGENTS.md`, "Fundamental purpose". ADR-0004 (Stoic foundation). ADR-0010 (global brief).
-  ADR-0013 (HITL escalation, in a separate pull request). ADR-0014 (firewall vs plugin).
+  ADR-0013 (HITL escalation, PR #2). ADR-0014 (firewall vs plugin).

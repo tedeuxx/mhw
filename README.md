@@ -50,7 +50,7 @@ flowchart TB
     subgraph LAYERS["Configuration layers per harness"]
       managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
       ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · installed"]:::ours
-      uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · in PR"]:::oursPlanned
+      uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · PR #2"]:::oursPlanned
       plugin["Plugin · tadeumendonca-skills<br/>personas · skills · loop · project hooks"]
       project["Project config<br/>AGENTS.md · .claude/ · .codex/rules"]
       local["Local overrides · untracked"]
@@ -85,8 +85,8 @@ flowchart TB
 ```
 
 Legend: solid dark blue means distributed and installed by this repository; light blue dashed means
-distributed by this repository but planned, proposed or still in a pull request; unshaded means not
-this repository.
+distributed by this repository but planned, proposed or still in a pull request (ADR-0013 is PR #2);
+unshaded means not this repository.
 
 The vertical order of the layers is the firewall's view, floor first. It is not the harnesses'
 override precedence, where a project value usually beats a user-level one; see
@@ -182,7 +182,8 @@ See [ADR-0003](docs/adr/0003-distribution-requirements-access-modes.md).
 
 - **Claude Code:** the owner's own public plugin, `tadeumendonca-skills`, from the marketplace
   [`tedeuxx/tadeumendonca-skills`](https://github.com/tedeuxx/tadeumendonca-skills).
-- **Codex:** the same plugin, plus plugins bundled by the vendor.
+- **Codex:** the same plugin, plus plugins bundled by the vendor, plus eight plugins enabled from a
+  Cowork plugin marketplace.
 
 ### MCP servers
 
@@ -218,7 +219,7 @@ configuration ([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)).
 | jq | 1.7.1 |
 | ShellCheck | installed |
 | actionlint | 1.7.12 |
-| bump-my-version | installed |
+| bump-my-version | CI only (not installed locally) |
 | Homebrew | 7.0.7 |
 
 ### Global brief on this machine

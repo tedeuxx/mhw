@@ -166,4 +166,6 @@ The source of truth for every layer lives here, versioned; what is installed on 
 ## Status
 
 Bootstrapped 2026-10-01. The policy itself is being defined through an interview with the owner;
-nothing in the machine's configuration is managed from here yet.
+the global brief (`global/AGENTS.md`) is installed from here into the three user-level locations at
+version 0.1.0 (ADR-0010; evidence level: installed, loading not yet verified). Nothing else in the
+machine's configuration is managed from here yet.
