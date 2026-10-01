@@ -43,7 +43,17 @@ function Run([string]$prof, [string[]]$a = @()) {
 }
 # Returns a number, never an array: a function's array output is unrolled, and an empty one becomes
 # $null, whose .Count is an error under StrictMode (the first CI run hit exactly that).
-function Count-Files([string]$dir) { @(Get-ChildItem -LiteralPath $dir -Recurse -File -Force -ErrorAction SilentlyContinue).Count }
+# PowerShell itself writes under the profile it starts with, in AppData\ (a cache, not ours), so the
+# count leaves AppData\ out and names every file it does count, so a red says what was written.
+function Count-Files([string]$dir) {
+    $all = @(Get-ChildItem -LiteralPath $dir -Recurse -File -Force -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.FullName.Substring($dir.Length + 1) })
+    $ps = @($all | Where-Object { $_ -like 'AppData\*' })
+    $ours = @($all | Where-Object { $_ -notlike 'AppData\*' })
+    foreach ($f in $ps) { Write-Host "      (PowerShell's own, not counted: $f)" }
+    foreach ($f in $ours) { Write-Host "      written: $f" }
+    return $ours.Count
+}
 function Targets([string]$h) {
     @(
         (Join-Path $h '.claude\CLAUDE.md'),
