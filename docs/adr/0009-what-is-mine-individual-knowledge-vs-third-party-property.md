@@ -63,6 +63,17 @@ content reaching a prompt, which side of the line it falls on.
   partial by nature (ADR-0004, dichotomy of control).
 - Bad: a broad grey zone means frequent interruptions in career-narrative and content work.
 
+## Amendment 2026-10-01: one row ratified
+
+The owner: *"conehcimento publico da industria é liberado"* ("public industry knowledge is cleared").
+
+**Ratified:** *public and publicly documented industry knowledge is his to use.* This is the
+"public-domain and publicly documented knowledge" row of the test.
+
+**The rest of the test stays proposed.** That covers the other "his" rows, the "not his" list and the
+grey-zone routing (which ADR-0012 and ADR-0005's amendments have since reshaped). The record's status
+stays **proposed** until the remaining rows are ratified.
+
 ## Links
 
 - `AGENTS.md`, "Mission". ADR-0004 (Justice). ADR-0005 (HITL). ADR-0008 (no confidential persistence).

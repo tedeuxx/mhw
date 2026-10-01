@@ -81,6 +81,24 @@ and ask, even when that breaks the flow*. For recognised cases, this amendment r
 mitigating and reporting. Changing the mapping needs his ratification. Until then, read Courage as
 covering the residual stop-and-ask case and the obligation to report every intervention.
 
+## Amendment 2026-10-01 (second): the scope question is closed
+
+The owner answered the open scope question above: *"somente meus empregadores e clientes diretos"*
+("only my direct employers and clients").
+
+**Scope:** the proactive cleaning and abstraction cover only his **direct** employers and **direct**
+clients. Out of scope:
+
+- public vendor products he names in his own writing (for example, a named cloud service);
+- third parties with whom he has no direct employment or client relationship.
+
+**"Current and past"** is not in his answer. It comes from `AGENTS.md`'s first protection, which
+already says *"a current or past client or employer"*, and it is applied here for consistency.
+
+The open question and its interim "narrower reading" in the first amendment are now superseded:
+~~Until he answers, the narrower reading applies~~. The answer matches the narrower reading, so nothing
+the brief does changes, except that "direct" is now stated.
+
 ## Links
 
 - ADR-0005 (HITL, no log; its 2026-10-01 amendment requires every delegated intervention to be
