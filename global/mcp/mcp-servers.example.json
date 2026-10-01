@@ -1,0 +1,27 @@
+{
+  "$schema": "./mcp-servers.schema.json",
+  "version": 1,
+  "servers": {
+    "example-notes": {
+      "description": "SYNTHETIC. A server with no credential: rendered as-is to every surface.",
+      "command": "npx",
+      "args": ["-y", "@example/notes-mcp-server"],
+      "env": { "NOTES_REGION": "eu-example-1" }
+    },
+    "example-weather": {
+      "description": "SYNTHETIC. Its API key lives in the macOS Keychain; the config holds only its name.",
+      "command": "uvx",
+      "args": ["example-weather-mcp"],
+      "secrets": { "EXAMPLE_WEATHER_API_KEY": "keychain:example.weather-mcp.api-key" }
+    },
+    "example-tickets": {
+      "description": "SYNTHETIC. Environment indirection, and rendered for Codex and Claude Code only.",
+      "command": "/usr/local/bin/example-tickets-mcp",
+      "args": ["--read-only"],
+      "env": { "TICKETS_AUTH_MODE": "oauth-device" },
+      "not_secret": ["TICKETS_AUTH_MODE"],
+      "secrets": { "TICKETS_TOKEN": "env:EXAMPLE_TICKETS_TOKEN" },
+      "surfaces": ["codex", "claude-code"]
+    }
+  }
+}

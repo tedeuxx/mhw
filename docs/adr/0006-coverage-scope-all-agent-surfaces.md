@@ -55,8 +55,9 @@ name, account or folder is recorded here.
   which would put it outside the firewall's reach (ADR-0004, dichotomy of control).
 - Bad: the same tool reach is configured independently per surface, so a control applied in one place
   can silently miss another.
-- **Candidate control, proposed only:** a single source for MCP configuration across surfaces, rendered
-  into each surface's config. Not decided.
+- ~~**Candidate control, proposed only:** a single source for MCP configuration across surfaces, rendered
+  into each surface's config. Not decided.~~ Struck by the 2026-10-01 amendment on MCP below: the
+  mechanism is written, in ADR-0017 (proposed).
 
 ## Amendment 2026-10-01: Kiro IDE and Kiro CLI are two target surfaces
 
@@ -68,6 +69,15 @@ Kiro IDE and Kiro CLI are each in scope, as separate surfaces, each with its own
 enforcement points. On the reference install their access mode is **no active subscription**
 (ADR-0003). Their controls can be authored and statically checked, but their evidence level is capped
 at *documented* or *installed* until a subscription or a test account exists.
+
+## Amendment 2026-10-01: the single MCP source is written (ADR-0017)
+
+The candidate control above is written and tested, as
+[ADR-0017](0017-single-source-mcp-with-secret-indirection.md) (proposed, Issue #8). One definition in the
+untracked local overlay renders into Codex, Claude Code, the Claude desktop app and Kiro, and credentials
+are read from the macOS Keychain when each server starts. **It is not installed on the reference
+workstation**: that is the owner's act. Cowork, the ChatGPT desktop chat surface and remote connectors
+are not covered; ADR-0017 says why for each.
 
 ## Links
 

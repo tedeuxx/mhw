@@ -180,4 +180,7 @@ measured headless in throwaway homes, and is not installed on the reference mach
 go. Kiro carries no floor. The macOS clipboard watcher (ADR-0011's 2026-10-01 amendment) is written
 and tested in throwaway directories. Its LaunchAgent has never been loaded, so its on-screen notices
 are unverified. Its default mode, `offer`, changes nothing without the owner's click, and awaits his
-ratification. Linux and Windows have design notes only.
+ratification. Linux and Windows have design notes only. One MCP definition, kept in the untracked local
+overlay and rendered into Codex, Claude Code, the Claude desktop app and Kiro with credentials read from
+the Keychain at launch (ADR-0017, proposed), is written and tested in throwaway homes. It is not
+installed, and installing it into the owner's real configuration is his act.
