@@ -8,6 +8,9 @@
 param([Parameter(Mandatory = $true)][string]$Base)
 $ErrorActionPreference = 'Continue'
 Set-StrictMode -Version 2
+# An error inside the test itself is a FAILED assertion, never a silent skip. The first CI run printed
+# "0 failed" and exited 0 while seven assertions had thrown before reaching a verdict.
+trap { $script:fail++; Write-Output "FAIL  the test itself threw: $_"; continue }
 
 New-Item -ItemType Directory -Force -Path $Base | Out-Null
 $Base = (Resolve-Path -LiteralPath $Base).Path
@@ -38,7 +41,9 @@ function Run([string]$prof, [string[]]$a = @()) {
     } finally { $env:USERPROFILE = $saved }
     return $out
 }
-function Files([string]$dir) { @(Get-ChildItem -LiteralPath $dir -Recurse -File -Force -ErrorAction SilentlyContinue) }
+# Returns a number, never an array: a function's array output is unrolled, and an empty one becomes
+# $null, whose .Count is an error under StrictMode (the first CI run hit exactly that).
+function Count-Files([string]$dir) { @(Get-ChildItem -LiteralPath $dir -Recurse -File -Force -ErrorAction SilentlyContinue).Count }
 function Targets([string]$h) {
     @(
         (Join-Path $h '.claude\CLAUDE.md'),
@@ -88,7 +93,7 @@ Write-Output "source checkout carries CRLF: $srcHasCR"
 # 1. dry-run writes nothing
 $h = Join-Path $Base 'home-dry'; New-Item -ItemType Directory -Force -Path $h | Out-Null
 $out = Run $h @('-DryRun'); Expect 'dry-run exits 0' 0 $script:rc
-Check 'dry-run wrote no file' ((Files $h).Count -eq 0)
+Check 'dry-run wrote no file' ((Count-Files $h) -eq 0)
 Check 'dry-run prints targets' ([bool]($out | Where-Object { $_ -like 'WOULD WRITE*' }))
 Check 'dry-run prints the settings merge' ([bool]($out | Where-Object { $_ -like 'WOULD MERGE*' }))
 Check 'dry-run prints the deny floor for both harnesses' (
@@ -225,7 +230,7 @@ foreach ($e in @('cmd rm "-rf"', 'cmd git push --force*', 'path ~/.ssh', 'file ~
     [System.IO.File]::WriteAllText((Join-Path $ov 'deny-floor.conf'), "$e`n")
     $h = Join-Path $Base "home-badfloor-$i"; New-Item -ItemType Directory -Force -Path $h | Out-Null
     $null = Run $h @('-Overlay', $ov)
-    $n = (Files $h).Count
+    $n = Count-Files $h
     Check "invalid entry refused (exit 2), nothing written: $e [exit $($script:rc), $n file(s)]" ($script:rc -eq 2 -and $n -eq 0)
 }
 
@@ -233,7 +238,7 @@ foreach ($e in @('cmd rm "-rf"', 'cmd git push --force*', 'path ~/.ssh', 'file ~
 $h = Join-Path $Base 'home-usage'; New-Item -ItemType Directory -Force -Path $h | Out-Null
 $null = Run $h @('-DryRun', '-Check'); Expect '-DryRun with -Check is a usage error' 2 $script:rc
 $null = Run $h @('-Overlay', (Join-Path $Base 'no-such-overlay')); Expect 'a missing overlay directory is a usage error' 2 $script:rc
-Check 'usage errors wrote nothing' ((Files $h).Count -eq 0)
+Check 'usage errors wrote nothing' ((Count-Files $h) -eq 0)
 
 Write-Output "$($script:pass) passed, $($script:fail) failed"
 if ($script:fail -ne 0) { exit 1 }
