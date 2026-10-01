@@ -19,7 +19,9 @@ In English: protect him from **violating third parties' commercial rights and in
 in his personal professional activity. **Only his individual knowledge and learning**, gained in any
 environment, is his own property, and this project exists to help him respect that line. The working
 test for where the line falls is proposed in
-[ADR-0009](docs/adr/0009-what-is-mine-individual-knowledge-vs-third-party-property.md).
+[ADR-0009](docs/adr/0009-what-is-mine-individual-knowledge-vs-third-party-property.md). The mission is
+carried into every harness's user-level brief from one source, [`global/AGENTS.md`](global/AGENTS.md)
+([ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md)).
 
 ### How: the LLM firewall
 
