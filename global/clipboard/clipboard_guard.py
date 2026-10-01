@@ -67,7 +67,9 @@ DEFAULTS = {
                       "before the mitigation ran. Mitigation: none applied.",
     "notice_too_large": "Clipboard check (ADR-0011): a copied item over {max} bytes was NOT checked.",
     "notice_error": "Clipboard check (ADR-0011): watcher error ({error}); the copied item was NOT checked.",
-    "notice_no_salt": "Clipboard check (ADR-0011): the term list exists but its salt was not found, "
+    "notice_startup": "Clipboard check (ADR-0011): the watcher could not start ({error}). The clipboard is "
+                      "NOT being checked until it is fixed and restarted.",
+    "notice_no_salt":"Clipboard check (ADR-0011): the term list exists but its salt was not found, "
                       "so employer/client term matching is OFF.",
 }
 MODES = ("offer", "sanitise")
@@ -525,6 +527,7 @@ class Guard:
         self.terms = frozenset()
         self.terms_stamp = None
         self.warned_no_salt = False
+        self.written = None          # change count produced by the guard's own last write, if any
 
     def refresh_terms(self):
         """Re-read the term list when it changes, so a term added while the watcher runs counts at once."""
@@ -566,34 +569,42 @@ class Guard:
             return "changed"
         if choice == "clear":
             self.pb.clear()
+            self.written = self.pb.change_count()      # our own write: not a new item to check
             self.notifier.notify("notice_cleared", categories=cats)
             return "cleared"
         self.pb.set_string(sanitise(text, spans))
+        self.written = self.pb.change_count()
         self.notifier.notify("notice_cleaned", categories=cats)
         return "cleaned"
 
     def run(self, max_cycles=None):
+        # `last` is the change count of the last item this loop has DEALT WITH. After a check it is the
+        # count of the guard's own write when there was one, otherwise the count the check started
+        # from. It is never re-read after the check: an item copied while the offer dialog was open
+        # (up to dialog_seconds) carries a newer count and must be checked on the next poll, not
+        # silently marked seen.
         last = None
         cycles = 0
+        last_error = None
         while max_cycles is None or cycles < max_cycles:
             cycles += 1
+            cc = None
             try:
                 cc = self.pb.change_count()
                 if cc != last:
+                    self.written = None
                     self.check(cc)
-                    last = self.pb.change_count()
+                    last = self.written if self.written is not None else cc
+                last_error = None
             except Exception as exc:  # a crash would end the watch silently; report the class only,
-                # because an exception's message can quote the input. Mark the item seen so one bad
-                # item yields one notice, not one per poll.
-                last = self._safe_count(last)
-                self.notifier.notify("notice_error", error=type(exc).__name__)
+                # because an exception's message can quote the input. The failing item is marked
+                # seen, and a failure that repeats on every poll is reported once, not once a second.
+                if cc is not None:
+                    last = cc
+                if type(exc).__name__ != last_error:
+                    last_error = type(exc).__name__
+                    self.notifier.notify("notice_error", error=last_error)
             time.sleep(int(self.conf["poll_seconds"]))
-
-    def _safe_count(self, fallback):
-        try:
-            return self.pb.change_count()
-        except Exception:
-            return fallback
 
 # ------------------------------------------------------------------------------------------ CLI
 
@@ -663,6 +674,21 @@ def cmd_add_term(conf, out=sys.stdout):
     return 0
 
 
+def cmd_watch(conf, pasteboard=None, max_cycles=None, backend=None, notifier=None):
+    """Start the watcher. If it cannot start, tell the owner ONCE (exception class only, no log) and
+    exit 0. The LaunchAgent restarts the job only on a non-zero exit (KeepAlive/SuccessfulExit=false),
+    so a failure that would repeat on every start yields one notice instead of a silent restart loop
+    behind stdout/stderr = /dev/null."""
+    notifier = notifier or Notifier(conf)
+    try:
+        pb = (backend or MacPasteboard)(pasteboard)
+    except Exception as exc:
+        notifier.notify("notice_startup", error=type(exc).__name__)
+        return 0
+    Guard(conf, pb, notifier, SaltStore(conf)).run(max_cycles)
+    return 0
+
+
 def main(argv):
     args = list(argv[1:])
     if not args or args[0] in ("-h", "--help"):
@@ -681,7 +707,13 @@ def main(argv):
         else:
             sys.stderr.write("unknown or incomplete argument: %s (no term is ever taken from arguments)\n" % flag)
             return 2
-    conf = load_config(config)
+    try:
+        conf = load_config(config)
+    except Exception as exc:          # an unreadable settings file: same one-notice rule as cmd_watch
+        if command != "watch":
+            raise
+        Notifier(load_config(None)).notify("notice_startup", error=type(exc).__name__)
+        return 0
     if command == "add-term":
         return cmd_add_term(conf)
     if command == "check-config":
@@ -693,8 +725,7 @@ def main(argv):
         if sys.platform != "darwin":
             sys.stderr.write("watch: only macOS has a backend (see ADR-0011 for Linux and Windows)\n")
             return 2
-        Guard(conf, MacPasteboard(pasteboard), Notifier(conf), SaltStore(conf)).run(max_cycles)
-        return 0
+        return cmd_watch(conf, pasteboard, max_cycles)
     sys.stderr.write("unknown command: %s\n" % command)
     return 2
 

@@ -143,7 +143,8 @@ if [ "$darwin" = 1 ]; then
   if [ "$(plutil -extract ProgramArguments.3 raw "$p")" = "$cg" ] \
      && [ "$(plutil -extract ProgramArguments.0 raw "$p")" = /usr/bin/python3 ] \
      && [ "$(plutil -extract StandardOutPath raw "$p")" = /dev/null ] \
-     && [ "$(plutil -extract StandardErrorPath raw "$p")" = /dev/null ]; then
+     && [ "$(plutil -extract StandardErrorPath raw "$p")" = /dev/null ] \
+     && [ "$(plutil -extract KeepAlive.SuccessfulExit raw "$p")" = false ]; then
     ok "the plist runs the installed guard with stock python3, output to /dev/null"
   else
     ko "the plist's program or output paths are wrong"

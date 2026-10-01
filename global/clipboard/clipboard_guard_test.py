@@ -349,6 +349,65 @@ class GuardBehaviour(unittest.TestCase):
             os.environ.clear()
             os.environ.update(before_env)
 
+    def test_item_copied_while_the_dialog_is_open_is_still_checked(self):
+        """Regression for the independent lens's probe on 5a080a9: the loop used to re-read the change
+        count after check(), so an item copied during the offer dialog was marked seen unchecked."""
+        second = "second copy with key " + CREDENTIALS["aws"]
+        for answer in ("keep", "clean", "clear"):
+            gd, pb, n = guard("mail ana@zyxw-mail.zyxw", answer=answer)
+            first_offer = n.offer
+            state = {"done": False}
+
+            def offer(cats, pb=pb, state=state, first_offer=first_offer):
+                if not state["done"]:          # the owner copies something else while the dialog is up
+                    state["done"] = True
+                    pb.text, pb.typelist, pb.count = second, [g.TEXT_TYPE], pb.count + 1
+                return first_offer(cats)
+            n.offer = offer
+            g.time.sleep = lambda s: None
+            try:
+                gd.run(max_cycles=6)
+            finally:
+                g.time.sleep = REAL_SLEEP
+            offers = [s for s in n.sent if "Nothing changed yet" in s]
+            self.assertEqual(len(offers), 2, "%s: the item copied during the dialog was never checked" % answer)
+            self.assertIn("credential", offers[1], answer)
+
+    def test_the_guards_own_write_is_not_rechecked(self):
+        gd, pb, n = guard("key " + CREDENTIALS["aws"], mode="sanitise")
+        g.time.sleep = lambda s: None
+        try:
+            gd.run(max_cycles=5)
+        finally:
+            g.time.sleep = REAL_SLEEP
+        self.assertEqual(pb.reads, 1, "the redacted copy the guard wrote was read again as a new item")
+        self.assertEqual(len(n.sent), 1)
+
+    def test_a_failure_on_every_poll_is_reported_once(self):
+        gd, pb, n = guard("x")
+
+        def broken():
+            raise OSError("pasteboard server gone")
+        pb.change_count = broken
+        g.time.sleep = lambda s: None
+        try:
+            gd.run(max_cycles=10)
+        finally:
+            g.time.sleep = REAL_SLEEP
+        self.assertEqual(len(n.sent), 1)
+        self.assertIn("OSError", n.sent[0])
+
+    def test_startup_failure_is_one_notice_and_a_clean_exit(self):
+        conf = g.load_config(conf_in(os.path.join(BASE, "startup")))
+        n = FakeNotifier()
+
+        def backend(name):
+            raise OSError("no AppKit here: SECRETDETAIL")
+        self.assertEqual(g.cmd_watch(conf, backend=backend, notifier=n), 0)
+        self.assertEqual(len(n.sent), 1)
+        self.assertIn("could not start (OSError)", n.sent[0])
+        self.assertNotIn("SECRETDETAIL", n.sent[0])
+
     def test_one_error_one_notice_with_class_name_only(self):
         gd, pb, n = guard("x")
 

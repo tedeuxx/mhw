@@ -188,6 +188,8 @@ render() {
       ;;
     plist)
       # No log: launchd's stdout and stderr go to /dev/null, and the guard itself writes nothing.
+      # KeepAlive/SuccessfulExit=false: restart after a crash (non-zero exit), but not after the guard
+      # has reported a startup failure and exited 0, so that failure is one notice, not a restart loop.
       script_x=$(xml_escape "$clip_dest")
       conf_x=$(xml_escape "$clip_conf_dest")
       {
@@ -201,7 +203,8 @@ render() {
           '    <string>/usr/bin/python3</string>' '    <string>-I</string>' '    <string>-B</string>' \
           "    <string>$script_x</string>" '    <string>watch</string>' '    <string>--config</string>' \
           "    <string>$conf_x</string>" '  </array>' \
-          '  <key>RunAtLoad</key>' '  <true/>' '  <key>KeepAlive</key>' '  <true/>' \
+          '  <key>RunAtLoad</key>' '  <true/>' \
+          '  <key>KeepAlive</key>' '  <dict>' '    <key>SuccessfulExit</key>' '    <false/>' '  </dict>' \
           '  <key>ThrottleInterval</key>' '  <integer>30</integer>' \
           '  <key>LimitLoadToSessionType</key>' '  <string>Aqua</string>' \
           '  <key>StandardOutPath</key>' '  <string>/dev/null</string>' \
