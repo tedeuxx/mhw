@@ -1,0 +1,10 @@
+# Never track secrets or machine-local harness state in this repository.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+auth.json
+**/secrets/
+*.local.json
+.DS_Store
