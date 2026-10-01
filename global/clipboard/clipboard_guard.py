@@ -619,25 +619,48 @@ AGENT_MARKERS = ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "AI_AGENT", "CODEX_SAND
                  "CODEX_SANDBOX_NETWORK_DISABLED")
 
 
+class Cancelled(Exception):
+    """The owner ended an entry with Ctrl+D (end of file) instead of Enter."""
+
+
 def _read_secret_line(tty_fd, prompt):
+    """Read one line from the terminal with nothing echoed, and return it without its line ending.
+
+    The terminal's own modes are NOT trusted (Issue #5): a terminal can deliver Enter as "\\r" with
+    ICRNL off, and in canonical mode the kernel then never completes the line, so the read blocks
+    forever. So for the duration of the read this sets exactly the modes it depends on:
+      - ICANON and ICRNL on, INLCR and IGNCR off: Enter ("\\r" or "\\n") completes the line, and the
+        kernel still does the line editing (erase, kill);
+      - ECHO and ECHONL off: nothing typed is echoed, not even the newline;
+      - ISIG on: Ctrl+C raises KeyboardInterrupt instead of being read as a character.
+    A line also ends at "\\r", which matters only if the driver ignored the ICRNL request.
+    Ctrl+D (end of file) raises Cancelled; an unterminated partial line is never returned.
+    The exact original modes are restored on every exit path, Ctrl+C included."""
     import termios
     old = termios.tcgetattr(tty_fd)
     new = termios.tcgetattr(tty_fd)
-    new[3] &= ~termios.ECHO
+    new[0] = (new[0] | termios.ICRNL) & ~(termios.INLCR | termios.IGNCR)
+    new[3] = (new[3] | termios.ICANON | termios.ISIG) & ~(termios.ECHO | termios.ECHONL)
     try:
         # Echo goes off BEFORE the prompt appears, so nothing typed after the prompt is ever echoed.
         termios.tcsetattr(tty_fd, termios.TCSADRAIN, new)
         os.write(tty_fd, prompt.encode())
         buf = b""
-        while not buf.endswith(b"\n"):
+        while True:
             chunk = os.read(tty_fd, 1024)
-            if not chunk:
-                break
+            if not chunk or b"\x04" in chunk:      # EOF; a literal ^D only arrives if VEOF is disabled
+                raise Cancelled()
+            if b"\x03" in chunk:                    # a literal ^C only arrives if VINTR is disabled
+                raise KeyboardInterrupt()
             buf += chunk
+            ends = [i for i in (buf.find(b"\n"), buf.find(b"\r")) if i >= 0]
+            if ends:
+                buf = buf[:min(ends)]
+                break
     finally:
         termios.tcsetattr(tty_fd, termios.TCSADRAIN, old)
         os.write(tty_fd, b"\n")
-    return buf.decode("utf-8", "replace").rstrip("\r\n")
+    return buf.decode("utf-8", "replace")
 
 
 def cmd_add_term(conf, out=sys.stdout):
@@ -657,6 +680,9 @@ def cmd_add_term(conf, out=sys.stdout):
     try:
         first = _read_secret_line(tty, "Term (not shown): ")
         second = _read_secret_line(tty, "Again: ")
+    except (KeyboardInterrupt, Cancelled):
+        out.write("not added: entry cancelled. Nothing was written.\n")
+        return 130
     finally:
         os.close(tty)
     if first != second:

@@ -596,6 +596,147 @@ class AddTermCli(unittest.TestCase):
         hashes = g.read_terms(c["terms_file"])
         self.assertEqual(g.categories(g.find_spans("re: zyxw QUILLON synthetic", hashes, salt)), ["employer-client-term"])
 
+    def drive_cancel(self, d, key):
+        """Run add-term in a pty, press `key` at the first prompt, return (exit status, terminal output)."""
+        conf = conf_in(d)
+        pid, fd = pty.fork()
+        if pid == 0:
+            os.execve(sys.executable, [sys.executable, "-B", g.__file__, "add-term", "--config", conf], self.env(d))
+        seen, sent, deadline = b"", False, time.time() + 20
+        while time.time() < deadline:
+            if not select.select([fd], [], [], 1)[0]:
+                continue
+            try:
+                chunk = os.read(fd, 1024)
+            except OSError:
+                break
+            if not chunk:
+                break
+            seen += chunk
+            if not sent and b"Term (not shown):" in seen:
+                os.write(fd, key)
+                sent = True
+        reaped, status = 0, 0
+        for _ in range(50):
+            reaped, status = os.waitpid(pid, os.WNOHANG)
+            if reaped:
+                break
+            time.sleep(0.1)
+        if not reaped:
+            os.kill(pid, 9)
+            _, status = os.waitpid(pid, 0)
+        os.close(fd)
+        self.assertTrue(os.WIFEXITED(status), "add-term did not exit cleanly: %r" % seen[-200:])
+        self.assertFalse(os.path.exists(g.load_config(conf)["terms_file"]), "a cancelled entry wrote the term list")
+        return os.WEXITSTATUS(status), seen
+
+    def test_ctrl_c_cancels_cleanly(self):
+        code, seen = self.drive_cancel(os.path.join(BASE, "cli-ctrl-c"), b"\x03")
+        self.assertNotEqual(code, 0)
+        self.assertIn(b"not added", seen)
+        self.assertNotIn(b"Traceback", seen)
+
+    def test_ctrl_d_cancels_cleanly(self):
+        code, seen = self.drive_cancel(os.path.join(BASE, "cli-ctrl-d"), b"\x04")
+        self.assertNotEqual(code, 0)
+        self.assertIn(b"not added", seen)
+        self.assertNotIn(b"Traceback", seen)
+
+
+class SecretLineReader(unittest.TestCase):
+    """Issue #5: _read_secret_line driven through a real pty, starting from terminal modes it must not
+    trust. Each test sets the slave's modes first, then types into the master."""
+
+    def setUp(self):
+        import termios
+        self.termios = termios
+        self.master, self.slave = pty.openpty()
+        self.result = {}
+
+    def tearDown(self):
+        for f in (self.master, self.slave):
+            try:
+                os.close(f)
+            except OSError:
+                pass
+
+    def set_modes(self, iflag_clear=0, lflag_set=0):
+        t = self.termios
+        a = t.tcgetattr(self.slave)
+        a[0] &= ~iflag_clear
+        a[3] |= lflag_set
+        t.tcsetattr(self.slave, t.TCSANOW, a)
+        return t.tcgetattr(self.slave)
+
+    def start(self):
+        import threading
+
+        def reader():
+            try:
+                self.result["value"] = g._read_secret_line(self.slave, "P: ")
+            except BaseException as exc:          # the test inspects what was raised
+                self.result["raised"] = type(exc).__name__
+        th = threading.Thread(target=reader, daemon=True)
+        th.start()
+        deadline = time.time() + 5                  # wait for the prompt: modes are set before it
+        seen = b""
+        while b"P: " not in seen and time.time() < deadline:
+            if select.select([self.master], [], [], 0.2)[0]:
+                seen += os.read(self.master, 1024)
+        self.assertIn(b"P: ", seen)
+        return th
+
+    def type_and_finish(self, th, data):
+        os.write(self.master, data)
+        th.join(5)
+        self.assertFalse(th.is_alive(), "the read never finished (Issue #5)")
+        out = b""
+        while select.select([self.master], [], [], 0.3)[0]:
+            chunk = os.read(self.master, 1024)
+            if not chunk:
+                break
+            out += chunk
+        return out
+
+    def test_enter_as_cr_with_icrnl_off(self):
+        before = self.set_modes(iflag_clear=self.termios.ICRNL)
+        out = self.type_and_finish(self.start(), b"term\r")
+        self.assertEqual(self.result.get("value"), "term")
+        self.assertEqual(self.termios.tcgetattr(self.slave), before, "terminal modes were not restored")
+        self.assertNotIn(b"term", out)
+
+    def test_enter_as_lf(self):
+        before = self.set_modes()
+        self.type_and_finish(self.start(), b"term\n")
+        self.assertEqual(self.result.get("value"), "term")
+        self.assertEqual(self.termios.tcgetattr(self.slave), before)
+
+    def test_nothing_echoed_with_echonl_on(self):
+        t = self.termios
+        before = self.set_modes(lflag_set=t.ECHONL)
+        th = self.start()
+        during = t.tcgetattr(self.slave)            # the reader is blocked in os.read now
+        self.assertFalse(during[3] & t.ECHO, "ECHO on during the read")
+        self.assertFalse(during[3] & t.ECHONL, "ECHONL on during the read")
+        self.assertTrue(during[3] & t.ICANON and during[0] & t.ICRNL)
+        out = self.type_and_finish(th, b"term\r")
+        self.assertEqual(self.result.get("value"), "term")
+        # Only the one line break the reader writes itself after the read, never an echo of Enter.
+        self.assertEqual(out, b"\r\n", "something was echoed during the read: %r" % out)
+        self.assertEqual(t.tcgetattr(self.slave), before)
+
+    def test_eof_cancels_and_restores(self):
+        before = self.set_modes(iflag_clear=self.termios.ICRNL)
+        self.type_and_finish(self.start(), b"\x04")
+        self.assertEqual(self.result.get("raised"), "Cancelled")
+        self.assertNotIn("value", self.result)
+        self.assertEqual(self.termios.tcgetattr(self.slave), before)
+
+    def test_partial_line_then_eof_is_not_returned(self):
+        self.set_modes()
+        self.type_and_finish(self.start(), b"ter\x04\x04")
+        self.assertEqual(self.result.get("raised"), "Cancelled")
+
 
 @unittest.skipUnless(DARWIN, "macOS pasteboard only")
 class MacNamedPasteboard(unittest.TestCase):
