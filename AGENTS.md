@@ -61,10 +61,11 @@ behaviour is ratified in [ADR-0004](docs/adr/0004-stoic-ethical-foundation.md). 
 response is **human-in-the-loop only, with no auditable record kept on the workstation**
 ([ADR-0005](docs/adr/0005-detection-response-hitl-without-log.md)). The reference workstation is
 personal by policy and never persists employer or client confidential data
-([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)). Clipboard-borne
-prompts are checked automatically for employer and client references
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed; the macOS watcher
-is installed and loaded on the reference machine in the ratified `offer` mode). Operational
+([ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md)). Pasted
+content is checked where it enters a harness CLI prompt: a user-level prompt hook on Claude Code and
+Codex blocks a prompt carrying an employer or client reference, a credential or personal data, and
+shows a redacted copy ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed;
+the always-on clipboard watcher it replaces was withdrawn on the owner's correction). Operational
 judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
 the owner ([ADR-0012](docs/adr/0012-operational-judgement-delegated-to-the-harness.md)). How agents
 escalate a pending decision or action to the owner is calibrated here: generic rules in the global
@@ -188,12 +189,18 @@ from here now, and at what evidence level:
 - **Deny floor** (ADR-0016, accepted): *installed*, with all 101 rules present per `--check`. It is
   *enforced* in Claude Code and Codex, as measured headless in throwaway homes. Enforcement on the
   reference machine was not re-measured. Kiro carries no floor.
-- **Clipboard watcher** (ADR-0011, macOS): *installed* by the same run, then *loaded* on the owner's go
+- ~~**Clipboard watcher** (ADR-0011, macOS): *installed* by the same run, then *loaded* on the owner's go
   (`launchctl print` shows it running, never exited; ADR-0011's second 2026-10-01 amendment). Its mode is
   `offer`, ratified by the owner on Issue #5. It changes nothing without his click. Its on-screen
   notices are still unverified, and no term has been added with `add-term` yet. ADR-0011 stays proposed
   for the open ADR-0012 agent-route question and for the categories and salt store. Linux and Windows
-  have design notes only.
+  have design notes only.~~
+  *(Struck 2026-10-01: withdrawn on the owner's correction on Issue #5. It was stopped and disabled on
+  the reference machine the same minute, and this version no longer installs it.)*
+- **Paste filter** (ADR-0011, Claude Code and Codex prompt hooks, macOS and Linux): *written and
+  tested*, and *measured* blocking in headless Claude Code and Codex in throwaway configurations. **Not
+  installed** on the reference machine. On Codex it runs only after the owner trusts it in `/hooks`.
+  It blocks and shows a redacted copy; it does not clean automatically.
 - **MCP definition** (ADR-0017, proposed): one definition, kept in the untracked local overlay and
   rendered into Codex, Claude Code, the Claude desktop app and Kiro with credentials read from the
   Keychain at launch. It is written and tested in throwaway homes. `install.sh` does not run its

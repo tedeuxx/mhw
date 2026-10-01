@@ -1,6 +1,7 @@
 #!/bin/sh
 # Render the global brief to each harness, install the HITL escalation guard, install the user-level
-# deny floor, and install the clipboard guard (ADR-0010, ADR-0013, ADR-0016, ADR-0011).
+# deny floor, and install the paste filter at the harness-CLI prompt (ADR-0010, ADR-0013, ADR-0016,
+# ADR-0011).
 #
 #   install.sh                  install or update every managed target
 #   install.sh --dry-run        print exactly what would be written or merged where; write nothing
@@ -12,12 +13,17 @@
 # its first five lines; an unmanaged file is never overwritten. ~/.claude/settings.json is never
 # replaced: one hook entry and the deny floor's entries are merged into it with jq, every other key, hook
 # and permission rule is kept (no existing deny entry is ever removed), and a backup is left beside it.
-# On macOS the clipboard guard's LaunchAgent plist is WRITTEN, never loaded: launchctl is the owner's act.
-# The clipboard term list is never written by this installer (only `clipboard_guard.py add-term` does).
+# The paste filter is a UserPromptSubmit hook: one entry merged into ~/.claude/settings.json and a
+# managed ${CODEX_HOME:-~/.codex}/hooks.json. Codex runs it only after the owner trusts it in /hooks.
+# The always-on clipboard watcher is WITHDRAWN (ADR-0011): no LaunchAgent is written any more, and a
+# managed plist left by an earlier version is removed on install. launchctl is never run: the installer
+# prints the bootout command for the owner. The term list is never written by this installer (only
+# `clipboard_guard.py add-term` does).
 set -eu
 
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
 HOOK_ID="personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"
+PASTE_ID="personal-multi-harness-workstation-configuration/clipboard_guard.py"
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_root=$(dirname "$script_dir")
@@ -37,7 +43,7 @@ for arg in "$@"; do
     --check) mode=check ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
-    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -57,6 +63,7 @@ clip_dest="$data_dir/clipboard_guard.py"
 clip_conf_dest="$data_dir/clipboard.conf"
 clip_plist="$HOME/Library/LaunchAgents/$CLIP_LABEL.plist"
 codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-deny-floor.rules"
+codex_hooks="${CODEX_HOME:-$HOME/.codex}/hooks.json"
 
 sha256_of() {
   if command -v sha256sum >/dev/null 2>&1; then
@@ -131,7 +138,25 @@ clip_conf="$work/clipboard.conf"
 cat "$clip_conf_src" > "$clip_conf"
 if [ -n "$overlay" ] && [ -f "$overlay/clipboard.conf" ]; then cat "$overlay/clipboard.conf" >> "$clip_conf"; fi
 
-xml_escape() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+# The paste filter's hook command (ADR-0011): the installed core, on the stock python3, isolated (-I)
+# and writing no bytecode (-B). Paths go inside double quotes, so a path holding a character that is
+# special there, or in JSON, is refused rather than mis-quoted.
+paste_ok=1
+case "$clip_dest$clip_conf_dest" in *[\"\\\$\`]*) paste_ok=0 ;; esac
+paste_cmd() {
+  printf '/usr/bin/python3 -I -B "%s" prompt-hook --harness %s --config "%s"' "$clip_dest" "$1" "$clip_conf_dest"
+}
+if [ "$paste_ok" = 0 ]; then
+  echo "REFUSE  paste filter: the data directory path holds a quote, backslash, dollar sign or backtick" >&2
+elif [ ! -e /usr/bin/python3 ]; then
+  paste_ok=0
+  echo "REFUSE  paste filter: /usr/bin/python3 not found; the hook is not registered" >&2
+elif [ "$(uname -s)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then
+  # /usr/bin/python3 is a Command Line Tools shim: without them it opens an install prompt instead of
+  # running, which would be an OS dialog on every prompt submission.
+  paste_ok=0
+  echo "REFUSE  paste filter: the Command Line Tools (which provide /usr/bin/python3) are not installed" >&2
+fi
 
 status=0
 raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
@@ -186,30 +211,16 @@ render() {
         cat "$clip_conf"
       } > "$2"
       ;;
-    plist)
-      # No log: launchd's stdout and stderr go to /dev/null, and the guard itself writes nothing.
-      # KeepAlive/SuccessfulExit=false: restart after a crash (non-zero exit), but not after the guard
-      # has reported a startup failure and exited 0, so that failure is one notice, not a restart loop.
-      script_x=$(xml_escape "$clip_dest")
-      conf_x=$(xml_escape "$clip_conf_dest")
+    codexhooks)
+      # The marker sits in the file's "description" (documented as metadata that does not change which
+      # hooks run). No version in it: Codex records trust against the hook's hash, so a file that changed
+      # on every release could ask the owner to re-trust it each time (whether description is part of
+      # that hash is NOT measured).
       {
-        printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>'
-        printf '<!-- %s; source: global/install.sh (clipboard guard, ADR-0011); version: %s; do not edit, re-run the installer -->\n' \
-          "$MARKER_ID" "$version"
-        printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
-          '<plist version="1.0">' '<dict>' \
-          '  <key>Label</key>' "  <string>$CLIP_LABEL</string>" \
-          '  <key>ProgramArguments</key>' '  <array>' \
-          '    <string>/usr/bin/python3</string>' '    <string>-I</string>' '    <string>-B</string>' \
-          "    <string>$script_x</string>" '    <string>watch</string>' '    <string>--config</string>' \
-          "    <string>$conf_x</string>" '  </array>' \
-          '  <key>RunAtLoad</key>' '  <true/>' \
-          '  <key>KeepAlive</key>' '  <dict>' '    <key>SuccessfulExit</key>' '    <false/>' '  </dict>' \
-          '  <key>ThrottleInterval</key>' '  <integer>30</integer>' \
-          '  <key>LimitLoadToSessionType</key>' '  <string>Aqua</string>' \
-          '  <key>StandardOutPath</key>' '  <string>/dev/null</string>' \
-          '  <key>StandardErrorPath</key>' '  <string>/dev/null</string>' \
-          '</dict>' '</plist>'
+        printf '{\n  "description": "%s; source: global/install.sh (paste filter, ADR-0011); do not edit, re-run the installer",\n' "$MARKER_ID"
+        printf '  "hooks": {\n    "UserPromptSubmit": [\n      {\n        "hooks": [\n'
+        printf '          {"type": "command", "command": "%s", "timeout": 30}\n' "$(paste_cmd codex | sed 's/"/\\"/g')"
+        printf '        ]\n      }\n    ]\n  }\n}\n'
       } > "$2"
       ;;
   esac
@@ -255,8 +266,10 @@ process() {
   esac
 }
 
-# Merge one PreToolUse(AskUserQuestion) entry and the deny floor into the user's Claude Code settings.
-# Idempotent: when exactly one hook entry of ours exists, it is the wanted one, and every floor rule is
+# Merge one PreToolUse(AskUserQuestion) entry, one UserPromptSubmit entry (the paste filter, ADR-0011)
+# and the deny floor into the user's Claude Code settings. When the paste filter cannot run here
+# (paste_ok=0), its entry is removed instead of written.
+# Idempotent, per event: when exactly one hook entry of ours exists, it is the wanted one, and every floor rule is
 # already in permissions.deny, nothing is written. Any other hook entry of ours (stale path, duplicate)
 # is removed; a hook group is dropped only if it held ours and is now empty. The deny floor is a UNION:
 # a missing floor rule is appended, every existing deny entry is kept in its place, none is removed.
@@ -269,6 +282,11 @@ merge_settings() {
 
   want=$(jq -cn --arg cmd "\"$hook_dest\"" \
     '{matcher: "AskUserQuestion", hooks: [{type: "command", command: $cmd, timeout: 5}]}')
+  if [ "$paste_ok" = 1 ]; then
+    want_paste=$(jq -cn --arg cmd "$(paste_cmd claude)" '{hooks: [{type: "command", command: $cmd, timeout: 30}]}')
+  else
+    want_paste=null
+  fi
   deny=$(jq -cR -s 'split("\n") | map(select(length > 0))
                     | reduce .[] as $r ([]; if any(.[]; . == $r) then . else . + [$r] end)' "$floor_claude")
 
@@ -285,23 +303,30 @@ merge_settings() {
   fi
 
   merged="$work/settings.merged.json"
-  if ! jq --indent 4 --arg id "$HOOK_ID" --argjson w "$want" --argjson f "$deny" '
-      def ours: (.command? // "") | tostring | contains($id);
+  if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --argjson w "$want" --argjson p "$want_paste" \
+      --argjson f "$deny" '
+      # One hook entry of ours per event: keep it when it is exactly the wanted one; otherwise drop every
+      # entry of ours (and a group left empty by that) and append the wanted one, unless it is null.
+      def place($ev; $id; $want):
+        def ours: (.command? // "") | tostring | contains($id);
+        ([.hooks[$ev][]?.hooks[]? | select(ours)] | length) as $n
+        | if ($want != null and $n == 1 and ([.hooks[$ev][]? | select(. == $want)] | length) == 1)
+             or ($want == null and $n == 0)
+          then .
+          else
+            .hooks = (.hooks // {})
+            | .hooks[$ev] = (
+                [ (.hooks[$ev] // [])[]
+                  | if any(.hooks[]?; ours)
+                    then (.hooks |= map(select(ours | not))) | select(.hooks | length > 0)
+                    else . end ]
+                + (if $want == null then [] else [$want] end))
+          end;
       if (.permissions != null and (.permissions | type) != "object")
          or (.permissions.deny? != null and (.permissions.deny | type) != "array")
       then error("permissions has an unexpected shape") else . end
-      | if ([.hooks.PreToolUse[]?.hooks[]? | select(ours)] | length) == 1
-           and ([.hooks.PreToolUse[]? | select(. == $w)] | length) == 1
-        then .
-        else
-          .hooks = (.hooks // {})
-          | .hooks.PreToolUse = (
-              [ (.hooks.PreToolUse // [])[]
-                | if any(.hooks[]?; ours)
-                  then (.hooks |= map(select(ours | not))) | select(.hooks | length > 0)
-                  else . end ]
-              + [$w])
-        end
+      | place("PreToolUse"; $id; $w)
+      | place("UserPromptSubmit"; $pid; $p)
       | (.permissions.deny // []) as $d
       | if all($f[]; . as $r | any($d[]; . == $r)) then .
         else .permissions = ((.permissions // {}) | .deny = ($d + [$f[] | . as $r | select(any($d[]; . == $r) | not)]))
@@ -315,21 +340,21 @@ merge_settings() {
   jq -S . "$current" > "$work/before.json"
   jq -S . "$merged" > "$work/after.json"
   if [ -e "$settings" ] && cmp -s "$work/before.json" "$work/after.json"; then
-    echo "OK      $settings (hook entry and all $(printf '%s' "$deny" | jq length) deny-floor rules present)"
+    echo "OK      $settings (hook entries and all $(printf '%s' "$deny" | jq length) deny-floor rules present)"
     return 0
   fi
 
   case $mode in
     check)
       if [ -e "$settings" ]; then
-        echo "DRIFT   $settings ($missing deny-floor rule(s) missing; or the hook entry is missing or stale)"
+        echo "DRIFT   $settings ($missing deny-floor rule(s) missing; or a hook entry is missing or stale)"
       else
         echo "MISSING $settings"
       fi
       raise 1
       ;;
     dry-run)
-      echo "WOULD MERGE $settings: one PreToolUse(AskUserQuestion) entry and $missing deny-floor rule(s); every other key and rule is kept."
+      echo "WOULD MERGE $settings: the PreToolUse(AskUserQuestion) and UserPromptSubmit (paste filter) entries and $missing deny-floor rule(s); every other key and rule is kept."
       if [ -e "$settings" ] && ! cmp -s "$settings" "$merged"; then
         echo "  note: the file is re-serialized by jq (4-space indent), so whitespace and escaping may change;"
         echo "  the semantic diff below (keys sorted) is the whole content change."
@@ -364,19 +389,35 @@ process conf "$data_dir/hitl.conf"
 process codexrules "$codex_rules"
 process clipscript "$clip_dest"
 process clipconf "$clip_conf_dest"
-if [ "$(uname -s)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then
-  # /usr/bin/python3 is a Command Line Tools shim: without them it opens an install prompt instead of
-  # running, and a KeepAlive agent would raise that prompt again after every throttle interval.
-  echo "REFUSE  $clip_plist: the Command Line Tools (which provide /usr/bin/python3) are not installed" >&2
-  raise 2
-elif [ "$(uname -s)" = Darwin ]; then
-  process plist "$clip_plist"
-  if [ "$mode" = install ]; then
-    echo "NOTE    the clipboard guard is not loaded by this installer. To start it (or restart after an update):"
-    echo "        launchctl bootstrap gui/\$(id -u) $clip_plist   then   launchctl kickstart -k gui/\$(id -u)/$CLIP_LABEL"
-  fi
+if [ "$paste_ok" = 1 ]; then
+  process codexhooks "$codex_hooks"
 else
-  echo "SKIP    clipboard watcher: macOS only; Linux and Windows are design notes in ADR-0011"
+  raise 2
+  echo "SKIP    $codex_hooks: the paste filter cannot run here (see the REFUSE line above)"
+fi
+
+# The always-on clipboard watcher is withdrawn (ADR-0011, owner correction on Issue #5). A LaunchAgent
+# plist this project wrote earlier is removed; launchctl is the owner's act, so its unload is printed.
+if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
+  if [ -f "$clip_plist" ] && is_managed "$clip_plist"; then
+    case $mode in
+      check)
+        echo "STALE   $clip_plist: the withdrawn clipboard watcher's LaunchAgent; install removes it"
+        raise 1
+        ;;
+      dry-run)
+        echo "WOULD REMOVE $clip_plist (the withdrawn clipboard watcher's LaunchAgent)"
+        ;;
+      install)
+        rm -f "$clip_plist"
+        echo "REMOVED $clip_plist (the withdrawn clipboard watcher's LaunchAgent, ADR-0011)"
+        echo "NOTE    if the watcher is still loaded, unload it yourself (this installer never runs launchctl):"
+        echo "        launchctl bootout gui/\$(id -u)/$CLIP_LABEL"
+        ;;
+    esac
+  else
+    echo "NOTE    $clip_plist exists and is NOT managed by this project; left alone"
+  fi
 fi
 merge_settings
 

@@ -25,9 +25,11 @@ reference machine from v0.7.0 with `--check` clean (Issue #4). That installed th
 HITL escalation guard ([ADR-0013](docs/adr/0013-hitl-escalation-calibration.md); firing there not
 re-measured) and the user-level deny floor
 ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md), accepted; enforcement there
-not re-measured). The macOS clipboard watcher
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed) is installed and
-loaded, in the `offer` mode the owner ratified (Issue #5). The MCP renderer
+not re-measured). The always-on macOS clipboard watcher was withdrawn on the owner's correction
+(Issue #5): it is stopped on the reference machine and this version no longer installs it. In its place
+a paste filter blocks a prompt carrying a finding at the Claude Code and Codex prompt
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed; measured headless,
+not yet installed on the reference machine). The MCP renderer
 ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md), proposed) has not been run
 there (Issue #8). Per-component evidence levels are in [`AGENTS.md`](AGENTS.md), "Status".
 
@@ -56,12 +58,12 @@ flowchart TB
   owner(["Owner — human in the loop"])
 
   subgraph WS["Personal workstation · macOS reference · Linux · Windows"]
-    clip["OS clipboard watcher<br/>ADR-0011 · installed, loaded · mode offer"]:::ours
 
     subgraph LAYERS["Configuration layers per harness"]
       managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
       ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · loaded: Claude Code, Codex (headless)"]:::ours
       uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · installed (firing not re-measured)"]:::ours
+      upaste["User level · prompt hook<br/>paste filter · Claude Code, Codex · ADR-0011<br/>blocks, never rewrites · not yet installed"]:::oursPlanned
       udeny["User level · deny floor<br/>Claude permissions.deny · Codex rules<br/>ADR-0016 · accepted · installed"]:::ours
       plugin["Plugin · tadeumendonca-skills<br/>personas · skills · loop · project hooks"]
       project["Project config<br/>AGENTS.md · .claude/ · .codex/rules"]
@@ -83,10 +85,9 @@ flowchart TB
     llm[("LLM providers")]
   end
 
-  owner -->|copy / paste| clip
-  clip --> HARN
-  clip --> desk
-  managed --- ubrief --- uhooks --- udeny --- plugin --- project --- local
+  owner -->|paste into a prompt| HARN
+  owner -->|paste| desk
+  managed --- ubrief --- uhooks --- upaste --- udeny --- plugin --- project --- local
   LAYERS -. govern .-> HARN
   HARN --> proxy --> llm
   desk --> acct --> llm
@@ -125,7 +126,7 @@ sh global/install.sh --check    # exit non-zero if a target is missing, drifted 
 
 Windows (PowerShell). Tested in CI on a Windows runner under Windows PowerShell 5.1 and PowerShell 7
 (`global/install.test.ps1`). It renders the brief and the deny floor only: the HITL guard and the
-clipboard guard are not ported. The per-feature parity table is in
+paste filter are not ported. The per-feature parity table is in
 [ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md):
 
 ```powershell
@@ -153,21 +154,25 @@ unreadable file is in the way.
 `global/install.test.sh <base dir>` exercises the installer against throwaway home directories, never
 the real one.
 
-### Clipboard watcher (macOS)
+### Paste filter at the harness-CLI prompt (macOS and Linux)
 
-On macOS the same run installs the clipboard guard
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), 2026-10-01 amendment):
+The same run installs the paste filter
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), amendment "the always-on watcher is
+withdrawn"): a user-level `UserPromptSubmit` hook that scans what you submit to Claude Code or Codex,
+pasted content included, for a known employer or client term, a credential, an e-mail address, a payment
+card, a CPF or a CNPJ. On a finding it **blocks** the prompt, names the category, and shows a redacted
+copy you can submit instead. It never rewrites the prompt, never touches the system clipboard and raises
+no OS dialog: nothing outside the harness CLI changes.
 
-- the script and its settings (`global/clipboard.conf`, then `overlay/clipboard.conf`) under
+- the core and its settings (`global/clipboard.conf`, then `overlay/clipboard.conf`) under
   `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/`;
-- the LaunchAgent plist under `~/Library/LaunchAgents/`.
+- Claude Code: one `UserPromptSubmit` entry merged into `~/.claude/settings.json`;
+- Codex: `${CODEX_HOME:-~/.codex}/hooks.json`. **Codex skips it until you trust it**: open `/hooks` in
+  Codex, review the entry, trust it. That is your act; the installer writes no trust state.
 
-It needs the Command Line Tools, which provide `/usr/bin/python3`. **The installer writes the plist and
-never loads it.** To start the watcher:
-
-```sh
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist
-```
+It needs `/usr/bin/python3` (on macOS, the Command Line Tools). An earlier version installed an always-on
+clipboard watcher as a LaunchAgent; the installer now removes that plist if it wrote it, and prints the
+`launchctl bootout` command instead of running it.
 
 Add an employer or client term from **your own terminal, outside any agent session**. The term is read
 with echo off and only its salted hash is stored, in the local overlay outside this repository:
@@ -177,7 +182,7 @@ with echo off and only its salted hash is stored, in the local overlay outside t
 ```
 
 `python3 -B global/clipboard/clipboard_guard_test.py <empty dir>` runs its suite. On macOS the suite
-uses a private named pasteboard and a namespaced Keychain item, and deletes both.
+uses a namespaced Keychain item and deletes it; it never reads or writes the system clipboard.
 
 ### MCP servers: one definition, credentials at launch
 

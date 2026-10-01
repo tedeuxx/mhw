@@ -21,15 +21,23 @@ targets() {
   echo "$1/.claude/CLAUDE.md $1/.codex/AGENTS.md $1/.kiro/steering/workstation-global-brief.md"
   echo "$(data "$1")/hitl-escalation-guard.sh $(data "$1")/hitl.conf $1/.claude/settings.json"
   echo "$1/.codex/rules/workstation-deny-floor.rules"
-  echo "$(data "$1")/clipboard_guard.py $(data "$1")/clipboard.conf"
-  if [ "$darwin" = 1 ]; then plist "$1"; fi
+  echo "$(data "$1")/clipboard_guard.py $(data "$1")/clipboard.conf $1/.codex/hooks.json"
 }
-darwin=0; [ "$(uname -s)" = Darwin ] && darwin=1
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
 ours() { # number of hook entries of ours in a settings file
   jq '[.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"))] | length' "$1"
+}
+pours() { # number of paste-filter entries of ours (UserPromptSubmit) in a settings file
+  jq '[.hooks.UserPromptSubmit[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/clipboard_guard.py"))] | length' "$1"
+}
+# A synthetic AWS-shaped key, assembled at run time so this file holds no scanner-shaped string.
+synthetic_key="AKI""AQQQQRRRRSSSSTTTT"
+payload() { jq -cn --arg p "$1" '{hook_event_name: "UserPromptSubmit", prompt: $p}'; }
+# Run the hook command exactly as a harness would: through sh -c, payload on stdin, under HOME=$1.
+run_paste() { # $1 home, $2 command, $3 prompt
+  payload "$3" | HOME="$1" sh -c "$2"
 }
 floor_src="$(cd "$(dirname "$0")" && pwd)/deny-floor.conf"
 # Expected Claude rules, derived from the source independently of the installer's awk: a cmd line is
@@ -123,35 +131,86 @@ else
   echo "SKIP  codex not on PATH: the rendered rules file was not parsed by Codex here"
 fi
 
-# 2c. the clipboard guard (ADR-0011): script, merged settings, and on macOS the LaunchAgent plist
+# 2c. the paste filter (ADR-0011): the core, its settings, a UserPromptSubmit entry for Claude Code and
+# a managed hooks.json for Codex; and NO LaunchAgent: the always-on watcher is withdrawn
 cg="$(data "$h")/clipboard_guard.py"
 if sed 2d "$cg" | cmp -s - "$clip_src" && sed -n 2p "$cg" | grep -q '^# managed-by: personal-multi-harness-workstation-configuration'; then
-  ok "clipboard guard installed: the source plus a marker on line 2"
+  ok "paste filter core installed: the source plus a marker on line 2"
 else
-  ko "installed clipboard guard differs from its source"
+  ko "installed paste filter core differs from its source"
 fi
 cc="$(data "$h")/clipboard.conf"
-if grep -qx 'mode=offer' "$cc" && grep -qx 'button_clean=Limpar' "$cc"; then
-  ok "clipboard settings carry the generic default (offer) and the overlay's notices"
+if grep -qx 'block_categories=employer-client-term,credential,email,payment-card,cpf,cnpj' "$cc" && grep -q '^notice_blocked=Filtro de colagem' "$cc"; then
+  ok "paste filter settings carry the generic categories and the overlay's notices"
 else
-  ko "clipboard settings wrong"
+  ko "paste filter settings wrong"
 fi
 if [ -e "$(data "$h")/local-overlay" ]; then ko "the installer created the local overlay (term list or salt)"; else ok "the installer wrote no term list and no salt"; fi
-if [ "$darwin" = 1 ]; then
-  p=$(plist "$h")
-  if plutil -lint "$p" > /dev/null; then ok "the LaunchAgent plist is valid"; else ko "the LaunchAgent plist does not lint"; fi
-  if [ "$(plutil -extract ProgramArguments.3 raw "$p")" = "$cg" ] \
-     && [ "$(plutil -extract ProgramArguments.0 raw "$p")" = /usr/bin/python3 ] \
-     && [ "$(plutil -extract StandardOutPath raw "$p")" = /dev/null ] \
-     && [ "$(plutil -extract StandardErrorPath raw "$p")" = /dev/null ] \
-     && [ "$(plutil -extract KeepAlive.SuccessfulExit raw "$p")" = false ]; then
-    ok "the plist runs the installed guard with stock python3, output to /dev/null"
-  else
-    ko "the plist's program or output paths are wrong"
-  fi
-  if grep -q '^NOTE .*not loaded' "$base/fresh.out"; then ok "install says it did not load the agent"; else ko "install did not say the agent is unloaded"; fi
+s="$h/.claude/settings.json"
+want_claude="/usr/bin/python3 -I -B \"$cg\" prompt-hook --harness claude --config \"$cc\""
+if [ "$(pours "$s")" -eq 1 ] && jq -e --arg c "$want_claude" '[.hooks.UserPromptSubmit[].hooks[] | select(.command == $c and .timeout == 30)] | length == 1' "$s" >/dev/null; then
+  ok "settings carry exactly one UserPromptSubmit entry running the installed core for claude"
 else
-  if [ -e "$(plist "$h")" ]; then ko "a plist was written on a non-macOS system"; else ok "no plist off macOS"; fi
+  ko "the Claude Code paste-filter entry is missing or wrong"
+fi
+ch="$h/.codex/hooks.json"
+want_codex="/usr/bin/python3 -I -B \"$cg\" prompt-hook --harness codex --config \"$cc\""
+if jq -e --arg c "$want_codex" '(.description | startswith("managed-by: personal-multi-harness-workstation-configuration"))
+      and ([.hooks.UserPromptSubmit[].hooks[] | select(.command == $c and .type == "command")] | length == 1)
+      and (.hooks | keys == ["UserPromptSubmit"])' "$ch" >/dev/null; then
+  ok "codex hooks.json is valid JSON, managed, and runs the installed core for codex"
+else
+  ko "codex hooks.json wrong"
+fi
+if grep -q 'version' "$ch"; then ko "codex hooks.json carries a version (every release would ask for re-trust)"; else ok "codex hooks.json carries no version"; fi
+# The registered commands, run as a harness runs them: a hit blocks, a clean prompt prints nothing.
+cmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$s")
+out=$(run_paste "$h" "$cmd" "deploy with $synthetic_key please")
+if printf '%s' "$out" | jq -e '.decision == "block" and .hookSpecificOutput.suppressOriginalPrompt == true' >/dev/null 2>&1 \
+   && ! printf '%s' "$out" | grep -q "$synthetic_key" && printf '%s' "$out" | grep -q 'REDACTED:credential'; then
+  ok "the installed Claude Code entry blocks a credential, suppresses the original, shows only a redacted copy"
+else
+  ko "the installed Claude Code entry did not block correctly: $out"
+fi
+out=$(run_paste "$h" "$cmd" "refactor the parser")
+if [ -z "$out" ]; then ok "the installed Claude Code entry prints nothing for a clean prompt"; else ko "clean prompt produced output: $out"; fi
+cmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$ch")
+out=$(run_paste "$h" "$cmd" "deploy with $synthetic_key please")
+if printf '%s' "$out" | jq -e '.decision == "block" and (has("hookSpecificOutput") | not)' >/dev/null 2>&1 \
+   && ! printf '%s' "$out" | grep -q "$synthetic_key"; then
+  ok "the installed Codex entry blocks a credential with the Codex output shape"
+else
+  ko "the installed Codex entry did not block correctly: $out"
+fi
+if [ -e "$(plist "$h")" ] || [ -d "$h/Library/LaunchAgents" ]; then ko "a LaunchAgent was written"; else ok "no LaunchAgent written (the watcher is withdrawn)"; fi
+
+# 2d. a managed watcher plist left by an earlier version is removed on install; launchctl never runs
+h2="$base/home-oldplist"; mkdir -p "$h2/Library/LaunchAgents"
+printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
+  '<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (clipboard guard, ADR-0011); version: 0.7.2 -->' \
+  '<plist version="1.0"><dict/></plist>' > "$(plist "$h2")"
+fakebin="$base/fakebin"; mkdir -p "$fakebin"
+printf '#!/bin/sh\necho launchctl >> "%s"\n' "$base/launchctl.calls" > "$fakebin/launchctl"; chmod 755 "$fakebin/launchctl"
+HOME="$h2" PATH="$fakebin:$PATH" sh "$inst" --check > "$base/oldplist-check.out"; expect "check flags the withdrawn watcher's plist" 1 $?
+if grep -q '^STALE .*clipboard-guard.plist' "$base/oldplist-check.out" && [ -f "$(plist "$h2")" ]; then ok "check names the stale plist and leaves it"; else ko "check did not name the stale plist"; fi
+HOME="$h2" PATH="$fakebin:$PATH" sh "$inst" --dry-run > "$base/oldplist-dry.out"; expect "dry-run with the old plist" 0 $?
+if grep -q '^WOULD REMOVE .*clipboard-guard.plist' "$base/oldplist-dry.out" && [ -f "$(plist "$h2")" ]; then ok "dry-run says it would remove the plist, and does not"; else ko "dry-run plist handling wrong"; fi
+HOME="$h2" PATH="$fakebin:$PATH" sh "$inst" > "$base/oldplist.out"; expect "install with the old plist" 0 $?
+if [ ! -e "$(plist "$h2")" ]; then ok "install removed the managed plist"; else ko "the managed plist survived install"; fi
+# shellcheck disable=SC2016  # the literal $(id -u) is what the owner is meant to run
+if grep -qF 'launchctl bootout gui/$(id -u)/local.personal-multi-harness-workstation-configuration.clipboard-guard' "$base/oldplist.out"; then
+  ok "install prints the bootout command for the owner"
+else
+  ko "install did not print the bootout command"
+fi
+if [ -e "$base/launchctl.calls" ]; then ko "the installer ran launchctl"; else ok "the installer never ran launchctl"; fi
+HOME="$h2" sh "$inst" --check > /dev/null; expect "check clean once the plist is gone" 0 $?
+printf 'my own agent\n' > "$(plist "$h2")"
+HOME="$h2" sh "$inst" > "$base/oldplist-foreign.out"; expect "install with an unmanaged file at the plist path" 0 $?
+if [ "$(cat "$(plist "$h2")")" = "my own agent" ] && grep -q 'NOT managed by this project; left alone' "$base/oldplist-foreign.out"; then
+  ok "an unmanaged file at the plist path is left alone"
+else
+  ko "an unmanaged plist was touched"
 fi
 
 # 3. idempotent re-run
@@ -176,15 +235,16 @@ if [ "$(has_rule "$h/.claude/settings.json" 'Bash(rm -rf:*)')" -eq 1 ]; then ok 
 rm "$h/.codex/rules/workstation-deny-floor.rules"
 HOME="$h" sh "$inst" --check; expect "check detects a missing codex rules file" 1 $?
 HOME="$h" sh "$inst" > /dev/null
-echo "mode=sanitise" >> "$(data "$h")/clipboard.conf"
-HOME="$h" sh "$inst" --check; expect "check detects a hand-edited clipboard setting" 1 $?
+echo "block_categories=email" >> "$(data "$h")/clipboard.conf"
+HOME="$h" sh "$inst" --check; expect "check detects a hand-edited paste filter setting" 1 $?
 HOME="$h" sh "$inst" > /dev/null
-if [ "$darwin" = 1 ]; then
-  sed 's#<string>/dev/null</string>#<string>/tmp/clip.log</string>#' "$(plist "$h")" > "$base/p.plist" && cp "$base/p.plist" "$(plist "$h")"
-  HOME="$h" sh "$inst" --check; expect "check detects a plist that would log" 1 $?
-  HOME="$h" sh "$inst" > /dev/null; expect "install repairs the plist" 0 $?
-  if grep -q '/tmp/clip.log' "$(plist "$h")"; then ko "the plist still points at a log"; else ok "the repaired plist logs nowhere"; fi
-fi
+jq 'del(.hooks.UserPromptSubmit)' "$h/.claude/settings.json" > "$base/s.json" && cp "$base/s.json" "$h/.claude/settings.json"
+HOME="$h" sh "$inst" --check; expect "check detects a removed paste-filter entry" 1 $?
+HOME="$h" sh "$inst" > /dev/null; expect "install restores the paste-filter entry" 0 $?
+if [ "$(pours "$h/.claude/settings.json")" -eq 1 ]; then ok "the paste-filter entry is back, once"; else ko "paste-filter entry not restored"; fi
+jq '.hooks.UserPromptSubmit = []' "$h/.codex/hooks.json" > "$base/c.json" && cp "$base/c.json" "$h/.codex/hooks.json"
+HOME="$h" sh "$inst" --check; expect "check detects an emptied codex hooks.json" 1 $?
+HOME="$h" sh "$inst" > /dev/null; expect "install repairs codex hooks.json" 0 $?
 
 # 5. refuse an unmanaged file
 h="$base/home-unmanaged"; mkdir -p "$h/.claude"
@@ -214,7 +274,7 @@ if [ "$(jq -S . "$h/.claude/settings.json")" = "$orig" ]; then ok "dry-run left 
 if grep -q 're-serialized' "$base/dry6.out"; then ok "dry-run warns that formatting changes"; else ko "dry-run did not warn about formatting"; fi
 HOME="$h" sh "$inst"; expect "merge into existing settings" 0 $?
 s="$h/.claude/settings.json"
-if [ "$(jq -S 'del(.hooks.PreToolUse[-1]) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
+if [ "$(jq -S 'del(.hooks.PreToolUse[-1]) | del(.hooks.UserPromptSubmit) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
   ok "every pre-existing key, hook and rule survives in place; only our entries were appended"
 else
   ko "pre-existing content changed"
@@ -245,6 +305,17 @@ else
   ko "foreign hook lost"
 fi
 
+jq '.hooks.UserPromptSubmit += [
+      {hooks: [{type: "command", command: "/usr/bin/python3 /old/personal-multi-harness-workstation-configuration/clipboard_guard.py prompt-hook"}]},
+      {hooks: [{type: "command", command: "/usr/bin/python3 /old2/personal-multi-harness-workstation-configuration/clipboard_guard.py prompt-hook"},
+               {type: "command", command: "/someone/prompt-logger.sh"}]}]' "$s" > "$base/s.json" && cp "$base/s.json" "$s"
+HOME="$h" sh "$inst" > /dev/null; expect "merge with stale paste-filter entries" 0 $?
+if [ "$(pours "$s")" -eq 1 ] && jq -e '[.hooks.UserPromptSubmit[].hooks[] | select(.command == "/someone/prompt-logger.sh")] | length == 1' "$s" >/dev/null; then
+  ok "stale paste-filter entries collapsed to one; a foreign UserPromptSubmit hook survives"
+else
+  ko "paste-filter entries of ours: $(pours "$s")"
+fi
+
 # 7b. a group that held only a stale entry of ours is removed, not left empty
 groups=$(jq '.hooks.PreToolUse | length' "$s")
 jq '.hooks.PreToolUse += [{matcher: "AskUserQuestion", hooks: [{type: "command", command: "/stale/personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"}]}]' "$s" > "$base/s.json" && cp "$base/s.json" "$s"
@@ -270,7 +341,7 @@ out=$(jq -cn --arg l "$long" '{tool_name:"AskUserQuestion",tool_input:{questions
 if [ -z "$out" ]; then ok "generic install does not check question length"; else ko "generic install checked length"; fi
 out=$(jq -cn '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:"a"},{question:"b"}]}}' | sh "$(data "$h")/hitl-escalation-guard.sh")
 if printf '%s' "$out" | jq -r .systemMessage | grep -q '^HITL guard (ADR-0013)'; then ok "generic install notifies in the default English"; else ko "generic notice wrong"; fi
-if grep -q '^button_clean=' "$(data "$h")/clipboard.conf"; then ko "overlay leaked into generic clipboard settings"; else ok "generic clipboard settings carry no owner overlay"; fi
+if grep -q '^notice_blocked=' "$(data "$h")/clipboard.conf"; then ko "overlay leaked into generic paste filter settings"; else ok "generic paste filter settings carry no owner overlay"; fi
 
 # 10. a permissions section of the wrong shape is refused and left untouched
 h="$base/home-badperms"; mkdir -p "$h/.claude"
@@ -314,7 +385,24 @@ if jq -e --arg c "\"$xd/hitl-escalation-guard.sh\"" '[.hooks.PreToolUse[].hooks[
 else
   ko "the settings entry does not point at XDG_DATA_HOME"
 fi
+if jq -e --arg d "$xd/clipboard_guard.py" '[.hooks.UserPromptSubmit[].hooks[] | select(.command | contains($d))] | length == 1' "$h/.claude/settings.json" >/dev/null \
+   && grep -qF "$xd/clipboard_guard.py" "$h/.codex/hooks.json"; then
+  ok "both paste-filter entries run the core from XDG_DATA_HOME"
+else
+  ko "the paste-filter entries do not point at XDG_DATA_HOME"
+fi
 HOME="$h" XDG_DATA_HOME="$x" sh "$inst" --check > /dev/null; expect "check with XDG_DATA_HOME set" 0 $?
+
+# 13. a data path the hook command cannot quote safely: the paste filter is refused, not mis-quoted,
+# and an entry of ours already in the settings is removed rather than left pointing at a stale path
+h="$base/home-quote"; x="$base/xdg-q\"uote"; mkdir -p "$h/.claude" "$x"
+printf '%s\n' '{"hooks":{"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/usr/bin/python3 /old/personal-multi-harness-workstation-configuration/clipboard_guard.py prompt-hook"}]}]}}' > "$h/.claude/settings.json"
+HOME="$h" XDG_DATA_HOME="$x" sh "$inst" > "$base/quote.out" 2>&1; expect "install refuses the paste filter on an unquotable path" 2 $?
+if grep -q '^REFUSE  paste filter' "$base/quote.out" && [ ! -e "$h/.codex/hooks.json" ] && [ "$(pours "$h/.claude/settings.json")" -eq 0 ]; then
+  ok "no codex hooks.json, and the stale Claude Code entry was removed"
+else
+  ko "the unquotable path was not refused cleanly"
+fi
 
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
