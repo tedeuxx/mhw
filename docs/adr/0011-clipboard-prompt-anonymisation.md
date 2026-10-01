@@ -165,6 +165,12 @@ throttle interval.
 - It reads the term from `/dev/tty` **with echo turned off before the prompt appears**, twice, and keeps
   it only if both entries are equal. Tested in a pseudo-terminal: the term never appears in the
   terminal output.
+- It does not trust the terminal's own modes (Issue #5: on the owner's terminal the first read never
+  finished). For each read it sets the modes it depends on: canonical input, CR translated to NL, ECHO
+  and ECHONL off, signals on. It restores the exact original modes afterwards. Enter sent as `\r` with
+  ICRNL off, and ECHONL left on, are both tested in a pseudo-terminal. Ctrl+C and Ctrl+D print
+  "not added", exit non-zero and write nothing (tested). The owner's actual terminal modes were not
+  measured; the hang was reproduced only by turning ICRNL off.
 - It creates the salt on first use and appends only hashes. It prints a count, never the term.
 
 **Limit: the CLI is a route, not a lock, and it is not the only route.** Anything that can drive a
@@ -277,6 +283,7 @@ should not be on by default. ~~**The owner ratifies one of the two**; if `saniti
 | The watcher writes nothing to disk and prints nothing | **tested** (in-process, and a real `watch` subprocess in a throwaway home) |
 | Notices never contain the content | **tested** |
 | `add-term` reads with echo off, refuses argv, pipes and agent markers | **tested** (pseudo-terminal) |
+| `add-term` finishes on Enter sent as `\r` with ICRNL off, echoes nothing with ECHONL on, and cancels cleanly on Ctrl+C and Ctrl+D | **tested** (pseudo-terminal, regression and mutation); the owner's terminal modes **not measured** |
 | The plist lints, points stdout/stderr at `/dev/null`, sets `KeepAlive.SuccessfulExit` false, and `--check` reports its drift | **tested** (`plutil -lint`, throwaway HOME) |
 | An item copied during the offer dialog is checked; the guard's own write is not re-checked; a startup failure is one notice and exit 0 | **tested** (regression and mutation) |
 | launchd does not restart a job that exited 0 under `SuccessfulExit` false | **documented** (`launchd.plist(5)`), not measured |
