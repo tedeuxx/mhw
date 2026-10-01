@@ -26,6 +26,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 
@@ -235,13 +236,30 @@ def validate(doc, platform=sys.platform):
     return errs
 
 
-def load_source(path):
+def resolve_source(path):
+    """The definition's real path, once it is shown to be a regular file owned by the caller."""
+    real = os.path.realpath(path)
     try:
-        with open(path, encoding="utf-8") as fh:
-            doc = json.load(fh)
+        st = os.stat(real)
     except FileNotFoundError:
         raise Refuse(2, "no MCP definition at %s. Copy global/mcp/mcp-servers.example.json there and edit it "
                         "(the directory is outside every repository)" % path)
+    except OSError as e:
+        raise Refuse(2, "cannot read the MCP definition %s: %s" % (path, e))
+    if not stat.S_ISREG(st.st_mode):
+        raise Refuse(2, "the MCP definition %s is not a regular file" % path)
+    if hasattr(os, "getuid") and st.st_uid != os.getuid():
+        raise Refuse(2, "the MCP definition %s is not owned by the user running the renderer" % path)
+    return real
+
+
+def load_source(path):
+    real = resolve_source(path)
+    try:
+        # NOSONAR pythonsecurity:S8707 — the path is the caller's own CLI argument, resolved and checked
+        # above to be a regular file it owns; only parsed JSON keys and values reach any output.
+        with open(real, encoding="utf-8") as fh:  # NOSONAR
+            doc = json.load(fh)
     except (OSError, ValueError) as e:
         raise Refuse(2, "cannot read the MCP definition %s: %s" % (path, e))
     errs = validate(doc)
@@ -252,13 +270,18 @@ def load_source(path):
 
 def committable(path):
     """True when the file sits in a git work tree and is not ignored there: it could be committed."""
-    if not shutil.which("git"):
+    git = shutil.which("git")
+    if not git:
         return False
+    git = os.path.abspath(git)
     d = os.path.dirname(os.path.abspath(path))
-    r = subprocess.run(["git", "-C", d, "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True)
+    # NOSONAR pythonsecurity:S8705 — list-form argv with no shell, an absolute git binary, and absolute
+    # path operands (the second after "--"), so no value can be read as an option or a command.
+    r = subprocess.run([git, "-C", d, "rev-parse", "--is-inside-work-tree"],  # NOSONAR
+                       capture_output=True, text=True)
     if r.returncode != 0 or r.stdout.strip() != "true":
         return False
-    return subprocess.run(["git", "-C", d, "check-ignore", "-q", os.path.abspath(path)],
+    return subprocess.run([git, "-C", d, "check-ignore", "-q", "--", os.path.abspath(path)],  # NOSONAR
                           capture_output=True).returncode != 0
 
 
@@ -501,7 +524,7 @@ class Run:
                 self.refuse(dest, "exists and is NOT managed by this project; move it aside. No surface was "
                                   "rendered, because every secret-bearing entry would execute that file", 3)
                 return False
-            if current == text and os.access(dest, os.X_OK):
+            if current == text and stat.S_IMODE(os.stat(dest).st_mode) == 0o700:
                 self.say("OK", dest)
                 return True
         if self.mode == "check":
@@ -511,7 +534,7 @@ class Run:
             print("WOULD WRITE %s (the credential launcher, %d bytes)" % (dest, len(text)))
         else:
             atomic_write(dest, text, backup=False)
-            os.chmod(dest, 0o755)
+            os.chmod(dest, 0o700)  # owner-only: only the owner's own harness processes run it
             self.say("WROTE", dest)
         return True
 

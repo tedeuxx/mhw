@@ -217,6 +217,20 @@ class Definition(unittest.TestCase):
         self.assertEqual(p.returncode, 2)
         self.assertIn("no MCP definition", p.stderr)
 
+    def test_the_definition_must_be_a_regular_file(self):
+        h = mk_home("home-source-kind")
+        d = os.path.join(BASE, "a-directory-source")
+        os.makedirs(d, exist_ok=True)
+        p = run(h, "--source=" + d, "--dry-run")
+        self.assertEqual(p.returncode, 2)
+        self.assertIn("not a regular file", p.stderr)
+        real = write_source(h, source_doc())
+        link = os.path.join(BASE, "a-linked-source.json")
+        if os.path.lexists(link):
+            os.remove(link)
+        os.symlink(real, link)
+        self.assertEqual(run(h, "--source=" + link, "--dry-run").returncode, 0, "a symlink resolves to its file")
+
     def test_a_definition_that_could_be_committed_is_refused(self):
         if not shutil.which("git"):
             self.skipTest("git not available")
@@ -275,6 +289,7 @@ class Render(unittest.TestCase):
         self.assertEqual(jload(t["claude-code"])["mcpServers"]["fake-plain"]["type"], "stdio")
         self.assertNotIn("type", jload(t["kiro"])["mcpServers"]["fake-plain"])
         self.assertTrue(os.access(launcher, os.X_OK))
+        self.assertEqual(stat.S_IMODE(os.stat(launcher).st_mode), 0o700, "the launcher is owner-only")
         self.assertEqual(read(launcher).splitlines()[0], "#!/bin/sh")
         self.assertIn(r.MARKER_ID, read(launcher).splitlines()[1])
         for path in t.values():
