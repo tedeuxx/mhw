@@ -5,6 +5,11 @@ whatever comes next). It is authored, not generated.
 
 ## Fundamental purpose
 
+This repository is the **master of first principles** for the owner as an individual interacting with
+his AI workstation. It protects him from third-party risk, and it also places **ethical locks on what he
+himself seeks to achieve**; the concrete locks are pending an interview with him
+([ADR-0015](docs/adr/0015-master-of-first-principles-ethical-locks-on-own-aims.md)).
+
 ### Mission
 
 In the owner's words:
@@ -120,6 +125,15 @@ Concretely, it must keep three things true on this machine:
 
    (Owner, 2026-10-01.)
 
+## This repository vs the plugin
+
+**This repository is the firewall**: the personal protection floor every session passes through. The
+owner's `tadeumendonca-skills` plugin is the **way of working**: personas, the delivery loop, skills
+and project hooks. The plugin may add controls and must never weaken the floor. This repository carries
+no way-of-working content. "Last barrier" is the firewall's purpose. It is not yet its mechanism: today
+its only installed control is a user-level instruction, and user level is low precedence in every
+harness. See [ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md).
+
 ## The model: corporate workstation governance, applied to one person
 
 Corporate organisations govern workstations in **layers with precedence**: an organisation-wide
@@ -152,4 +166,6 @@ The source of truth for every layer lives here, versioned; what is installed on 
 ## Status
 
 Bootstrapped 2026-10-01. The policy itself is being defined through an interview with the owner;
-nothing in the machine's configuration is managed from here yet.
+the global brief (`global/AGENTS.md`) is installed from here into the three user-level locations at
+version 0.1.0 (ADR-0010; evidence level: installed, loading not yet verified). Nothing else in the
+machine's configuration is managed from here yet.
