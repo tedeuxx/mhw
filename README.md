@@ -31,11 +31,11 @@ This repository is the firewall: the personal protection floor. The owner's publ
 [`tadeumendonca-skills`](https://github.com/tedeuxx/tadeumendonca-skills), is the way of working:
 personas, the delivery loop, skills and project hooks. The plugin may add controls but never weaken the
 floor ([ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md)). Being the last barrier is the
-firewall's purpose, not yet its mechanism: today its one installed control is a user-level instruction,
-which project configuration can override. The first mechanical control, a user-level deny floor that a
-project cannot carve out in Claude Code, is written and tested
-([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)) and awaits the owner's go to
-install.
+firewall's purpose. Its first mechanical control, a user-level deny floor that a project cannot carve
+out in Claude Code, is accepted and was installed on the reference workstation on 2026-10-01
+([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)). It is a prefix floor, not a
+wall: other spellings of a denied command escape it, and the global brief is still an instruction that
+project configuration can override.
 
 | Layer | Owns | May it weaken the floor? |
 | --- | --- | --- |
@@ -56,7 +56,7 @@ flowchart TB
       managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
       ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · loaded: Claude Code, Codex (headless)"]:::ours
       uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · PR #2"]:::oursPlanned
-      udeny["User level · deny floor<br/>Claude permissions.deny · Codex rules<br/>ADR-0016 · proposed"]:::oursPlanned
+      udeny["User level · deny floor<br/>Claude permissions.deny · Codex rules<br/>ADR-0016 · accepted · installed"]:::ours
       plugin["Plugin · tadeumendonca-skills<br/>personas · skills · loop · project hooks"]
       project["Project config<br/>AGENTS.md · .claude/ · .codex/rules"]
       local["Local overrides · untracked"]

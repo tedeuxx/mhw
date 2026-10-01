@@ -1,8 +1,9 @@
 # 0016 — A generic user-level deny floor, rendered per harness
 
-- **Status:** proposed. The owner asked for a mechanical floor (Issue #4). The entries in
+- **Status:** ~~proposed. The owner asked for a mechanical floor (Issue #4). The entries in
   `global/deny-floor.conf` are the agent's proposal and await his ratification, entry by entry if he
-  wants.
+  wants.~~ **accepted** (the owner's ratification, 2026-10-01). See the amendment "2026-10-01:
+  ratified by the owner and installed on the reference workstation" below.
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -236,6 +237,44 @@ the Codex probe uses `npm publish`.
   tested in CI since ADR-0010's 2026-10-01 amendment on Windows, Linux and Kiro CLI; whether the floor
   is enforced on Windows is not measured.
 - Version cut (ADR-0002): **minor**. It is a new protection, and nothing an adopter had is weakened.
+
+## Amendment 2026-10-01: ratified by the owner and installed on the reference workstation
+
+**The status moves from proposed to accepted.** The source is the owner's ratification as recorded on
+Issue #4
+(<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/4#issuecomment-5937083996>).
+The main session asked:
+
+> *"você ratifica as regras de bloqueio da ADR-0016 e me deixa rodar o instalador no seu ~?"*
+
+The owner answered:
+
+> *"de acordo"*
+
+The one question covered both the rules and running the installer against his real HOME. So it
+ratifies the floor as written in "The floor (101 Claude rules from 87 `cmd` and 7 `file` entries)",
+including every narrowing listed under "What the floor takes away from something allowed today". He
+did not rule on any entry separately.
+
+**Installed on the reference workstation**, as the same comment records, from `main` at v0.7.0
+(`093f84f`):
+
+- `global/install.sh` exited 0. `global/install.sh --check` then exited 0, with every target OK and
+  *"hook entry and all 101 deny-floor rules present"*.
+- The user `permissions.deny` list went from 39 to 120 entries. That is the 81 additions this record
+  predicted before the run ("20 of the 101 floor rules are already in his deny list, and the merge
+  would add 81"). Every pre-existing deny rule is still present. Every key outside `permissions.deny`
+  is byte-identical to the pre-install backup (equal canonical-JSON checksum).
+- Codex: the managed `rules/workstation-deny-floor.rules` file was written.
+
+**Evidence level on the reference machine: installed and checked, not enforced-measured.** `--check`
+shows the rules are present. It does not show that a harness refuses a command there. Enforcement
+evidence is still the headless measurement in throwaway homes ("Per harness: evidence level").
+
+**What this changes in the body above.** The sentence "The installer was **not** run against his real
+HOME; that needs his go" no longer holds, and the 2026-10-01 counts beside it are the state before
+installation. The rest stands: Kiro still carries no floor, Windows is still not enforced-measured,
+and every escape in "What a deny cannot do" still escapes.
 
 ## Links
 

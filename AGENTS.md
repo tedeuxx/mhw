@@ -134,11 +134,13 @@ Concretely, it must keep three things true on this machine:
 **This repository is the firewall**: the personal protection floor every session passes through. The
 owner's `tadeumendonca-skills` plugin is the **way of working**: personas, the delivery loop, skills
 and project hooks. The plugin may add controls and must never weaken the floor. This repository carries
-no way-of-working content. "Last barrier" is the firewall's purpose. It is not yet its mechanism: today
-its only installed control is a user-level instruction, and user level is low precedence in every
-harness. See [ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md). Its first mechanical
-control, a user-level deny floor rendered to Claude Code and Codex, is written and tested and not yet
-installed ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md), proposed).
+no way-of-working content. "Last barrier" is the firewall's purpose. The global brief is a user-level
+instruction, and user level is low precedence in every harness. See
+[ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md). Its first mechanical control, a
+user-level deny floor rendered to Claude Code and Codex, is accepted and was installed on the reference
+workstation on 2026-10-01
+([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)). It is a prefix floor, not a
+wall.
 
 ## The model: corporate workstation governance, applied to one person
 
@@ -175,9 +177,10 @@ Bootstrapped 2026-10-01. The policy itself is being defined through an interview
 the global brief (`global/AGENTS.md`) is installed from here into the three user-level locations at
 version 0.3.0. Its evidence level is *loaded* in Claude Code and Codex, measured headless on
 2026-10-01, and *documented* for Kiro (ADR-0010). Nothing else in the machine's configuration is
-managed from here yet. The deny floor (ADR-0016) is *enforced* in Claude Code and Codex when installed,
-measured headless in throwaway homes, and is not installed on the reference machine until the owner's
-go. Kiro carries no floor. The macOS clipboard watcher (ADR-0011's 2026-10-01 amendment) is written
+managed from here yet. The deny floor (ADR-0016, accepted) is *enforced* in Claude Code and Codex when
+installed, measured headless in throwaway homes. It is *installed* on the reference machine since
+2026-10-01, with `install.sh --check` clean; enforcement there was not re-measured. Kiro carries no
+floor. The macOS clipboard watcher (ADR-0011's 2026-10-01 amendment) is written
 and tested in throwaway directories. Its LaunchAgent has never been loaded, so its on-screen notices
 are unverified. Its default mode, `offer`, changes nothing without the owner's click, and awaits his
 ratification. Linux and Windows have design notes only. One MCP definition, kept in the untracked local
