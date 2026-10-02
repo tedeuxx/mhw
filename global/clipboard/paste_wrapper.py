@@ -46,9 +46,13 @@ import clipboard_guard as core  # noqa: E402
 
 PASTE_START = b"\x1b[200~"
 PASTE_END = b"\x1b[201~"
-# A possible start of a paste marker split across two reads is held at most this long before it is
-# forwarded as typed input (in practice: a lone Escape key press).
+# A possible start of a paste marker split across two reads is held before it is forwarded as typed
+# input. A lone ESC is held at most HOLD_SECONDS (it is usually the Escape key). A longer prefix
+# (ESC[, ESC[2, ESC[20, ESC[200) is only ever the head of a sequence the terminal writes at once, so
+# it is held up to HOLD_SEQUENCE_SECONDS: a split marker delayed by a loaded host must still be
+# recognised, or the paste after it would pass as typing, uncleaned (measured on Linux under load).
 HOLD_SECONDS = 0.025
+HOLD_SEQUENCE_SECONDS = 1.0
 # A paste whose end marker has not arrived after this much silence is closed and cleaned as it stands.
 PASTE_IDLE_SECONDS = 2.0
 # How long the CLI may run without enabling bracketed paste before the owner is warned.
@@ -91,7 +95,7 @@ class PasteFilter:
         if self.in_paste:
             return self.last_input + PASTE_IDLE_SECONDS
         if self.held:
-            return self.held_at + HOLD_SECONDS
+            return self.held_at + (HOLD_SECONDS if self.held == b"\x1b" else HOLD_SEQUENCE_SECONDS)
         return None
 
     def feed(self, data):

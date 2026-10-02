@@ -75,6 +75,8 @@ with open(rec, "ab", buffering=0) as f:
         if b"\x1d\x1dEXIT" in seen:
             if mode == "bp":
                 os.write(1, b"\x1b[?2004l")
+            import time
+            evf.write("EXITING %.4f\n" % time.monotonic()); evf.flush()
             sys.exit(code)
 '''
 
@@ -129,11 +131,15 @@ class Session:
         self.out = b""
         self.lock = threading.Lock()
         self.stamps = []        # (time, len(out)) after each read, for latency
+        # The reader must be joined before its fds are closed: a thread still polling a closed fd
+        # number reads whatever the next open() reuses it for (another session's pty, or the file a
+        # later assertion reads), which made assertions fail on loaded Linux runners.
+        self.stop = threading.Event()
         self.reader = threading.Thread(target=self._read, daemon=True)
         self.reader.start()
 
     def _read(self):
-        while True:
+        while not self.stop.is_set():
             try:
                 r, _, _ = select.select([self.master], [], [], 0.05)
             except (OSError, ValueError):
@@ -167,24 +173,30 @@ class Session:
                 ev = fh.read()
         except OSError as exc:
             ev = "no events file: %r" % exc
-        return "poll=%r rec_exists=%r events=%r" % (self.proc.poll(), os.path.exists(self.rec), ev[-600:])
+        return "poll=%r rec_exists=%r %s events=%r" % (self.proc.poll(), os.path.exists(self.rec),
+                                                       getattr(self, "waited", "-"), ev[-600:])
 
     def received(self):
         try:
             with open(self.rec, "rb") as fh:
                 return fh.read()
-        except OSError:
-            return b""
+        except OSError as exc:
+            return ("<READ ERROR %r>" % exc).encode()
 
     def finish(self, timeout=10):
         if self.proc.poll() is None:
             self.send(EXIT)
         try:
             rc = self.proc.wait(timeout)
+            self.waited = "wrapper reaped at %.4f; recorder alive then: %r" % (
+                time.monotonic(), subprocess.run(["pgrep", "-f", self.dir + "/recorder.py"],
+                                                 capture_output=True, text=True).stdout.split())
         except subprocess.TimeoutExpired:
             self.proc.kill()
             rc = self.proc.wait()
         time.sleep(0.1)
+        self.stop.set()
+        self.reader.join(5)
         attrs = modes(self.slave)
         os.close(self.slave)
         os.close(self.master)
@@ -230,6 +242,17 @@ class Filter(unittest.TestCase):
         self.assertEqual(f.flush(), b"")
         clock[0] += w.HOLD_SECONDS
         self.assertEqual(f.flush(), b"\x1b")
+
+    def test_split_marker_prefix_is_held_longer_than_a_lone_escape(self):
+        f, clock = self.make()
+        self.assertEqual(f.feed(b"\x1b[20"), b"")
+        clock[0] += w.HOLD_SECONDS * 4                  # a loaded host: far past the Escape-key hold
+        self.assertEqual(f.flush(), b"", "a split paste marker was released as typing")
+        self.assertEqual(f.feed(b"0~" + EMAIL.encode() + E), S + b"[REDACTED:email]" + E)
+        f2, clock2 = self.make()
+        f2.feed(b"\x1b[")                               # Alt+[ : still delivered, unchanged
+        clock2[0] += w.HOLD_SEQUENCE_SECONDS + 0.01
+        self.assertEqual(f2.flush(), b"\x1b[")
 
     def test_too_large_paste_is_replaced_never_forwarded(self):
         f, _ = self.make(max_bytes=50)
