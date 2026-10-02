@@ -703,6 +703,30 @@ clean). Each of these seven mutants turned at least one test red:
 6. the launcher not stopping with the CLI;
 7. no warning when the CLI never enables bracketed paste.
 
+**Lens finding on PR #23, fixed in the same PR.** The first head trimmed an oversized paste's buffer
+with an index that went negative from an empty body. It then searched for the end marker from an offset
+computed on the pre-trim length. When the chunk that crossed `max_bytes` also carried `ESC[201~`, the
+marker was cut. The paste stayed open and swallowed what followed (typing, terminal replies, a second
+paste) until the 2-second idle timeout. That is fail-closed, but it silently lost typed input. The lens
+swept a 1 MB limit at 64 KiB reads and found 53 sizes that lost the marker.
+
+The fix searches the body's last five bytes plus the new chunk, and clamps the trim. Re-swept at the
+same scale, 422 sizes lost none. The new tests cover the limit crossed inside the end-marker chunk and
+an oversized single chunk from an empty body. They also sweep sizes around the limit against every chunk
+size from 1 to 16. Five more mutants, each killed:
+
+8. the first head's trim and search, restored;
+9. a trim that keeps too few bytes to finish the marker;
+10. a search that ignores the body's tail;
+11. no warning when the CLI turns bracketed paste off mid-session;
+12. the no-salt notice not repeated at exit.
+
+Also added from the lens's advisories:
+
+- a CLI that turns bracketed paste **off** mid-session, and keeps it off past the grace period, gets the
+  one-line warning (a CLI that is just exiting is gone by then);
+- a session that started without the salt says so again at exit.
+
 ### Limits, stated rather than hidden
 
 - **Only bracketed pastes are cleaned.** Typed text is never scanned by the wrapper (the hook still
