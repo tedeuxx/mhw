@@ -404,9 +404,11 @@ class Relay(unittest.TestCase):
         self.ready(s)
         self.assertTrue(s.wait_out(b"has not enabled bracketed paste"), s.out[-300:])
         s.send(EMAIL.encode() + b"\x1d\x1dTYPED")    # what an unbracketed paste looks like: typing
-        self.assertTrue(s.wait_out(b"<TYPED>"))
+        self.assertTrue(s.wait_out(b"<TYPED>"), "no <TYPED>; out=%r" % s.out[-300:])
         s.finish()
-        self.assertTrue(s.received().startswith(EMAIL.encode()), "nothing can be told apart from typing")
+        self.assertTrue(s.received().startswith(EMAIL.encode()),
+                        "nothing can be told apart from typing; received=%r out=%r"
+                        % (s.received()[:200], s.out[-300:]))
 
     def test_turned_off_mid_session_warns(self):
         s = Session("off", grace=0.3)
