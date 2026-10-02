@@ -61,6 +61,7 @@ with open(rec, "ab", buffering=0) as f:
         if not d:
             break
         f.write(d)
+        evf.write("READ %d %r lflag=%x\n" % (len(d), d[:24], termios.tcgetattr(0)[3])); evf.flush()
         seen += d
         while seen.count(b"\x1b[201~") > acks:
             acks += 1
@@ -159,6 +160,14 @@ class Session:
 
     def send(self, data):
         os.write(self.master, data)
+
+    def diag(self):
+        try:
+            with open(self.ev) as fh:
+                ev = fh.read()
+        except OSError as exc:
+            ev = "no events file: %r" % exc
+        return "poll=%r rec_exists=%r events=%r" % (self.proc.poll(), os.path.exists(self.rec), ev[-600:])
 
     def received(self):
         try:
@@ -311,8 +320,9 @@ class Relay(unittest.TestCase):
         got = s.received()
         if not got.startswith(typed):
             i = next((n for n in range(min(len(got), len(typed))) if got[n] != typed[n]), min(len(got), len(typed)))
-            self.fail("typed bytes changed at %d of %d: sent %r, got %r; received starts %r"
-                      % (i, len(typed), typed[max(0, i - 8):i + 8], got[max(0, i - 8):i + 8], got[:40]))
+            self.fail("typed bytes changed at %d of %d: sent %r, got %r; received starts %r; re-read %d bytes %s"
+                      % (i, len(typed), typed[max(0, i - 8):i + 8], got[max(0, i - 8):i + 8], got[:40],
+                         len(s.received()), s.diag()))
         cleaned = (b"deploy for [REDACTED:employer-client-term] key [REDACTED:credential] mail "
                    b"[REDACTED:email]\rline two")
         self.assertIn(S + cleaned + E, got)
@@ -336,7 +346,9 @@ class Relay(unittest.TestCase):
         s.send(b"01~")
         self.assertTrue(s.wait_out(b"<ACK1>"))
         s.finish()
-        self.assertTrue(s.received().startswith(b"\x1b" + S + b"[REDACTED:email]" + E), s.received()[:80])
+        got = s.received()
+        self.assertTrue(got.startswith(b"\x1b" + S + b"[REDACTED:email]" + E),
+                        "first read %r, re-read %r %s" % (got[:80], s.received()[:80], s.diag()))
 
     def test_exit_status_is_relayed(self):
         s = Session("exit7", code=7)
@@ -410,8 +422,8 @@ class Relay(unittest.TestCase):
         self.assertTrue(s.wait_out(b"<TYPED>"), "no <TYPED>; out=%r" % s.out[-300:])
         s.finish()
         self.assertTrue(s.received().startswith(EMAIL.encode()),
-                        "nothing can be told apart from typing; received=%r out=%r"
-                        % (s.received()[:200], s.out[-300:]))
+                        "nothing can be told apart from typing; received=%r out=%r %s"
+                        % (s.received()[:200], s.out[-300:], s.diag()))
 
     def test_turned_off_mid_session_warns(self):
         s = Session("off", grace=0.3)
