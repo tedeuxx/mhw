@@ -16,7 +16,10 @@
 #     paste with no finding; output from the CLI reaches the terminal byte for byte;
 #   - a paste with a finding reaches the CLI with each finding replaced by [REDACTED:<category>]; the
 #     original payload is never forwarded, and a paste it cannot check (too large, internal error) is
-#     replaced by a one-line notice instead of being forwarded unchecked;
+#     replaced by a one-line notice instead of being forwarded unchecked. "Never" holds for a paste
+#     whose start marker arrives as one piece, or split at any byte with the pieces at most
+#     HOLD_SEQUENCE_SECONDS apart; a split marker whose halves are further apart than that is not
+#     recognised and its paste passes as typing (stated in ADR-0011's limits);
 #   - it writes NO file, keeps no log or record of what matched (ADR-0005), never reads or writes the
 #     system clipboard, and calls no dialog, notification or launchd tool. It changes nothing outside
 #     the CLI session it wraps (the owner: "nao deve impactar nenhum outro app ou ux do so");
@@ -51,6 +54,10 @@ PASTE_END = b"\x1b[201~"
 # (ESC[, ESC[2, ESC[20, ESC[200) is only ever the head of a sequence the terminal writes at once, so
 # it is held up to HOLD_SEQUENCE_SECONDS: a split marker delayed by a loaded host must still be
 # recognised, or the paste after it would pass as typing, uncleaned (measured on Linux under load).
+# A lone ESC that WAS released after its 25 ms hold is not the end of it either: if the next input,
+# within HOLD_SEQUENCE_SECONDS, is "[200~", the marker was split after its first byte. The CLI already
+# has the ESC, so the wrapper forwards "[200~" + the cleaned payload + the end marker, and the CLI
+# reassembles the marker (QA, PR #23: the k=1 split leaked before this).
 HOLD_SECONDS = 0.025
 HOLD_SEQUENCE_SECONDS = 1.0
 # A paste whose end marker has not arrived after this much silence is closed and cleaned as it stands.
@@ -83,6 +90,8 @@ class PasteFilter:
         self.clock = clock
         self.held = b""                 # outside a paste: a possible prefix of PASTE_START
         self.held_at = None
+        self.esc_released_at = None     # a lone ESC was released as typing at this time (see feed)
+        self.opener = PASTE_START       # what precedes the cleaned payload when a paste is forwarded
         self.in_paste = False
         self.body = bytearray()
         self.too_large = False
@@ -105,6 +114,22 @@ class PasteFilter:
         buf = self.held + data
         self.held = b""
         while buf:
+            if not self.in_paste and self.esc_released_at is not None:
+                # A lone ESC was released after its 25 ms hold. If what follows within the sequence
+                # hold is the rest of a paste-start marker, the marker was split after its first byte:
+                # the CLI already has the ESC, so forward the rest and clean the paste (QA, PR #23).
+                rest = PASTE_START[1:]
+                if now - self.esc_released_at <= HOLD_SEQUENCE_SECONDS:
+                    if buf.startswith(rest):
+                        buf = buf[len(rest):]
+                        self.esc_released_at = None
+                        self.in_paste, self.body, self.too_large = True, bytearray(), False
+                        self.opener = rest      # the ESC is already with the CLI
+                        continue
+                    if rest.startswith(buf):
+                        self.held, self.held_at = buf, now      # "[", "[2" ...: wait for the rest
+                        break
+                self.esc_released_at = None
             if not self.in_paste:
                 i = buf.find(PASTE_START)
                 if i < 0:
@@ -116,6 +141,7 @@ class PasteFilter:
                 out.append(buf[:i])
                 buf = buf[i + len(PASTE_START):]
                 self.in_paste, self.body, self.too_large = True, bytearray(), False
+                self.opener = PASTE_START
             else:
                 # The end marker can straddle the previous chunk: search the body's last bytes plus
                 # this chunk, never the body's own length (which _append may have trimmed).
@@ -149,6 +175,10 @@ class PasteFilter:
         if self.in_paste:
             return self._finish()        # the end marker never came: clean what arrived
         out, self.held = self.held, b""
+        if out == b"\x1b":
+            self.esc_released_at = now
+        else:
+            self.esc_released_at = None
         return out
 
     def _finish(self):
@@ -168,7 +198,7 @@ class PasteFilter:
                     self.cleaned += 1
                     self.categories.update(cats)
         del body
-        return PASTE_START + payload + PASTE_END
+        return self.opener + payload + PASTE_END
 
 
 class ModeTracker:

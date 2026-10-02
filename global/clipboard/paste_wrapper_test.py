@@ -243,6 +243,41 @@ class Filter(unittest.TestCase):
         clock[0] += w.HOLD_SECONDS
         self.assertEqual(f.flush(), b"\x1b")
 
+    def test_marker_split_at_every_position_with_a_delay_is_cleaned(self):
+        """The paste-start marker split after byte k (k = 1..5), with the second half arriving after
+        the Escape-key hold has expired: the e-mail must be redacted and never forwarded (QA, PR #23)."""
+        for k in range(1, len(S)):
+            f, clock = self.make()
+            out = f.feed(S[:k])
+            clock[0] += w.HOLD_SECONDS * 4                 # past the 25 ms hold, within the 1 s one
+            out += f.flush()
+            out += f.feed(S[k:] + b"mail " + EMAIL.encode() + E + b"x")
+            self.assertNotIn(EMAIL.encode(), out, "k=%d leaked the paste" % k)
+            self.assertEqual(out, S + b"mail [REDACTED:email]" + E + b"x", "k=%d" % k)
+            self.assertFalse(f.in_paste)
+
+    def test_escape_key_controls(self):
+        # A lone Escape is released after 25 ms, and what follows it is not held.
+        f, clock = self.make()
+        f.feed(b"\x1b")
+        clock[0] += w.HOLD_SECONDS + 0.001
+        self.assertEqual(f.flush(), b"\x1b")
+        self.assertEqual(f.feed(b"x"), b"x")
+        # Escape then an arrow-key tail: passes through at once.
+        f, clock = self.make()
+        f.feed(b"\x1b")
+        clock[0] += w.HOLD_SECONDS + 0.001
+        f.flush()
+        self.assertEqual(f.feed(b"[A"), b"[A")
+        # Escape, then "[200~" typed more than 1 s later: typing, not a paste.
+        f, clock = self.make()
+        f.feed(b"\x1b")
+        clock[0] += w.HOLD_SECONDS + 0.001
+        f.flush()
+        clock[0] += w.HOLD_SEQUENCE_SECONDS + 0.1
+        self.assertEqual(f.feed(b"[200~abc"), b"[200~abc")
+        self.assertFalse(f.in_paste)
+
     def test_split_marker_prefix_is_held_longer_than_a_lone_escape(self):
         f, clock = self.make()
         self.assertEqual(f.feed(b"\x1b[20"), b"")
@@ -356,6 +391,19 @@ class Relay(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(attrs, s.attrs_before, "terminal modes not restored")
         self.assertIn(b"1 paste(s) cleaned in this session (employer-client-term, credential, email)", s.out)
+
+    def test_marker_split_after_its_first_byte_is_cleaned(self):
+        """k=1 through a real wrapper: ESC alone, the rest 150 ms later (past the Escape hold)."""
+        s = Session("split1")
+        self.ready(s)
+        s.send(b"\x1b")
+        time.sleep(0.15)
+        s.send(b"[200~" + EMAIL.encode() + E)
+        self.assertTrue(s.wait_out(b"<ACK1>"))
+        s.finish()
+        got = s.received()
+        self.assertNotIn(EMAIL.encode(), got)
+        self.assertTrue(got.startswith(S + b"[REDACTED:email]" + E), "%r %s" % (got[:80], s.diag()))
 
     def test_split_marker_and_lone_escape(self):
         s = Session("split")

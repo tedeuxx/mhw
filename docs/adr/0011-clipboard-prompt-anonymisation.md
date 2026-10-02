@@ -748,6 +748,19 @@ Also added from the lens's advisories:
   released as typing, and the paste after it reached the child **uncleaned**: the recorder's read log
   shows `ESC[20` and then `0~` followed by the original e-mail. With the longer hold, 0 of 24 runs
   failed under the same load. Reverting it turns the new filter test red.
+- **A marker split after its FIRST byte** (a lone `ESC`, then `[200~…`) leaked even after that fix.
+  QA found it on PR #23 round 2 by feeding every split position into the filter: k=1 leaked, k=2..5
+  were clean. A lone `ESC` keeps its 25 ms hold, so the Escape key costs nothing more. But once it has
+  been released, if the next input within 1 s is `[200~`, the wrapper treats it as the rest of the
+  marker. It forwards `[200~` + the cleaned payload + the end marker; the CLI already holds the `ESC`
+  and reassembles the marker. The tests split the marker at every position k=1..5 with a delay past
+  the Escape hold, plus one k=1 case through a real wrapper process. In each, the e-mail is redacted
+  and never forwarded. Lone Escape, Escape + an arrow-key tail, and Alt+[ are the controls. A fuzz
+  run of 3,000 random splits with gaps of up to 0.9 s leaked nothing. **What "never forwarded" still
+  does not cover:** a split marker whose two halves arrive more than 1 s apart is not recognised, and
+  its paste passes as typing. The hook still blocks it on submit. **The side effect, accepted:** an
+  Escape key press followed within 1 s by the typed characters `[200~` opens a paste, which closes at
+  the next end marker or after 2 s of silence, cleaned.
 - **A test-harness defect was found at the same time** and fixed: a pty reader thread that outlived its
   fds consumed bytes from whatever reused the fd number. On the GitHub Ubuntu runner, that made the
   suite fail intermittently. Reverting the fix gives 13 of 24 failing runs in the container.
