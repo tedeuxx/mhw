@@ -309,7 +309,10 @@ class Relay(unittest.TestCase):
         self.assertTrue(s.wait_out(b"<ACK2>"))
         rc, attrs = s.finish()
         got = s.received()
-        self.assertTrue(got.startswith(typed), "typed bytes changed")
+        if not got.startswith(typed):
+            i = next((n for n in range(min(len(got), len(typed))) if got[n] != typed[n]), min(len(got), len(typed)))
+            self.fail("typed bytes changed at %d of %d: sent %r, got %r; received starts %r"
+                      % (i, len(typed), typed[max(0, i - 8):i + 8], got[max(0, i - 8):i + 8], got[:40]))
         cleaned = (b"deploy for [REDACTED:employer-client-term] key [REDACTED:credential] mail "
                    b"[REDACTED:email]\rline two")
         self.assertIn(S + cleaned + E, got)
