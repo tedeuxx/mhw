@@ -256,6 +256,19 @@ class Filter(unittest.TestCase):
             self.assertEqual(out, S + b"mail [REDACTED:email]" + E + b"x", "k=%d" % k)
             self.assertFalse(f.in_paste)
 
+    def test_marker_split_after_its_first_byte_and_again(self):
+        """ESC, then '[200~' itself split at j, each piece late: the paste is still cleaned."""
+        rest = S[1:]
+        for j in range(1, len(rest)):
+            f, clock = self.make()
+            out = f.feed(b"\x1b")
+            clock[0] += w.HOLD_SECONDS * 4
+            out += f.flush() + f.feed(rest[:j])
+            clock[0] += 0.1
+            out += f.flush() + f.feed(rest[j:] + EMAIL.encode() + E)
+            self.assertNotIn(EMAIL.encode(), out, "j=%d leaked the paste" % j)
+            self.assertEqual(out, S + b"[REDACTED:email]" + E, "j=%d" % j)
+
     def test_escape_key_controls(self):
         # A lone Escape is released after 25 ms, and what follows it is not held.
         f, clock = self.make()
