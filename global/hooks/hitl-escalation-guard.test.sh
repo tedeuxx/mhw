@@ -104,5 +104,20 @@ else
   ko "codex format emits decision:block with a reason" "${out:-<empty>}"
 fi
 
+# Owner-specific three-path picker: structural enforcement, not a semantic risk classifier.
+printf '%s\n' 'exact_options=3' > "$base/options.conf"
+deny "two choices fail the three-option preference" "$base/options.conf" "$(q a)" "exactly 3 authored options"
+three='{"tool_name":"AskUserQuestion","tool_input":{"questions":[{"question":"Synthetic path?","options":[{"label":"Small","description":"Low risk; modest benefit"},{"label":"Medium","description":"Moderate risk; moderate benefit"},{"label":"Large","description":"High risk; larger benefit"}],"multiSelect":false}]}}'
+abstain "three choices pass" "$base/options.conf" "$three"
+deny "four choices fail" "$base/options.conf" "$(printf '%s' "$three" | jq '.tool_input.questions[0].options += [{label:"Fourth"}]')" "exactly 3 authored options"
+deny "multi-select fails" "$base/options.conf" "$(printf '%s' "$three" | jq '.tool_input.questions[0].multiSelect = true')" "single selection"
+deny "missing options fail" "$base/options.conf" '{"tool_name":"AskUserQuestion","tool_input":{"questions":[{"question":"Synthetic"}]}}' "exactly 3 authored options"
+abstain "generic profile retains native two-choice support" "$generic" "$(q a)"
+abstain "other tools remain outside the guard" "$base/options.conf" '{"tool_name":"Bash","tool_input":{"questions":[{"options":[]}]}}'
+printf '%s\n' 'exact_options=4' > "$base/invalid-options.conf"
+abstain "invalid option setting does not force unsupported counts" "$base/invalid-options.conf" "$(q a)"
+out=$(run "$base/options.conf" "$(q SYNTHETIC_DO_NOT_ECHO)")
+if ! printf '%s' "$out" | grep -qF SYNTHETIC_DO_NOT_ECHO; then ok "option refusal omits payload content"; else ko "option refusal omits payload content"; fi
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

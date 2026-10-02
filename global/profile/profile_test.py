@@ -77,6 +77,8 @@ class ProfileTests(unittest.TestCase):
             lambda d: d["interaction"].update(max_question_chars=True),
             lambda d: d["interaction"].update(max_question_chars=-1),
             lambda d: d["interaction"].update(max_question_chars=10001),
+            lambda d: d["interaction"].update(decision_options=4),
+            lambda d: d["interaction"].update(decision_options=True),
             lambda d: d.update(surfaces=[]),
             lambda d: d.update(surfaces=["codex", "codex"]),
             lambda d: d.update(surfaces=[{}]),
@@ -177,6 +179,19 @@ class ProfileTests(unittest.TestCase):
                 candidate[group][key] = choice
                 self.assertEqual(compiler.validate(candidate, self.schema), [])
                 self.assertIn("AGENTS.md", compiler.compile_profile(candidate))
+
+    def test_pacing_is_opt_in_and_reference_owner_selects_it(self):
+        generic = compiler.compile_profile(self.doc)
+        self.assertNotIn("exact_options=", generic["hitl.conf"])
+        self.assertNotIn("**Paced conversation:**", generic["AGENTS.md"])
+        owner = compiler.load_profile(compiler.ROOT / "overlay" / "profile.json")
+        compiled = compiler.compile_profile(owner)
+        self.assertIn("exact_options=3", compiled["hitl.conf"])
+        self.assertIn("silence or elapsed time is not approval", compiled["AGENTS.md"])
+        self.assertIn("risk and expected benefit", compiled["AGENTS.md"])
+        self.assertIn("not a hard token or spending cap", compiled["AGENTS.md"])
+        self.assertIn("Continue routine work already authorized", compiled["desktop-instructions.md"])
+        self.assertIn("instruction-only", compiler.plan(owner)["limits"]["conversation_cadence"])
 
     def test_crlf_output_is_not_false_drift(self):
         compiled = compiler.compile_profile(self.doc)

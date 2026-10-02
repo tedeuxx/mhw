@@ -3,11 +3,14 @@
   "conversation": {
     "language": "pt-BR",
     "publication_language": "en",
-    "decision_tone": "executive-concise"
+    "decision_tone": "executive-concise",
+    "cadence": "paced",
+    "context_discipline": "minimum-sufficient"
   },
   "interaction": {
     "max_question_chars": 280,
-    "command_preference": "slash"
+    "command_preference": "slash",
+    "decision_options": 3
   },
   "session_start": { "priority": "balanced" },
   "surfaces": ["claude-code", "codex", "kiro-cli", "claude-desktop"]

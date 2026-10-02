@@ -57,8 +57,9 @@ is his own. Help him respect that line.
 5. Language and limits come from the owner overlay below, when there is one.
 
 On Claude Code on macOS and Linux a user-level hook refuses a picker that breaks the overlay's
-question-count or question-length limits, and notifies him. Everywhere else, Windows included, these
-rules are instructions only (ADR-0013).
+question-count, question-length or configured option-count limits, and notifies him. Everywhere else,
+Windows included, these rules are instructions only (ADR-0013, ADR-0019). Pacing, risk/benefit meaning
+and input/output brevity are instructions on every surface, not mechanically enforced token limits.
 
 ## Ethical foundation: Stoic ethics, the good life (ratified by the owner)
 

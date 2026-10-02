@@ -1,10 +1,11 @@
 #!/bin/sh
 # hitl-escalation-guard.sh: pre-tool guard on the structured owner picker (ADR-0013).
 #
-# It holds the two COUNTABLE halves of the escalation calibration and nothing semantic:
+# It holds the COUNTABLE parts of the escalation calibration and nothing semantic:
 #   max_questions       a picker carries at most this many questions (one ask per activation);
 #   max_question_chars  each question stem is at most this many characters (0 = off).
-# Both limits: 0 means the check is OFF.
+#   exact_options       each picker question has this many choices, single-select (0 = off).
+# All limits: 0 means the check is OFF. Risk/benefit meaning and conversation pacing are instructions.
 # It never reads what a question means, which language it is in, or whether it is a decision or an
 # action: a classifier of that kind denies before the owner sees anything, so its false positives are
 # invisible to the person it protects (ADR-0013, "Considered options").
@@ -31,9 +32,11 @@ done
 
 max_questions=1
 max_question_chars=0
+exact_options=0
 # The owner notice. Placeholders: {count} {chars} {max}. An overlay may set them in its own language.
 notice_count='HITL guard (ADR-0013) refused a picker before display: {count} questions, limit {max} (one ask per activation). Mitigation: the agent re-asks the first question only.'
 notice_length='HITL guard (ADR-0013) refused a picker before display: a question of {chars} characters, limit {max} (tweet-length activation). Mitigation: the agent re-asks it shorter.'
+notice_options='HITL guard (ADR-0013/0019) refused a picker outside the {max}-option format. Mitigation: the agent re-asks a single choice with risk and benefit per option.'
 
 conf=${PMHWC_HITL_CONF:-$(dirname "$0")/hitl.conf}
 if [ -r "$conf" ]; then
@@ -43,11 +46,11 @@ if [ -r "$conf" ]; then
     key=$(printf '%s' "${line%%=*}" | tr -d ' \t\r')
     value=${line#*=}
     case $key in
-      max_questions|max_question_chars)
+      max_questions|max_question_chars|exact_options)
         value=$(printf '%s' "$value" | tr -d ' \t\r')
         case $value in ''|*[!0-9]*) continue ;; esac
         ;;
-      notice_count|notice_length)
+      notice_count|notice_length|notice_options)
         value=$(printf '%s' "$value" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | tr -d '\r')
         [ -n "$value" ] || continue
         ;;
@@ -55,8 +58,10 @@ if [ -r "$conf" ]; then
     case $key in
       max_questions) max_questions=$value ;;
       max_question_chars) max_question_chars=$value ;;
+      exact_options) case $value in 0|3) exact_options=$value ;; esac ;;
       notice_count) notice_count=$value ;;
       notice_length) notice_length=$value ;;
+      notice_options) notice_options=$value ;;
     esac
   done < "$conf"
 fi
@@ -93,6 +98,20 @@ elif [ "$max_question_chars" -gt 0 ]; then
     reason="Refused by the workstation HITL guard (ADR-0013): question $idx is $len characters and the limit is $max_question_chars. Re-ask it in a picker with a stem of at most $max_question_chars characters that states only the decision. Put the reasoning in each option's description or in an artifact the owner can open. Do not fall back to prose."
     notice=$notice_length
     n_max=$max_question_chars
+  fi
+fi
+
+if [ -z "$reason" ] && [ "$exact_options" -gt 0 ]; then
+  # Count only; never classify labels, estimate risk or echo question/option content.
+  # Missing/non-array options on a recognized picker are refused: the owner requires a choice.
+  bad_options=$(printf '%s' "$input" | jq -r --argjson n "$exact_options" '
+    [.tool_input.questions[] | select(
+      ((.options | if type == "array" then length else 0 end) != $n)
+      or (.multiSelect == true))] | length' 2>/dev/null)
+  if [ "${bad_options:-0}" -gt 0 ]; then
+    reason="Refused by the workstation HITL guard (ADR-0013/0019): each question must offer exactly $exact_options authored options and single selection. Re-ask one path decision with a concise risk and benefit description for each option. Leave native free-text clarification available. Do not invent unsafe alternatives or move extra questions into prose."
+    notice=$notice_options
+    n_max=$exact_options
   fi
 fi
 

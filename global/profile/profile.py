@@ -135,6 +135,9 @@ def plan(profile):
             "financial_authorization": "not-granted",
             "mcp_and_pre_authorizations": "not-imported-or-synchronized",
             "slash_commands": "preference-only; native command installation remains pending",
+            "conversation_cadence": "instruction-only; no universal before-display output gate",
+            "token_discipline": "minimum-sufficient context and concise output instructions; no hard token cap",
+            "decision_options": "Claude Code macOS/Linux hook checks the configured option count; other surfaces instruction-only; runtime routing not verified by compilation",
         },
     }
 
@@ -151,12 +154,23 @@ def compile_profile(profile):
     command = ("Prefer native slash commands when available; explain the actual invocation on this harness."
                if interaction["command_preference"] == "slash" else
                "Accept ordinary language for directing work; explain command syntax only when useful.")
+    discipline = []
+    if conversation.get("cadence") == "paced":
+        discipline += [
+            "- **Paced conversation:** present one proposal at a time, briefly state its practical effect, then leave room for questions before advancing a decision that needs the owner's choice. Answer the current doubt first and pause again; a question, silence or elapsed time is not approval. Do not repeat a decision picker while the owner is clarifying the proposal. Continue routine work already authorized; do not manufacture new approvals.",
+            "- **Output discipline:** lead with the current point in a short paragraph or a few short bullets. Reveal detail on request; put lengthy reasoning and evidence in a linked artifact. Avoid unsolicited background, repeated recaps and multiple next steps. Expand when the owner requests detail or a material limitation needs explanation.",
+        ]
+    if conversation.get("context_discipline") == "minimum-sufficient":
+        discipline.append("- **Input discipline:** retrieve the minimum sufficient context with scoped searches, bounded tool output and targeted excerpts. Reuse verified findings; do not repeatedly load full files, logs or history. Expand reads when correctness requires it. Never silently truncate the owner's request, governing instructions or essential evidence. This is context discipline, not a hard token or spending cap.")
+    if interaction.get("decision_options") == 3:
+        discipline.append("- **Path decisions:** when escalating a choice of path, use one native multiple-choice question with exactly three authored, mutually exclusive options. Give each a short label and a concise description of risk and expected benefit; recommend one based on the evidence. Prefer distinct conservative, balanced and ambitious paths when meaningful. Never invent unsafe or misleading alternatives: deferral or a reversible investigation may be the third path. Leave the native free-text clarification route available; it is not an authored fourth option. If no picker is available, show three numbered choices and wait. An already-decided action remains one action line; native security approvals retain their own controls.")
     body = "\n".join([
         "## Owner overlay (generated personal profile)", "",
         "- **Language:** talk to the owner in " + LANGUAGES[locale] + ". Anything published is in "
         + LANGUAGES[conversation["publication_language"]] + ".",
         "- **Decision tone:** " + TONES[conversation["decision_tone"]],
         "- **Escalation limits:** one ask per activation; " + length,
+        *discipline,
         "- **Commands:** " + command,
         "- **Session-start preference:** " + PRIORITIES[profile["session_start"]["priority"]],
         "- **Evidence:** this preference does not configure a native model or effort value. Report the effective settings only when verified.",
@@ -164,10 +178,13 @@ def compile_profile(profile):
         "",
     ])
     hitl = "# " + marker + "\nmax_question_chars=" + str(limit) + "\n"
+    if "decision_options" in interaction:
+        hitl += "exact_options=" + str(interaction["decision_options"]) + "\n"
     if locale == "pt-BR":
         hitl += (
             "notice_count=Guarda HITL (ADR-0013) recusou um seletor antes de exibir: {count} perguntas, limite {max} (uma pergunta por ativação). Mitigação: o agente refaz só a primeira pergunta.\n"
             "notice_length=Guarda HITL (ADR-0013) recusou um seletor antes de exibir: uma pergunta de {chars} caracteres, limite {max}. Mitigação: o agente refaz a pergunta mais curta.\n"
+            "notice_options=Guarda HITL (ADR-0013/0019) recusou um seletor fora do formato de {max} opções. Mitigação: o agente refaz uma escolha única com risco e benefício por opção.\n"
         )
         notices = (HERE / "locales" / "pt-BR" / "clipboard.conf").read_text(encoding="utf-8")
     else:

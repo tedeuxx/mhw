@@ -38,7 +38,7 @@ standard". They were re-read for this record, not inherited from the brief that 
 | Converse in Portuguese; published artifacts in English | his |
 | Every firewall intervention is reported with category and mitigation, never the content | his (ADR-0005 amendment) |
 | "Tweet-length" read as **280 characters of question stem** | **proposed** (X's post limit; not his number) |
-| Question **count** and question **length** are the only parts a hook checks | **proposed** |
+| ~~Question **count** and question **length** are the only parts a hook checks~~ | **proposed**, extended by ADR-0019 on 2026-10-02 |
 
 ### What already exists on this workstation (learned, not owned)
 
@@ -235,3 +235,11 @@ repository; it is named here, not filed. If either is removed, the other still h
   ADR-0012 (stop-and-ask only in the residual case: this record governs how that ask is shaped).
   ADR-0014 (managed-layer hardening; parallel pull request).
 - `global/hooks/hitl-escalation-guard.sh` and its test; `global/install.sh` and its test.
+
+## Amendment — 2026-10-02: three paths and paced clarification
+
+The owner now selects exactly three authored options for path decisions, each with risk and benefit,
+with space for clarification before deciding. [ADR-0019](0019-paced-conversation-and-three-path-decisions.md)
+adds the overlay's structural `exact_options=3` check. The generic at-most-four instruction remains
+the ceiling; the owner's more specific three-option preference applies within it. Cadence and
+meaning are instructions, not semantic hook classifiers. The one-line action rule is unchanged.

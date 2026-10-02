@@ -24,6 +24,14 @@ The generated notice files add localization and the selected question-length lim
 remove detection categories or change the generic question-count rule. English and Brazilian
 Portuguese are the currently supported languages. More locales require reviewed templates.
 
+The reference owner also selects paced dialogue, minimum-sufficient input context and three-choice
+path decisions. These optional fields preserve older profile compatibility. The generated brief
+instructs agents to leave room for clarification, use concise progressive disclosure, and state risk
+and benefit for each choice. `exact_options=3` is rendered into the existing Claude Code guard's
+configuration on macOS/Linux. It checks only choice count and single selection; cadence, semantics
+and token discipline remain instructions. Other harnesses have no registered equivalent picker
+guard here. See [ADR-0019](../../docs/adr/0019-paced-conversation-and-three-path-decisions.md).
+
 ## Validate, inspect, generate and check
 
 From the repository root:

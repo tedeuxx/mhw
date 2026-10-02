@@ -220,3 +220,9 @@ from here now, and at what evidence level:
   Keychain at launch. It is written and tested in throwaway homes. `install.sh` does not run its
   renderer, and the renderer has **not** been run on the reference machine (Issue #8). Installing it
   into the owner's real configuration is his act.
+- **Conversation profile** (ADR-0019, 2026-10-02): paced clarification, concise output, scoped input
+  retrieval, and three risk/benefit choices are installed in the user briefs for Claude Code, Codex
+  and Kiro, and saved in Claude desktop account instructions. The brief was loaded into the current
+  Codex app session. The Claude Code picker guard's option-count extension is installed and passes
+  synthetic tests; live runtime routing was not re-measured. Cadence, risk/benefit semantics and token
+  discipline remain instructions, with no universal mechanical enforcement or hard token ceiling.

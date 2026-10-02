@@ -14,7 +14,9 @@
       "properties": {
         "language": { "type": "string", "enum": ["en", "pt-BR"] },
         "publication_language": { "type": "string", "enum": ["en", "pt-BR"] },
-        "decision_tone": { "type": "string", "enum": ["concise", "executive-concise", "conversational", "didactic"] }
+        "decision_tone": { "type": "string", "enum": ["concise", "executive-concise", "conversational", "didactic"] },
+        "cadence": { "type": "string", "enum": ["paced"] },
+        "context_discipline": { "type": "string", "enum": ["minimum-sufficient"] }
       }
     },
     "interaction": {
@@ -23,7 +25,8 @@
       "required": ["max_question_chars", "command_preference"],
       "properties": {
         "max_question_chars": { "type": "integer", "minimum": 0, "maximum": 10000 },
-        "command_preference": { "type": "string", "enum": ["slash", "natural-language"] }
+        "command_preference": { "type": "string", "enum": ["slash", "natural-language"] },
+        "decision_options": { "type": "integer", "enum": [3] }
       }
     },
     "session_start": {

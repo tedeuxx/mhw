@@ -211,3 +211,13 @@ adds no new permission grant, financial approval, account connection or trust ch
 - ADR-0001 (MADR), ADR-0007 (model defaults), ADR-0010 (global brief), ADR-0013 (HITL),
   ADR-0014 (plugin boundary), ADR-0016 (deny floor), ADR-0017 (MCP rendering).
 - [Owner profile](../../overlay/AGENTS.md).
+
+## Amendment — 2026-10-02: user-level conversation preferences installed
+
+Following the owner's explicit request for user-level paced conversation and three risk/benefit
+choices across workstation projects, the generated profile was installed into all three user brief
+locations by `global/install.sh`; the subsequent `--check` passed. The new instructions were supplied
+to the current Codex app session, establishing loading here only. The generated owner-overlay block
+was also appended to Claude desktop's account-level **Instructions for Claude** through its UI:
+the previous text remained present and the UI reported **Saved**. Automatic account synchronization
+and behavioral enforcement were not established. ADR-0019 records the control and its coverage.
