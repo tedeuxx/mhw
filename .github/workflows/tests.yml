@@ -46,7 +46,8 @@ jobs:
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py \
-            global/profile/profile.py global/profile/profile_test.py
+            global/profile/profile.py global/profile/profile_test.py \
+            global/hooks/restart_guard.py global/hooks/restart_guard_test.py
 
   # Pure preference compilation: no harness installation, account calls or credential reads.
   profiles:
@@ -67,6 +68,7 @@ jobs:
           python -B global/profile/profile_test.py
           python -B global/profile/profile.py check --source overlay/profile.json --output overlay
           python -B workspace/delivery_test.py
+          python -B global/hooks/restart_guard_test.py
 
   suites:
     strategy:

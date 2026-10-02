@@ -23,6 +23,7 @@ targets() {
   echo "$1/.codex/rules/workstation-deny-floor.rules"
   echo "$(data "$1")/clipboard_guard.py $(data "$1")/clipboard.conf $1/.codex/hooks.json"
   echo "$(data "$1")/paste_wrapper.py $(data "$1")/paste-filter.sh"
+  echo "$(data "$1")/restart_guard.py"
 }
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
@@ -99,6 +100,27 @@ if printf '%s' "$out" | grep -q 'limit is 280'; then ok "the installed hook read
 if printf '%s' "$out" | jq -r .systemMessage | grep -q '^Guarda HITL (ADR-0013)'; then ok "the owner notice is in the overlay's language"; else ko "owner notice not from overlay"; fi
 HOME="$h" sh "$inst" --check; expect "check after install" 0 $?
 
+# Exercise the registered commands without starting a model or trusting a native hook.
+for harness in claude-code codex; do
+  if [ "$harness" = claude-code ]; then restart_settings="$h/.claude/settings.json"; else restart_settings="$h/.codex/hooks.json"; fi
+  start_cmd=$(jq -r '.hooks.SessionStart[].hooks[] | select(.command | contains("restart_guard.py")) | .command' "$restart_settings")
+  pre_cmd=$(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | contains("restart_guard.py")) | .command' "$restart_settings")
+  restart_workspace="$base/restart-$harness"
+  mkdir -p "$restart_workspace/.git"
+  jq -cn --arg cwd "$restart_workspace" '{hook_event_name:"SessionStart",source:"startup",session_id:"installed-test",cwd:$cwd}' |
+    HOME="$h" sh -c "$start_cmd" > "$base/restart-start.out"
+  jq -cn --arg cwd "$restart_workspace" '{hook_event_name:"PreToolUse",session_id:"installed-test",cwd:$cwd}' > "$base/restart-event.json"
+  HOME="$h" sh -c "$pre_cmd" < "$base/restart-event.json" > "$base/restart-pre.out"
+  if [ ! -s "$base/restart-start.out" ] && [ ! -s "$base/restart-pre.out" ]; then
+    ok "$harness installed restart command permits a clean baseline"
+  else ko "$harness installed restart command rejected a clean baseline"; fi
+  echo 'synthetic update' > "$restart_workspace/AGENTS.md"
+  HOME="$h" sh -c "$pre_cmd" < "$base/restart-event.json" > "$base/restart-pre.out"
+  if jq -e '.hookSpecificOutput.permissionDecision == "deny"' "$base/restart-pre.out" >/dev/null; then
+    ok "$harness installed restart command denies changed workspace configuration"
+  else ko "$harness installed restart command did not deny drift"; fi
+done
+
 # 2b. the deny floor, rendered for Claude Code and Codex
 s="$h/.claude/settings.json"
 if [ "$(jq '.permissions.deny | length' "$s")" -eq "$floor_rules" ] && [ "$floor_rules" -gt 0 ]; then
@@ -159,7 +181,7 @@ ch="$h/.codex/hooks.json"
 want_codex="/usr/bin/python3 -I -B \"$cg\" prompt-hook --harness codex --config \"$cc\""
 if jq -e --arg c "$want_codex" '(.description | startswith("managed-by: personal-multi-harness-workstation-configuration"))
       and ([.hooks.UserPromptSubmit[].hooks[] | select(.command == $c and .type == "command")] | length == 1)
-      and (.hooks | keys == ["UserPromptSubmit"])' "$ch" >/dev/null; then
+      and (.hooks | keys == ["PreToolUse", "SessionStart", "UserPromptSubmit"])' "$ch" >/dev/null; then
   ok "codex hooks.json is valid JSON, managed, and runs the installed core for codex"
 else
   ko "codex hooks.json wrong"
@@ -315,7 +337,7 @@ if [ "$(jq -S . "$h/.claude/settings.json")" = "$orig" ]; then ok "dry-run left 
 if grep -q 're-serialized' "$base/dry6.out"; then ok "dry-run warns that formatting changes"; else ko "dry-run did not warn about formatting"; fi
 HOME="$h" sh "$inst"; expect "merge into existing settings" 0 $?
 s="$h/.claude/settings.json"
-if [ "$(jq -S 'del(.hooks.PreToolUse[-1]) | del(.hooks.UserPromptSubmit) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
+if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contains("personal-multi-harness-workstation-configuration/") | not)))) | del(.hooks.UserPromptSubmit, .hooks.SessionStart) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
   ok "every pre-existing key, hook and rule survives in place; only our entries were appended"
 else
   ko "pre-existing content changed"

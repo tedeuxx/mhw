@@ -68,6 +68,25 @@ question-count, question-length or configured option-count limits, and notifies 
 Windows included, these rules are instructions only (ADR-0013, ADR-0019). Pacing, risk/benefit meaning
 and input/output brevity are instructions on every surface, not mechanically enforced token limits.
 
+## Configuration changes require a fresh session
+
+This rule applies to every harness and desktop surface, at both user and workspace level.
+Before changing active customization that needs a restart, save a minimal, sanitized handoff and
+finish any independent validation and authorized publication that can safely precede installation.
+Install last. Then stop work in the affected session and request a fresh session, or an application
+restart when that is the vendor's requirement. Resume, clear and compaction are not substitutes.
+Continue without a restart only with verified evidence that the changed setting was reloaded.
+In the fresh session verify loading, native hook trust and a harmless pass/block canary before
+claiming enforcement. Never grant hook trust yourself. A handoff is not permission to bypass a gate.
+
+On macOS/Linux the installer registers a SessionStart/PreToolUse restart guard for Claude Code and
+Codex. Once loaded (and trusted in Codex), it denies covered tool calls when tracked configuration
+metadata differs from the session baseline, or that baseline is missing. Kiro CLI/IDE, Claude
+desktop/Cowork, ChatGPT desktop and Windows currently carry this rule as instructions only; the
+Codex app's hook routing must be measured separately. No universal technical lock is claimed.
+Untracked configuration paths, external symlink targets and metadata-preserving edits are outside
+the detector. See ADR-0022 for coverage and the fresh-session verification procedure.
+
 ## Ethical foundation: Stoic ethics, the good life (ratified by the owner)
 
 - **Wisdom:** claim only what is measured.
