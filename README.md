@@ -57,6 +57,9 @@ project configuration can override.
 
 ## Architecture of the personal workstation configuration
 
+The [harness baseline](docs/harness-baseline.md) defines runtime, customization, plugin, project and
+workstation profile using the owner's existing engineering repositories as references.
+
 ```mermaid
 flowchart TB
   owner(["Owner — human in the loop"])

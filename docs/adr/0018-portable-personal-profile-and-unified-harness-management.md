@@ -25,6 +25,7 @@ for other people on compatible workstations.
 | Align the default model and reasoning effort at session start across harnesses | Required; concrete defaults and quality/cost trade-offs remain pending under ADR-0007 |
 | Version the configuration in this Git project | Required; secret values and confidential material remain excluded |
 | Let other people install from this repository on compatible workstations | Required; partial installers already exist |
+| Use `tadeumendonca-io` and `tadeumendonca-skills` as experience references and calibrate the meaning of harness customization from them | Source review recorded in `docs/harness-baseline.md`; no changes to the reference repositories |
 
 No spending ceiling, financial authorization, blanket tool permission, default model change or
 automatic publication permission was granted by this interview.
@@ -163,6 +164,7 @@ claim the desktop app exists on every OS or that all four harnesses provide iden
 
 ## Links
 
+- [Harness and customization baseline](../harness-baseline.md).
 - [New workstation installation](../new-workstation.md).
 - ADR-0001 (MADR), ADR-0007 (model defaults), ADR-0010 (global brief), ADR-0013 (HITL),
   ADR-0014 (plugin boundary), ADR-0016 (deny floor), ADR-0017 (MCP rendering).
