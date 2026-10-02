@@ -64,6 +64,8 @@ DEFAULTS = {
     "notice_paste_error": "[paste filter (ADR-0011): internal error ({error}), the paste was NOT forwarded]",
     "notice_no_bracketed_paste": "Paste filter (ADR-0011): {program} has not enabled bracketed paste, so pastes in "
                                  "this session are NOT cleaned.",
+    "notice_bracketed_paste_off": "Paste filter (ADR-0011): {program} turned bracketed paste off, so pastes are "
+                                  "NOT cleaned until it turns it back on.",
     "notice_session_summary": "Paste filter (ADR-0011): {count} paste(s) cleaned in this session ({categories}); "
                               "{replaced} paste(s) replaced by a notice.",
     "notice_wrapper_no_salt": "Paste filter (ADR-0011): the term list exists but its salt could not be read without "

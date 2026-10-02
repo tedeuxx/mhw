@@ -113,23 +113,29 @@ class PasteFilter:
                 buf = buf[i + len(PASTE_START):]
                 self.in_paste, self.body, self.too_large = True, bytearray(), False
             else:
-                start = len(self.body)
-                self._append(buf)
-                j = self.body.find(PASTE_END, max(0, start - len(PASTE_END) + 1))
+                # The end marker can straddle the previous chunk: search the body's last bytes plus
+                # this chunk, never the body's own length (which _append may have trimmed).
+                k = min(len(PASTE_END) - 1, len(self.body))
+                window = bytes(self.body[len(self.body) - k:]) + buf
+                j = window.find(PASTE_END)
                 if j < 0:
+                    self._append(buf)
                     break
-                rest = bytes(self.body[j + len(PASTE_END):])
-                del self.body[j:]
+                cut = j - k                 # where the marker starts in buf; negative: in the body
+                if cut < 0:
+                    del self.body[len(self.body) + cut:]
+                else:
+                    self._append(buf[:cut])
                 out.append(self._finish())
-                buf = rest
+                buf = window[j + len(PASTE_END):]
         return b"".join(out)
 
     def _append(self, data):
         self.body += data
-        if len(self.body) > self.max_bytes + len(PASTE_END):
-            # Over the limit: keep only enough of the tail to find the end marker; the payload is gone.
+        if len(self.body) > self.max_bytes:
+            # Over the limit: the payload is gone. Keep only the bytes that could begin the end marker.
             self.too_large = True
-            del self.body[:len(self.body) - (len(PASTE_END) - 1) - len(data)]
+            del self.body[:max(0, len(self.body) - (len(PASTE_END) - 1))]
 
     def flush(self, now=None):
         now = self.clock() if now is None else now
@@ -168,6 +174,7 @@ class ModeTracker:
         self.tail = b""
         self.enabled = False
         self.ever = False
+        self.off_since = None           # when the CLI turned the mode off after having turned it on
 
     def feed(self, data):
         buf = self.tail + data
@@ -176,8 +183,13 @@ class ModeTracker:
             if b"2004" in m.group(1).split(b";"):
                 last = m
         if last is not None and last.end() > len(self.tail):
+            was = self.enabled
             self.enabled = last.group(2) == b"h"
             self.ever = self.ever or self.enabled
+            if was and not self.enabled:
+                self.off_since = time.monotonic()
+            elif self.enabled:
+                self.off_since = None
         # Keep a tail long enough to hold a sequence split across reads, but not one already applied.
         cut = max(len(buf) - 64, last.end() if last is not None else 0)
         self.tail = buf[cut:]
@@ -226,9 +238,11 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
     err = sys.stderr if err is None else err
     terms = core.read_terms(conf["terms_file"])
     salt = None
+    no_salt = False
     if terms:
         salt = core.SaltStore(conf, interactive=False).get()
         if not salt:
+            no_salt = True
             err.write(notice(conf, "notice_wrapper_no_salt") + "\n")
             err.flush()
     filt = PasteFilter(make_cleaner(conf, terms, salt), int(conf["max_bytes"]), {
@@ -277,6 +291,7 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
     to_child = bytearray()
     start = time.monotonic()
     warned = False
+    warned_off = None                   # the off_since the "turned it off" warning was given for
     stdin_open = True
     try:
         set_raw()
@@ -285,6 +300,8 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
             deadlines = [d for d in (filt.deadline(),) if d is not None]
             if not warned and not mode.ever:
                 deadlines.append(start + grace)
+            if mode.off_since is not None and warned_off != mode.off_since and status is None:
+                deadlines.append(mode.off_since + grace)
             if exited_at is not None:
                 deadlines.append(exited_at + EXIT_DRAIN_SECONDS)
             timeout = max(0.0, min(deadlines) - now) if deadlines else None
@@ -351,6 +368,12 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
             if not warned and not mode.ever and time.monotonic() >= start + grace:
                 warned = True
                 _write_all(stdout, b"\r\n" + notice(conf, "notice_no_bracketed_paste", program=argv0).encode("utf-8") + b"\r\n")
+            # Turned off mid-session and still off after the grace period (a CLI that is merely
+            # exiting turns it off too, and is gone by then): say pastes are no longer cleaned.
+            if (mode.off_since is not None and warned_off != mode.off_since and status is None
+                    and time.monotonic() >= mode.off_since + grace):
+                warned_off = mode.off_since
+                _write_all(stdout, b"\r\n" + notice(conf, "notice_bracketed_paste_off", program=argv0).encode("utf-8") + b"\r\n")
             if exited_at is not None and time.monotonic() >= exited_at + EXIT_DRAIN_SECONDS:
                 break                       # the CLI exited and a process it left behind holds its terminal
         if status is None:
@@ -371,6 +394,8 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
                          replaced=filt.replaced) + "\n")
     if not mode.ever:
         err.write(notice(conf, "notice_no_bracketed_paste", program=argv0) + "\n")
+    if no_salt:
+        err.write(notice(conf, "notice_wrapper_no_salt") + "\n")
     err.flush()
     return _exit_code(status)
 

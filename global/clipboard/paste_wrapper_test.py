@@ -68,6 +68,9 @@ with open(rec, "ab", buffering=0) as f:
         if b"\x1d\x1dTYPED" in seen:
             seen = seen.replace(b"\x1d\x1dTYPED", b"")
             os.write(1, b"<TYPED>")
+        if b"\x1d\x1dOFF" in seen:
+            seen = seen.replace(b"\x1d\x1dOFF", b"")
+            os.write(1, b"\x1b[?2004l<OFF>")
         if b"\x1d\x1dEXIT" in seen:
             if mode == "bp":
                 os.write(1, b"\x1b[?2004l")
@@ -226,6 +229,33 @@ class Filter(unittest.TestCase):
         self.assertEqual(out, S + b"[TOO LARGE]" + E + b"x")
         self.assertEqual(f.replaced, 1)
 
+    def test_limit_crossed_in_the_end_marker_chunk_keeps_the_marker(self):
+        """The chunk that crosses max_bytes also carries the end marker: the paste must still close
+        there, and what follows it must arrive as typing (lens finding on PR #23)."""
+        f, _ = self.make(max_bytes=50)
+        out = f.feed(S + b"a" * 45) + f.feed(b"b" * 10 + E + b"typed")
+        self.assertEqual(out, S + b"[TOO LARGE]" + E + b"typed")
+        self.assertFalse(f.in_paste)
+
+    def test_oversized_single_chunk_from_an_empty_body(self):
+        f, _ = self.make(max_bytes=10)
+        self.assertEqual(f.feed(S + b"x" * 30 + E + b"typed"), S + b"[TOO LARGE]" + E + b"typed")
+        self.assertFalse(f.in_paste)
+
+    def test_end_marker_never_lost_around_the_limit(self):
+        """Sweep payload sizes around max_bytes against every chunk size from 1 to 16: the paste always
+        closes at its marker, never forwards the payload, and the bytes after it pass unchanged."""
+        limit = 40
+        for size in range(limit - 8, limit + 9):
+            stream = S + b"p" * size + E + b"after"
+            for step in range(1, 17):
+                f, _ = self.make(max_bytes=limit)
+                out = b"".join(f.feed(stream[i:i + step]) for i in range(0, len(stream), step))
+                self.assertTrue(out.endswith(E + b"after"), "size %d step %d: %r" % (size, step, out))
+                self.assertFalse(f.in_paste, "size %d step %d: paste left open" % (size, step))
+                if size > limit:
+                    self.assertNotIn(b"p", out)
+
     def test_cleaner_error_replaces_the_paste(self):
         f, _ = self.make()
 
@@ -377,6 +407,26 @@ class Relay(unittest.TestCase):
         self.assertTrue(s.wait_out(b"<TYPED>"))
         s.finish()
         self.assertTrue(s.received().startswith(EMAIL.encode()), "nothing can be told apart from typing")
+
+    def test_turned_off_mid_session_warns(self):
+        s = Session("off", grace=0.3)
+        self.ready(s)
+        self.assertTrue(s.wait_out(b"\x1b[?2004h"))
+        time.sleep(0.5)
+        self.assertNotIn(b"bracketed paste", s.out, "warned while the mode was on")
+        s.send(b"\x1d\x1dOFF")
+        self.assertTrue(s.wait_out(b"turned bracketed paste off"), s.out[-300:])
+        s.finish()
+
+    def test_missing_salt_is_said_at_start_and_at_exit(self):
+        d = os.path.join(BASE, "nosalt")
+        conf = conf_in(d)
+        with_term(d)
+        os.remove(os.path.join(d, "lo", "salt"))
+        s = Session("nosalt", conf=conf)
+        self.ready(s)
+        s.finish()
+        self.assertEqual(s.out.count(b"its salt could not be read"), 2, s.out[-400:])
 
     def test_wrapper_writes_no_file(self):
         s = Session("nofile")
