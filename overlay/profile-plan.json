@@ -1,0 +1,38 @@
+{
+  "managed_by": "personal-multi-harness-workstation-configuration/profile-v1",
+  "profile_version": 1,
+  "priority": "balanced",
+  "surfaces": [
+    {
+      "surface": "claude-code",
+      "instruction_route": "Existing installer: user CLAUDE.md; hooks remain subject to native support.",
+      "runtime_verification": "not-performed"
+    },
+    {
+      "surface": "codex",
+      "instruction_route": "Existing installer: user AGENTS.md; hook trust is a separate owner action.",
+      "runtime_verification": "not-performed"
+    },
+    {
+      "surface": "kiro-cli",
+      "instruction_route": "Existing installer: global steering; custom-agent resource loading must be verified.",
+      "runtime_verification": "not-performed"
+    },
+    {
+      "surface": "claude-desktop",
+      "instruction_route": "Prepared instructions for account settings; no account write or automatic sync.",
+      "runtime_verification": "not-performed"
+    }
+  ],
+  "limits": {
+    "surface_selection": "describes intended targets; existing installers still target all supported CLIs",
+    "native_model_and_effort": "not-written; concrete model/effort mappings remain pending",
+    "financial_authorization": "not-granted",
+    "mcp_and_pre_authorizations": "not-imported-or-synchronized",
+    "slash_commands": "preference-only; native command installation remains pending",
+    "conversation_cadence": "instruction-only; no universal before-display output gate",
+    "token_discipline": "minimum-sufficient context and concise output instructions; no hard token cap",
+    "decision_options": "Claude Code macOS/Linux hook checks the configured option count; other surfaces instruction-only; runtime routing not verified by compilation",
+    "desktop_notifications": "intent=essential; instructions compiled; native GUI values require separate application and verification"
+  }
+}

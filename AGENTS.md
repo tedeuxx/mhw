@@ -164,6 +164,26 @@ The source of truth for every layer lives here, versioned; what is installed on 
 
 ## Hard rules for any agent working in this repository
 
+### Workspace session contract (owner, 2026-10-02)
+
+- On every **new** session here, the first owner interaction is a native multiple-choice picker:
+  header `Session type`, labels `Melhoria de harness` and `Bugfix`, in that order. Ask one question
+  and wait. These two choices are the owner's explicit exception to the usual three-path preference.
+- Keep the selected type in conversation context. Do not re-ask on resume/compaction or retrofit
+  intake into a session already in progress. A pause for questions is not session closure.
+- At the end of each **improvement session**, publish its completed coherent change set through
+  CI without asking again for commit/push/PR/merge/release approval. This is the owner's standing
+  authorization for this repository, not permission to bypass tests or protection rules. Bugfix
+  sessions use the same gated release route when delivering a fix; they are not auto-published on
+  an ordinary question or pause.
+- Follow `workspace/README.md` and `workspace/session-policy.json`. Use the checked merge command,
+  then the read-only delivery verifier. Never announce delivery complete until it confirms the
+  exact session head is in a merged PR covered by a successful version workflow and a published
+  newer numeric SemVer release. Report a blocker instead of calling local commits a delivery.
+- Claude Code offers `/session-start` and `/session-finish`. Other harnesses follow this same
+  contract from AGENTS.md/global steering and invoke the shared Python commands. Do not claim
+  universal native startup/stop enforcement: supported mechanics and gaps are in ADR-0021.
+
 - **No secret value is ever committed here** — not tokens, API keys, passwords, OAuth client secrets,
   service-account files, nor a config file copied verbatim from a machine that contains them. Reference
   secrets by name and location only.
@@ -220,3 +240,9 @@ from here now, and at what evidence level:
   Keychain at launch. It is written and tested in throwaway homes. `install.sh` does not run its
   renderer, and the renderer has **not** been run on the reference machine (Issue #8). Installing it
   into the owner's real configuration is his act.
+- **Conversation profile** (ADR-0019, 2026-10-02): paced clarification, concise output, scoped input
+  retrieval, and three risk/benefit choices are installed in the user briefs for Claude Code, Codex
+  and Kiro, and saved in Claude desktop account instructions. The brief was loaded into the current
+  Codex app session. The Claude Code picker guard's option-count extension is installed and passes
+  synthetic tests; live runtime routing was not re-measured. Cadence, risk/benefit semantics and token
+  discipline remain instructions, with no universal mechanical enforcement or hard token ceiling.

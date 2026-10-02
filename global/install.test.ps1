@@ -252,6 +252,21 @@ $null = Run $h @('-DryRun', '-Check'); Expect '-DryRun with -Check is a usage er
 $null = Run $h @('-Overlay', (Join-Path $Base 'no-such-overlay')); Expect 'a missing overlay directory is a usage error' 2 $script:rc
 Check 'usage errors wrote nothing' ((Count-Files $h) -eq 0)
 
+# 13. A structured profile with changed source is refused before writing targets.
+$profileDir = Join-Path $Base 'profile-stale'
+New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+foreach ($profileFile in @('profile.json', 'AGENTS.md', 'hitl.conf', 'clipboard.conf', 'desktop-instructions.md', 'profile-plan.json')) {
+    Copy-Item -LiteralPath (Join-Path (Join-Path $repo 'overlay') $profileFile) -Destination (Join-Path $profileDir $profileFile)
+}
+$profileSource = Join-Path $profileDir 'profile.json'
+$profileDoc = Get-Content -LiteralPath $profileSource -Raw | ConvertFrom-Json
+$profileDoc.session_start.priority = 'speed'
+[System.IO.File]::WriteAllText($profileSource, ($profileDoc | ConvertTo-Json -Depth 10), (New-Object System.Text.UTF8Encoding($false)))
+$h = Join-Path $Base 'home-profile-stale'; New-Item -ItemType Directory -Force -Path $h | Out-Null
+$null = Run $h @('-Overlay', $profileDir)
+Expect 'stale compiled profile refused before installation' 1 $script:rc
+Check 'stale profile wrote no target' ((Count-Files $h) -eq 0)
+
 Write-Output "$($script:pass) passed, $($script:fail) failed"
 if ($script:fail -ne 0) { exit 1 }
 exit 0

@@ -57,6 +57,9 @@ project configuration can override.
 
 ## Architecture of the personal workstation configuration
 
+The [harness baseline](docs/harness-baseline.md) defines runtime, customization, plugin, project and
+workstation profile using the owner's existing engineering repositories as references.
+
 ```mermaid
 flowchart TB
   owner(["Owner — human in the loop"])
@@ -113,6 +116,16 @@ override precedence, where a project value usually beats a user-level one; see
 [ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md).
 
 ## Install
+
+Installing on your own machine? Start with [Install on another workstation](docs/new-workstation.md)
+to preview the existing controls without inheriting the reference owner's personal overlay.
+The [unified workstation design](docs/adr/0018-portable-personal-profile-and-unified-harness-management.md)
+records the requested personal profile, slash commands, shared MCP catalog, synchronized
+pre-authorizations and session-start model/effort defaults. That complete workflow is proposed,
+not installed by the commands below. Its first implemented component is the
+[preference profile compiler](global/profile/README.md): edit `overlay/profile.json` and regenerate
+the instruction overlay, localized notices and desktop instruction handoff. Native model/effort
+settings and new permissions are not applied by compilation.
 
 The global brief has one source, `global/AGENTS.md`, rendered into each harness's user-level location
 ([ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md)):
@@ -275,6 +288,13 @@ a record becomes `accepted` only when the owner ratifies it.
 Every merge to `main` cuts a numeric SemVer tag with bump-my-version. A pull request carries exactly one
 `semver:major`, `semver:minor` or `semver:patch` label, and a check fails without it
 ([ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md), proposed).
+
+At the end of each improvement session, the workspace contract requires a committed/pushed PR,
+successful CI, merge, a new numeric tag and a published GitHub Release. New workspace sessions begin
+with **Melhoria de harness** or **Bugfix**. Use the checked commands in
+[`workspace/README.md`](workspace/README.md); `/session-start` and `/session-finish` are available in
+Claude Code. A conversational pause does not publish. Mechanisms and remaining native-harness gaps
+are recorded in [ADR-0021](docs/adr/0021-workspace-session-intake-and-ci-publication.md).
 
 ## Reference workstation
 

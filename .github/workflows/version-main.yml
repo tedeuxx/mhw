@@ -49,12 +49,24 @@ jobs:
         run: python -m pip install "bump-my-version==1.5.1"
 
       - name: Bump, commit and tag
+        id: version
         env:
           PART: ${{ steps.part.outputs.part }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           bump-my-version bump "$PART"
+          python -c 'import os,tomllib; v=tomllib.load(open(".bumpversion.toml","rb"))["tool"]["bumpversion"]["current_version"]; open(os.environ["GITHUB_OUTPUT"],"a").write("tag=v"+v+"\n")'
 
       - name: Push the bump commit and tag
-        run: git push --follow-tags origin HEAD:main
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: git push --atomic origin HEAD:main "refs/tags/$TAG"
+
+      # Create the Release in this job: token-created tags do not trigger a second workflow.
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release create "$TAG" --verify-tag --generate-notes --title "$TAG"

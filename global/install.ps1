@@ -44,6 +44,23 @@ if (-not $m.Success) { Stop-Usage 'cannot read current_version from .bumpversion
 $version = $m.Groups[1].Value
 
 if (-not $Overlay) { $Overlay = Join-Path $repoRoot 'overlay' }
+# A structured profile must be compiled and current before writing any target (ADR-0018).
+# Python is needed only for structured overlays; none and hand-authored overlays keep their path.
+if ($Overlay -ne 'none' -and (Test-Path -LiteralPath (Join-Path $Overlay 'profile.json') -PathType Leaf)) {
+    $profilePython = Get-Command python, python3, py -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $profilePython) { Stop-Usage 'profile overlay requires Python 3.9+; no target was written' }
+    $profileArgs = @()
+    if ($profilePython.Name -match '^py(\.exe)?$') { $profileArgs += '-3' }
+    $profileArgs += @('-B', (Join-Path $scriptDir 'profile\profile.py'), 'check',
+                     '--source', 'profile.json', '--output', '.')
+    Push-Location -LiteralPath $Overlay
+    try {
+        & $profilePython.Source @profileArgs
+        $profileExit = $LASTEXITCODE
+    } finally { Pop-Location }
+    if ($profileExit -ne 0) { exit $profileExit }
+}
 # Read a source file as bytes with every CRLF turned into LF (a Windows checkout may carry CRLF).
 function Read-LF([string]$path) {
     $b = [System.IO.File]::ReadAllBytes($path)
