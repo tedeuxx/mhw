@@ -1,0 +1,71 @@
+# Install on another workstation
+
+This repository already installs part of the workstation policy. The unified personal profile,
+commands, MCP management, pre-authorizations and session-start model/effort workflow is still a
+[proposed design](adr/0018-portable-personal-profile-and-unified-harness-management.md).
+The commands below install only the existing components described in the [README](../README.md#install).
+
+## Obtain and review the source
+
+```sh
+git clone https://github.com/tedeuxx/personal-multi-harness-workstation-configuration.git
+cd personal-multi-harness-workstation-configuration
+```
+
+Choose a reviewed release tag before applying configuration. Review the README's component and OS
+coverage. Git, the intended harnesses and their own subscriptions/authentication must be available;
+the policy installer does not purchase plans or sign in to accounts. The shell implementation also
+uses `jq` and Python 3 for its components; prerequisite detection is not yet a unified guided flow.
+
+## Preview without inheriting the reference owner's profile
+
+macOS/Linux:
+
+```sh
+sh global/install.sh --overlay=none --dry-run
+```
+
+Windows PowerShell:
+
+```powershell
+.\global\install.ps1 -Overlay none -DryRun
+```
+
+For a personal profile, create a separate directory containing your own `AGENTS.md` and optional
+configuration overlays. Pass its path with `--overlay=PATH` or `-Overlay PATH`. The repository's
+`overlay/` is the reference owner's profile, not a universal default for every adopter.
+
+## Apply and check existing components
+
+After reviewing the preview, macOS/Linux:
+
+```sh
+sh global/install.sh --overlay=none
+sh global/install.sh --overlay=none --check
+```
+
+Windows PowerShell:
+
+```powershell
+.\global\install.ps1 -Overlay none
+.\global\install.ps1 -Overlay none -Check
+```
+
+Use the same overlay choice in preview, apply and check. The installer refuses unmanaged conflicts;
+resolve them deliberately instead of deleting existing configuration. A successful check establishes
+file/configuration agreement, not that every harness loaded or enforced the policy. Follow the
+README's separate hook-trust and paste-wrapper activation instructions where applicable.
+
+## Current limits and updates
+
+- Windows installs fewer controls than macOS/Linux; see the README's feature coverage.
+- MCP rendering is a separate mechanism. Remote account connectors and synchronized allow/ask/deny
+  permissions are not installed by the commands above.
+- Slash commands for workstation management are proposed, not available commands.
+- Unified model and reasoning-effort defaults remain under design; the installer does not implement
+  a shared selection policy for new sessions across vendors.
+- For an update, review the new release, select it, and repeat preview, apply and check with your
+  profile. Recheck behavior in fresh harness sessions.
+- There is no unified rollback command yet. Existing installers preserve certain backups and managed
+  markers; inspect the affected component before restoring anything. A Git checkout alone does not
+  roll back installed files, credentials, account consent or external actions.

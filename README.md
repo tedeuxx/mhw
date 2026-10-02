@@ -114,6 +114,13 @@ override precedence, where a project value usually beats a user-level one; see
 
 ## Install
 
+Installing on your own machine? Start with [Install on another workstation](docs/new-workstation.md)
+to preview the existing controls without inheriting the reference owner's personal overlay.
+The [unified workstation design](docs/adr/0018-portable-personal-profile-and-unified-harness-management.md)
+records the requested personal profile, slash commands, shared MCP catalog, synchronized
+pre-authorizations and session-start model/effort defaults. That complete workflow is proposed,
+not installed by the commands below.
+
 The global brief has one source, `global/AGENTS.md`, rendered into each harness's user-level location
 ([ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md)):
 
