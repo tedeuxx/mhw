@@ -22,9 +22,11 @@ targets() {
   echo "$(data "$1")/hitl-escalation-guard.sh $(data "$1")/hitl.conf $1/.claude/settings.json"
   echo "$1/.codex/rules/workstation-deny-floor.rules"
   echo "$(data "$1")/clipboard_guard.py $(data "$1")/clipboard.conf $1/.codex/hooks.json"
+  echo "$(data "$1")/paste_wrapper.py $(data "$1")/paste-filter.sh"
 }
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
+wrap_src="$(cd "$(dirname "$0")" && pwd)/clipboard/paste_wrapper.py"
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
 ours() { # number of hook entries of ours in a settings file
   jq '[.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"))] | length' "$1"
@@ -183,6 +185,45 @@ else
   ko "the installed Codex entry did not block correctly: $out"
 fi
 if [ -e "$(plist "$h")" ] || [ -d "$h/Library/LaunchAgents" ]; then ko "a LaunchAgent was written"; else ok "no LaunchAgent written (the watcher is withdrawn)"; fi
+
+# 2c'. the paste wrapper (ADR-0011, automatic cleaning at the paste boundary): installed beside the core,
+# with a managed snippet of shell functions. The installer sources nothing and writes no shell rc.
+pw="$(data "$h")/paste_wrapper.py"
+if sed 2d "$pw" | cmp -s - "$wrap_src" && sed -n 2p "$pw" | grep -q '^# managed-by: personal-multi-harness-workstation-configuration'; then
+  ok "paste wrapper installed: the source plus a marker on line 2"
+else
+  ko "installed paste wrapper differs from its source"
+fi
+sn="$(data "$h")/paste-filter.sh"
+want_fn="claude() { /usr/bin/python3 -I -B \"$pw\" run --config \"$cc\" -- claude \"\$@\"; }"
+if head -n 1 "$sn" | grep -q '^# managed-by: personal-multi-harness-workstation-configuration' && grep -qxF "$want_fn" "$sn" \
+   && [ "$(grep -c '^[a-z-]*() { /usr/bin/python3 -I -B ' "$sn")" -eq 3 ] && grep -q '^kiro-cli() ' "$sn" && grep -q '^codex() ' "$sn"; then
+  ok "the snippet defines claude, codex and kiro-cli through the installed wrapper"
+else
+  ko "the snippet is wrong"
+fi
+found=""
+for rc in .zshrc .bashrc .bash_profile .profile .zprofile .zshenv; do [ -e "$h/$rc" ] && found="$found $rc"; done
+if [ -z "$found" ]; then ok "no shell rc was written"; else ko "shell rc written:$found"; fi
+if grep -qF ". \"$sn\"" "$base/fresh.out"; then ok "install tells the owner the line to add himself"; else ko "install printed no activation line"; fi
+# The snippet's function, sourced by a real zsh and bash: it reaches the real program through the wrapper
+# (stdin is not a terminal here, so the wrapper execs straight through) with the arguments and exit status
+# intact. A fake claude on PATH stands in for the CLI.
+fb="$base/fakebin"; mkdir -p "$fb"
+printf '#!/bin/sh\nprintf "fake-claude:"\nprintf "%%s|" "$@"\nexit 5\n' > "$fb/claude"
+chmod 755 "$fb/claude"
+for shl in zsh bash; do
+  if command -v "$shl" >/dev/null 2>&1; then
+    out=$(HOME="$h" PATH="$fb:$PATH" "$shl" -c ". \"$sn\"; claude a 'b c' < /dev/null"); rc=$?
+    if [ "$out" = "fake-claude:a|b c|" ] && [ "$rc" -eq 5 ]; then
+      ok "$shl: the snippet's claude runs the real program through the wrapper, args and exit kept"
+    else
+      ko "$shl: snippet function gave '$out' exit $rc"
+    fi
+  else
+    echo "SKIP  $shl not installed: the snippet was not sourced by it here"
+  fi
+done
 
 # 2d. a managed watcher plist left by an earlier version is removed on install; launchctl never runs
 h2="$base/home-oldplist"; mkdir -p "$h2/Library/LaunchAgents"

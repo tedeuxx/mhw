@@ -524,7 +524,8 @@ class Config(unittest.TestCase):
         for key in g.DEFAULTS:
             if key.startswith("notice_"):
                 self.assertNotEqual(owner[key], g.DEFAULTS[key], "the overlay does not translate " + key)
-                owner[key].format(categories="credential", max="1", error="X", chars=1)
+                owner[key].format(categories="credential", max="1", error="X", chars=1, program="claude",
+                                  count=1, replaced=0)
 
 
 class AddTermCli(unittest.TestCase):
