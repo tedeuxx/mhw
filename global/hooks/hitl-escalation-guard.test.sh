@@ -119,5 +119,15 @@ abstain "invalid option setting does not force unsupported counts" "$base/invali
 out=$(run "$base/options.conf" "$(q SYNTHETIC_DO_NOT_ECHO)")
 if ! printf '%s' "$out" | grep -qF SYNTHETIC_DO_NOT_ECHO; then ok "option refusal omits payload content"; else ko "option refusal omits payload content"; fi
 
+# Exactly two session types are an explicit workspace-scoped exception, not a general bypass.
+git init -q "$base/workspace"
+mkdir -p "$base/workspace/workspace"
+printf '%s\n' '{"schema_version":1,"entry_modes":["improvement","bugfix"]}' > "$base/workspace/workspace/session-policy.json"
+intake=$(jq -cn --arg cwd "$base/workspace" '{cwd:$cwd,tool_name:"AskUserQuestion",tool_input:{questions:[{header:"Session type",question:"Tipo?",options:[{label:"Melhoria de harness"},{label:"Bugfix"}]}]}}')
+abstain "declared workspace permits its two-type intake" "$base/options.conf" "$intake"
+deny "intake labels outside a declared workspace do not bypass" "$base/options.conf" "$(printf '%s' "$intake" | jq 'del(.cwd)')" "exactly 3 authored options"
+deny "wrong labels do not bypass" "$base/options.conf" "$(printf '%s' "$intake" | jq '.tool_input.questions[0].options[0].label="Other"')" "exactly 3 authored options"
+deny "multi-select intake does not bypass" "$base/options.conf" "$(printf '%s' "$intake" | jq '.tool_input.questions[0].multiSelect=true')" "single selection"
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

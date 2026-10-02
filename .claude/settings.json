@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "SessionStart": [{
+      "matcher": "startup|clear",
+      "hooks": [{
+        "type": "command",
+        "command": "python3 -B \"$CLAUDE_PROJECT_DIR/workspace/startup.py\"",
+        "timeout": 10
+      }]
+    }]
+  }
+}

@@ -9,6 +9,18 @@ on:
 permissions: {}
 
 jobs:
+  # Stable mechanical gate for the workspace's checked merge command.
+  delivery-ci:
+    if: always()
+    needs: [shellcheck, profiles, suites, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every suite to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          jq -e 'all(.[]; .result == "success")' <<< "$RESULTS"
+
   shellcheck:
     runs-on: ubuntu-latest
     permissions:
@@ -54,6 +66,7 @@ jobs:
         run: |
           python -B global/profile/profile_test.py
           python -B global/profile/profile.py check --source overlay/profile.json --output overlay
+          python -B workspace/delivery_test.py
 
   suites:
     strategy:

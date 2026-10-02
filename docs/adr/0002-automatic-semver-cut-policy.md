@@ -71,3 +71,12 @@ When a change fits more than one row, the highest row wins.
 
 - `AGENTS.md`, "Principles", item 3.
 - ADR-0001: the MADR discipline this record follows.
+
+## Amendment — 2026-10-02: publish at improvement-session completion
+
+The owner explicitly requires automatic CI publication at the end of each improvement session,
+including its push and new version available on GitHub. ADR-0021 adds the workspace contract,
+checked merge and publication verifier. `version-main` now atomically pushes its bump commit/tag and
+creates a GitHub Release in that same job. The inspection found existing successful version jobs,
+remote tag v1.1.0 and no GitHub Releases; the original no-remote statement above is historical.
+The cut table remains proposed as a general policy; this feature uses its additive minor category.

@@ -102,11 +102,25 @@ elif [ "$max_question_chars" -gt 0 ]; then
 fi
 
 if [ -z "$reason" ] && [ "$exact_options" -gt 0 ]; then
+  # Owner's workspace session intake has exactly TWO choices (ADR-0021), never a general bypass.
+  # Read only the declared mode list, not transcripts, prompts or machine-local session data.
+  intake=false
+  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
+  root=
+  if [ -n "$cwd" ] && command -v git >/dev/null 2>&1; then
+    root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || root=
+  fi
+  if [ -n "$root" ] && [ -f "$root/workspace/session-policy.json" ]; then
+    if jq -e '.schema_version == 1 and .entry_modes == ["improvement", "bugfix"]' \
+      "$root/workspace/session-policy.json" >/dev/null 2>&1; then intake=true; fi
+  fi
   # Count only; never classify labels, estimate risk or echo question/option content.
   # Missing/non-array options on a recognized picker are refused: the owner requires a choice.
-  bad_options=$(printf '%s' "$input" | jq -r --argjson n "$exact_options" '
+  bad_options=$(printf '%s' "$input" | jq -r --argjson n "$exact_options" --argjson intake "$intake" '
     [.tool_input.questions[] | select(
-      ((.options | if type == "array" then length else 0 end) != $n)
+      (((.options | if type == "array" then length else 0 end) != $n)
+        and (($intake and .header == "Session type"
+          and ([.options[]?.label] == ["Melhoria de harness", "Bugfix"])) | not))
       or (.multiSelect == true))] | length' 2>/dev/null)
   if [ "${bad_options:-0}" -gt 0 ]; then
     reason="Refused by the workstation HITL guard (ADR-0013/0019): each question must offer exactly $exact_options authored options and single selection. Re-ask one path decision with a concise risk and benefit description for each option. Leave native free-text clarification available. Do not invent unsafe alternatives or move extra questions into prose."

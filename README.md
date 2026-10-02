@@ -289,6 +289,13 @@ Every merge to `main` cuts a numeric SemVer tag with bump-my-version. A pull req
 `semver:major`, `semver:minor` or `semver:patch` label, and a check fails without it
 ([ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md), proposed).
 
+At the end of each improvement session, the workspace contract requires a committed/pushed PR,
+successful CI, merge, a new numeric tag and a published GitHub Release. New workspace sessions begin
+with **Melhoria de harness** or **Bugfix**. Use the checked commands in
+[`workspace/README.md`](workspace/README.md); `/session-start` and `/session-finish` are available in
+Claude Code. A conversational pause does not publish. Mechanisms and remaining native-harness gaps
+are recorded in [ADR-0021](docs/adr/0021-workspace-session-intake-and-ci-publication.md).
+
 ## Reference workstation
 
 The machine this policy set is developed and installed on. These facts were **observed on 2026-10-01**.
