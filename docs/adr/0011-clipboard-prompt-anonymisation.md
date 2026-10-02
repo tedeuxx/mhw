@@ -741,7 +741,16 @@ Also added from the lens's advisories:
   arrive within 2 s of silence is closed and cleaned as it stands; anything after that flows as typing,
   uncleaned. Terminal "paste slowly" modes are *not measured*.
 - **A lone Escape key press is delayed by up to 25 ms.** It might be the start of a paste marker. The
-  bytes are unchanged.
+  bytes are unchanged. **A longer prefix of the marker** (`ESC[`, `ESC[2`, `ESC[20`, `ESC[200`) **is
+  held up to 1 s**, so Alt+[ can be delayed by up to 1 s, again with its bytes unchanged. The longer
+  hold comes from a measurement. On Linux under load (an ubuntu:24.04 container running four suites in
+  parallel), a marker split across reads waited more than 25 ms for its second half. The first half was
+  released as typing, and the paste after it reached the child **uncleaned**: the recorder's read log
+  shows `ESC[20` and then `0~` followed by the original e-mail. With the longer hold, 0 of 24 runs
+  failed under the same load. Reverting it turns the new filter test red.
+- **A test-harness defect was found at the same time** and fixed: a pty reader thread that outlived its
+  fds consumed bytes from whatever reused the fd number. On the GitHub Ubuntu runner, that made the
+  suite fail intermittently. Reverting the fix gives 13 of 24 failing runs in the container.
 - **Only sessions started through the snippet's functions are covered.** Not covered: `command claude`,
   a full path, another shell, an alias defined after the snippet, scripts, the IDE extensions, the
   desktop apps and Cowork, Kiro IDE, and cloud surfaces.
