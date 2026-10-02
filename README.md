@@ -122,7 +122,10 @@ to preview the existing controls without inheriting the reference owner's person
 The [unified workstation design](docs/adr/0018-portable-personal-profile-and-unified-harness-management.md)
 records the requested personal profile, slash commands, shared MCP catalog, synchronized
 pre-authorizations and session-start model/effort defaults. That complete workflow is proposed,
-not installed by the commands below.
+not installed by the commands below. Its first implemented component is the
+[preference profile compiler](global/profile/README.md): edit `overlay/profile.json` and regenerate
+the instruction overlay, localized notices and desktop instruction handoff. Native model/effort
+settings and new permissions are not applied by compilation.
 
 The global brief has one source, `global/AGENTS.md`, rendered into each harness's user-level location
 ([ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md)):

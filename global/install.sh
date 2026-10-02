@@ -60,6 +60,16 @@ if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
   exit 2
 fi
 
+# Structured profiles must be compiled and current before any target is written (ADR-0018).
+# Hand-authored overlays and --overlay=none retain the previous installation path.
+if [ -n "$overlay" ] && [ -f "$overlay/profile.json" ]; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "profile overlay requires Python 3.9+; no target was written" >&2
+    exit 2
+  fi
+  python3 -B "$script_dir/profile/profile.py" check --source "$overlay/profile.json" --output "$overlay"
+fi
+
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/personal-multi-harness-workstation-configuration"
 hook_dest="$data_dir/hitl-escalation-guard.sh"
 settings="$HOME/.claude/settings.json"

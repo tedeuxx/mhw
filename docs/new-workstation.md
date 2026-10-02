@@ -1,7 +1,7 @@
 # Install on another workstation
 
-This repository already installs part of the workstation policy. The unified personal profile,
-commands, MCP management, pre-authorizations and session-start model/effort workflow is still a
+This repository already installs part of the workstation policy and compiles a portable preference
+profile. The unified commands, MCP management, pre-authorizations and native model/effort workflow is still a
 [proposed design](adr/0018-portable-personal-profile-and-unified-harness-management.md).
 The commands below install only the existing components described in the [README](../README.md#install).
 
@@ -31,9 +31,21 @@ Windows PowerShell:
 .\global\install.ps1 -Overlay none -DryRun
 ```
 
-For a personal profile, create a separate directory containing your own `AGENTS.md` and optional
-configuration overlays. Pass its path with `--overlay=PATH` or `-Overlay PATH`. The repository's
-`overlay/` is the reference owner's profile, not a universal default for every adopter.
+For a personal profile, copy `global/profile/profile.example.json` into a directory you control and
+edit its choices. Validate and render it with the [profile compiler](../global/profile/README.md):
+
+```sh
+python3 -B global/profile/profile.py validate --source /path/to/my-profile/profile.json
+python3 -B global/profile/profile.py render --source /path/to/my-profile/profile.json --output /path/to/my-profile
+```
+
+Paths above are placeholders. On Windows, use `python` or `py -3` and your chosen Windows paths.
+Pass the generated directory with `--overlay=PATH` or `-Overlay PATH` for preview, apply and check.
+The repository's `overlay/` is the reference owner's profile, not a universal default for every adopter.
+Hand-authored overlays remain supported; the compiler refuses to overwrite their unmarked files.
+Both installers verify structured profiles before writing. If you edit `profile.json`, regenerate
+before installation; otherwise the stale-output check refuses the run. Python 3.9+ must be available
+when installing a structured profile, including on Windows.
 
 ## Apply and check existing components
 
@@ -63,7 +75,8 @@ README's separate hook-trust and paste-wrapper activation instructions where app
   permissions are not installed by the commands above.
 - Slash commands for workstation management are proposed, not available commands.
 - Unified model and reasoning-effort defaults remain under design; the installer does not implement
-  a shared selection policy for new sessions across vendors.
+  native settings across vendors. The profile records the selected intent, which is **balanced** for
+  the reference owner; exact model and effort values remain pending.
 - For an update, review the new release, select it, and repeat preview, apply and check with your
   profile. Recheck behavior in fresh harness sessions.
 - There is no unified rollback command yet. Existing installers preserve certain backups and managed

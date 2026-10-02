@@ -162,8 +162,50 @@ claim the desktop app exists on every OS or that all four harnesses provide iden
 - Bad: the full setup is not implemented by this documentation change. Existing installers remain
   partial; the linked guide explicitly names that boundary.
 
+## Amendment 2026-10-02: first executable slice and balanced session intent
+
+After reviewing the recorded baseline, the owner instructed the agent to continue. In the next
+decision he selected **balanced**: good quality, moderate waiting time and restrained use of the
+subscription allowance. This settles the intended trade-off, not a particular provider model,
+effort label, paid API route or financial authorization. The earlier statement that the trade-off
+was pending is historical; concrete model/effort mappings are still pending under ADR-0007.
+
+The first implementation is `global/profile/profile.py`, a Python 3.9+ standard-library compiler
+with a closed JSON vocabulary. `overlay/profile.json` is the reference preference source. It generates
+the owner brief, HITL limit/notices, paste-filter notice localization, full desktop instruction
+handoff and a capability/limitations plan. The existing one-ask floor and filter categories stay in
+their existing sources. The 280-character limit preserves the previous overlay value; this amendment
+does not newly ratify its original numerical interpretation.
+
+The compiler supports validation, read-only planning, generation and drift checks. It refuses
+unmanaged targets and symlinks, preserves unrelated files, and writes generated artifacts atomically
+per file. An interrupted multi-file render needs a check and rerender; no bundle transaction is claimed.
+Generated files carry source markers and are versioned beside the source. Another adopter can start
+from the generic example instead of inheriting the owner's preferences.
+
+Both native installers now check a structured overlay before writing targets; changing `profile.json`
+without regenerating refuses installation. Python 3.9+ is therefore an additional prerequisite on
+Windows when using a structured overlay. Hand-authored overlays and the `none` option retain their
+previous requirements. The compiler was exercised with Python 3.9.6 and 3.14.6 on macOS; Windows
+installer changes await the configured CI run.
+
+**Scope:** written and exercised on the local macOS host with synthetic fixtures. Generated reference
+artifacts are in Git; they are not installed into the real harnesses by this change. Desktop output
+is prepared text, not an account-settings update. Native model defaults, MCP migration, permission
+adapters and slash-command registration remain pending. A declared `surfaces` list is an intention
+report, not a filter for the existing installers, which still target every supported CLI.
+
+The compiler tests exercise invalid inputs, redacted diagnostics, locale consistency, floor
+preservation, drift, idempotence, conflicts and newline compatibility. CI coverage is configured for
+macOS, Ubuntu and Windows; that configuration alone is not a successful CI run. The existing
+installer suite is also run against throwaway homes after changing the generated overlay.
+
+The broader design remains proposed where the owner has not selected concrete behavior. This slice
+adds no new permission grant, financial approval, account connection or trust change.
+
 ## Links
 
+- [Profile compiler and contract](../../global/profile/README.md).
 - [Harness and customization baseline](../harness-baseline.md).
 - [New workstation installation](../new-workstation.md).
 - ADR-0001 (MADR), ADR-0007 (model defaults), ADR-0010 (global brief), ADR-0013 (HITL),

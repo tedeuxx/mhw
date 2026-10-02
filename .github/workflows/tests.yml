@@ -33,7 +33,27 @@ jobs:
                   compile(fh.read(), f, "exec")' \
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
-            global/mcp/mcp_render.py global/mcp/mcp_render_test.py
+            global/mcp/mcp_render.py global/mcp/mcp_render_test.py \
+            global/profile/profile.py global/profile/profile_test.py
+
+  # Pure preference compilation: no harness installation, account calls or credential reads.
+  profiles:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: profile compiler suite and generated-source drift
+        shell: bash
+        run: |
+          python -B global/profile/profile_test.py
+          python -B global/profile/profile.py check --source overlay/profile.json --output overlay
 
   suites:
     strategy:

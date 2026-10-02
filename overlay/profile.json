@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "conversation": {
+    "language": "pt-BR",
+    "publication_language": "en",
+    "decision_tone": "executive-concise"
+  },
+  "interaction": {
+    "max_question_chars": 280,
+    "command_preference": "slash"
+  },
+  "session_start": { "priority": "balanced" },
+  "surfaces": ["claude-code", "codex", "kiro-cli", "claude-desktop"]
+}

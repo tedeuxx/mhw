@@ -384,6 +384,24 @@ out=$(jq -cn '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:"a"}
 if printf '%s' "$out" | jq -r .systemMessage | grep -q '^HITL guard (ADR-0013)'; then ok "generic install notifies in the default English"; else ko "generic notice wrong"; fi
 if grep -q '^notice_blocked=' "$(data "$h")/clipboard.conf"; then ko "overlay leaked into generic paste filter settings"; else ok "generic paste filter settings carry no owner overlay"; fi
 
+# 9b. A structured profile changed without regeneration is refused before writing any target.
+profile_dir="$base/profile-stale"
+mkdir -p "$profile_dir"
+for profile_file in profile.json AGENTS.md hitl.conf clipboard.conf desktop-instructions.md profile-plan.json; do
+  cp "$(dirname "$inst")/../overlay/$profile_file" "$profile_dir/$profile_file"
+done
+jq '.session_start.priority = "speed"' "$profile_dir/profile.json" > "$base/profile-next.json"
+cp "$base/profile-next.json" "$profile_dir/profile.json"
+h="$base/home-profile-stale"; mkdir -p "$h"
+HOME="$h" sh "$inst" --overlay="$profile_dir" > /dev/null
+expect "stale compiled profile refused before installation" 1 $?
+if [ -z "$(find "$h" -type f -print)" ]; then ok "stale profile wrote no target"; else ko "stale profile wrote targets"; fi
+python3 -B "$(dirname "$inst")/profile/profile.py" render --source "$profile_dir/profile.json" --output "$profile_dir" > /dev/null
+expect "regenerate changed profile" 0 $?
+HOME="$h" sh "$inst" --overlay="$profile_dir" > /dev/null
+expect "regenerated profile installs" 0 $?
+if grep -q 'Prioritize lower latency' "$h/.claude/CLAUDE.md"; then ok "new preference reaches installed brief"; else ko "new preference missing"; fi
+
 # 10. a permissions section of the wrong shape is refused and left untouched
 h="$base/home-badperms"; mkdir -p "$h/.claude"
 echo '{ "permissions": { "deny": "Bash(rm -rf:*)" } }' > "$h/.claude/settings.json"

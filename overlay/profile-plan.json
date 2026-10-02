@@ -1,0 +1,34 @@
+{
+  "managed_by": "personal-multi-harness-workstation-configuration/profile-v1",
+  "profile_version": 1,
+  "priority": "balanced",
+  "surfaces": [
+    {
+      "surface": "claude-code",
+      "instruction_route": "Existing installer: user CLAUDE.md; hooks remain subject to native support.",
+      "runtime_verification": "not-performed"
+    },
+    {
+      "surface": "codex",
+      "instruction_route": "Existing installer: user AGENTS.md; hook trust is a separate owner action.",
+      "runtime_verification": "not-performed"
+    },
+    {
+      "surface": "kiro-cli",
+      "instruction_route": "Existing installer: global steering; custom-agent resource loading must be verified.",
+      "runtime_verification": "not-performed"
+    },
+    {
+      "surface": "claude-desktop",
+      "instruction_route": "Prepared instructions for account settings; no account write or automatic sync.",
+      "runtime_verification": "not-performed"
+    }
+  ],
+  "limits": {
+    "surface_selection": "describes intended targets; existing installers still target all supported CLIs",
+    "native_model_and_effort": "not-written; concrete model/effort mappings remain pending",
+    "financial_authorization": "not-granted",
+    "mcp_and_pre_authorizations": "not-imported-or-synchronized",
+    "slash_commands": "preference-only; native command installation remains pending"
+  }
+}

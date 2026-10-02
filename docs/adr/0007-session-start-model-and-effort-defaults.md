@@ -110,3 +110,14 @@ Status stays **proposed**.
 
 - `AGENTS.md`, "Principles", item 1. ADR-0002 (cut policy). ADR-0003 (access modes). ADR-0006 (surfaces).
 - ADR-0003's 2026-10-01 amendment (h4: which surfaces load user-level configuration). Issue #7.
+
+## Amendment 2026-10-02: owner selects balanced intent
+
+The owner selected **balanced** for new sessions: good quality, moderate latency and restrained use
+of the subscription allowance. The concrete model and effort mapping for each harness is still to be
+established; this does not ratify the earlier top-model/medium-effort pairing as equivalent to that
+intent. No default was changed in a real harness.
+
+The preference is versioned in `overlay/profile.json`, under `session_start.priority`, and compiled
+into instruction text by `global/profile/profile.py` (ADR-0018). That text records intent and grants
+no extra spending or paid API use. Native configuration and fresh-session verification remain pending.
