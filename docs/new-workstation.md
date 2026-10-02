@@ -70,6 +70,16 @@ resolve them deliberately instead of deleting existing configuration. A successf
 file/configuration agreement, not that every harness loaded or enforced the policy. Follow the
 README's separate hook-trust and paste-wrapper activation instructions where applicable.
 
+## Restart after installation
+
+Save a sanitized handoff before applying active customization. After installation, open a new
+session in each affected harness; restart desktop applications when needed. Do not continue work
+in a session that still has the old configuration. Codex hook trust remains an owner action in
+`/hooks`. Follow the disposable fresh-session canary in
+[ADR-0022](adr/0022-restart-after-active-customization-changes.md) before claiming enforcement.
+The macOS/Linux installer registers restart hooks for Claude Code and Codex. Kiro, Windows and
+desktop routes without verified native hooks retain the same rule as instructions only.
+
 ## Current limits and updates
 
 - Windows installs fewer controls than macOS/Linux; see the README's feature coverage.
