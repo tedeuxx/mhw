@@ -32,6 +32,7 @@ jobs:
               with open(f, encoding="utf-8") as fh:
                   compile(fh.read(), f, "exec")' \
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
+            global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py
 
   suites:
@@ -66,6 +67,10 @@ jobs:
       # runner's login Keychain is writable, it creates one namespaced item and deletes it.
       - name: paste filter suite
         run: python3 -B global/clipboard/clipboard_guard_test.py "$RUNNER_TEMP/clipboard"
+      # ADR-0011, the paste wrapper: a real wrapper process between a pty the suite owns and a recorder
+      # child. No real harness CLI, no shell rc, no terminal preferences, no clipboard.
+      - name: paste wrapper suite
+        run: python3 -B global/clipboard/paste_wrapper_test.py "$RUNNER_TEMP/paste-wrapper"
       # ADR-0017. Throwaway HOMEs only. Needs Python 3.11+ (tomllib) for the Codex surface. On macOS,
       # when the runner's login Keychain is writable, one namespaced synthetic item is created and deleted.
       - name: MCP renderer suite

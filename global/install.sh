@@ -19,6 +19,9 @@
 # managed plist left by an earlier version is removed on install. launchctl is never run: the installer
 # prints the bootout command for the owner. The term list is never written by this installer (only
 # `clipboard_guard.py add-term` does).
+# The paste wrapper (ADR-0011, automatic cleaning at the paste boundary) is installed beside the core with
+# a managed shell snippet defining claude, codex and kiro-cli functions that run the CLIs through it. The
+# installer never sources that snippet and never edits a shell rc: activating it is the owner's act.
 set -eu
 
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
@@ -32,6 +35,7 @@ hook_src="$script_dir/hooks/hitl-escalation-guard.sh"
 conf_src="$script_dir/hitl.conf"
 floor_src="$script_dir/deny-floor.conf"
 clip_src="$script_dir/clipboard/clipboard_guard.py"
+wrap_src="$script_dir/clipboard/paste_wrapper.py"
 clip_conf_src="$script_dir/clipboard.conf"
 CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-guard"
 
@@ -48,7 +52,7 @@ for arg in "$@"; do
   esac
 done
 
-for f in "$src" "$hook_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src"; do
+for f in "$src" "$hook_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -61,6 +65,8 @@ hook_dest="$data_dir/hitl-escalation-guard.sh"
 settings="$HOME/.claude/settings.json"
 clip_dest="$data_dir/clipboard_guard.py"
 clip_conf_dest="$data_dir/clipboard.conf"
+wrap_dest="$data_dir/paste_wrapper.py"
+snippet_dest="$data_dir/paste-filter.sh"
 clip_plist="$HOME/Library/LaunchAgents/$CLIP_LABEL.plist"
 codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-deny-floor.rules"
 codex_hooks="${CODEX_HOME:-$HOME/.codex}/hooks.json"
@@ -142,7 +148,7 @@ if [ -n "$overlay" ] && [ -f "$overlay/clipboard.conf" ]; then cat "$overlay/cli
 # and writing no bytecode (-B). Paths go inside double quotes, so a path holding a character that is
 # special there, or in JSON, is refused rather than mis-quoted.
 paste_ok=1
-case "$clip_dest$clip_conf_dest" in *[\"\\\$\`]*) paste_ok=0 ;; esac
+case "$clip_dest$clip_conf_dest$wrap_dest" in *[\"\\\$\`]*) paste_ok=0 ;; esac
 paste_cmd() {
   printf '/usr/bin/python3 -I -B "%s" prompt-hook --harness %s --config "%s"' "$clip_dest" "$1" "$clip_conf_dest"
 }
@@ -209,6 +215,30 @@ render() {
         printf '# %s; source: global/clipboard.conf + overlay; version: %s; do not edit, re-run the installer\n' \
           "$MARKER_ID" "$version"
         cat "$clip_conf"
+      } > "$2"
+      ;;
+    wrapscript)
+      {
+        sed -n 1p "$wrap_src"
+        printf '# %s; source: global/clipboard/paste_wrapper.py; version: %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$version"
+        sed 1d "$wrap_src"
+      } > "$2"
+      ;;
+    snippet)
+      # Shell functions for zsh and bash. Sourcing this file is the owner's act; nothing here runs it.
+      {
+        printf '# %s; source: global/install.sh (paste wrapper, ADR-0011); version: %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$version"
+        printf '# The paste filter at the harness-CLI paste boundary (ADR-0011). To activate it, add this line to\n'
+        printf '# your ~/.zshrc or ~/.bashrc yourself (the installer never edits a shell rc):\n'
+        printf '#   . "%s"\n' "$snippet_dest"
+        printf '# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n'
+        printf '# CLI sees them. "command claude" (or codex, kiro-cli) runs a CLI without it.\n'
+        for cli in claude codex kiro-cli; do
+          printf '%s() { /usr/bin/python3 -I -B "%s" run --config "%s" -- %s "$@"; }\n' \
+            "$cli" "$wrap_dest" "$clip_conf_dest" "$cli"
+        done
       } > "$2"
       ;;
     codexhooks)
@@ -391,9 +421,16 @@ process clipscript "$clip_dest"
 process clipconf "$clip_conf_dest"
 if [ "$paste_ok" = 1 ]; then
   process codexhooks "$codex_hooks"
+  process wrapscript "$wrap_dest"
+  process snippet "$snippet_dest"
+  if [ "$mode" = install ]; then
+    echo "NOTE    automatic paste cleaning starts only once you add this line to your shell rc yourself:"
+    echo "        . \"$snippet_dest\""
+  fi
 else
   raise 2
   echo "SKIP    $codex_hooks: the paste filter cannot run here (see the REFUSE line above)"
+  echo "SKIP    $wrap_dest and $snippet_dest: the paste wrapper cannot run here either"
 fi
 
 # The always-on clipboard watcher is withdrawn (ADR-0011, owner correction on Issue #5). A LaunchAgent

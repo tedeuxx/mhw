@@ -65,7 +65,9 @@ personal by policy and never persists employer or client confidential data
 content is checked where it enters a harness CLI prompt: a user-level prompt hook on Claude Code and
 Codex blocks a prompt carrying an employer or client reference, a credential or personal data, and
 shows a redacted copy ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed;
-the always-on clipboard watcher it replaces was withdrawn on the owner's correction). Operational
+the always-on clipboard watcher it replaces was withdrawn on the owner's correction). A pty wrapper
+launcher, activated by shell functions the owner sources, cleans a bracketed paste into those CLIs
+before they see it, as he decided (*"tem que ser limpo sozinho"*). Operational
 judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
 the owner ([ADR-0012](docs/adr/0012-operational-judgement-delegated-to-the-harness.md)). How agents
 escalate a pending decision or action to the owner is calibrated here: generic rules in the global
@@ -198,9 +200,21 @@ from here now, and at what evidence level:
   *(Struck 2026-10-01: withdrawn on the owner's correction on Issue #5. It was stopped and disabled on
   the reference machine the same minute, and this version no longer installs it.)*
 - **Paste filter** (ADR-0011, Claude Code and Codex prompt hooks, macOS and Linux): *written and
-  tested*, and *measured* blocking in headless Claude Code and Codex in throwaway configurations. **Not
-  installed** on the reference machine. On Codex it runs only after the owner trusts it in `/hooks`.
-  It blocks and shows a redacted copy; it does not clean automatically.
+  tested*, and *measured* blocking in headless Claude Code and Codex in throwaway configurations.
+  ~~**Not installed** on the reference machine.~~ *Installed* on the reference machine from v1.0.0 on
+  the owner's go
+  ([Issue #5](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5942877343)).
+  On Codex it runs only after the owner trusts it in `/hooks`; that trust is not recorded. It blocks
+  and shows a redacted copy; it does not clean automatically.
+- **Paste wrapper** (ADR-0011, amendment "automatic cleaning at the paste boundary", macOS and Linux):
+  a pty launcher for `claude`, `codex` and `kiro-cli`. It **cleans** bracketed pastes before the CLI
+  sees them and passes typing through byte for byte. It is *written and tested* (Ubuntu and macOS in
+  CI). Bracketed paste is *measured* enabled by Claude Code 2.1.287 and Codex 0.155.0-alpha.16.3. A
+  synthetic paste is *measured* arriving redacted in both real CLIs, in throwaway homes, with nothing
+  submitted. Kiro CLI is not measured. It is **not activated** on the reference machine: the
+  installer writes a snippet of shell functions, and sourcing it from the shell rc is the owner's act.
+  Pastes the CLI reads itself (files by path, images) and sessions not started through the functions
+  are outside it.
 - **MCP definition** (ADR-0017, proposed): one definition, kept in the untracked local overlay and
   rendered into Codex, Claude Code, the Claude desktop app and Kiro with credentials read from the
   Keychain at launch. It is written and tested in throwaway homes. `install.sh` does not run its

@@ -28,8 +28,12 @@ re-measured) and the user-level deny floor
 not re-measured). The always-on macOS clipboard watcher was withdrawn on the owner's correction
 (Issue #5): it is stopped on the reference machine and this version no longer installs it. In its place
 a paste filter blocks a prompt carrying a finding at the Claude Code and Codex prompt
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed; measured headless,
-not yet installed on the reference machine). The MCP renderer
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed; measured headless;
+installed on the reference machine from v1.0.0 on the owner's go,
+[Issue #5](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5942877343)).
+A paste wrapper now cleans bracketed pastes automatically before the CLI sees them. It is written,
+tested, and measured against real Claude Code and Codex in throwaway homes. It is not activated on the
+reference machine: sourcing its snippet is the owner's act. The MCP renderer
 ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md), proposed) has not been run
 there (Issue #8). Per-component evidence levels are in [`AGENTS.md`](AGENTS.md), "Status".
 
@@ -63,7 +67,8 @@ flowchart TB
       managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
       ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · loaded: Claude Code, Codex (headless)"]:::ours
       uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · installed (firing not re-measured)"]:::ours
-      upaste["User level · prompt hook<br/>paste filter · Claude Code, Codex · ADR-0011<br/>blocks, never rewrites · not yet installed"]:::oursPlanned
+      upaste["User level · prompt hook<br/>paste filter · Claude Code, Codex · ADR-0011<br/>blocks, never rewrites · installed"]:::ours
+      uwrap["Shell level · paste wrapper<br/>claude · codex · kiro-cli on a pty · ADR-0011<br/>cleans bracketed pastes · not activated (owner sources it)"]:::oursPlanned
       udeny["User level · deny floor<br/>Claude permissions.deny · Codex rules<br/>ADR-0016 · accepted · installed"]:::ours
       plugin["Plugin · tadeumendonca-skills<br/>personas · skills · loop · project hooks"]
       project["Project config<br/>AGENTS.md · .claude/ · .codex/rules"]
@@ -85,7 +90,9 @@ flowchart TB
     llm[("LLM providers")]
   end
 
-  owner -->|paste into a prompt| HARN
+  owner -->|paste into a CLI| uwrap
+  uwrap -->|cleaned paste| HARN
+  owner -->|"paste outside the wrapper: hook blocks only"| HARN
   owner -->|paste| desk
   managed --- ubrief --- uhooks --- upaste --- udeny --- plugin --- project --- local
   LAYERS -. govern .-> HARN
@@ -189,6 +196,42 @@ with echo off and only its salted hash is stored, in the local overlay outside t
 
 `python3 -B global/clipboard/clipboard_guard_test.py <empty dir>` runs its suite. On macOS the suite
 uses a namespaced Keychain item and deletes it; it never reads or writes the system clipboard.
+
+### Automatic cleaning of pastes into harness CLIs (macOS and Linux)
+
+The hook above blocks. **The paste wrapper cleans**
+([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), amendment "automatic cleaning at the
+paste boundary"). `global/clipboard/paste_wrapper.py` starts `claude`, `codex` or `kiro-cli` on a
+pseudo-terminal and relays every byte. When you paste, the terminal wraps the text in bracketed-paste
+markers, because both CLIs turn that mode on (measured: Claude Code 2.1.287, Codex 0.155.0-alpha.16.3).
+The wrapper replaces each finding with `[REDACTED:<category>]` before the CLI sees it. What you type,
+and a paste with no finding, pass through byte for byte. It touches no other app, no terminal setting
+and no clipboard, and it writes no file.
+
+The installer writes the wrapper and a snippet of shell functions,
+`${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/paste-filter.sh`.
+**It never edits your shell rc.** To activate the wrapper, add the line it prints to `~/.zshrc` or
+`~/.bashrc` yourself:
+
+```sh
+. "$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh"
+```
+
+`command claude` runs a CLI without it. The redaction markers show up in the input as soon as you paste.
+On exit, one line says how many pastes were cleaned and which categories. If a CLI never turns
+bracketed paste on, you get one warning line, and nothing is cleaned in that session.
+
+Limits, in full in the ADR:
+
+- Only bracketed pastes are cleaned.
+- Files attached by path, `@file` references and pasted images are read by the CLI itself, so the
+  wrapper never sees them.
+- IME input passes as typing.
+- A 100 KB paste adds about 0.3 s (measured), and a 1 MB paste about 3 s.
+- Sessions not started through the functions are not covered.
+
+`python3 -B global/clipboard/paste_wrapper_test.py <empty dir>` runs its suite against a recorder
+child on a pty the suite owns.
 
 ### MCP servers: one definition, credentials at launch
 

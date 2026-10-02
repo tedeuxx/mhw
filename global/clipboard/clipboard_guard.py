@@ -14,8 +14,9 @@
 # Properties this file must keep, each with a test in clipboard_guard_test.py:
 #   - it writes NOTHING except the term list (add-term only): no log, no history, no cache, no record of
 #     what matched (ADR-0005). It never reads or writes the system clipboard, calls no dialog or
-#     notification tool, and runs only when a harness CLI calls it (the owner: "nao deve impactar nenhum
-#     outro app ou ux do so"). The prompt hook reads a Keychain salt only after a non-interactive lock
+#     notification tool, and runs only when a harness CLI calls it, or inside paste_wrapper.py, which
+#     imports this core to clean bracketed pastes (the owner: "nao deve impactar nenhum outro app ou ux
+#     do so"). The prompt hook reads a Keychain salt only after a non-interactive lock
 #     probe says unlocked, with a timeout (SaltStore(interactive=False));
 #   - a notice names categories and the mitigation, never the original content or the matched term;
 #   - the term list holds salted hashes of normalised terms, never plaintext, and add-term reads the
@@ -56,6 +57,21 @@ DEFAULTS = {
     "notice_no_salt": "Paste filter (ADR-0011): the term list exists but its salt could not be read without "
                       "a prompt (Keychain locked, slow or item missing), so employer/client term matching "
                       "was NOT checked for this prompt.",
+    # The paste wrapper (paste_wrapper.py), and the hook's notice for a prompt that carries its markers.
+    # The first two REPLACE a paste inside the CLI's input, so they stay one line.
+    "notice_paste_too_large": "[paste filter (ADR-0011): a paste over {max} bytes was NOT forwarded, it could not "
+                              "be checked]",
+    "notice_paste_error": "[paste filter (ADR-0011): internal error ({error}), the paste was NOT forwarded]",
+    "notice_no_bracketed_paste": "Paste filter (ADR-0011): {program} has not enabled bracketed paste, so pastes in "
+                                 "this session are NOT cleaned.",
+    "notice_bracketed_paste_off": "Paste filter (ADR-0011): {program} turned bracketed paste off, so pastes are "
+                                  "NOT cleaned until it turns it back on.",
+    "notice_session_summary": "Paste filter (ADR-0011): {count} paste(s) cleaned in this session ({categories}); "
+                              "{replaced} paste(s) replaced by a notice.",
+    "notice_wrapper_no_salt": "Paste filter (ADR-0011): the term list exists but its salt could not be read without "
+                              "a prompt, so employer/client terms are NOT cleaned in this session.",
+    "notice_paste_redacted": "Paste filter (ADR-0011): this prompt carries redacted text ({categories}); the "
+                             "original was not sent.",
 }
 HARNESSES = ("claude", "codex")
 
@@ -404,6 +420,7 @@ def add_term_hashes(path, hashes):
 # ------------------------------------------------------------------------------- the prompt hook
 
 
+REDACTED_MARKER = re.compile(r"\[REDACTED:(%s)\]" % "|".join(CATEGORY_ORDER))
 PASTE_MARKER_LINE = re.compile(r"^</?pasted_content\b[^\n]*>\n?", re.MULTILINE)
 
 
@@ -435,6 +452,11 @@ def prompt_decision(conf, prompt, harness, salts=None):
     blocking = set(c.strip() for c in conf["block_categories"].split(","))
     spans = [s for s in find_spans(prompt, terms, salt) if s[2] in blocking]
     if not spans:
+        # Text the paste wrapper (or an earlier block) already redacted: say so, by category only.
+        marked = set(REDACTED_MARKER.findall(prompt))
+        if marked:
+            warnings.append(_format(conf, "notice_paste_redacted",
+                                    categories=", ".join(c for c in CATEGORY_ORDER if c in marked)))
         return {"systemMessage": " ".join(warnings)} if warnings else None
     # Claude Code may wrap an expanded paste in marker lines (documented); they are not the owner's text,
     # so they are dropped from the copy he would resubmit.
