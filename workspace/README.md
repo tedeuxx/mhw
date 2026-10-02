@@ -24,7 +24,9 @@ conversational pause. Finish its coherent scope, then:
    needed for this already-authorized repository publication path.
 3. After CI finishes, run `python3 -B workspace/delivery.py merge --pr NUMBER`. It refuses dirty
    workspaces, a different/unpushed head, a stale base, missing labels and incomplete or failed checks.
-   The stable `delivery-ci` job requires every test matrix to pass. No force push or admin bypass.
+   The stable `delivery-ci` job requires every test matrix to pass; the semver and Sonar checks must
+   also be present and successful. A Sonar check not yet registered is pending, not permission to
+   race ahead of analysis. No force push or admin bypass.
 4. `version-main` bumps with bump-my-version, atomically pushes the bump commit and numeric tag, and
    creates a published GitHub Release in the same CI job. Tag-triggered downstream workflows are not
    assumed: the Actions token normally does not trigger them.

@@ -50,7 +50,8 @@ when installing a structured profile, including on Windows.
 
 ## Apply and check existing components
 
-After reviewing the preview, macOS/Linux:
+Return to the repository root after preparing an external profile. After reviewing the preview,
+macOS/Linux:
 
 ```sh
 sh global/install.sh --overlay=none

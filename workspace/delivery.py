@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
-REQUIRED = {"delivery-ci", "semver-label"}
+REQUIRED = {"delivery-ci", "semver-label", "SonarCloud Code Analysis"}
 
 
 class Pending(Exception):

@@ -12,7 +12,8 @@ class DeliveryTests(unittest.TestCase):
         self.pr = {"headRefOid": "a" * 40, "baseRefName": "main", "isCrossRepository": False,
                    "labels": [{"name": "semver:minor"}], "statusCheckRollup": [
                        {"name": "delivery-ci", "conclusion": "SUCCESS"},
-                       {"name": "semver-label", "conclusion": "SUCCESS"}]}
+                       {"name": "semver-label", "conclusion": "SUCCESS"},
+                       {"name": "SonarCloud Code Analysis", "conclusion": "SUCCESS"}]}
         self.release = {"tag_name": "v1.2.0", "draft": False, "prerelease": False,
                         "published_at": "2026-10-02T00:00:00Z"}
 
