@@ -77,7 +77,9 @@ def main():
         raise Pending("workspace has uncommitted or untracked changes")
     head = run("git", "rev-parse", "HEAD")
     remote = run("git", "remote", "get-url", "origin")
-    match = re.fullmatch(r"(?:https://github\.com/|git@github\.com:)([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?", remote)
+    if remote.endswith(".git"):
+        remote = remote[:-4]
+    match = re.fullmatch(r"(?:https://github\.com/|git@github\.com:)([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)", remote)
     if not match:
         raise Pending("origin is not a supported GitHub repository URL")
     repo = match[1]

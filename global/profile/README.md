@@ -50,8 +50,11 @@ python3 -B global/profile/profile.py check --source overlay/profile.json --outpu
 ```
 
 On Windows, use the available Python launcher (`python` or `py -3`) in place of `python3`.
-The same arguments work in PowerShell. To create your own profile, copy the example into a directory
-you control, edit its choices, then use that file as `--source` and that directory as `--output`.
+The same arguments work in PowerShell. Source and output paths must stay within the current working
+directory, including after resolving parent symlinks. To create your own profile, copy the example
+into a directory you control, change into that directory, and invoke the compiler by its absolute
+path with `--source profile.json --output .`. Installers scope their drift check to the explicitly
+selected overlay directory. Generated artifact names are restricted to the five names above.
 
 `validate` and `plan` write nothing. `render` updates only its marked outputs, leaves unrelated files
 untouched and refuses unmanaged targets and symlink targets. An identical render does not rewrite

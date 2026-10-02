@@ -33,7 +33,7 @@ class ProfileTests(unittest.TestCase):
                 "--source", str(self.source)]
         if output:
             args += ["--output", str(self.output)]
-        return subprocess.run(args, capture_output=True, text=True)
+        return subprocess.run(args, cwd=self.base, capture_output=True, text=True)
 
     def test_example_and_reference_profiles_validate(self):
         self.assertEqual(compiler.validate(self.doc, self.schema), [])
@@ -199,10 +199,28 @@ class ProfileTests(unittest.TestCase):
 
     def test_crlf_output_is_not_false_drift(self):
         compiled = compiler.compile_profile(self.doc)
-        compiler.write_or_check(self.output, compiled)
+        compiler.write_or_check(self.output, compiled, root=self.base)
         for name, content in compiled.items():
             (self.output / name).write_bytes(content.replace("\n", "\r\n").encode("utf-8"))
-        self.assertEqual(compiler.write_or_check(self.output, compiled, check=True), [])
+        self.assertEqual(compiler.write_or_check(self.output, compiled, check=True, root=self.base), [])
+
+    def test_cli_cannot_read_or_write_outside_working_directory(self):
+        self.source.write_text(json.dumps(self.doc), encoding="utf-8")
+        for command, flags in (("validate", ["--source", str(compiler.HERE / "profile.example.json")]),
+                               ("render", ["--source", str(self.source), "--output", str(self.base.parent / "escape")])):
+            result = subprocess.run([sys.executable, "-B", str(compiler.HERE / "profile.py"), command, *flags],
+                                    cwd=self.base, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 3)
+            self.assertIn("escapes the working directory", result.stderr)
+
+    def test_symlink_ancestor_cannot_escape_working_directory(self):
+        link = self.base / "outside"
+        try:
+            link.symlink_to(self.base.parent, target_is_directory=True)
+        except OSError:
+            self.skipTest("symlink creation unavailable")
+        with self.assertRaises(compiler.Refuse):
+            compiler.write_or_check(link / "escape", compiler.compile_profile(self.doc), root=self.base)
 
     def test_output_is_required_only_for_mutating_or_check_commands(self):
         self.assertEqual(self.cli("render").returncode, 2)

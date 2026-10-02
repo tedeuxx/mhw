@@ -35,8 +35,9 @@ For a personal profile, copy `global/profile/profile.example.json` into a direct
 edit its choices. Validate and render it with the [profile compiler](../global/profile/README.md):
 
 ```sh
-python3 -B global/profile/profile.py validate --source /path/to/my-profile/profile.json
-python3 -B global/profile/profile.py render --source /path/to/my-profile/profile.json --output /path/to/my-profile
+cd /path/to/my-profile
+python3 -B /path/to/repository/global/profile/profile.py validate --source profile.json
+python3 -B /path/to/repository/global/profile/profile.py render --source profile.json --output .
 ```
 
 Paths above are placeholders. On Windows, use `python` or `py -3` and your chosen Windows paths.

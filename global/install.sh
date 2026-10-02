@@ -67,7 +67,7 @@ if [ -n "$overlay" ] && [ -f "$overlay/profile.json" ]; then
     echo "profile overlay requires Python 3.9+; no target was written" >&2
     exit 2
   fi
-  python3 -B "$script_dir/profile/profile.py" check --source "$overlay/profile.json" --output "$overlay"
+  (cd "$overlay" && python3 -B "$script_dir/profile/profile.py" check --source profile.json --output .)
 fi
 
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/personal-multi-harness-workstation-configuration"

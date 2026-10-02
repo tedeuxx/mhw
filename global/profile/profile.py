@@ -97,15 +97,30 @@ def validate(value, schema, location="profile"):
     return errors
 
 
-def load_profile(source):
+def confined_path(value, root=None):
+    """CLI input may select files only inside the caller's working directory."""
+    root = Path.cwd().resolve() if root is None else Path(root).resolve()
+    path = Path(value)
+    if path.is_symlink():
+        raise Refuse(3, "symlink paths are not accepted")
+    path = path.resolve()
     try:
-        with Path(source).open("rb") as stream:
+        path.relative_to(root)
+    except ValueError:
+        raise Refuse(3, "path escapes the working directory; contents omitted") from None
+    return path
+
+
+def load_profile(source):
+    source = confined_path(source)
+    try:
+        with source.open("rb") as stream:
             raw = stream.read(MAX_BYTES + 1)
         if len(raw) > MAX_BYTES:
             raise Refuse(2, "profile exceeds the size limit; contents omitted")
         profile = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_object,
                              parse_constant=reject_constant)
-    except (ValueError, UnicodeError, RecursionError):
+    except (ValueError, RecursionError):
         raise Refuse(2, "invalid profile JSON; contents omitted") from None
     except OSError:
         raise Refuse(3, "cannot read profile; contents omitted") from None
@@ -214,13 +229,15 @@ def is_managed(name, content):
     return content.startswith(prefix + MANAGED + ";")
 
 
-def write_or_check(output, compiled, check=False):
-    output = Path(output)
+def write_or_check(output, compiled, check=False, root=None):
+    output = confined_path(output, root)
     if output.is_symlink() or (output.exists() and not output.is_dir()):
         raise Refuse(3, "output must be a real directory, not a symlink or file")
     changed = []
     # Preflight every target before writing any file. Unrelated files are untouched.
     for name, desired in compiled.items():
+        if name not in {"AGENTS.md", "hitl.conf", "clipboard.conf", "desktop-instructions.md", "profile-plan.json"}:
+            raise Refuse(3, "unknown generated artifact name; nothing written")
         path = output / name
         if path.is_symlink() or (path.exists() and not path.is_file()):
             raise Refuse(3, "output contains a symlink or non-file target; nothing written")

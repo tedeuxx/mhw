@@ -53,9 +53,13 @@ if ($Overlay -ne 'none' -and (Test-Path -LiteralPath (Join-Path $Overlay 'profil
     $profileArgs = @()
     if ($profilePython.Name -match '^py(\.exe)?$') { $profileArgs += '-3' }
     $profileArgs += @('-B', (Join-Path $scriptDir 'profile\profile.py'), 'check',
-                     '--source', (Join-Path $Overlay 'profile.json'), '--output', $Overlay)
-    & $profilePython.Source @profileArgs
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                     '--source', 'profile.json', '--output', '.')
+    Push-Location -LiteralPath $Overlay
+    try {
+        & $profilePython.Source @profileArgs
+        $profileExit = $LASTEXITCODE
+    } finally { Pop-Location }
+    if ($profileExit -ne 0) { exit $profileExit }
 }
 # Read a source file as bytes with every CRLF turned into LF (a Windows checkout may carry CRLF).
 function Read-LF([string]$path) {
