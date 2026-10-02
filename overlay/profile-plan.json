@@ -32,6 +32,7 @@
     "slash_commands": "preference-only; native command installation remains pending",
     "conversation_cadence": "instruction-only; no universal before-display output gate",
     "token_discipline": "minimum-sufficient context and concise output instructions; no hard token cap",
-    "decision_options": "Claude Code macOS/Linux hook checks the configured option count; other surfaces instruction-only; runtime routing not verified by compilation"
+    "decision_options": "Claude Code macOS/Linux hook checks the configured option count; other surfaces instruction-only; runtime routing not verified by compilation",
+    "desktop_notifications": "intent=essential; instructions compiled; native GUI values require separate application and verification"
   }
 }

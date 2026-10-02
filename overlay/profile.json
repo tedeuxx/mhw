@@ -13,5 +13,6 @@
     "decision_options": 3
   },
   "session_start": { "priority": "balanced" },
+  "desktop": { "notifications": "essential" },
   "surfaces": ["claude-code", "codex", "kiro-cli", "claude-desktop"]
 }

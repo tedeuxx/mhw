@@ -32,6 +32,12 @@ configuration on macOS/Linux. It checks only choice count and single selection; 
 and token discipline remain instructions. Other harnesses have no registered equivalent picker
 guard here. See [ADR-0019](../../docs/adr/0019-paced-conversation-and-three-path-decisions.md).
 
+`desktop.notifications=essential` optionally adds the owner's low-interruption notification intent.
+The compiler distributes instructions, not GUI toggles. The reference Claude account block and its
+permission-request notification switch were applied through the native UI; Codex notification UI
+access is restricted. Native category gaps and the manual step are in
+[ADR-0020](../../docs/adr/0020-desktop-preference-convergence.md).
+
 ## Validate, inspect, generate and check
 
 From the repository root:

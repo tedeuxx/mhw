@@ -138,6 +138,7 @@ def plan(profile):
             "conversation_cadence": "instruction-only; no universal before-display output gate",
             "token_discipline": "minimum-sufficient context and concise output instructions; no hard token cap",
             "decision_options": "Claude Code macOS/Linux hook checks the configured option count; other surfaces instruction-only; runtime routing not verified by compilation",
+            "desktop_notifications": "intent=" + profile.get("desktop", {}).get("notifications", "unselected") + "; instructions compiled; native GUI values require separate application and verification",
         },
     }
 
@@ -164,6 +165,8 @@ def compile_profile(profile):
         discipline.append("- **Input discipline:** retrieve the minimum sufficient context with scoped searches, bounded tool output and targeted excerpts. Reuse verified findings; do not repeatedly load full files, logs or history. Expand reads when correctness requires it. Never silently truncate the owner's request, governing instructions or essential evidence. This is context discipline, not a hard token or spending cap.")
     if interaction.get("decision_options") == 3:
         discipline.append("- **Path decisions:** when escalating a choice of path, use one native multiple-choice question with exactly three authored, mutually exclusive options. Give each a short label and a concise description of risk and expected benefit; recommend one based on the evidence. Prefer distinct conservative, balanced and ambitious paths when meaningful. Never invent unsafe or misleading alternatives: deferral or a reversible investigation may be the third path. Leave the native free-text clarification route available; it is not an authored fourth option. If no picker is available, show three numbered choices and wait. An already-decided action remains one action line; native security approvals retain their own controls.")
+    if profile.get("desktop", {}).get("notifications") == "essential":
+        discipline.append("- **Attention and notifications:** minimize simultaneous information; one point at a time. Prefer notifications only when the owner's decision or action is needed. Do not proactively send routine progress or completion notifications. Keep requested results accessible in the conversation; do not hide blockers or material failures. This instruction does not itself change native desktop notification settings.")
     body = "\n".join([
         "## Owner overlay (generated personal profile)", "",
         "- **Language:** talk to the owner in " + LANGUAGES[locale] + ". Anything published is in "

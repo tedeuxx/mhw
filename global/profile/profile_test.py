@@ -79,6 +79,8 @@ class ProfileTests(unittest.TestCase):
             lambda d: d["interaction"].update(max_question_chars=10001),
             lambda d: d["interaction"].update(decision_options=4),
             lambda d: d["interaction"].update(decision_options=True),
+            lambda d: d.update(desktop={"notifications":"all"}),
+            lambda d: d.update(desktop={}),
             lambda d: d.update(surfaces=[]),
             lambda d: d.update(surfaces=["codex", "codex"]),
             lambda d: d.update(surfaces=[{}]),
@@ -192,6 +194,8 @@ class ProfileTests(unittest.TestCase):
         self.assertIn("not a hard token or spending cap", compiled["AGENTS.md"])
         self.assertIn("Continue routine work already authorized", compiled["desktop-instructions.md"])
         self.assertIn("instruction-only", compiler.plan(owner)["limits"]["conversation_cadence"])
+        self.assertIn("one point at a time", compiled["AGENTS.md"])
+        self.assertIn("intent=essential", compiler.plan(owner)["limits"]["desktop_notifications"])
 
     def test_crlf_output_is_not_false_drift(self):
         compiled = compiler.compile_profile(self.doc)

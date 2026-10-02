@@ -37,6 +37,14 @@
         "priority": { "type": "string", "enum": ["unselected", "balanced", "quality", "speed"] }
       }
     },
+    "desktop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["notifications"],
+      "properties": {
+        "notifications": { "type": "string", "enum": ["essential"] }
+      }
+    },
     "surfaces": {
       "type": "array",
       "minItems": 1,
