@@ -1,6 +1,6 @@
 # 0011 — Clipboard-borne prompts are anonymised and cleaned of employer and client references, automatically
 
-- **Status:** proposed. The requirement is accepted (the owner's words); the mechanism is proposed. The always-on watcher is withdrawn; see the amendment "the always-on watcher is withdrawn" below.
+- **Status:** proposed. The requirement is accepted (the owner's words); the mechanism is proposed. The always-on watcher is withdrawn; see the amendment "the always-on watcher is withdrawn" below. Automatic cleaning of bracketed pastes into harness CLIs is built as a pty wrapper launcher; see the amendment "automatic cleaning at the paste boundary".
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -562,7 +562,10 @@ It was not built, for four reasons, each a measurement still owed:
 
 **What would settle it:** in a throwaway iTerm2 profile, measure the four points above, including that
 the filter is a no-op in a session whose foreground job is not a harness CLI. That is an owner decision
-before a build. Until then the honest state is **block-and-offer, not automatic**.
+before a build. ~~Until then the honest state is **block-and-offer, not automatic**.~~ *(Struck
+2026-10-01: automatic cleaning of bracketed pastes is now built without touching iTerm2, by a pty
+wrapper launcher. See the amendment "automatic cleaning at the paste boundary" below. The iTerm2 route
+stays unbuilt and unmeasured.)*
 
 **The local sanitising proxy (ADR-0003)** could rewrite in flight, but it is out of scope here: its
 Anthropic clause is undecided.
@@ -616,11 +619,129 @@ Anthropic clause is undecided.
 1. Re-run `global/install.sh`. It removes the watcher's plist, which is already booted out, and installs
    the filter.
 2. In Codex, open `/hooks` and trust the paste-filter entry. The installer writes no trust state.
-3. Decide whether the iTerm2 route above should be measured and built.
+3. ~~Decide whether the iTerm2 route above should be measured and built.~~ *(Struck 2026-10-01: the
+   owner decided cleaning must be automatic, and it was built at the CLI session's paste boundary
+   instead. See the next amendment.)*
 
 ### Version cut (ADR-0002)
 
 **Major:** it removes a shipped control (the watcher, and its LaunchAgent target).
+
+## Amendment 2026-10-01: automatic cleaning at the paste boundary, by a pty wrapper launcher
+
+**Status unchanged: proposed.** This amendment adds a mechanism. The prompt hook above stays, unchanged
+in what it blocks, as the backstop.
+
+### The owner's words, verbatim
+
+On Issue #5, asked whether block-and-resubmit is enough or whether pasted text must arrive already
+clean (<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5942908336>):
+
+> *"tem que ser limpo sozinho"* ("it has to be cleaned by itself")
+
+It is still bounded by the two lines quoted in the previous amendment: *"nao deve impactar nenhum outro
+app ou ux do so"* and *"eu so quero filtrar o copy paste ao interagir com clis de harness"*.
+
+### Decision: a launcher that cleans bracketed pastes before the CLI sees them
+
+`global/clipboard/paste_wrapper.py` (stdlib, the same `/usr/bin/python3`, the same detection core):
+
+- **How.** It starts the CLI as a child on a pseudo-terminal and relays every byte both ways. The
+  harness TUIs turn on bracketed paste (DEC mode 2004), so the terminal wraps every paste in
+  `ESC[200~` … `ESC[201~`. Inside those markers the wrapper replaces each finding with
+  `[REDACTED:<category>]` and forwards the cleaned payload, still bracketed. The CLI never receives
+  the original.
+- **Everything else is untouched.** Typed input and pastes with no finding reach the CLI byte for
+  byte. The CLI's output reaches the terminal byte for byte. Window size (SIGWINCH), SIGTERM, SIGHUP,
+  SIGINT and SIGQUIT, job control (the CLI stops, so the launcher stops and gives the shell back),
+  the exit status (128+n on death by signal) and the terminal's modes are relayed or restored.
+- **Scope is the session it wraps, nothing else.** It reads no clipboard and writes no file. It shows
+  no dialog or notification, needs no OS permission, and changes no terminal preference. Without a
+  terminal on both stdin and stdout (a pipe or a script), it `exec`s the real CLI and steps aside.
+- **Activation is the owner's act.** The installer writes the wrapper and a managed snippet,
+  `<data dir>/paste-filter.sh`, beside the core. The snippet defines `claude`, `codex` and `kiro-cli`
+  shell functions (zsh and bash) that run the CLI through the wrapper. The installer never sources it
+  and never edits a shell rc: it prints the `. "<data dir>/paste-filter.sh"` line for the owner to add.
+  `command claude` bypasses it.
+- **Fail direction.** A single paste fails **closed**. One over `max_bytes`, or one the core raised
+  on, is replaced by a one-line notice in the CLI's input and is not forwarded. The session fails
+  **open, visibly**. If the CLI has not enabled bracketed paste within 5 seconds, a pasted text cannot
+  be told from typing. The wrapper then cleans nothing and writes one warning line, and repeats it at
+  exit.
+- **What the owner sees.** Every notice is category only:
+  - the `[REDACTED:<category>]` markers, in the CLI's input, as soon as he pastes;
+  - on submit, the prompt hook's `systemMessage` naming the categories of any markers in the prompt
+    (new in this amendment);
+  - at exit, one summary line: how many pastes were cleaned and which categories.
+
+  Nothing is written into the TUI's screen area while it runs, except the no-bracketed-paste warning:
+  a line written there would corrupt a full-screen TUI's drawing. *That* corruption is reasoned, not
+  measured.
+- **Notices** are configurable keys in `clipboard.conf` like the hook's, translated in the overlay.
+
+### Measured, 2026-10-01
+
+| What | Evidence | Result |
+| --- | --- | --- |
+| Claude Code 2.1.287 enables bracketed paste | **measured**: the TUI started on a pty in a throwaway `HOME`, with no auth and no config, at its onboarding screen; output captured for 8 s | `ESC[?2004h` at 0.48 s |
+| Codex CLI 0.155.0-alpha.16.3 enables bracketed paste | **measured**: same, in a throwaway `CODEX_HOME`, at its sign-in screen | `ESC[?2004h` at 0.016 s |
+| Kiro CLI | **not measured**: `kiro-cli` is not installed on the reference machine | The wrapper's no-bracketed-paste warning is what would reveal a Kiro CLI that does not enable it |
+| Transport, a synthetic paste reaches the child redacted | **tested**, `paste_wrapper_test.py`: a real wrapper process between a pty the suite owns and a recorder child that writes every byte it receives to a file | A synthetic term, an AWS-shaped key and an e-mail arrive as three markers. No original appears in what the child received or in the terminal output. A clean paste and every typed byte value (0x00 to 0xFF except ESC and the test's sentinel, plus arrow keys) arrive byte for byte |
+| Real Claude Code, a synthetic paste through the wrapper | **measured**: throwaway `HOME` pre-seeded past onboarding and trust, with a dummy API key pre-approved. One paste on one line and one on three lines, each with an AWS-shaped key and an e-mail. Then Ctrl+C to quit; **nothing was submitted** | The input box rendered `[REDACTED:credential]` and `[REDACTED:email]`. The three-line paste stayed in the input, unsubmitted. Neither original appeared in the terminal output. `grep -r` of the throwaway `HOME` found no copy of the e-mail. The exit summary was printed. **Not quota-free in the strict sense:** Claude Code made one startup request (remote settings), which the dummy key got rejected with 401. No prompt was sent |
+| Real Codex CLI, the same | **measured**: throwaway `CODEX_HOME` with a dummy `auth.json` and the work directory trusted; the same two pastes; quit with Ctrl+C, nothing submitted | Same result: markers rendered, multi-line kept in the input, no original in the output or in the throwaway home |
+| Latency added per paste | **tested** against the same child on a bare pty, with a term list loaded, median of 7, Apple Silicon, `/usr/bin/python3` 3.9.6 | Typed key: no measurable difference (0.6 ms both). 1 KB paste: +3.2 ms. 100 KB paste: +326 ms. At the core's measured 3.2 s per MB, a 1 MB paste stalls the session for about 3 s; all relaying waits while a paste is scanned |
+| CLI without bracketed paste | **tested** with a child that never enables it | One warning line after the grace period; the "paste" passes as typing, uncleaned |
+
+**Mutation-checked** (the source mutated, the suite run, the source restored, the tree confirmed
+clean). Each of these seven mutants turned at least one test red:
+
+1. forwarding the raw paste instead of the cleaned one;
+2. no hold for a paste-start marker split across reads;
+3. the window size not relayed;
+4. an oversized paste forwarded unchecked;
+5. the terminal modes not restored on exit;
+6. the launcher not stopping with the CLI;
+7. no warning when the CLI never enables bracketed paste.
+
+### Limits, stated rather than hidden
+
+- **Only bracketed pastes are cleaned.** Typed text is never scanned by the wrapper (the hook still
+  scans it on submit). A paste while the CLI has bracketed paste off is not cleaned. While the CLI hands
+  the terminal to another program (an external editor, a shell escape), that program's own mode decides.
+- **What does not pass through the terminal as a paste is not seen.** That covers a file attached by
+  path, `@file` references and anything else the CLI reads from disk itself, and an image pasted into
+  Claude Code, which reads the clipboard itself. A dragged file's **path** is just text; its
+  **contents** are not scanned. Whether iTerm2 brackets a drag-and-drop is *not measured*.
+- **IME and other input methods** deliver composed text as typing, not as a paste: not cleaned.
+- **Multi-line pastes are kept intact** (measured on both CLIs). A paste whose end marker does not
+  arrive within 2 s of silence is closed and cleaned as it stands; anything after that flows as typing,
+  uncleaned. Terminal "paste slowly" modes are *not measured*.
+- **A lone Escape key press is delayed by up to 25 ms.** It might be the start of a paste marker. The
+  bytes are unchanged.
+- **Only sessions started through the snippet's functions are covered.** Not covered: `command claude`,
+  a full path, another shell, an alias defined after the snippet, scripts, the IDE extensions, the
+  desktop apps and Cowork, Kiro IDE, and cloud surfaces.
+- **The salt is read once, at session start.** It uses the same gated, bounded, non-interactive read as
+  the hook. A term added mid-session applies from the next session. A locked keychain at start means
+  no term matching for that session, with a warning.
+- **Where the wrapper runs, the ADR-0008 residual closes for wrapped bracketed pastes.** The CLI only
+  ever receives the redacted text, so its transcript, history and paste cache hold that. Measured by
+  `grep` in the two throwaway homes above. It does not close for typed text or for the routes above.
+- **Windows: not built** (the Python standard library has no Unix pty there). **Linux:** the suite runs
+  in CI on Ubuntu; no real CLI was measured on Linux.
+- **The `kiro-cli` function name holds a hyphen.** zsh and bash accept it; a strict POSIX `sh` does not.
+
+### Owner acts
+
+1. Re-run `global/install.sh` (it writes the wrapper and the snippet).
+2. Add the line it prints, `. "<data dir>/paste-filter.sh"`, to `~/.zshrc` yourself, and open a new
+   terminal.
+3. Optionally, paste a synthetic e-mail into `claude` and check that `[REDACTED:email]` is what
+   appears.
+
+### Version cut (ADR-0002)
+
+**Minor:** it adds a control and removes none.
 
 ## Links
 
