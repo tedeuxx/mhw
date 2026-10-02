@@ -67,13 +67,14 @@ def fingerprint(paths):
     return digest(json.dumps(records))
 
 
-def decide(event, harness, home, data):
+def decide(event, harness, home, data, cwd=None):
     name = event.get("hook_event_name")
     if name not in ("SessionStart", "PreToolUse"):
         return None
     session = event.get("session_id")
-    cwd = event.get("cwd")
-    if not isinstance(session, str) or not session or not isinstance(cwd, str) or not cwd:
+    # The hook process's working directory is authoritative. Never probe a path supplied in stdin.
+    cwd = Path.cwd() if cwd is None else cwd
+    if not isinstance(session, str) or not session:
         return False
     state_dir = data / "restart-state"
     if state_dir.is_symlink():

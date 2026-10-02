@@ -21,13 +21,17 @@ class RestartTests(unittest.TestCase):
         self.addCleanup(env.stop)
 
     def call(self, event=None, harness="claude-code"):
-        return guard.decide(self.event if event is None else event, harness, self.home, self.data)
+        return guard.decide(self.event if event is None else event, harness, self.home, self.data, self.root)
 
     def pre(self):
         return dict(self.event, hook_event_name="PreToolUse")
 
     def test_missing_baseline_blocks(self):
         self.assertFalse(self.call(self.pre()))
+
+    def test_event_cwd_cannot_select_a_filesystem_path(self):
+        self.assertTrue(self.call(dict(self.event, cwd="/untrusted/event/path")))
+        self.assertTrue(self.call(dict(self.pre(), cwd="/different/event/path")))
 
     def test_each_cli_detects_user_and_workspace_changes(self):
         for harness, (folder, names) in guard.NATIVE.items():

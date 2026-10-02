@@ -50,6 +50,10 @@ hooks are outside coverage. This is not tamper-resistant managed policy. Opaque 
 automatically pruned because deleting it would block a still-live session; remove it only when those
 sessions have ended.
 
+The hook process's working directory selects the workspace; a `cwd` value in the event payload is
+ignored. Native verification must confirm the vendor runs hooks from that workspace. An unexpected
+execution directory is a coverage gap, not evidence that a caller-supplied path should be trusted.
+
 | Surface / OS | Carrier | Evidence / remaining boundary |
 | --- | --- | --- |
 | Claude Code, macOS/Linux | User brief + native hook registration | Synthetic pass/block and installer tests; fresh native canary still required |

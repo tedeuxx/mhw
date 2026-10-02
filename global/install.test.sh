@@ -18,12 +18,13 @@ expect() { # $1 description, $2 expected exit, $3 actual exit
 
 data() { echo "$1/.local/share/personal-multi-harness-workstation-configuration"; }
 targets() {
-  echo "$1/.claude/CLAUDE.md $1/.codex/AGENTS.md $1/.kiro/steering/workstation-global-brief.md"
-  echo "$(data "$1")/hitl-escalation-guard.sh $(data "$1")/hitl.conf $1/.claude/settings.json"
-  echo "$1/.codex/rules/workstation-deny-floor.rules"
-  echo "$(data "$1")/clipboard_guard.py $(data "$1")/clipboard.conf $1/.codex/hooks.json"
-  echo "$(data "$1")/paste_wrapper.py $(data "$1")/paste-filter.sh"
-  echo "$(data "$1")/restart_guard.py"
+  targets_home=$1
+  echo "$targets_home/.claude/CLAUDE.md $targets_home/.codex/AGENTS.md $targets_home/.kiro/steering/workstation-global-brief.md"
+  echo "$(data "$targets_home")/hitl-escalation-guard.sh $(data "$targets_home")/hitl.conf $targets_home/.claude/settings.json"
+  echo "$targets_home/.codex/rules/workstation-deny-floor.rules"
+  echo "$(data "$targets_home")/clipboard_guard.py $(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
+  echo "$(data "$targets_home")/paste_wrapper.py $(data "$targets_home")/paste-filter.sh"
+  echo "$(data "$targets_home")/restart_guard.py"
 }
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
@@ -108,14 +109,14 @@ for harness in claude-code codex; do
   restart_workspace="$base/restart-$harness"
   mkdir -p "$restart_workspace/.git"
   jq -cn --arg cwd "$restart_workspace" '{hook_event_name:"SessionStart",source:"startup",session_id:"installed-test",cwd:$cwd}' |
-    HOME="$h" sh -c "$start_cmd" > "$base/restart-start.out"
+    (cd "$restart_workspace" && HOME="$h" sh -c "$start_cmd") > "$base/restart-start.out"
   jq -cn --arg cwd "$restart_workspace" '{hook_event_name:"PreToolUse",session_id:"installed-test",cwd:$cwd}' > "$base/restart-event.json"
-  HOME="$h" sh -c "$pre_cmd" < "$base/restart-event.json" > "$base/restart-pre.out"
+  (cd "$restart_workspace" && HOME="$h" sh -c "$pre_cmd") < "$base/restart-event.json" > "$base/restart-pre.out"
   if [ ! -s "$base/restart-start.out" ] && [ ! -s "$base/restart-pre.out" ]; then
     ok "$harness installed restart command permits a clean baseline"
   else ko "$harness installed restart command rejected a clean baseline"; fi
   echo 'synthetic update' > "$restart_workspace/AGENTS.md"
-  HOME="$h" sh -c "$pre_cmd" < "$base/restart-event.json" > "$base/restart-pre.out"
+  (cd "$restart_workspace" && HOME="$h" sh -c "$pre_cmd") < "$base/restart-event.json" > "$base/restart-pre.out"
   if jq -e '.hookSpecificOutput.permissionDecision == "deny"' "$base/restart-pre.out" >/dev/null; then
     ok "$harness installed restart command denies changed workspace configuration"
   else ko "$harness installed restart command did not deny drift"; fi

@@ -224,11 +224,12 @@ render() {
       } > "$2"
       ;;
     restartscript)
+      restart_output=$2
       {
         sed -n 1p "$restart_src"
         printf '# %s; source: global/hooks/restart_guard.py; do not edit, re-run the installer\n' "$MARKER_ID"
         sed 1d "$restart_src"
-      } > "$2"
+      } > "$restart_output"
       ;;
     clipconf)
       {
