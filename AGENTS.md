@@ -230,6 +230,8 @@ from here now, and at what evidence level:
   ([Issue #5](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5942877343)).
   On Codex it runs only after the owner trusts it in `/hooks`; that trust is not recorded. It blocks
   and shows a redacted copy; it does not clean automatically.
+  *Amended 2026-10-04:* on Claude Code on the reference machine it was *measured* blocking a prompt
+  carrying a synthetic example credential. Codex on the reference machine is not re-measured.
 - **Paste wrapper** (ADR-0011, amendment "automatic cleaning at the paste boundary", macOS and Linux):
   a pty launcher for `claude`, `codex` and `kiro-cli`. It **cleans** bracketed pastes before the CLI
   sees them and passes typing through byte for byte. It is *written and tested* (Ubuntu and macOS in
@@ -260,7 +262,10 @@ from here now, and at what evidence level:
   `--check` exits 0). On Claude Code the runbook canary passed in a fresh session: a declared session
   type was accepted without a picker, the restart guard created its baseline, `Read` after a `cd`
   passed and `/breaking-glass status` reported every layer active. That is *loaded* with the pass
-  path measured; no deny was provoked, so *enforced* is not re-measured on this machine.
+  path measured; ~~no deny was provoked, so *enforced* is not re-measured on this machine.~~
+  *Amended 2026-10-04, Claude Code block path:* on the reference machine the restart guard denied a
+  tool call with `fingerprint_mismatch` after tracked configuration changed within the session. The
+  restart guard's pass and block paths are therefore *measured* (*enforced*) on Claude Code here.
   *Amended 2026-10-04, Codex:* an immediately preceding session in a disposable worktree observed the
   first covered command denied with `fingerprint_mismatch`, proving managed hook routing and the deny
   path. A genuinely new session opened directly in that worktree then accepted the declared type
