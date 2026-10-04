@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import breaking_glass as bg  # noqa: E402
@@ -218,6 +219,22 @@ class StatusTest(unittest.TestCase):
         self.assertIn("| `restart-guard` | 🟢 ativa | claude:admin |", md)
         self.assertIn("🟡 sem registro", md)
         self.assertNotIn("\033[", md)
+
+    def test_auto_colour_needs_a_terminal_and_honours_no_color(self):
+        self.assertTrue(bg._use_color("always"))
+        self.assertFalse(bg._use_color("never"))
+        saved = os.environ.pop("NO_COLOR", None)
+        try:
+            with mock.patch.object(sys.stdout, "isatty", return_value=False):
+                self.assertFalse(bg._use_color("auto"))
+            with mock.patch.object(sys.stdout, "isatty", return_value=True):
+                self.assertTrue(bg._use_color("auto"))
+                os.environ["NO_COLOR"] = "1"
+                self.assertFalse(bg._use_color("auto"))
+        finally:
+            os.environ.pop("NO_COLOR", None)
+            if saved is not None:
+                os.environ["NO_COLOR"] = saved
 
     def test_always_on_controls_report_briefs_and_rules(self):
         self.put(self.home / ".claude/CLAUDE.md", "# %s; source: x\nbrief\n" % bg.MARKER)
