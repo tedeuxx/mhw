@@ -12,7 +12,16 @@ from pathlib import Path
 import sys
 import tempfile
 
-MESSAGE = "Reinício necessário: a configuração do harness mudou ou esta sessão não tem uma referência de início válida. Interrompa o trabalho e abra uma nova sessão; não use resume, clear ou compact como substituto. Nenhum conteúdo de configuração foi registrado."
+MESSAGE = "Reinício necessário. Interrompa o trabalho e abra uma nova sessão; não use resume, clear ou compact como substituto. Nenhum conteúdo de configuração foi registrado."
+REASONS = {
+    "missing_baseline": "Referência de início ausente para esta sessão; a execução do SessionStart não foi comprovada.",
+    "fingerprint_mismatch": "O fingerprint agregado diverge da referência. O estado não permite identificar qual path mudou.",
+    "invalid_baseline": "A referência de início está inválida; não foi substituída.",
+    "invalid_session": "O evento não forneceu um identificador de sessão válido.",
+    "unsafe_state": "O local de estado é um link simbólico; acesso recusado.",
+    "guard_error": "Não foi possível verificar ou gravar a referência de início.",
+}
+ALLOWED = ("baseline_created", "baseline_match", "ignored")
 NATIVE = {
     "claude-code": (".claude", ["CLAUDE.md", "settings.json", "settings.local.json", "agents", "commands", "hooks", "skills", "plugins/installed_plugins.json"]),
     "codex": (".codex", ["AGENTS.md", "config.toml", "hooks.json", "rules", "skills"]),
@@ -67,23 +76,23 @@ def fingerprint(paths):
     return digest(json.dumps(records))
 
 
-def decide(event, harness, home, data, cwd=None):
+def evaluate(event, harness, home, data, cwd=None, create_baseline=True):
     name = event.get("hook_event_name")
     if name not in ("SessionStart", "PreToolUse"):
-        return None
+        return "ignored"
     session = event.get("session_id")
     # The hook process's working directory is authoritative. Never probe a path supplied in stdin.
     cwd = Path.cwd() if cwd is None else cwd
     if not isinstance(session, str) or not session:
-        return False
+        return "invalid_session"
     state_dir = data / "restart-state"
     if state_dir.is_symlink():
-        return False
+        return "unsafe_state"
     state = state_dir / (harness + "-" + digest(session) + ".json")
     if state.is_symlink():
-        return False
-    current = fingerprint(watched(harness, cwd, home, data))
-    if name == "SessionStart" and event.get("source") == "startup" and not state.exists():
+        return "unsafe_state"
+    if create_baseline and name == "SessionStart" and event.get("source") == "startup" and not state.exists():
+        current = fingerprint(watched(harness, cwd, home, data))
         state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         temporary = None
         try:
@@ -94,24 +103,47 @@ def decide(event, harness, home, data, cwd=None):
         finally:
             if temporary and temporary.exists():
                 temporary.unlink()
-        return True
+        return "baseline_created"
     if not state.exists():
-        return False
-    return json.loads(state.read_text(encoding="utf-8")).get("fingerprint") == current
+        return "missing_baseline"
+    try:
+        saved = json.loads(state.read_text(encoding="utf-8"))
+    except (ValueError, UnicodeError):
+        return "invalid_baseline"
+    value = saved.get("fingerprint") if isinstance(saved, dict) else None
+    if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+        return "invalid_baseline"
+    current = fingerprint(watched(harness, cwd, home, data))
+    return "baseline_match" if value == current else "fingerprint_mismatch"
 
 
-def output(event, allowed):
-    if allowed is not False:
+def inspect(event, harness, home, data, cwd=None):
+    """Read-only comparison: cannot establish a baseline, even for a startup event."""
+    return evaluate(event, harness, home, data, cwd, create_baseline=False)
+
+
+def decide(event, harness, home, data, cwd=None):
+    """Boolean interface for the shared core tests; native output uses the reason code."""
+    status = evaluate(event, harness, home, data, cwd)
+    return None if status == "ignored" else status in ALLOWED
+
+
+def output(event, status):
+    if status in ("baseline_created", "baseline_match") and event.get("hook_event_name") == "SessionStart":
+        return {"systemMessage": "Restart guard: " + status + "."}
+    if status in ALLOWED:
         return {}
+    message = "Restart guard [" + status + "]: " + REASONS[status] + " " + MESSAGE
     if event.get("hook_event_name") == "PreToolUse":
-        return {"systemMessage": MESSAGE, "hookSpecificOutput": {
-            "hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": MESSAGE}}
-    return {"continue": False, "stopReason": MESSAGE, "systemMessage": MESSAGE}
+        return {"systemMessage": message, "hookSpecificOutput": {
+            "hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": message}}
+    return {"continue": False, "stopReason": message, "systemMessage": message}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--harness", required=True, choices=NATIVE)
+    parser.add_argument("--diagnose", action="store_true", help="Read-only status for session_id on stdin; never creates or resets state")
     args = parser.parse_args()
     event = {}
     try:
@@ -120,13 +152,19 @@ def main():
             event = {}
         home = Path.home()
         data = Path(os.environ.get("XDG_DATA_HOME", str(home / ".local/share"))) / "personal-multi-harness-workstation-configuration"
-        allowed = decide(event, args.harness, home, data)
+        if args.diagnose:
+            event = {"hook_event_name": "PreToolUse", "session_id": event.get("session_id")}
+        status = evaluate(event, args.harness, home, data, create_baseline=not args.diagnose)
     except (OSError, ValueError, KeyError, RecursionError):
-        allowed = False
-    result = output(event, allowed)
+        status = "guard_error"
+    if args.diagnose:
+        print(json.dumps({"status": status}))
+        return 0 if status == "baseline_match" else 1
+    result = output(event, status)
     if result:
         print(json.dumps(result, ensure_ascii=False))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

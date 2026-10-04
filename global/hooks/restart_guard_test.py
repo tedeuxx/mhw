@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -28,6 +31,62 @@ class RestartTests(unittest.TestCase):
 
     def test_missing_baseline_blocks(self):
         self.assertFalse(self.call(self.pre()))
+
+    def test_diagnostics_distinguish_absent_changed_and_invalid_state(self):
+        def status():
+            return guard.inspect(self.pre(), "claude-code", self.home, self.data, self.root)
+        self.assertEqual(status(), "missing_baseline")
+        self.assertFalse(self.data.exists())
+        self.assertTrue(self.call())
+        self.assertEqual(status(), "baseline_match")
+        (self.root / "CLAUDE.md").write_text("synthetic change")
+        self.assertEqual(status(), "fingerprint_mismatch")
+        state = next((self.data / "restart-state").glob("*.json"))
+        for malformed in ("[]", "null", "{}", '{"fingerprint": 12}', "not json"):
+            state.write_text(malformed)
+            self.assertEqual(status(), "invalid_baseline")
+            self.assertFalse(self.call(self.pre()))
+
+    def test_native_output_identifies_the_guard_and_reason(self):
+        missing = guard.output(self.pre(), "missing_baseline")
+        changed = guard.output(self.pre(), "fingerprint_mismatch")
+        self.assertNotEqual(missing, changed)
+        self.assertIn("missing_baseline", missing["hookSpecificOutput"]["permissionDecisionReason"])
+        self.assertIn("fingerprint_mismatch", changed["hookSpecificOutput"]["permissionDecisionReason"])
+        created = guard.output(self.event, "baseline_created")
+        self.assertIn("baseline_created", created["systemMessage"])
+        self.assertEqual(guard.output(self.pre(), "baseline_match"), {})
+
+    def test_malformed_state_denies_instead_of_raising(self):
+        self.assertTrue(self.call())
+        state = next((self.data / "restart-state").glob("*.json"))
+        for malformed in ("[]", "null", "not json"):
+            state.write_text(malformed)
+            self.assertFalse(self.call(self.pre()))
+            self.assertEqual(state.read_text(), malformed)
+
+    def test_diagnostics_do_not_replace_stale_or_missing_startup_state(self):
+        self.assertEqual(guard.inspect(self.event, "claude-code", self.home, self.data, self.root), "missing_baseline")
+        self.assertFalse(self.data.exists())
+        self.assertTrue(self.call())
+        state = next((self.data / "restart-state").glob("*.json"))
+        before = (state.read_bytes(), state.stat().st_mtime_ns)
+        (self.root / "CLAUDE.md").write_text("synthetic change")
+        self.assertEqual(guard.inspect(self.event, "claude-code", self.home, self.data, self.root), "fingerprint_mismatch")
+        self.assertEqual((state.read_bytes(), state.stat().st_mtime_ns), before)
+
+    def test_diagnose_cli_never_creates_baseline_even_for_startup_payload(self):
+        env = dict(os.environ, HOME=str(self.home), USERPROFILE=str(self.home),
+                   XDG_DATA_HOME=str(self.home / "diagnostic-data"))
+        result = subprocess.run(
+            [sys.executable, "-B", str(Path(guard.__file__).resolve()),
+             "--harness", "claude-code", "--diagnose"],
+            input=json.dumps(self.event), text=True, capture_output=True,
+            cwd=self.root, env=env, check=False)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout), {"status": "missing_baseline"})
+        self.assertFalse((self.home / "diagnostic-data").exists())
+        self.assertEqual(result.stderr, "")
 
     def test_event_cwd_cannot_select_a_filesystem_path(self):
         self.assertTrue(self.call(dict(self.event, cwd="/untrusted/event/path")))
@@ -72,9 +131,9 @@ class RestartTests(unittest.TestCase):
         self.assertFalse(self.call())
 
     def test_output_blocks_tools_and_session_without_payload(self):
-        self.assertEqual(guard.output(self.pre(), False)["hookSpecificOutput"]["permissionDecision"], "deny")
-        self.assertFalse(guard.output(self.event, False)["continue"])
-        self.assertEqual(guard.output(self.pre(), True), {})
+        self.assertEqual(guard.output(self.pre(), "missing_baseline")["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertFalse(guard.output(self.event, "missing_baseline")["continue"])
+        self.assertEqual(guard.output(self.pre(), "baseline_match"), {})
 
 
 if __name__ == "__main__":

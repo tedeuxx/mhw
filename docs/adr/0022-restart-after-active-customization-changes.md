@@ -88,6 +88,17 @@ unhooked prose; changing the hook registration itself may need restart before th
 An installer warning and the user-level instruction cover that bootstrap boundary without claiming
 technical enforcement there.
 
+### 2026-10-02 diagnostic correction (no change to the restart requirement)
+
+The initial refusal did not distinguish an absent baseline from an aggregate mismatch. The guard
+now emits separate stable reason codes, acknowledges its own SessionStart baseline creation or
+validation, and provides a read-only `--diagnose` command. That command never creates or replaces
+state. Malformed baseline JSON is explicitly refused instead of escaping as an unhandled exception.
+The aggregate-only format, watched paths, native trust boundary and no-reset rule are unchanged.
+The historical first-tool refusal remains unattributed: no exact affected session ID or native
+startup trace was available. Plugin drift is not established as its cause. See the
+[diagnostic evidence and fresh-session procedure](../restart-guard-diagnosis.md).
+
 ## Links
 
 - [Claude hooks](https://code.claude.com/docs/en/hooks)

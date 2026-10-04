@@ -112,7 +112,7 @@ for harness in claude-code codex; do
     (cd "$restart_workspace" && HOME="$h" sh -c "$start_cmd") > "$base/restart-start.out"
   jq -cn --arg cwd "$restart_workspace" '{hook_event_name:"PreToolUse",session_id:"installed-test",cwd:$cwd}' > "$base/restart-event.json"
   (cd "$restart_workspace" && HOME="$h" sh -c "$pre_cmd") < "$base/restart-event.json" > "$base/restart-pre.out"
-  if [ ! -s "$base/restart-start.out" ] && [ ! -s "$base/restart-pre.out" ]; then
+  if jq -e '.systemMessage == "Restart guard: baseline_created."' "$base/restart-start.out" >/dev/null && [ ! -s "$base/restart-pre.out" ]; then
     ok "$harness installed restart command permits a clean baseline"
   else ko "$harness installed restart command rejected a clean baseline"; fi
   echo 'synthetic update' > "$restart_workspace/AGENTS.md"
