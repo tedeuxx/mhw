@@ -1,9 +1,11 @@
 # Workspace session lifecycle
 
 The workstation's managed global brief recognizes `workspace/session-policy.json`. On each new
-session in this repository, ask one native picker: **Melhoria de harness** or **Bugfix**, header
-`Session type`. These two options are a specific exception to the general three-path preference.
-Wait for the owner. Resume/compaction does not restart intake; ongoing sessions retain their context.
+session in this repository, a type the owner declares explicitly in his first prompt (**Melhoria de
+harness** or **Bugfix**, or the mode name) is accepted and confirmed in one line, with no picker
+(`entry_declared_in_first_prompt: accept`). A type is never inferred from the task. Only when none is
+declared, ask one native picker: **Melhoria de harness** or **Bugfix**, header `Session type`. These
+two options are a specific exception to the general three-path preference. Wait for the owner. Resume/compaction does not restart intake; ongoing sessions retain their context.
 Do not write prompts, answers or transcripts to a session ledger.
 
 Claude Code has a project SessionStart reminder and `/session-start`, `/session-finish` commands.
@@ -25,7 +27,9 @@ conversational pause. Finish its coherent scope, then:
 3. After CI finishes, run `python3 -B workspace/delivery.py merge --pr NUMBER`. It refuses dirty
    workspaces, a different/unpushed head, a stale base, missing labels and incomplete or failed checks.
    The stable `delivery-ci` job requires every test matrix to pass; the semver and Sonar checks must
-   also be present and successful. A Sonar check not yet registered is pending, not permission to
+   also be present and successful. Only the most recent run of each check on the head counts: a
+   re-run that passed supersedes an older failure of the same check, and a newer failed or still
+   running re-run blocks. A Sonar check not yet registered is pending, not permission to
    race ahead of analysis. No force push or admin bypass.
 4. `version-main` bumps with bump-my-version, atomically pushes the bump commit and numeric tag, and
    creates a published GitHub Release in the same CI job. Tag-triggered downstream workflows are not

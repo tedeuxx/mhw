@@ -83,3 +83,33 @@ context; no prompt, answer, sensitive detection record or transcript is persiste
 
 Vendor documentation checked 2026-10-02. No new minimum harness version or universal hook coverage
 is claimed. The existing current session is not restarted for an intake choice introduced mid-session.
+
+## Amendment 2026-10-04: a type declared in the first prompt is accepted without the picker
+
+**Owner decision (2026-10-04).** The session type the owner declares explicitly in his first prompt
+is accepted as given. The `Session type` picker is now the fallback, shown only when no type was
+declared. This narrows the intake above: ~~an initial choice between harness improvement and bugfix
+on every new workspace session~~ an initial session type on every new workspace session, taken from
+the first prompt when declared there and asked with the two-choice picker otherwise.
+
+- **Why.** A first prompt that already says `Melhoria de harness` (or `Bugfix`) made the picker a
+  repeated question with a known answer, an interruption against the paced-conversation profile
+  (ADR-0019) that added no information.
+- **What counts as declared.** An explicit statement of one label (`Melhoria de harness`, `Bugfix`)
+  or mode name (`improvement`, `bugfix`). The agent confirms it in one line. A type is never inferred
+  from the task described, and a preselected default is still forbidden: with no declaration, the
+  picker runs and the agent waits.
+- **Carriers changed together.** `workspace/session-policy.json` gains
+  `"entry_declared_in_first_prompt": "accept"` (schema version stays 1: the field is additive),
+  and the same rule is written into `AGENTS.md`, `CLAUDE.md`, the Claude Code SessionStart reminder
+  (`workspace/startup.py`), the `/session-start` command and its Codex skill copy, the Kiro steering
+  file, `workspace/README.md` and the global brief (`global/AGENTS.md`, rendered into
+  `overlay/desktop-instructions.md`).
+- **Unchanged.** The two-choice picker exception of ADR-0013 and the configured `intake_exception`
+  of [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md) stay as they are: when the picker is
+  shown it is still exactly two labels in order. Resume and compaction still do not restart intake.
+- **Evidence level.** *Written and tested*: `workspace/delivery_test.py` asserts the policy field,
+  the SessionStart context and that every carrier states the declared-type rule. The SessionStart
+  hook fires before the first prompt exists, so honouring a declaration is instruction-following, not
+  a mechanical check. The user-level briefs change on the reference machine only when the owner
+  reinstalls; until then the installed global brief still carries the picker-first wording.
