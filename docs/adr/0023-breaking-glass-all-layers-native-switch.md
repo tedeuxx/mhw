@@ -1,10 +1,10 @@
-# ADR-0023: Emergency mode: v1 hooks disabled through each harness's native switch
+# ADR-0023: Total breaking glass: every hook layer off through each harness's native switch
 
-- **Status:** proposed (emergency measure in force on the reference workstation since 2026-10-04)
+- **Status:** proposed (total breaking glass in force on the reference workstation since 2026-10-04)
 - **Date:** 2026-10-04
 - **Amends:** [ADR-0013](0013-hitl-escalation-calibration.md), [ADR-0011](0011-clipboard-prompt-anonymisation.md),
   [ADR-0022](0022-restart-after-active-customization-changes.md) (their hook controls are suspended, not withdrawn)
-- **Runbook:** [`docs/runbooks/emergency-mode.md`](../runbooks/emergency-mode.md)
+- **Runbook:** [`docs/runbooks/breaking-glass.md`](../runbooks/breaking-glass.md)
 
 ## Context and problem
 
@@ -36,7 +36,7 @@ depend on hooks.
    example the owner's plugin permission guard) are off too, and the paste filter is off with the
    faulty guards.
 2. **Remove only the faulty hook entries.** Keeps the paste filter and plugin hooks running. Rejected
-   for the emergency: it edits installer-managed files by hand (drift from source), and in Codex a
+   for a total breaking glass: it edits installer-managed files by hand (drift from source), and in Codex a
    changed hook definition needs re-trust through `/hooks`, an owner act. It is the right shape for
    the permanent fix, which ADR-0024 will design as per-layer switches.
 3. **Uninstall v1.** Rejected: it would also remove the brief and the deny floor, which work.
@@ -75,6 +75,6 @@ hook (ADR-0011), and any plugin hook, including the plugin's permission guard.
 
 ## Links
 
-- Runbook: [`docs/runbooks/emergency-mode.md`](../runbooks/emergency-mode.md)
+- Runbook: [`docs/runbooks/breaking-glass.md`](../runbooks/breaking-glass.md)
 - Codex hooks documentation (feature key `hooks`, deprecated alias `codex_hooks`)
 - Kiro hooks documentation (project `.kiro/hooks/`, per-hook `enabled`)

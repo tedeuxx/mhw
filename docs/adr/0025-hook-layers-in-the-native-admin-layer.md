@@ -5,7 +5,7 @@
 - **Amends:** [ADR-0013](0013-hitl-escalation-calibration.md), [ADR-0022](0022-restart-after-active-customization-changes.md),
   [ADR-0011](0011-clipboard-prompt-anonymisation.md) (where their hooks are registered, and two v1 defects)
 - **Builds on:** [ADR-0024](0024-breaking-glass-per-layer-expiring-switches.md) (switches);
-  **supersedes once installed and verified:** [ADR-0023](0023-emergency-mode-v1-hooks-disabled.md)
+  **ends, once installed and verified,** the total breaking glass of [ADR-0023](0023-breaking-glass-all-layers-native-switch.md)
 
 ## Context and problem
 
@@ -77,7 +77,7 @@ Option 2, with the defect fixes:
 
 ### Rollout (each stage a fresh session; ADR-0022)
 
-1. `install.sh` (user level, v2 hooks), revert emergency mode (runbook), fresh session, canary.
+1. `install.sh` (user level, v2 hooks), end the total breaking glass (runbook), fresh session, canary.
 2. The sudo line from `install-managed.sh`, then `install.sh --hooks=managed`, fresh session, canary.
 
 ## Consequences
