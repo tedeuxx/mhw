@@ -260,8 +260,14 @@ from here now, and at what evidence level:
   `--check` exits 0). On Claude Code the runbook canary passed in a fresh session: a declared session
   type was accepted without a picker, the restart guard created its baseline, `Read` after a `cd`
   passed and `/breaking-glass status` reported every layer active. That is *loaded* with the pass
-  path measured; no deny was provoked, so *enforced* is not re-measured on this machine. Codex
-  routing of the managed hooks is not measured.
+  path measured; no deny was provoked, so *enforced* is not re-measured on this machine.
+  *Amended 2026-10-04, Codex:* an immediately preceding session in a disposable worktree observed the
+  first covered command denied with `fingerprint_mismatch`, proving managed hook routing and the deny
+  path. A genuinely new session opened directly in that worktree then accepted the declared type
+  without a picker, had the baseline for its hashed thread identifier, permitted a read after a
+  working-directory change, and reported every breaking-glass layer active. Managed restart-guard
+  routing and pass/block enforcement are therefore *measured* on this Codex surface; other Codex
+  surfaces remain unmeasured.
 - **Conversation profile** (ADR-0019, 2026-10-02): paced clarification, concise output, scoped input
   retrieval, and three risk/benefit choices are installed in the user briefs for Claude Code, Codex
   and Kiro, and saved in Claude desktop account instructions. The brief was loaded into the current
