@@ -80,6 +80,11 @@ for f in hitl.conf clipboard.conf; do
 done
 [ "$modes_ok" = 1 ] && ok "scripts are executable, confs are not" || ko "scripts are executable, confs are not"
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check after apply is clean" 0 $?
+for f in "$req" "$bin/hitl.conf"; do
+  sed 's/; version: [^;]*;/; version: 0.0.1;/' "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
+done
+grep -q 'version: 0.0.1;' "$req" && ok "the stamp was rewritten for the test" || ko "the stamp was rewritten for the test"
+sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check ignores an earlier release's stamp" 0 $?
 printf '\n' >> "$bin/hitl.conf"
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check flags a drifted script or conf" 1 $?
 

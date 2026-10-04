@@ -518,5 +518,16 @@ else
 fi
 HOME="$h" sh "$inst" --check > /dev/null 2>&1; expect "user check flags the missing user-level hooks" 1 $?
 
+# 15. a stamp from an earlier release with the same content is not drift; a content change still is
+hs="$base/stamp"; mkdir -p "$hs"
+HOME="$hs" sh "$inst" > /dev/null 2>&1; expect "install for the stamp check exits 0" 0 $?
+for f in "$hs/.claude/CLAUDE.md" "$(data "$hs")/hitl.conf" "$hs/.codex/rules/workstation-deny-floor.rules"; do
+  sed 's/; version: [^;]*;/; version: 0.0.1;/' "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
+done
+grep -q 'version: 0.0.1;' "$hs/.claude/CLAUDE.md" && ok "the stamp was rewritten for the test" || ko "the stamp was rewritten for the test"
+HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check ignores an earlier release's stamp" 0 $?
+printf 'x\n' >> "$(data "$hs")/hitl.conf"
+HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check still flags a content change under an old stamp" 1 $?
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
