@@ -14,7 +14,8 @@ State on 2026-10-04, after the v2 canary (bugfix session):
   - the HITL guard script accepted a synthetic intake picker and refused a two-option non-intake
     picker. A live intake picker was not shown, because the session type was declared in the prompt;
   - a prompt carrying a public example credential was blocked by the paste filter, with a redacted copy.
-- **Codex canary: pending**, in a fresh Codex session. Its managed hooks need no `/hooks` trust.
+- **Codex canary:** recorded in [AGENTS.md](../AGENTS.md) (2026-10-04 Codex amendment): managed
+  restart-guard routing and pass/block measured on one Codex surface; other Codex surfaces unmeasured.
 - Bash command substitution is refused by the owner's plugin permission guard, not by this
   repository; the fix belongs to that plugin.
 
