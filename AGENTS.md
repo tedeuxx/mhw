@@ -166,9 +166,13 @@ The source of truth for every layer lives here, versioned; what is installed on 
 
 ### Workspace session contract (owner, 2026-10-02)
 
-- On every **new** session here, the first owner interaction is a native multiple-choice picker:
-  header `Session type`, labels `Melhoria de harness` and `Bugfix`, in that order. Ask one question
-  and wait. These two choices are the owner's explicit exception to the usual three-path preference.
+- On every **new** session here, a session type the owner declares explicitly in his first prompt
+  (the label `Melhoria de harness` or `Bugfix`, or the mode name) is accepted as given: confirm it in
+  one line and proceed, with no picker. Never infer a type from the task. Only when no type is
+  declared, the first owner interaction is a native multiple-choice picker: header `Session type`,
+  labels `Melhoria de harness` and `Bugfix`, in that order. Ask one question and wait. These two
+  choices are the owner's explicit exception to the usual three-path preference (amended 2026-10-04,
+  ADR-0021).
 - Keep the selected type in conversation context. Do not re-ask on resume/compaction or retrofit
   intake into a session already in progress. A pause for questions is not session closure.
 - At the end of each **improvement session**, publish its completed coherent change set through
