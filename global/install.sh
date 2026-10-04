@@ -318,10 +318,16 @@ is_managed() { head -n 5 "$1" | grep -qF "$MARKER_ID"; }
 
 # The managed-by header stamps the release that rendered a file. Compare without that stamp, so a
 # release that changes no installed content reads as OK, not DRIFT, and is not rewritten.
-unstamp() { sed "/$MARKER_ID/s/; version: [^;]*;/; version: -;/" "$1"; }
+unstamp() {
+  unstamp_file=$1
+  sed "/$MARKER_ID/s/; version: [^;]*;/; version: -;/" "$unstamp_file"
+}
 same() {
-  cmp -s "$1" "$2" || { unstamp "$1" > "$work/same.a" && unstamp "$2" > "$work/same.b" &&
-    cmp -s "$work/same.a" "$work/same.b"; }
+  same_rendered=$1
+  same_installed=$2
+  cmp -s "$same_rendered" "$same_installed" || {
+    unstamp "$same_rendered" > "$work/same.a" && unstamp "$same_installed" > "$work/same.b" &&
+      cmp -s "$work/same.a" "$work/same.b"; }
 }
 
 process() {

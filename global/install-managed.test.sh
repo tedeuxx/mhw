@@ -83,7 +83,7 @@ sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check after apply is cl
 for f in "$req" "$bin/hitl.conf"; do
   sed 's/; version: [^;]*;/; version: 0.0.1;/' "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
 done
-grep -q 'version: 0.0.1;' "$req" && ok "the stamp was rewritten for the test" || ko "the stamp was rewritten for the test"
+if grep -q 'version: 0.0.1;' "$req"; then ok "the stamp was rewritten for the test"; else ko "the stamp was rewritten for the test"; fi
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check ignores an earlier release's stamp" 0 $?
 printf '\n' >> "$bin/hitl.conf"
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check flags a drifted script or conf" 1 $?

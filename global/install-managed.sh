@@ -149,12 +149,18 @@ case $mode in
     status=0
     # The managed-by header stamps the release that rendered a file; a release that changes no
     # installed content is not drift.
-    unstamp() { sed "/$MARKER_ID/s/; version: [^;]*;/; version: -;/" "$1"; }
-    compare() { # $1 rendered, $2 installed
-      if [ ! -f "$2" ]; then echo "MISSING $2"; status=1
-      elif ! cmp -s "$1" "$2" && { unstamp "$1" > "$st/same.a"; unstamp "$2" > "$st/same.b"
-        ! cmp -s "$st/same.a" "$st/same.b"; }; then echo "DRIFT   $2"; status=1
-      else echo "OK      $2"; fi
+    unstamp() {
+      unstamp_file=$1
+      sed "/$MARKER_ID/s/; version: [^;]*;/; version: -;/" "$unstamp_file"
+    }
+    compare() {
+      rendered=$1
+      installed=$2
+      if [ ! -f "$installed" ]; then echo "MISSING $installed"; status=1
+      elif ! cmp -s "$rendered" "$installed" && {
+        unstamp "$rendered" > "$st/same.a"; unstamp "$installed" > "$st/same.b"
+        ! cmp -s "$st/same.a" "$st/same.b"; }; then echo "DRIFT   $installed"; status=1
+      else echo "OK      $installed"; fi
     }
     for f in $FILES; do compare "$st/bin/$f" "$bin/$f"; done
     compare "$st/claude.json" "$claude_file"
