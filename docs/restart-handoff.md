@@ -20,4 +20,14 @@ Open after the canary:
 - the Codex `[features] hooks = true` pin (ADR-0025, "Bad, open");
 - the native cwd and `additionalContext` behaviour of the project `.codex/hooks.json` intake hook.
 
+Next improvement session (owner agreed 2026-10-04), across this repository and the plugin repository:
+1. An ADR with the rubric for the four distribution layers: managed (a protection nothing may weaken),
+   user (any project, not a floor), workspace (one repository's contract), plugin (the way of working).
+2. A manifest in each repository declaring every distributed artifact's layer, and a CI check in both
+   that fails on an undeclared artifact, one in the wrong repository, or one declared twice.
+3. An inventory of the plugin's commands, hooks and skills against the rubric, ratified by the owner.
+4. Dehydration, one artifact at a time, in paired PRs: this repository installs it first, the plugin
+   removes it second, so protection never has a gap. Likely first: the plugin permission guard's floor
+   rules, which also fixes the command-substitution refusal.
+
 Keep this handoff free of secrets, configuration values and transcripts.
