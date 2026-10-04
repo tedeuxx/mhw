@@ -129,5 +129,21 @@ deny "intake labels outside a declared workspace do not bypass" "$base/options.c
 deny "wrong labels do not bypass" "$base/options.conf" "$(printf '%s' "$intake" | jq '.tool_input.questions[0].options[0].label="Other"')" "exactly 3 authored options"
 deny "multi-select intake does not bypass" "$base/options.conf" "$(printf '%s' "$intake" | jq '.tool_input.questions[0].multiSelect=true')" "single selection"
 
+# The configured intake shape holds in ANY working directory (v1 defect: a session started outside
+# the repository was refused its own intake). It stays exact: header, labels and their order.
+cp "$base/options.conf" "$base/intake.conf"
+printf '%s\n' 'intake_exception= Session type | Melhoria de harness | Bugfix ' >> "$base/intake.conf"
+away=$(printf '%s' "$intake" | jq --arg c "$base" '.cwd=$c')
+abstain "configured intake passes outside any repository" "$base/intake.conf" "$away"
+abstain "configured intake passes with no cwd at all" "$base/intake.conf" "$(printf '%s' "$intake" | jq 'del(.cwd)')"
+deny "configured intake: reversed labels do not bypass" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].options |= reverse')" "exactly 3 authored options"
+deny "configured intake: another header does not bypass" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].header="Path"')" "exactly 3 authored options"
+deny "configured intake: a missing label does not bypass" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].options |= .[:1]')" "exactly 3 authored options"
+deny "configured intake: multi-select does not bypass" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].multiSelect=true')" "single selection"
+printf '%s\n' 'intake_exception=Session type|Bugfix' >> "$base/intake.conf"
+deny "a one-choice shape configures no exception" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].options |= .[1:]')" "exactly 3 authored options"
+printf '%s\n' 'intake_exception=' >> "$base/intake.conf"
+deny "an emptied exception configures none" "$base/intake.conf" "$away" "exactly 3 authored options"
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
