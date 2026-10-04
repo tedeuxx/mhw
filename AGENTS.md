@@ -166,9 +166,13 @@ The source of truth for every layer lives here, versioned; what is installed on 
 
 ### Workspace session contract (owner, 2026-10-02)
 
-- On every **new** session here, the first owner interaction is a native multiple-choice picker:
-  header `Session type`, labels `Melhoria de harness` and `Bugfix`, in that order. Ask one question
-  and wait. These two choices are the owner's explicit exception to the usual three-path preference.
+- On every **new** session here, a session type the owner declares explicitly in his first prompt
+  (the label `Melhoria de harness` or `Bugfix`, or the mode name) is accepted as given: confirm it in
+  one line and proceed, with no picker. Never infer a type from the task. Only when no type is
+  declared, the first owner interaction is a native multiple-choice picker: header `Session type`,
+  labels `Melhoria de harness` and `Bugfix`, in that order. Ask one question and wait. These two
+  choices are the owner's explicit exception to the usual three-path preference (amended 2026-10-04,
+  ADR-0021).
 - Keep the selected type in conversation context. Do not re-ask on resume/compaction or retrofit
   intake into a session already in progress. A pause for questions is not session closure.
 - At the end of each **improvement session**, publish its completed coherent change set through
@@ -244,10 +248,26 @@ from here now, and at what evidence level:
   is switched off with each harness's native switch (Claude Code `disableAllHooks`, Codex
   `[features] hooks = false`), with backups. The brief and the deny floor stay on; the paste filter,
   HITL guard and restart guard are *suspended*. Kiro carried no v1 hook.
+  *Ended 2026-10-04 on Claude Code, measured:* `disableAllHooks` is absent from the user settings and
+  the managed restart guard wrote this session's baseline at startup. On Codex the `hooks = false`
+  line is absent; whether hooks fire there again is not measured.
 - **v2** (ADR-0024, ADR-0025, 2026-10-04): fixes for the intake picker and the restart-guard lockout,
   per-layer expiring root-owned switches with `/breaking-glass`, and the admin-layer installer.
-  *Written and tested* in throwaway homes and roots; **not installed**. The rollout is the owner's,
+  *Written and tested* in throwaway homes and roots; ~~**not installed**~~. The rollout is the owner's,
   in fresh sessions ([runbook](docs/runbooks/breaking-glass.md)).
+  *Amended 2026-10-04:* the owner installed v2.1.0 in the admin layer (`install-managed.sh`, one
+  root-owned managed-settings drop-in) and at user level (`install.sh --hooks=managed`;
+  `--check` exits 0). On Claude Code the runbook canary passed in a fresh session: a declared session
+  type was accepted without a picker, the restart guard created its baseline, `Read` after a `cd`
+  passed and `/breaking-glass status` reported every layer active. That is *loaded* with the pass
+  path measured; no deny was provoked, so *enforced* is not re-measured on this machine.
+  *Amended 2026-10-04, Codex:* an immediately preceding session in a disposable worktree observed the
+  first covered command denied with `fingerprint_mismatch`, proving managed hook routing and the deny
+  path. A genuinely new session opened directly in that worktree then accepted the declared type
+  without a picker, had the baseline for its hashed thread identifier, permitted a read after a
+  working-directory change, and reported every breaking-glass layer active. Managed restart-guard
+  routing and pass/block enforcement are therefore *measured* on this Codex surface; other Codex
+  surfaces remain unmeasured.
 - **Conversation profile** (ADR-0019, 2026-10-02): paced clarification, concise output, scoped input
   retrieval, and three risk/benefit choices are installed in the user briefs for Claude Code, Codex
   and Kiro, and saved in Claude desktop account instructions. The brief was loaded into the current

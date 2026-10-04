@@ -106,6 +106,28 @@ class RestartTests(unittest.TestCase):
                 (self.root / "AGENTS.md").write_text(harness)
                 self.assertFalse(self.call(dict(fresh, hook_event_name="PreToolUse"), harness))
 
+    def test_vendor_skill_sync_does_not_invalidate_the_session(self):
+        synced = self.home / ".claude/skills/synced/bucket"
+        synced.mkdir(parents=True)
+        (synced / "manifest.json").write_text("{}")
+        self.assertTrue(self.call())
+        (synced / "manifest.json").write_text('{"round": 2}')
+        (synced / ".last-complete-round").write_text("2")
+        (synced / "updated-skill").mkdir()
+        self.assertTrue(self.call(self.pre()))
+        # A skill the owner installs beside the synced folder is still watched.
+        (self.home / ".claude/skills/own-skill").mkdir()
+        self.assertFalse(self.call(self.pre()))
+
+    def test_vendor_exclusion_is_claude_user_level_only(self):
+        for harness in ("codex", "kiro-cli"):
+            self.assertEqual(guard.excluded(harness, self.home), [])
+        project = self.root / ".claude/skills/synced"
+        project.mkdir(parents=True)
+        self.assertTrue(self.call())
+        (project / "manifest.json").write_text("{}")
+        self.assertFalse(self.call(self.pre()))
+
     def test_resume_clear_and_compaction_do_not_rebaseline(self):
         self.assertTrue(self.call())
         (self.root / "CLAUDE.md").write_text("changed")

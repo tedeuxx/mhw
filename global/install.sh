@@ -316,6 +316,20 @@ retire() { # $1 a managed file this mode no longer wants, $2 what it is
 
 is_managed() { head -n 5 "$1" | grep -qF "$MARKER_ID"; }
 
+# The managed-by header stamps the release that rendered a file. Compare without that stamp, so a
+# release that changes no installed content reads as OK, not DRIFT, and is not rewritten.
+unstamp() {
+  unstamp_file=$1
+  sed "/$MARKER_ID/s/; version: [^;]*;/; version: -;/" "$unstamp_file"
+}
+same() {
+  same_rendered=$1
+  same_installed=$2
+  cmp -s "$same_rendered" "$same_installed" || {
+    unstamp "$same_rendered" > "$work/same.a" && unstamp "$same_installed" > "$work/same.b" &&
+      cmp -s "$work/same.a" "$work/same.b"; }
+}
+
 process() {
   kind=$1
   dest=$2
@@ -328,7 +342,7 @@ process() {
     return 0
   fi
 
-  if [ -e "$dest" ] && cmp -s "$tmp" "$dest" && { [ "$kind" != hook ] || [ -x "$dest" ]; }; then
+  if [ -e "$dest" ] && same "$tmp" "$dest" && { [ "$kind" != hook ] || [ -x "$dest" ]; }; then
     echo "OK      $dest"
     return 0
   fi

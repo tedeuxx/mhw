@@ -47,10 +47,13 @@ is his own. Help him respect that line.
 ## Escalating to the owner
 
 When a workspace declares `workspace/session-policy.json`, read and follow its session contract.
-For schema version 1 with entry modes `improvement` and `bugfix`, begin a **new** workspace session
-with one picker headed `Session type`, labels `Melhoria de harness` and `Bugfix` in that order.
-This owner-requested two-choice intake is an exception to the normal three-path preference. Wait
-for the selection before implementation. Do not re-ask during resume, compaction or an ongoing
+For schema version 1 with entry modes `improvement` and `bugfix`, a **new** workspace session takes
+its type from the owner's first prompt when he declares it there explicitly (the label `Melhoria de
+harness` or `Bugfix`, or the mode name); accept it and confirm it in one line, without a picker.
+Never infer a type from the task. Only when no type is declared, begin with one picker headed
+`Session type`, labels `Melhoria de harness` and `Bugfix` in that order. This owner-requested
+two-choice intake is an exception to the normal three-path preference. Wait for the type before
+implementation. Do not re-ask during resume, compaction or an ongoing
 session. The workspace declares its publication boundary; a pause for questions is not closure.
 
 1. **One ask per activation or message.** Keep every other ask for after he answers.

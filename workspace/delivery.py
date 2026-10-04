@@ -37,8 +37,24 @@ def version(tag):
     return tuple(map(int, match.groups()))
 
 
+def latest_checks(checks):
+    """Keep only the most recent run of each check on this head.
+
+    A re-run (or a later label event) reports a second entry with the same workflow and name; the
+    superseded one must neither block nor satisfy the gate. Ordered by start time, then completion
+    time, then rollup position, so a pending re-run still counts as pending.
+    """
+    latest = {}
+    for index, check in enumerate(checks):
+        key = (check.get("workflowName") or "", check.get("name", check.get("context")))
+        stamp = (check.get("startedAt") or "", check.get("completedAt") or "", index)
+        if key not in latest or stamp >= latest[key][0]:
+            latest[key] = (stamp, check)
+    return [check for _, check in latest.values()]
+
+
 def checks_pass(pr):
-    checks = pr.get("statusCheckRollup") or []
+    checks = latest_checks(pr.get("statusCheckRollup") or [])
     for name in REQUIRED:
         matches = [c for c in checks if c.get("name", c.get("context")) == name]
         if not matches or any(c.get("conclusion", c.get("state")) != "SUCCESS" for c in matches):

@@ -3,6 +3,7 @@
   "entry_modes": ["improvement", "bugfix"],
   "entry_header": "Session type",
   "entry_labels": ["Melhoria de harness", "Bugfix"],
+  "entry_declared_in_first_prompt": "accept",
   "publication_boundary": "end-of-improvement-session",
   "delivery_requires": ["clean-worktree", "pushed-head", "successful-ci", "merged-pr", "new-semver-tag", "published-release"]
 }
