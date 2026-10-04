@@ -82,6 +82,130 @@ def notice(switch_dir=None, now=None, owner_uid=None):
     return "Breaking glass: camada desligada: " + ", ".join(off) + ". Nenhum conteúdo foi registrado."
 
 
+# The status table: what each layer does, and the script whose presence in a hook registration file
+# shows where the layer is registered. Reading registrations is best effort and never changes a switch.
+DESCRIPTIONS = {
+    "paste-filter": "Bloqueia prompt com credencial, dado pessoal ou referência a cliente/empregador",
+    "restart-guard": "Nega ferramentas se a configuração mudou desde o início da sessão",
+    "hitl-guard": "Recusa pickers fora dos limites do perfil (perguntas, tamanho, opções)",
+}
+HOOK_SCRIPTS = {
+    "paste-filter": "clipboard_guard.py",
+    "restart-guard": "restart_guard.py",
+    "hitl-guard": "hitl-escalation-guard.sh",
+}
+MARKER = "managed-by: " + NAME
+GREEN, RED, YELLOW, BOLD, RESET = "\033[32m", "\033[31m", "\033[33m", "\033[1m", "\033[0m"
+
+
+def _read(path):
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+
+def _hook_files(home, root):
+    """(where, path) for every file that can register a hook of ours: the admin layer, then the user."""
+    codex_home = Path(os.environ.get("CODEX_HOME") or home / ".codex")
+    if sys.platform == "darwin":
+        dropins = root / "Library/Application Support/ClaudeCode/managed-settings.d"
+    else:
+        dropins = root / "etc/claude-code/managed-settings.d"
+    return (
+        ("claude:admin", dropins / ("50-%s.json" % NAME)),
+        ("codex:admin", root / "etc/codex/requirements.toml"),
+        ("claude:usuário", home / ".claude/settings.json"),
+        ("codex:usuário", codex_home / "hooks.json"),
+    )
+
+
+def registrations(home=None, root=None):
+    """{layer: [where, ...]} naming each file that registers the layer's hook script."""
+    home = Path.home() if home is None else Path(home)
+    root = Path("/") if root is None else Path(root)
+    texts = [(where, _read(path)) for where, path in _hook_files(home, root)]
+    return {layer: [where for where, text in texts if HOOK_SCRIPTS[layer] in text] for layer in LAYERS}
+
+
+def always_on(home=None):
+    """[(control, summary)] for the controls breaking glass never switches off."""
+    home = Path.home() if home is None else Path(home)
+    codex_home = Path(os.environ.get("CODEX_HOME") or home / ".codex")
+    briefs = (("claude", home / ".claude/CLAUDE.md"), ("codex", codex_home / "AGENTS.md"),
+              ("kiro", home / ".kiro/steering/workstation-global-brief.md"))
+    have = [name for name, path in briefs if MARKER in "\n".join(_read(path).splitlines()[:5])]
+    try:
+        deny = json.loads(_read(home / ".claude/settings.json") or "{}").get("permissions", {}).get("deny", [])
+        claude_rules = len(deny) if isinstance(deny, list) else 0
+    except (ValueError, AttributeError):
+        claude_rules = 0
+    rules = _read(codex_home / "rules/workstation-deny-floor.rules")
+    codex_rules = sum(1 for line in rules.splitlines() if line.startswith("prefix_rule("))
+    return [
+        ("brief global", "instrução ao agente: propriedade de terceiros, sanitização, escalonamento; em "
+         + (", ".join(have) if have else "nenhum harness")),
+        ("deny floor", "bloqueia comandos destrutivos ou de publicação; claude %d regras deny (todas as origens), "
+         "codex %d regras do floor, kiro sem floor" % (claude_rules, codex_rules)),
+    ]
+
+
+def status_rows(switch_dir=None, now=None, owner_uid=None, home=None, root=None):
+    """[(layer, state, until, where, description)]; state is "off", "unregistered" or "on"."""
+    regs = registrations(home, root)
+    rows = []
+    for layer in LAYERS:
+        until = disabled_until(layer, switch_dir, now, owner_uid)
+        state = "off" if until is not None else ("on" if regs[layer] else "unregistered")
+        rows.append((layer, state, until, regs[layer], DESCRIPTIONS[layer]))
+    return rows
+
+
+def _state_label(state, until):
+    if state == "off":
+        return "DESLIGADA até " + time.strftime("%H:%M", time.localtime(until))
+    return "ativa" if state == "on" else "sem registro"
+
+
+FOOTNOTE = ('"ativa" = interruptor ligado e hook registrada; não prova que ela disparou nesta sessão. '
+            '"sem registro" = nenhum arquivo de hook a chama.')
+
+
+def status_report(fmt="text", color=False, **where):
+    rows = status_rows(**where)
+    extra = always_on(where.get("home"))
+    if fmt == "markdown":
+        icon = {"on": "🟢", "off": "🔴", "unregistered": "🟡"}
+        out = ["| Camada | Estado | Registro | O que faz |", "| --- | --- | --- | --- |"]
+        for layer, state, until, regs, desc in rows:
+            out.append("| `%s` | %s %s | %s | %s |" % (layer, icon[state], _state_label(state, until),
+                                                      ", ".join(regs) or "nenhum", desc))
+        out += ["", "**Sempre ligadas (fora do breaking glass):**"]
+        out += ["- **%s**: %s" % item for item in extra]
+        return "\n".join(out + ["", FOOTNOTE])
+    paint = {"on": GREEN, "off": RED, "unregistered": YELLOW}
+    labels = [_state_label(state, until) for _, state, until, _, _ in rows]
+    places = [" ".join(regs) or "nenhum" for _, _, _, regs, _ in rows]
+    w_state = max(len("ESTADO"), *map(len, labels))
+    w_place = max(len("REGISTRO"), *map(len, places))
+    head = "%-14s %-*s  %-*s  %s" % ("CAMADA", w_state, "ESTADO", w_place, "REGISTRO", "O QUE FAZ")
+    out = ["Camadas de proteção (breaking glass, ADR-0024)", "", (BOLD + head + RESET) if color else head]
+    for (layer, state, _, _, desc), label, place in zip(rows, labels, places):
+        cell = label.ljust(w_state)
+        if color:
+            cell = paint[state] + cell + RESET
+        out.append("%-14s %s  %-*s  %s" % (layer, cell, w_place, place, desc))
+    out += ["", "Sempre ligadas (fora do breaking glass):"]
+    out += ["  %-13s %s" % item for item in extra]
+    return "\n".join(out + ["", FOOTNOTE])
+
+
+def _use_color(choice):
+    if choice != "auto":
+        return choice == "always"
+    return sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+
+
 def layer_state(layer):
     """For hooks: (switched_off, notice). Never raises; any failure leaves the layer on."""
     try:
@@ -145,7 +269,9 @@ def main(argv=None):
         p.add_argument("layer", choices=LAYERS)
         if action == "disable":
             p.add_argument("--minutes", type=_minutes, default=DEFAULT_MINUTES)
-    sub.add_parser("status", help="show which layers are switched off")
+    p = sub.add_parser("status", help="show each layer, its state, where it is registered and what it does")
+    p.add_argument("--format", choices=("text", "markdown"), default="text")
+    p.add_argument("--color", choices=("auto", "always", "never"), default="auto")
     p = sub.add_parser("check", help="exit 0 when the layer is switched off, 1 when active; prints nothing")
     p.add_argument("layer", choices=LAYERS)
     args = parser.parse_args(argv)
@@ -160,7 +286,7 @@ def main(argv=None):
     if args.cmd == "check":
         return 0 if layer_state(args.layer)[0] else 1
     if args.cmd == "status":
-        print(notice() or "Breaking glass: todas as camadas ativas.")
+        print(status_report(args.format, _use_color(args.color) and args.format == "text"))
         return 0
     if os.geteuid() != 0:
         print("Requer privilégio de administrador (sudo).", file=sys.stderr)

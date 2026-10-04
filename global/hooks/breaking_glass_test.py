@@ -152,5 +152,83 @@ class SwitchTest(unittest.TestCase):
             self.assertEqual(bg.main(["disable", "restart-guard"]), 1)
 
 
+class StatusTest(unittest.TestCase):
+    """The status table reads only a throwaway home and root, never the real machine."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        t = Path(self.tmp.name)
+        self.home, self.root = t / "home", t / "root"
+        base = t / "base"
+        base.mkdir(mode=0o755)
+        os.chmod(base, 0o755)
+        self.dir = base / "breaking-glass"
+        self.now = 1_000_000.0
+        self.codex_home = os.environ.pop("CODEX_HOME", None)
+
+    def tearDown(self):
+        if self.codex_home is not None:
+            os.environ["CODEX_HOME"] = self.codex_home
+        self.tmp.cleanup()
+
+    def where(self):
+        return dict(switch_dir=self.dir, now=self.now, owner_uid=UID, home=self.home, root=self.root)
+
+    def put(self, path, text):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def admin_dropin(self):
+        if sys.platform == "darwin":
+            return self.root / "Library/Application Support/ClaudeCode/managed-settings.d" / (
+                "50-%s.json" % bg.NAME)
+        return self.root / "etc/claude-code/managed-settings.d" / ("50-%s.json" % bg.NAME)
+
+    def states(self):
+        return {row[0]: (row[1], row[3]) for row in bg.status_rows(**self.where())}
+
+    def test_unregistered_layers_are_not_reported_active(self):
+        self.assertEqual(set(s for s, _ in self.states().values()), {"unregistered"})
+        self.assertIn("sem registro", bg.status_report(**self.where()))
+
+    def test_registration_is_read_per_harness_and_level(self):
+        self.put(self.admin_dropin(), '{"hooks": "/x/restart_guard.py /x/hitl-escalation-guard.sh"}')
+        self.put(self.root / "etc/codex/requirements.toml", 'command = "/x/restart_guard.py"')
+        self.put(self.home / ".claude/settings.json", '{"hooks": "/y/clipboard_guard.py prompt-hook"}')
+        s = self.states()
+        self.assertEqual(s["restart-guard"], ("on", ["claude:admin", "codex:admin"]))
+        self.assertEqual(s["hitl-guard"], ("on", ["claude:admin"]))
+        self.assertEqual(s["paste-filter"], ("on", ["claude:usuário"]))
+
+    def test_switched_off_layer_shows_expiry_and_wins_over_registration(self):
+        self.put(self.admin_dropin(), "/x/restart_guard.py")
+        bg.write_switch("restart-guard", 30, self.dir, now=self.now)
+        os.utime(self.dir / "restart-guard.json", (self.now, self.now))
+        self.assertEqual(self.states()["restart-guard"][0], "off")
+        self.assertIn("DESLIGADA até", bg.status_report(**self.where()))
+
+    def test_colour_only_when_asked_and_markdown_uses_icons(self):
+        self.put(self.admin_dropin(), "/x/restart_guard.py")
+        plain = bg.status_report(**self.where())
+        self.assertNotIn("\033[", plain)
+        coloured = bg.status_report("text", True, **self.where())
+        self.assertIn(bg.GREEN + "ativa", coloured)
+        self.assertIn(bg.YELLOW + "sem registro", coloured)
+        md = bg.status_report("markdown", **self.where())
+        self.assertIn("| `restart-guard` | 🟢 ativa | claude:admin |", md)
+        self.assertIn("🟡 sem registro", md)
+        self.assertNotIn("\033[", md)
+
+    def test_always_on_controls_report_briefs_and_rules(self):
+        self.put(self.home / ".claude/CLAUDE.md", "# %s; source: x\nbrief\n" % bg.MARKER)
+        self.put(self.home / ".claude/settings.json", '{"permissions": {"deny": ["a", "b"]}}')
+        self.put(self.home / ".codex/rules/workstation-deny-floor.rules", 'prefix_rule(x)\nprefix_rule(y)\n# c\n')
+        text = dict(bg.always_on(self.home))
+        self.assertIn("em claude", text["brief global"])
+        self.assertNotIn("codex", text["brief global"])
+        self.assertIn("claude 2 regras deny", text["deny floor"])
+        self.assertIn("codex 2 regras do floor", text["deny floor"])
+
+
 if __name__ == "__main__":
     unittest.main()
