@@ -6,7 +6,10 @@ argument-hint: "[disable|enable|status] [paste-filter|restart-guard|hitl-guard] 
 Breaking glass (ADR-0024). Never run sudo, never write a switch, never edit hook or settings files.
 Your only act is to print a line for the owner.
 
-1. With `status` or no arguments, run `/usr/bin/python3 -I -B "@GLASS@" status` and report it.
+1. With `status` or no arguments, run `/usr/bin/python3 -I -B "@GLASS@" status --format markdown` and
+   show its output verbatim (the table, the always-on list and the footnote), adding nothing.
+   In his own terminal the owner gets the coloured text version from the same command without
+   `--format markdown`.
 2. Otherwise run exactly
    `/usr/bin/python3 -I -B "@GLASS@" sudo-line <action> <layer> --minutes <minutes>`
    (minutes default 60, maximum 240; omit `--minutes` for `enable`). If the layer or action is missing,
