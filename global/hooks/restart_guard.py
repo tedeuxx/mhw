@@ -33,6 +33,10 @@ NATIVE = {
     "codex": (".codex", ["AGENTS.md", "config.toml", "hooks.json", "rules", "skills"]),
     "kiro-cli": (".kiro", ["settings", "agents", "steering", "prompts", "hooks"]),
 }
+# Subtrees under a watched user folder that the vendor rewrites during a session on its own schedule,
+# not configuration the owner installs. Claude Code's account skill sync rewrites skills/synced/
+# (manifest and round markers, and any skill it updates) mid-session; watching it locked sessions out.
+VENDOR_MANAGED = {"claude-code": ["skills/synced"]}
 READ_TOOLS = {"Read", "Grep", "Glob", "LS", "NotebookRead", "TodoWrite", "AskUserQuestion"}
 READ_COMMANDS = {"cat", "ls", "head", "tail", "wc", "grep", "rg", "pwd", "stat", "find", "git"}
 GIT_READS = {"status", "diff", "log", "show", "rev-parse"}
@@ -111,6 +115,11 @@ def watched(harness, cwd, home, data):
     return paths
 
 
+def excluded(harness, home):
+    folder = NATIVE[harness][0]
+    return [home / folder / name for name in VENDOR_MANAGED.get(harness, [])]
+
+
 def read_only(event):
     """True for a tool call that cannot change anything: a read tool, or one simple read command."""
     tool = event.get("tool_name")
@@ -132,13 +141,16 @@ def read_only(event):
     return words[0] != "git" or (len(words) > 1 and words[1] in GIT_READS)
 
 
-def fingerprint(paths):
+def fingerprint(paths, skip=()):
     records = []
+    skip = [Path(item) for item in skip]
     for path in sorted(set(paths)):
         children = [path]
         if path.is_dir() and not path.is_symlink():
             children += sorted(path.rglob("*"))
         for child in children:
+            if any(child == item or item in child.parents for item in skip):
+                continue
             try:
                 info = child.lstat()
                 records.append((str(child), info.st_mtime_ns, info.st_size, info.st_ino, info.st_mode))
@@ -164,7 +176,7 @@ def evaluate(event, harness, home, data, cwd=None, create_baseline=True):
     if state.is_symlink():
         return "unsafe_state"
     if create_baseline and name == "SessionStart" and event.get("source") == "startup" and not state.exists():
-        current = fingerprint(watched(harness, cwd, home, data))
+        current = fingerprint(watched(harness, cwd, home, data), excluded(harness, home))
         state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         temporary = None
         try:
@@ -185,7 +197,7 @@ def evaluate(event, harness, home, data, cwd=None, create_baseline=True):
     value = saved.get("fingerprint") if isinstance(saved, dict) else None
     if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
         return "invalid_baseline"
-    current = fingerprint(watched(harness, cwd, home, data))
+    current = fingerprint(watched(harness, cwd, home, data), excluded(harness, home))
     return "baseline_match" if value == current else "fingerprint_mismatch"
 
 

@@ -114,3 +114,13 @@ project anchor is Claude Code's session-stable `CLAUDE_PROJECT_DIR` (Codex: its 
 directory); on any non-match, read tools and one simple read-only shell command still pass with a
 notice, and only acting tools are denied. The obligation to restart is unchanged. The guard reads its
 breaking-glass switch (ADR-0024) and is registered in the admin layer (ADR-0025).
+
+## Amendment 2026-10-04: vendor skill sync is outside the detector
+
+The guard watched `~/.claude/skills` recursively, and Claude Code's account skill sync rewrites
+`~/.claude/skills/synced/` (its manifest and round markers, and any skill it updates) during a session.
+That denied acting tools in sessions where the owner had changed nothing. The guard now skips that one
+user-level subtree for Claude Code. Everything else under `~/.claude/skills`, and every project-level
+`.claude/skills` including a folder named `synced`, is still watched. Trade-off: a skill the vendor
+sync changes mid-session is no longer detected; it is account-managed, not installed by this
+repository, and it is added to the paths outside the detector. The restart obligation is unchanged.
