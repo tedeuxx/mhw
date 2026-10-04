@@ -7,6 +7,9 @@
 #   install.sh --dry-run        print exactly what would be written or merged where; write nothing
 #   install.sh --check          exit non-zero if any target is missing, drifted or unmanaged
 #   install.sh --overlay=DIR    owner overlay directory (default: <repo>/overlay); --overlay=none for none
+#   install.sh --hooks=managed  the hooks run from the admin layer (install-managed.sh, ADR-0025): remove
+#                               this project's hook entries from the user settings and its Codex
+#                               hooks.json instead of writing them (default --hooks=user)
 #
 # Exit codes: 0 ok · 1 drift or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
 # 3 something UNMANAGED or unreadable is in the way. A file is managed when its marker line (below) is in
@@ -34,6 +37,8 @@ repo_root=$(dirname "$script_dir")
 src="$script_dir/AGENTS.md"
 hook_src="$script_dir/hooks/hitl-escalation-guard.sh"
 restart_src="$script_dir/hooks/restart_guard.py"
+glass_src="$script_dir/hooks/breaking_glass.py"
+glasscmd_src="$script_dir/commands/breaking-glass.md"
 conf_src="$script_dir/hitl.conf"
 floor_src="$script_dir/deny-floor.conf"
 clip_src="$script_dir/clipboard/clipboard_guard.py"
@@ -42,11 +47,14 @@ clip_conf_src="$script_dir/clipboard.conf"
 CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-guard"
 
 mode=install
+hooks_mode=user
 overlay="$repo_root/overlay"
 for arg in "$@"; do
   case $arg in
     --dry-run) mode=dry-run ;;
     --check) mode=check ;;
+    --hooks=user) hooks_mode=user ;;
+    --hooks=managed) hooks_mode=managed ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
@@ -54,7 +62,7 @@ for arg in "$@"; do
   esac
 done
 
-for f in "$src" "$hook_src" "$restart_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
+for f in "$src" "$hook_src" "$restart_src" "$glass_src" "$glasscmd_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -75,6 +83,7 @@ fi
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/personal-multi-harness-workstation-configuration"
 hook_dest="$data_dir/hitl-escalation-guard.sh"
 restart_dest="$data_dir/restart_guard.py"
+glass_dest="$data_dir/breaking_glass.py"
 settings="$HOME/.claude/settings.json"
 clip_dest="$data_dir/clipboard_guard.py"
 clip_conf_dest="$data_dir/clipboard.conf"
@@ -223,6 +232,18 @@ render() {
         sed 1d "$clip_src"
       } > "$2"
       ;;
+    glassscript)
+      {
+        sed -n 1p "$glass_src"
+        printf '# %s; source: global/hooks/breaking_glass.py; version: %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$version"
+        sed 1d "$glass_src"
+      } > "$2"
+      ;;
+    glasscommand)
+      # /breaking-glass (ADR-0024) for every workspace: it calls the installed module, not a checkout.
+      sed -e "s|@MARKER@|$MARKER_ID|" -e "s|@GLASS@|$glass_dest|g" "$glasscmd_src" > "$2"
+      ;;
     restartscript)
       restart_output=$2
       {
@@ -279,6 +300,18 @@ render() {
       } > "$2"
       ;;
   esac
+}
+
+retire() { # $1 a managed file this mode no longer wants, $2 what it is
+  if [ -f "$1" ] && is_managed "$1"; then
+    case $mode in
+      check) echo "STALE   $1: $2; install removes it"; raise 1 ;;
+      dry-run) echo "WOULD REMOVE $1 ($2)" ;;
+      install) rm -f "$1"; echo "REMOVED $1 ($2)" ;;
+    esac
+  elif [ -e "$1" ] || [ -L "$1" ]; then
+    echo "NOTE    $1 exists and is NOT managed by this project; left alone"
+  fi
 }
 
 is_managed() { head -n 5 "$1" | grep -qF "$MARKER_ID"; }
@@ -342,6 +375,12 @@ merge_settings() {
     want_restart=$(jq -cn --arg cmd "/usr/bin/python3 -I -B \"$restart_dest\" --harness claude-code" \
       '{hooks: [{type: "command", command: $cmd, timeout: 10}]}')
   else
+    want_paste=null
+    want_restart=null
+  fi
+  if [ "$hooks_mode" = managed ]; then
+    # ADR-0025: the admin layer registers the hooks; a user-level copy would run them twice.
+    want=null
     want_paste=null
     want_restart=null
   fi
@@ -446,13 +485,19 @@ process plain "$HOME/.claude/CLAUDE.md"
 process plain "${CODEX_HOME:-$HOME/.codex}/AGENTS.md"
 process kiro "$HOME/.kiro/steering/workstation-global-brief.md"
 process hook "$hook_dest"
+process glassscript "$glass_dest"
+process glasscommand "$HOME/.claude/commands/breaking-glass.md"
 process conf "$data_dir/hitl.conf"
 process codexrules "$codex_rules"
 process clipscript "$clip_dest"
 process clipconf "$clip_conf_dest"
 if [ "$paste_ok" = 1 ]; then
   process restartscript "$restart_dest"
-  process codexhooks "$codex_hooks"
+  if [ "$hooks_mode" = user ]; then
+    process codexhooks "$codex_hooks"
+  else
+    retire "$codex_hooks" "the user-level Codex hooks, now registered in the admin layer (ADR-0025)"
+  fi
   process wrapscript "$wrap_dest"
   process snippet "$snippet_dest"
   if [ "$mode" = install ]; then

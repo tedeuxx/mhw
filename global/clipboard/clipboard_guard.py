@@ -472,11 +472,35 @@ def prompt_decision(conf, prompt, harness, salts=None):
     return out
 
 
-def cmd_prompt_hook(conf, harness, stdin=None, stdout=None, salts=None):
+def switch_state(layer):
+    """Breaking-glass switch (ADR-0024): the module installed beside this script, or global/hooks in
+    the repository. If it cannot load, the layer stays on."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    for directory in (here, os.path.join(here, os.pardir, "hooks")):
+        if not os.path.isfile(os.path.join(directory, "breaking_glass.py")):
+            continue
+        sys.path.insert(0, directory)
+        try:
+            import breaking_glass
+            return breaking_glass.layer_state(layer)
+        except Exception:
+            return False, ""
+        finally:
+            sys.path.pop(0)
+    return False, ""
+
+
+def cmd_prompt_hook(conf, harness, stdin=None, stdout=None, salts=None, switch=None):
     """Read one UserPromptSubmit payload from stdin, print the decision (or nothing), exit 0.
     An error is reported by its exception CLASS only, because a message can quote the input."""
     stdin = stdin if stdin is not None else sys.stdin.buffer
     stdout = stdout if stdout is not None else sys.stdout
+    off, note = switch if switch is not None else switch_state("paste-filter")
+    if off:
+        # Switched off by the owner: the prompt passes unread, and every prompt says so.
+        stdout.write(json.dumps({"systemMessage": note}, ensure_ascii=True) + "\n")
+        stdout.flush()
+        return 0
     limit = int(conf["max_bytes"]) * 6 + 65536     # JSON escaping can inflate the prompt (\uXXXX)
     try:
         raw = stdin.read(limit + 1)

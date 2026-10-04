@@ -5,6 +5,8 @@
 #   max_questions       a picker carries at most this many questions (one ask per activation);
 #   max_question_chars  each question stem is at most this many characters (0 = off).
 #   exact_options       each picker question has this many choices, single-select (0 = off).
+#   intake_exception    `Header|Label 1|Label 2…`: the one picker shape exempt from exact_options,
+#                       in any working directory (ADR-0021 session intake; empty = none).
 # All limits: 0 means the check is OFF. Risk/benefit meaning and conversation pacing are instructions.
 # It never reads what a question means, which language it is in, or whether it is a decision or an
 # action: a classifier of that kind denies before the owner sees anything, so its false positives are
@@ -33,6 +35,7 @@ done
 max_questions=1
 max_question_chars=0
 exact_options=0
+intake_exception=
 # The owner notice. Placeholders: {count} {chars} {max}. An overlay may set them in its own language.
 notice_count='HITL guard (ADR-0013) refused a picker before display: {count} questions, limit {max} (one ask per activation). Mitigation: the agent re-asks the first question only.'
 notice_length='HITL guard (ADR-0013) refused a picker before display: a question of {chars} characters, limit {max} (tweet-length activation). Mitigation: the agent re-asks it shorter.'
@@ -50,9 +53,9 @@ if [ -r "$conf" ]; then
         value=$(printf '%s' "$value" | tr -d ' \t\r')
         case $value in ''|*[!0-9]*) continue ;; esac
         ;;
-      notice_count|notice_length|notice_options)
+      notice_count|notice_length|notice_options|intake_exception)
         value=$(printf '%s' "$value" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | tr -d '\r')
-        [ -n "$value" ] || continue
+        [ -n "$value" ] || [ "$key" = intake_exception ] || continue
         ;;
     esac
     case $key in
@@ -62,11 +65,20 @@ if [ -r "$conf" ]; then
       notice_count) notice_count=$value ;;
       notice_length) notice_length=$value ;;
       notice_options) notice_options=$value ;;
+      intake_exception) intake_exception=$value ;;
     esac
   done < "$conf"
 fi
 
 input=$(cat)
+
+# Breaking glass (ADR-0024): the owner switched this layer off with sudo. The switch is read on every
+# call and expires by itself; the SessionStart notice announces it. If the module or python3 is
+# missing, the layer stays on.
+glass="$(dirname "$0")/breaking_glass.py"
+if [ -f "$glass" ] && [ -x /usr/bin/python3 ] && /usr/bin/python3 -I -B "$glass" check hitl-guard >/dev/null 2>&1; then
+  exit 0
+fi
 
 command -v jq >/dev/null 2>&1 || exit 0
 printf '%s' "$input" | jq -e . >/dev/null 2>&1 || exit 0
@@ -103,24 +115,31 @@ fi
 
 if [ -z "$reason" ] && [ "$exact_options" -gt 0 ]; then
   # Owner's workspace session intake has exactly TWO choices (ADR-0021), never a general bypass.
+  # Route 1, any working directory: the configured intake_exception shape (header, then labels in
+  # order). Route 2: the session-policy.json of the git repository holding the event cwd.
   # Read only the declared mode list, not transcripts, prompts or machine-local session data.
-  intake=false
+  shape=$(printf '%s' "$intake_exception" | jq -R -c 'split("|") | map(gsub("^\\s+|\\s+$"; ""))
+    | if length >= 3 and all(length > 0) then {h: .[0], l: .[1:]} else empty end' 2>/dev/null)
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
   root=
   if [ -n "$cwd" ] && command -v git >/dev/null 2>&1; then
     root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || root=
   fi
+  policy_shape=null
   if [ -n "$root" ] && [ -f "$root/workspace/session-policy.json" ]; then
     if jq -e '.schema_version == 1 and .entry_modes == ["improvement", "bugfix"]' \
-      "$root/workspace/session-policy.json" >/dev/null 2>&1; then intake=true; fi
+      "$root/workspace/session-policy.json" >/dev/null 2>&1; then
+      policy_shape='{"h":"Session type","l":["Melhoria de harness","Bugfix"]}'
+    fi
   fi
   # Count only; never classify labels, estimate risk or echo question/option content.
   # Missing/non-array options on a recognized picker are refused: the owner requires a choice.
-  bad_options=$(printf '%s' "$input" | jq -r --argjson n "$exact_options" --argjson intake "$intake" '
-    [.tool_input.questions[] | select(
+  bad_options=$(printf '%s' "$input" | jq -r --argjson n "$exact_options" \
+    --argjson shapes "[${shape:-null},$policy_shape]" '
+    [.tool_input.questions[] | . as $q | select(
       (((.options | if type == "array" then length else 0 end) != $n)
-        and (($intake and .header == "Session type"
-          and ([.options[]?.label] == ["Melhoria de harness", "Bugfix"])) | not))
+        and (any($shapes[] | select(. != null);
+          $q.header == .h and ([$q.options[]?.label] == .l)) | not))
       or (.multiSelect == true))] | length' 2>/dev/null)
   if [ "${bad_options:-0}" -gt 0 ]; then
     reason="Refused by the workstation HITL guard (ADR-0013/0019): each question must offer exactly $exact_options authored options and single selection. Re-ask one path decision with a concise risk and benefit description for each option. Leave native free-text clarification available. Do not invent unsafe alternatives or move extra questions into prose."

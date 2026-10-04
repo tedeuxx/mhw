@@ -129,5 +129,45 @@ deny "intake labels outside a declared workspace do not bypass" "$base/options.c
 deny "wrong labels do not bypass" "$base/options.conf" "$(printf '%s' "$intake" | jq '.tool_input.questions[0].options[0].label="Other"')" "exactly 3 authored options"
 deny "multi-select intake does not bypass" "$base/options.conf" "$(printf '%s' "$intake" | jq '.tool_input.questions[0].multiSelect=true')" "single selection"
 
+# The configured intake shape holds in ANY working directory (v1 defect: a session started outside
+# the repository was refused its own intake). It stays exact: header, labels and their order.
+cp "$base/options.conf" "$base/intake.conf"
+printf '%s\n' 'intake_exception= Session type | Melhoria de harness | Bugfix ' >> "$base/intake.conf"
+away=$(printf '%s' "$intake" | jq --arg c "$base" '.cwd=$c')
+abstain "configured intake passes outside any repository" "$base/intake.conf" "$away"
+abstain "configured intake passes with no cwd at all" "$base/intake.conf" "$(printf '%s' "$intake" | jq 'del(.cwd)')"
+deny "configured intake: reversed labels do not bypass" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].options |= reverse')" "exactly 3 authored options"
+deny "configured intake: another header does not bypass" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].header="Path"')" "exactly 3 authored options"
+deny "configured intake: a missing label does not bypass" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].options |= .[:1]')" "exactly 3 authored options"
+deny "configured intake: multi-select does not bypass" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].multiSelect=true')" "single selection"
+printf '%s\n' 'intake_exception=Session type|Bugfix' >> "$base/intake.conf"
+deny "a one-choice shape configures no exception" "$base/intake.conf" "$(printf '%s' "$away" | jq '.tool_input.questions[0].options |= .[1:]')" "exactly 3 authored options"
+printf '%s\n' 'intake_exception=' >> "$base/intake.conf"
+deny "an emptied exception configures none" "$base/intake.conf" "$away" "exactly 3 authored options"
+
+# Breaking glass (ADR-0024): the hook asks the sibling module. A stub module proves the wiring; the
+# module's own checks (root ownership, expiry) are proven in breaking_glass_test.py.
+if [ -x /usr/bin/python3 ]; then
+  glassdir="$base/glass"
+  mkdir -p "$glassdir"
+  cp "$hook" "$glassdir/hitl-escalation-guard.sh"
+  bad=$(q a)
+  for answer in 0 1 other; do
+    case $answer in
+      other) body='import sys; sys.exit(0 if sys.argv[1:] == ["check", "paste-filter"] else 1)' ;;
+      *) body="import sys; sys.exit(0 if sys.argv[1:] == ['check', 'hitl-guard'] and $answer == 0 else 1)" ;;
+    esac
+    printf '%s
+' "$body" > "$glassdir/breaking_glass.py"
+    out=$(printf '%s' "$bad" | PMHWC_HITL_CONF="$base/options.conf" sh "$glassdir/hitl-escalation-guard.sh" 2>/dev/null)
+    if [ "$answer" = 0 ]; then
+      if [ -z "$out" ]; then ok "hitl-guard switched off: picker passes"; else ko "hitl-guard switched off: picker passes" "$out"; fi
+    else
+      if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
+        ok "switch $answer leaves hitl-guard on"; else ko "switch $answer leaves hitl-guard on" "${out:-<empty>}"; fi
+    fi
+  done
+fi
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

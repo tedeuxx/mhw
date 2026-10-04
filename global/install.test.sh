@@ -24,7 +24,8 @@ targets() {
   echo "$targets_home/.codex/rules/workstation-deny-floor.rules"
   echo "$(data "$targets_home")/clipboard_guard.py $(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
   echo "$(data "$targets_home")/paste_wrapper.py $(data "$targets_home")/paste-filter.sh"
-  echo "$(data "$targets_home")/restart_guard.py"
+  echo "$(data "$targets_home")/restart_guard.py $(data "$targets_home")/breaking_glass.py"
+  echo "$targets_home/.claude/commands/breaking-glass.md"
 }
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
@@ -112,7 +113,7 @@ for harness in claude-code codex; do
     (cd "$restart_workspace" && HOME="$h" sh -c "$start_cmd") > "$base/restart-start.out"
   jq -cn --arg cwd "$restart_workspace" '{hook_event_name:"PreToolUse",session_id:"installed-test",cwd:$cwd}' > "$base/restart-event.json"
   (cd "$restart_workspace" && HOME="$h" sh -c "$pre_cmd") < "$base/restart-event.json" > "$base/restart-pre.out"
-  if [ ! -s "$base/restart-start.out" ] && [ ! -s "$base/restart-pre.out" ]; then
+  if jq -e '.systemMessage == "Restart guard: baseline_created."' "$base/restart-start.out" >/dev/null && [ ! -s "$base/restart-pre.out" ]; then
     ok "$harness installed restart command permits a clean baseline"
   else ko "$harness installed restart command rejected a clean baseline"; fi
   echo 'synthetic update' > "$restart_workspace/AGENTS.md"
@@ -485,6 +486,37 @@ if grep -q '^REFUSE  paste filter' "$base/quote.out" && [ ! -e "$h/.codex/hooks.
 else
   ko "the unquotable path was not refused cleanly"
 fi
+
+# 14. --hooks=managed (ADR-0025): the admin layer registers the hooks, so the user layer drops every
+# hook entry of ours and the Codex hooks.json, keeps the deny floor and the brief, and keeps foreign hooks.
+h="$base/home-managed"; mkdir -p "$h/.claude"
+printf '%s\n' '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"/foreign/guard.sh"}]}]}}' > "$h/.claude/settings.json"
+HOME="$h" sh "$inst" > /dev/null 2>&1; expect "user-mode install before switching to managed" 0 $?
+HOME="$h" sh "$inst" --check --hooks=managed > /dev/null 2>&1; expect "managed check flags the user-level hooks as drift" 1 $?
+HOME="$h" sh "$inst" --hooks=managed > "$base/managed.out" 2>&1; expect "managed-mode install" 0 $?
+s="$h/.claude/settings.json"
+if [ "$(ours "$s")" -eq 0 ] && [ "$(pours "$s")" -eq 0 ] \
+   && [ "$(jq '[.hooks[]?[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/restart_guard.py"))] | length' "$s")" -eq 0 ] \
+   && [ ! -e "$h/.codex/hooks.json" ] && grep -q '^REMOVED .*hooks.json' "$base/managed.out"; then
+  ok "managed mode removes every user-level hook entry of ours and the Codex hooks.json"
+else
+  ko "managed mode left a user-level hook of ours behind"
+fi
+if jq -e '[.hooks.PreToolUse[]?.hooks[]? | select(.command == "/foreign/guard.sh")] | length == 1' "$s" >/dev/null \
+   && jq -e '.permissions.deny | index("Bash(sudo:*)") != null' "$s" >/dev/null \
+   && [ -f "$h/.claude/CLAUDE.md" ] && [ -f "$(data "$h")/breaking_glass.py" ]; then
+  ok "managed mode keeps foreign hooks, the deny floor, the brief and the hook scripts"
+else
+  ko "managed mode removed something that is not a user-level hook of ours"
+fi
+HOME="$h" sh "$inst" --check --hooks=managed > /dev/null 2>&1; expect "managed check is clean after a managed install" 0 $?
+c="$h/.claude/commands/breaking-glass.md"
+if [ -f "$c" ] && ! grep -q '@[A-Z]*@' "$c" && grep -qF "\"$(data "$h")/breaking_glass.py\" sudo-line" "$c"; then
+  ok "/breaking-glass is rendered for every workspace and calls the installed module"
+else
+  ko "/breaking-glass is rendered for every workspace and calls the installed module"
+fi
+HOME="$h" sh "$inst" --check > /dev/null 2>&1; expect "user check flags the missing user-level hooks" 1 $?
 
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

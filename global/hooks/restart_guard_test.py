@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -28,6 +31,62 @@ class RestartTests(unittest.TestCase):
 
     def test_missing_baseline_blocks(self):
         self.assertFalse(self.call(self.pre()))
+
+    def test_diagnostics_distinguish_absent_changed_and_invalid_state(self):
+        def status():
+            return guard.inspect(self.pre(), "claude-code", self.home, self.data, self.root)
+        self.assertEqual(status(), "missing_baseline")
+        self.assertFalse(self.data.exists())
+        self.assertTrue(self.call())
+        self.assertEqual(status(), "baseline_match")
+        (self.root / "CLAUDE.md").write_text("synthetic change")
+        self.assertEqual(status(), "fingerprint_mismatch")
+        state = next((self.data / "restart-state").glob("*.json"))
+        for malformed in ("[]", "null", "{}", '{"fingerprint": 12}', "not json"):
+            state.write_text(malformed)
+            self.assertEqual(status(), "invalid_baseline")
+            self.assertFalse(self.call(self.pre()))
+
+    def test_native_output_identifies_the_guard_and_reason(self):
+        missing = guard.output(self.pre(), "missing_baseline")
+        changed = guard.output(self.pre(), "fingerprint_mismatch")
+        self.assertNotEqual(missing, changed)
+        self.assertIn("missing_baseline", missing["hookSpecificOutput"]["permissionDecisionReason"])
+        self.assertIn("fingerprint_mismatch", changed["hookSpecificOutput"]["permissionDecisionReason"])
+        created = guard.output(self.event, "baseline_created")
+        self.assertIn("baseline_created", created["systemMessage"])
+        self.assertEqual(guard.output(self.pre(), "baseline_match"), {})
+
+    def test_malformed_state_denies_instead_of_raising(self):
+        self.assertTrue(self.call())
+        state = next((self.data / "restart-state").glob("*.json"))
+        for malformed in ("[]", "null", "not json"):
+            state.write_text(malformed)
+            self.assertFalse(self.call(self.pre()))
+            self.assertEqual(state.read_text(), malformed)
+
+    def test_diagnostics_do_not_replace_stale_or_missing_startup_state(self):
+        self.assertEqual(guard.inspect(self.event, "claude-code", self.home, self.data, self.root), "missing_baseline")
+        self.assertFalse(self.data.exists())
+        self.assertTrue(self.call())
+        state = next((self.data / "restart-state").glob("*.json"))
+        before = (state.read_bytes(), state.stat().st_mtime_ns)
+        (self.root / "CLAUDE.md").write_text("synthetic change")
+        self.assertEqual(guard.inspect(self.event, "claude-code", self.home, self.data, self.root), "fingerprint_mismatch")
+        self.assertEqual((state.read_bytes(), state.stat().st_mtime_ns), before)
+
+    def test_diagnose_cli_never_creates_baseline_even_for_startup_payload(self):
+        env = dict(os.environ, HOME=str(self.home), USERPROFILE=str(self.home),
+                   XDG_DATA_HOME=str(self.home / "diagnostic-data"))
+        result = subprocess.run(
+            [sys.executable, "-B", str(Path(guard.__file__).resolve()),
+             "--harness", "claude-code", "--diagnose"],
+            input=json.dumps(self.event), text=True, capture_output=True,
+            cwd=self.root, env=env, check=False)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout), {"status": "missing_baseline"})
+        self.assertFalse((self.home / "diagnostic-data").exists())
+        self.assertEqual(result.stderr, "")
 
     def test_event_cwd_cannot_select_a_filesystem_path(self):
         self.assertTrue(self.call(dict(self.event, cwd="/untrusted/event/path")))
@@ -71,10 +130,116 @@ class RestartTests(unittest.TestCase):
             self.skipTest("symlink unavailable")
         self.assertFalse(self.call())
 
+    def in_dir(self, directory, harness, event, project=None):
+        """Evaluate as the native hook does (cwd=None), from `directory`, with an optional project env."""
+        env = {"CLAUDE_PROJECT_DIR": project} if project is not None else {}
+        previous = os.getcwd()
+        os.chdir(directory)
+        try:
+            with patch.dict("os.environ", env):
+                if project is None:
+                    os.environ.pop("CLAUDE_PROJECT_DIR", None)
+                return guard.evaluate(event, harness, self.home, self.data)
+        finally:
+            os.chdir(previous)
+
+    def test_cd_into_another_repository_does_not_change_claude_comparison(self):
+        other = self.home / "other"
+        (other / ".git").mkdir(parents=True)
+        (other / ".claude").mkdir()
+        (other / ".claude" / "settings.json").write_text("{}")
+        project = str(self.root)
+        self.assertEqual(self.in_dir(self.root, "claude-code", self.event, project), "baseline_created")
+        self.assertEqual(self.in_dir(other, "claude-code", self.pre(), project), "baseline_match")
+        (self.root / "CLAUDE.md").write_text("synthetic change")
+        self.assertEqual(self.in_dir(other, "claude-code", self.pre(), project), "fingerprint_mismatch")
+
+    def test_project_anchor_is_claude_only_and_must_be_an_absolute_directory(self):
+        other = self.home / "other"
+        (other / ".git").mkdir(parents=True)
+        (other / "AGENTS.md").write_text("x")
+        project = str(self.root)
+        # Codex ignores CLAUDE_PROJECT_DIR: its anchor is the hook's working directory.
+        self.assertEqual(self.in_dir(self.root, "codex", self.event, project), "baseline_created")
+        self.assertEqual(self.in_dir(other, "codex", self.pre(), project), "fingerprint_mismatch")
+        for bad in ("relative/dir", str(self.home / "missing"), ""):
+            with self.subTest(anchor=bad):
+                event = dict(self.event, session_id="anchor-" + str(len(bad)))
+                self.assertEqual(self.in_dir(self.root, "claude-code", event, bad), "baseline_created")
+                self.assertEqual(self.in_dir(other, "claude-code", dict(event, hook_event_name="PreToolUse"), bad),
+                                 "fingerprint_mismatch")
+
+    def test_project_anchor_rejects_a_relative_directory(self):
+        (self.root / "rel").mkdir()
+        previous = os.getcwd()
+        os.chdir(self.root)
+        try:
+            with patch.dict("os.environ", {"CLAUDE_PROJECT_DIR": "rel"}):
+                self.assertEqual(guard.project_anchor("claude-code"), Path.cwd())
+            with patch.dict("os.environ", {"CLAUDE_PROJECT_DIR": str(self.root / "rel")}):
+                self.assertEqual(guard.project_anchor("claude-code"), self.root / "rel")
+        finally:
+            os.chdir(previous)
+
+    def test_read_only_classification(self):
+        def bash(command):
+            return {"tool_name": "Bash", "tool_input": {"command": command}}
+        for tool in sorted(guard.READ_TOOLS):
+            self.assertTrue(guard.read_only({"tool_name": tool}), tool)
+        allowed = ["cat AGENTS.md", "ls -la", "head -5 a", "tail b", "wc -l c", "grep -n x 'a b'",
+                   "rg foo", "pwd", "stat f", "find . -name '*.py'", "git status", "git diff --stat",
+                   "git log --oneline -3", "git show HEAD", "git rev-parse --show-toplevel"]
+        for command in allowed:
+            self.assertTrue(guard.read_only(bash(command)), command)
+        denied = ["rm -rf x", "cat x | sh", "cat x > y", "cat x; rm y", "cat x && rm y", "cat $(rm y)",
+                  "cat `rm y`", "cat x\nrm y", "find . -delete", "find . -exec rm {} +", "find . -execdir rm {} +",
+                  "find . -ok rm {} ;", "git push", "git -C . status", "git", "git diff --output=f",
+                  "rg --pre=sh x", "git diff --ext-diff", "/bin/cat x", "FOO=1 cat x", "sed -n 1p f",
+                  "cat 'unterminated", "", "   ", "cat x\\\nrm y"]
+        for command in denied:
+            self.assertFalse(guard.read_only(bash(command)), command)
+        for event in ({"tool_name": "Write"}, {"tool_name": "Edit"}, {"tool_name": "apply_patch", "tool_input": {"command": "cat x"}},
+                      {"tool_name": "Bash"}, {"tool_name": "Bash", "tool_input": "cat x"},
+                      {"tool_name": "Bash", "tool_input": {"command": ["cat", "x"]}}, {}):
+            self.assertFalse(guard.read_only(event), event)
+
+    def test_stale_session_still_reads_but_cannot_act(self):
+        for status in ("missing_baseline", "fingerprint_mismatch", "invalid_baseline", "guard_error"):
+            with self.subTest(status=status):
+                read = guard.output(dict(self.pre(), tool_name="Read"), status)
+                self.assertNotIn("hookSpecificOutput", read)
+                self.assertIn(status, read["systemMessage"])
+                shell = guard.output(dict(self.pre(), tool_name="Bash", tool_input={"command": "git status"}), status)
+                self.assertNotIn("hookSpecificOutput", shell)
+                for event in (dict(self.pre(), tool_name="Write"),
+                              dict(self.pre(), tool_name="Bash", tool_input={"command": "rm -rf x"})):
+                    self.assertEqual(guard.output(event, status)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_breaking_glass_switch_and_session_notice(self):
+        deny = guard.output(dict(self.pre(), tool_name="Write"), "fingerprint_mismatch")
+        stop = guard.output(self.event, "missing_baseline")
+        created = guard.output(self.event, "baseline_created")
+        # Layer switched off: nothing is denied or stopped; SessionStart still announces it.
+        self.assertEqual(guard.with_switches(self.pre(), deny, (True, "NOTE")), {})
+        self.assertEqual(guard.with_switches(self.event, stop, (True, "NOTE")), {"systemMessage": "NOTE"})
+        # Layer on: decisions are untouched; another layer's notice rides on the SessionStart message.
+        self.assertEqual(guard.with_switches(self.pre(), deny, (False, "NOTE")), deny)
+        self.assertEqual(guard.with_switches(self.pre(), deny, (False, "")), deny)
+        on = guard.with_switches(self.event, created, (False, "NOTE"))
+        self.assertTrue(on["systemMessage"].startswith("Restart guard: baseline_created."))
+        self.assertTrue(on["systemMessage"].endswith("NOTE"))
+        self.assertEqual(guard.with_switches(self.event, stop, (False, "NOTE"))["continue"], False)
+        self.assertEqual(guard.with_switches({"hook_event_name": "Stop"}, {}, (True, "NOTE")), {})
+
+    def test_switch_module_loads_beside_the_guard(self):
+        off, note = guard.switch_state("restart-guard")
+        self.assertIsInstance(off, bool)
+        self.assertIsInstance(note, str)
+
     def test_output_blocks_tools_and_session_without_payload(self):
-        self.assertEqual(guard.output(self.pre(), False)["hookSpecificOutput"]["permissionDecision"], "deny")
-        self.assertFalse(guard.output(self.event, False)["continue"])
-        self.assertEqual(guard.output(self.pre(), True), {})
+        self.assertEqual(guard.output(self.pre(), "missing_baseline")["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertFalse(guard.output(self.event, "missing_baseline")["continue"])
+        self.assertEqual(guard.output(self.pre(), "baseline_match"), {})
 
 
 if __name__ == "__main__":

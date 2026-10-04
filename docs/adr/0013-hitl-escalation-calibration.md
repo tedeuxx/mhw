@@ -243,3 +243,11 @@ with space for clarification before deciding. [ADR-0019](0019-paced-conversation
 adds the overlay's structural `exact_options=3` check. The generic at-most-four instruction remains
 the ceiling; the owner's more specific three-option preference applies within it. Cadence and
 meaning are instructions, not semantic hook classifiers. The one-line action rule is unchanged.
+
+## Amendment 2026-10-04: intake exception independent of the working directory (ADR-0025)
+
+The two-option session-intake exception was gated on the event `cwd` resolving to a repository with
+`workspace/session-policy.json`, so a session started at a multi-folder root was refused its own
+intake. `global/hitl.conf` now declares `intake_exception=Session type|Melhoria de harness|Bugfix`,
+exact on header, labels and order, single-select, valid in any directory. The guard reads its
+breaking-glass switch (ADR-0024) and, from v2, is registered in the admin layer (ADR-0025).

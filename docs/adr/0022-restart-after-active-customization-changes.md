@@ -88,6 +88,17 @@ unhooked prose; changing the hook registration itself may need restart before th
 An installer warning and the user-level instruction cover that bootstrap boundary without claiming
 technical enforcement there.
 
+### 2026-10-02 diagnostic correction (no change to the restart requirement)
+
+The initial refusal did not distinguish an absent baseline from an aggregate mismatch. The guard
+now emits separate stable reason codes, acknowledges its own SessionStart baseline creation or
+validation, and provides a read-only `--diagnose` command. That command never creates or replaces
+state. Malformed baseline JSON is explicitly refused instead of escaping as an unhandled exception.
+The aggregate-only format, watched paths, native trust boundary and no-reset rule are unchanged.
+The historical first-tool refusal remains unattributed: no exact affected session ID or native
+startup trace was available. Plugin drift is not established as its cause. See the
+[diagnostic evidence and fresh-session procedure](../restart-guard-diagnosis.md).
+
 ## Links
 
 - [Claude hooks](https://code.claude.com/docs/en/hooks)
@@ -95,3 +106,11 @@ technical enforcement there.
 - [Kiro hook actions](https://kiro.dev/docs/hooks/actions/)
 - [Global source](../../global/AGENTS.md)
 - [Guard](../../global/hooks/restart_guard.py)
+
+## Amendment 2026-10-04: no lockout (ADR-0023, ADR-0025)
+
+The guard locked the owner out: it followed a mid-session `cd` and denied read-only tools. From v2 the
+project anchor is Claude Code's session-stable `CLAUDE_PROJECT_DIR` (Codex: its hook working
+directory); on any non-match, read tools and one simple read-only shell command still pass with a
+notice, and only acting tools are denied. The obligation to restart is unchanged. The guard reads its
+breaking-glass switch (ADR-0024) and is registered in the admin layer (ADR-0025).

@@ -230,7 +230,7 @@ def with_term(conf, term=TERM):
 def decide(conf, prompt, harness="claude", salts=None):
     out = io.StringIO()
     payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": prompt}).encode()
-    g.cmd_prompt_hook(conf, harness, io.BytesIO(payload), out, salts or FakeSalts())
+    g.cmd_prompt_hook(conf, harness, io.BytesIO(payload), out, salts or FakeSalts(), switch=(False, ""))
     text = out.getvalue()
     return (json.loads(text) if text else None), text
 
@@ -252,6 +252,24 @@ class PromptHook(unittest.TestCase):
         for secret in CREDENTIALS.values():
             self.assertNotIn(secret.lower()[:24], low, "a secret reached the hook output")
         self.assertNotIn("ana@zyxw-mail.zyxw", low)
+
+    def test_breaking_glass_switch_passes_the_prompt_unread_with_a_notice(self):
+        d, conf = hook_conf("hook-switch")
+        with_term(conf)
+        prompt = "notes for " + TERM.lower() + " use " + next(iter(CREDENTIALS.values()))
+        out = io.StringIO()
+        payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": prompt}).encode()
+        g.cmd_prompt_hook(conf, "claude", io.BytesIO(payload), out, FakeSalts(), switch=(True, "SWITCH-NOTICE"))
+        self.assertEqual(json.loads(out.getvalue()), {"systemMessage": "SWITCH-NOTICE"})
+        self.assert_no_content(out.getvalue(), prompt)
+        blocked, _ = decide(conf, prompt)
+        self.assertEqual(blocked.get("decision"), "block")
+
+    def test_switch_module_loads_from_the_repository_layout(self):
+        off, note = g.switch_state("paste-filter")
+        self.assertIsInstance(off, bool)
+        self.assertIsInstance(note, str)
+        self.assertEqual(g.switch_state("not-a-layer")[0], False)
 
     def test_clean_prompt_prints_nothing(self):
         d, conf = hook_conf("hook-clean")

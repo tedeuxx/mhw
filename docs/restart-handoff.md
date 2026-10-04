@@ -1,15 +1,23 @@
 # Restart handoff
 
-The active improvement adds ADR-0022: a shared user/workspace restart obligation and native
-Claude Code/Codex stale-tool guards. Read that ADR for coverage; do not treat installation as proof
-of native execution. Kiro and desktop surfaces have the same obligation, with the gaps stated there.
+State on 2026-10-04 (bugfix session, branch `fix/restart-guard-diagnostics`):
 
-After installation, end the affected session. In a new session, perform the workspace's normal
-session-mode intake, then verify the installed version and native hook loading before further
-improvements. Codex hook trust must be granted by the owner through `/hooks`; never self-grant it.
-Run the ADR's disposable pass/block/fresh-session canary per harness. Preserve existing approvals.
+- **Emergency mode is on** (ADR-0023): every hook is off in Claude Code (`disableAllHooks`) and Codex
+  (`[features] hooks = false`), with `.bak-v1` backups. The brief and the deny floor stay on.
+- **v2 is written and tested, not installed**:
+  - the HITL intake exception now works in any directory, and the restart guard no longer locks out
+    reads or follows a `cd` (ADR-0025);
+  - per-layer expiring switches and `/breaking-glass` (ADR-0024);
+  - the admin-layer installer `global/install-managed.sh` (ADR-0025).
+- Bash command substitution is refused by the owner's plugin permission guard, not by this
+  repository; the fix belongs to that plugin.
 
-The generated `overlay/desktop-instructions.md` contains the updated global rule for Claude account
-instructions; generation alone does not apply it. ChatGPT desktop and Kiro native hook activation
-remain unverified. Publication is checked through `workspace/delivery.py verify --pr NUMBER` using
-the delivered feature head. Keep this handoff free of secrets, configuration values and transcripts.
+Next, in fresh sessions only: follow [the runbook](runbooks/emergency-mode.md), section "Leave
+emergency mode". Install from a merged, released commit. Observe each guard natively before claiming
+it loaded. Never self-grant Codex hook trust or run sudo from an agent.
+
+Open after the canary:
+- the Codex `[features] hooks = true` pin (ADR-0025, "Bad, open");
+- the native cwd and `additionalContext` behaviour of the project `.codex/hooks.json` intake hook.
+
+Keep this handoff free of secrets, configuration values and transcripts.
