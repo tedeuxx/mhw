@@ -1,20 +1,24 @@
 # Restart handoff
 
-State on 2026-10-04 (bugfix session, branch `fix/restart-guard-diagnostics`):
+State on 2026-10-04, after the v2 canary (bugfix session):
 
-- **Total breaking glass is on** (ADR-0023): every hook is off in Claude Code (`disableAllHooks`) and Codex
-  (`[features] hooks = false`), with `.bak-v1` backups. The brief and the deny floor stay on.
-- **v2 is written and tested, not installed**:
-  - the HITL intake exception now works in any directory, and the restart guard no longer locks out
-    reads or follows a `cd` (ADR-0025);
-  - per-layer expiring switches and `/breaking-glass` (ADR-0024);
-  - the admin-layer installer `global/install-managed.sh` (ADR-0025).
+- **Total breaking glass is over** (ADR-0023): `disableAllHooks` is gone from the Claude Code settings
+  and `hooks = false` from the Codex config.
+- **v2 admin layer is installed** (ADR-0024, ADR-0025): Claude Code managed settings and Codex
+  requirements register the paste filter, restart guard and (Claude Code only) HITL guard.
+  `/breaking-glass status` shows all three layers on.
+- **Claude Code canary, fresh session — passed:**
+  - `Restart guard: baseline_created.` shown at startup (seen by the owner; baseline file present);
+  - a `Read` after a `cd` was not refused;
+  - `/breaking-glass status` answered;
+  - the HITL guard script accepted a synthetic intake picker and refused a two-option non-intake
+    picker. A live intake picker was not shown, because the session type was declared in the prompt;
+  - a prompt carrying a public example credential was blocked by the paste filter, with a redacted copy.
+- **Codex canary: pending**, in a fresh Codex session. Its managed hooks need no `/hooks` trust.
 - Bash command substitution is refused by the owner's plugin permission guard, not by this
   repository; the fix belongs to that plugin.
 
-Next, in fresh sessions only: follow [the runbook](runbooks/breaking-glass.md), section "End the total
-breaking glass". Install from a merged, released commit. Observe each guard natively before claiming
-it loaded. Never self-grant Codex hook trust or run sudo from an agent.
+Never self-grant Codex hook trust or run sudo from an agent.
 
 Open after the canary:
 - the Codex `[features] hooks = true` pin (ADR-0025, "Bad, open");
