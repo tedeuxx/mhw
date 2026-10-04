@@ -1,6 +1,10 @@
-# Runbook: emergency mode (v1 hooks disabled)
+# Runbook: /breaking-glass
 
-Decision record: [ADR-0023](../adr/0023-emergency-mode-v1-hooks-disabled.md).
+Two levels, one name. **Per layer** (`/breaking-glass`, ADR-0024): one expiring, root-owned switch
+per hook layer; it needs the v2 admin layer. **Total** (ADR-0023): every hook off through each
+harness's native switch; the last resort, and the only one v1 offers. This runbook covers the total level.
+
+Decision record: [ADR-0023](../adr/0023-breaking-glass-all-layers-native-switch.md).
 
 ## Check the current state
 
@@ -9,9 +13,9 @@ python3 -c "import json,os;print('claude disableAllHooks =',json.load(open(os.pa
 python3 -c "import tomllib,os;print('codex features.hooks =',tomllib.load(open(os.path.expanduser('~/.codex/config.toml'),'rb')).get('features',{}).get('hooks'))"
 ```
 
-Emergency mode is on when Claude prints `True` and Codex prints `False`.
+Total breaking glass is on when Claude prints `True` and Codex prints `False`.
 
-## Enter emergency mode (what was done on 2026-10-04)
+## Start the total breaking glass (what was done on 2026-10-04)
 
 1. Claude Code: `cp -p ~/.claude/settings.json ~/.claude/settings.json.bak-v1`, then set
    `"disableAllHooks": true` at the top level of `~/.claude/settings.json`.
@@ -20,7 +24,7 @@ Emergency mode is on when Claude prints `True` and Codex prints `False`.
 3. Kiro: nothing. v1 installs no Kiro hook.
 4. Start a fresh session in each harness. Neither switch is claimed to reload mid-session.
 
-## Leave emergency mode (the v2 rollout, ADR-0025)
+## End the total breaking glass (the v2 rollout, ADR-0025)
 
 Only from a merged, released commit. Each stage ends in fresh sessions; an agent never runs sudo and
 never grants hook trust.
@@ -35,10 +39,10 @@ never grants hook trust.
    `sh global/install.sh --hooks=managed`. Fresh sessions, the same canary. Codex managed hooks need no
    `/hooks` trust.
 4. If a stage fails: `/breaking-glass` switches one layer off for up to 240 minutes, or
-   `install-managed.sh --uninstall` prints the removal line. Re-entering this emergency mode remains
+   `install-managed.sh --uninstall` prints the removal line. A new total breaking glass remains
    the last resort; with v2 in the admin layer, the user-level switches no longer reach those hooks.
 
-## What stays active during emergency mode
+## What stays active during a total breaking glass
 
 | Control | Mechanism | Affected? |
 | --- | --- | --- |

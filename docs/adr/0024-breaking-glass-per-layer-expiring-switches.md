@@ -2,7 +2,8 @@
 
 - **Status:** proposed
 - **Date:** 2026-10-04
-- **Supersedes, once installed:** the all-or-nothing emergency mode of [ADR-0023](0023-emergency-mode-v1-hooks-disabled.md)
+- **Complements:** [ADR-0023](0023-breaking-glass-all-layers-native-switch.md), the total level of the same
+  `/breaking-glass` name, kept as the last resort
 
 ## Context and problem
 
@@ -91,7 +92,7 @@ Option 1.
 ## Links
 
 - [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md) (deny floor, `sudo`),
-  [ADR-0022](0022-restart-after-active-customization-changes.md), [ADR-0023](0023-emergency-mode-v1-hooks-disabled.md)
+  [ADR-0022](0022-restart-after-active-customization-changes.md), [ADR-0023](0023-breaking-glass-all-layers-native-switch.md)
 - Claude Code: settings, hooks and managed-settings documentation (code.claude.com)
 - Codex: hooks and managed configuration documentation (learn.chatgpt.com/docs)
 - Kiro: hooks, custom agent configuration and governance documentation (kiro.dev/docs)
