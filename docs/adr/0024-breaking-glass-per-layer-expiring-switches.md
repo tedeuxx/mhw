@@ -84,8 +84,9 @@ Option 1.
 - Bad: installing the helper and the managed hooks is a sudo act for the owner, once.
 - Bad: a lockout by a defective managed hook can no longer be fixed from the user layer. The switch is
   the only escape, which is why the restart guard must never deny read-only tools (plan for v2).
-- Evidence level: module and command *written and tested* in temporary directories. Nothing is
-  installed; no hook calls the module yet.
+- Evidence level: module, command and the three hooks' switch checks *written and tested* in temporary
+  directories (ADR-0025 wires them; `/breaking-glass` is rendered to `~/.claude/commands/` by
+  `install.sh`). Nothing is installed on the reference workstation yet.
 
 ## Links
 

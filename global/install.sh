@@ -38,6 +38,7 @@ src="$script_dir/AGENTS.md"
 hook_src="$script_dir/hooks/hitl-escalation-guard.sh"
 restart_src="$script_dir/hooks/restart_guard.py"
 glass_src="$script_dir/hooks/breaking_glass.py"
+glasscmd_src="$script_dir/commands/breaking-glass.md"
 conf_src="$script_dir/hitl.conf"
 floor_src="$script_dir/deny-floor.conf"
 clip_src="$script_dir/clipboard/clipboard_guard.py"
@@ -61,7 +62,7 @@ for arg in "$@"; do
   esac
 done
 
-for f in "$src" "$hook_src" "$restart_src" "$glass_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
+for f in "$src" "$hook_src" "$restart_src" "$glass_src" "$glasscmd_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -238,6 +239,10 @@ render() {
           "$MARKER_ID" "$version"
         sed 1d "$glass_src"
       } > "$2"
+      ;;
+    glasscommand)
+      # /breaking-glass (ADR-0024) for every workspace: it calls the installed module, not a checkout.
+      sed -e "s|@MARKER@|$MARKER_ID|" -e "s|@GLASS@|$glass_dest|g" "$glasscmd_src" > "$2"
       ;;
     restartscript)
       restart_output=$2
@@ -481,6 +486,7 @@ process plain "${CODEX_HOME:-$HOME/.codex}/AGENTS.md"
 process kiro "$HOME/.kiro/steering/workstation-global-brief.md"
 process hook "$hook_dest"
 process glassscript "$glass_dest"
+process glasscommand "$HOME/.claude/commands/breaking-glass.md"
 process conf "$data_dir/hitl.conf"
 process codexrules "$codex_rules"
 process clipscript "$clip_dest"

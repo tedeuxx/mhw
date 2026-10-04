@@ -240,6 +240,14 @@ from here now, and at what evidence level:
   Keychain at launch. It is written and tested in throwaway homes. `install.sh` does not run its
   renderer, and the renderer has **not** been run on the reference machine (Issue #8). Installing it
   into the owner's real configuration is his act.
+- **Emergency mode** (ADR-0023, 2026-10-04): the restart guard locked the owner out, so every hook
+  is switched off with each harness's native switch (Claude Code `disableAllHooks`, Codex
+  `[features] hooks = false`), with backups. The brief and the deny floor stay on; the paste filter,
+  HITL guard and restart guard are *suspended*. Kiro carried no v1 hook.
+- **v2** (ADR-0024, ADR-0025, 2026-10-04): fixes for the intake picker and the restart-guard lockout,
+  per-layer expiring root-owned switches with `/breaking-glass`, and the admin-layer installer.
+  *Written and tested* in throwaway homes and roots; **not installed**. The rollout is the owner's,
+  in fresh sessions ([runbook](docs/runbooks/emergency-mode.md)).
 - **Conversation profile** (ADR-0019, 2026-10-02): paced clarification, concise output, scoped input
   retrieval, and three risk/benefit choices are installed in the user briefs for Claude Code, Codex
   and Kiro, and saved in Claude desktop account instructions. The brief was loaded into the current

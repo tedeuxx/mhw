@@ -25,6 +25,7 @@ targets() {
   echo "$(data "$targets_home")/clipboard_guard.py $(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
   echo "$(data "$targets_home")/paste_wrapper.py $(data "$targets_home")/paste-filter.sh"
   echo "$(data "$targets_home")/restart_guard.py $(data "$targets_home")/breaking_glass.py"
+  echo "$targets_home/.claude/commands/breaking-glass.md"
 }
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
@@ -509,6 +510,12 @@ else
   ko "managed mode removed something that is not a user-level hook of ours"
 fi
 HOME="$h" sh "$inst" --check --hooks=managed > /dev/null 2>&1; expect "managed check is clean after a managed install" 0 $?
+c="$h/.claude/commands/breaking-glass.md"
+if [ -f "$c" ] && ! grep -q '@[A-Z]*@' "$c" && grep -qF "\"$(data "$h")/breaking_glass.py\" sudo-line" "$c"; then
+  ok "/breaking-glass is rendered for every workspace and calls the installed module"
+else
+  ko "/breaking-glass is rendered for every workspace and calls the installed module"
+fi
 HOME="$h" sh "$inst" --check > /dev/null 2>&1; expect "user check flags the missing user-level hooks" 1 $?
 
 echo "$pass passed, $fail failed"

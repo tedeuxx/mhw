@@ -20,17 +20,23 @@ Emergency mode is on when Claude prints `True` and Codex prints `False`.
 3. Kiro: nothing. v1 installs no Kiro hook.
 4. Start a fresh session in each harness. Neither switch is claimed to reload mid-session.
 
-## Leave emergency mode
+## Leave emergency mode (the v2 rollout, ADR-0025)
 
-Do this only after the v1 defects are fixed and installed (see ADR-0024 when it exists).
+Only from a merged, released commit. Each stage ends in fresh sessions; an agent never runs sudo and
+never grants hook trust.
 
-1. Claude Code: remove the `disableAllHooks` key from `~/.claude/settings.json`. Restoring
-   `settings.json.bak-v1` also works, but discards any later edit to that file; compare first.
-2. Codex: delete the `hooks = false` line (and its comment) under `[features]` in
-   `~/.codex/config.toml`. The same caution applies to restoring `config.toml.bak-v1`.
-3. Start a fresh session in each harness, then verify loading and a harmless pass/block canary
-   (ADR-0022) before claiming any hook is enforced. In Codex, changed hooks need the owner's trust in
-   `/hooks`; an agent never grants it.
+1. **User level, v2 hooks.** `sh global/install.sh`; then remove `disableAllHooks` from
+   `~/.claude/settings.json` and the `hooks = false` line under `[features]` in `~/.codex/config.toml`
+   (restoring the `.bak-v1` files also works, but discards later edits; compare first). Open fresh
+   sessions. Codex: the owner reviews and trusts the changed hooks in `/hooks`.
+2. **Canary.** Observe `Restart guard: baseline_created.`; the intake picker passes; `Read` after a
+   `cd` passes; `/breaking-glass status` answers. Stop on an unexpected refusal and note its reason code.
+3. **Admin layer.** `sh global/install-managed.sh` prints one sudo line; the owner runs it, then
+   `sh global/install.sh --hooks=managed`. Fresh sessions, the same canary. Codex managed hooks need no
+   `/hooks` trust.
+4. If a stage fails: `/breaking-glass` switches one layer off for up to 240 minutes, or
+   `install-managed.sh --uninstall` prints the removal line. Re-entering this emergency mode remains
+   the last resort; with v2 in the admin layer, the user-level switches no longer reach those hooks.
 
 ## What stays active during emergency mode
 

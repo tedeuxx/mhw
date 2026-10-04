@@ -106,3 +106,11 @@ startup trace was available. Plugin drift is not established as its cause. See t
 - [Kiro hook actions](https://kiro.dev/docs/hooks/actions/)
 - [Global source](../../global/AGENTS.md)
 - [Guard](../../global/hooks/restart_guard.py)
+
+## Amendment 2026-10-04: no lockout (ADR-0023, ADR-0025)
+
+The guard locked the owner out: it followed a mid-session `cd` and denied read-only tools. From v2 the
+project anchor is Claude Code's session-stable `CLAUDE_PROJECT_DIR` (Codex: its hook working
+directory); on any non-match, read tools and one simple read-only shell command still pass with a
+notice, and only acting tools are denied. The obligation to restart is unchanged. The guard reads its
+breaking-glass switch (ADR-0024) and is registered in the admin layer (ADR-0025).
