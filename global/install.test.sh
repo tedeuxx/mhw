@@ -486,5 +486,30 @@ else
   ko "the unquotable path was not refused cleanly"
 fi
 
+# 14. --hooks=managed (ADR-0025): the admin layer registers the hooks, so the user layer drops every
+# hook entry of ours and the Codex hooks.json, keeps the deny floor and the brief, and keeps foreign hooks.
+h="$base/home-managed"; mkdir -p "$h/.claude"
+printf '%s\n' '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"/foreign/guard.sh"}]}]}}' > "$h/.claude/settings.json"
+HOME="$h" sh "$inst" > /dev/null 2>&1; expect "user-mode install before switching to managed" 0 $?
+HOME="$h" sh "$inst" --check --hooks=managed > /dev/null 2>&1; expect "managed check flags the user-level hooks as drift" 1 $?
+HOME="$h" sh "$inst" --hooks=managed > "$base/managed.out" 2>&1; expect "managed-mode install" 0 $?
+s="$h/.claude/settings.json"
+if [ "$(ours "$s")" -eq 0 ] && [ "$(pours "$s")" -eq 0 ] \
+   && [ "$(jq '[.hooks[]?[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/restart_guard.py"))] | length' "$s")" -eq 0 ] \
+   && [ ! -e "$h/.codex/hooks.json" ] && grep -q '^REMOVED .*hooks.json' "$base/managed.out"; then
+  ok "managed mode removes every user-level hook entry of ours and the Codex hooks.json"
+else
+  ko "managed mode left a user-level hook of ours behind"
+fi
+if jq -e '[.hooks.PreToolUse[]?.hooks[]? | select(.command == "/foreign/guard.sh")] | length == 1' "$s" >/dev/null \
+   && jq -e '.permissions.deny | index("Bash(sudo:*)") != null' "$s" >/dev/null \
+   && [ -f "$h/.claude/CLAUDE.md" ] && [ -f "$(data "$h")/breaking_glass.py" ]; then
+  ok "managed mode keeps foreign hooks, the deny floor, the brief and the hook scripts"
+else
+  ko "managed mode removed something that is not a user-level hook of ours"
+fi
+HOME="$h" sh "$inst" --check --hooks=managed > /dev/null 2>&1; expect "managed check is clean after a managed install" 0 $?
+HOME="$h" sh "$inst" --check > /dev/null 2>&1; expect "user check flags the missing user-level hooks" 1 $?
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

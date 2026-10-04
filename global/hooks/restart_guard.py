@@ -102,7 +102,9 @@ def watched(harness, cwd, home, data):
         if current == root or current.parent == current:
             break
         current = current.parent
-    paths = [user / name for name in names] + [data / name for name in MANAGED]
+    # The managed files where the user installer puts them, and beside this script (the admin layer).
+    here = Path(__file__).resolve().parent
+    paths = [user / name for name in names] + [data / name for name in MANAGED] + [here / name for name in MANAGED]
     for directory in project_dirs:
         paths += [directory / folder / name for name in names]
         paths += [directory / "AGENTS.md", directory / "CLAUDE.md", directory / "workspace/session-policy.json"]

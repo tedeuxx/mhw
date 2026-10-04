@@ -7,6 +7,9 @@
 #   install.sh --dry-run        print exactly what would be written or merged where; write nothing
 #   install.sh --check          exit non-zero if any target is missing, drifted or unmanaged
 #   install.sh --overlay=DIR    owner overlay directory (default: <repo>/overlay); --overlay=none for none
+#   install.sh --hooks=managed  the hooks run from the admin layer (install-managed.sh, ADR-0025): remove
+#                               this project's hook entries from the user settings and its Codex
+#                               hooks.json instead of writing them (default --hooks=user)
 #
 # Exit codes: 0 ok · 1 drift or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
 # 3 something UNMANAGED or unreadable is in the way. A file is managed when its marker line (below) is in
@@ -43,11 +46,14 @@ clip_conf_src="$script_dir/clipboard.conf"
 CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-guard"
 
 mode=install
+hooks_mode=user
 overlay="$repo_root/overlay"
 for arg in "$@"; do
   case $arg in
     --dry-run) mode=dry-run ;;
     --check) mode=check ;;
+    --hooks=user) hooks_mode=user ;;
+    --hooks=managed) hooks_mode=managed ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
@@ -291,6 +297,18 @@ render() {
   esac
 }
 
+retire() { # $1 a managed file this mode no longer wants, $2 what it is
+  if [ -f "$1" ] && is_managed "$1"; then
+    case $mode in
+      check) echo "STALE   $1: $2; install removes it"; raise 1 ;;
+      dry-run) echo "WOULD REMOVE $1 ($2)" ;;
+      install) rm -f "$1"; echo "REMOVED $1 ($2)" ;;
+    esac
+  elif [ -e "$1" ] || [ -L "$1" ]; then
+    echo "NOTE    $1 exists and is NOT managed by this project; left alone"
+  fi
+}
+
 is_managed() { head -n 5 "$1" | grep -qF "$MARKER_ID"; }
 
 process() {
@@ -352,6 +370,12 @@ merge_settings() {
     want_restart=$(jq -cn --arg cmd "/usr/bin/python3 -I -B \"$restart_dest\" --harness claude-code" \
       '{hooks: [{type: "command", command: $cmd, timeout: 10}]}')
   else
+    want_paste=null
+    want_restart=null
+  fi
+  if [ "$hooks_mode" = managed ]; then
+    # ADR-0025: the admin layer registers the hooks; a user-level copy would run them twice.
+    want=null
     want_paste=null
     want_restart=null
   fi
@@ -463,7 +487,11 @@ process clipscript "$clip_dest"
 process clipconf "$clip_conf_dest"
 if [ "$paste_ok" = 1 ]; then
   process restartscript "$restart_dest"
-  process codexhooks "$codex_hooks"
+  if [ "$hooks_mode" = user ]; then
+    process codexhooks "$codex_hooks"
+  else
+    retire "$codex_hooks" "the user-level Codex hooks, now registered in the admin layer (ADR-0025)"
+  fi
   process wrapscript "$wrap_dest"
   process snippet "$snippet_dest"
   if [ "$mode" = install ]; then
