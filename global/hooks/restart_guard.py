@@ -180,7 +180,7 @@ def evaluate(event, harness, home, data, cwd=None, create_baseline=True):
         return "missing_baseline"
     try:
         saved = json.loads(state.read_text(encoding="utf-8"))
-    except (ValueError, UnicodeError):
+    except ValueError:
         return "invalid_baseline"
     value = saved.get("fingerprint") if isinstance(saved, dict) else None
     if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):

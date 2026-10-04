@@ -12,11 +12,12 @@ import os
 from pathlib import Path
 import stat
 import sys
-import tempfile
 import time
 
 NAME = "personal-multi-harness-workstation-configuration"
 LAYERS = ("paste-filter", "restart-guard", "hitl-guard")
+# Every switch path comes from this fixed table, never from a caller's string.
+SWITCH_FILES = {layer: layer + ".json" for layer in LAYERS}
 DEFAULT_MINUTES = 60
 MAX_MINUTES = 240
 if sys.platform == "darwin":
@@ -46,8 +47,14 @@ def disabled_until(layer, switch_dir=None, now=None, owner_uid=None):
     now = time.time() if now is None else now
     owner_uid = OWNER_UID if owner_uid is None else owner_uid
     switch_dir = Path(SWITCH_DIR if switch_dir is None else switch_dir)
-    path = switch_dir / (layer + ".json")
+    path = switch_dir / SWITCH_FILES[layer]
     if not all(_root_safe(p, owner_uid) for p in (switch_dir.parent, switch_dir, path)):
+        return None
+    # Hooks run as the owner, not root: a switch they could not read is no switch, whoever reads it.
+    try:
+        if not (os.stat(switch_dir).st_mode & stat.S_IXOTH and os.stat(path).st_mode & stat.S_IROTH):
+            return None
+    except OSError:
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -84,26 +91,29 @@ def layer_state(layer):
 
 
 def write_switch(layer, minutes, switch_dir=SWITCH_DIR, now=None):
+    """Write atomically with the creating process's default modes (root's umask 022: 0755 directory,
+    0644 file), which hooks running as the owner need to read. A stricter umask leaves the switch
+    unreadable to them, so the layer stays on: the caller reports it, it never fails open."""
+    name = SWITCH_FILES[layer]
     now = time.time() if now is None else now
     switch_dir = Path(switch_dir)
-    switch_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-    os.chmod(switch_dir, 0o755)
+    switch_dir.mkdir(parents=True, exist_ok=True)
     payload = json.dumps({"layer": layer, "expires_at": int(now + minutes * 60)})
-    fd, tmp = tempfile.mkstemp(dir=switch_dir, prefix=".tmp-")
+    tmp = switch_dir / (".tmp-%d-%s" % (os.getpid(), name))
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        with open(tmp, "x", encoding="utf-8") as fh:
             fh.write(payload)
-        os.chmod(tmp, 0o644)
-        os.replace(tmp, switch_dir / (layer + ".json"))
+        os.replace(tmp, switch_dir / name)
     except BaseException:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
+        if tmp.exists():
+            tmp.unlink()
         raise
+    return all(os.stat(p).st_mode & stat.S_IROTH for p in (switch_dir, switch_dir / name))
 
 
 def remove_switch(layer, switch_dir=SWITCH_DIR):
     try:
-        (Path(switch_dir) / (layer + ".json")).unlink()
+        (Path(switch_dir) / SWITCH_FILES[layer]).unlink()
     except FileNotFoundError:
         pass
 
@@ -156,7 +166,9 @@ def main(argv=None):
         print("Requer privilégio de administrador (sudo).", file=sys.stderr)
         return 1
     if args.cmd == "disable":
-        write_switch(args.layer, args.minutes)
+        if not write_switch(args.layer, args.minutes):
+            print("Switch gravado, mas ilegível para os hooks (umask restritivo); a camada segue ativa.",
+                  file=sys.stderr)
     else:
         remove_switch(args.layer)
     print(notice() or "Breaking glass: todas as camadas ativas.")

@@ -80,6 +80,44 @@ class SwitchTest(unittest.TestCase):
     def test_unknown_layer_is_never_disabled(self):
         self.assertIsNone(bg.disabled_until("deny-floor", self.dir, self.now, UID))
 
+    def test_switch_paths_come_only_from_the_layer_table(self):
+        for bad in ("../escape", "deny-floor", "restart-guard/../x"):
+            with self.assertRaises(KeyError):
+                bg.write_switch(bad, 30, self.dir, now=self.now)
+            with self.assertRaises(KeyError):
+                bg.remove_switch(bad, self.dir)
+        self.assertFalse((self.dir.parent / "escape.json").exists())
+
+    def test_a_switch_hooks_cannot_read_keeps_the_layer_on(self):
+        bg.write_switch("restart-guard", 30, self.dir, now=self.now)
+        f = self.dir / "restart-guard.json"
+        os.utime(f, (self.now, self.now))
+        self.assertIsNotNone(self.until())
+        os.chmod(f, 0o600)
+        self.assertIsNone(self.until(), "file unreadable to others")
+        os.chmod(f, 0o644)
+        os.chmod(self.dir, 0o700)
+        self.assertIsNone(self.until(), "directory not searchable by others")
+        os.chmod(self.dir, 0o755)
+        self.assertIsNotNone(self.until())
+
+    def test_strict_umask_reports_an_unreadable_switch_and_the_layer_stays_on(self):
+        old = os.umask(0o077)
+        try:
+            readable = bg.write_switch("restart-guard", 30, self.dir, now=self.now)
+        finally:
+            os.umask(old)
+        self.assertFalse(readable)
+        os.utime(self.dir / "restart-guard.json", (self.now, self.now))
+        self.assertIsNone(self.until())
+        old = os.umask(0o022)
+        try:
+            # The 0700 directory above hides every switch in it; a fresh one under 022 is readable.
+            self.assertFalse(bg.write_switch("paste-filter", 30, self.dir, now=self.now))
+            self.assertTrue(bg.write_switch("paste-filter", 30, self.dir.parent / "fresh", now=self.now))
+        finally:
+            os.umask(old)
+
     def test_remove_switch_reactivates(self):
         bg.write_switch("paste-filter", 30, self.dir, now=self.now)
         bg.remove_switch("paste-filter", self.dir)
