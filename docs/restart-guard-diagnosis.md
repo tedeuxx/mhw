@@ -33,7 +33,9 @@ comparison has been demonstrated, so the watched set and restart policy are unch
 ## Reproducible read-only diagnosis
 
 Run from the exact workspace used by the native hook, using the same user/data environment. The
-process working directory is authoritative; the event's `cwd` is intentionally ignored. An aggregate
+project is anchored on Claude Code's session-stable `CLAUDE_PROJECT_DIR` (Codex: the hook process
+working directory); the event's `cwd` is intentionally ignored. Since v2, a stale session still passes
+read-only tools and simple read-only shell commands, with a notice; only acting tools are denied. An aggregate
 mismatch can result from a different execution directory or metadata as well as a configuration edit.
 It does not, on its own, prove which setting changed or whether the block is a false positive.
 

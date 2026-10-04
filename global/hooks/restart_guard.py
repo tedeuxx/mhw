@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """User-level stale-session guard. Stores opaque fingerprints, never configuration contents.
 
-Native SessionStart(startup) establishes a baseline. PreToolUse denies missing/changed baselines.
+Native SessionStart(startup) establishes a baseline. The project is anchored on the harness's own
+session-stable project directory (Claude Code CLAUDE_PROJECT_DIR), not on the hook's current working
+directory, so a `cd` inside a session cannot change what is compared. Only an aggregate hash is stored.
+PreToolUse denies missing/changed baselines for every tool that can act; read-only tools and simple
+read-only shell commands still pass, with a notice, so a stale session can always be diagnosed.
 Resume, clear and compaction never authorize a new baseline. Python 3.9+, no dependencies.
 """
 import argparse
@@ -9,6 +13,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shlex
 import sys
 import tempfile
 
@@ -21,12 +26,20 @@ REASONS = {
     "unsafe_state": "O local de estado é um link simbólico; acesso recusado.",
     "guard_error": "Não foi possível verificar ou gravar a referência de início.",
 }
+READ_NOTICE = "leitura permitida para diagnóstico; ações que alteram algo seguem bloqueadas até uma nova sessão."
 ALLOWED = ("baseline_created", "baseline_match", "ignored")
 NATIVE = {
     "claude-code": (".claude", ["CLAUDE.md", "settings.json", "settings.local.json", "agents", "commands", "hooks", "skills", "plugins/installed_plugins.json"]),
     "codex": (".codex", ["AGENTS.md", "config.toml", "hooks.json", "rules", "skills"]),
     "kiro-cli": (".kiro", ["settings", "agents", "steering", "prompts", "hooks"]),
 }
+READ_TOOLS = {"Read", "Grep", "Glob", "LS", "NotebookRead", "TodoWrite", "AskUserQuestion"}
+READ_COMMANDS = {"cat", "ls", "head", "tail", "wc", "grep", "rg", "pwd", "stat", "find", "git"}
+GIT_READS = {"status", "diff", "log", "show", "rev-parse"}
+SHELL_META = set(";|&<>$`\\\n\r")
+# Arguments that turn a reading command into one that writes or executes.
+# Matched as prefixes: "-exec" also covers "-execdir", "-ok" covers "-okdir", "-fprint" its variants.
+UNSAFE_ARGS = ("-exec", "-ok", "-delete", "-fprint", "-fls", "--output", "--pre", "--ext-diff")
 MANAGED = ["hitl-escalation-guard.sh", "hitl.conf", "clipboard_guard.py", "clipboard.conf", "paste_wrapper.py", "restart_guard.py"]
 
 
@@ -40,6 +53,15 @@ def workspace(cwd):
         if (candidate / ".git").exists():
             return candidate
     return current
+
+
+def project_anchor(harness):
+    """Claude Code sets CLAUDE_PROJECT_DIR for the whole session. Codex documents no equivalent; its
+    shell commands run as separate processes, so its hook working directory does not follow a `cd`."""
+    anchor = os.environ.get("CLAUDE_PROJECT_DIR") if harness == "claude-code" else None
+    if anchor and Path(anchor).is_absolute() and Path(anchor).is_dir():
+        return Path(anchor)
+    return Path.cwd()
 
 
 def watched(harness, cwd, home, data):
@@ -59,6 +81,27 @@ def watched(harness, cwd, home, data):
         paths += [directory / folder / name for name in names]
         paths += [directory / "AGENTS.md", directory / "CLAUDE.md", directory / "workspace/session-policy.json"]
     return paths
+
+
+def read_only(event):
+    """True for a tool call that cannot change anything: a read tool, or one simple read command."""
+    tool = event.get("tool_name")
+    if tool in READ_TOOLS:
+        return True
+    if tool != "Bash":
+        return False
+    command = (event.get("tool_input") or {}).get("command") if isinstance(event.get("tool_input"), dict) else None
+    if not isinstance(command, str) or not command.strip() or SHELL_META & set(command):
+        return False
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        return False
+    if not words or words[0] not in READ_COMMANDS:
+        return False
+    if any(word.startswith(UNSAFE_ARGS) for word in words[1:]):
+        return False
+    return words[0] != "git" or (len(words) > 1 and words[1] in GIT_READS)
 
 
 def fingerprint(paths):
@@ -81,8 +124,9 @@ def evaluate(event, harness, home, data, cwd=None, create_baseline=True):
     if name not in ("SessionStart", "PreToolUse"):
         return "ignored"
     session = event.get("session_id")
-    # The hook process's working directory is authoritative. Never probe a path supplied in stdin.
-    cwd = Path.cwd() if cwd is None else cwd
+    # Never probe a path supplied in stdin. The harness's session-stable project directory wins over
+    # the hook process's working directory, which follows a `cd` in a persistent shell.
+    cwd = project_anchor(harness) if cwd is None else cwd
     if not isinstance(session, str) or not session:
         return "invalid_session"
     state_dir = data / "restart-state"
@@ -134,6 +178,8 @@ def output(event, status):
     if status in ALLOWED:
         return {}
     message = "Restart guard [" + status + "]: " + REASONS[status] + " " + MESSAGE
+    if event.get("hook_event_name") == "PreToolUse" and read_only(event):
+        return {"systemMessage": "Restart guard [" + status + "]: " + READ_NOTICE}
     if event.get("hook_event_name") == "PreToolUse":
         return {"systemMessage": message, "hookSpecificOutput": {
             "hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": message}}

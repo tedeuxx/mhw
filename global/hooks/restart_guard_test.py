@@ -130,6 +130,91 @@ class RestartTests(unittest.TestCase):
             self.skipTest("symlink unavailable")
         self.assertFalse(self.call())
 
+    def in_dir(self, directory, harness, event, project=None):
+        """Evaluate as the native hook does (cwd=None), from `directory`, with an optional project env."""
+        env = {"CLAUDE_PROJECT_DIR": project} if project is not None else {}
+        previous = os.getcwd()
+        os.chdir(directory)
+        try:
+            with patch.dict("os.environ", env):
+                if project is None:
+                    os.environ.pop("CLAUDE_PROJECT_DIR", None)
+                return guard.evaluate(event, harness, self.home, self.data)
+        finally:
+            os.chdir(previous)
+
+    def test_cd_into_another_repository_does_not_change_claude_comparison(self):
+        other = self.home / "other"
+        (other / ".git").mkdir(parents=True)
+        (other / ".claude").mkdir()
+        (other / ".claude" / "settings.json").write_text("{}")
+        project = str(self.root)
+        self.assertEqual(self.in_dir(self.root, "claude-code", self.event, project), "baseline_created")
+        self.assertEqual(self.in_dir(other, "claude-code", self.pre(), project), "baseline_match")
+        (self.root / "CLAUDE.md").write_text("synthetic change")
+        self.assertEqual(self.in_dir(other, "claude-code", self.pre(), project), "fingerprint_mismatch")
+
+    def test_project_anchor_is_claude_only_and_must_be_an_absolute_directory(self):
+        other = self.home / "other"
+        (other / ".git").mkdir(parents=True)
+        (other / "AGENTS.md").write_text("x")
+        project = str(self.root)
+        # Codex ignores CLAUDE_PROJECT_DIR: its anchor is the hook's working directory.
+        self.assertEqual(self.in_dir(self.root, "codex", self.event, project), "baseline_created")
+        self.assertEqual(self.in_dir(other, "codex", self.pre(), project), "fingerprint_mismatch")
+        for bad in ("relative/dir", str(self.home / "missing"), ""):
+            with self.subTest(anchor=bad):
+                event = dict(self.event, session_id="anchor-" + str(len(bad)))
+                self.assertEqual(self.in_dir(self.root, "claude-code", event, bad), "baseline_created")
+                self.assertEqual(self.in_dir(other, "claude-code", dict(event, hook_event_name="PreToolUse"), bad),
+                                 "fingerprint_mismatch")
+
+    def test_project_anchor_rejects_a_relative_directory(self):
+        (self.root / "rel").mkdir()
+        previous = os.getcwd()
+        os.chdir(self.root)
+        try:
+            with patch.dict("os.environ", {"CLAUDE_PROJECT_DIR": "rel"}):
+                self.assertEqual(guard.project_anchor("claude-code"), Path.cwd())
+            with patch.dict("os.environ", {"CLAUDE_PROJECT_DIR": str(self.root / "rel")}):
+                self.assertEqual(guard.project_anchor("claude-code"), self.root / "rel")
+        finally:
+            os.chdir(previous)
+
+    def test_read_only_classification(self):
+        def bash(command):
+            return {"tool_name": "Bash", "tool_input": {"command": command}}
+        for tool in sorted(guard.READ_TOOLS):
+            self.assertTrue(guard.read_only({"tool_name": tool}), tool)
+        allowed = ["cat AGENTS.md", "ls -la", "head -5 a", "tail b", "wc -l c", "grep -n x 'a b'",
+                   "rg foo", "pwd", "stat f", "find . -name '*.py'", "git status", "git diff --stat",
+                   "git log --oneline -3", "git show HEAD", "git rev-parse --show-toplevel"]
+        for command in allowed:
+            self.assertTrue(guard.read_only(bash(command)), command)
+        denied = ["rm -rf x", "cat x | sh", "cat x > y", "cat x; rm y", "cat x && rm y", "cat $(rm y)",
+                  "cat `rm y`", "cat x\nrm y", "find . -delete", "find . -exec rm {} +", "find . -execdir rm {} +",
+                  "find . -ok rm {} ;", "git push", "git -C . status", "git", "git diff --output=f",
+                  "rg --pre=sh x", "git diff --ext-diff", "/bin/cat x", "FOO=1 cat x", "sed -n 1p f",
+                  "cat 'unterminated", "", "   ", "cat x\\\nrm y"]
+        for command in denied:
+            self.assertFalse(guard.read_only(bash(command)), command)
+        for event in ({"tool_name": "Write"}, {"tool_name": "Edit"}, {"tool_name": "apply_patch", "tool_input": {"command": "cat x"}},
+                      {"tool_name": "Bash"}, {"tool_name": "Bash", "tool_input": "cat x"},
+                      {"tool_name": "Bash", "tool_input": {"command": ["cat", "x"]}}, {}):
+            self.assertFalse(guard.read_only(event), event)
+
+    def test_stale_session_still_reads_but_cannot_act(self):
+        for status in ("missing_baseline", "fingerprint_mismatch", "invalid_baseline", "guard_error"):
+            with self.subTest(status=status):
+                read = guard.output(dict(self.pre(), tool_name="Read"), status)
+                self.assertNotIn("hookSpecificOutput", read)
+                self.assertIn(status, read["systemMessage"])
+                shell = guard.output(dict(self.pre(), tool_name="Bash", tool_input={"command": "git status"}), status)
+                self.assertNotIn("hookSpecificOutput", shell)
+                for event in (dict(self.pre(), tool_name="Write"),
+                              dict(self.pre(), tool_name="Bash", tool_input={"command": "rm -rf x"})):
+                    self.assertEqual(guard.output(event, status)["hookSpecificOutput"]["permissionDecision"], "deny")
+
     def test_output_blocks_tools_and_session_without_payload(self):
         self.assertEqual(guard.output(self.pre(), "missing_baseline")["hookSpecificOutput"]["permissionDecision"], "deny")
         self.assertFalse(guard.output(self.event, "missing_baseline")["continue"])
