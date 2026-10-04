@@ -34,6 +34,7 @@ repo_root=$(dirname "$script_dir")
 src="$script_dir/AGENTS.md"
 hook_src="$script_dir/hooks/hitl-escalation-guard.sh"
 restart_src="$script_dir/hooks/restart_guard.py"
+glass_src="$script_dir/hooks/breaking_glass.py"
 conf_src="$script_dir/hitl.conf"
 floor_src="$script_dir/deny-floor.conf"
 clip_src="$script_dir/clipboard/clipboard_guard.py"
@@ -54,7 +55,7 @@ for arg in "$@"; do
   esac
 done
 
-for f in "$src" "$hook_src" "$restart_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
+for f in "$src" "$hook_src" "$restart_src" "$glass_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -75,6 +76,7 @@ fi
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/personal-multi-harness-workstation-configuration"
 hook_dest="$data_dir/hitl-escalation-guard.sh"
 restart_dest="$data_dir/restart_guard.py"
+glass_dest="$data_dir/breaking_glass.py"
 settings="$HOME/.claude/settings.json"
 clip_dest="$data_dir/clipboard_guard.py"
 clip_conf_dest="$data_dir/clipboard.conf"
@@ -221,6 +223,14 @@ render() {
         printf '# %s; source: global/clipboard/clipboard_guard.py; version: %s; do not edit, re-run the installer\n' \
           "$MARKER_ID" "$version"
         sed 1d "$clip_src"
+      } > "$2"
+      ;;
+    glassscript)
+      {
+        sed -n 1p "$glass_src"
+        printf '# %s; source: global/hooks/breaking_glass.py; version: %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$version"
+        sed 1d "$glass_src"
       } > "$2"
       ;;
     restartscript)
@@ -446,6 +456,7 @@ process plain "$HOME/.claude/CLAUDE.md"
 process plain "${CODEX_HOME:-$HOME/.codex}/AGENTS.md"
 process kiro "$HOME/.kiro/steering/workstation-global-brief.md"
 process hook "$hook_dest"
+process glassscript "$glass_dest"
 process conf "$data_dir/hitl.conf"
 process codexrules "$codex_rules"
 process clipscript "$clip_dest"

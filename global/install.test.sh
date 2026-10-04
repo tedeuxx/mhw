@@ -24,7 +24,7 @@ targets() {
   echo "$targets_home/.codex/rules/workstation-deny-floor.rules"
   echo "$(data "$targets_home")/clipboard_guard.py $(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
   echo "$(data "$targets_home")/paste_wrapper.py $(data "$targets_home")/paste-filter.sh"
-  echo "$(data "$targets_home")/restart_guard.py"
+  echo "$(data "$targets_home")/restart_guard.py $(data "$targets_home")/breaking_glass.py"
 }
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"

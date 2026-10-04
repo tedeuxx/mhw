@@ -145,5 +145,29 @@ deny "a one-choice shape configures no exception" "$base/intake.conf" "$(printf 
 printf '%s\n' 'intake_exception=' >> "$base/intake.conf"
 deny "an emptied exception configures none" "$base/intake.conf" "$away" "exactly 3 authored options"
 
+# Breaking glass (ADR-0024): the hook asks the sibling module. A stub module proves the wiring; the
+# module's own checks (root ownership, expiry) are proven in breaking_glass_test.py.
+if [ -x /usr/bin/python3 ]; then
+  glassdir="$base/glass"
+  mkdir -p "$glassdir"
+  cp "$hook" "$glassdir/hitl-escalation-guard.sh"
+  bad=$(q a)
+  for answer in 0 1 other; do
+    case $answer in
+      other) body='import sys; sys.exit(0 if sys.argv[1:] == ["check", "paste-filter"] else 1)' ;;
+      *) body="import sys; sys.exit(0 if sys.argv[1:] == ['check', 'hitl-guard'] and $answer == 0 else 1)" ;;
+    esac
+    printf '%s
+' "$body" > "$glassdir/breaking_glass.py"
+    out=$(printf '%s' "$bad" | PMHWC_HITL_CONF="$base/options.conf" sh "$glassdir/hitl-escalation-guard.sh" 2>/dev/null)
+    if [ "$answer" = 0 ]; then
+      if [ -z "$out" ]; then ok "hitl-guard switched off: picker passes"; else ko "hitl-guard switched off: picker passes" "$out"; fi
+    else
+      if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
+        ok "switch $answer leaves hitl-guard on"; else ko "switch $answer leaves hitl-guard on" "${out:-<empty>}"; fi
+    fi
+  done
+fi
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

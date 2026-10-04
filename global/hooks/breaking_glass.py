@@ -25,6 +25,7 @@ else:
     BASE = Path("/etc") / NAME
 SWITCH_DIR = BASE / "breaking-glass"
 HELPER = BASE / "bin" / "breaking_glass.py"
+OWNER_UID = 0
 
 
 def _root_safe(path, owner_uid):
@@ -38,12 +39,13 @@ def _root_safe(path, owner_uid):
     return not (st.st_mode & (stat.S_IWGRP | stat.S_IWOTH))
 
 
-def disabled_until(layer, switch_dir=SWITCH_DIR, now=None, owner_uid=0):
+def disabled_until(layer, switch_dir=None, now=None, owner_uid=None):
     """Return the expiry epoch while the layer is switched off, else None (layer active)."""
     if layer not in LAYERS:
         return None
     now = time.time() if now is None else now
-    switch_dir = Path(switch_dir)
+    owner_uid = OWNER_UID if owner_uid is None else owner_uid
+    switch_dir = Path(SWITCH_DIR if switch_dir is None else switch_dir)
     path = switch_dir / (layer + ".json")
     if not all(_root_safe(p, owner_uid) for p in (switch_dir.parent, switch_dir, path)):
         return None
@@ -61,7 +63,7 @@ def disabled_until(layer, switch_dir=SWITCH_DIR, now=None, owner_uid=0):
     return expires if now < expires else None
 
 
-def notice(switch_dir=SWITCH_DIR, now=None, owner_uid=0):
+def notice(switch_dir=None, now=None, owner_uid=None):
     """One line naming the layers switched off and their expiry; empty when none."""
     off = []
     for layer in LAYERS:
@@ -71,6 +73,14 @@ def notice(switch_dir=SWITCH_DIR, now=None, owner_uid=0):
     if not off:
         return ""
     return "Breaking glass: camada desligada: " + ", ".join(off) + ". Nenhum conteúdo foi registrado."
+
+
+def layer_state(layer):
+    """For hooks: (switched_off, notice). Never raises; any failure leaves the layer on."""
+    try:
+        return disabled_until(layer) is not None, notice()
+    except Exception:
+        return False, ""
 
 
 def write_switch(layer, minutes, switch_dir=SWITCH_DIR, now=None):
@@ -126,6 +136,8 @@ def main(argv=None):
         if action == "disable":
             p.add_argument("--minutes", type=_minutes, default=DEFAULT_MINUTES)
     sub.add_parser("status", help="show which layers are switched off")
+    p = sub.add_parser("check", help="exit 0 when the layer is switched off, 1 when active; prints nothing")
+    p.add_argument("layer", choices=LAYERS)
     args = parser.parse_args(argv)
 
     if args.cmd == "sudo-line":
@@ -135,6 +147,8 @@ def main(argv=None):
             return 1
         print(line)
         return 0
+    if args.cmd == "check":
+        return 0 if layer_state(args.layer)[0] else 1
     if args.cmd == "status":
         print(notice() or "Breaking glass: todas as camadas ativas.")
         return 0

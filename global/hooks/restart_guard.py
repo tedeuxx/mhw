@@ -40,7 +40,33 @@ SHELL_META = set(";|&<>$`\\\n\r")
 # Arguments that turn a reading command into one that writes or executes.
 # Matched as prefixes: "-exec" also covers "-execdir", "-ok" covers "-okdir", "-fprint" its variants.
 UNSAFE_ARGS = ("-exec", "-ok", "-delete", "-fprint", "-fls", "--output", "--pre", "--ext-diff")
-MANAGED = ["hitl-escalation-guard.sh", "hitl.conf", "clipboard_guard.py", "clipboard.conf", "paste_wrapper.py", "restart_guard.py"]
+MANAGED = ["hitl-escalation-guard.sh", "hitl.conf", "clipboard_guard.py", "clipboard.conf", "paste_wrapper.py", "restart_guard.py", "breaking_glass.py"]
+
+
+def switch_state(layer):
+    """Breaking-glass switch (ADR-0024) from the sibling module; if it cannot load, the layer stays on."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    if not os.path.isfile(os.path.join(here, "breaking_glass.py")):
+        return False, ""
+    sys.path.insert(0, here)
+    try:
+        import breaking_glass
+        return breaking_glass.layer_state(layer)
+    except Exception:
+        return False, ""
+    finally:
+        sys.path.pop(0)
+
+
+def with_switches(event, result, state):
+    """Apply the restart-guard switch, and announce every switched-off layer at SessionStart."""
+    off, note = state
+    name = event.get("hook_event_name")
+    if off and name in ("SessionStart", "PreToolUse"):
+        result = {}
+    if note and name == "SessionStart":
+        result = dict(result, systemMessage=(result.get("systemMessage", "") + " " + note).strip())
+    return result
 
 
 def digest(value):
@@ -206,7 +232,7 @@ def main():
     if args.diagnose:
         print(json.dumps({"status": status}))
         return 0 if status == "baseline_match" else 1
-    result = output(event, status)
+    result = with_switches(event, output(event, status), switch_state("restart-guard"))
     if result:
         print(json.dumps(result, ensure_ascii=False))
     return 0

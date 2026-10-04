@@ -215,6 +215,27 @@ class RestartTests(unittest.TestCase):
                               dict(self.pre(), tool_name="Bash", tool_input={"command": "rm -rf x"})):
                     self.assertEqual(guard.output(event, status)["hookSpecificOutput"]["permissionDecision"], "deny")
 
+    def test_breaking_glass_switch_and_session_notice(self):
+        deny = guard.output(dict(self.pre(), tool_name="Write"), "fingerprint_mismatch")
+        stop = guard.output(self.event, "missing_baseline")
+        created = guard.output(self.event, "baseline_created")
+        # Layer switched off: nothing is denied or stopped; SessionStart still announces it.
+        self.assertEqual(guard.with_switches(self.pre(), deny, (True, "NOTE")), {})
+        self.assertEqual(guard.with_switches(self.event, stop, (True, "NOTE")), {"systemMessage": "NOTE"})
+        # Layer on: decisions are untouched; another layer's notice rides on the SessionStart message.
+        self.assertEqual(guard.with_switches(self.pre(), deny, (False, "NOTE")), deny)
+        self.assertEqual(guard.with_switches(self.pre(), deny, (False, "")), deny)
+        on = guard.with_switches(self.event, created, (False, "NOTE"))
+        self.assertTrue(on["systemMessage"].startswith("Restart guard: baseline_created."))
+        self.assertTrue(on["systemMessage"].endswith("NOTE"))
+        self.assertEqual(guard.with_switches(self.event, stop, (False, "NOTE"))["continue"], False)
+        self.assertEqual(guard.with_switches({"hook_event_name": "Stop"}, {}, (True, "NOTE")), {})
+
+    def test_switch_module_loads_beside_the_guard(self):
+        off, note = guard.switch_state("restart-guard")
+        self.assertIsInstance(off, bool)
+        self.assertIsInstance(note, str)
+
     def test_output_blocks_tools_and_session_without_payload(self):
         self.assertEqual(guard.output(self.pre(), "missing_baseline")["hookSpecificOutput"]["permissionDecision"], "deny")
         self.assertFalse(guard.output(self.event, "missing_baseline")["continue"])

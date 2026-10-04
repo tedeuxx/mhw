@@ -72,6 +72,14 @@ fi
 
 input=$(cat)
 
+# Breaking glass (ADR-0024): the owner switched this layer off with sudo. The switch is read on every
+# call and expires by itself; the SessionStart notice announces it. If the module or python3 is
+# missing, the layer stays on.
+glass="$(dirname "$0")/breaking_glass.py"
+if [ -f "$glass" ] && [ -x /usr/bin/python3 ] && /usr/bin/python3 -I -B "$glass" check hitl-guard >/dev/null 2>&1; then
+  exit 0
+fi
+
 command -v jq >/dev/null 2>&1 || exit 0
 printf '%s' "$input" | jq -e . >/dev/null 2>&1 || exit 0
 
