@@ -152,6 +152,11 @@ function Test-Managed([string]$path) {
 }
 
 $script:status = 0
+function Remove-Stamp([byte[]]$b) {
+    $pattern = '(?m)^(.*' + [regex]::Escape($MarkerId) + '.*?; version: )[^;]*;'
+    return [regex]::Replace($utf8.GetString($b), $pattern, '${1}-;')
+}
+
 function Set-Status([int]$code) { if ($code -gt $script:status) { $script:status = $code } }
 
 function Invoke-Target([string]$kind, [string]$dest) {
@@ -165,6 +170,9 @@ function Invoke-Target([string]$kind, [string]$dest) {
         # Compared as Base64 strings: no reliance on generic-method inference, which differs across versions.
         $current = [System.IO.File]::ReadAllBytes($dest)
         if ([Convert]::ToBase64String($current) -ceq [Convert]::ToBase64String($bytes)) { Write-Output "OK      $dest"; return }
+        # The managed-by header stamps the release that rendered a file; a release that changes no
+        # installed content reads as OK, not DRIFT, and is not rewritten.
+        if ((Remove-Stamp $current) -ceq (Remove-Stamp $bytes)) { Write-Output "OK      $dest"; return }
     }
     switch ($mode) {
         'check' {

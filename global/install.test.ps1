@@ -152,6 +152,13 @@ Add-Content -LiteralPath (Join-Path $h '.codex\AGENTS.md') -Value 'local edit'
 $null = Run $h @('-Check'); Expect 'check detects drift' 1 $script:rc
 $null = Run $h; Expect 'install repairs drift' 0 $script:rc
 $null = Run $h @('-Check'); Expect 'check clean after repair' 0 $script:rc
+
+# 4b. a stamp from an earlier release with the same content is not drift
+$stamped = Join-Path $h '.codex\AGENTS.md'
+$txt = [System.IO.File]::ReadAllText($stamped) -creplace '; version: [^;]*;', '; version: 0.0.1;'
+[System.IO.File]::WriteAllText($stamped, $txt, (New-Object System.Text.UTF8Encoding $false))
+Check 'the stamp was rewritten for the test' ([System.IO.File]::ReadAllText($stamped).Contains('version: 0.0.1;'))
+$null = Run $h @('-Check'); Expect "check ignores an earlier release's stamp" 0 $script:rc
 $s = Settings $h
 $s.permissions.deny = [object[]]@($s.permissions.deny | Where-Object { $_ -cne 'Bash(rm -rf:*)' })
 [System.IO.File]::WriteAllText((Join-Path $h '.claude\settings.json'), ($s | ConvertTo-Json -Depth 100))
