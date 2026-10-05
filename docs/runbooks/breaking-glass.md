@@ -16,7 +16,7 @@ whole session; `sudo`/`su` serves that purpose.
 
 | Path (macOS; Linux in brackets) | Carries |
 | --- | --- |
-| `/Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json` [`/etc/claude-code/managed-settings.d/…`] | Claude Code: the paste prompt hook (`UserPromptSubmit`), the HITL picker guard (`PreToolUse`, matcher `AskUserQuestion`), and the deny floor (`permissions.deny`) |
+| `/Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json` [`/etc/claude-code/managed-settings.d/…`] | Claude Code: the paste prompt hook (`UserPromptSubmit`) and the deny floor (`permissions.deny`). An admin layer installed before Issue #60 also carries the removed HITL picker guard (`PreToolUse`, matcher `AskUserQuestion`); the next `--apply` deletes it |
 | `/etc/codex/requirements.toml` | Codex: the paste prompt hook (`[[hooks.UserPromptSubmit]]`) and the deny floor (`[rules] prefix_rules`) |
 | `/Library/Application Support/personal-multi-harness-workstation-configuration/bin/` [`/etc/personal-multi-harness-workstation-configuration/bin/`] | the hook scripts those entries run |
 
@@ -39,7 +39,8 @@ Kiro has no admin layer for hooks and runs none of these. Windows installs no ho
 Edit the admin document with `sudo`, keeping every other entry, the deny floor included:
 
 - Claude Code paste prompt hook: remove the `UserPromptSubmit` entry from the drop-in.
-- Claude Code HITL picker guard: remove the `PreToolUse` entry whose matcher is `AskUserQuestion`.
+- Claude Code HITL picker guard (removed by Issue #60; only in an admin layer installed before it):
+  remove the `PreToolUse` entry whose matcher is `AskUserQuestion`, or run the next `--apply`.
 - Codex paste prompt hook: remove the `[[hooks.UserPromptSubmit]]` block and its
   `[[hooks.UserPromptSubmit.hooks]]` table from `requirements.toml`.
 

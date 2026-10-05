@@ -50,9 +50,9 @@ Defects 1 and 2 share one cause: **workspace identity derived from the current w
 
 Option 2, with the defect fixes:
 
-- **HITL (defect 1):** a configured `intake_exception=Session type|Melhoria de harness|Bugfix` in
+- ~~**HITL (defect 1):** a configured `intake_exception=Session type|Melhoria de harness|Bugfix` in
   `global/hitl.conf` holds in any directory. It is exact on header, labels and order, and
-  single-select. The `session-policy.json` route stays.
+  single-select. The `session-policy.json` route stays.~~
 - ~~**Restart guard (defect 2):**~~
   - ~~The project anchor is Claude Code's session-stable `CLAUDE_PROJECT_DIR`. Codex keeps its hook~~
     ~~working directory, because its shell commands are separate processes.~~
@@ -116,3 +116,12 @@ there). The only way to turn an admin-layer hook off is the administrator editin
 managed documents with `sudo`. "That is why read-only tools are never denied and the switches exist"
 under option 2 no longer applies: no remaining hook denies a tool on configuration state. `--apply`
 and `--remove` delete the restart guard and switch files an earlier release installed.
+
+## Amendment 2026-10-05: the HITL picker guard leaves the admin layer ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+
+On the owner's interview of 2026-10-05 the picker guard is removed (ADR-0013, 2026-10-05 amendment)
+and the session-type intake with it (ADR-0021, 2026-10-05 amendment); the "HITL (defect 1)" bullet is
+struck in place. The Claude Code drop-in now registers only the paste prompt hook, beside the deny
+floor. `install-managed.sh` lists `hitl-escalation-guard.sh` and `hitl.conf` as legacy files: `--check`
+reports them as `STALE`, and `--apply` and `--remove` delete them. The admin layer otherwise stays as
+amended above. *Written and tested* in throwaway roots; not installed.

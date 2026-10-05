@@ -17,20 +17,21 @@ completed runs.
   no numeric question-length limit and no model priority selected. The one-ask rule stays in force.
 - [`../../overlay/profile.json`](../../overlay/profile.json) contains the reference owner's selected
   preferences, including **balanced** session-start intent.
-- `AGENTS.md`, `hitl.conf`, `clipboard.conf`, `desktop-instructions.md` and `profile-plan.json` in the
-  output directory are generated. Edit the JSON and regenerate; do not edit the output by hand.
+- `AGENTS.md`, `clipboard.conf`, `desktop-instructions.md` and `profile-plan.json` in the
+  output directory are generated. (`hitl.conf`, the removed picker guard's limits, is no longer
+  generated since Issue #60; a stale copy in an output directory is left alone and ignored.) Edit the JSON and regenerate; do not edit the output by hand.
 
-The generated notice files add localization and the selected question-length limit; they do not
-remove detection categories or change the generic question-count rule. English and Brazilian
+The generated notice file adds localization; it does not remove detection categories. The selected
+question-length limit is rendered into the brief as an instruction. English and Brazilian
 Portuguese are the currently supported languages. More locales require reviewed templates.
 
 The reference owner also selects paced dialogue, minimum-sufficient input context and three-choice
 path decisions. These optional fields preserve older profile compatibility. The generated brief
-instructs agents to leave room for clarification, use concise progressive disclosure, and state risk
-and benefit for each choice. `exact_options=3` is rendered into the existing Claude Code guard's
-configuration on macOS/Linux. It checks only choice count and single selection; cadence, semantics
-and token discipline remain instructions. Other harnesses have no registered equivalent picker
-guard here. See [ADR-0019](../../docs/adr/0019-paced-conversation-and-three-path-decisions.md).
+instructs agents to leave room for clarification, use concise progressive disclosure, and offer
+three options for a decision (one extreme, the opposite extreme and the middle ground), each with
+its risk and benefit. Every one of these is an instruction on every harness: the Claude Code picker
+guard that once checked the option count was removed (Issue #60). See
+[ADR-0019](../../docs/adr/0019-paced-conversation-and-three-path-decisions.md).
 
 `desktop.notifications=essential` optionally adds the owner's low-interruption notification intent.
 The compiler distributes instructions, not GUI toggles. The reference Claude account block and its
@@ -54,7 +55,7 @@ The same arguments work in PowerShell. Source and output paths must stay within 
 directory, including after resolving parent symlinks. To create your own profile, copy the example
 into a directory you control, change into that directory, and invoke the compiler by its absolute
 path with `--source profile.json --output .`. Installers scope their drift check to the explicitly
-selected overlay directory. Generated artifact names are restricted to the five names above.
+selected overlay directory. Generated artifact names are restricted to the four names above.
 
 `validate` and `plan` write nothing. `render` updates only its marked outputs, leaves unrelated files
 untouched and refuses unmanaged targets and symlink targets. An identical render does not rewrite

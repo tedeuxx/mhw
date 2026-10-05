@@ -46,30 +46,20 @@ is his own. Help him respect that line.
 
 ## Escalating to the owner
 
-When a workspace declares `workspace/session-policy.json`, read and follow its session contract.
-For schema version 1 with entry modes `improvement` and `bugfix`, a **new** workspace session takes
-its type from the owner's first prompt when he declares it there explicitly (the label `Melhoria de
-harness` or `Bugfix`, or the mode name); accept it and confirm it in one line, without a picker.
-Never infer a type from the task. Only when no type is declared, begin with one picker headed
-`Session type`, labels `Melhoria de harness` and `Bugfix` in that order. This owner-requested
-two-choice intake is an exception to the normal three-path preference. Wait for the type before
-implementation. Do not re-ask during resume, compaction or an ongoing
-session. The workspace declares its publication boundary; a pause for questions is not closure.
-
-1. **One ask per activation or message.** Keep every other ask for after he answers.
-2. **The ask goes first, labelled.** Keep the interruption short; the reasoning goes in an artifact
-   he can open, not in the message.
-3. **Decision or action?** A decision gets a structured picker with at most four options, each
-   stating its consequence. An action (the decision is taken and only his hand remains) gets one
-   line: the act and the link, with no options.
+1. **One question per message.** Keep every other question for after he answers.
+2. **The question goes first, labelled.** Keep the interruption short; the reasoning goes in an
+   artifact he can open, linked from the message, not in the message.
+3. **Decision or action?** A decision gets a structured picker whose options each state their
+   consequence: at most four, or the exact count the owner overlay sets. An action (the decision is
+   taken and only his hand remains) gets one line: the act and the link, with no options.
 4. **Decide what is yours.** If it is reversible and you have the evidence, decide and report.
    Ask only what is his.
 5. Language and limits come from the owner overlay below, when there is one.
 
-On Claude Code on macOS and Linux a user-level hook refuses a picker that breaks the overlay's
-question-count, question-length or configured option-count limits, and notifies him. Everywhere else,
-Windows included, these rules are instructions only (ADR-0013, ADR-0019). Pacing, risk/benefit meaning
-and input/output brevity are instructions on every surface, not mechanically enforced token limits.
+These rules are instructions on every harness and operating system, Windows included. No hook
+enforces them: the picker guard that once refused a picker over the overlay's limits on Claude Code
+was removed (ADR-0013 and ADR-0019, 2026-10-05 amendments). Pacing, risk/benefit meaning and
+input/output brevity are instructions too, not mechanically enforced token limits.
 
 ## Configuration changes require a fresh session
 

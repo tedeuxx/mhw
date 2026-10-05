@@ -477,7 +477,10 @@ def runtime():
     return "host (%s; no container marker found)" % system
 
 
+# The HITL picker guard was removed (ADR-0013, 2026-10-05 amendment, Issue #60). Its name is kept only so
+# status can name an entry an earlier install left registered: install (or install --admin) removes it.
 GUARD = "hitl-escalation-guard.sh"
+LEFTOVER = "removed picker guard still registered (Claude Code)"
 PASTE = "clipboard_guard.py"
 
 
@@ -504,7 +507,8 @@ def _json(path):
 
 def read_hooks():
     """Which of our hooks each layer actually registers, read from the installed files. A hook counts
-    only when its entry is registered AND the script it runs is present. -> {layer: [found] | 'not read'}."""
+    only when its entry is registered AND the script it runs is present; a removed hook's entry is named
+    whenever it is still registered, script or not. -> {layer: [found] | 'not read'}."""
     data = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / NAME
     codex_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
     if platform.system() == "Darwin":
@@ -516,8 +520,8 @@ def read_hooks():
     found, unread = [], False
     doc, state = _json(Path.home() / ".claude" / "settings.json")
     unread |= state == "not read"
-    if any(GUARD in c for c in _commands(doc, "PreToolUse")) and (data / GUARD).is_file():
-        found.append("picker guard (Claude Code)")
+    if any(GUARD in c for c in _commands(doc, "PreToolUse")):
+        found.append(LEFTOVER)
     if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (data / PASTE).is_file():
         found.append("paste filter (Claude Code)")
     doc, state = _json(codex_home / "hooks.json")
@@ -529,8 +533,8 @@ def read_hooks():
     found, unread = [], False
     doc, state = _json(admin_dropin())
     unread |= state == "not read"
-    if any(GUARD in c for c in _commands(doc, "PreToolUse")) and (admin_bin / GUARD).is_file():
-        found.append("picker guard (Claude Code)")
+    if any(GUARD in c for c in _commands(doc, "PreToolUse")):
+        found.append(LEFTOVER)
     if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (admin_bin / PASTE).is_file():
         found.append("paste filter (Claude Code)")
     req = Path(managed_root() + "/etc/codex/requirements.toml")

@@ -121,3 +121,10 @@ Option 1.
   agent cannot run the line itself.
 - Requirements document, sections 4 and 4a:
   [`docs/personal-multi-harness-workstation-configuration-product-requirements-document-project.md`](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md)
+
+## Amendment 2026-10-05: the picker guard is removed too ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+
+"The HITL picker guard (until #60)" above has reached its end: the guard is removed on the owner's
+interview of 2026-10-05 (ADR-0013, 2026-10-05 amendment). It is removed the same way as the restart
+guard here: a run of each installer deletes what an earlier version installed, and `--check` reports
+it until then. The paste prompt hook (#58) is now the only hook this repository installs.

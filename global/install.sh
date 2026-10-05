@@ -1,8 +1,9 @@
 #!/bin/sh
-# Render the global brief to each harness, install the HITL escalation guard, install the user-level
-# deny floor, and install the paste filter at the harness-CLI prompt (ADR-0010, ADR-0013, ADR-0016,
-# ADR-0011). The stale-session restart guard (ADR-0022) and the /breaking-glass switches (ADR-0024)
-# were removed (ADR-0028): a run of this installer deletes what an earlier version wrote for them.
+# Render the global brief to each harness, install the user-level deny floor, and install the paste
+# filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0011). The stale-session restart guard
+# (ADR-0022) and the /breaking-glass switches (ADR-0024) were removed (ADR-0028), and so was the HITL
+# picker guard (ADR-0013, 2026-10-05 amendment, Issue #60): a run of this installer deletes what an
+# earlier version wrote for them, and --check reports it as STALE.
 #
 #   install.sh                  install or update every managed target
 #   install.sh --dry-run        print exactly what would be written or merged where; write nothing
@@ -27,8 +28,9 @@
 # Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
 # 3 something UNMANAGED or unreadable is in the way. A file is managed when its marker line (below) is in
 # its first five lines; an unmanaged file is never overwritten. ~/.claude/settings.json is never
-# replaced: one hook entry and the deny floor's entries are merged into it with jq, every other key, hook
-# and permission rule is kept (no existing deny entry is ever removed), and a backup is left beside it.
+# replaced: the paste filter's hook entry and the deny floor's entries are merged into it with jq, every
+# other key, hook and permission rule is kept (no existing deny entry is ever removed), and a backup is
+# left beside it.
 # The paste filter is a UserPromptSubmit hook: one entry merged into ~/.claude/settings.json and a
 # managed ${CODEX_HOME:-~/.codex}/hooks.json. Codex runs it only after the owner trusts it in /hooks.
 # The always-on clipboard watcher is WITHDRAWN (ADR-0011): no LaunchAgent is written any more, and a
@@ -44,21 +46,20 @@
 set -eu
 
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
-HOOK_ID="personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"
 PASTE_ID="personal-multi-harness-workstation-configuration/clipboard_guard.py"
 # The top-level key that carries the provenance stamp in a JSON file with no comment syntax (Issue #66).
 STAMP_KEY="personal-multi-harness-workstation-configuration"
 # The deny-floor rules THIS installer appended to ~/.claude/settings.json (absent before it merged them),
 # so uninstall removes those and keeps a rule the owner wrote himself, even one equal to a floor rule.
 OWN_KEY="personal-multi-harness-workstation-configuration-owned-deny"
-# Removed hooks (ADR-0028): kept only so an entry an earlier version merged is found and deleted.
+# Removed hooks (ADR-0028; ADR-0013 2026-10-05): kept only so an entry an earlier version merged is
+# found and deleted.
 RESTART_ID="personal-multi-harness-workstation-configuration/restart_guard.py"
+HOOK_ID="personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_root=$(dirname "$script_dir")
 src="$script_dir/AGENTS.md"
-hook_src="$script_dir/hooks/hitl-escalation-guard.sh"
-conf_src="$script_dir/hitl.conf"
 floor_src="$script_dir/deny-floor.conf"
 clip_src="$script_dir/clipboard/clipboard_guard.py"
 wrap_src="$script_dir/clipboard/paste_wrapper.py"
@@ -84,7 +85,7 @@ for arg in "$@"; do
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
     --shell-rc=?*) shell_rc=${arg#--shell-rc=} ;;
-    -h|--help) sed -n '2,29p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -94,7 +95,7 @@ case $shell_rc in
   *) echo "--shell-rc needs an absolute path, got: $shell_rc" >&2; exit 2 ;;
 esac
 
-for f in "$src" "$hook_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
+for f in "$src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -113,7 +114,8 @@ if [ "$mode" != uninstall ] && [ -n "$overlay" ] && [ -f "$overlay/profile.json"
 fi
 
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/personal-multi-harness-workstation-configuration"
-hook_dest="$data_dir/hitl-escalation-guard.sh"
+hook_dest="$data_dir/hitl-escalation-guard.sh"   # removed (ADR-0013, 2026-10-05); retired below
+hook_conf_dest="$data_dir/hitl.conf"             # removed (ADR-0013, 2026-10-05); retired below
 restart_dest="$data_dir/restart_guard.py"        # removed (ADR-0028); retired below
 glass_dest="$data_dir/breaking_glass.py"         # removed (ADR-0028); retired below
 glasscmd_dest="$HOME/.claude/commands/breaking-glass.md"   # removed (ADR-0028); retired below
@@ -177,11 +179,6 @@ if [ -n "$overlay" ] && [ -f "$overlay/AGENTS.md" ]; then cat "$overlay/AGENTS.m
 brief_sha=$(sha256_of "$brief")
 brief_from="global/AGENTS.md"
 [ -n "$overlay" ] && [ -f "$overlay/AGENTS.md" ] && brief_from="global/AGENTS.md + overlay"
-
-# The guard's limits: generic defaults, then the overlay's values (last value of a key wins).
-conf="$work/hitl.conf"
-cat "$conf_src" > "$conf"
-if [ -n "$overlay" ] && [ -f "$overlay/hitl.conf" ]; then cat "$overlay/hitl.conf" >> "$conf"; fi
 
 # The deny floor: generic entries, then the overlay's (ADR-0016). Every line is validated before
 # anything is rendered, so an entry the parser would drop or mangle stops the run instead of silently
@@ -302,7 +299,7 @@ shell_rc_line() {
 }
 
 render() {
-  # $1 = kind (plain|kiro|hook|conf), $2 = output file
+  # $1 = kind (plain|kiro|codexrules|clipscript|clipconf|wrapscript|snippet|codexhooks), $2 = output file
   case $1 in
     plain|kiro)
       {
@@ -310,21 +307,6 @@ render() {
         printf '<!-- %s; source: %s; %s; sha256: %s; do not edit, re-run the installer -->\n\n' \
           "$MARKER_ID" "$brief_from" "$stamp" "$brief_sha"
         cat "$brief"
-      } > "$2"
-      ;;
-    hook)
-      {
-        sed -n 1p "$hook_src"
-        printf '# %s; source: global/hooks/hitl-escalation-guard.sh; %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$stamp"
-        sed 1d "$hook_src"
-      } > "$2"
-      ;;
-    conf)
-      {
-        printf '# %s; source: global/hitl.conf + overlay; %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$stamp"
-        cat "$conf"
       } > "$2"
       ;;
     codexrules)
@@ -445,7 +427,7 @@ process() {
   fi
 
   restamp=
-  if [ -e "$dest" ] && same "$tmp" "$dest" && { [ "$kind" != hook ] || [ -x "$dest" ]; }; then
+  if [ -e "$dest" ] && same "$tmp" "$dest"; then
     if [ "$(stamp_of "$dest")" = "$stamp" ]; then
       echo "OK      $dest ($stamp)"
       return 0
@@ -473,16 +455,15 @@ process() {
     install)
       mkdir -p "$(dirname "$dest")"
       cp "$tmp" "$dest.new.$$"
-      [ "$kind" = hook ] && chmod 755 "$dest.new.$$"
       mv "$dest.new.$$" "$dest"
       if [ -n "$restamp" ]; then echo "RESTAMPED $dest ($stamp)"; else echo "WROTE   $dest ($stamp)"; fi
       ;;
   esac
 }
 
-# Merge one PreToolUse(AskUserQuestion) entry, one UserPromptSubmit entry (the paste filter, ADR-0011)
-# and the deny floor into the user's Claude Code settings. When the paste filter cannot run here
-# (paste_ok=0), its entry is removed instead of written.
+# Merge one UserPromptSubmit entry (the paste filter, ADR-0011) and the deny floor into the user's
+# Claude Code settings. When the paste filter cannot run here (paste_ok=0), its entry is removed instead
+# of written. An entry of a removed hook (the restart guard, the HITL picker guard) is always removed.
 # Idempotent, per event: when exactly one hook entry of ours exists, it is the wanted one, and every floor rule is
 # already in permissions.deny, nothing is written. Any other hook entry of ours (stale path, duplicate)
 # is removed; a hook group is dropped only if it held ours and is now empty. The deny floor is a UNION:
@@ -494,8 +475,9 @@ merge_settings() {
     return 0
   fi
 
-  want=$(jq -cn --arg cmd "\"$hook_dest\"" \
-    '{matcher: "AskUserQuestion", hooks: [{type: "command", command: $cmd, timeout: 5}]}')
+  # The HITL picker guard is removed (ADR-0013, 2026-10-05 amendment): an entry an earlier version
+  # merged is always dropped.
+  want=null
   if [ "$paste_ok" = 1 ]; then
     want_paste=$(jq -cn --arg cmd "$(paste_cmd claude)" '{hooks: [{type: "command", command: $cmd, timeout: 30}]}')
   else
@@ -503,7 +485,6 @@ merge_settings() {
   fi
   if [ "$hooks_mode" = managed ]; then
     # ADR-0025: the admin layer registers the hooks; a user-level copy would run them twice.
-    want=null
     want_paste=null
   fi
   # The restart guard is removed (ADR-0028): an entry an earlier version merged is always dropped.
@@ -581,6 +562,12 @@ merge_settings() {
   jq -r --arg sk "$STAMP_KEY" '.[$sk] // "" | tostring' "$current" > "$work/settings.stamp"
   settings_stamp=$(stamp_of "$work/settings.stamp")
   settings_restamp=
+  # A removed hook's entry still registered is named on its own line, so --check says what it is.
+  if [ -e "$settings" ] && [ "$mode" = check ] \
+     && jq -e --arg id "$HOOK_ID" '[.hooks.PreToolUse[]?.hooks[]? | select((.command? // "") | tostring | contains($id))] | length > 0' \
+          "$current" >/dev/null 2>&1; then
+    echo "STALE   $settings: the removed HITL picker guard's PreToolUse(AskUserQuestion) entry; install removes it"
+  fi
   if [ -e "$settings" ] && cmp -s "$work/before.json" "$work/after.json"; then
     if [ "$settings_stamp" = "$stamp" ]; then
       echo "OK      $settings (hook entries and all $(printf '%s' "$deny" | jq length) deny-floor rules present; $stamp)"
@@ -601,7 +588,7 @@ merge_settings() {
       raise 1
       ;;
     dry-run)
-      echo "WOULD MERGE $settings: the PreToolUse(AskUserQuestion) and UserPromptSubmit (paste filter) entries and $missing deny-floor rule(s); every other key and rule is kept."
+      echo "WOULD MERGE $settings: the UserPromptSubmit (paste filter) entry and $missing deny-floor rule(s), removing any entry of a removed hook; every other key and rule is kept."
       if [ -e "$settings" ] && ! cmp -s "$settings" "$merged"; then
         echo "  note: the file is re-serialized by jq (4-space indent), so whitespace and escaping may change;"
         echo "  the semantic diff below (keys sorted) is the whole content change."
@@ -636,7 +623,7 @@ merge_settings() {
 # floor rules present are removed, as before, and the backup keeps the previous file.
 uninstall_user() {
   for u_dest in "$HOME/.claude/CLAUDE.md" "${CODEX_HOME:-$HOME/.codex}/AGENTS.md" \
-      "$HOME/.kiro/steering/workstation-global-brief.md" "$hook_dest" "$data_dir/hitl.conf" "$codex_rules" \
+      "$HOME/.kiro/steering/workstation-global-brief.md" "$hook_dest" "$hook_conf_dest" "$codex_rules" \
       "$clip_dest" "$clip_conf_dest" "$codex_hooks" "$wrap_dest" "$snippet_dest" "$restart_dest" \
       "$glass_dest" "$glasscmd_dest" "$clip_plist"; do
     if [ -f "$u_dest" ] && is_managed "$u_dest"; then
@@ -702,7 +689,8 @@ echo "SOURCE  $stamp"
 process plain "$HOME/.claude/CLAUDE.md"
 process plain "${CODEX_HOME:-$HOME/.codex}/AGENTS.md"
 process kiro "$HOME/.kiro/steering/workstation-global-brief.md"
-process hook "$hook_dest"
+retire "$hook_dest" "the removed HITL picker guard (ADR-0013, 2026-10-05 amendment)"
+retire "$hook_conf_dest" "the removed HITL picker guard's limits (ADR-0013, 2026-10-05 amendment)"
 retire "$glass_dest" "the removed breaking-glass switch module (ADR-0028)"
 retire "$glasscmd_dest" "the removed /breaking-glass command (ADR-0028)"
 retire "$restart_dest" "the removed restart guard (ADR-0028)"
@@ -724,7 +712,6 @@ elif [ -d "$restart_state" ]; then
       ;;
   esac
 fi
-process conf "$data_dir/hitl.conf"
 process codexrules "$codex_rules"
 process clipscript "$clip_dest"
 process clipconf "$clip_conf_dest"

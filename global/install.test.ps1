@@ -294,7 +294,7 @@ Check 'usage errors wrote nothing' ((Count-Files $h) -eq 0)
 # 13. A structured profile with changed source is refused before writing targets.
 $profileDir = Join-Path $Base 'profile-stale'
 New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
-foreach ($profileFile in @('profile.json', 'AGENTS.md', 'hitl.conf', 'clipboard.conf', 'desktop-instructions.md', 'profile-plan.json')) {
+foreach ($profileFile in @('profile.json', 'AGENTS.md', 'clipboard.conf', 'desktop-instructions.md', 'profile-plan.json')) {
     Copy-Item -LiteralPath (Join-Path (Join-Path $repo 'overlay') $profileFile) -Destination (Join-Path $profileDir $profileFile)
 }
 $profileSource = Join-Path $profileDir 'profile.json'

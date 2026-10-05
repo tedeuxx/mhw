@@ -2,8 +2,6 @@
 """Synthetic negative and positive gates, no network and no writes."""
 import unittest
 import json
-import subprocess
-import sys
 import delivery as d
 
 
@@ -70,31 +68,40 @@ class DeliveryTests(unittest.TestCase):
     def test_new_release_with_ancestry_passes(self):
         d.release_matches(self.release, "1.1.0", {"status": "ahead"})
 
-    def test_intake_does_not_restart_on_resume_or_compaction(self):
-        for source in ("startup", "clear", "resume", "compact", "fork"):
-            result = subprocess.run([sys.executable, "-B", str(d.ROOT / "workspace/startup.py")],
-                                    input=json.dumps({"source": source}), text=True, capture_output=True)
-            self.assertEqual(result.returncode, 0)
-            self.assertEqual(bool(result.stdout.strip()), source in ("startup", "clear"))
-
-    def test_declared_type_is_accepted_and_picker_is_the_fallback(self):
+    def test_no_session_type_intake_is_registered_anywhere(self):
+        # Issue #60 (owner, 2026-10-05): the session-type intake is removed. No project hook may
+        # register it again, and no brief carrier may ask for it.
+        self.assertFalse((d.ROOT / "workspace/startup.py").exists())
+        self.assertFalse((d.ROOT / ".claude/commands/session-start.md").exists())
+        self.assertFalse((d.ROOT / ".agents/skills/source-command-session-start").exists())
+        for hooks_file in (".claude/settings.json", ".claude/settings.local.json", ".codex/hooks.json"):
+            path = d.ROOT / hooks_file
+            if path.exists():
+                with self.subTest(hooks_file=hooks_file):
+                    hooks = json.loads(path.read_text()).get("hooks", {})
+                    self.assertNotIn("SessionStart", hooks)
+                    self.assertNotIn("startup.py", json.dumps(hooks))
         policy = json.loads((d.ROOT / "workspace/session-policy.json").read_text())
-        self.assertEqual(policy["entry_declared_in_first_prompt"], "accept")
-        result = subprocess.run([sys.executable, "-B", str(d.ROOT / "workspace/startup.py")],
-                                input=json.dumps({"source": "startup"}), text=True, capture_output=True)
-        context = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
-        for phrase in ("explicitly declares the session type", "ask no picker",
-                       "Never infer a type", "Only when no type is declared",
-                       "header 'Session type', labels 'Melhoria de harness' and 'Bugfix', in that order"):
-            self.assertIn(phrase, context)
-        # Every carrier of the contract states the same rule, so no harness keeps the old one.
+        self.assertFalse([k for k in policy if k.startswith("entry_")])
+        self.assertEqual(policy["integration_branch"], "rc/next")
+        self.assertEqual(policy["release_merge"], "owner")
         for carrier in ("AGENTS.md", "CLAUDE.md", "global/AGENTS.md", "workspace/README.md",
-                        ".claude/commands/session-start.md", ".kiro/steering/workspace-session.md",
-                        ".agents/skills/source-command-session-start/SKILL.md"):
+                        ".kiro/steering/workspace-session.md", ".claude/commands/session-finish.md",
+                        ".agents/skills/source-command-session-finish/SKILL.md",
+                        "overlay/AGENTS.md", "overlay/desktop-instructions.md"):
             text = " ".join((d.ROOT / carrier).read_text().split())
             with self.subTest(carrier=carrier):
-                self.assertRegex(text, r"(?i)declare[sd]? (the type )?explicitly|declares it there explicitly")
-                self.assertRegex(text, r"(?i)only when (no type is|none is)|no selected or declared type")
+                for phrase in ("Melhoria de harness", "Session type", "improvement session"):
+                    self.assertNotIn(phrase, text)
+
+    def test_carriers_state_who_merges(self):
+        # Issue #60: agents merge slices into rc/next; only the release candidate waits for the owner.
+        for carrier in ("AGENTS.md", "CLAUDE.md", "workspace/README.md",
+                        ".kiro/steering/workspace-session.md", ".claude/commands/session-finish.md"):
+            text = " ".join((d.ROOT / carrier).read_text().split())
+            with self.subTest(carrier=carrier):
+                self.assertIn("rc/next", text)
+                self.assertRegex(text, r"(?i)owner")
 
     def test_old_draft_prerelease_and_unrelated_release_block(self):
         for changes in ({"tag_name": "v1.1.0"}, {"tag_name": "v1.2.0-rc.1"},

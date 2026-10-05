@@ -71,8 +71,9 @@ before they see it, as he decided (*"tem que ser limpo sozinho"*). Operational
 judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
 the owner ([ADR-0012](docs/adr/0012-operational-judgement-delegated-to-the-harness.md)). How agents
 escalate a pending decision or action to the owner is calibrated here: generic rules in the global
-brief, his language and limits in [`overlay/`](overlay/), and a user-level guard on Claude Code
-([ADR-0013](docs/adr/0013-hitl-escalation-calibration.md)).
+brief and his language and limits in [`overlay/`](overlay/), all of them instructions; the picker
+guard hook that once checked them on Claude Code was removed on his interview of 2026-10-05
+([ADR-0013](docs/adr/0013-hitl-escalation-calibration.md), Issue #60).
 
 Concretely, it must keep three things true on this machine:
 
@@ -164,29 +165,26 @@ The source of truth for every layer lives here, versioned; what is installed on 
 
 ## Hard rules for any agent working in this repository
 
-### Workspace session contract (owner, 2026-10-02)
+### Delivery contract (owner, 2026-10-05, Issue #60)
 
-- On every **new** session here, a session type the owner declares explicitly in his first prompt
-  (the label `Melhoria de harness` or `Bugfix`, or the mode name) is accepted as given: confirm it in
-  one line and proceed, with no picker. Never infer a type from the task. Only when no type is
-  declared, the first owner interaction is a native multiple-choice picker: header `Session type`,
-  labels `Melhoria de harness` and `Bugfix`, in that order. Ask one question and wait. These two
-  choices are the owner's explicit exception to the usual three-path preference (amended 2026-10-04,
-  ADR-0021).
-- Keep the selected type in conversation context. Do not re-ask on resume/compaction or retrofit
-  intake into a session already in progress. A pause for questions is not session closure.
-- At the end of each **improvement session**, publish its completed coherent change set through
-  CI without asking again for commit/push/PR/merge/release approval. This is the owner's standing
-  authorization for this repository, not permission to bypass tests or protection rules. Bugfix
-  sessions use the same gated release route when delivering a fix; they are not auto-published on
-  an ordinary question or pause.
-- Follow `workspace/README.md` and `workspace/session-policy.json`. Use the checked merge command,
-  then the read-only delivery verifier. Never announce delivery complete until it confirms the
-  exact session head is in a merged PR covered by a successful version workflow and a published
-  newer numeric SemVer release. Report a blocker instead of calling local commits a delivery.
-- Claude Code offers `/session-start` and `/session-finish`. Other harnesses follow this same
-  contract from AGENTS.md/global steering and invoke the shared Python commands. Do not claim
-  universal native startup/stop enforcement: supported mechanics and gaps are in ADR-0021.
+- There is **no session-type intake**. A session starts on the owner's first prompt, with no picker
+  and no startup hook. In his words: *"eu removeria. achei que traz mais problemas do que solucao."*
+  (This replaces the 2026-10-02 workspace session contract; ADR-0021, 2026-10-05 amendment.)
+- **Agents merge slices into `rc/next`; only the release candidate waits for the owner.** In his
+  words: *"os agentes mergeiam no rc/next, só o RC espera mim"*. A slice PR targets `rc/next` and is
+  merged by an agent, with a real merge commit, once its checks and the review gate (and any lens the
+  change requires) pass at its current head. No repeated owner approval is needed for that. The PR
+  `rc/next` → `main` is never merged without his explicit go; the install and canary after it are
+  his. This is the owner's standing authorization for this repository, not permission to bypass
+  tests or protection rules, and a pause for questions publishes nothing.
+- Follow `workspace/README.md` and `workspace/session-policy.json`. For the release candidate, use
+  the checked merge command, then the read-only delivery verifier. Never announce a release complete
+  until it confirms the exact head is in a merged PR covered by a successful version workflow and a
+  published newer numeric SemVer release. Report a blocker instead of calling local commits a
+  delivery.
+- Claude Code offers `/session-finish`; other harnesses follow this same contract from AGENTS.md and
+  the Kiro steering and invoke the shared commands. Nothing mechanical enforces the release-candidate
+  rule: it is an instruction.
 
 - **No secret value is ever committed here** — not tokens, API keys, passwords, OAuth client secrets,
   service-account files, nor a config file copied verbatim from a machine that contains them. Reference
@@ -210,8 +208,19 @@ from here now, and at what evidence level:
 - **Global brief** (`global/AGENTS.md`, ADR-0010): *installed* into the three user-level locations at
   v0.7.0. Its evidence level is *loaded* in Claude Code and Codex, measured headless on 2026-10-01, and
   *documented* for Kiro.
-- **HITL escalation guard** (ADR-0013): its hook entry in the Claude Code user settings is *installed*
-  (`--check`: "hook entry … present"). That it fires on the reference machine was not re-measured.
+- ~~**HITL escalation guard** (ADR-0013): its hook entry in the Claude Code user settings is *installed*
+  (`--check`: "hook entry … present"). That it fires on the reference machine was not re-measured.~~
+  *Amended 2026-10-05 (Issue #60; ADR-0013, ADR-0019 and ADR-0021 amendments):* on the owner's
+  interview the picker guard is **removed** from the source, with its user and admin registrations,
+  its limits file and its suite. Its rules (one question per message, a stem of at most 280
+  characters, reasoning in a linked artifact, three options per decision: one extreme, the opposite
+  extreme and the middle ground, Portuguese with him and English when published) are instructions in
+  the owner overlay and the briefs. The session-type intake is removed too: its SessionStart hooks,
+  `/session-start`, every brief copy of the contract and the intake fields of
+  `workspace/session-policy.json`. The next `install.sh` and `install-managed.sh --apply` delete what
+  an earlier version installed, and `--check` reports it as `STALE`. *Written and tested*, and probed
+  in throwaway homes and roots; **not installed**: the reference machine runs the picker guard until
+  the owner reinstalls both layers in a fresh session.
 - **Deny floor** (ADR-0016, accepted): *installed*, with all 101 rules present per `--check`. It is
   *enforced* in Claude Code and Codex, as measured headless in throwaway homes. Enforcement on the
   reference machine was not re-measured. Kiro carries no floor.
@@ -309,9 +318,14 @@ from here now, and at what evidence level:
 - **Conversation profile** (ADR-0019, 2026-10-02): paced clarification, concise output, scoped input
   retrieval, and three risk/benefit choices are installed in the user briefs for Claude Code, Codex
   and Kiro, and saved in Claude desktop account instructions. The brief was loaded into the current
-  Codex app session. The Claude Code picker guard's option-count extension is installed and passes
-  synthetic tests; live runtime routing was not re-measured. Cadence, risk/benefit semantics and token
+  Codex app session. ~~The Claude Code picker guard's option-count extension is installed and passes
+  synthetic tests; live runtime routing was not re-measured.~~ Cadence, risk/benefit semantics and token
   discipline remain instructions, with no universal mechanical enforcement or hard token ceiling.
+  *Amended 2026-10-05 (Issue #60):* the three options are now one extreme, the opposite extreme and
+  the middle ground (*"eu quero 3 opcoes da seguinte forma: extremo 1, extremo 2, meio termo."*), and
+  the option-count check is removed with the picker guard: every interaction standard is an
+  instruction. *Written* in the source and the regenerated overlay; the installed briefs change only
+  when the owner reinstalls.
 - **`./workstation` entry point and version key** (ADR-0030, proposed, 2026-10-05; Issues #57, #67):
   `install`, `install --admin`, `status`, `check`, `update` and `uninstall` over the existing installers,
   plus `.workstation-version` and a user-brief instruction to compare it at session start. *Written and
