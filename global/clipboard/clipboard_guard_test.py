@@ -6,7 +6,8 @@
 # run time so that this file never contains a string a secret scanner would flag. Nothing here reads or
 # writes the system clipboard. Nothing here touches the login or default keychain: every Keychain test
 # creates a THROWAWAY keychain file under the base directory and names it explicitly (keychain_path),
-# and a guard installed for the whole run refuses any `security` call that does not (issue #58).
+# the whole run uses a throwaway HOME under the base directory, and a guard installed for the whole run
+# refuses any `security` call that does not, and any read or change of the keychain search list (#58).
 import io
 import json
 import os
@@ -75,29 +76,51 @@ class RealKeychainRefused(AssertionError):
     pass
 
 
+# The only `security` verbs a test may run, each against a keychain FILE under BASE. list-keychains,
+# default-keychain, login-keychain and every other verb (any search-list read or change) are refused.
+SECURITY_VERBS = {"create-keychain", "delete-keychain", "lock-keychain", "add-generic-password",
+                  "find-generic-password", "delete-generic-password"}
+
+
+def _under_base(p):
+    if not p or not os.path.isabs(p):
+        return False
+    base = os.path.realpath(BASE)
+    return os.path.commonpath([os.path.realpath(p), base]) == base
+
+
+def _home_ok(kw=None):
+    """The HOME a child (or this process) runs under must be a throwaway one under BASE: `security`
+    resolves the user's keychain search list and default keychain from HOME."""
+    env = (kw or {}).get("env")
+    return _under_base((env if env is not None else os.environ).get("HOME", ""))
+
+
 def _security_target_ok(argv, stdin_text):
-    """True when a `security` call names a keychain FILE under BASE, or only reads the search list.
-    Everything else (an item read, write or delete with no keychain argument) would reach the login or
-    default keychain, and is refused before it runs."""
-    under = lambda p: os.path.isabs(p) and os.path.commonpath([os.path.realpath(p), os.path.realpath(BASE)]) == os.path.realpath(BASE)
+    """True when a `security` call uses an allowed verb on a keychain FILE under BASE. Everything else
+    (an item call with no keychain argument, any search-list read or change) is refused before it runs."""
     args = list(argv[1:])
-    if args == ["list-keychains"]:
-        return True
     if args == ["-i"]:
-        lines = [ln for ln in (stdin_text or "").splitlines() if ln.strip()]
-        return bool(lines) and all(ln.rstrip().endswith('"') and under(ln.rstrip()[:-1].rsplit('"', 1)[-1]) for ln in lines)
-    return bool(args) and under(args[-1])
+        lines = [ln.strip() for ln in (stdin_text or "").splitlines() if ln.strip()]
+        return bool(lines) and all(ln.split(" ", 1)[0] in SECURITY_VERBS and ln.endswith('"')
+                                   and _under_base(ln[:-1].rsplit('"', 1)[-1]) for ln in lines)
+    return bool(args) and args[0] in SECURITY_VERBS and _under_base(args[-1])
 
 
-def _check_spawn(argv, stdin_text=None):
-    if isinstance(argv, (str, bytes)) or not argv:
+def _check_spawn(argv, stdin_text=None, kw=None):
+    if isinstance(argv, (str, bytes)):
+        if "security" in os.fsdecode(argv):
+            raise RealKeychainRefused("a shell-string spawn names security: refused unread")
+        return
+    if not argv:
         return
     argv = [os.fsdecode(a) for a in argv]
-    if os.path.basename(argv[0]) == "security" and not _security_target_ok(argv, stdin_text):
+    if os.path.basename(argv[0]) == "security" and not (_home_ok(kw) and _security_target_ok(argv, stdin_text)):
         raise RealKeychainRefused("a test reached the real keychain: %r" % argv[:3])
     if g.__file__ in argv and "--config" in argv:     # a hook child process: its config must be throwaway too
         conf = g.load_config(argv[argv.index("--config") + 1])
-        if conf["salt_store"] == "keychain" and not _security_target_ok(["security", conf["keychain_path"] or "-"], None):
+        if conf["salt_store"] == "keychain" and not (
+                _home_ok(kw) and _security_target_ok(["security", "find-generic-password", conf["keychain_path"] or "-"], None)):
             raise RealKeychainRefused("a child process was configured for the real keychain")
 
 
@@ -108,7 +131,7 @@ _EXEC = _REAL_RUN       # replaced by a refusing stub inside KeychainIsolation, 
 def _guarded_run(*args, **kw):
     argv = args[0] if args else kw.get("args")
     data = kw.get("input")
-    _check_spawn(argv, data.decode() if isinstance(data, bytes) else data)
+    _check_spawn(argv, data.decode() if isinstance(data, bytes) else data, kw)
     return _EXEC(*args, **kw)
 
 
@@ -116,16 +139,25 @@ class _GuardedPopen(_REAL_POPEN):
     def __init__(self, args, *a, **kw):
         if not isinstance(args, (str, bytes)) and args and os.path.basename(os.fsdecode(args[0])) == "security" \
                 and list(args[1:]) == ["-i"]:
-            pass          # stdin is only visible to _guarded_run, which has already vetted it
+            if not _home_ok(kw):  # stdin is only visible to _guarded_run, which has already vetted it
+                raise RealKeychainRefused("security -i under the real HOME")
         else:
-            _check_spawn(args)
+            _check_spawn(args, None, kw)
         super().__init__(args, *a, **kw)
 
 
 def _guarded_probe(path=None):
-    if path is None:
-        raise RealKeychainRefused("the lock probe was pointed at the default keychain")
+    if path is None or not _under_base(path) or not _home_ok():
+        raise RealKeychainRefused("the lock probe was pointed at the default keychain or ran under the real HOME")
     return _REAL_PROBE(path)
+
+
+def use_throwaway_home():
+    """Point this process's HOME, inherited by every child including production `security` calls, at a
+    throwaway directory under BASE, so no keychain act can reach the real search list (#58)."""
+    home = os.path.join(BASE, "keychain-home")
+    os.makedirs(home, exist_ok=True)
+    os.environ["HOME"] = home
 
 
 def install_keychain_guard():
@@ -151,7 +183,15 @@ class KeychainIsolation(unittest.TestCase):
         self.assertIs(subprocess.run, _guarded_run, "the guard is not installed for this run")
         self.assertIs(subprocess.Popen, _GuardedPopen)
         self.assertIs(g.keychain_unlocked, _guarded_probe)
+        self.assertTrue(_home_ok(), "this run's HOME is not a throwaway one")
         kc = os.path.join(BASE, "never-created.keychain-db")
+        sec = "/usr/bin/security"
+        real_home = {"env": {"HOME": os.path.dirname(os.path.realpath(BASE))}}
+        search_list = [([sec, "list-keychains"], {}), ([sec, "list-keychains", "-s", kc], {}),
+                       ([sec, "list-keychains", "-d", "user", "-s", kc], {}), ([sec, "default-keychain", "-s", kc], {}),
+                       ([sec, "login-keychain", "-s", kc], {}), ([sec, "create-keychain", "-p", "x", kc], real_home),
+                       ([sec, "-i"], {"input": b'list-keychains -s "%s"\n' % kc.encode()}),
+                       ("security list-keychains", {"shell": True})]
         calls, stored = [], [SALT]
 
         def fake(argv, **kw):          # records, executes nothing, answers like `security` would
@@ -170,6 +210,11 @@ class KeychainIsolation(unittest.TestCase):
                 g.SaltStore(default, _guarded_run).create()
             with self.assertRaises(RealKeychainRefused):
                 g.keychain_unlocked()
+            # The search list is never read or changed, and nothing runs under the real HOME.
+            for argv, kw in search_list:
+                with self.subTest(argv=argv):
+                    with self.assertRaises(RealKeychainRefused):
+                        subprocess.run(argv, capture_output=True, **kw)
             # The production code, given a throwaway path, must name it on EVERY keychain call.
             _EXEC = fake
             conf = g.load_config(conf_in(os.path.join(BASE, "kc-guard"), salt_store="keychain", keychain_path=kc))
@@ -488,8 +533,8 @@ class PromptHook(unittest.TestCase):
 
     @unittest.skipUnless(DARWIN and os.path.exists("/usr/bin/security"), "macOS Keychain only")
     def test_hook_process_reads_a_real_namespaced_keychain_salt(self):
-        """A real prompt-hook process against the login Keychain, through the real lock probe and the
-        real `security` read, with a namespaced synthetic item that is deleted afterwards."""
+        """A real prompt-hook process against a THROWAWAY keychain file, under the throwaway HOME, through
+        the real lock probe and the real `security` read. The keychain is deleted afterwards."""
         service = "%s.clipboard-salt.hooktest-%d" % (g.PROJECT, os.getpid())
         kc = throwaway_keychain("hook-real")
         d, conf = hook_conf("hook-kc-real", salt_store="keychain", keychain_service=service, keychain_path=kc)
@@ -516,9 +561,7 @@ class PromptHook(unittest.TestCase):
     def test_lock_probe_reports_a_locked_throwaway_keychain_without_waiting(self):
         """A THROWAWAY keychain file under the test's base directory (never the login keychain), locked:
         the probe must say False at once. A probe that waited on an unlock dialog would take seconds."""
-        kc = os.path.join(BASE, "probe.keychain-db")
-        before = subprocess.run(["/usr/bin/security", "list-keychains"], capture_output=True).stdout
-        subprocess.run(["/usr/bin/security", "create-keychain", "-p", KEYCHAIN_PW, kc], check=True, capture_output=True)
+        kc = throwaway_keychain("probe")
         try:
             self.assertIs(g.keychain_unlocked(kc), True)
             subprocess.run(["/usr/bin/security", "lock-keychain", kc], check=True, capture_output=True)
@@ -526,10 +569,9 @@ class PromptHook(unittest.TestCase):
             self.assertIs(g.keychain_unlocked(kc), False)
             self.assertLess(time.monotonic() - t, 1.0)
         finally:
-            subprocess.run(["/usr/bin/security", "delete-keychain", kc], capture_output=True)
+            drop_keychain(kc)
         self.assertFalse(os.path.exists(kc))
-        self.assertEqual(subprocess.run(["/usr/bin/security", "list-keychains"], capture_output=True).stdout, before,
-                         "the keychain search list changed")
+        # The search list is deliberately NOT compared before and after: reading it is itself refused (#58).
 
     def test_too_large_warns_and_passes(self):
         d, conf = hook_conf("hook-large", max_bytes="100")
@@ -877,5 +919,6 @@ if __name__ == "__main__":
     if os.path.exists(BASE) and os.listdir(BASE):
         sys.exit("refusing: %s exists and is not empty (the suite only writes into a fresh directory)" % BASE)
     os.makedirs(BASE, exist_ok=True)
+    use_throwaway_home()
     install_keychain_guard()
     unittest.main(verbosity=2)
