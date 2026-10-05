@@ -156,6 +156,8 @@ def render_status(f, verbose=False):
         "installed" if f["admin"] else "absent", "installed" if user else "absent", ws_text, plugin_text))
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
+    if f.get("permissions"):
+        lines.append("  permissions      %s" % f["permissions"])
     key = f["key"]
     if key is None:
         lines.append("  version key      none (%s absent in the workspace)" % KEY_FILE)
@@ -403,6 +405,57 @@ def summarise_protections(user_lines):
     return "installed in %d/3 agent harnesses (an instruction)" % brief, floor, hooks_text(read_hooks())
 
 
+# The pre-authorisation (Issue #83, ADR-0031): the permission mode in effect and the allow-list size, read
+# from the installed files. A command-line flag or a session-level change can still differ from this.
+PROFILE = "workstation"
+
+
+def claude_mode(ws_root):
+    """-> (mode, layer): the first permissions.defaultMode found in precedence order, managed first."""
+    layers = [("admin", admin_dropin())]
+    if ws_root:
+        layers += [("project local", ws_root / ".claude" / "settings.local.json"),
+                   ("project", ws_root / ".claude" / "settings.json")]
+    layers.append(("user", Path.home() / ".claude" / "settings.json"))
+    for name, path in layers:
+        doc, _ = _json(path)
+        perms = doc.get("permissions") if isinstance(doc, dict) else None
+        mode = perms.get("defaultMode") if isinstance(perms, dict) else None
+        if isinstance(mode, str):
+            return mode, name
+    return "default", "none set"
+
+
+def permissions_text(ws_root):
+    mode, layer = claude_mode(ws_root)
+    doc, _ = _json(Path.home() / ".claude" / "settings.json")
+    perms = doc.get("permissions") if isinstance(doc, dict) else None
+    allow = perms.get("allow") if isinstance(perms, dict) else None
+    n_claude = len(allow) if isinstance(allow, list) else 0
+    codex_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+    try:
+        rules = (codex_home / "rules" / "workstation-allow-list.rules").read_text(encoding="utf-8")
+        n_codex = sum(1 for line in rules.splitlines() if line.endswith('decision="allow")'))
+    except OSError:
+        n_codex = 0
+    try:
+        profile = (codex_home / ("%s.config.toml" % PROFILE)).read_text(encoding="utf-8")
+    except OSError:
+        profile = ""
+    m = re.search(r'^sandbox_mode = "([^"]*)"', profile, re.M)
+    if m:
+        codex = "profile %s (on-request, %s; with --profile %s)" % (PROFILE, m.group(1), PROFILE)
+    else:
+        codex = "no %s profile" % PROFILE
+    doc, _ = _json(Path.home() / ".kiro" / "agents" / "workstation.json")
+    try:
+        n_kiro = len(doc["toolsSettings"]["execute_bash"]["allowedCommands"])
+    except (TypeError, KeyError):
+        n_kiro = 0
+    return ("Claude Code: %s (%s), %d allow rules · Codex: %s, %d allow rules · Kiro: agent workstation, "
+            "%d trusted commands" % (mode, layer, n_claude, codex, n_codex, n_kiro))
+
+
 def gather(project):
     admin = admin_installed()
     hooks_mode = "managed" if admin else "user"
@@ -434,7 +487,7 @@ def gather(project):
             "user_issues": issues(user_lines), "admin_issues": issues(admin_lines),
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
             "workspace": ws, "plugins": enabled_plugins(ws["root"]), "brief": brief, "floor": floor,
-            "hooks": hooks, "key": key, "runtime": runtime()}
+            "hooks": hooks, "key": key, "runtime": runtime(), "permissions": permissions_text(ws["root"])}
 
 
 # ---------------------------------------------------------------------------------------------------

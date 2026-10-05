@@ -334,3 +334,13 @@ from here now, and at what evidence level:
   whether a model follows it is not measured. **Not installed** and not run on the reference machine.
   `status` reports what the installed files register, at the *installed* level only; loaded and enforced
   need a session canary.
+- **Inner-loop pre-authorisation** (ADR-0031, proposed, 2026-10-05; Issue #83): one source,
+  `global/allow-list.conf`, rendered at user level as Claude Code `permissions.allow` and
+  `permissions.defaultMode`, a Codex allow-rules file and `workstation` profile file, and a Kiro
+  `workstation` agent. The wide tier (commits, branch creation, tracker comments, test runners,
+  `acceptEdits`, `workspace-write`) is rendered only while the admin deny floor is complete; otherwise a
+  read-only narrow tier and one `RISK` line. `git push` is deliberately not pre-authorised. *Written and
+  tested* in throwaway homes and a throwaway admin root; the rendered Claude Code mode and the Codex
+  profile are *measured loaded* headless, and Codex's deny-over-allow is measured with `execpolicy check`.
+  Whether an allowed command runs without a prompt in a live session is **not measured** (it needs a
+  login). **Not installed** on the reference machine.
