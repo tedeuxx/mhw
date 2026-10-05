@@ -67,20 +67,30 @@ From the plugin's `main` at commit `01045b660fc31fa6cb4f063fc0c5a2f1aa04db7c` (v
 | Kind | Count | Members |
 | --- | --- | --- |
 | Agents | 8 | agents-lead, tech-lead, developer, quality-assurance, scrum-master, product-lead, content-writer, content-reviewer |
-| Skills | 10 | agents-configuration, shell, documentation-standard, engineering-standards, definition-of-ready, definition-of-done (absorbs code-review), quality-gates, published-voice (absorbs content-publishing), devops, planning-poker |
+| Skills | 12 | agents-configuration, shell, documentation-standard, engineering-standards, definition-of-ready, definition-of-done, code-review, quality-gates, published-voice, content-publishing, devops, planning-poker |
 | Commands | 2 | autonomy, new-issue |
 
 Changes made in the move, and nothing else:
 
-- `code-review` is a section of `definition-of-done`, and `content-publishing` a section of
-  `published-voice`, each carried verbatim under a heading that says so. Preloads follow: `developer`
-  preloads `definition-of-done`; the content agents preload `published-voice` only.
+- The skill set and the preloads are moved as they are. The requirements document's section 6 proposes
+  folding `code-review` into `definition-of-done` and `content-publishing` into `published-voice`;
+  consolidating skills changes the owner's method, so that stays a proposal for him, not part of this
+  move.
 - `planning-poker`'s description says the agents use it to estimate; the body's reference-pattern
   paragraph is struck in place with the owner's ruling.
 - `agents-configuration` gains one section: the plugin's session-start and end-of-turn hook checks, now
   as steps the agent runs (section 4a).
-- `product-lead` loses the plugin-namespaced browser server from its tool list and keeps
-  `mcp__chrome-devtools`.
+- **No text claims enforcement this method does not have.** Every file that names a plugin hook, guard
+  rule or test opens with a note that those are the retired plugin's, that the rules they held are
+  instructions now, and what is still mechanical: the workstation deny floor (where installed) and each
+  agent's tool list. Passages that described a hook as actively denying, refusing or reporting are
+  rewritten as instructions, or as denied by the deny floor where its prefixes cover the act (force-push,
+  squash merge, `terraform apply`/`destroy`, `gh api` writes, and the rest of `global/deny-floor.conf`).
+  The checks that remain only as text name the plugin in the past tense.
+- `product-lead` loses the plugin-namespaced browser server and keeps `mcp__chrome-devtools`. The
+  plugin's `mcp-guard.sh` limited that grant to the browser's read-only tools; the source now carries the
+  same limit as `disallowed-tools` (the seven input-carrying tools), rendered as Claude Code
+  `disallowedTools` and Kiro `excludedTools`, and as an instruction in Codex.
 - Sanitisation: a few passages were abstracted before they entered this repository (categories:
   employer identification, a grey-zone health reference, and an employer-tooling reference).
 - Front matter is normalised: every item has `name`; scalars are quoted.
@@ -93,7 +103,7 @@ commands, which section 6 leaves out of the set; every hook.
 
 | Component | Claude Code | Codex | Kiro |
 | --- | --- | --- | --- |
-| Agent | `~/.claude/agents/<n>.md`: `tools` (an explicit `[]` for none) and `skills` preloads | `${CODEX_HOME:-~/.codex}/agents/<n>.toml`, name with underscores; preloads and the tool list as an instruction; `sandbox_mode = "read-only"` when the agent is granted no writing tool | `~/.kiro/agents/<n>.json`: `tools` and `allowedTools` (the same list, so no prompt within purpose), preloaded skills as `file://` resources |
+| Agent | `~/.claude/agents/<n>.md`: `tools` (an explicit `[]` for none), `disallowedTools`, and `skills` preloads | `${CODEX_HOME:-~/.codex}/agents/<n>.toml`, name with underscores; preloads and the tool list as an instruction; `sandbox_mode = "read-only"` when the agent is granted no writing tool | `~/.kiro/agents/<n>.json`: `tools` and `allowedTools` (the same list, so no prompt within purpose), `excludedTools`, preloaded skills as `file://` resources |
 | Skill | `~/.claude/skills/<n>/SKILL.md` | `~/.agents/skills/<n>/SKILL.md` | `~/.kiro/skills/<n>/SKILL.md` |
 | Command | `~/.claude/commands/<n>.md` | a skill in `~/.agents/skills/<n>/` with `agents/openai.yaml` `policy.allow_implicit_invocation: false`; invoked as `$<n>` | a skill in `~/.kiro/skills/<n>/`, a slash command in CLI and IDE |
 | Stamp | a `#` comment in the YAML front matter | a `#` comment (TOML, YAML); front matter comment in `SKILL.md` | front matter comment in `SKILL.md`; the first line of the agent's `prompt` (JSON has no comment) |
@@ -103,7 +113,9 @@ Tool names map from Claude Code to Kiro tags: `Read`, `Grep`, `Glob` to `read`; 
 
 **How it runs.** `install.sh` calls the renderer after its other targets, in every mode: install,
 `--check` (`OK`, `STAMP`, `DRIFT`, `MISSING`, `STALE`), `--dry-run` and `--uninstall`, so
-`./workstation install`, `check`, `status` and `uninstall` cover it. A file is ours only when its
+`./workstation install`, `check`, `status` and `uninstall` cover it. On Windows, `install.ps1` runs the
+same renderer (install, `-Check`, `-DryRun`) with `--home=%USERPROFILE%`, when Python 3.9 or later is on
+`PATH`; it has no uninstall mode, as before. A file is ours only when its
 managed-by line names `source: method/`; any other file in the way is refused and left untouched. A
 rendered file whose source was deleted is `STALE` and removed on install.
 
@@ -119,15 +131,18 @@ rendered file whose source was deleted is `STALE` and removed on install.
   The tool tags are documented for Kiro IDE 1.x and CLI V3; on the CLI's default v2 engine they are
   assumed. Kiro command-skills cannot switch off implicit invocation; their description says to run
   them only when the owner types them.
-- Bad: **the text still describes the plugin's machinery.** Briefs and skills name the plugin's hooks
-  and scripts (`permission-guard.sh`, `inventory-counts.test.sh` and others) as present. Read such a
-  passage as describing the plugin repository at the commit above; rewriting them is content work for
-  later slices, not done here.
+- Bad: **the text still carries the plugin's history.** Measurements, struck passages and design
+  arguments still name the plugin's hooks and scripts. Each such file opens with the note above, and no
+  passage claims one of them runs; but a full rewrite of that history is later content work.
+- Bad: the rules the plugin's hooks held mechanically on Claude Code (no posting by the content agents
+  and `product-lead`, the gatekeeper as the only merger, no `gh issue create` by a reviewing agent, no
+  plain push to the trunk) are **instructions** now. A per-agent tool list cannot split `Bash` by
+  subcommand, and the deny floor matches prefixes for every session alike.
 - Bad: the browser connector `product-lead` names is not defined by this step; its server definition
   is the MCP renderer's (ADR-0017).
 - Bad: while the plugin stays enabled in Claude Code, its namespaced agents and skills sit beside these
   user-level ones, and its hooks still run, until #63 retires it.
-- Bad: Windows (`install.ps1`) does not render the method yet.
+- Bad: on Windows the renderer needs a Python 3.9+ interpreter on `PATH`; without one, `install.ps1` prints `SKIP` and exits 2. The Windows CI jobs are the only probe there.
 - Bad: the rendered files are large (the method's source is about 1.0 MB of text (`cat method/agents/*.md method/skills/*/SKILL.md method/commands/*.md | wc -c`), rendered once per agent harness), and Kiro
   loads preloaded skills in full at agent start.
 
@@ -137,12 +152,15 @@ Measured 2026-10-05 on the reference machine, in throwaway homes under the sessi
 (`env -i`, `HOME`, `CLAUDE_CONFIG_DIR` and `CODEX_HOME` pointed there), no login and no model call:
 
 - **Claude Code 2.1.289** (`claude -p --no-session-persistence --output-format stream-json --verbose
-  --strict-mcp-config`): `init` lists the 8 agents in `agents`, the 10 skills in `skills`, and
+  --strict-mcp-config`): `init` lists the 8 agents in `agents`, the 12 skills in `skills`, and
   `autonomy` and `new-issue` in `slash_commands`. With `--agent <n>`, the session's tools are the
   agent's list intersected with the session's: `developer` and `tech-lead` get `Bash, Edit, Read,
   Write`; `quality-assurance` and `product-lead` get `Bash, Read, Write`; `scrum-master` gets none. The
   default session has no separate `Grep` or `Glob` tool on this version, so those names add nothing.
-- **Codex 0.160.0** (`codex debug prompt-input "hi"`): the 10 skills are in the model-visible skill list
+  `disallowedTools` in an agent's front matter removes the named tool (probe agent, `Write` excluded:
+  `Read, Bash` against a control's `Read, Write, Bash`); this was measured with a built-in tool, and the
+  MCP tool names in `product-lead`'s list were not exercised (no MCP server in the throwaway home).
+- **Codex 0.160.0** (`codex debug prompt-input "hi"`): the 12 skills are in the model-visible skill list
   from `~/.agents/skills`; `autonomy` and `new-issue` are left out, as an implicit-off skill should be.
   Custom agents do not appear in this output (ADR-0027); listing them needs a model call, so they are
   **documented**, not measured. The suite parses each rendered agent file with `tomllib`.
@@ -152,9 +170,11 @@ Measured 2026-10-05 on the reference machine, in throwaway homes under the sessi
   [Skills](https://kiro.dev/docs/skills.md)).
 - **Tests:** `global/method/method_render_test.py` asserts, per rendered file, the stamp and, per agent
   and agent harness, the tool list. It was mutation-checked by breaking the renderer in a copy of the
-  tree: 13 mutations (each agent harness losing an agent's tool list or the stamp, an explicit `[]`
-  becoming absent, the read-only sandbox dropped, a source agent without `tools` accepted) all turned
-  it red; the unmutated copy stayed green.
+  tree: 17 mutations (each agent harness losing an agent's tool list, its exclusions or the stamp, an
+  explicit `[]` becoming absent, the read-only sandbox dropped, `--home` ignored, a source agent
+  without `tools` accepted) all turned it red; the unmutated copy stayed green.
+- **Windows:** no local PowerShell. `global/install.test.ps1` checks the rendered method (tool list,
+  stamp, Codex policy file, Kiro tools, `-Check` clean) on the Windows CI jobs, which are the probe.
 
 ## Links
 
