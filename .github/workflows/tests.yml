@@ -109,8 +109,8 @@ jobs:
       # child. No real harness CLI, no shell rc, no terminal preferences, no clipboard.
       - name: paste wrapper suite
         run: python3 -B global/clipboard/paste_wrapper_test.py "$RUNNER_TEMP/paste-wrapper"
-      # ADR-0017. Throwaway HOMEs only. Needs Python 3.11+ (tomllib) for the Codex surface. On macOS,
-      # when the runner's login Keychain is writable, one namespaced synthetic item is created and deleted.
+      # ADR-0017. Throwaway HOMEs only. Needs Python 3.11+ (tomllib) for the Codex surface. On macOS the
+      # Keychain test uses a throwaway keychain file under $RUNNER_TEMP, never the login keychain (#58).
       - name: MCP renderer suite
         run: |
           python3 --version

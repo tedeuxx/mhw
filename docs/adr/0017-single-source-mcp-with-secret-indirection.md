@@ -158,7 +158,9 @@ or shape, and nothing announces that miss.
 
 In throwaway HOMEs on macOS (the suite, `global/mcp/mcp_render_test.py`):
 
-1. A namespaced Keychain item with a random synthetic value is created through `security -i` on stdin,
+1. ~~A namespaced Keychain item~~ *(struck 2026-10-05, issue #58: the test wrote the owner's real login
+   Keychain. It now uses a throwaway keychain file; see the amendment below.)* A Keychain item with a
+   random synthetic value is created through `security -i` on stdin,
    the definition references it, and the renderer runs. **A byte search of every file under the
    throwaway HOME** (configs, backups, manifest, launcher) **does not find the value.** The renderer's
    own output does not carry it either.
@@ -174,9 +176,21 @@ The renderer never reads a secret by construction: no code path calls the Keycha
 source. A mutation that makes it do so turns the suite red (see the pull request).
 
 **Measured surprise:** `security` resolves the user's Keychain search list from `HOME`. Under a
-throwaway `HOME` the launcher found no login Keychain and refused to start the server. In the test,
-only the launcher runs with the real `HOME`. In use, a surface that started MCP servers with a
-rewritten `HOME` would get a failed server, loudly. Whether any surface does is not measured.
+throwaway `HOME` the launcher found no login Keychain and refused to start the server. ~~In the test,
+only the launcher runs with the real `HOME`.~~ *(Struck 2026-10-05, issue #58; see below.)* In use, a
+surface that started MCP servers with a rewritten `HOME` would get a failed server, loudly. Whether any
+surface does is not measured.
+
+**Amendment 2026-10-05 (issue #58): the suite no longer touches the real Keychain.** The launcher takes
+an optional `--keychain PATH` (absolute, before every `--secret`) and passes it to each `security`
+read. The renderer never writes it, so in use the launcher reads the login Keychain exactly as before.
+The test creates a throwaway keychain file under its base directory and runs every `security` call and
+every launch under a throwaway `HOME`, so neither the login keychain, the default keychain nor the real
+search list is in reach. A guard installed for the whole run refuses, before anything executes, a
+`security` call that does not name a keychain file under the base directory, a verb outside a short
+list, an inherited `HOME`, or a Keychain launch without `--keychain`. One test, which executes no
+process, fails when the launcher drops the path from either read or when the guard is opened or not
+installed (six mutations, six reds). Same approach as the paste-filter fix in PR #85.
 
 ## Consequences
 
