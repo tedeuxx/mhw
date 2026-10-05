@@ -51,7 +51,10 @@ HEAD_LINE = re.compile(r"head: ([0-9a-f]{40})")
 COMMIT_LINE = re.compile(r"commit: ([0-9a-f]{40})")
 # Hold 2's harness-path list for a consuming repository (no .claude-plugin/plugin.json), at any depth,
 # plus this repository's own other harness carriers, .agents/ and .kiro/ (stricter, never looser).
-HARNESS_PATH = re.compile(r"(?:^|/)(?:(?:\.claude|\.codex|\.github|\.agents|\.kiro)/|(?:AGENTS|CLAUDE)\.md$)")
+# Compared by path component rather than a regex, so no anchor/alternation precedence is involved.
+HARNESS_DIRS = {".claude", ".codex", ".github", ".agents", ".kiro"}
+HARNESS_FILES = {"AGENTS.md", "CLAUDE.md"}
+MERGED = "MERGED: "
 
 class Pending(Exception):
     pass
@@ -94,7 +97,7 @@ def latest_checks(checks):
 def tests_jobs():
     """The jobs the stable delivery-ci job aggregates, read from the workflow itself, not restated."""
     text = (ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
-    match = re.search(r"^  delivery-ci:\n(?:    .*\n)*?    needs: \[([^\]]+)\]", text, re.M)
+    match = re.search(r"^ {2}delivery-ci:\n(?: {4}.*\n)*? {4}needs: \[([^\]]+)\]", text, re.M)
     if not match:
         raise Pending("cannot read the tests workflow's delivery-ci job list")
     return [job.strip() for job in match[1].split(",") if job.strip()]
@@ -176,7 +179,10 @@ def gate_approves(comments, head):
 
 
 def harness_paths(paths):
-    return [p for p in paths if HARNESS_PATH.search(p)]
+    def is_harness(path):
+        parts = path.split("/")
+        return bool(HARNESS_DIRS.intersection(parts[:-1])) or parts[-1] in HARNESS_FILES
+    return [p for p in paths if is_harness(p)]
 
 
 def lens_closed(comments, head):
@@ -255,7 +261,7 @@ def main():
     base = pr["baseRefName"]
     if args.action == "merge":
         if pr["state"] == "MERGED":
-            print("MERGED: " + pr["url"] + "; run verify for publication proof")
+            print(MERGED + pr["url"] + "; run verify for publication proof")
             return
         if pr["state"] != "OPEN":
             raise Pending("PR is not open")
@@ -275,9 +281,9 @@ def main():
             raise Pending("head is behind " + base + "; update it and rerun CI")
         run(*merge_command(args.pr, repo, head))
         if base == INTEGRATION:
-            print("MERGED: " + pr["url"] + " into rc/next; no release is cut, run verify")
+            print(MERGED + pr["url"] + " into rc/next; no release is cut, run verify")
         else:
-            print("MERGED: " + pr["url"] + "; CI publication is pending, run verify")
+            print(MERGED + pr["url"] + "; CI publication is pending, run verify")
         return
     if pr["state"] != "MERGED" or not pr.get("mergeCommit"):
         raise Pending("session PR is not merged")
