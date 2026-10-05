@@ -60,6 +60,15 @@ allow_parse() {
           for (i = 3; i <= NF && why == ""; i++)
             if ($i !~ /^[A-Za-z0-9._~=:@+-]+$/) why = "word outside the allowed set (no path, no wildcard)"
         }
+        # A leading VAR=value runs the command with that environment: GIT_CONFIG_PARAMETERS=... git log is
+        # "git -c", GIT_PAGER=... runs any program (Issue #65, lens finding on PR #100).
+        if (why == "" && $3 ~ /^[A-Za-z_][A-Za-z0-9_]*=/)
+          why = "\"" $3 "\" is an environment assignment before the command; it can run any program"
+        # -R/--repo, in any position and any spelling, retargets gh at any repository and widens the
+        # prefix past every per-subcommand pin: "gh pr -R o/r merge" (Issue #65, lens finding on PR #100).
+        for (i = 3; i <= NF && why == ""; i++)
+          if ($i ~ /^(-R|--repo)(=|$)/ || $i ~ /^-R./)
+            why = "\"" $i "\" (-R/--repo) retargets the command at another repository and reaches every subcommand"
         if (why == "" && $2 == "cmd") {
           # A shell, an interpreter or a dispatcher runs anything it is handed: an allow on one is an
           # allow on everything, and an agent able to edit this list would grant itself the world.

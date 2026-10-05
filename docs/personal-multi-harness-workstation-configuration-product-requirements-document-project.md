@@ -170,12 +170,13 @@ agent harness costs one command, not a migration.
 7. **Teach rather than lock.** Hooks are mechanical locks. Keep them to the minimum and replace them with
    behaviour taught through briefs, skills and agent instructions, accepting a best-effort result. Every
    hook that remains must pass the [hook budget](#4a-hook-budget).
-8. **Perimeter, not behaviour.** In the owner's words (translated, #77): "every attempt to build
+8. **Perimeter, not behaviour.** *Draft, proposed on #77, pending the owner's ratification.* In the owner's words (translated, #77): "every attempt to build
    explicit blocking of agent behaviour, or hard control over how agents behave, has proved
    ineffective. Perimeter defence is therefore the right approach." The workstation protects the
    boundary: the managed layer that only an administrator changes, the operating system's privilege
    model, and native deny rules on irreversible actions. Inside that perimeter, behaviour is taught and
-   accepted as best effort. (Its wording as a commandment is a draft, [1c](#1c-ten-commandments-for-working-with-an-agent-harness-every-day).)
+   accepted as best effort. Until he ratifies it, this principle is not installed anywhere
+   ([1c](#1c-ten-commandments-for-working-with-an-agent-harness-every-day)).
 9. **No per-request waivers; exceptions only through `sudo`.** In the owner's words (translated, #52):
    "no mechanical lock may require individual, temporary waiver requests unless the waiver is tied to a
    privilege level that stays valid for the whole session. `sudo`/`su` serves that purpose." A
@@ -382,7 +383,7 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
 | **Paste cleaning: wrapper** (primary) | Terminal launcher for `claude`, `codex` and `kiro-cli` that redacts bracketed pastes before the agent harness sees them; typing passes through unchanged. It marks the session it cleans. The installer prints an opt-in shell start-up line, or appends it to a file the owner names. | Pasting a credential, personal data (e-mail, card, CPF/CNPJ) or a registered client or employer name. | Terminal sessions started through it, macOS and Linux. Out of reach: desktop apps, files read by path, images ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). |
 | **Paste cleaning: prompt hook** (safety net) | Checks the prompt before it reaches the model; can only block and show a redacted copy (hooks cannot rewrite the prompt). It passes silently in a session the wrapper marked. | The same, for sessions not opened through the wrapper. | Claude Code and Codex (Codex after the owner trusts it). The single justified hook, by the owner's decision on [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). |
 | **Client and employer terms** | The owner registers the names to catch; stored salted, never in plain text. | The mission's first rule. | Empty until terms are registered; status shows the count, including a visible "0 terms" notice. |
-| **Deny floor** | About 100 native deny rules: `sudo`, reading `~/.ssh` and `~/.aws`, GitHub and AWS secret writes, force-push, `rm -rf`, bypass flags; it also carries the irreversible-action rules that used to live in the plugin. | Irreversible damage and credential reads. | Claude Code and Codex. Prefix match: `git -C dir push --force` is not caught. ~~*Open decision* ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59)): whether it sits in the managed layer.~~ Decided on #59: rendered into the managed layer, user copy kept until that one is installed ([ADR-0016](adr/0016-user-level-deny-floor-rendered-per-harness.md), 2026-10-05 amendment). |
+| **Deny floor** | Native deny rules (counted per agent harness by the `FLOOR` lines of `install.sh --check`): `sudo`, reading `~/.ssh` and `~/.aws`, GitHub and AWS secret writes, force-push, `rm -rf`, bypass flags; it also carries the irreversible-action rules that used to live in the plugin. | Irreversible damage and credential reads. | Claude Code and Codex. Prefix match: `git -C dir push --force` is not caught. ~~*Open decision* ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59)): whether it sits in the managed layer.~~ Decided on #59: rendered into the managed layer, user copy kept until that one is installed ([ADR-0016](adr/0016-user-level-deny-floor-rendered-per-harness.md), 2026-10-05 amendment). |
 | **Connector access per agent** | Each agent declares its allowed tools (native per-agent tool list), so access to account connectors (mail, files, professional network) is granted per agent; a brief instruction says the same. No hook. | A subagent reading or sending through the owner's accounts. | Claude Code natively; other agent harnesses per the [enforcement matrix](#10-native-enforcement-matrix). |
 | **Breaking glass** | ~~A root-owned, expiring switch; the agent only prints the `sudo` line.~~ No switch and no expiry: the administrator edits or removes the managed documents with `sudo`, as with any OS-managed policy ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md), [runbook](runbooks/breaking-glass.md)). Exists only while a hook exists. | A protection misfiring with no way out. | macOS and Linux. Scope follows the paste prompt hook decision ([#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56), [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)). |
 | **Stale configuration** | Covered by the version key ([7](#7-version-key-per-project)) and the restart rule of ADR-0022 as an instruction; no restart-guard hook. | A session running on stale configuration. | All three agent harnesses, best effort. |
@@ -434,9 +435,12 @@ barrier of the proposed managed workstation."
 | **Wide** | Only while the root-owned admin deny floor is complete for that agent harness | The full inner loop (owner, #83): git read routes, `git add --`, `git commit -m`, branch creation, fetch, the repository's own test suites by script, `acceptEdits` in Claude Code and `workspace-write` in Codex. A test runner executes repository code without a prompt; that is the owner's accepted trade-off. |
 
 - **Never pre-authorised, in any tier:** `git push`, publishing routes (`gh pr create`, comments, `gh
-  api`), `./workstation`, a shell or interpreter as a standalone entry, an option before the git or gh
-  subcommand (`git -c`, `git -C`, `gh -R`), and tool-wide `Edit`, `Write` or `Read`. The installer
-  refuses such an entry before writing anything.
+  api`), `./workstation`, a shell or interpreter as a standalone entry, an option as the word right
+  after `git` or `gh` (`git -c`, `git -C`, `gh -R`), `-R` or `--repo` in any position and spelling
+  (`gh pr -R`, `--repo=`), a leading environment assignment (`GIT_CONFIG_PARAMETERS=… git log`), and
+  tool-wide `Edit`, `Write` or `Read`. The installer refuses such an entry before writing anything
+  (each case is in `global/allow-list.test.sh`, mutation-checked). Other spellings it does not list
+  are not claimed refused.
 - **Kiro** receives the narrow tier only, because it carries no deny floor.
 - **Where it lives:** the user layer, a convenience the owner can tune. The barrier it relies on is
   the managed layer ([4](#4-protection-core-managed-layer)).
