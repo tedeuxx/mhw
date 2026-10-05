@@ -127,6 +127,107 @@ class StatusOutput(unittest.TestCase):
         self.assertEqual(ws.issues(lines), 4)
 
 
+class RuntimeSummary(unittest.TestCase):
+    """The session-start runtime summary (Issue #80): few lines, every item the brief names."""
+
+    def row(self, out, label):
+        hits = [line for line in out if line.startswith("  %-16s " % label)]
+        self.assertEqual(len(hits), 1, (label, out))
+        return hits[0][19:]
+
+    def test_every_item_in_ten_lines(self):
+        out = ws.render_summary(facts())
+        self.assertLessEqual(len(out), 10)
+        self.assertEqual(self.row(out, "agent harness"), "Claude Code 2.1.0")
+        self.assertEqual(self.row(out, "model, effort"), "Claude Code: default; the session's own values: "
+                                                         "Claude Code /status")
+        self.assertEqual(self.row(out, "workstation"), "v3.1.0 @ aaaaaaa · version key: >=3.1 <4 match")
+        self.assertEqual(self.row(out, "layers"), "managed: absent · user: installed · workspace: proj · "
+                                                  "plugin: none")
+        self.assertEqual(self.row(out, "overrides"), "no workspace setting overrides a user default")
+        self.assertEqual(self.row(out, "cannot override"),
+                         "deny floor (the user layer only; a deny in any layer wins)")
+        self.assertIn("brief installed in 2/3 agent harnesses (an instruction)", self.row(out, "protections"))
+        self.assertIn("evidence: installed; loaded and enforced need a session canary",
+                      self.row(out, "protections"))
+        self.assertEqual(self.row(out, "permission mode"), "Claude Code: default; session flags: "
+                                                           "Claude Code /status")
+        self.assertEqual(self.row(out, "runtime"), "host (Linux x86_64; no container marker found)")
+
+    def test_workspace_overrides_user_and_hooks_off_is_named(self):
+        settings = [("Claude Code", "user", "permissions.defaultMode", "default"),
+                    ("Claude Code", "workspace", "permissions.defaultMode", "acceptEdits"),
+                    ("Claude Code", "user", "model", "opus"),
+                    ("Claude Code", "user", "disableAllHooks", "true"),
+                    ("Codex", "user", "approval_policy", "on-request"),
+                    ("Codex", "workspace", "sandbox_mode", "workspace-write"),
+                    ("Codex", "user", "model_reasoning_effort", "high")]
+        out = ws.render_summary(facts(settings=settings, admin=True,
+                                      harnesses={"Claude Code": "2.1.0", "Codex": "0.1", "Kiro": None}))
+        self.assertEqual(self.row(out, "overrides"),
+                         "HOOKS OFF: disableAllHooks in Claude Code user; Claude Code permissions.defaultMode "
+                         "= acceptEdits; Codex sandbox_mode = workspace-write")
+        self.assertEqual(self.row(out, "permission mode"),
+                         "Claude Code: permissions.defaultMode acceptEdits (workspace) · Codex: approval_policy "
+                         "on-request (user), sandbox_mode workspace-write (workspace); session flags: "
+                         "Claude Code /status, Codex /status")
+        self.assertEqual(self.row(out, "model, effort"),
+                         "Claude Code: model opus (user) · Codex: model_reasoning_effort high (user); "
+                         "the session's own values: Claude Code /status, Codex /status")
+        self.assertTrue(self.row(out, "cannot override").startswith("managed layer (admin-owned) · deny floor"))
+
+    def test_mismatch_and_no_harness(self):
+        line = ws.mismatch_line(">=3.1 <4", "v3.0.0")
+        out = ws.render_summary(facts(key={"required": ">=3.1 <4", "state": "mismatch", "line": line},
+                                      harnesses={"Claude Code": None, "Codex": None, "Kiro": None}))
+        self.assertEqual(out[-1], "  " + line)
+        self.assertLessEqual(len(out), 11)
+        self.assertEqual(self.row(out, "agent harness"), "none detected on PATH")
+        self.assertIn("Kiro: not read by this view", self.row(out, "model, effort"))
+        self.assertIn("Kiro /context show, /tools", self.row(out, "model, effort"))
+
+    def test_brief_names_the_summary_command(self):
+        brief = (ws.HERE / "AGENTS.md").read_text(encoding="utf-8")
+        section = brief.split("## Session-start runtime summary", 1)[1].split("\n## ", 1)[0]
+        section = " ".join(section.split())
+        for needle in ("./workstation status --summary", "./workstation status --verbose", "Claude Code `/status`",
+                       "Codex `/status`", "Kiro `/context show` and `/tools`", "agent harness"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, section)
+
+
+class Settings(unittest.TestCase):
+    def test_reads_user_and_workspace_layers(self):
+        with tempfile.TemporaryDirectory(prefix="workstation-settings-") as d:
+            base = Path(d)
+            saved = {k: os.environ.get(k) for k in ("HOME", "CODEX_HOME")}
+            os.environ["HOME"] = str(base / "home")
+            os.environ.pop("CODEX_HOME", None)
+            try:
+                (base / "home" / ".claude").mkdir(parents=True)
+                (base / "home" / ".codex").mkdir()
+                (base / "proj" / ".claude").mkdir(parents=True)
+                (base / "home" / ".claude" / "settings.json").write_text(json.dumps(
+                    {"model": "opus", "permissions": {"defaultMode": "plan", "deny": ["x"]}}), encoding="utf-8")
+                (base / "proj" / ".claude" / "settings.json").write_text(json.dumps(
+                    {"disableAllHooks": True}), encoding="utf-8")
+                (base / "home" / ".codex" / "config.toml").write_text(
+                    'model = "gpt-x"  # note\napproval_policy = \'never\'\n[profiles.a]\nsandbox_mode = "x"\n',
+                    encoding="utf-8")
+                got = ws.read_settings(base / "proj")
+            finally:
+                for k, v in saved.items():
+                    if v is None:
+                        os.environ.pop(k, None)
+                    else:
+                        os.environ[k] = v
+        self.assertEqual(got, [("Claude Code", "user", "model", "opus"),
+                               ("Claude Code", "user", "permissions.defaultMode", "plan"),
+                               ("Claude Code", "workspace", "disableAllHooks", "true"),
+                               ("Codex", "user", "approval_policy", "never"),
+                               ("Codex", "user", "model", "gpt-x")])
+
+
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
 class EndToEnd(unittest.TestCase):
     """The real installers in a throwaway HOME and admin root: status must read their output right."""
@@ -165,6 +266,13 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("Workstation version key: required >=999 <1000, installed ", out)
         self.assertIn("hooks registered: admin: none · user: picker guard (Claude Code), "
                       "paste filter (Claude Code), paste filter (Codex)\n", out)
+        # The summary is fed by the same gathered facts: same stamp, key and hooks as the status view.
+        code, out = self.run_ws("status", "--summary", "--overlay=none", project)
+        self.assertEqual(code, 0)
+        self.assertLessEqual(len(out.splitlines()), 11, out)
+        self.assertIn("  workstation      %s · version key: >=999 <1000 mismatch\n" % source.split(" (")[0], out)
+        self.assertIn("· hooks admin: none · user: picker guard (Claude Code)", out)
+        self.assertRegex(out, r"(?m)^  Workstation version key: required >=999 <1000, installed ")
         # The hooks moved out of the user layer with no admin layer: status must say none, not claim them.
         subprocess.run(["sh", str(ws.INSTALL), "--overlay=none", "--hooks=managed"], env=self.env,
                        capture_output=True, check=False)
