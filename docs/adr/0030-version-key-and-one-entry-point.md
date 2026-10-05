@@ -182,6 +182,30 @@ absent while a drop-in is present. Probed in throwaway homes and roots with the 
 present (staged, applied without `sudo` through `--root`) and as a legacy drop-in generated from the
 `install-managed.sh` template at `3742ffa`. Eight more source mutations each turned the suite red.
 
+## Amendment 2026-10-05: prerequisites in `./workstation check` (#89)
+
+**Decision (owner, 2026-10-05, check-only).** The tools and subscriptions the workstation and its lanes
+need are declared once, generically, in `global/prerequisites.json`, and `./workstation check` reports
+them: present or missing, authenticated or not, drift from the preferred settings, and the manual step
+for each gap. A required item that is missing makes the check exit non-zero; authentication and drift
+are reported only. Nothing is applied; applying settings to real accounts comes after the owner tests
+this. Owner-specific values (active lanes, repositories, Sonar project keys) live in the untracked
+`overlay/prerequisites.local.json`.
+
+**Options considered.** *A closed probe set in code, chosen.* The declaration can only pick among
+probes `prerequisites.py` implements (version and path queries, `gh auth status`, the merge-settings
+`--check`, three HTTPS GETs gated on a token already in the environment), so a declaration edit cannot
+turn the check into a mutation. Trade-off: a new kind of probe needs code, not only JSON. *Free-form
+commands in the declaration, rejected:* shorter, but the read-only property would rest on review alone.
+*Failing on drift and on a missing login, rejected:* a check that fails on what only the owner can
+repair, and on credentials it must never ask for, trains the reader to ignore its exit code.
+
+**Consequences.** `./workstation check` can now fail on a machine whose installed targets all match,
+when a required tool is missing. `gh auth status` output names the account, so it is discarded.
+Tokens are read from the environment only and are never sent after a redirect or to a non-loopback
+override. Whether a subscription is paid and active is not observable and is reported as the client
+only, or `MANUAL`. Evidence: [prerequisites](../prerequisites.md).
+
 ## Links
 
 - Requirements document, [section 7](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#7-version-key-per-project)

@@ -394,11 +394,18 @@ class Overlay(unittest.TestCase):
         calls = []
         real, saved = ws.run, os.environ.get(ws.OVERLAY_ENV)
         ws.run = lambda *a, **k: calls.append(a[0]) or (0, [])
+        # The prerequisites section (#89) reads this machine's PATH; an empty declaration keeps it out.
+        empty = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        empty.write('{"lanes": {}, "items": []}')
+        empty.close()
+        os.environ["WORKSTATION_PREREQUISITES"] = empty.name
         try:
             self.assertEqual(ws.main(["check", "--overlay=none"]), 0)
             self.assertEqual(os.environ.get(ws.OVERLAY_ENV), "none")
         finally:
             ws.run = real
+            os.environ.pop("WORKSTATION_PREREQUISITES", None)
+            os.unlink(empty.name)
             if saved is None:
                 os.environ.pop(ws.OVERLAY_ENV, None)
             else:

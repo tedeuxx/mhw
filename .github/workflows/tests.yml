@@ -47,7 +47,8 @@ jobs:
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/profile/profile.py global/profile/profile_test.py \
-            global/workstation.py global/workstation_test.py
+            global/workstation.py global/workstation_test.py \
+            global/prerequisites.py global/prerequisites_test.py
 
   # Pure preference compilation: no harness installation, account calls or credential reads.
   profiles:
@@ -103,6 +104,12 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
+      # Issue #89: the prerequisites section of ./workstation check. Fake tool shims on a PATH holding
+      # nothing else, a stub gh, a loopback server for SonarCloud and HCP Terraform; no network, no account.
+      - name: prerequisites suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/prerequisites_test.py
       - name: GitHub repository settings standard suite (stub gh on PATH; no network, never squash)
         run: sh global/github-repo-settings.test.sh "$RUNNER_TEMP/repo-settings"
       # ADR-0011, the paste filter. It never reads or writes the system clipboard. Issue #58: the real

@@ -334,6 +334,12 @@ from here now, and at what evidence level:
   whether a model follows it is not measured. **Not installed** and not run on the reference machine.
   `status` reports what the installed files register, at the *installed* level only; loaded and enforced
   need a session canary.
+- **Prerequisites check** (ADR-0030 amendment, 2026-10-05; Issue #89, check-only): the versioned
+  declaration `global/prerequisites.json` and a prerequisites section in `./workstation check`
+  (present or missing, authenticated or not, drift from the preferred settings, the manual step per
+  gap; a missing required item exits non-zero). *Written and tested* with fake tool shims in a
+  throwaway home; one read-only real run of `gh auth status` and the merge-settings `--check`. It
+  applies nothing. The SonarCloud and HCP Terraform probes are not run against the real services.
 - **Session-start runtime summary** (ADR-0030 amendment, 2026-10-05; Issue #80): `./workstation status
   --summary` and a user-brief section telling every agent harness to state the runtime configuration in
   its first reply, pointing to Claude Code `/status`, Codex `/status` and Kiro `/context show` and
