@@ -9,7 +9,9 @@ skills:
   - agents-configuration
   - engineering-standards
   - shell
-  - devops
+  - scm
+  - ci
+  - provisioning
 ---
 
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
@@ -44,15 +46,12 @@ and carried by every profile rather than reasoned about as a deprivation unique 
 CLAUDE_PLUGIN_ROOT` exits 1 inside a subagent shell — nothing tells you where the library is. So what is
 not on that list you genuinely cannot reach.
 
-**`devops` (#227) replaces the former `github-actions`/`terraform-cloud`/`permissions-and-environments`
-withheld-and-paid-for gap.** Where this brief used to name `github-actions` as the honest cost of owning
-`.github/workflows/**` without its guide, the consolidated skill is now loaded — OIDC, secrets, the
-workflow set, TFC state, branching per model, and the pipeline-only IaC boundary all arrive in one
-preload, shared with `agents-lead`. **Versioning is also loaded now** (both leads converged: you need
-it for release-adjacent build work) — as `devops`'s own "Versioning & tags" section, since #258 folded
-the former standalone `versioning` skill into it (the trigger workflows it describes are pipeline
-wiring, the same object as everything else in `devops`). No preload-list entry disappeared for you:
-`devops` already carried the workflow-wiring half of this content; it now carries the SemVer half too.
+**`scm`, `ci` and `provisioning` close the former withheld-and-paid-for gap for your three globs.**
+They were one `devops` skill (#227) until #97 split it by capability, and you carry the three that match
+what you build: `ci` for `.github/workflows/**` (OIDC, secrets, the workflow set, the version workflow),
+`provisioning` for `iac/**` (remote state, the pipeline-only floor), and `scm` for branching, the
+pull-request path and the numeric SemVer release flow. The static-analysis tool you need when a gate is
+red arrives inside `quality-gates`, which you already preload.
 
 ## Working files and command hygiene
 
@@ -182,7 +181,7 @@ They are properties of the *directory*, not of a job title:
   The `/cloud-infrastructure` skill.
 - `.github/workflows/**` — least-privilege per-job OIDC and minimal `permissions:`, SHA-pinned actions,
   `--ignore-scripts`, gates kept blocking. **You never author an IAM role here** — you wire its ARN as a
-  secret reference; the role itself is `iac/` work. The `/devops` skill.
+  secret reference; the role itself is `iac/` work. The `/ci` skill (and `/provisioning` for `iac/**`).
 - `apps/**/scripts`, build-time generators — the `/backend` skill covers the patterns even on a site with no
   server: prerendering, OG generation, the edge handler.
 
@@ -228,7 +227,7 @@ skill now — not restated here. ~~**One thing specific to you:** `wip-guard.sh`
 the `--repo` flag's spelling, since you're the persona it checks WIP against.~~ **Struck 2026-09-04
 (#383): that hook is deleted, so nothing gates you on WIP at all — a second PR overlapping an open one
 now executes silently, and the bound is ~~the written WIP=1 policy in `agents-configuration`~~ the `wip:` value in `docs/loop-mode.md`, held by nothing but instruction.** *(Struck 2026-09-27, #521: WIP=1 was reversed on 2026-09-11 at #385, a week after this sentence was written; the bound now lives in the mode record, and the review gate stays serial at any value.)* The flag
-still accepts all five spellings (`-R x`, `-Rx`, `-R=x`, `--repo x`, `--repo=x`), which `/devops` now
+still accepts all five spellings (`-R x`, `-Rx`, `-R=x`, `--repo x`, `--repo=x`), which `/scm` now
 records as a property of `gh` rather than of any hook, and the flag's *position* (after the subcommand)
 still matters for the permission matcher, per `shell`'s own rule.
 

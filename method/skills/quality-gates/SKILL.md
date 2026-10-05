@@ -1,8 +1,13 @@
 ---
 name: "quality-gates"
-description: "Apply THIS loop's CI/CD gate policy — the gate table per loop model, the merge-class rules, and the thresholds (lint/typecheck zero, coverage ≥85%, contract/E2E, dependency + secret scanning, SAST). Use when calibrating gates, wiring CI, or deciding who merges a class. Not for the criteria that make a slice complete (see definition-of-done), the pre-merge pass (see code-review), or Sonar mechanics (see devops)."
+description: "Apply THIS loop's CI/CD gate policy — the gate table per loop model, the merge-class rules, and the thresholds (lint/typecheck zero, coverage ≥85%, contract/E2E, dependency + secret scanning, SAST), and the static-analysis quality gate (setup, analysis mode, CI step, gate wiring, new-code thresholds). Use when calibrating gates, deciding who merges a class, or diagnosing a red quality gate. Not for the criteria that make a slice complete (see definition-of-done), the pre-merge pass (see code-review), or workflow wiring (see ci)."
 purpose: "state the CI/CD gates this loop runs and where each sits, so a merge decision rests on mechanical checks rather than on impression"
 ---
+
+> **Written for the selected tool: SonarCloud.** This skill describes the quality-gate capability as the
+> owner runs it today. Everything specific to SonarCloud sits in one section at the end, *Tool section —
+> SonarCloud*. To move to another static-analysis service, replace that section only; the gate policy
+> above it stays as it is.
 
 # Quality gates — the CI/CD policy, and where each gate sits
 
@@ -141,8 +146,9 @@ what exists is required** — a service with no browser surface owes no E2E jour
 
 **Security — same four checks, different location for the secret.** Dependencies: block on
 high/critical advisories, dependency review and automated update PRs. SAST + quality gate: the
-SonarCloud Quality Gate blocks merge and imports the unit-coverage lcov, so SAST, coverage and smells
-are judged together — see `devops` for the mechanics of that import. Secrets: secret scanning,
+static-analysis quality gate blocks merge and imports the unit-coverage report, so SAST, coverage and
+smells are judged together — the mechanics of that import are in the *Tool section* below (they were in
+the former `devops` skill until #97 merged them here). Secrets: secret scanning,
 nothing sensitive committed — on the server a sensitive value is fetched at runtime from a secret store
 (see the Secrets section); in a browser bundle there is no such place at all, so client configuration is
 non-secret by construction (see the Config section). Automated review: an automated code-review action
@@ -175,3 +181,75 @@ so a change that is covered but broken still fails; framework-agnostic — the p
 the runner.
 **Cons:** an 85% threshold can incentivize trivial tests that raise the number and assert nothing; gates
 add latency to every merge, including the ones that could not possibly break anything.
+
+## Tool section — SonarCloud
+
+Everything below is specific to SonarCloud. A tool switch replaces this section only. It was the
+*SonarCloud — the quality-gate mechanics* section of the former `devops` skill until #97 merged it here,
+so the gate policy and the tool that enforces it are one skill.
+
+SonarCloud runs on every pull request and on push to the long-lived branches as the **Quality Gate** —
+static analysis (bugs, code smells, **vulnerabilities/SAST**, security hotspots), coverage and
+duplication. A failing gate **blocks the merge and the deploy**.
+
+### Analysis mode — CI-based, never Automatic
+Analysis runs **in CI**, not as SonarCloud Automatic Analysis. **Automatic Analysis must be OFF** per
+project, or the CI scanner is rejected.
+
+### Setup (per repo)
+- `sonar-project.properties`: `sonar.projectKey`, `sonar.organization`, `sonar.sources` (plus
+  `sonar.tests` and `sonar.coverage.exclusions` for code repos).
+- Coverage import (code repos): `sonar.javascript.lcov.reportPaths=coverage/lcov.info`, produced by the
+  test step (covers TS/TSX too). Infrastructure repos have no coverage.
+- Secret **`SONAR_TOKEN`** — **per repo under a personal account**, since organization-level secrets do
+  not exist there; under an org, define it once and grant it to the repos that need it. *The cost of the
+  personal-account shape is rotation:* one token change is N repo edits, so keep a list of the repos
+  that hold it. Same secrets standard as `/ci`.
+- **A repository with nothing to analyze is not a Sonar project** (a library of Markdown guides).
+
+### The CI step
+The legacy `sonarcloud-github-action` is **deprecated/archived**; use the unified scan action. One step
+both scans and gates through `qualitygate.wait` (no separate quality-gate action):
+```yaml
+- uses: SonarSource/sonarqube-scan-action@v7
+  env:
+    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    SONAR_HOST_URL: https://sonarcloud.io   # SonarCloud host
+  with:
+    args: -Dsonar.qualitygate.wait=true     # poll + FAIL the job on a red gate
+```
+Checkout needs `fetch-depth: 0` (full history → accurate new-code and blame attribution). Code repos
+run it **inside the build/test workflow** after lint, typecheck and tests, because it consumes their
+`coverage/lcov.info`. An infrastructure repo runs it in a **standalone `sonar.yml`**: no coverage to
+consume, and it must not trigger the cloud plan on push. There SonarCloud's IaC analysis scans the
+Terraform **in addition to** `checkov`; the two are complementary.
+
+### Gate wiring and thresholds
+- The built-in **"Sonar way"** gate (default) on **new code** (clean-as-you-code), including **Coverage
+  on New Code ≥ 80%**.
+- `qualitygate.wait=true` fails the *job*; to actually **block the merge**, the workflow check (`ci`
+  for app repos, `sonar` for an infrastructure repo) must also be a **required status check** (`/ci`).
+- The test runner still enforces the local **≥85%** on the whole codebase as a fast pre-check; Sonar owns
+  the authoritative gate on **new code** (≥80%). Two scopes, not a contradiction.
+
+### Diagnosing a red gate
+The gatekeeper returns the **cause** of a red gate, not the colour. Read the failed **condition** first
+(the scan step's log prints the gate status and links to the analysis; the pull request's Sonar check
+names the conditions), then match it:
+- **Coverage on new code is 0% or implausibly low** → the coverage report was not imported: the test
+  step did not write `coverage/lcov.info`, or `sonar.javascript.lcov.reportPaths` points elsewhere.
+  Fix the import, not the threshold.
+- **Coverage below 80% with the report imported** → new lines are untested. Add the tests.
+- **New-code issues attributed to old code, or the reverse** → a shallow checkout; set
+  `fetch-depth: 0`.
+- **The scanner is rejected before analysing** → Automatic Analysis is on for the project, or
+  `SONAR_TOKEN` is missing or expired in this repo.
+- **Bugs, vulnerabilities, smells or duplication on new code** → fix them in the diff. A security
+  hotspot is reviewed in SonarCloud by a human; marking one safe is a judgement to state in the
+  verdict, never a silent way to go green.
+- **Never lower the gate or exclude a path to go green.** That is a change to the gate, reviewed as
+  one.
+
+**Trade-offs:** SAST, coverage and smells in one gate that blocks merge, free for public repos, with
+trend tracking — against false positives to triage, another account and token to manage, and
+thresholds that need tuning.

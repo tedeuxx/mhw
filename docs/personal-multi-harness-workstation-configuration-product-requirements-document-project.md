@@ -292,7 +292,7 @@ as subagents.
 | 2. Requirements document | The agreed target behaviour and why, versioned as `<repo>-product-requirements-document-<subject>.md`. | `/new-idea` (writes it) | tech-lead | documentation-standard |
 | 3. Issues | The document is cut into vertical slices with acceptance criteria and blocking order; each slice must clear the definition of ready. | `/idea-to-issues` | agents-lead, tech-lead, product-lead | definition-of-ready |
 | 4. Build and gate | The loop takes ready Issues one at a time; a builder implements with tests and checks itself; one gate verifies against the definition of done and the quality thresholds. | `/autonomy on` · `off` | scrum-master (orders), developer or agents-lead (builds), content-writer and content-reviewer (published text), quality-assurance (gate) | agents-configuration, shell, definition-of-done, quality-gates, published-voice |
-| 5. Release | The merge cuts a numeric SemVer release through CI; the session reports the release link only once it is verified. | none (automatic) | quality-assurance | devops |
+| 5. Release | The merge cuts a numeric SemVer release through CI; the session reports the release link only once it is verified. | none (automatic) | quality-assurance | scm, ci |
 
 ### Measurement for an economic drive
 
@@ -464,10 +464,10 @@ Where an agent harness lacks the native component, the gap is measured and state
 
 | Agent | Role | Preloaded skills | Layer |
 | --- | --- | --- | --- |
-| agents-lead | Pair on agent harness configuration; names uncovered scenarios before building | agents-configuration, engineering-standards, documentation-standard, definition-of-ready, shell, devops | user |
-| tech-lead | Architecture, cost of choices, decision-record author | documentation-standard, agents-configuration, engineering-standards, definition-of-ready, shell, devops | user |
-| developer | Builds a slice end to end with tests | definition-of-done, quality-gates, agents-configuration, engineering-standards, shell, devops | user |
-| quality-assurance | Single merge gate: definition of done plus production risk | agents-configuration, engineering-standards, definition-of-done, quality-gates, devops, shell | user |
+| agents-lead | Pair on agent harness configuration; names uncovered scenarios before building | agents-configuration, engineering-standards, documentation-standard, definition-of-ready, shell, scm, ci | user |
+| tech-lead | Architecture, cost of choices, decision-record author | documentation-standard, agents-configuration, engineering-standards, definition-of-ready, shell, scm, ci, provisioning | user |
+| developer | Builds a slice end to end with tests | definition-of-done, quality-gates, agents-configuration, engineering-standards, shell, scm, ci, provisioning | user |
+| quality-assurance | Single merge gate: definition of done plus production risk | agents-configuration, engineering-standards, definition-of-done, quality-gates, scm, ci, provisioning, shell | user |
 | scrum-master | Ranks the pool, names who acts next; no tools | agents-configuration, engineering-standards | user |
 | product-lead | Product and market side of the owner's public presence; uses the browser connector | agents-configuration, engineering-standards, definition-of-ready, shell | *Open decision* (#61): user or site |
 | content-writer | Drafts what the owner publishes, in his voice, in every external channel | agents-configuration, engineering-standards, shell, published-voice | user |
@@ -490,8 +490,10 @@ a technology stack; **Reference** holds unused patterns.
 | 4 | engineering-standards | A non-negotiable floor plus risk-calibrated judgement | General | all 8 agents | user | The owner's technical preferences behind every new solution, given to the agents that build and review it. Portable to any project. |
 | 5 | definition-of-ready | The bar an item clears before it is built | Agile (Scrum) | agents-lead, tech-lead, product-lead | user | Stops work from starting on undecided scope, so the owner is not pulled back in mid-build. |
 | 6 | definition-of-done | What "done" means and which criteria a gate proves; includes an author's self-check section (mutation-check new assertions, run the gates before submitting) | Agile (Scrum) | quality-assurance, developer | user | Keeps "the agent finished" and "the work is done" as two different claims: the gate proves each criterion with evidence. The author's self-check lives here, not in a separate skill. |
-| 7 | quality-gates | CI/CD gate policy and thresholds | Technical stack | developer, quality-assurance | user | One set of thresholds that every repository's CI applies, so a merge means the same thing everywhere; project-specific thresholds stay in that project's CI. |
-| 8 | devops | GitHub Actions, branching, SemVer, Terraform Cloud, SonarCloud | Technical stack | agents-lead, tech-lead, developer, quality-assurance | *Open decision* (#61) | Mixed: GitHub, branching and SemVer are generic; Terraform Cloud and SonarCloud belong to the site's stack. Split, or keep whole at user level. |
+| 7 | quality-gates | CI/CD gate policy and thresholds, with the static-analysis gate (SonarCloud) in its tool section (#97) | Technical stack | developer, quality-assurance | user | One set of thresholds that every repository's CI applies, so a merge means the same thing everywhere; project-specific thresholds stay in that project's CI. |
+| 8 | scm | Source control (GitHub): repositories, pull requests, merge commits only, the PR-only path to `main`, the integration branch `rc/next`, labels, the numeric SemVer release flow, the repository-settings standard, the Claude Code GitHub App | Technical stack | agents-lead, tech-lead, developer, quality-assurance | user | Split from the former `devops` by capability (#97). Named by capability; the GitHub specifics sit in one tool section behind a disclaimer, so a tool switch replaces that section only. |
+| 8a | ci | Continuous integration (GitHub Actions): workflows, required checks, runners, pinned actions, the release workflow | Technical stack | agents-lead, tech-lead, developer, quality-assurance | user | Split from the former `devops` (#97); same disclaimer and tool-section shape. |
+| 8b | provisioning | Provisioning (Terraform Cloud): remote state and runs, the pipeline-only IaC floor | Technical stack | tech-lead, developer, quality-assurance | user | Split from the former `devops` (#97); same disclaimer and tool-section shape. The SonarCloud part of `devops` went to `quality-gates` (row 7). |
 | 9 | published-voice | The owner's published voice and the lane from draft to published, in every channel | Public persona | content-writer, content-reviewer | user | The single skill that anchors both content agents: his voice in every external interaction, plus the drafting pair, the review bound and the social pair. Site release steps (preview, deploy) stay in the site project. |
 | 10 | backend | Reference pattern for a BFF on Lambda | Technical stack | none (on demand) | site | The site's stack. |
 | 11 | frontend | React + Vite SPA end to end | Technical stack | none | site | The site's stack. |
@@ -758,7 +760,9 @@ is the owner's act, in a fresh session.
    Decided: yes (#59; ADR-0016, 2026-10-05 amendment).
 3. product-lead: user layer or site
    ([#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61))?
-4. Skill `devops`: split between user and site, or kept whole (#61)?
+4. ~~Skill `devops`: split between user and site, or kept whole (#61)?~~
+   Decided: kept whole at user level (#61), then split by capability into `scm`, `ci`, `quality-gates`
+   and `provisioning`, all at user level (#97).
 5. Skill `planning-poker`: kept or dropped (#61)?
 
 ### Interviews owed

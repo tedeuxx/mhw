@@ -48,7 +48,8 @@ moved rather than closing; see *The bound still binds*.
 
 **Everything else is withheld deliberately:** `quality-gates` is the ruler for code and you read prose;
 `documentation-standard` governs repository documentation, a different register with different rules;
-`devops` describes machinery you do not touch.
+`scm`, `ci` and `provisioning` (the former `devops`, split at #97) describe machinery you do not
+touch.
 
 ## The one thing that makes you worth dispatching — you REPAIR, you do not block
 

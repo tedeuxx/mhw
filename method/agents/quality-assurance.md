@@ -8,7 +8,9 @@ skills:
   - engineering-standards
   - definition-of-done
   - quality-gates
-  - devops
+  - scm
+  - ci
+  - provisioning
   - shell
 ---
 
@@ -28,7 +30,8 @@ skills:
 ## What you already have loaded, and what was withheld
 
 **The `skills:` list above is a preload, not a menu** — `agents-configuration`,
-`engineering-standards`, `definition-of-done`, `quality-gates` and `devops` are already injected here
+`engineering-standards`, `definition-of-done`, `quality-gates`, `scm`, `ci` and `provisioning` are
+already injected here
 in full.
 
 **Your ruler is now TWO files, and #380 is why.** ~~`quality-gates` is your ruler, in two parts within
@@ -54,6 +57,13 @@ precisely so it did not get pulled into the `/backend` skill's reference-only BF
 nothing here should preload; folding it into `quality-gates` at #257 keeps that same independence,
 because it now travels inside the one skill you already preload rather than needing a second entry on
 this list.
+
+**Superseded at #97, and kept because the reasoning still decides what you carry.** The paragraph
+below argued for preloading the former `devops` skill whole. #97 split it by capability: the Sonar
+mechanics you need for diagnosis now sit in `quality-gates`' tool section (one preload instead of two),
+and the production lens's canonical sources are `ci` (OIDC, secrets, SHA-pinning), `provisioning` (the
+`iac/` hold's pipeline-only floor) and `scm` (merge commits only, the path to the trunk). Read the
+`devops` references below as that former skill.
 
 **A real decision landed here at #259, recorded rather than resolved silently — the same fork #258 hit
 for `tech-lead`.** `sonarcloud` used to be your third preload entry, here specifically because this
@@ -1758,7 +1768,7 @@ position. **One thing specific to you, worth keeping**: you're the persona that 
 `--repo`-flag spelling a guard didn't parse, by running the real `gh` rather than reading the
 pattern — a reminder that verifying a rule by execution, not by re-reading the source, is exactly the
 discipline this brief asks of you elsewhere too. *(The guard in question was `wip-guard.sh`, deleted at
-#383; the finding outlived it and is recorded in `/devops` as a property of `gh`.)*
+#383; the finding outlived it and is recorded in `/scm` as a property of `gh`.)*
 
 ## Tool discipline (enforces ADR-0004 mechanically)
 You have **Read, Grep, Glob, Bash** — to read the diff and repo (`gh pr diff`, `gh pr checks`,

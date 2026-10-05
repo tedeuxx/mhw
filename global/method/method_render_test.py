@@ -102,8 +102,8 @@ class SourceShape(unittest.TestCase):
                                                  "content-reviewer"]))
         self.assertEqual(SKILLS, sorted(["agents-configuration", "shell", "documentation-standard",
                                          "engineering-standards", "definition-of-ready", "definition-of-done",
-                                         "quality-gates", "published-voice", "devops", "planning-poker",
-                                         "code-review", "content-publishing"]))
+                                         "quality-gates", "published-voice", "scm", "ci", "provisioning",
+                                         "planning-poker", "code-review", "content-publishing"]))
         self.assertEqual(COMMANDS, ["autonomy", "new-issue"])
 
     def test_planning_poker_no_longer_says_reference_pattern_only(self):
@@ -119,6 +119,66 @@ class SourceShape(unittest.TestCase):
         # the browser grant stays read-only natively: the input-carrying tools are excluded
         self.assertIn("mcp__chrome-devtools__evaluate_script", AGENTS["product-lead"]["excluded"])
 
+
+
+# Issue #97: the former devops skill is split by capability. Each capability skill names the tool it is
+# written for in an opening disclaimer, and keeps every tool-specific word in one closing section, so a
+# tool switch replaces that section only. Vendor words outside both are the regression.
+CAPABILITY_SKILLS = {
+    "scm": ("GitHub", r"\bGitHub\b|\bgh\b"),
+    "ci": ("GitHub Actions", r"\bGitHub\b|\.github/|workflow_dispatch|\buses:"),
+    "quality-gates": ("SonarCloud", r"Sonar|SONAR_"),
+    "provisioning": ("Terraform Cloud", r"[Tt]erraform|\bTFC\b|TF_WORKSPACE"),
+}
+DISCLAIMER_RE = re.compile(r"> \*\*Written for the selected tool: (.+?)\.\*\*")
+
+
+def capability_parts(name):
+    """(tool in the disclaimer, disclaimer lines, tool-section lines, every other line) of one skill."""
+    lines = (SOURCE / "skills" / name / "SKILL.md").read_text(encoding="utf-8").split("\n")
+    end = lines.index("---", 1)
+    body = lines[end + 1:]
+    first = next(i for i, line in enumerate(body) if line.strip())
+    m = DISCLAIMER_RE.match(body[first])
+    tool = m.group(1) if m else None
+    last = first
+    while last < len(body) and body[last].startswith(">"):
+        last += 1
+    disclaimer = body[first:last] if m else []
+    starts = [i for i, line in enumerate(body) if line.startswith("## Tool section")]
+    section = body[starts[0]:] if len(starts) == 1 else []
+    rest = lines[:end + 1] + body[:first] + (body[last:starts[0]] if (m and len(starts) == 1) else body)
+    return tool, disclaimer, section, rest, starts
+
+
+class CapabilitySkills(unittest.TestCase):
+    def test_devops_is_gone_and_no_agent_preloads_it(self):
+        self.assertNotIn("devops", SKILLS)
+        for name, a in AGENTS.items():
+            self.assertNotIn("devops", a["skills"], name)
+        for name in CAPABILITY_SKILLS:
+            self.assertIn(name, SKILLS)
+
+    def test_each_opens_with_the_disclaimer_naming_its_tool(self):
+        for name, (tool, _) in CAPABILITY_SKILLS.items():
+            found, disclaimer, _, _, _ = capability_parts(name)
+            self.assertEqual(found, tool, "%s: the body must open with the selected-tool disclaimer" % name)
+            text = " ".join(line.lstrip("> ") for line in disclaimer)
+            self.assertIn("replace that section only", text, name)
+
+    def test_one_closing_tool_section_holds_the_tool(self):
+        for name, (tool, _) in CAPABILITY_SKILLS.items():
+            _, _, section, _, starts = capability_parts(name)
+            self.assertEqual(len(starts), 1, "%s: exactly one tool section" % name)
+            self.assertEqual(section[0], "## Tool section — %s" % tool, name)
+            later = [line for line in section[1:] if line.startswith("## ")]
+            self.assertEqual(later, [], "%s: the tool section must be the last section" % name)
+
+    def test_no_tool_word_outside_the_disclaimer_and_the_tool_section(self):
+        for name, (_, pattern) in CAPABILITY_SKILLS.items():
+            _, _, _, rest, _ = capability_parts(name)
+            leaks = [line for line in rest if re.search(pattern, line)]
+            self.assertEqual(leaks, [], "%s: tool-specific text outside its tool section" % name)
 
 class Render(unittest.TestCase):
     @classmethod

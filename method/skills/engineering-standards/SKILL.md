@@ -544,8 +544,9 @@ this tells you *how to decide* while you do. Today that means three reference sk
 
 See also: `/definition-of-done` (the Definition of Done itself — the criteria, and the table naming
 which of them a gate proves), `/quality-gates` (the gate tables per loop model and the concrete
-gate definitions for both stacks), `/devops` (the permission zones and the deny floor, branching,
-per-environment topology, OIDC, the deploy workflows, TFC state), and — for the loop these principles
+gate definitions for both stacks), `/scm` (branching, the path to the trunk, the release flow and the
+permission zones), `/ci` (OIDC and the deploy workflows), `/provisioning` (infrastructure state and
+the pipeline-only floor; the three were the former `devops`, split at #97), and — for the loop these principles
 are applied inside, which is where every mechanism named above actually lives —
 **`/agents-configuration`**.
 

@@ -1,6 +1,6 @@
 ---
 name: "agents-configuration"
-description: "Run a slice through this loop's intentional design — its intake chain, state machine, iteration axis and inner-loop steps. Use when picking up a slice, proposing a change to the loop itself, or naming Agent Harness Engineering in public writing. Not the portable judgment (see engineering-standards), what \"done\" means (see definition-of-done), the CI/CD gates (see quality-gates), the permission zones (see devops), or what makes an item ready (see definition-of-ready)."
+description: "Run a slice through this loop's intentional design — its intake chain, state machine, iteration axis and inner-loop steps. Use when picking up a slice, proposing a change to the loop itself, or naming Agent Harness Engineering in public writing. Not the portable judgment (see engineering-standards), what \"done\" means (see definition-of-done), the CI/CD gates (see quality-gates), the permission zones (see scm), or what makes an item ready (see definition-of-ready)."
 purpose: "carry the intentional design of this loop - why it is shaped this way, not only what its steps are - so every agent acting inside it can decide correctly in the cases the state table does not enumerate"
 ---
 
@@ -50,9 +50,10 @@ there and the enforcement here, once each.
 Four companion skills carry adjacent ground and are **not** folded in here: `/engineering-standards`
 (the judgment), `/definition-of-done` (what "done" means — the criteria, and which of them a gate
 proves), `/quality-gates` (the CI/CD gates and their tables) and
-`/devops` (the permission zones and the deny floor that makes the irreversible boundary mechanical, plus CI/CD and
-the branching topology). The single-
-vs. two-environment branching topology lives in `/devops` (#227) — this skill keeps only how the state
+`/scm`, `/ci` and `/provisioning` (the former `/devops`, split by capability at #97: the branching
+topology, the permission zones and the deny floor that makes the irreversible boundary mechanical; the
+pipelines; the infrastructure state). The single-
+vs. two-environment branching topology lives in `/scm` — this skill keeps only how the state
 machine, labels and inner loop work once a mode is chosen, not the mode itself.
 
 ## What Agent Harness Engineering is
@@ -154,7 +155,7 @@ explicitly rather than leaving the axis unexamined.
 
 ### When to reach for this discipline specifically
 
-- **Standing up the loop** in a new repo, or picking the loop model — see `/devops`.
+- **Standing up the loop** in a new repo, or picking the loop model — see `/scm`.
 - **A gate feels like theater**, or a green does not sit right — audit whether it verifies what it
   claims (widen the assertion to the installed form; make "did the reviewer run?" a precondition,
   not a hope).
@@ -187,8 +188,8 @@ explicitly rather than leaving the axis unexamined.
 ## Pick the loop model first
 
 The loop has **two shapes**. They share every invariant below and differ only in how a change is
-promoted. Full branching diagrams, per-environment topology, and the CI wiring live in `/devops`
-(#227) — this is the pointer, not the depth.
+promoted. Full branching diagrams and per-environment topology live in `/scm`, and the CI wiring in
+`/ci` (both split from the former `/devops` at #97) — this is the pointer, not the depth.
 
 | Model | Use when | Promotion |
 |---|---|---|
@@ -1820,7 +1821,7 @@ action before ending the turn, or say plainly that there is none.
    re-permits. **Nothing enforces any of it**: `wip-guard.sh` is deleted and `gh pr create` is
    allowlisted in both settings layers, so an (N+1)th PR executes silently.
    **Integrate `main` before requesting review** if `main` has moved.
-3. **Develop locally**, against whatever backing services the repo actually has — see `/devops`.
+3. **Develop locally**, against whatever backing services the repo actually has — see `/ci` and `/provisioning`.
 4. **Validate locally**: run the repo's **functional regression** and self-verify the gates (lint,
    typecheck, coverage). Report with the real output, never a claim.
 5. **Run `/code-review`** before opening the PR — the author's own completeness pass. *Namespaced
@@ -2152,7 +2153,8 @@ enumerate, which is most of them.
 See also: `/engineering-standards` (the judgment applied inside all of this — the two tiers, the
 twelve principles, delivery versus hygiene, the human residual), `/definition-of-done` (the Definition
 of Done — the criteria and the seam table), `/quality-gates` (the CI/CD gate tables per loop model and
-the merge-class rules), `/devops` (the permission zones and guard hook, branching,
-per-environment topology, OIDC, the deploy workflows, TFC state), `/definition-of-ready` (the
+the merge-class rules), `/scm` (branching, the path to the trunk, the release flow, the
+permission zones), `/ci` (OIDC, the deploy and version workflows), `/provisioning` (infrastructure state
+and the pipeline-only floor), `/definition-of-ready` (the
 SDLC-generic bar this loop's intake chain reaches), and `/documentation-standard` (the ADR practice
 that records decisions about all of it).

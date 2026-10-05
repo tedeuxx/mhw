@@ -323,7 +323,7 @@ working where it runs.
 Development is validated **locally and automatically before the deploy** — not by a manual
 click-through. Run the repo's regression against the local environment; what "locally" requires depends
 on the loop model (a static repo runs fully offline; a repo with backing services points at them per
-`/devops`). *"The regression passes locally"* is the concrete pre-deploy gate.
+`/ci` and `/provisioning`). *"The regression passes locally"* is the concrete pre-deploy gate.
 
 **A deploy is not finished at "merged."** After it lands — in every environment it lands in — run a smoke
 and confirm health through the repo's observability before considering it complete. That closes the loop
