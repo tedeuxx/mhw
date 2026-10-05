@@ -27,7 +27,10 @@
 #     terminal's modes are restored on every exit path;
 #   - when the CLI never enables bracketed paste, nothing can be cleaned, and the owner is told so in
 #     one line;
-#   - every notice names categories only, never the pasted content or a matched term.
+#   - every notice names categories only, never the pasted content or a matched term;
+#   - the CLI it relays for gets the session marker (clipboard_guard.WRAPPER_MARKER) in its environment,
+#     so the prompt hook, kept as the safety net, passes its prompts silently; a CLI it only execs
+#     (not a terminal) gets the marker removed (Issue #58).
 #
 # Standard library only. Runs on the Command Line Tools python3 (3.9) and later. macOS and Linux.
 import errno
@@ -267,6 +270,28 @@ def _write_all(fd, data):
         data = data[n:]
 
 
+def args_allow_marker(cleaner, args, no_salt):
+    """Whether the session may be marked, given the CLI's command-line arguments (PR #90 lens finding).
+    A prompt passed as an argument (`claude -p "<text>"`, `codex exec "<text>"`) never crosses the
+    terminal as a paste, so the wrapper cannot clean it. Rewriting argv was rejected: the wrapper cannot
+    tell a prompt from a path or a flag value, so a rewrite could change what the CLI does. Instead, an
+    argument with a finding, or one that cannot be checked (a cleaner error, or a term list whose salt
+    is unreadable), leaves the marker unset, and the prompt hook judges the session as it judges any
+    other. Returns (marked, [categories found])."""
+    found = set()
+    for a in args:
+        try:
+            _, cats = cleaner(os.fsencode(a))
+        except Exception:
+            return False, sorted(found)
+        found.update(cats)
+    if found:
+        return False, [c for c in core.CATEGORY_ORDER if c in found]
+    if args and no_salt:
+        return False, []
+    return True, []
+
+
 def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
     """Run `real` on a pty and relay. Returns the exit status to exit with."""
     err = sys.stderr if err is None else err
@@ -279,7 +304,12 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
             no_salt = True
             err.write(notice(conf, "notice_wrapper_no_salt") + "\n")
             err.flush()
-    filt = PasteFilter(make_cleaner(conf, terms, salt), int(conf["max_bytes"]), {
+    cleaner = make_cleaner(conf, terms, salt)
+    marked, arg_categories = args_allow_marker(cleaner, args, no_salt)
+    if not marked:
+        err.write(notice(conf, "notice_wrapper_args_unmarked", categories=", ".join(arg_categories) or "-") + "\n")
+        err.flush()
+    filt = PasteFilter(cleaner, int(conf["max_bytes"]), {
         "too_large": notice(conf, "notice_paste_too_large", max=conf["max_bytes"]),
         "error": notice(conf, "notice_paste_error", error="{error}"),
     })
@@ -294,7 +324,13 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
             termios.tcsetattr(0, termios.TCSANOW, saved)
             if size:
                 fcntl.ioctl(0, termios.TIOCSWINSZ, size)
-            os.execv(real, [argv0] + args)
+            # Only a CLI this relay cleans for carries the marker; its prompt hook then passes silently.
+            # A finding in an argument leaves it unset (and removes an inherited one): the hook checks.
+            env = dict(os.environ)
+            env.pop(core.WRAPPER_MARKER, None)
+            if marked:
+                env[core.WRAPPER_MARKER] = core.WRAPPER_MARKER_VALUE
+            os.execve(real, [argv0] + args, env)
         finally:
             os._exit(127)
 
@@ -504,8 +540,11 @@ def main(argv):
         sys.stderr.write("%s: command not found\n" % argv0)
         return 127
     # Not an interactive terminal on both ends: nothing can be pasted, so get out of the way entirely.
+    # Nothing is cleaned on this path, so the marker is removed, even one inherited from an outer session.
     if not (os.isatty(0) and os.isatty(1)):
-        os.execv(real, [argv0] + rest)
+        env = dict(os.environ)
+        env.pop(core.WRAPPER_MARKER, None)
+        os.execve(real, [argv0] + rest, env)
     try:
         conf = core.load_config(config)
     except Exception as exc:          # an unreadable settings file: say so, and do not run unchecked

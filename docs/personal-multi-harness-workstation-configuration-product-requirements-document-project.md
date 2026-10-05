@@ -340,7 +340,7 @@ as subagents.
 | --- | --- | --- | --- |
 | **Global brief** | Policy instructions loaded by every agent harness in every session: no third-party material, sanitise what is sent, clean proactively, report every intervention. | Employer or client material entering prompts, commits or publications; acting on an external service without the owner's go. | Claude Code, Codex, Kiro; desktop apps by manual paste. Instruction only. |
 | **Paste cleaning: wrapper** (primary) | Terminal launcher for `claude`, `codex` and `kiro-cli` that redacts bracketed pastes before the command-line tool sees them; typing passes through unchanged. The installer adds an idempotent, opt-in shell start-up line. | Pasting a credential, personal data (e-mail, card, CPF/CNPJ) or a registered client or employer name. | Terminal sessions started through it. Out of reach: desktop apps, files read by path, images. |
-| **Paste cleaning: prompt hook** | Checks the prompt before it reaches the model; can only block and show a redacted copy (hooks cannot rewrite the prompt). | The same, for sessions not opened through the wrapper. | Claude Code and Codex (Codex after the owner trusts it). *Open decision* ([#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)): kept as the single justified hook, or replaced by the wrapper plus the brief's instruction ([4a](#4a-hook-budget)). |
+| **Paste cleaning: prompt hook** | Checks the prompt before it reaches the model; can only block and show a redacted copy (hooks cannot rewrite the prompt). | The same, for sessions not opened through the wrapper. | Claude Code and Codex (Codex after the owner trusts it). ~~*Open decision* ([#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)): kept as the single justified hook, or replaced by the wrapper plus the brief's instruction ([4a](#4a-hook-budget)).~~ Decided on #58 (2026-10-05): kept as the single justified hook, the safety net. It passes silently when the wrapper's marker is set, and blocks only where the marker is absent ([ADR-0011](adr/0011-clipboard-prompt-anonymisation.md), 2026-10-05 amendment). |
 | **Client and employer terms** | The owner registers the names to catch; stored salted, never in plain text. | The mission's first rule. | Empty until terms are registered; status shows the count, including a visible "0 terms" notice. |
 | **Deny floor** | About 100 native deny rules: `sudo`, reading `~/.ssh` and `~/.aws`, GitHub and AWS secret writes, force-push, `rm -rf`, bypass flags; it also carries the irreversible-action rules that used to live in the plugin. | Irreversible damage and credential reads. | Claude Code and Codex. Prefix match: `git -C dir push --force` is not caught. ~~*Open decision* ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59)): whether it sits in the managed layer.~~ Decided on #59: rendered into the managed layer, user copy kept until that one is installed ([ADR-0016](adr/0016-user-level-deny-floor-rendered-per-harness.md), 2026-10-05 amendment). |
 | **Connector access per agent** | Each agent declares its allowed tools (native per-agent tool list), so access to account connectors (mail, files, professional network) is granted per agent; a brief instruction says the same. No hook. | A subagent reading or sending through the owner's accounts. | Claude Code natively; other agent harnesses per the [enforcement matrix](#10-native-enforcement-matrix). |
@@ -361,7 +361,7 @@ and instructions. A hook stays only if all three hold:
 
 | Behaviour | Carrier in the target |
 | --- | --- |
-| Paste cleaning outside the wrapper | *Open decision* ([#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)). The prompt hook is the only candidate that passes the test, because once a secret is sent the provider already has it. The alternative is the wrapper (a terminal launcher, not a hook) plus the brief's instruction not to use, repeat or store a pasted secret. |
+| Paste cleaning outside the wrapper | ~~*Open decision*~~ Decided ([#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58), 2026-10-05): the prompt hook stays, and blocks only where the wrapper's marker is absent. The prompt hook is the only candidate that passes the test, because once a secret is sent the provider already has it. The alternative is the wrapper (a terminal launcher, not a hook) plus the brief's instruction not to use, repeat or store a pasted secret. |
 | Stale configuration | Brief instruction (ADR-0022 rule) plus `./workstation status` |
 | One-question, short pickers | Owner overlay instruction, calibrated by the interaction interview ([5](#5-interaction-standards-user-layer)) |
 | Session-type intake | The workspace brief asks; native session-start context where the agent harness offers it without a hook |
@@ -692,7 +692,7 @@ The matrix itself, with its findings against this document, is
 | [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55) | Native enforcement matrix | patch (docs) | none |
 | [#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56) | Stale configuration through the version key; breaking glass reduced to what remains | major | admin install, fresh session |
 | [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57) | Version key, warning mode | minor | none |
-| [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) | Paste cleaning: wrapper first; the prompt hook per the hook budget | minor or major | allow the shell start-up line |
+| [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) | Paste cleaning: wrapper first; the prompt hook per the hook budget | ~~minor or major~~ major (the hook stops judging wrapped sessions) | allow the shell start-up line |
 | [#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59) | Deny floor carries the irreversible-action rules | minor | install |
 | [#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60) | Interaction standards as instructions, after the interview | major | interview, install |
 | [#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61) | Working method at the user layer (one pull request per block) | minor each | install |
@@ -745,8 +745,10 @@ is the owner's act, in a fresh session.
 
 ## 14. Open decisions (one at a time)
 
-1. Paste prompt hook: the single justified hook, or removed ([4a](#4a-hook-budget),
-   [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58))?
+1. ~~Paste prompt hook: the single justified hook, or removed ([4a](#4a-hook-budget),
+   [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58))?~~
+   Decided: kept, as the safety net for sessions not opened through the wrapper (#58; ADR-0011,
+   2026-10-05 amendment).
 2. ~~Deny floor: in the managed layer
    ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59))?~~
    Decided: yes (#59; ADR-0016, 2026-10-05 amendment).
