@@ -111,7 +111,7 @@ def modes(fd):
 class Session:
     """A wrapper process on a pty this suite owns, running the recorder child."""
 
-    def __init__(self, name, mode="bp", code=0, grace=5.0, conf=None, rows=30, cols=100, wrap=True):
+    def __init__(self, name, mode="bp", code=0, grace=5.0, conf=None, rows=30, cols=100, wrap=True, extra=()):
         self.dir = os.path.join(BASE, name)
         os.makedirs(self.dir, exist_ok=True)
         self.conf = conf or conf_in(self.dir)
@@ -123,7 +123,7 @@ class Session:
         self.master, self.slave = pty.openpty()
         fcntl.ioctl(self.slave, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
         self.attrs_before = modes(self.slave)
-        argv = [PY, "-B", child, self.rec, self.ev, mode, str(code)]
+        argv = [PY, "-B", child, self.rec, self.ev, mode, str(code)] + list(extra)
         if wrap:
             argv = [PY, "-I", "-B", WRAPPER, "run", "--config", self.conf, "--grace", str(grace), "--"] + argv
         env = dict(os.environ, HOME=self.dir, XDG_DATA_HOME=os.path.join(self.dir, "xdg"))
@@ -559,6 +559,34 @@ class Relay(unittest.TestCase):
             with open(s.ev) as fh:
                 lines = [ln.strip() for ln in fh if ln.startswith("MARKER")]
             self.assertEqual(lines, [expected], wrap)
+
+    def test_a_finding_in_an_argument_leaves_the_session_unmarked(self):
+        """PR #90 lens: a prompt passed as an argument is never pasted, so the wrapper cannot clean it.
+        Such a session must stay unmarked so the hook checks it; a clean argument keeps the marker."""
+        for extra, expected in ((["-p", "key " + AWS], "MARKER None"), (["-p", "reply OK"], "MARKER '1'")):
+            s = Session("argmark-%s" % (expected == "MARKER None"), extra=extra)
+            self.ready(s)
+            s.finish()
+            with open(s.ev) as fh:
+                lines = [ln.strip() for ln in fh if ln.startswith("MARKER")]
+            self.assertEqual(lines, [expected], extra[1][:4])
+            if expected == "MARKER None":
+                self.assertIn(b"NOT marked", s.out)
+                self.assertIn(b"credential", s.out)
+                self.assertNotIn(AWS.encode(), s.out)
+
+    def test_args_allow_marker_rules(self):
+        conf = g.load_config(conf_in(os.path.join(BASE, "argrules")))
+        clean = w.make_cleaner(conf, frozenset(), None)
+
+        def boom(_):
+            raise ValueError("x")
+        self.assertEqual(w.args_allow_marker(clean, [], False), (True, []))
+        self.assertEqual(w.args_allow_marker(clean, ["-p", "reply OK", "--model", "x"], False), (True, []))
+        self.assertEqual(w.args_allow_marker(clean, ["mail " + EMAIL, AWS], False), (False, ["credential", "email"]))
+        self.assertEqual(w.args_allow_marker(boom, ["reply OK"], False), (False, []))
+        self.assertEqual(w.args_allow_marker(clean, ["reply OK"], True), (False, []))
+        self.assertEqual(w.args_allow_marker(clean, [], True), (True, []))
 
     def test_not_a_terminal_removes_an_inherited_marker(self):
         """Nothing is cleaned when the wrapper only execs the CLI, so the marker must not reach it."""

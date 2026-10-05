@@ -270,6 +270,28 @@ def _write_all(fd, data):
         data = data[n:]
 
 
+def args_allow_marker(cleaner, args, no_salt):
+    """Whether the session may be marked, given the CLI's command-line arguments (PR #90 lens finding).
+    A prompt passed as an argument (`claude -p "<text>"`, `codex exec "<text>"`) never crosses the
+    terminal as a paste, so the wrapper cannot clean it. Rewriting argv was rejected: the wrapper cannot
+    tell a prompt from a path or a flag value, so a rewrite could change what the CLI does. Instead, an
+    argument with a finding, or one that cannot be checked (a cleaner error, or a term list whose salt
+    is unreadable), leaves the marker unset, and the prompt hook judges the session as it judges any
+    other. Returns (marked, [categories found])."""
+    found = set()
+    for a in args:
+        try:
+            _, cats = cleaner(os.fsencode(a))
+        except Exception:
+            return False, sorted(found)
+        found.update(cats)
+    if found:
+        return False, [c for c in core.CATEGORY_ORDER if c in found]
+    if args and no_salt:
+        return False, []
+    return True, []
+
+
 def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
     """Run `real` on a pty and relay. Returns the exit status to exit with."""
     err = sys.stderr if err is None else err
@@ -282,7 +304,12 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
             no_salt = True
             err.write(notice(conf, "notice_wrapper_no_salt") + "\n")
             err.flush()
-    filt = PasteFilter(make_cleaner(conf, terms, salt), int(conf["max_bytes"]), {
+    cleaner = make_cleaner(conf, terms, salt)
+    marked, arg_categories = args_allow_marker(cleaner, args, no_salt)
+    if not marked:
+        err.write(notice(conf, "notice_wrapper_args_unmarked", categories=", ".join(arg_categories) or "-") + "\n")
+        err.flush()
+    filt = PasteFilter(cleaner, int(conf["max_bytes"]), {
         "too_large": notice(conf, "notice_paste_too_large", max=conf["max_bytes"]),
         "error": notice(conf, "notice_paste_error", error="{error}"),
     })
@@ -298,7 +325,12 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
             if size:
                 fcntl.ioctl(0, termios.TIOCSWINSZ, size)
             # Only a CLI this relay cleans for carries the marker; its prompt hook then passes silently.
-            os.execve(real, [argv0] + args, dict(os.environ, **{core.WRAPPER_MARKER: core.WRAPPER_MARKER_VALUE}))
+            # A finding in an argument leaves it unset (and removes an inherited one): the hook checks.
+            env = dict(os.environ)
+            env.pop(core.WRAPPER_MARKER, None)
+            if marked:
+                env[core.WRAPPER_MARKER] = core.WRAPPER_MARKER_VALUE
+            os.execve(real, [argv0] + args, env)
         finally:
             os._exit(127)
 

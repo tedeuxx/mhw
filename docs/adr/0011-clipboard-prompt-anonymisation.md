@@ -841,6 +841,17 @@ Recorded on Issue #58 (owner decision of 2026-10-05, taken in a native picker):
   not a terminal, it cleans nothing and `exec`s the CLI directly. There it **removes** the marker,
   even one inherited from an outer session. The name and value live once, in `clipboard_guard.py`
   (`WRAPPER_MARKER`, `WRAPPER_MARKER_VALUE`), and the wrapper imports them.
+- **Prompt arguments (lens finding on PR #90).** A prompt passed as an argument (`claude -p "<text>"`,
+  `codex exec "<text>"`) never crosses the terminal as a paste, so the wrapper cannot clean it.
+  Before the fix it reached the CLI uncleaned in a marked session, and the hook stayed silent; the
+  lens measured this on a pty. The wrapper now scans every argument with the same detection core
+  before it starts the CLI. If any argument carries a finding, or cannot be checked (a core error,
+  or a term list whose salt is unreadable), the wrapper **leaves the marker unset**. It also removes
+  an inherited one, and it says so in one category-only line. The hook then judges that session as
+  it judges any other. **Rewriting argv was rejected as the thicker option.** The wrapper cannot tell
+  a prompt from a path or a flag value, so a rewrite could change what the CLI does, and it would
+  need per-CLI argument parsing. Leaving the marker unset changes nothing about the CLI's input. It
+  fails toward checking, and it reuses the hook that already exists.
 - **The hook.** `prompt-hook` reads the payload. If the marker is exactly `1`, it prints nothing and
   the prompt passes: no scan, no Keychain read, no notice. Otherwise it judges the prompt exactly as
   before: it blocks a finding and shows a redacted copy. Any other value (`0`, empty, `true`, `1 `)
@@ -874,6 +885,11 @@ in a wrapped session:
   marker, so a nested `claude -p` or `codex exec` run from inside a wrapped session passes its hook.
   Those prompts are written by an agent, not pasted by the owner, but they are not checked.
 
+A prompt passed as a command-line argument is **not** on this list: since the PR #90 fix, an
+argument with a finding leaves the session unmarked, so the hook checks it. That covers only what the
+core detects. An argument whose sensitive content the core does not recognise passes in a marked
+session, as typed text does.
+
 What is **not** given up: every session not started through the wrapper keeps the hook exactly as it
 was. That covers `command claude`, a full path, scripts, IDE extensions, and a shell without the
 start-up line. This is the gap the owner kept the hook for.
@@ -890,11 +906,12 @@ was pointed at `127.0.0.1:9` (closed), so no prompt left the machine.
 | A wrapped sensitive prompt end to end, on the reference machine | both | **measured** | **Still blocked**, by the admin-layer copy of the core, which predates this amendment. Claude Code returned the block notice, and Codex ended the turn with zero usage. The marker logic takes effect at that layer only after the owner re-runs `install-managed.sh` with `sudo`. Until then, the reference machine stays on the stricter behaviour |
 | The wrapper cleans a synthetic bracketed paste, real Claude Code | 2.1.289 | **measured**: the interactive TUI through the branch wrapper on a pty, in a throwaway `HOME` pre-seeded past onboarding and trust, with a placeholder key and the closed endpoint. Nothing submitted; Ctrl+C to quit | Bracketed paste enabled. `[REDACTED:credential]` and `[REDACTED:email]` rendered. Neither original appeared in the terminal output or anywhere in the throwaway home |
 | The same, real Codex CLI | 0.160.0 | **measured**: the TUI with `--no-daemon`, a throwaway `CODEX_HOME` with the work directory trusted, and the closed endpoint. The driver answered the TUI's terminal-capability queries | Same: both markers rendered, no original in the output or the home. The exit summary counted one cleaned paste (credential, email) |
+| A sensitive prompt passed as an argument, through the wrapper (after the PR #90 fix) | 2.1.289 / 0.160.0 | **measured**, headless, the same setup: `claude -p "<synthetic key and e-mail>"` and `codex exec "<same>"` | Both: the wrapper printed its "NOT marked" line and the prompt was blocked. On Codex the probe hook logged the marker **absent** in the hook's environment, and the branch core **blocked**. On Claude Code the admin-layer hook blocked first, so the probe hook did not run there. That the marker is absent in this case is *tested* (a real wrapper process and a recorder child), not measured inside Claude Code |
 | Kiro CLI | — | **not measured** | The wrapper's no-bracketed-paste warning would reveal a Kiro CLI that does not enable it |
 | `--shell-rc` against throwaway rc files | — | **tested**, `install.test.sh` | Dry-run writes nothing. Install appends once on its own line and keeps the owner's content. A second run is byte-identical. zsh and bash, sourcing the rc, get the wrapper functions. A differing tagged line is left alone; a directory is refused; a relative path is a usage error |
 
-**Mutation-checked** (the source mutated, the suite run, the source restored). Each of these ten mutants
-turned at least one test red:
+**Mutation-checked** (the source mutated, the suite run, the source restored). Each of these fourteen mutants
+turned at least one test red (11 to 14 were added with the PR #90 fix):
 
 1. the hook ignores the marker;
 2. the hook always passes;
@@ -905,7 +922,11 @@ turned at least one test red:
 7. a default that writes `~/.zshrc` without the flag;
 8. `--dry-run` that appends;
 9. no newline before the appended line;
-10. a differing tagged line rewritten.
+10. a differing tagged line rewritten;
+11. an argument with a finding still marks the session;
+12. an argument the core raised on still marks it;
+13. the relay ignoring the argument verdict;
+14. arguments with an unreadable salt still marking it.
 
 ### Owner acts
 

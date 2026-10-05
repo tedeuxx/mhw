@@ -246,7 +246,9 @@ from here now, and at what evidence level:
   reference machine: its user and admin copies predate this change, and *measured* still blocking a
   wrapped sensitive prompt. The admin copy needs the owner's `sudo` re-install. Anyone can set the
   marker by hand, and in a wrapped session typed text is no longer checked (ADR-0011, 2026-10-05
-  amendment).
+  amendment). A prompt argument carrying a finding leaves the session unmarked, so the hook checks
+  it. That is *tested* and mutation-checked, and it was *measured* blocked through the wrapper on both
+  CLIs.
 - **Paste wrapper** (ADR-0011, amendment "automatic cleaning at the paste boundary", macOS and Linux):
   a pty launcher for `claude`, `codex` and `kiro-cli`. It **cleans** bracketed pastes before the CLI
   sees them and passes typing through byte for byte. It is *written and tested* (Ubuntu and macOS in

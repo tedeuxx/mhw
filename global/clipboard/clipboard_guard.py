@@ -73,6 +73,9 @@ DEFAULTS = {
                               "{replaced} paste(s) replaced by a notice.",
     "notice_wrapper_no_salt": "Paste filter (ADR-0011): the term list exists but its salt could not be read without "
                               "a prompt, so employer/client terms are NOT cleaned in this session.",
+    "notice_wrapper_args_unmarked": "Paste filter (ADR-0011): a command-line argument carries {categories} or could "
+                                    "not be checked, so this session is NOT marked and the prompt hook checks "
+                                    "every prompt.",
     "notice_paste_redacted": "Paste filter (ADR-0011): this prompt carries redacted text ({categories}); the "
                              "original was not sent.",
 }
