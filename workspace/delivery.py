@@ -73,6 +73,15 @@ def pr_matches(pr, head):
         raise Pending("PR must carry exactly one valid semver label")
 
 
+def merge_command(number, repo, head):
+    """A real merge commit, never a squash or a rebase (owner, 2026-10-05: workstation standard).
+
+    The merge commit keeps the session head as its second parent, so verify's ancestry check
+    (merge commit contained in the release tag) holds for every session commit.
+    """
+    return ("gh", "pr", "merge", str(number), "--repo", repo, "--merge", "--match-head-commit", head)
+
+
 def release_matches(release, baseline, comparison):
     if release.get("draft") or release.get("prerelease") or not release.get("published_at"):
         raise Pending("release is not publicly published as a stable release")
@@ -117,7 +126,7 @@ def main():
             raise Pending("session HEAD has not been pushed")
         if api(repo, "compare/main..." + head).get("behind_by", 1):
             raise Pending("session branch is behind main; update it and rerun CI")
-        run("gh", "pr", "merge", str(args.pr), "--repo", repo, "--squash", "--match-head-commit", head)
+        run(*merge_command(args.pr, repo, head))
         print("MERGED: " + pr["url"] + "; CI publication is pending, run verify")
         return
     if pr["state"] != "MERGED" or not pr.get("mergeCommit"):

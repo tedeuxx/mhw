@@ -1,0 +1,8 @@
+{
+  "description": "Workstation standard for GitHub repository merge settings (ADR-0016, 2026-10-05 amendment): never squash. Applied and checked by global/github-repo-settings.sh.",
+  "settings": {
+    "allow_merge_commit": true,
+    "allow_squash_merge": false,
+    "allow_rebase_merge": false
+  }
+}

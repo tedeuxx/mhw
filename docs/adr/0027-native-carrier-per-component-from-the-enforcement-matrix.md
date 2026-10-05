@@ -61,7 +61,8 @@ Chosen: option 1. Concretely:
 | Session goal | native `/goal` | native `/goal` | native `/goal` (CLI) |
 
 The deny-floor row is a recommendation to the open decision #59, not a decision taken here; the owner
-decides it.
+decides it. *(2026-10-05: the owner approved #59; the rendering is ADR-0016's 2026-10-05 amendment,
+proposed.)*
 
 ## Consequences
 

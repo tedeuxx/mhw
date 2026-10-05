@@ -89,8 +89,12 @@ function Sha([byte[]]$b) {
 # Expected counts, derived from the source independently of the installer: a cmd line is one Claude
 # rule, a file line is two (Read and Edit); one Codex rule per cmd line.
 $floorSrc = Join-Path $here 'deny-floor.conf'
+$floorLines = @(Get-Content -LiteralPath $floorSrc)
+# The default install appends the repository overlay's floor entries (ADR-0016), so they count too.
+$overlayFloor = Join-Path $repo 'overlay\deny-floor.conf'
+if (Test-Path -LiteralPath $overlayFloor -PathType Leaf) { $floorLines += @(Get-Content -LiteralPath $overlayFloor) }
 $floorRules = 0; $floorCmds = 0
-foreach ($l in Get-Content -LiteralPath $floorSrc) {
+foreach ($l in $floorLines) {
     $k = ($l.Trim() -split '\s+')[0]
     if ($k -ceq 'cmd') { $floorRules++; $floorCmds++ } elseif ($k -ceq 'file') { $floorRules += 2 }
 }

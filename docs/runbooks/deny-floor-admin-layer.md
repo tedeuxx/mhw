@@ -1,0 +1,41 @@
+# Runbook: install the deny floor in the admin layer
+
+The owner's act. Agents never run `sudo` (it is in the deny floor) and never run these steps.
+Decision and evidence: [ADR-0016](../adr/0016-user-level-deny-floor-rendered-per-harness.md), amendment
+2026-10-05. Restart rule: [ADR-0022](../adr/0022-restart-after-active-customization-changes.md).
+
+## Install (one `sudo` line, in a fresh session)
+
+From a checkout of `main` at the merged, released commit, in your own terminal:
+
+```sh
+sh global/install-managed.sh
+```
+
+It renders and validates a stage, installs nothing, and prints one line starting `RUN     sudo`. Run
+that one line as printed. It carries the stage's SHA-256, so a changed stage installs nothing. The same
+line also refreshes the admin-layer hooks (ADR-0025).
+
+Then close every Claude Code and Codex session and open fresh ones.
+
+## Verify (canary)
+
+1. `sh global/install-managed.sh --check` exits 0, every line `OK`.
+2. `sh global/install.sh --check` ends with `FLOOR   carried by: the admin layer`.
+3. **Block, Claude Code**, in an empty scratch folder: start `claude --setting-sources project` (the
+   flag that dropped the user floor) and ask it to run `npm publish --dry-run`. Expected: the command
+   is denied by a permission rule. Harmless if it were not: there is no `package.json`, and
+   `--dry-run` publishes nothing.
+4. **Pass, Claude Code**, same session: `npm --version` runs.
+5. **Block, Codex**: `codex exec --ignore-rules "run npm publish --dry-run"` in the same folder.
+   Expected: refused, *"policy forbids commands starting with `npm publish`"*. Then `npm --version`
+   runs.
+
+Record the result on Issue #59. Until steps 3 and 5 are seen, the admin floor is *installed*, not
+*enforced*.
+
+## Undo
+
+`sh global/install-managed.sh --uninstall` prints the `sudo` line that removes the admin documents
+(hooks and floor together). The user-level floor stays in place throughout: it is retired only after
+this canary passes, as a separate step.

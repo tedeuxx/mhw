@@ -1,0 +1,14 @@
+#!/bin/sh
+# Stub gh for github-repo-settings.test.sh. Never contacts GitHub.
+printf '%s\n' "$*" >> "$STUB_LOG"
+if [ "${1:-}" = api ] && [ "${2:-}" = --method ] && [ "${3:-}" = PATCH ]; then
+  shift 4
+  doc=$(cat "$STUB_REPO")
+  while [ $# -gt 0 ]; do
+    [ "$1" = -F ] && { k=${2%%=*}; v=${2#*=}; doc=$(printf '%s' "$doc" | jq --arg k "$k" --argjson v "$v" '.[$k] = $v'); shift; }
+    shift
+  done
+  printf '%s\n' "$doc" > "$STUB_REPO"
+  exit 0
+fi
+cat "$STUB_REPO"

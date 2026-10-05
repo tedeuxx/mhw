@@ -10,6 +10,9 @@
 #   install.sh --hooks=managed  the hooks run from the admin layer (install-managed.sh, ADR-0025): remove
 #                               this project's hook entries from the user settings and its Codex
 #                               hooks.json instead of writing them (default --hooks=user)
+#   --managed-root=DIR          read the admin layer under DIR instead of / (tests only); this script
+#                               never writes the admin layer, it only reports which layer carries the
+#                               deny floor (FLOOR lines; install-managed.sh installs the admin copy)
 #
 # Exit codes: 0 ok · 1 drift or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
 # 3 something UNMANAGED or unreadable is in the way. A file is managed when its marker line (below) is in
@@ -49,8 +52,10 @@ CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-gua
 mode=install
 hooks_mode=user
 overlay="$repo_root/overlay"
+managed_root=
 for arg in "$@"; do
   case $arg in
+    --managed-root=*) managed_root=${arg#--managed-root=} ;;
     --dry-run) mode=dry-run ;;
     --check) mode=check ;;
     --hooks=user) hooks_mode=user ;;
@@ -548,6 +553,47 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
   fi
 fi
 merge_settings
+
+# Which layer carries the deny floor (ADR-0016, 2026-10-05 amendment). A report, never a status change:
+# the admin copy is the owner's sudo act (install-managed.sh), and its drift is install-managed.sh
+# --check's to report. The user copy is kept as a fallback until the admin copy is verified.
+report_floor() {
+  if [ "$(uname -s)" = Darwin ]; then
+    m_claude="$managed_root/Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json"
+  else
+    m_claude="$managed_root/etc/claude-code/managed-settings.d/50-personal-multi-harness-workstation-configuration.json"
+  fi
+  m_codex="$managed_root/etc/codex/requirements.toml"
+  command -v jq >/dev/null 2>&1 || { echo "FLOOR   not reported: jq is required"; return 0; }
+  want=$(jq -cR -s 'split("\n") | map(select(length > 0)) | unique' "$floor_claude")
+  n_want=$(printf '%s' "$want" | jq length)
+  n_codex=$(grep -c . "$floor_codex" || true)
+  n_user=0
+  [ -f "$settings" ] && n_user=$(jq --argjson f "$want" '[(.permissions.deny? // [])[] | select(. as $r | $f | index($r))] | unique | length' "$settings" 2>/dev/null || echo 0)
+  n_admin=0
+  [ -f "$m_claude" ] && n_admin=$(jq --argjson f "$want" '[(.permissions.deny? // [])[] | select(. as $r | $f | index($r))] | unique | length' "$m_claude" 2>/dev/null || echo 0)
+  n_codex_admin=0
+  if [ -f "$m_codex" ] && is_managed "$m_codex"; then
+    sed -n 's/^ *{ pattern = \[\(.*\)\], decision = "forbidden".*/\1/p' "$m_codex" \
+      | sed -e 's/{ token = "\([^"]*\)" }/\1/g' -e 's/, / /g' > "$work/codex.admin"
+    n_codex_admin=$(grep -cxF -f "$floor_codex" "$work/codex.admin" || true)
+  fi
+  codex_user=absent
+  [ -f "$codex_rules" ] && is_managed "$codex_rules" && codex_user=present
+  echo "FLOOR   Claude Code: user layer $n_user/$n_want rules; admin layer $n_admin/$n_want rules"
+  echo "FLOOR   Codex: user rules file $codex_user; admin requirements $n_codex_admin/$n_codex prefix rules"
+  echo "FLOOR   Kiro: none (no rendering; ADR-0016)"
+  if [ "$n_admin" -eq "$n_want" ] && [ "$n_codex_admin" -eq "$n_codex" ]; then
+    echo "FLOOR   carried by: the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
+  elif [ "$n_user" -ne "$n_want" ] || [ "$codex_user" != present ]; then
+    echo "FLOOR   carried by: NO complete layer; re-run install.sh, then install the admin copy with install-managed.sh"
+  elif [ "$n_admin" -gt 0 ] || [ "$n_codex_admin" -gt 0 ]; then
+    echo "FLOOR   carried by: the user layer; the admin copy is INCOMPLETE (re-run install-managed.sh)"
+  else
+    echo "FLOOR   carried by: the user layer only; a session flag can drop it (--setting-sources project, measured); install the admin copy with install-managed.sh"
+  fi
+}
+report_floor
 
 if [ "$mode" = install ]; then
   echo "RESTART REQUIRED: open fresh Claude Code and Codex sessions before further work; Codex hook trust remains an owner action in /hooks."

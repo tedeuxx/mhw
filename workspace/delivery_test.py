@@ -17,6 +17,19 @@ class DeliveryTests(unittest.TestCase):
         self.release = {"tag_name": "v1.2.0", "draft": False, "prerelease": False,
                         "published_at": "2026-10-02T00:00:00Z"}
 
+    def test_merge_is_a_real_merge_commit_never_squash(self):
+        argv = d.merge_command(82, "o/r", "a" * 40)
+        self.assertEqual(argv[:4], ("gh", "pr", "merge", "82"))
+        self.assertIn("--merge", argv)
+        for banned in ("--squash", "-s", "--rebase", "-r", "--auto", "--admin"):
+            self.assertNotIn(banned, argv)
+        self.assertEqual(argv[argv.index("--match-head-commit") + 1], "a" * 40)
+        # The merge route in main() must go through merge_command, not a second spelling.
+        with open(d.__file__, encoding="utf-8") as source:
+            text = source.read()
+        self.assertEqual(text.count('"gh", "pr", "merge"'), 1)
+        self.assertNotIn('"--squash"', text)
+
     def test_good_exact_head_and_required_checks(self):
         d.pr_matches(self.pr, "a" * 40)
         d.checks_pass(self.pr)
