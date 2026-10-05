@@ -238,6 +238,15 @@ from here now, and at what evidence level:
   and shows a redacted copy; it does not clean automatically.
   *Amended 2026-10-04:* on Claude Code on the reference machine it was *measured* blocking a prompt
   carrying a synthetic example credential. Codex on the reference machine is not re-measured.
+  *Amended 2026-10-05 (Issue #58, owner decision):* the hook stays as the **safety net**. It now passes
+  silently when the paste wrapper's marker (`PMHWC_PASTE_WRAPPER=1`) is in its environment, and blocks
+  as before when it is absent. That is *written and tested*, mutation-checked. Headless, in throwaway
+  homes, the marker was *measured* reaching the hook process in Claude Code 2.1.289 and Codex 0.160.0;
+  the branch core passed in a wrapped session and blocked in a direct one. **Not installed** on the
+  reference machine: its user and admin copies predate this change, and *measured* still blocking a
+  wrapped sensitive prompt. The admin copy needs the owner's `sudo` re-install. Anyone can set the
+  marker by hand, and in a wrapped session typed text is no longer checked (ADR-0011, 2026-10-05
+  amendment).
 - **Paste wrapper** (ADR-0011, amendment "automatic cleaning at the paste boundary", macOS and Linux):
   a pty launcher for `claude`, `codex` and `kiro-cli`. It **cleans** bracketed pastes before the CLI
   sees them and passes typing through byte for byte. It is *written and tested* (Ubuntu and macOS in
@@ -247,6 +256,14 @@ from here now, and at what evidence level:
   installer writes a snippet of shell functions, and sourcing it from the shell rc is the owner's act.
   Pastes the CLI reads itself (files by path, images) and sessions not started through the functions
   are outside it.
+  *Amended 2026-10-05 (Issue #58):* the wrapper is now the **primary** paste mechanism. It exports the
+  session marker only into the CLI it relays for. `install.sh --shell-rc=FILE` appends one guarded
+  start-up line to FILE (opt-in, idempotent, printed). Without the flag, the line is only printed.
+  That is *tested* against throwaway rc files. A synthetic paste was re-*measured* arriving redacted
+  in Claude Code 2.1.289 and Codex 0.160.0, both through the branch wrapper, in throwaway homes, with
+  nothing submitted. ~~It is **not activated** on the reference machine~~ *Observed 2026-10-05:* a
+  Claude Code session's shell snapshot on the reference machine defines `claude` and `codex` as the
+  wrapper functions, so the snippet is sourced from the owner's shell. Which rc carries it was not read.
 - **MCP definition** (ADR-0017, proposed): one definition, kept in the untracked local overlay and
   rendered into Codex, Claude Code, the Claude desktop app and Kiro with credentials read from the
   Keychain at launch. It is written and tested in throwaway homes. `install.sh` does not run its
