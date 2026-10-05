@@ -1,10 +1,11 @@
-# Run the installer and hook suites, and shellcheck, on every PR into main (ADR-0013).
+# Run the installer and hook suites, and shellcheck, on every PR into main or into the rc/next
+# integration branch that slice PRs target (ADR-0013).
 # Every test writes only under $RUNNER_TEMP: throwaway HOMEs, never a real one.
 name: tests
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, rc/next]
 
 permissions: {}
 
