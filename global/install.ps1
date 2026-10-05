@@ -8,7 +8,7 @@
 #   install.ps1 -Overlay D owner overlay directory (default: <repo>\overlay); -Overlay none for none
 #   install.ps1 -Method    opt-in (Issue #61): also render the working method; off until the plugin cutover
 #
-# Renders the brief, the deny floor and the working method (global\method\method_render.py, ADR-0031). The deny floor is merged into %USERPROFILE%\.claude\settings.json
+# Renders the brief, the deny floor and the working method (global\method\method_render.py, ADR-0032). The deny floor is merged into %USERPROFILE%\.claude\settings.json
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
 # <CODEX_HOME>\rules\workstation-deny-floor.rules. The escalation rules (ADR-0013) are instructions
 # on every OS; the HITL picker guard hook was never ported here and is removed everywhere since Issue
@@ -321,7 +321,7 @@ function Merge-DenyFloor([string]$settings) {
 }
 Merge-DenyFloor (Join-Path $home_ '.claude\settings.json')
 
-# The working method (Issue #61, ADR-0031): agents, skills and commands from <repo>\method, rendered into
+# The working method (Issue #61, ADR-0032): agents, skills and commands from <repo>\method, rendered into
 # each agent harness's user-level carrier by global\method\method_render.py, the same step install.sh
 # runs. It gets this script's mode, its stamp and the profile directory, so it never reads HOME.
 function Invoke-Method {

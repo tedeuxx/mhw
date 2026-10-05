@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Suite for the working-method renderer (Issue #61, ADR-0031). Throwaway HOMEs only.
+"""Suite for the working-method renderer (Issue #61, ADR-0032). Throwaway HOMEs only.
 
     python3 -B global/method/method_render_test.py [BASE_DIR]
 

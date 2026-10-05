@@ -35,7 +35,7 @@ jobs:
         run: |
           shellcheck --version
           shellcheck -s sh workstation global/install.sh global/install.test.sh \
-            global/mcp/mcp-launch.sh
+            global/allow-list.sh global/allow-list.test.sh global/mcp/mcp-launch.sh
       - name: python compile check, warnings as errors (the runner's python3; no third-party linter)
         run: |
           python3 --version
@@ -48,7 +48,8 @@ jobs:
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/profile/profile.py global/profile/profile_test.py \
             global/workstation.py global/workstation_test.py \
-            global/method/method_render.py global/method/method_render_test.py
+            global/method/method_render.py global/method/method_render_test.py \
+            global/prerequisites.py global/prerequisites_test.py
 
   # Pure preference compilation: no harness installation, account calls or credential reads.
   profiles:
@@ -96,6 +97,10 @@ jobs:
           fi
       - name: installer suite
         run: sh global/install.test.sh "$RUNNER_TEMP/install"
+      # Issue #83, ADR-0031: the allow list, narrow without the admin floor and wide with it, in
+      # throwaway HOMEs and a throwaway admin root. The codex execpolicy arm runs only where codex is found.
+      - name: allow-list suite
+        run: sh global/allow-list.test.sh "$RUNNER_TEMP/allow"
       - name: admin-layer installer suite (throwaway --root; never a system path, never root, ADR-0025)
         run: sh global/install-managed.test.sh "$RUNNER_TEMP/managed"
       # Issues #57 and #67: the version-key comparison and the status view, plus one end-to-end run of
@@ -104,13 +109,19 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
-      # Issue #61, ADR-0031: the working method rendered into the three agent harnesses' user-level
+      # Issue #61, ADR-0032: the working method rendered into the three agent harnesses' user-level
       # carriers, in throwaway HOMEs only. Asserts every rendered agent keeps its tool list and every
       # rendered file its provenance stamp.
       - name: working-method renderer suite
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/method/method_render_test.py "$RUNNER_TEMP/method"
+      # Issue #89: the prerequisites section of ./workstation check. Fake tool shims on a PATH holding
+      # nothing else, a stub gh, a loopback server for SonarCloud and HCP Terraform; no network, no account.
+      - name: prerequisites suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/prerequisites_test.py
       - name: GitHub repository settings standard suite (stub gh on PATH; no network, never squash)
         run: sh global/github-repo-settings.test.sh "$RUNNER_TEMP/repo-settings"
       # ADR-0011, the paste filter. It never reads or writes the system clipboard. Issue #58: the real

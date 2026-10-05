@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the working method (method/) into each agent harness's user-level native carrier (ADR-0031).
+"""Render the working method (method/) into each agent harness's user-level native carrier (ADR-0032).
 
     method_render.py --mode=install|check|dry-run|uninstall [--stamp="release: R; commit: C"] [--source=DIR]
                      [--home=DIR] [--opt-in]
@@ -11,7 +11,7 @@ rendered file is present, it renders and checks every target.
 install.sh runs this as its own rendering step and passes the provenance stamp it derived (ADR-0029), so
 the stamp is derived once. ./workstation install, check, status and uninstall reach it through install.sh.
 
-Carriers (ADR-0027 matrix, ADR-0031):
+Carriers (ADR-0027 matrix, ADR-0032):
     Claude Code  ~/.claude/agents/<n>.md (tools, disallowedTools, skills), ~/.claude/skills/<n>/SKILL.md,
                  ~/.claude/commands/<n>.md
     Codex        ${CODEX_HOME:-~/.codex}/agents/<n>.toml (no tool list exists: an instruction, plus a

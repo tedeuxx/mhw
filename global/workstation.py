@@ -7,7 +7,9 @@
                                           the plugin cutover (#63, #64), kept current once installed
     ./workstation status [--verbose]      what is installed, which layers and protections, the version key
     ./workstation status --summary        the session-start runtime summary an agent harness relays (#80)
-    ./workstation check                   exit non-zero when an installed target differs from this checkout
+    ./workstation check                   exit non-zero when an installed target differs from this checkout,
+                                          or a required prerequisite is missing (global/prerequisites.json)
+    ./workstation check --prerequisites   the prerequisites section only (Issue #89); never applies anything
     ./workstation update [vX.Y.Z]         fetch tags, check out the newest release (or the one given), install
     ./workstation uninstall               remove the user layer; print the sudo line for the admin layer
 
@@ -161,6 +163,8 @@ def render_status(f, verbose=False):
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
     lines.append("  method           %s" % method_text(f.get("method")))
+    if f.get("permissions"):
+        lines.append("  permissions      %s" % f["permissions"])
     key = f["key"]
     if key is None:
         lines.append("  version key      none (%s absent in the workspace)" % KEY_FILE)
@@ -623,6 +627,57 @@ def summarise_protections(user_lines):
     return "installed in %d/3 agent harnesses (an instruction)" % brief, floor, hooks_text(read_hooks())
 
 
+# The pre-authorisation (Issue #83, ADR-0031): the permission mode in effect and the allow-list size, read
+# from the installed files. A command-line flag or a session-level change can still differ from this.
+PROFILE = "workstation"
+
+
+def claude_mode(ws_root):
+    """-> (mode, layer): the first permissions.defaultMode found in precedence order, managed first."""
+    layers = [("admin", admin_dropin())]
+    if ws_root:
+        layers += [("project local", ws_root / ".claude" / "settings.local.json"),
+                   ("project", ws_root / ".claude" / "settings.json")]
+    layers.append(("user", Path.home() / ".claude" / "settings.json"))
+    for name, path in layers:
+        doc, _ = _json(path)
+        perms = doc.get("permissions") if isinstance(doc, dict) else None
+        mode = perms.get("defaultMode") if isinstance(perms, dict) else None
+        if isinstance(mode, str):
+            return mode, name
+    return "default", "none set"
+
+
+def permissions_text(ws_root):
+    mode, layer = claude_mode(ws_root)
+    doc, _ = _json(Path.home() / ".claude" / "settings.json")
+    perms = doc.get("permissions") if isinstance(doc, dict) else None
+    allow = perms.get("allow") if isinstance(perms, dict) else None
+    n_claude = len(allow) if isinstance(allow, list) else 0
+    codex_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+    try:
+        rules = (codex_home / "rules" / "workstation-allow-list.rules").read_text(encoding="utf-8")
+        n_codex = sum(1 for line in rules.splitlines() if line.endswith('decision="allow")'))
+    except OSError:
+        n_codex = 0
+    try:
+        profile = (codex_home / ("%s.config.toml" % PROFILE)).read_text(encoding="utf-8")
+    except OSError:
+        profile = ""
+    m = re.search(r'^sandbox_mode = "([^"]*)"', profile, re.M)
+    if m:
+        codex = "profile %s (on-request, %s; with --profile %s)" % (PROFILE, m.group(1), PROFILE)
+    else:
+        codex = "no %s profile" % PROFILE
+    doc, _ = _json(Path.home() / ".kiro" / "agents" / "workstation.json")
+    try:
+        n_kiro = len(doc["toolsSettings"]["execute_bash"]["allowedCommands"])
+    except (TypeError, KeyError):
+        n_kiro = 0
+    return ("Claude Code: %s (%s), %d allow rules · Codex: %s, %d allow rules · Kiro: agent workstation, "
+            "%d trusted commands" % (mode, layer, n_claude, codex, n_codex, n_kiro))
+
+
 def gather(project):
     admin = admin_installed()
     managed_state = admin_state()
@@ -656,7 +711,7 @@ def gather(project):
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
             "workspace": ws, "plugins": enabled_plugins(ws["root"]), "brief": brief, "floor": floor,
             "hooks": hooks, "key": key, "runtime": runtime(), "admin_state": managed_state,
-            "settings": read_settings(ws["root"]),
+            "settings": read_settings(ws["root"]), "permissions": permissions_text(ws["root"]),
             "method": method_state(user_lines, enabled_plugins(ws["root"]))}
 
 
@@ -768,13 +823,19 @@ def cmd_uninstall():
     return code
 
 
-def cmd_check():
-    hooks_mode = "managed" if admin_installed() else "user"
-    code, _ = run(install_args(["--check", "--hooks=" + hooks_mode]), capture=False)
-    if admin_installed():
-        acode, _ = run(managed_args(["--check"]), capture=False)
-        code = max(code, acode)
-    return code
+def cmd_check(prerequisites_only=False):
+    code = 0
+    if not prerequisites_only:
+        hooks_mode = "managed" if admin_installed() else "user"
+        code, _ = run(install_args(["--check", "--hooks=" + hooks_mode]), capture=False)
+        if admin_installed():
+            acode, _ = run(managed_args(["--check"]), capture=False)
+            code = max(code, acode)
+    # Issue #89: present or missing, authenticated or not, drift from the preferred settings. Read-only.
+    import prerequisites
+    pcode, lines = prerequisites.report()
+    print("\n".join(lines), flush=True)
+    return max(code, pcode)
 
 
 def valid_overlay(value):
@@ -794,6 +855,7 @@ def main(argv):
         return 0 if argv else 2
     command, rest = argv[0], argv[1:]
     overlay, project, verbose, admin, wanted, summary, method = None, None, False, False, None, False, False
+    prereq_only = False
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
@@ -803,6 +865,8 @@ def main(argv):
             verbose = True
         elif arg == "--summary" and command == "status":
             summary = True
+        elif arg == "--prerequisites" and command == "check":
+            prereq_only = True
         elif arg == "--admin" and command == "install":
             admin = True
         elif arg == "--method" and command == "install":
@@ -821,7 +885,7 @@ def main(argv):
     if command == "install":
         return cmd_install(admin, method)
     if command == "check":
-        return cmd_check()
+        return cmd_check(prereq_only)
     if command == "update":
         return cmd_update(wanted)
     if command == "uninstall":

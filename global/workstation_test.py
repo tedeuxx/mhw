@@ -124,6 +124,11 @@ class StatusOutput(unittest.TestCase):
         self.assertIn("  plugin           p@m", out)
         self.assertIn("  | OK      /h/.claude/CLAUDE.md (x)", out)
 
+    def test_permissions_line(self):
+        out = ws.render_status(facts(permissions="Claude Code: acceptEdits (user), 37 allow rules"))
+        self.assertIn("  permissions      Claude Code: acceptEdits (user), 37 allow rules", out)
+        self.assertFalse(any(line.startswith("  permissions") for line in ws.render_status(facts())))
+
     def test_issue_count(self):
         lines = ["OK      a", "STAMP   b", "DRIFT   c", "MISSING d", "STALE   e", "SKIP    f", "FLOOR   g",
                  "NOTE    h", "SOURCE  i"]
@@ -292,6 +297,12 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("Workstation version key: required >=999 <1000, installed ", out)
         self.assertIn("hooks registered: admin: none · user: "
                       "paste filter (Claude Code), paste filter (Codex)\n", out)
+        # The allow list (Issue #83): no admin floor, so the narrow tier, sized from the source itself.
+        conf = (ws.HERE / "allow-list.conf").read_text(encoding="utf-8").splitlines()
+        narrow = sum(1 for line in conf if line.startswith("narrow "))
+        self.assertIn("  permissions      Claude Code: default (none set), %d allow rules · Codex: profile "
+                      "workstation (on-request, read-only; with --profile workstation), %d allow rules · Kiro: agent "
+                      "workstation, %d trusted commands\n" % (narrow, narrow, narrow), out)
         # The summary is fed by the same gathered facts: same stamp, key and hooks as the status view.
         code, out = self.run_ws("status", "--summary", "--overlay=none", project)
         self.assertEqual(code, 0)
@@ -394,11 +405,18 @@ class Overlay(unittest.TestCase):
         calls = []
         real, saved = ws.run, os.environ.get(ws.OVERLAY_ENV)
         ws.run = lambda *a, **k: calls.append(a[0]) or (0, [])
+        # The prerequisites section (#89) reads this machine's PATH; an empty declaration keeps it out.
+        empty = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        empty.write('{"lanes": {}, "items": []}')
+        empty.close()
+        os.environ["WORKSTATION_PREREQUISITES"] = empty.name
         try:
             self.assertEqual(ws.main(["check", "--overlay=none"]), 0)
             self.assertEqual(os.environ.get(ws.OVERLAY_ENV), "none")
         finally:
             ws.run = real
+            os.environ.pop("WORKSTATION_PREREQUISITES", None)
+            os.unlink(empty.name)
             if saved is None:
                 os.environ.pop(ws.OVERLAY_ENV, None)
             else:

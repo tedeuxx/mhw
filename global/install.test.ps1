@@ -120,7 +120,7 @@ Check 'dry-run prints the deny floor for both harnesses' (
 $h = Join-Path $Base 'home-fresh'; New-Item -ItemType Directory -Force -Path $h | Out-Null
 $null = Run $h; Expect 'fresh install' 0 $script:rc
 foreach ($f in Targets $h) { Check "written: $($f.Substring($h.Length + 1))" (Test-Path -LiteralPath $f -PathType Leaf) }
-# 2b. the working method (Issue #61, ADR-0031): install.ps1 runs global\method\method_render.py with the
+# 2b. the working method (Issue #61, ADR-0032): install.ps1 runs global\method\method_render.py with the
 # profile directory, and every agent harness gets its carrier, with its tool list and the stamp.
 $hm = Join-Path $Base 'home-method'; New-Item -ItemType Directory -Force -Path $hm | Out-Null
 # Off by default (until the plugin cutover, #63 #64): a plain install writes no method file.

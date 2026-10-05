@@ -1,4 +1,4 @@
-# ADR-0031: This repository is the single source of the working method, rendered into each agent harness's native user-level carriers
+# ADR-0032: This repository is the single source of the working method, rendered into each agent harness's native user-level carriers
 
 - **Status:** proposed
 - **Date:** 2026-10-05

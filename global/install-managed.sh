@@ -120,8 +120,10 @@ render() { # $1 empty stage directory
   paste_claude="$py \"$bin/clipboard_guard.py\" prompt-hook --harness claude --config \"$bin/clipboard.conf\""
   paste_codex="$py \"$bin/clipboard_guard.py\" prompt-hook --harness codex --config \"$bin/clipboard.conf\""
   # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin
-  # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor.
-  jq -c '.permissions.deny' "$st/home/.claude/settings.json" > "$st/floor.json"
+  # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor
+  # plus the allow list's own Edit protections (ADR-0031), which are user-level and named by their owner key.
+  jq -c '.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])' \
+    "$st/home/.claude/settings.json" > "$st/floor.json"
   # The provenance stamp (Issue #66, ADR-0029) exactly as install.sh derived it for the same checkout,
   # read back from a file it rendered, so the admin documents and the scripts cannot name two sources.
   stamp=$(grep -m 1 -F "$MARKER_ID" "$st/bin/clipboard.conf" | sed -n 's/.*; \(release: [^;]*; commit: [^;]*\);.*/\1/p')
