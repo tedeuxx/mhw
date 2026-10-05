@@ -46,7 +46,7 @@ jobs:
                   compile(fh.read(), f, "exec")' \
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
-            global/mcp/mcp_render.py global/mcp/mcp_render_test.py \
+            global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/profile/profile.py global/profile/profile_test.py \
             global/workstation.py global/workstation_test.py
 
@@ -108,20 +108,34 @@ jobs:
         run: python3 -B global/workstation_test.py
       - name: GitHub repository settings standard suite (stub gh on PATH; no network, never squash)
         run: sh global/github-repo-settings.test.sh "$RUNNER_TEMP/repo-settings"
-      # ADR-0011, the paste filter. It never reads or writes the system clipboard. On macOS, when the
-      # runner's login Keychain is writable, it creates one namespaced item and deletes it.
+      # ADR-0011, the paste filter. It never reads or writes the system clipboard. Issue #58: the real
+      # `security` binary and Security.framework run ONLY here, on the ephemeral macOS runner, through
+      # this explicit opt-in; everywhere else (any developer machine) the suite uses
+      # global/security.test.stub and its guard refuses the real binary. Keychains are throwaway files
+      # under $RUNNER_TEMP, under a throwaway HOME. The call log is printed as the probe.
       - name: paste filter suite
-        run: python3 -B global/clipboard/clipboard_guard_test.py "$RUNNER_TEMP/clipboard"
+        env:
+          PMHWC_REAL_KEYCHAIN_TESTS: ${{ runner.os == 'macOS' && '1' || '' }}
+          PMHWC_SECURITY_CALL_LOG: ${{ runner.temp }}/clipboard-security-calls.jsonl
+        run: |
+          python3 -B global/clipboard/clipboard_guard_test.py "$RUNNER_TEMP/clipboard"
+          echo "security calls (probe):"; cat "$PMHWC_SECURITY_CALL_LOG" 2>/dev/null || echo "(none)"
       # ADR-0011, the paste wrapper: a real wrapper process between a pty the suite owns and a recorder
       # child. No real harness CLI, no shell rc, no terminal preferences, no clipboard.
       - name: paste wrapper suite
         run: python3 -B global/clipboard/paste_wrapper_test.py "$RUNNER_TEMP/paste-wrapper"
-      # ADR-0017. Throwaway HOMEs only. Needs Python 3.11+ (tomllib) for the Codex surface. On macOS,
-      # when the runner's login Keychain is writable, one namespaced synthetic item is created and deleted.
+      # ADR-0017. Throwaway HOMEs only. Needs Python 3.11+ (tomllib) for the Codex surface. Issue #58:
+      # the real `security` binary runs ONLY here, on the ephemeral macOS runner, through this explicit
+      # opt-in; elsewhere the Keychain test uses global/security.test.stub. Keychains are throwaway
+      # files under $RUNNER_TEMP, under a throwaway HOME. The call log is printed as the probe.
       - name: MCP renderer suite
+        env:
+          PMHWC_REAL_KEYCHAIN_TESTS: ${{ runner.os == 'macOS' && '1' || '' }}
+          PMHWC_SECURITY_CALL_LOG: ${{ runner.temp }}/mcp-security-calls.jsonl
         run: |
           python3 --version
           python3 -B global/mcp/mcp_render_test.py "$RUNNER_TEMP/mcp"
+          echo "security calls (probe):"; cat "$PMHWC_SECURITY_CALL_LOG" 2>/dev/null || echo "(none)"
 
   # install.ps1 on a real Windows host (Issue #9, ADR-0010). Throwaway USERPROFILEs under RUNNER_TEMP
   # only. Runs under Windows PowerShell 5.1 (what a stock Windows has) and PowerShell 7. The runner's git

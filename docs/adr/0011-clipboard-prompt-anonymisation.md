@@ -137,8 +137,9 @@ throttle interval.
   through `security -i` with the command on **stdin**, so the salt never appears in a process's argv.
   Read with `security find-generic-password -w`. **Measured** 2026-10-01: a throwaway namespaced item
   was added, read back and deleted from a non-interactive session with no prompt (exit code 44, not
-  found, after the delete). The suite repeats this with its own namespaced item and asserts that it is
-  gone afterwards.
+  found, after the delete). ~~The suite repeats this with its own namespaced item and asserts that it is
+  gone afterwards.~~ *(Struck 2026-10-05, issue #58: a test must not write the owner's login Keychain.
+  See the amendment under "Evidence for the Keychain path".)*
 - **Fallback (`salt_store=file`, the default off macOS):** a 0600 file in a 0700 directory, outside every
   repository: `<data dir>/local-overlay/clipboard-salt`.
 
@@ -285,7 +286,7 @@ should not be on by default. ~~**The owner ratifies one of the two**; if `saniti
 | --- | --- |
 | A private named pasteboard is read and written through `ctypes` from the CLT `python3` | **measured** |
 | Concealed, transient and auto-generated items are skipped unread; cleaning removes the rich flavours | **tested** (fake and real named pasteboard) |
-| Keychain salt via `security -i` on stdin: no prompt, never in argv | **measured** (probe) and **tested** (namespaced item, deleted) |
+| Keychain salt via `security -i` on stdin: no prompt, never in argv | **measured** (probe) and **tested** (~~namespaced item, deleted~~ a stub locally; a throwaway keychain file on the CI macOS runner only, issue #58) |
 | The watcher writes nothing to disk and prints nothing | **tested** (in-process, and a real `watch` subprocess in a throwaway home) |
 | Notices never contain the content | **tested** |
 | `add-term` reads with echo off, refuses argv, pipes and agent markers | **tested** (pseudo-terminal) |
@@ -508,9 +509,28 @@ Option 1 of this record, alone: harness-level prompt hooks.
       the lens's mutant (an interactive read on the hook path), a skipped gate and a dropped timeout each
       turn the test red.
     - *Tested* on a throwaway keychain file under the test's own directory, locked: the probe returns
-      locked in well under a second, and the keychain search list is unchanged afterwards.
-    - *Tested* on a real `prompt-hook` process against a namespaced synthetic login-Keychain item, which
-      is deleted afterwards.
+      locked in well under a second~~, and the keychain search list is unchanged afterwards~~.
+    - *Tested* on a real `prompt-hook` process against a ~~namespaced synthetic login-Keychain item, which
+      is deleted afterwards~~ throwaway keychain file (amended below).
+    - **Amendment 2026-10-05 (issue #58).** The suite wrote the owner's login Keychain and read the
+      real search list. It no longer does either:
+      - **By default it never runs the real `security` binary or Security.framework.** The salt-store
+        test runs the production argv against `global/security.test.stub`. The two tests above that
+        need the real binary and framework run **only** with `PMHWC_REAL_KEYCHAIN_TESTS=1` on a GitHub
+        Actions macOS runner, which is ephemeral. That variable is set in `tests.yml` only.
+      - **Either way**, each keychain is a throwaway file under the test's base directory, named
+        through `keychain_path`, and the whole run uses a throwaway `HOME`.
+      - **A guard refuses, before anything executes:**
+        - the real binary, the framework probe or a Keychain hook child without the opt-in;
+        - `list-keychains` and every other search-list verb;
+        - a call without a throwaway keychain path;
+        - an inherited `HOME`.
+      - The guard is one module shared with the MCP suite, `global/keychain_test_guard.py`. This suite
+        adds the hook-child and lock-probe checks.
+      - The one no-process guard test is mutation-checked: seven mutations of the shared module and
+        four of this suite's own each turn it red.
+      - The search list is no longer compared before and after a test, because reading it is itself
+        refused.
     - **Not measured:** whether `security find-generic-password` would raise an unlock dialog on a
       locked login keychain. The gate exists so that it is never asked. Also not measured: a keychain
       that locks in the instant between the probe and the read. That window is not closed.
