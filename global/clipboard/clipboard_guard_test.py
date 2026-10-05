@@ -4,8 +4,9 @@
 #   python3 -B clipboard_guard_test.py <empty-or-new base directory>
 # Every term, token and identifier below is SYNTHETIC, and the credential-shaped ones are assembled at
 # run time so that this file never contains a string a secret scanner would flag. Nothing here reads or
-# writes the system clipboard. On macOS the Keychain test uses a namespaced item that is deleted
-# afterwards.
+# writes the system clipboard. Nothing here touches the login or default keychain: every Keychain test
+# creates a THROWAWAY keychain file under the base directory and names it explicitly (keychain_path),
+# and a guard installed for the whole run refuses any `security` call that does not (issue #58).
 import io
 import json
 import os
@@ -64,6 +65,123 @@ CREDENTIALS = {
     "jwt": "ey" + "J" + tok("", 20, "abcdefghij") + ".ey" + "J" + tok("", 20, "klmnopqrst") + "." + tok("", 20, "uvwxyz0123"),
     "private-key": "-----BEGIN " + "RSA PRIVATE KEY-----\n" + tok("", 64, "abcdefghij") + "\n-----END " + "RSA PRIVATE KEY-----",
 }
+
+
+# ------------------------------------------------------------------------- real-keychain guard (#58)
+KEYCHAIN_PW = "throwaway-test-pw"
+
+
+class RealKeychainRefused(AssertionError):
+    pass
+
+
+def _security_target_ok(argv, stdin_text):
+    """True when a `security` call names a keychain FILE under BASE, or only reads the search list.
+    Everything else (an item read, write or delete with no keychain argument) would reach the login or
+    default keychain, and is refused before it runs."""
+    under = lambda p: os.path.isabs(p) and os.path.commonpath([os.path.realpath(p), os.path.realpath(BASE)]) == os.path.realpath(BASE)
+    args = list(argv[1:])
+    if args == ["list-keychains"]:
+        return True
+    if args == ["-i"]:
+        lines = [ln for ln in (stdin_text or "").splitlines() if ln.strip()]
+        return bool(lines) and all(ln.rstrip().endswith('"') and under(ln.rstrip()[:-1].rsplit('"', 1)[-1]) for ln in lines)
+    return bool(args) and under(args[-1])
+
+
+def _check_spawn(argv, stdin_text=None):
+    if isinstance(argv, (str, bytes)) or not argv:
+        return
+    argv = [os.fsdecode(a) for a in argv]
+    if os.path.basename(argv[0]) == "security" and not _security_target_ok(argv, stdin_text):
+        raise RealKeychainRefused("a test reached the real keychain: %r" % argv[:3])
+    if g.__file__ in argv and "--config" in argv:     # a hook child process: its config must be throwaway too
+        conf = g.load_config(argv[argv.index("--config") + 1])
+        if conf["salt_store"] == "keychain" and not _security_target_ok(["security", conf["keychain_path"] or "-"], None):
+            raise RealKeychainRefused("a child process was configured for the real keychain")
+
+
+_REAL_RUN, _REAL_POPEN, _REAL_PROBE = subprocess.run, subprocess.Popen, g.keychain_unlocked
+_EXEC = _REAL_RUN       # replaced by a refusing stub inside KeychainIsolation, so its probes never execute
+
+
+def _guarded_run(*args, **kw):
+    argv = args[0] if args else kw.get("args")
+    data = kw.get("input")
+    _check_spawn(argv, data.decode() if isinstance(data, bytes) else data)
+    return _EXEC(*args, **kw)
+
+
+class _GuardedPopen(_REAL_POPEN):
+    def __init__(self, args, *a, **kw):
+        if not isinstance(args, (str, bytes)) and args and os.path.basename(os.fsdecode(args[0])) == "security" \
+                and list(args[1:]) == ["-i"]:
+            pass          # stdin is only visible to _guarded_run, which has already vetted it
+        else:
+            _check_spawn(args)
+        super().__init__(args, *a, **kw)
+
+
+def _guarded_probe(path=None):
+    if path is None:
+        raise RealKeychainRefused("the lock probe was pointed at the default keychain")
+    return _REAL_PROBE(path)
+
+
+def install_keychain_guard():
+    subprocess.run, subprocess.Popen, g.keychain_unlocked = _guarded_run, _GuardedPopen, _guarded_probe
+
+
+def throwaway_keychain(name):
+    path = os.path.join(BASE, name + ".keychain-db")
+    subprocess.run(["/usr/bin/security", "create-keychain", "-p", KEYCHAIN_PW, path], check=True, capture_output=True)
+    return path
+
+
+def drop_keychain(path):
+    subprocess.run(["/usr/bin/security", "delete-keychain", path], capture_output=True)
+
+
+class KeychainIsolation(unittest.TestCase):
+    """The one guard against #58: no test may reach the login or default keychain. Nothing in this test
+    executes a process; a broken guard makes it fail, never touch a keychain."""
+
+    def test_no_test_path_can_reach_the_real_keychain(self):
+        global _EXEC
+        self.assertIs(subprocess.run, _guarded_run, "the guard is not installed for this run")
+        self.assertIs(subprocess.Popen, _GuardedPopen)
+        self.assertIs(g.keychain_unlocked, _guarded_probe)
+        kc = os.path.join(BASE, "never-created.keychain-db")
+        calls, stored = [], [SALT]
+
+        def fake(argv, **kw):          # records, executes nothing, answers like `security` would
+            calls.append((list(argv), kw.get("input")))
+            if kw.get("input"):
+                stored[0] = kw["input"].decode().split('-w "', 1)[1].split('"', 1)[0]
+            return subprocess.CompletedProcess(argv, 0, stdout=(stored[0] + "\n").encode(), stderr=b"")
+        real_exec = _EXEC
+        try:
+            _EXEC = lambda *a, **k: self.fail("the guard let a default-keychain call through")
+            default = g.load_config(conf_in(os.path.join(BASE, "kc-guard-default"), salt_store="keychain"))
+            for interactive in (True, False):
+                with self.assertRaises(RealKeychainRefused):
+                    g.SaltStore(default, _guarded_run, interactive=interactive, lock_probe=lambda *a: True).get()
+            with self.assertRaises(RealKeychainRefused):
+                g.SaltStore(default, _guarded_run).create()
+            with self.assertRaises(RealKeychainRefused):
+                g.keychain_unlocked()
+            # The production code, given a throwaway path, must name it on EVERY keychain call.
+            _EXEC = fake
+            conf = g.load_config(conf_in(os.path.join(BASE, "kc-guard"), salt_store="keychain", keychain_path=kc))
+            g.SaltStore(conf, _guarded_run).create()
+            probes = []
+            g.SaltStore(conf, _guarded_run, interactive=False, lock_probe=lambda *a: probes.append(a) or True).get()
+        finally:
+            _EXEC = real_exec
+        self.assertEqual(probes, [(kc,)], "the lock probe was not pointed at the throwaway keychain")
+        self.assertEqual(len(calls), 3)
+        for argv, data in calls:
+            self.assertTrue(argv[-1] == kc or (argv[1:] == ["-i"] and data.decode().rstrip().endswith('"%s"' % kc)), argv[:2])
 
 
 class FakeSalts:
@@ -157,7 +275,8 @@ class Salt(unittest.TestCase):
     def test_keychain_store_keeps_salt_out_of_argv(self):
         service = "%s.clipboard-salt.test-%d" % (g.PROJECT, os.getpid())
         d = os.path.join(BASE, "salt-keychain")
-        conf = g.load_config(conf_in(d, salt_store="keychain", keychain_service=service))
+        kc = throwaway_keychain("salt-store")
+        conf = g.load_config(conf_in(d, salt_store="keychain", keychain_service=service, keychain_path=kc))
         seen = []
 
         def run(argv, **kw):
@@ -167,13 +286,15 @@ class Salt(unittest.TestCase):
             try:
                 value = g.SaltStore(conf, run).create()
             except RuntimeError:
-                self.skipTest("the login Keychain is not writable here (locked or absent)")
+                self.skipTest("the throwaway keychain is not writable here")
             self.assertEqual(g.SaltStore(conf).get(), value)
             self.assertTrue(all(value not in " ".join(a) for a in seen), "the salt reached a process argv")
-        finally:
-            subprocess.run(["/usr/bin/security", "delete-generic-password", "-s", service, "-a", g._account()],
+            self.assertTrue(all(a[-1] == kc for a in seen if a[1:] != ["-i"]), "a call did not name the throwaway keychain")
+            subprocess.run(["/usr/bin/security", "delete-generic-password", "-s", service, "-a", g._account(), kc],
                            capture_output=True)
-        self.assertIsNone(g.SaltStore(conf).get(), "the throwaway Keychain item was not deleted")
+            self.assertIsNone(g.SaltStore(conf).get(), "the throwaway Keychain item was not deleted")
+        finally:
+            drop_keychain(kc)
 
 
 class Patterns(unittest.TestCase):
@@ -370,12 +491,13 @@ class PromptHook(unittest.TestCase):
         """A real prompt-hook process against the login Keychain, through the real lock probe and the
         real `security` read, with a namespaced synthetic item that is deleted afterwards."""
         service = "%s.clipboard-salt.hooktest-%d" % (g.PROJECT, os.getpid())
-        d, conf = hook_conf("hook-kc-real", salt_store="keychain", keychain_service=service)
+        kc = throwaway_keychain("hook-real")
+        d, conf = hook_conf("hook-kc-real", salt_store="keychain", keychain_service=service, keychain_path=kc)
         try:
             try:
                 salt = g.SaltStore(conf).create()
             except RuntimeError:
-                self.skipTest("the login Keychain is not writable here (locked or absent)")
+                self.skipTest("the throwaway keychain is not writable here")
             g.add_term_hashes(conf["terms_file"], [g.term_hash(salt, f) for f in g.term_forms(TERM)])
             payload = json.dumps({"prompt": "ship it for " + TERM}).encode()
             py = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
@@ -383,15 +505,12 @@ class PromptHook(unittest.TestCase):
                                 os.path.join(d, "clipboard.conf")], input=payload, capture_output=True, timeout=30)
             self.assertEqual((r.returncode, r.stderr), (0, b""))
             out = json.loads(r.stdout)
-            if g.keychain_unlocked() is True:
-                self.assertEqual(out["decision"], "block")
-                self.assertNotIn(b"quillon", r.stdout.lower())
-            else:
-                self.assertIn("NOT checked", out["systemMessage"])
+            self.assertIs(g.keychain_unlocked(kc), True)
+            self.assertEqual(out["decision"], "block")
+            self.assertNotIn(b"quillon", r.stdout.lower())
         finally:
-            subprocess.run(["/usr/bin/security", "delete-generic-password", "-s", service, "-a", g._account()],
-                           capture_output=True)
-        self.assertIsNone(g.SaltStore(conf).get(), "the throwaway Keychain item was not deleted")
+            drop_keychain(kc)
+        self.assertFalse(os.path.exists(kc), "the throwaway keychain was not deleted")
 
     @unittest.skipUnless(DARWIN and os.path.exists("/usr/bin/security"), "macOS Keychain only")
     def test_lock_probe_reports_a_locked_throwaway_keychain_without_waiting(self):
@@ -399,7 +518,7 @@ class PromptHook(unittest.TestCase):
         the probe must say False at once. A probe that waited on an unlock dialog would take seconds."""
         kc = os.path.join(BASE, "probe.keychain-db")
         before = subprocess.run(["/usr/bin/security", "list-keychains"], capture_output=True).stdout
-        subprocess.run(["/usr/bin/security", "create-keychain", "-p", "throwaway-test-pw", kc], check=True, capture_output=True)
+        subprocess.run(["/usr/bin/security", "create-keychain", "-p", KEYCHAIN_PW, kc], check=True, capture_output=True)
         try:
             self.assertIs(g.keychain_unlocked(kc), True)
             subprocess.run(["/usr/bin/security", "lock-keychain", kc], check=True, capture_output=True)
@@ -758,4 +877,5 @@ if __name__ == "__main__":
     if os.path.exists(BASE) and os.listdir(BASE):
         sys.exit("refusing: %s exists and is not empty (the suite only writes into a fresh directory)" % BASE)
     os.makedirs(BASE, exist_ok=True)
+    install_keychain_guard()
     unittest.main(verbosity=2)
