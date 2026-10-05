@@ -125,12 +125,34 @@ for f in hitl.conf clipboard.conf; do
   [ -f "$bin/$f" ] && [ ! -x "$bin/$f" ] || modes_ok=0
 done
 [ "$modes_ok" = 1 ] && ok "scripts are executable, confs are not" || ko "scripts are executable, confs are not"
-sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check after apply is clean" 0 $?
-for f in "$req" "$bin/hitl.conf"; do
-  sed 's/; version: [^;]*;/; version: 0.0.1;/' "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
+sh "$inst" --check --root="$r" > "$base/check-clean.out" 2>&1; expect "check after apply is clean" 0 $?
+# The provenance stamp (Issue #66, ADR-0029): every installed admin file carries the source's stamp,
+# the one --check prints on its SOURCE line, and that names this checkout's HEAD.
+src_stamp=$(sed -n 's/^SOURCE  //p' "$base/check-clean.out")
+head_sha=$(git -C "$here/.." rev-parse --verify HEAD 2>/dev/null || echo unknown)
+case $src_stamp in
+  "release: "*"; commit: $head_sha" | "release: "*"; commit: $head_sha-dirty") ok "the source stamp names HEAD" ;;
+  *) ko "the source stamp names HEAD" "'$src_stamp' vs $head_sha" ;;
+esac
+unstamped=""
+for f in "$dropin" "$req" "$bin/hitl-escalation-guard.sh" "$bin/hitl.conf" "$bin/clipboard_guard.py" "$bin/clipboard.conf"; do
+  got=$(grep -m 1 -F "managed-by: $NAME" "$f" | sed -n 's/.*; \(release: [^;"]*; commit: [^;"]*\);.*/\1/p')
+  [ -n "$src_stamp" ] && [ "$got" = "$src_stamp" ] || unstamped="$unstamped $f"
 done
-if grep -q 'version: 0.0.1;' "$req"; then ok "the stamp was rewritten for the test"; else ko "the stamp was rewritten for the test"; fi
-sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check ignores an earlier release's stamp" 0 $?
+if [ -z "$unstamped" ]; then ok "every installed admin file carries the source's stamp"; else ko "every installed admin file carries the source's stamp" "missing in:$unstamped"; fi
+if [ "$(grep -c '^OK .*(release: ' "$base/check-clean.out")" -eq 6 ]; then ok "check reports each admin file's stamp"; else ko "check reports each admin file's stamp"; fi
+other=0123456789abcdef0123456789abcdef01234567
+for f in "$req" "$dropin"; do
+  sed "s/; commit: [^;\"]*;/; commit: $other;/" "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
+done
+sh "$inst" --check --root="$r" > "$base/check-stamp.out" 2>&1; expect "check flags a stamp other than the source's" 1 $?
+if [ "$(grep -c "^STAMP .*commit: $other" "$base/check-stamp.out")" -eq 2 ] && ! grep -q '^DRIFT' "$base/check-stamp.out"; then
+  ok "both restamped admin documents are named STAMP, not DRIFT"
+else
+  ko "both restamped admin documents are named STAMP, not DRIFT" "$(cat "$base/check-stamp.out")"
+fi
+sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1
+sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "apply restores the source's stamp" 0 $?
 printf '\n' >> "$bin/hitl.conf"
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check flags a drifted script or conf" 1 $?
 cp "$dropin" "$base/dropin.keep"

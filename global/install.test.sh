@@ -223,7 +223,6 @@ if jq -e --arg c "$want_codex" '(.description | startswith("managed-by: personal
 else
   ko "codex hooks.json wrong"
 fi
-if grep -q 'version' "$ch"; then ko "codex hooks.json carries a version (every release would ask for re-trust)"; else ok "codex hooks.json carries no version"; fi
 # The registered commands, run as a harness runs them: a hit blocks, a clean prompt prints nothing.
 cmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$s")
 out=$(run_paste "$h" "$cmd" "deploy with $synthetic_key please")
@@ -374,8 +373,8 @@ if [ "$(jq -S . "$h/.claude/settings.json")" = "$orig" ]; then ok "dry-run left 
 if grep -q 're-serialized' "$base/dry6.out"; then ok "dry-run warns that formatting changes"; else ko "dry-run did not warn about formatting"; fi
 HOME="$h" sh "$inst"; expect "merge into existing settings" 0 $?
 s="$h/.claude/settings.json"
-if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contains("personal-multi-harness-workstation-configuration/") | not)))) | del(.hooks.UserPromptSubmit, .hooks.SessionStart) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
-  ok "every pre-existing key, hook and rule survives in place; only our entries were appended"
+if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contains("personal-multi-harness-workstation-configuration/") | not)))) | del(.hooks.UserPromptSubmit, .hooks.SessionStart, .["personal-multi-harness-workstation-configuration"]) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
+  ok "every pre-existing key, hook and rule survives in place; only our entries and stamp key were appended"
 else
   ko "pre-existing content changed"
 fi
@@ -547,16 +546,73 @@ fi
 HOME="$h" sh "$inst" --check --hooks=managed > /dev/null 2>&1; expect "managed check is clean after a managed install" 0 $?
 HOME="$h" sh "$inst" --check > /dev/null 2>&1; expect "user check flags the missing user-level hooks" 1 $?
 
-# 15. a stamp from an earlier release with the same content is not drift; a content change still is
+# 15. the provenance stamp (Issue #66, ADR-0029): every rendered file names the release and commit it
+# came from, and that is the source's own stamp, the one install prints on its SOURCE line.
+STAMP_KEY=personal-multi-harness-workstation-configuration
+stamp_in() { # $1 file: the release and commit fields of its first managed-by line (settings: our key)
+  case $1 in
+    */settings.json) jq -r --arg k "$STAMP_KEY" '.[$k] // ""' "$1" ;;
+    *) grep -m 1 -F 'managed-by: personal-multi-harness-workstation-configuration' "$1" ;;
+  esac | sed -n 's/.*; \(release: [^;"]*; commit: [^;"]*\);.*/\1/p'
+}
 hs="$base/stamp"; mkdir -p "$hs"
-HOME="$hs" sh "$inst" > /dev/null 2>&1; expect "install for the stamp check exits 0" 0 $?
-for f in "$hs/.claude/CLAUDE.md" "$(data "$hs")/hitl.conf" "$hs/.codex/rules/workstation-deny-floor.rules"; do
-  sed 's/; version: [^;]*;/; version: 0.0.1;/' "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
+HOME="$hs" sh "$inst" > "$base/stamp-install.out" 2>&1; expect "install for the stamp check exits 0" 0 $?
+src_stamp=$(sed -n 's/^SOURCE  //p' "$base/stamp-install.out")
+repo_dir="$(cd "$(dirname "$inst")/.." && pwd)"
+head_sha=$(git -C "$repo_dir" rev-parse --verify HEAD 2>/dev/null || echo unknown)
+case $src_stamp in
+  "release: "*"; commit: $head_sha" | "release: "*"; commit: $head_sha-dirty") ok "the source stamp names HEAD ($src_stamp)" ;;
+  *) ko "the source stamp does not name HEAD $head_sha: '$src_stamp'" ;;
+esac
+unstamped=""
+for f in $(targets "$hs"); do
+  if [ -n "$src_stamp" ] && [ "$(stamp_in "$f")" = "$src_stamp" ]; then :; else unstamped="$unstamped ${f#"$hs"/}"; fi
 done
-if grep -q 'version: 0.0.1;' "$hs/.claude/CLAUDE.md"; then ok "the stamp was rewritten for the test"; else ko "the stamp was rewritten for the test"; fi
-HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check ignores an earlier release's stamp" 0 $?
+if [ -z "$unstamped" ]; then ok "every rendered file carries the source's stamp"; else ko "rendered file(s) without the source's stamp:$unstamped"; fi
+HOME="$hs" sh "$inst" --check > "$base/stamp-check0.out" 2>&1; expect "check is clean on a fresh install" 0 $?
+if [ "$(grep -c '^OK .*release: ' "$base/stamp-check0.out")" -ge "$(targets "$hs" | wc -w)" ]; then
+  ok "check reports the stamp of every installed file"
+else
+  ko "check did not report every file's stamp"
+fi
+# Another commit's stamp on unchanged content: STAMP (not DRIFT), named, and install rewrites it.
+other=0123456789abcdef0123456789abcdef01234567
+for f in "$hs/.claude/CLAUDE.md" "$hs/.codex/hooks.json" "$hs/.claude/settings.json"; do
+  sed "s/; commit: [^;\"]*;/; commit: $other;/" "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
+done
+HOME="$hs" sh "$inst" --check > "$base/stamp-check1.out" 2>&1; expect "check flags a stamp that differs from the source" 1 $?
+if [ "$(grep -c "^STAMP .*commit: $other" "$base/stamp-check1.out")" -eq 3 ] && ! grep -q '^DRIFT' "$base/stamp-check1.out"; then
+  ok "check names each of the three restamped files as STAMP, with the stamp it carries, and no DRIFT"
+else
+  ko "check did not name the three stamp differences"; cat "$base/stamp-check1.out"
+fi
+HOME="$hs" sh "$inst" > /dev/null 2>&1; expect "install restamps" 0 $?
+HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the restamp" 0 $?
 printf 'x\n' >> "$(data "$hs")/hitl.conf"
-HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check still flags a content change under an old stamp" 1 $?
+HOME="$hs" sh "$inst" --check > "$base/stamp-check2.out" 2>&1; expect "check still flags a content change" 1 $?
+if grep -q '^DRIFT .*hitl.conf' "$base/stamp-check2.out"; then ok "a content change is DRIFT, not STAMP"; else ko "a content change was not reported as DRIFT"; fi
+
+# 15b. which release a stamp names: the tag rule, in a throwaway git repository holding a copy of the
+# sources (never the real repository's tags).
+tr="$base/tagrepo"; mkdir -p "$tr"
+cp -R "$repo_dir/global" "$repo_dir/overlay" "$repo_dir/.bumpversion.toml" "$tr/"
+g() { git -C "$tr" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false -c tag.gpgSign=false "$@"; }
+source_stamp() { HOME="$base/tag-home" sh "$tr/global/install.sh" --dry-run 2>/dev/null | sed -n 's/^SOURCE  //p'; }
+mkdir -p "$base/tag-home"
+g -c init.defaultBranch=main init -q && g add -A && g commit -qm one
+c1=$(g rev-parse HEAD)
+s=$(source_stamp)
+if [ "$s" = "release: unreleased, no tag reachable; commit: $c1" ]; then ok "no tag: unreleased, no tag reachable"; else ko "no tag: '$s'"; fi
+g tag v9.8.7
+s=$(source_stamp)
+if [ "$s" = "release: v9.8.7; commit: $c1" ]; then ok "on a release tag: the tag"; else ko "on a tag: '$s'"; fi
+printf '# local edit\n' >> "$tr/global/hitl.conf"
+s=$(source_stamp)
+if [ "$s" = "release: unreleased, after v9.8.7; commit: $c1-dirty" ]; then ok "tracked edit: unreleased, commit marked dirty"; else ko "dirty: '$s'"; fi
+g commit -qam two
+c2=$(g rev-parse HEAD)
+s=$(source_stamp)
+if [ "$s" = "release: unreleased, after v9.8.7; commit: $c2" ]; then ok "after the tag: nearest tag plus the SHA"; else ko "after a tag: '$s'"; fi
 
 # 16. --check reports which layer carries the deny floor (ADR-0016, 2026-10-05 amendment). The admin
 # layer is read under a throwaway --managed-root and installed there by install-managed.sh --root; no

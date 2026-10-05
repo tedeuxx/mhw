@@ -88,6 +88,7 @@ different claims). The detailed log is in [`AGENTS.md`](AGENTS.md), "Status".
 | Restart guard and expiring breaking-glass switches ([ADR-0028](docs/adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)) | Removed from the source: written and tested. Still installed on the reference machine until the owner runs the admin-layer installer. The restart rule stays as a brief instruction. |
 | Interaction profile ([ADR-0019](docs/adr/0019-paced-conversation-and-three-path-decisions.md)) | Installed in the user briefs. Instructions only; the picker guard hook in the row above is separate. |
 | MCP definition ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) | Written and tested. Not run on the reference machine. |
+| Provenance stamp: release and commit in every installed file, reported by `--check` ([ADR-0029](docs/adr/0029-provenance-stamp-in-every-installed-file.md)) | Written and tested. Stamped files measured loading in headless Claude Code and Codex in throwaway homes; Kiro documented. Not installed on the reference machine. `install.ps1`: verified by Windows CI only. MCP renderer: JSON entries recorded in its manifest. A record, not a protection. |
 
 Outside mechanical reach: the Claude and ChatGPT desktop apps (brief by manual paste), Windows (brief
 and deny floor only), files read by path, pasted images, and sessions not started through the wrapper.

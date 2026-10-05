@@ -157,12 +157,40 @@ $null = Run $h @('-Check'); Expect 'check detects drift' 1 $script:rc
 $null = Run $h; Expect 'install repairs drift' 0 $script:rc
 $null = Run $h @('-Check'); Expect 'check clean after repair' 0 $script:rc
 
-# 4b. a stamp from an earlier release with the same content is not drift
-$stamped = Join-Path $h '.codex\AGENTS.md'
-$txt = [System.IO.File]::ReadAllText($stamped) -creplace '; version: [^;]*;', '; version: 0.0.1;'
-[System.IO.File]::WriteAllText($stamped, $txt, (New-Object System.Text.UTF8Encoding $false))
-Check 'the stamp was rewritten for the test' ([System.IO.File]::ReadAllText($stamped).Contains('version: 0.0.1;'))
-$null = Run $h @('-Check'); Expect "check ignores an earlier release's stamp" 0 $script:rc
+# 4b. the provenance stamp (Issue #66, ADR-0029): every rendered file carries the source's stamp, the
+# one -Check prints for an OK file, and it names this checkout's HEAD.
+$stampKey = 'personal-multi-harness-workstation-configuration'
+function Stamp-In([string]$path) {
+    $text = if ($path -like '*settings.json') { [string]((Settings (Split-Path -Parent (Split-Path -Parent $path))).$stampKey) }
+            else { [System.IO.File]::ReadAllText($path) }
+    foreach ($l in ($text -split "`n")) {
+        if ($l.Contains('managed-by: personal-multi-harness-workstation-configuration')) {
+            $mm = [regex]::Match($l, '; (release: [^;"]*; commit: [^;"]*);')
+            if ($mm.Success) { return $mm.Groups[1].Value } else { return '' }
+        }
+    }
+    return ''
+}
+$out = Run $h @('-Check'); Expect 'check is clean before the stamp assertions' 0 $script:rc
+$srcStamp = ''
+$firstOk = @($out | Where-Object { $_ -clike 'OK      *CLAUDE.md (release: *' }) | Select-Object -First 1
+if ($firstOk) { $srcStamp = [regex]::Match($firstOk, '\((release: [^)]*)\)$').Groups[1].Value }
+$head = (& git -C $repo rev-parse --verify HEAD 2>$null)
+Write-Output "source stamp: $srcStamp; HEAD: $head"
+Check 'the source stamp names HEAD' ($srcStamp -cmatch ('^release: [^;]+; commit: ' + [regex]::Escape([string]$head) + '(-dirty)?$'))
+$unstamped = @(Targets $h | Where-Object { -not $srcStamp -or (Stamp-In $_) -cne $srcStamp })
+Check "every rendered file carries the source's stamp [missing in: $($unstamped -join ', ')]" ($unstamped.Count -eq 0)
+$other = '0123456789abcdef0123456789abcdef01234567'
+foreach ($f in @((Join-Path $h '.codex\AGENTS.md'), (Join-Path $h '.claude\settings.json'))) {
+    $txt = [System.IO.File]::ReadAllText($f) -creplace '; commit: [^;"]*;', "; commit: $other;"
+    [System.IO.File]::WriteAllText($f, $txt, (New-Object System.Text.UTF8Encoding $false))
+}
+$out = Run $h @('-Check'); Expect 'check flags a stamp that differs from the source' 1 $script:rc
+Check 'both restamped files are named STAMP, with the stamp they carry, and no DRIFT' (
+    @($out | Where-Object { $_ -clike "STAMP *commit: $other*" }).Count -eq 2 -and -not ($out | Where-Object { $_ -clike 'DRIFT*' }))
+$null = Run $h; Expect 'install restamps' 0 $script:rc
+$null = Run $h @('-Check'); Expect 'check is clean after the restamp' 0 $script:rc
+Check 'the restamped brief carries the source stamp again' ((Stamp-In (Join-Path $h '.codex\AGENTS.md')) -ceq $srcStamp)
 $s = Settings $h
 $s.permissions.deny = [object[]]@($s.permissions.deny | Where-Object { $_ -cne 'Bash(rm -rf:*)' })
 [System.IO.File]::WriteAllText((Join-Path $h '.claude\settings.json'), ($s | ConvertTo-Json -Depth 100))

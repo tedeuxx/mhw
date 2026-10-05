@@ -6,7 +6,9 @@
 #
 #   install.sh                  install or update every managed target
 #   install.sh --dry-run        print exactly what would be written or merged where; write nothing
-#   install.sh --check          exit non-zero if any target is missing, drifted or unmanaged
+#   install.sh --check          exit non-zero if any target is missing, drifted, unmanaged, or carries a
+#                               provenance stamp (release and commit) other than the source's; each
+#                               line names the stamp the installed file carries (Issue #66, ADR-0029)
 #   install.sh --overlay=DIR    owner overlay directory (default: <repo>/overlay); --overlay=none for none
 #   install.sh --hooks=managed  the hooks run from the admin layer (install-managed.sh, ADR-0025): remove
 #                               this project's hook entries from the user settings and its Codex
@@ -15,7 +17,7 @@
 #                               never writes the admin layer, it only reports which layer carries the
 #                               deny floor (FLOOR lines; install-managed.sh installs the admin copy)
 #
-# Exit codes: 0 ok · 1 drift or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
+# Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
 # 3 something UNMANAGED or unreadable is in the way. A file is managed when its marker line (below) is in
 # its first five lines; an unmanaged file is never overwritten. ~/.claude/settings.json is never
 # replaced: one hook entry and the deny floor's entries are merged into it with jq, every other key, hook
@@ -34,6 +36,8 @@ set -eu
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
 HOOK_ID="personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"
 PASTE_ID="personal-multi-harness-workstation-configuration/clipboard_guard.py"
+# The top-level key that carries the provenance stamp in a JSON file with no comment syntax (Issue #66).
+STAMP_KEY="personal-multi-harness-workstation-configuration"
 # Removed hooks (ADR-0028): kept only so an entry an earlier version merged is found and deleted.
 RESTART_ID="personal-multi-harness-workstation-configuration/restart_guard.py"
 
@@ -61,7 +65,7 @@ for arg in "$@"; do
     --hooks=managed) hooks_mode=managed ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -108,6 +112,36 @@ sha256_of() {
 
 version=$(sed -n 's/^current_version[[:space:]]*=[[:space:]]*"\([0-9][0-9.]*\)".*/\1/p' "$repo_root/.bumpversion.toml")
 [ -n "$version" ] || { echo "cannot read current_version from .bumpversion.toml" >&2; exit 2; }
+
+# The provenance stamp (Issue #66, PRD 9a): every file this script renders names the commit and the
+# release it came from, in its own format's comment or a documented key. The rule:
+#   release: vX.Y.Z                       HEAD is exactly that numeric SemVer tag and nothing tracked is modified
+#   release: unreleased, after vX.Y.Z     any other commit (rc/next, a branch, between releases): the nearest tag
+#   release: unreleased, no tag reachable a checkout without tags (a shallow CI clone)
+#   commit:  the full HEAD SHA, with "-dirty" appended when a tracked file differs from HEAD
+# Outside a git checkout both fields say unknown and name the .bumpversion.toml version instead.
+# Only a strictly numeric tag is a release (ADR-0002), and only such a string ever enters a stamp.
+tag_glob='v[0-9]*.[0-9]*.[0-9]*'
+numeric_tag() { printf '%s\n' "$1" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'; }
+if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+   && commit=$(git -C "$repo_root" rev-parse --verify HEAD 2>/dev/null); then
+  dirty=
+  [ -n "$(git -C "$repo_root" status --porcelain --untracked-files=no 2>/dev/null)" ] && dirty=-dirty
+  if [ -z "$dirty" ] && exact=$(git -C "$repo_root" describe --tags --exact-match --match "$tag_glob" HEAD 2>/dev/null) \
+     && numeric_tag "$exact"; then
+    release=$exact
+  elif near=$(git -C "$repo_root" describe --tags --abbrev=0 --match "$tag_glob" HEAD 2>/dev/null) \
+     && numeric_tag "$near"; then
+    release="unreleased, after $near"
+  else
+    release="unreleased, no tag reachable"
+  fi
+  commit="$commit$dirty"
+else
+  release="unknown, not a git checkout (.bumpversion.toml says $version)"
+  commit=unknown
+fi
+stamp="release: $release; commit: $commit"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -200,30 +234,30 @@ render() {
     plain|kiro)
       {
         [ "$1" = kiro ] && printf '%s\n' '---' 'inclusion: always' '---'
-        printf '<!-- %s; source: %s; version: %s; sha256: %s; do not edit, re-run the installer -->\n\n' \
-          "$MARKER_ID" "$brief_from" "$version" "$brief_sha"
+        printf '<!-- %s; source: %s; %s; sha256: %s; do not edit, re-run the installer -->\n\n' \
+          "$MARKER_ID" "$brief_from" "$stamp" "$brief_sha"
         cat "$brief"
       } > "$2"
       ;;
     hook)
       {
         sed -n 1p "$hook_src"
-        printf '# %s; source: global/hooks/hitl-escalation-guard.sh; version: %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$version"
+        printf '# %s; source: global/hooks/hitl-escalation-guard.sh; %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$stamp"
         sed 1d "$hook_src"
       } > "$2"
       ;;
     conf)
       {
-        printf '# %s; source: global/hitl.conf + overlay; version: %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$version"
+        printf '# %s; source: global/hitl.conf + overlay; %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$stamp"
         cat "$conf"
       } > "$2"
       ;;
     codexrules)
       {
-        printf '# %s; source: %s; version: %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$floor_from" "$version"
+        printf '# %s; source: %s; %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$floor_from" "$stamp"
         printf '# The workstation deny floor (ADR-0016). A prefix rule matches the command words from the\n'
         printf '# program name on; another spelling, a wrapper or a script is not matched.\n'
         awk '{ printf "prefix_rule(pattern=["; for (i = 1; i <= NF; i++) printf "%s\"%s\"", (i > 1 ? ", " : ""), $i; print "], decision=\"forbidden\")" }' "$floor_codex"
@@ -232,31 +266,31 @@ render() {
     clipscript)
       {
         sed -n 1p "$clip_src"
-        printf '# %s; source: global/clipboard/clipboard_guard.py; version: %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$version"
+        printf '# %s; source: global/clipboard/clipboard_guard.py; %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$stamp"
         sed 1d "$clip_src"
       } > "$2"
       ;;
     clipconf)
       {
-        printf '# %s; source: global/clipboard.conf + overlay; version: %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$version"
+        printf '# %s; source: global/clipboard.conf + overlay; %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$stamp"
         cat "$clip_conf"
       } > "$2"
       ;;
     wrapscript)
       {
         sed -n 1p "$wrap_src"
-        printf '# %s; source: global/clipboard/paste_wrapper.py; version: %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$version"
+        printf '# %s; source: global/clipboard/paste_wrapper.py; %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$stamp"
         sed 1d "$wrap_src"
       } > "$2"
       ;;
     snippet)
       # Shell functions for zsh and bash. Sourcing this file is the owner's act; nothing here runs it.
       {
-        printf '# %s; source: global/install.sh (paste wrapper, ADR-0011); version: %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$version"
+        printf '# %s; source: global/install.sh (paste wrapper, ADR-0011); %s; do not edit, re-run the installer\n' \
+          "$MARKER_ID" "$stamp"
         printf '# The paste filter at the harness-CLI paste boundary (ADR-0011). To activate it, add this line to\n'
         printf '# your ~/.zshrc or ~/.bashrc yourself (the installer never edits a shell rc):\n'
         printf '#   . "%s"\n' "$snippet_dest"
@@ -269,12 +303,13 @@ render() {
       } > "$2"
       ;;
     codexhooks)
-      # The marker sits in the file's "description" (documented as metadata that does not change which
-      # hooks run). No version in it: Codex records trust against the hook's hash, so a file that changed
-      # on every release could ask the owner to re-trust it each time (whether description is part of
-      # that hash is NOT measured).
+      # The marker and the provenance stamp sit in the file's "description" (documented as metadata that
+      # does not change which hooks run). Codex records trust against each hook's hash; measured on Codex
+      # 0.160.0 (app-server hooks/list, Issue #66): changing "description" leaves the hook's currentHash
+      # unchanged, while changing its timeout changes it. So a new stamp does not ask for re-trust.
       {
-        printf '{\n  "description": "%s; source: global/install.sh (paste filter, ADR-0011); do not edit, re-run the installer",\n' "$MARKER_ID"
+        printf '{\n  "description": "%s; source: global/install.sh (paste filter, ADR-0011); %s; do not edit, re-run the installer",\n' \
+          "$MARKER_ID" "$stamp"
         printf '  "hooks": {\n    "UserPromptSubmit": [\n      {\n        "hooks": [\n'
         printf '          {"type": "command", "command": "%s", "timeout": 30}\n' "$(paste_cmd codex | sed 's/"/\\"/g')"
         printf '        ]\n      }\n    ]\n  }\n}\n'
@@ -297,11 +332,12 @@ retire() { # $1 a managed file this mode no longer wants, $2 what it is
 
 is_managed() { head -n 5 "$1" | grep -qF "$MARKER_ID"; }
 
-# The managed-by header stamps the release that rendered a file. Compare without that stamp, so a
-# release that changes no installed content reads as OK, not DRIFT, and is not rewritten.
+# The managed-by line carries the provenance stamp (release and commit; "version" in files an earlier
+# release wrote). Content is compared without those fields, so a file whose content matches but whose
+# stamp names another source reads as STAMP, not DRIFT: --check flags it, install rewrites it.
 unstamp() {
   unstamp_file=$1
-  sed "/$MARKER_ID/s/; version: [^;]*;/; version: -;/" "$unstamp_file"
+  sed -E "/$MARKER_ID/s/; (version|release|commit): [^;\"]*//g" "$unstamp_file"
 }
 same() {
   same_rendered=$1
@@ -309,6 +345,17 @@ same() {
   cmp -s "$same_rendered" "$same_installed" || {
     unstamp "$same_rendered" > "$work/same.a" && unstamp "$same_installed" > "$work/same.b" &&
       cmp -s "$work/same.a" "$work/same.b"; }
+}
+# The stamp a file carries: the release and commit fields of its first managed-by line, or "none".
+stamp_of() {
+  stamp_line=$(grep -m 1 -F "$MARKER_ID" "$1" 2>/dev/null || true)
+  stamp_rel=$(printf '%s' "$stamp_line" | sed -n 's/.*; release: \([^;"]*\);.*/\1/p')
+  stamp_com=$(printf '%s' "$stamp_line" | sed -n 's/.*; commit: \([^;"]*\);.*/\1/p')
+  if [ -n "$stamp_rel" ] && [ -n "$stamp_com" ]; then
+    printf 'release: %s; commit: %s' "$stamp_rel" "$stamp_com"
+  else
+    printf 'none'
+  fi
 }
 
 process() {
@@ -323,14 +370,24 @@ process() {
     return 0
   fi
 
+  restamp=
   if [ -e "$dest" ] && same "$tmp" "$dest" && { [ "$kind" != hook ] || [ -x "$dest" ]; }; then
-    echo "OK      $dest"
-    return 0
+    if [ "$(stamp_of "$dest")" = "$stamp" ]; then
+      echo "OK      $dest ($stamp)"
+      return 0
+    fi
+    restamp=1
   fi
 
   case $mode in
     check)
-      if [ -e "$dest" ]; then echo "DRIFT   $dest"; else echo "MISSING $dest"; fi
+      if [ -n "$restamp" ]; then
+        echo "STAMP   $dest: content matches, but it carries ($(stamp_of "$dest")) and the source is ($stamp)"
+      elif [ -e "$dest" ]; then
+        echo "DRIFT   $dest ($(stamp_of "$dest"))"
+      else
+        echo "MISSING $dest"
+      fi
       raise 1
       ;;
     dry-run)
@@ -344,7 +401,7 @@ process() {
       cp "$tmp" "$dest.new.$$"
       [ "$kind" = hook ] && chmod 755 "$dest.new.$$"
       mv "$dest.new.$$" "$dest"
-      echo "WROTE   $dest"
+      if [ -n "$restamp" ]; then echo "RESTAMPED $dest ($stamp)"; else echo "WROTE   $dest ($stamp)"; fi
       ;;
   esac
 }
@@ -393,8 +450,9 @@ merge_settings() {
   fi
 
   merged="$work/settings.merged.json"
+  stamp_val="$MARKER_ID; source: global/install.sh (only the hook entries and deny-floor rules merged into this file; every other key is yours); $stamp; do not edit, re-run the installer"
   if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --argjson w "$want" --argjson p "$want_paste" \
-      --arg rid "$RESTART_ID" --argjson r "$want_restart" \
+      --arg rid "$RESTART_ID" --argjson r "$want_restart" --arg sk "$STAMP_KEY" --arg sv "$stamp_val" \
       --argjson f "$deny" '
       # One hook entry of ours per event: keep it when it is exactly the wanted one; otherwise drop every
       # entry of ours (and a group left empty by that) and append the wanted one, unless it is null.
@@ -423,24 +481,36 @@ merge_settings() {
       | (.permissions.deny // []) as $d
       | if all($f[]; . as $r | any($d[]; . == $r)) then .
         else .permissions = ((.permissions // {}) | .deny = ($d + [$f[] | . as $r | select(any($d[]; . == $r) | not)]))
-        end' "$current" > "$merged" 2>/dev/null; then
+        end
+      # The provenance stamp (Issue #66): JSON has no comment, so one top-level key of ours carries it.
+      # Claude Code ignores a key it does not know: measured on 2.1.289, a user settings file holding
+      # this key still applied its permissions.deny (see ADR-0029).
+      | .[$sk] = $sv' "$current" > "$merged" 2>/dev/null; then
     echo "REFUSE  $settings: its hooks or permissions section has an unexpected shape; left untouched" >&2
     raise 3
     return 0
   fi
 
   missing=$(jq --argjson f "$deny" '(.permissions.deny // []) as $d | [$f[] | . as $r | select(any($d[]; . == $r) | not)] | length' "$current")
-  jq -S . "$current" > "$work/before.json"
-  jq -S . "$merged" > "$work/after.json"
+  jq -S --arg sk "$STAMP_KEY" 'del(.[$sk])' "$current" > "$work/before.json"
+  jq -S --arg sk "$STAMP_KEY" 'del(.[$sk])' "$merged" > "$work/after.json"
+  jq -r --arg sk "$STAMP_KEY" '.[$sk] // "" | tostring' "$current" > "$work/settings.stamp"
+  settings_stamp=$(stamp_of "$work/settings.stamp")
+  settings_restamp=
   if [ -e "$settings" ] && cmp -s "$work/before.json" "$work/after.json"; then
-    echo "OK      $settings (hook entries and all $(printf '%s' "$deny" | jq length) deny-floor rules present)"
-    return 0
+    if [ "$settings_stamp" = "$stamp" ]; then
+      echo "OK      $settings (hook entries and all $(printf '%s' "$deny" | jq length) deny-floor rules present; $stamp)"
+      return 0
+    fi
+    settings_restamp=1
   fi
 
   case $mode in
     check)
-      if [ -e "$settings" ]; then
-        echo "DRIFT   $settings ($missing deny-floor rule(s) missing; or a hook entry is missing or stale)"
+      if [ -n "$settings_restamp" ]; then
+        echo "STAMP   $settings: our entries match, but its \"$STAMP_KEY\" key carries ($settings_stamp) and the source is ($stamp)"
+      elif [ -e "$settings" ]; then
+        echo "DRIFT   $settings ($missing deny-floor rule(s) missing; or a hook entry is missing or stale; $settings_stamp)"
       else
         echo "MISSING $settings"
       fi
@@ -474,6 +544,7 @@ merge_settings() {
   esac
 }
 
+echo "SOURCE  $stamp"
 process plain "$HOME/.claude/CLAUDE.md"
 process plain "${CODEX_HOME:-$HOME/.codex}/AGENTS.md"
 process kiro "$HOME/.kiro/steering/workstation-global-brief.md"

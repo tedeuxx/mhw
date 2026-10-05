@@ -9,7 +9,7 @@
 #
 #   install-managed.sh                       render and validate into a fresh stage, print the ONE sudo
 #                                            line for the owner; writes nothing outside the stage
-#   install-managed.sh --check               exit 0 when the installed admin layer matches a fresh render
+#   install-managed.sh --check               exit 0 when the installed admin layer matches a fresh render (stamp too)
 #   install-managed.sh --uninstall           print the sudo line that removes what --apply installed
 #   install-managed.sh --apply=STAGE --sha256=HEX   (root) copy the stage, verify its hash, install it
 #   install-managed.sh --remove              (root) remove every file --apply installed
@@ -21,7 +21,7 @@
 #   /Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json
 #   /etc/codex/requirements.toml             refused when it exists and is not ours
 # Kiro has no admin layer for hooks; Windows is not supported (ADR-0025).
-# Exit codes: 0 ok · 1 drift or missing (--check) · 2 usage or missing dependency · 3 something
+# Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage or missing dependency · 3 something
 # unmanaged in the way, or a stage that fails validation or its hash.
 set -eu
 
@@ -88,7 +88,8 @@ validate() { # $1 stage: both admin documents must parse, or the harness may ref
   /usr/bin/python3 -I -B -c '
 import json, sys
 d = json.load(open(sys.argv[1] + "/claude.json"))
-assert isinstance(d, dict) and set(d) == {"hooks", "permissions"}
+assert isinstance(d, dict) and set(d) == {"hooks", "permissions", sys.argv[2]}
+assert isinstance(d[sys.argv[2]], str) and "; release: " in d[sys.argv[2]] and "; commit: " in d[sys.argv[2]]
 assert set(d["permissions"]) == {"deny"}
 deny = d["permissions"]["deny"]
 assert isinstance(deny, list) and deny and all(isinstance(r, str) and r for r in deny)
@@ -99,7 +100,7 @@ except ImportError:
 t = tomllib.load(open(sys.argv[1] + "/requirements.toml", "rb"))
 rules = t["rules"]["prefix_rules"]
 assert rules and all(r["decision"] == "forbidden" and r["pattern"] for r in rules)
-assert len(rules) == sum(r.startswith("Bash(") for r in deny)' "$1" 2>/dev/null
+assert len(rules) == sum(r.startswith("Bash(") for r in deny)' "$1" "$NAME" 2>/dev/null
 }
 
 render() { # $1 empty stage directory
@@ -119,15 +120,22 @@ render() { # $1 empty stage directory
   # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin
   # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor.
   jq -c '.permissions.deny' "$st/home/.claude/settings.json" > "$st/floor.json"
-  jq -n --arg ps "$paste_claude" --arg h "$hitl" --slurpfile f "$st/floor.json" '
+  # The provenance stamp (Issue #66, ADR-0029) exactly as install.sh derived it for the same checkout,
+  # read back from a file it rendered, so the admin documents and the scripts cannot name two sources.
+  stamp=$(grep -m 1 -F "$MARKER_ID" "$st/bin/hitl.conf" | sed -n 's/.*; \(release: [^;]*; commit: [^;]*\);.*/\1/p')
+  [ -n "$stamp" ] || { echo "REFUSE  install.sh rendered no provenance stamp" >&2; exit 2; }
+  # JSON has no comment: one top-level key of ours carries the stamp. Claude Code ignores a key it does
+  # not know (measured on 2.1.289 through --settings; see ADR-0029).
+  jq -n --arg ps "$paste_claude" --arg h "$hitl" --slurpfile f "$st/floor.json" --arg sk "$NAME" \
+      --arg sv "$MARKER_ID; source: global/install-managed.sh; $stamp; do not edit, re-run the installer" '
     def hook($c; $t): {type: "command", command: $c, timeout: $t};
-    {hooks: {
+    {($sk): $sv,
+     hooks: {
       PreToolUse: [{matcher: "AskUserQuestion", hooks: [hook($h; 5)]}],
       UserPromptSubmit: [{hooks: [hook($ps; 30)]}]},
      permissions: {deny: $f[0]}}' > "$st/claude.json"
-  version=$(sed -n 's/^current_version = "\(.*\)"/\1/p' "$script_dir/../.bumpversion.toml" | head -n 1)
   {
-    printf '# %s; source: global/install-managed.sh; version: %s; do not edit, re-run the installer\n' "$MARKER_ID" "$version"
+    printf '# %s; source: global/install-managed.sh; %s; do not edit, re-run the installer\n' "$MARKER_ID" "$stamp"
     printf '# ADR-0025. No allow_managed_hooks_only and no [features] pin: user and plugin hooks keep running.\n'
     printf '[hooks]\nmanaged_dir = %s\n' "$(jq -n --arg v "$bin" '$v')"
     # One hook since ADR-0028 removed the restart guard: the paste filter.
@@ -169,20 +177,33 @@ case $mode in
     st=$(mktemp -d "${TMPDIR:-/tmp}/pmhwc-managed.XXXXXX")
     render "$st"
     status=0
-    # The managed-by header stamps the release that rendered a file; a release that changes no
-    # installed content is not drift.
+    # The managed-by line carries the provenance stamp (Issue #66, ADR-0029; "version" in files an
+    # earlier release installed). Content is compared without it; a stamp other than the source's on
+    # matching content is STAMP, not DRIFT. Both fail the check, and --apply rewrites both.
     unstamp() {
       unstamp_file=$1
-      sed "/$MARKER_ID/s/; version: [^;]*;/; version: -;/" "$unstamp_file"
+      sed -E "/$MARKER_ID/s/; (version|release|commit): [^;\"]*//g" "$unstamp_file"
     }
+    stamp_of() {
+      stamp_line=$(grep -m 1 -F "$MARKER_ID" "$1" 2>/dev/null || true)
+      stamp_got=$(printf '%s' "$stamp_line" | sed -n 's/.*; \(release: [^;"]*; commit: [^;"]*\);.*/\1/p')
+      printf '%s' "${stamp_got:-none}"
+    }
+    echo "SOURCE  $(stamp_of "$st/bin/hitl.conf")"
     compare() {
       rendered=$1
       installed=$2
       if [ ! -f "$installed" ]; then echo "MISSING $installed"; status=1
-      elif ! cmp -s "$rendered" "$installed" && {
+      elif cmp -s "$rendered" "$installed"; then echo "OK      $installed ($(stamp_of "$installed"))"
+      else
         unstamp "$rendered" > "$st/same.a"; unstamp "$installed" > "$st/same.b"
-        ! cmp -s "$st/same.a" "$st/same.b"; }; then echo "DRIFT   $installed"; status=1
-      else echo "OK      $installed"; fi
+        if cmp -s "$st/same.a" "$st/same.b"; then
+          echo "STAMP   $installed: content matches, but it carries ($(stamp_of "$installed")) and the source is ($(stamp_of "$rendered"))"
+        else
+          echo "DRIFT   $installed ($(stamp_of "$installed"))"
+        fi
+        status=1
+      fi
     }
     for f in $FILES; do compare "$st/bin/$f" "$bin/$f"; done
     for f in $LEGACY; do
