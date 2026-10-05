@@ -2,10 +2,12 @@
 # Tests for mcp_render.py and mcp-launch.sh (ADR-0017). Everything runs under throwaway HOMEs:
 #   python3 -B global/mcp/mcp_render_test.py <empty-or-new base directory>
 # Every server, command and credential below is SYNTHETIC, and each credential value is generated at
-# run time. Nothing here touches the login or default keychain, or the real keychain search list: on
-# macOS the Keychain test creates a THROWAWAY keychain file under the base directory, runs every
-# `security` call and the launcher under a throwaway HOME, names that file explicitly (--keychain), and
-# deletes it. A guard installed for the whole run refuses any call that does not (issue #58).
+# run time. Issue #58: by default the Keychain test runs against global/security.test.stub, which
+# never runs the real `security` binary. The real binary is used ONLY when PMHWC_REAL_KEYCHAIN_TESTS=1
+# on a GitHub Actions macOS runner (ephemeral; set in tests.yml). Without that opt-in, a guard installed
+# for the whole run refuses any attempt to execute the real binary, before anything runs. Either way,
+# each keychain is a THROWAWAY file under the base directory, named explicitly (--keychain), under a
+# throwaway HOME.
 # No test reads, prints or copies a real credential, and none touches the real HOME.
 import hashlib
 import json
@@ -28,7 +30,12 @@ EXAMPLE = os.path.join(HERE, "mcp-servers.example.json")
 SCHEMA = os.path.join(HERE, "mcp-servers.schema.json")
 DARWIN = sys.platform == "darwin"
 BASE = None
-SECURITY = "/usr/bin/security"
+REAL_SECURITY = "/usr/bin/security"
+SECURITY_STUB = os.path.join(os.path.dirname(HERE), "security.test.stub")
+# The real binary only on an ephemeral CI macOS runner, by explicit opt-in (issue #58).
+REAL_KEYCHAIN = (os.environ.get("PMHWC_REAL_KEYCHAIN_TESTS") == "1" and os.environ.get("GITHUB_ACTIONS") == "true"
+                 and DARWIN)
+SECURITY = REAL_SECURITY if REAL_KEYCHAIN else SECURITY_STUB
 FAKE_SERVER = """import hashlib, os, sys
 with open(sys.argv[1], "w") as fh:
     fh.write(hashlib.sha256(os.environ.get(sys.argv[2], "").encode()).hexdigest())
@@ -145,10 +152,16 @@ KEYCHAIN_PW = "throwaway-test-pw"
 SECURITY_VERBS = {"create-keychain", "delete-keychain", "add-generic-password", "find-generic-password",
                   "delete-generic-password"}
 KEYCHAIN_ARG = '${keychain:+"$keychain"}'
+STUB_LAUNCHER = "mcp-launch.stub.sh"    # a test copy of the launcher whose `security` calls go to the stub
 
 
 class RealKeychainRefused(AssertionError):
     pass
+
+
+def _real_ok():
+    """The real `security` binary may run only with the CI opt-in (PMHWC_REAL_KEYCHAIN_TESTS=1)."""
+    return REAL_KEYCHAIN
 
 
 def _under_base(p):
@@ -159,8 +172,7 @@ def _under_base(p):
 
 
 def _home_ok(kw):
-    """The child's HOME must be a throwaway one. An inherited environment means the real HOME, where
-    `security` would resolve the owner's own search list and default keychain."""
+    """The child's HOME must be a throwaway one. An inherited environment means the real HOME."""
     env = kw.get("env")
     return env is not None and _under_base(env.get("HOME", ""))
 
@@ -173,9 +185,13 @@ def _security_ok(args, stdin_text):
     return bool(args) and args[0] in SECURITY_VERBS and _under_base(args[-1])
 
 
+def _reads_keychain(rest):
+    return any(a.startswith("keychain:") or "=keychain:" in a for a in rest)
+
+
 def _launcher_ok(rest):
     """A launcher run that reads the Keychain must name a throwaway keychain first."""
-    if not any(a.startswith("keychain:") or "=keychain:" in a for a in rest):
+    if not _reads_keychain(rest):
         return True
     return rest[:1] == ["--keychain"] and len(rest) > 1 and _under_base(rest[1])
 
@@ -189,13 +205,20 @@ def _check_spawn(argv, stdin_text, kw):
     if not argv:
         return
     argv = [os.fsdecode(a) for a in argv]
-    if os.path.basename(argv[0]) == "security":
+    name = os.path.basename(argv[0])
+    if name == "security" and not _real_ok():
+        raise RealKeychainRefused("the real security binary, without the CI opt-in PMHWC_REAL_KEYCHAIN_TESTS=1")
+    if name in ("security", os.path.basename(SECURITY_STUB)):
         if not (_home_ok(kw) and _security_ok(argv[1:], stdin_text)):
             raise RealKeychainRefused("a test reached the real keychain: %r" % argv[:2])
     for i, a in enumerate(argv):
-        if os.path.basename(a) == "mcp-launch.sh":
-            if not (_home_ok(kw) and _launcher_ok(argv[i + 1:])):
+        b = os.path.basename(a)
+        if b in ("mcp-launch.sh", STUB_LAUNCHER):
+            rest = argv[i + 1:]
+            if not (_home_ok(kw) and _launcher_ok(rest)):
                 raise RealKeychainRefused("a launcher run could reach the real keychain")
+            if b == "mcp-launch.sh" and _reads_keychain(rest) and not _real_ok():
+                raise RealKeychainRefused("the real launcher would run the real security binary, without the opt-in")
             break
 
 
@@ -203,19 +226,41 @@ _REAL_RUN, _REAL_POPEN = subprocess.run, subprocess.Popen
 _EXEC = _REAL_RUN       # replaced by a refusing stub inside KeychainIsolation, so its probes never execute
 
 
+WATCHED = {"security", os.path.basename(SECURITY_STUB), "mcp-launch.sh", STUB_LAUNCHER}
+
+
+def _log_spawn(argv, stdin_text, kw):
+    """Probe: with PMHWC_SECURITY_CALL_LOG set, record every vetted `security`, launcher or hook-child
+    spawn (argv with -w values redacted, and the HOME it runs under). Off by default."""
+    path = os.environ.get("PMHWC_SECURITY_CALL_LOG")
+    if not path or isinstance(argv, (str, bytes)) or not argv:
+        return
+    argv = [os.fsdecode(a) for a in argv]
+    if not any(os.path.basename(a) in WATCHED for a in argv):
+        return
+    env = (kw or {}).get("env")
+    red = lambda s: re.sub(r'(-w\s+)("[^"]*"|\S+)', r'\1<redacted>', s or "")
+    with open(path, "a") as fh:
+        fh.write(json.dumps({"argv": [red(a) for a in argv], "stdin": red(stdin_text),
+                             "home": (env if env is not None else os.environ).get("HOME", "")}) + "\n")
+
+
 def _guarded_run(*args, **kw):
     argv = args[0] if args else kw.get("args")
     data = kw.get("input")
-    _check_spawn(argv, data.decode() if isinstance(data, bytes) else data, kw)
+    text = data.decode() if isinstance(data, bytes) else data
+    _check_spawn(argv, text, kw)
+    _log_spawn(argv, text, kw)
     return _EXEC(*args, **kw)
 
 
 class _GuardedPopen(_REAL_POPEN):
     def __init__(self, args, *a, **kw):
-        if not isinstance(args, (str, bytes)) and list(args[1:]) == ["-i"] \
-                and os.path.basename(os.fsdecode(args[0])) == "security":
-            if not _home_ok(kw):        # stdin is only visible to _guarded_run, which has vetted it
-                raise RealKeychainRefused("security -i under the real HOME")
+        name = "" if isinstance(args, (str, bytes)) or not args else os.path.basename(os.fsdecode(args[0]))
+        if name in ("security", os.path.basename(SECURITY_STUB)) and list(args[1:]) == ["-i"]:
+            # stdin is only visible to _guarded_run, which has vetted it; the binary and HOME are checked here
+            if (name == "security" and not _real_ok()) or not _home_ok(kw):
+                raise RealKeychainRefused("security -i outside the opt-in or under the real HOME")
         else:
             _check_spawn(args, None, kw)
         super().__init__(args, *a, **kw)
@@ -236,43 +281,89 @@ def drop_keychain(home, path):
     subprocess.run([SECURITY, "delete-keychain", path], capture_output=True, env=clean_env(home))
 
 
+def keychain_launcher(rendered, name):
+    """The launcher a Keychain test runs. With the CI opt-in, the rendered launcher itself. Otherwise a
+    copy whose /usr/bin/security calls go to the stub (the launcher names the binary by absolute path,
+    so a stub on PATH alone would never be reached)."""
+    if REAL_KEYCHAIN:
+        return rendered
+    d = os.path.join(BASE, "stub-launchers", name)
+    os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, STUB_LAUNCHER)
+    with open(path, "w") as fh:
+        fh.write(read(rendered).replace(REAL_SECURITY, SECURITY_STUB))
+    os.chmod(path, 0o700)
+    return path
+
+
 class KeychainIsolation(unittest.TestCase):
-    """The one guard against #58: no test may reach the login or default keychain, or the real search
-    list. Nothing in this test executes a process; a broken guard makes it fail, never touch a keychain."""
+    """The one guard against #58: without the CI opt-in no test may execute the real `security` binary,
+    and with it no test may reach the login or default keychain or the search list. Nothing in this test
+    executes a process; a broken guard makes it fail, never touch a keychain."""
 
     def test_no_test_path_can_reach_the_real_keychain(self):
-        global _EXEC
+        global _EXEC, REAL_KEYCHAIN
         self.assertIs(subprocess.run, _guarded_run, "the guard is not installed for this run")
         self.assertIs(subprocess.Popen, _GuardedPopen)
+        if REAL_KEYCHAIN:
+            self.assertEqual((os.environ.get("PMHWC_REAL_KEYCHAIN_TESTS"), os.environ.get("GITHUB_ACTIONS")),
+                             ("1", "true"), "the real binary is enabled outside the CI opt-in")
+        else:
+            self.assertEqual(SECURITY, SECURITY_STUB, "without the opt-in, tests must use the stub")
         kc = os.path.join(BASE, "never-created.keychain-db")
         fake_home = clean_env(os.path.join(BASE, "never-created-home"))
         launcher = os.path.join(BASE, "x", "mcp-launch.sh")
-        refused = [
-            ([SECURITY, "find-generic-password", "-s", "svc", "-w"], {"env": fake_home}),
-            ([SECURITY, "find-generic-password", "-s", "svc", "-w", kc], {}),
-            ([SECURITY, "list-keychains"], {"env": fake_home}),
-            ([SECURITY, "default-keychain", "-s", kc], {"env": fake_home}),
-            ([SECURITY, "-i"], {"env": fake_home, "input": b'add-generic-password -s "s" -a "a" -w "v"\n'}),
-            ([SECURITY, "-i"], {"input": ('add-generic-password -s "s" -a "a" -w "v" "%s"\n' % kc).encode()}),
-            ([launcher, "--secret", "T=keychain:svc", "--", "true"], {"env": fake_home}),
-            (["sh", "-x", launcher, "--keychain", kc, "--secret", "T=keychain:svc", "--", "true"], {}),
-            ([launcher, "--secret", "T=env:V", "--", "true"], {}),
-            ("security find-generic-password -s svc -w", {"shell": True}),
+        stub_launcher = os.path.join(BASE, "x", STUB_LAUNCHER)
+        valid_add = ('add-generic-password -s "s" -a "a" -w "v" "%s"\n' % kc).encode()
+        refused_always = []
+        for sec in (REAL_SECURITY, SECURITY_STUB):
+            refused_always += [
+                ([sec, "find-generic-password", "-s", "svc", "-w"], {"env": fake_home}),
+                ([sec, "find-generic-password", "-s", "svc", "-w", kc], {}),
+                ([sec, "list-keychains"], {"env": fake_home}),
+                ([sec, "list-keychains", "-s", kc], {"env": fake_home}),
+                ([sec, "default-keychain", "-s", kc], {"env": fake_home}),
+                ([sec, "-i"], {"env": fake_home, "input": b'add-generic-password -s "s" -a "a" -w "v"\n'}),
+                ([sec, "-i"], {"input": valid_add}),
+            ]
+        for lch in (launcher, stub_launcher):
+            refused_always += [
+                ([lch, "--secret", "T=keychain:svc", "--", "true"], {"env": fake_home}),
+                (["sh", "-x", lch, "--keychain", kc, "--secret", "T=keychain:svc", "--", "true"], {}),
+                ([lch, "--secret", "T=env:V", "--", "true"], {}),
+            ]
+        refused_always.append(("security find-generic-password -s svc -w", {"shell": True}))
+        refused_without_optin = [
+            ([REAL_SECURITY, "find-generic-password", "-s", "svc", "-w", kc], {"env": fake_home}),
+            ([REAL_SECURITY, "create-keychain", "-p", "x", kc], {"env": fake_home}),
+            ([REAL_SECURITY, "-i"], {"env": fake_home, "input": valid_add}),
+            ([launcher, "--keychain", kc, "--secret", "T=keychain:svc", "--", "true"], {"env": fake_home}),
+        ]
+        allowed_always = [
+            ([SECURITY_STUB, "find-generic-password", "-s", "svc", "-w", kc], {"env": fake_home}),
+            ([SECURITY_STUB, "-i"], {"env": fake_home, "input": valid_add}),
+            ([stub_launcher, "--keychain", kc, "--secret", "T=keychain:svc", "--", "true"], {"env": fake_home}),
         ]
         calls = []
-        real_exec = _EXEC
+        real_exec, real_flag = _EXEC, REAL_KEYCHAIN
         try:
             _EXEC = lambda *a, **k: self.fail("the guard let a real-keychain call through: %r" % (a[:1],))
-            for argv, kw in refused:
-                with self.subTest(argv=argv):
-                    with self.assertRaises(RealKeychainRefused):
-                        subprocess.run(argv, capture_output=True, **kw)
+            for flag, cases in ((False, refused_always + refused_without_optin), (True, refused_always)):
+                REAL_KEYCHAIN = flag
+                for argv, kw in cases:
+                    with self.subTest(opt_in=flag, argv=argv):
+                        with self.assertRaises(RealKeychainRefused):
+                            subprocess.run(argv, capture_output=True, **kw)
             _EXEC = lambda argv, **kw: calls.append(argv) or subprocess.CompletedProcess(argv, 0, b"", b"")
-            subprocess.run([SECURITY, "find-generic-password", "-s", "svc", "-w", kc], env=fake_home)
-            subprocess.run([launcher, "--keychain", kc, "--secret", "T=keychain:svc", "--", "true"], env=fake_home)
+            REAL_KEYCHAIN = False
+            for argv, kw in allowed_always:
+                subprocess.run(argv, **kw)
+            REAL_KEYCHAIN = True
+            for argv, kw in refused_without_optin:
+                subprocess.run(argv, **kw)
         finally:
-            _EXEC = real_exec
-        self.assertEqual(len(calls), 2, "the guard refused a throwaway-keychain call it must allow")
+            _EXEC, REAL_KEYCHAIN = real_exec, real_flag
+        self.assertEqual(len(calls), 7, "the guard refused a throwaway-keychain call it must allow")
         # The production launcher must hand the --keychain path to EVERY `security` call it makes.
         code = [ln for ln in read(LAUNCH).splitlines() if not ln.lstrip().startswith("#")]
         reads = [ln for ln in code if re.search(r"/usr/bin/security\s+(-[A-Za-z]\b|[a-z]+-[a-z-]+)", ln)]
@@ -654,13 +745,14 @@ class Render(unittest.TestCase):
 
 
 class Secrets(unittest.TestCase):
-    def assert_value_reaches_server_only(self, h, value, server_env, pre=()):
+    def assert_value_reaches_server_only(self, h, value, server_env, pre=(), command=None):
         """The value is in no file under the throwaway HOME, and the launched server sees it. `pre` is put
-        before the rendered launcher arguments (the throwaway --keychain)."""
+        before the rendered launcher arguments (the throwaway --keychain); `command` replaces the rendered
+        launcher (its stub copy)."""
         blob = all_bytes(h)
         self.assertNotIn(value.encode(), blob, "a secret value is in a rendered file")
         cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
-        launch = [cx["command"]] + list(pre) + cx["args"]
+        launch = [command or cx["command"]] + list(pre) + cx["args"]
         out = os.path.join(BASE, "out-env.txt")
         if os.path.exists(out):
             os.remove(out)
@@ -698,7 +790,7 @@ class Secrets(unittest.TestCase):
         self.assertEqual(run(h).returncode, 0)
         self.assertIn(value.encode(), all_bytes(h))
 
-    @unittest.skipUnless(DARWIN and os.path.exists(SECURITY), "macOS Keychain only")
+    @unittest.skipUnless(DARWIN, "keychain: sources are macOS only (the renderer refuses them elsewhere)")
     def test_keychain_secret_renders_names_only_and_launches_with_the_value(self):
         service = "%s.mcp-test-%d" % (r.PROJECT, os.getpid())
         value = "synthetic-" + secrets.token_hex(16)
@@ -718,11 +810,12 @@ class Secrets(unittest.TestCase):
             self.assertNotIn(value, p.stdout + p.stderr)
             self.assertIn(service, read(targets(h)["codex"]), "the Keychain service NAME is rendered")
             self.assertNotIn(kc, read(targets(h)["codex"]), "the renderer must never write --keychain")
-            self.assert_value_reaches_server_only(h, value, env, pre=("--keychain", kc))
+            cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
+            launcher = keychain_launcher(cx["command"], "keychain-secret")
+            self.assert_value_reaches_server_only(h, value, env, pre=("--keychain", kc), command=launcher)
             subprocess.run([SECURITY, "delete-generic-password", "-s", service, "-a", account, kc],
                            capture_output=True, env=env)
-            cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
-            launch = [cx["command"], "--keychain", kc] + cx["args"]
+            launch = [launcher, "--keychain", kc] + cx["args"]
             p = subprocess.run(launch, env=env, capture_output=True, text=True)
             self.assertEqual(p.returncode, 3, "the launcher started a server after its Keychain item was deleted")
             self.assertIn("no readable Keychain item", p.stderr)

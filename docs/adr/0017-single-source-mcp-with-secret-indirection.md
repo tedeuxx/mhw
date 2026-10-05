@@ -184,13 +184,28 @@ surface does is not measured.
 **Amendment 2026-10-05 (issue #58): the suite no longer touches the real Keychain.** The launcher takes
 an optional `--keychain PATH` (absolute, before every `--secret`) and passes it to each `security`
 read. The renderer never writes it, so in use the launcher reads the login Keychain exactly as before.
-The test creates a throwaway keychain file under its base directory and runs every `security` call and
-every launch under a throwaway `HOME`, so neither the login keychain, the default keychain nor the real
-search list is in reach. A guard installed for the whole run refuses, before anything executes, a
-`security` call that does not name a keychain file under the base directory, a verb outside a short
-list, an inherited `HOME`, or a Keychain launch without `--keychain`. One test, which executes no
-process, fails when the launcher drops the path from either read or when the guard is opened or not
-installed (six mutations, six reds). Same approach as the paste-filter fix in PR #85.
+
+**By default, the suite never runs the real `security` binary.** `security create-keychain` adds the
+new keychain to the user's search list, and a throwaway `HOME` does not prove that list is untouched,
+so a throwaway keychain file alone is not isolation. The Keychain test runs against
+`global/security.test.stub`, which records its argv and simulates a keychain as a JSON file. The
+launcher names `/usr/bin/security` by absolute path, so a stub on `PATH` would never be reached. The
+test therefore runs a copy of the launcher whose `security` calls go to the stub. The real binary
+runs **only** with `PMHWC_REAL_KEYCHAIN_TESTS=1` on a GitHub Actions macOS runner, which is ephemeral.
+That variable is set in `tests.yml` only.
+
+**Either way, every keychain is a throwaway file under the test's base directory, named explicitly,
+under a throwaway `HOME`.** A guard installed for the whole run refuses, before anything executes:
+
+- the real binary, or the real launcher reading the Keychain, without the opt-in;
+- a `security` call that does not name a keychain file under the base directory;
+- a verb outside a short list, such as `list-keychains` or `default-keychain`;
+- an inherited `HOME`;
+- a Keychain launch without `--keychain`.
+
+One test, which executes no process, is mutation-checked. Eight mutations give eight reds: either
+launcher read drops the path, the opt-in is ignored, and the guard is opened or not installed in
+five more ways.
 
 ## Consequences
 
