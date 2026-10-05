@@ -46,6 +46,7 @@ def winch(*_):
     evf.write("WINCH %s\n" % size()); evf.flush()
 signal.signal(signal.SIGWINCH, winch)
 evf.write("START %s\n" % size()); evf.flush()
+evf.write("MARKER %r\n" % os.environ.get("PMHWC_PASTE_WRAPPER")); evf.flush()
 if mode == "bp":
     os.write(1, b"\x1b[?2004h")
 os.write(1, b"READY\r\n")
@@ -547,6 +548,28 @@ class Relay(unittest.TestCase):
         self.assertEqual(r.returncode, 3)
         self.assertEqual(r.stdout, b"MAIL " + EMAIL.upper().encode())
 
+    def test_relayed_cli_gets_the_session_marker(self):
+        """Issue #58: the CLI the wrapper relays for carries the marker, so the prompt hook passes its
+        prompts silently. Calibration: the same recorder on a bare pty carries none."""
+        self.assertEqual(g.WRAPPER_MARKER, "PMHWC_PASTE_WRAPPER")     # the name the recorder reads
+        for wrap, expected in ((True, "MARKER '1'"), (False, "MARKER None")):
+            s = Session("marker-%s" % wrap, wrap=wrap)
+            self.ready(s)
+            s.finish()
+            with open(s.ev) as fh:
+                lines = [ln.strip() for ln in fh if ln.startswith("MARKER")]
+            self.assertEqual(lines, [expected], wrap)
+
+    def test_not_a_terminal_removes_an_inherited_marker(self):
+        """Nothing is cleaned when the wrapper only execs the CLI, so the marker must not reach it."""
+        d = os.path.join(BASE, "pipe-marker")
+        os.makedirs(d)
+        env = dict(os.environ, **{g.WRAPPER_MARKER: g.WRAPPER_MARKER_VALUE})
+        r = subprocess.run([PY, "-I", "-B", WRAPPER, "run", "--config", conf_in(d), "--",
+                            PY, "-c", "import os; print(repr(os.environ.get('%s')))" % g.WRAPPER_MARKER],
+                           input=b"", capture_output=True, env=env)
+        self.assertEqual((r.returncode, r.stdout.strip()), (0, b"None"))
+
     def test_missing_program(self):
         r = subprocess.run([PY, "-I", "-B", WRAPPER, "run", "--", "no-such-cli-pmhwc"], capture_output=True)
         self.assertEqual(r.returncode, 127)
@@ -615,4 +638,5 @@ if __name__ == "__main__":
     if os.path.exists(BASE) and os.listdir(BASE):
         sys.exit("refusing: %s exists and is not empty (the suite only writes into a fresh directory)" % BASE)
     os.makedirs(BASE, exist_ok=True)
+    os.environ.pop(g.WRAPPER_MARKER, None)     # the bare-pty calibration must not inherit a wrapped session's
     unittest.main(verbosity=2)

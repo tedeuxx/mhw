@@ -18,6 +18,8 @@
 #     imports this core to clean bracketed pastes (the owner: "nao deve impactar nenhum outro app ou ux
 #     do so"). The prompt hook reads a Keychain salt only after a non-interactive lock
 #     probe says unlocked, with a timeout (SaltStore(interactive=False));
+#   - the prompt hook prints nothing in a session the paste wrapper started (WRAPPER_MARKER set to
+#     WRAPPER_MARKER_VALUE in its environment), and judges every prompt otherwise (Issue #58);
 #   - a notice names categories and the mitigation, never the original content or the matched term;
 #   - the term list holds salted hashes of normalised terms, never plaintext, and add-term reads the
 #     term from the terminal with echo off: never from argv, the environment or a pipe.
@@ -75,6 +77,22 @@ DEFAULTS = {
                              "original was not sent.",
 }
 HARNESSES = ("claude", "codex")
+
+# The paste wrapper's session marker (ADR-0011, amendment 2026-10-05, Issue #58). paste_wrapper.py exports
+# it into the harness CLI it starts on a pseudo-terminal, and only there; the CLI passes its environment
+# on to the hooks it runs. The prompt hook then passes every prompt silently: the wrapper is the primary
+# mechanism and already cleaned the pastes before the CLI saw them, and the hook stays as the safety net
+# for sessions NOT opened through it. The marker is not a secret and proves nothing: anyone can set it by
+# hand, and every process the CLI starts inherits it. Both are accepted ("defend the perimeter, not the
+# behaviour") and stated in ADR-0011.
+WRAPPER_MARKER = "PMHWC_PASTE_WRAPPER"
+WRAPPER_MARKER_VALUE = "1"
+
+
+def wrapped_session(environ=None):
+    """True when this process runs inside a session the paste wrapper started (the marker is exactly set)."""
+    environ = os.environ if environ is None else environ
+    return environ.get(WRAPPER_MARKER) == WRAPPER_MARKER_VALUE
 
 
 def data_dir():
@@ -482,15 +500,18 @@ def prompt_decision(conf, prompt, harness, salts=None):
     return out
 
 
-def cmd_prompt_hook(conf, harness, stdin=None, stdout=None, salts=None):
+def cmd_prompt_hook(conf, harness, stdin=None, stdout=None, salts=None, environ=None):
     """Read one UserPromptSubmit payload from stdin, print the decision (or nothing), exit 0.
-    An error is reported by its exception CLASS only, because a message can quote the input."""
+    An error is reported by its exception CLASS only, because a message can quote the input.
+    In a session the paste wrapper started (wrapped_session), it reads the payload and prints nothing."""
     stdin = stdin if stdin is not None else sys.stdin.buffer
     stdout = stdout if stdout is not None else sys.stdout
     limit = int(conf["max_bytes"]) * 6 + 65536     # JSON escaping can inflate the prompt (\uXXXX)
     try:
         raw = stdin.read(limit + 1)
-        if len(raw) > limit:
+        if wrapped_session(environ):
+            out = None                  # the wrapper is the primary mechanism here: pass silently
+        elif len(raw) > limit:
             out = {"systemMessage": _format(conf, "notice_too_large", max=conf["max_bytes"])}
         else:
             payload = json.loads(raw.decode("utf-8"))

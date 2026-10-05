@@ -27,7 +27,10 @@
 #     terminal's modes are restored on every exit path;
 #   - when the CLI never enables bracketed paste, nothing can be cleaned, and the owner is told so in
 #     one line;
-#   - every notice names categories only, never the pasted content or a matched term.
+#   - every notice names categories only, never the pasted content or a matched term;
+#   - the CLI it relays for gets the session marker (clipboard_guard.WRAPPER_MARKER) in its environment,
+#     so the prompt hook, kept as the safety net, passes its prompts silently; a CLI it only execs
+#     (not a terminal) gets the marker removed (Issue #58).
 #
 # Standard library only. Runs on the Command Line Tools python3 (3.9) and later. macOS and Linux.
 import errno
@@ -294,7 +297,8 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
             termios.tcsetattr(0, termios.TCSANOW, saved)
             if size:
                 fcntl.ioctl(0, termios.TIOCSWINSZ, size)
-            os.execv(real, [argv0] + args)
+            # Only a CLI this relay cleans for carries the marker; its prompt hook then passes silently.
+            os.execve(real, [argv0] + args, dict(os.environ, **{core.WRAPPER_MARKER: core.WRAPPER_MARKER_VALUE}))
         finally:
             os._exit(127)
 
@@ -504,8 +508,11 @@ def main(argv):
         sys.stderr.write("%s: command not found\n" % argv0)
         return 127
     # Not an interactive terminal on both ends: nothing can be pasted, so get out of the way entirely.
+    # Nothing is cleaned on this path, so the marker is removed, even one inherited from an outer session.
     if not (os.isatty(0) and os.isatty(1)):
-        os.execv(real, [argv0] + rest)
+        env = dict(os.environ)
+        env.pop(core.WRAPPER_MARKER, None)
+        os.execve(real, [argv0] + rest, env)
     try:
         conf = core.load_config(config)
     except Exception as exc:          # an unreadable settings file: say so, and do not run unchecked
