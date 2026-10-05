@@ -119,11 +119,13 @@ measured.
 New machine: start with [Install on another workstation](docs/new-workstation.md), which previews the
 controls without inheriting the reference owner's overlay.
 
-macOS and Linux, from the repository root (Python 3.9+ and `jq` required):
+macOS and Linux, from the repository root (Python 3.9+ and `jq` required). **Admin layer first, then
+the user layer**, on a new machine and on every upgrade
+([runbook](docs/runbooks/deny-floor-admin-layer.md)):
 
 ```sh
-./workstation install          # user layer, every agent harness; hooks move to the admin layer if it is there
-./workstation install --admin  # render and validate the admin layer; prints the one sudo line to run yourself
+./workstation install --admin  # 1. render and validate the admin layer; prints the one sudo line to run yourself
+./workstation install          # 2. user layer, every agent harness; hooks move to the admin layer if it is there
 ./workstation status           # installed release per layer, protections, the version key, the runtime
 ./workstation status --verbose # the same, plus every target and each agent harness's version
 ./workstation check            # run every installer's --check, then the prerequisites; exit non-zero on any finding
@@ -143,8 +145,13 @@ stays beside the file and is overwritten by the next install or uninstall.
 The `sudo` route to turn a hook off is in the [breaking-glass runbook](docs/runbooks/breaking-glass.md).
 
 **What `check` reports.** `./workstation check` runs `install.sh --check` (with the hooks mode it
-detects), `install-managed.sh --check` when the admin layer is installed, and the prerequisites
-section. The installers' check exits non-zero when a target is missing, differs from this checkout,
+detects), `install-managed.sh --check` whenever any admin layer of this repository is on disk (stamped,
+or installed by an earlier release without the #66 stamp), and the prerequisites section. When the
+admin layer differs, `check`, `install` and `status` name each `STALE` and `DRIFT` target, each removed
+control still installed (restart guard, picker guard, session intake, timed breaking-glass) and the
+next step, `./workstation install --admin` and its sudo line; `status` says "matches this checkout"
+only when the user layer and any admin layer both match
+([#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52)). The installers' check exits non-zero when a target is missing, differs from this checkout,
 is not managed by this repository, carries another release's provenance stamp, or is left over from a
 removed control (`STALE`). The prerequisites section exits non-zero when a required item is missing.
 It changes nothing.

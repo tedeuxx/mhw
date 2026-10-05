@@ -7,7 +7,8 @@
                                           the plugin cutover (#63, #64), kept current once installed
     ./workstation status [--verbose]      what is installed, which layers and protections, the version key
     ./workstation status --summary        the session-start runtime summary an agent harness relays (#80)
-    ./workstation check                   exit non-zero when an installed target differs from this checkout,
+    ./workstation check                   exit non-zero when an installed target differs from this checkout
+                                          (the admin layer included, stamped or from an earlier release),
                                           or a required prerequisite is missing (global/prerequisites.json)
     ./workstation check --prerequisites   the prerequisites section only (Issue #89); never applies anything
     ./workstation update [vX.Y.Z]         fetch tags, check out the newest release (or the one given), install
@@ -148,9 +149,17 @@ def render_status(f, verbose=False):
     admin_text = short_stamp(f["admin_stamp"]) if f["admin"] else (
         LEGACY if f.get("admin_state") == "legacy" else "not installed")
     lines.append("  installed        user: %s · admin: %s" % (user_text, admin_text))
-    fix = f["user_issues"] + (f["admin_issues"] if f["admin"] else 0)
-    check = "matches this checkout" if fix == 0 else "%d target(s) differ; run %s" % (fix, FIX)
+    admin_code = f.get("admin_code") or 0
+    admin_fix = max(f["admin_issues"], 1 if admin_code else 0)
+    fix = f["user_issues"] + admin_fix
+    if fix == 0:
+        check = "matches this checkout"
+    elif admin_fix:
+        check = "%d target(s) differ (admin layer: %d); run %s --admin first" % (fix, admin_fix, FIX)
+    else:
+        check = "%d target(s) differ; run %s" % (fix, FIX)
     lines.append("  check            %s" % check)
+    lines.extend(admin_report(f["admin_lines"], admin_code, prefix="  admin layer      "))
     harnesses = [h for h, v in f["harnesses"].items() if v is not None]
     lines.append("  agent harnesses  %s" % (", ".join(harnesses) if harnesses else "none detected on PATH"))
     ws = f["workspace"]
@@ -314,10 +323,83 @@ def admin_state():
 
 
 def admin_installed():
+    """True only for a drop-in carrying the #66 stamp key. Decides the hooks mode; never whether the
+    admin layer is checked (an earlier release's admin layer has no stamp and must still be checked)."""
     try:
         return NAME in json.loads(admin_dropin().read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return False
+
+
+def admin_base():
+    base = "/Library/Application Support/" if platform.system() == "Darwin" else "/etc/"
+    return Path(managed_root() + base + NAME)
+
+
+def codex_requirements():
+    return Path(managed_root() + "/etc/codex/requirements.toml")
+
+
+def admin_present():
+    """True when any admin layer of ours is on disk, stamped or from an earlier release: our drop-in,
+    our admin directory (bin/ or the removed breaking-glass/ switches), or a Codex requirements file
+    carrying our managed-by line. The admin --check runs whenever this is true (Issue #52)."""
+    if admin_dropin().exists() or admin_base().exists():
+        return True
+    try:
+        return MARKER in codex_requirements().read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+
+# Files an earlier release's admin layer installed for controls this release removed, by the name of the
+# control (ADR-0028: restart guard and timed breaking-glass; ADR-0013, 2026-10-05: the picker guard and
+# the session-intake exception its hitl.conf carried). install-managed.sh --check reports them as STALE.
+REMOVED_CONTROLS = (
+    ("restart_guard.py", "restart guard"),
+    ("hitl-escalation-guard.sh", "picker guard"),
+    ("hitl.conf", "session intake (the picker guard's intake exception)"),
+    ("breaking_glass.py", "timed breaking-glass"),
+    ("breaking-glass", "timed breaking-glass"),
+)
+_ENTRY = re.compile(r"(STALE|DRIFT|MISSING|STAMP|REFUSE)\s+(.*?)(?::\s.*| \([^()]*\))?$")
+
+
+def admin_findings(lines):
+    """-> ({kind: [file name]}, [removed control]) from install-managed.sh --check output."""
+    entries, removed = {}, []
+    for line in lines:
+        m = _ENTRY.match(line)
+        if not m:
+            continue
+        name = Path(m.group(2).rstrip("/")).name or m.group(2)
+        entries.setdefault(m.group(1), []).append(name)
+        if m.group(1) == "STALE":
+            for file, control in REMOVED_CONTROLS:
+                if name == file and control not in removed:
+                    removed.append(control)
+    order = [control for _, control in REMOVED_CONTROLS]
+    return entries, sorted(removed, key=order.index)
+
+
+ADMIN_NEXT = "next: ./workstation install --admin, then run the one sudo line it prints"
+
+
+def admin_report(lines, code, prefix="ADMIN   "):
+    """The lines that name what differs in the admin layer, each entry and removed control by name, and
+    the exact next step. Empty when the admin --check exits 0."""
+    if code == 0 and issues(lines) == 0:
+        return []
+    entries, removed = admin_findings(lines)
+    count = max(issues(lines), 1)
+    out = ["%sthe admin layer differs from this checkout: %d target(s)" % (prefix, count)]
+    for kind in ("STALE", "DRIFT", "MISSING", "STAMP", "REFUSE"):
+        if entries.get(kind):
+            out.append("%s%s %s" % (prefix, kind, ", ".join(entries[kind])))
+    if removed:
+        out.append("%sremoved controls still installed: %s" % (prefix, ", ".join(removed)))
+    out.append(prefix + ADMIN_NEXT)
+    return out
 
 
 def stamp_in(path):
@@ -539,6 +621,17 @@ def runtime():
 GUARD = "hitl-escalation-guard.sh"
 LEFTOVER = "removed picker guard still registered (Claude Code)"
 PASTE = "clipboard_guard.py"
+# The restart guard was removed (ADR-0028). An admin layer from v2 still registers it on SessionStart and
+# PreToolUse; status names that entry until install --admin and its sudo line remove it (Issue #52).
+RESTART = "restart_guard.py"
+
+
+def restart_leftover(harness):
+    return "removed restart guard still registered (%s)" % harness
+
+
+def _restart_registered(doc):
+    return any(RESTART in c for e in ("SessionStart", "PreToolUse") for c in _commands(doc, e))
 
 
 def _commands(doc, event):
@@ -579,10 +672,14 @@ def read_hooks():
     unread |= state == "not read"
     if any(GUARD in c for c in _commands(doc, "PreToolUse")):
         found.append(LEFTOVER)
+    if _restart_registered(doc):
+        found.append(restart_leftover("Claude Code"))
     if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (data / PASTE).is_file():
         found.append("paste filter (Claude Code)")
     doc, state = _json(codex_home / "hooks.json")
     unread |= state == "not read"
+    if _restart_registered(doc):
+        found.append(restart_leftover("Codex"))
     if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (data / PASTE).is_file():
         found.append("paste filter (Codex)")
     result["user"] = "not read" if unread and not found else found + (["a file not read"] if unread else [])
@@ -592,15 +689,19 @@ def read_hooks():
     unread |= state == "not read"
     if any(GUARD in c for c in _commands(doc, "PreToolUse")):
         found.append(LEFTOVER)
+    if _restart_registered(doc):
+        found.append(restart_leftover("Claude Code"))
     if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (admin_bin / PASTE).is_file():
         found.append("paste filter (Claude Code)")
-    req = Path(managed_root() + "/etc/codex/requirements.toml")
+    req = codex_requirements()
     try:
         text = req.read_text(encoding="utf-8") if req.exists() else ""
     except OSError:
         text, unread = "", True
     if MARKER in text and "[[hooks.UserPromptSubmit" in text and PASTE in text and (admin_bin / PASTE).is_file():
         found.append("paste filter (Codex)")
+    if MARKER in text and RESTART in text:
+        found.append(restart_leftover("Codex"))
     result["admin"] = "not read" if unread and not found else found + (["a file not read"] if unread else [])
     return result
 
@@ -687,9 +788,10 @@ def gather(project):
     for line in user_lines:
         if line.startswith("SOURCE  "):
             source = line[len("SOURCE  "):]
-    admin_lines, admin_stamp = [], "none"
+    admin_lines, admin_stamp, admin_code = [], "none", 0
+    if admin_present():
+        admin_code, admin_lines = run(managed_args(["--check"]))
     if admin:
-        _, admin_lines = run(managed_args(["--check"]))
         try:
             value = json.loads(admin_dropin().read_text(encoding="utf-8"))[NAME]
             m = re.search(r"; (release: [^;]*; commit: [^;]*);", value)
@@ -711,6 +813,7 @@ def gather(project):
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
             "workspace": ws, "plugins": enabled_plugins(ws["root"]), "brief": brief, "floor": floor,
             "hooks": hooks, "key": key, "runtime": runtime(), "admin_state": managed_state,
+            "admin_code": admin_code,
             "settings": read_settings(ws["root"]), "permissions": permissions_text(ws["root"]),
             "method": method_state(user_lines, enabled_plugins(ws["root"]))}
 
@@ -725,13 +828,13 @@ def cmd_install(admin_flag, method=False):
         return code
     hooks_mode = "managed" if admin_installed() else "user"
     code, _ = run(install_args(["--hooks=" + hooks_mode] + (["--method"] if method else [])), capture=False)
-    if admin_installed():
+    acode = 0
+    if admin_present():
         acode, alines = run(managed_args(["--check"]))
         if acode == 0:
             print("ADMIN   installed and matching this checkout")
         else:
-            print("ADMIN   %d admin target(s) differ from this checkout; run ./workstation install --admin "
-                  "and its one sudo line" % max(issues(alines), 1))
+            print("\n".join(admin_report(alines, acode)))
     else:
         print("ADMIN   not installed; ./workstation install --admin prints its one sudo line")
     ccode, clines = run(install_args(["--check", "--hooks=" + hooks_mode]))
@@ -740,7 +843,7 @@ def cmd_install(admin_flag, method=False):
     else:
         print("CHECK   the user-level check exits %d with %d target(s) differing; see ./workstation check"
               % (ccode, issues(clines)))
-    return max(code, ccode)
+    return max(code, ccode, acode)
 
 
 def latest_release(tags):
@@ -811,7 +914,7 @@ def cmd_update(wanted):
 
 def cmd_uninstall():
     code, _ = run(install_args(["--uninstall"]), capture=False)
-    if admin_installed():
+    if admin_present():
         _, lines = run(managed_args(["--uninstall"]))
         for line in lines:
             if line.startswith("RUN "):
@@ -828,8 +931,10 @@ def cmd_check(prerequisites_only=False):
     if not prerequisites_only:
         hooks_mode = "managed" if admin_installed() else "user"
         code, _ = run(install_args(["--check", "--hooks=" + hooks_mode]), capture=False)
-        if admin_installed():
-            acode, _ = run(managed_args(["--check"]), capture=False)
+        if admin_present():
+            # Every admin layer of ours, stamped or from an earlier release (Issue #52), read-only.
+            acode, alines = run(managed_args(["--check"]))
+            print("\n".join(alines + admin_report(alines, acode)), flush=True)
             code = max(code, acode)
     # Issue #89: present or missing, authenticated or not, drift from the preferred settings. Read-only.
     import prerequisites

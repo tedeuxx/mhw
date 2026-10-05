@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -107,7 +108,8 @@ class StatusOutput(unittest.TestCase):
 
     def test_differences_admin_and_absent_key(self):
         out = ws.render_status(facts(admin=True, admin_stamp=STAMP, user_issues=1, admin_issues=2, key=None))
-        self.assertIn("  check            3 target(s) differ; run ./workstation install", out)
+        self.assertIn("  check            3 target(s) differ (admin layer: 2); run ./workstation install --admin first",
+                      out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: v3.1.0 @ aaaaaaa", out)
         self.assertTrue(any("managed: installed" in line for line in out))
         self.assertIn("  version key      none (.workstation-version absent in the workspace)", out)
@@ -382,6 +384,100 @@ class GatherLegacyDropin(unittest.TestCase):
         layers = [line for line in ws.render_summary(f) if line.startswith("  layers ")][0]
         self.assertIn("managed: installed (legacy, pre-#66; reinstall to update) · ", layers)
         self.assertTrue(any("managed: installed (legacy" in line for line in ws.render_status(f)))
+
+
+@unittest.skipUnless(os.name == "posix" and shutil.which("jq") and os.access("/usr/bin/python3", os.X_OK),
+                     "needs a POSIX sh, jq and /usr/bin/python3")
+class StaleAdminLayer(unittest.TestCase):
+    """Issue #52: an admin layer an earlier release installed (v2.1.0: no #66 stamp key, the restart
+    guard, the picker guard with its session-intake exception, timed breaking-glass) must never read as
+    absent or current. A plain install, check and status report it by name and fail; install --admin and
+    its one line (root override, never sudo) clear it."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="workstation-stale-")
+        self.addCleanup(self.temp.cleanup)
+        b = self.base = Path(self.temp.name)
+        for d in ("home", "root", "tmp", "proj"):
+            (b / d).mkdir()
+        empty = b / "prereq.json"
+        empty.write_text('{"lanes": {}, "items": []}', encoding="utf-8")
+        self.env = {"PATH": os.environ["PATH"], "HOME": str(b / "home"), "TMPDIR": str(b / "tmp"),
+                    "WORKSTATION_MANAGED_ROOT": str(b / "root"), "WORKSTATION_PREREQUISITES": str(empty)}
+        root = str(b / "root")
+        darwin = sys.platform == "darwin"
+        admin = Path(root + ("/Library/Application Support/" if darwin else "/etc/") + ws.NAME)
+        dropin = Path(root + ("/Library/Application Support/ClaudeCode" if darwin else "/etc/claude-code")
+                      + "/managed-settings.d/50-%s.json" % ws.NAME)
+        bin_dir = admin / "bin"
+        bin_dir.mkdir(parents=True)
+        (admin / "breaking-glass").mkdir()
+        for name in ("restart_guard.py", "breaking_glass.py", "hitl-escalation-guard.sh", "hitl.conf",
+                     ws.PASTE, "clipboard.conf"):
+            (bin_dir / name).write_text("# v2.1.0\n", encoding="utf-8")
+
+        def hook(cmd):
+            return [{"hooks": [{"type": "command", "command": cmd}]}]
+        restart = '/usr/bin/python3 -I -B "%s" --harness claude-code' % (bin_dir / "restart_guard.py")
+        # The v2.1.0 drop-in shape, measured from install-managed.sh at tag v2.1.0: no stamp key.
+        dropin.parent.mkdir(parents=True)
+        dropin.write_text(json.dumps({"hooks": {
+            "SessionStart": hook(restart),
+            "PreToolUse": hook(restart) + hook('/bin/sh "%s"' % (bin_dir / ws.GUARD)),
+            "UserPromptSubmit": hook('/usr/bin/python3 -I -B "%s" prompt-hook' % (bin_dir / ws.PASTE))}}),
+            encoding="utf-8")
+        req = Path(root + "/etc/codex/requirements.toml")
+        req.parent.mkdir(parents=True)
+        req.write_text("# %s; source: global/install-managed.sh; version: 2.1.0\n[hooks]\n"
+                       "[[hooks.SessionStart]]\n[[hooks.SessionStart.hooks]]\ntype = \"command\"\n"
+                       "command = \"/usr/bin/python3 -I -B \\\"%s\\\" --harness codex\"\n"
+                       % (ws.MARKER, bin_dir / "restart_guard.py"), encoding="utf-8")
+
+    def run_ws(self, *args):
+        p = subprocess.run([str(ws.ROOT / "workstation")] + list(args) + ["--overlay=none"], env=self.env,
+                           cwd=self.base, capture_output=True, text=True)
+        return p.returncode, p.stdout + p.stderr
+
+    def assert_named(self, out, prefix):
+        self.assertIn(prefix + "STALE restart_guard.py, breaking_glass.py, hitl-escalation-guard.sh, hitl.conf, "
+                      "breaking-glass\n", out)
+        self.assertIn(prefix + "removed controls still installed: restart guard, picker guard, session intake "
+                      "(the picker guard's intake exception), timed breaking-glass\n", out)
+        self.assertRegex(out, r"(?m)^%sDRIFT .*%s" % (re.escape(prefix), re.escape(ws.PASTE)))
+        self.assertIn(prefix + ws.ADMIN_NEXT + "\n", out)
+
+    def test_plain_install_reports_stale_then_admin_install_clears_it(self):
+        code, out = self.run_ws("install")
+        self.assertNotEqual(code, 0, out)
+        self.assertNotIn("ADMIN   not installed", out)
+        self.assert_named(out, "ADMIN   ")
+        code, out = self.run_ws("check")
+        self.assertNotEqual(code, 0, out)
+        self.assert_named(out, "ADMIN   ")
+        code, out = self.run_ws("status", "--project=" + str(self.base / "proj"))
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("matches this checkout", out)
+        self.assertRegex(out, r"(?m)^  check            \d+ target\(s\) differ \(admin layer: \d+\); run "
+                              r"\./workstation install --admin first$")
+        self.assert_named(out, "  admin layer      ")
+        self.assertIn("removed restart guard still registered (Claude Code)", out)
+        self.assertIn("removed restart guard still registered (Codex)", out)
+
+        # The documented order: install --admin, its one line (root override, no sudo), then install.
+        code, out = self.run_ws("install", "--admin")
+        self.assertEqual(code, 0, out)
+        line = re.search(r"(?m)^RUN     sudo (.*)$", out).group(1)
+        p = subprocess.run(shlex.split(line), env=self.env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        code, out = self.run_ws("install")
+        self.assertEqual(code, 0, out)
+        self.assertIn("ADMIN   installed and matching this checkout", out)
+        code, out = self.run_ws("check")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("STALE", out)
+        code, out = self.run_ws("status", "--project=" + str(self.base / "proj"))
+        self.assertIn("  check            matches this checkout\n", out)
+        self.assertNotIn("restart guard", out)
 
 
 class Overlay(unittest.TestCase):
