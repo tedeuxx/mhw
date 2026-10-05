@@ -379,3 +379,12 @@ from here now, and at what evidence level:
   command skills from implicit use; Codex agents and every Kiro cell are documented only (Kiro needs a
   login). Codex agents carry no tool list: there it is an instruction. **Not installed** on the
   reference machine; the plugin stays the running copy until #62 and #63.
+- **Workflow commands** (Issues #71 to #75, 2026-10-05): `/new-idea`, `/idea-to-issues`, `/handover`,
+  `/what-else` and `/blueprint` added to `method/commands/`, rendered with the rest of the method
+  (Claude Code command files; Codex skills with implicit invocation off; Kiro skills). They instruct
+  and orchestrate; none merges, publishes or adds a hook. *Written and tested*
+  (`global/method/method_commands_test.py`, mutation-checked), and probed in a throwaway home with
+  `--method`: Claude Code 2.1.289 headless `init` lists all five; Codex 0.160.0 holds them under
+  `~/.agents/skills/` with implicit invocation off and leaves them out of the model-visible list. Codex
+  `$name` invocation is not measured; Kiro is documented only. **Not installed** on the reference
+  machine, as for the rest of the method.
