@@ -124,6 +124,64 @@ Measured 2026-10-05 in throwaway homes and a throwaway admin root under the sess
   (`global/workstation.py` and `install.sh --uninstall`), in a copy of the tree, each turned the suite
   red; the unmutated copy stayed green.
 
+## Amendment 2026-10-05: the session-start runtime summary (#80)
+
+**Context.** The owner: *"o mais importante é comunicar adequadamente ao usuario do harness qual
+configuracao de runtime ele tem no inicio de cada sessao"*. At the start of every session the agent
+harness user is told which runtime configuration is in effect.
+
+**Decision.** `./workstation status --summary` renders about ten lines from the same facts `status`
+gathers (no second data path): agent harness and version, configured model and effort, the stamp and
+version-key result, the layers, workspace settings that override a user default (and
+`disableAllHooks` wherever it is set), what no lower layer can override, the protections at their
+evidence level, the configured permission mode, and host or container. The carrier in all three agent
+harnesses is the same brief section, *Session-start runtime summary*: state the summary in the first
+reply (after the session-type picker, when one is due), relaying `./workstation status --summary` when
+the checkout is reachable, and name the native view for what only the agent harness knows: Claude Code
+`/status`, Codex `/status`, Kiro `/context show` and `/tools`. Codex reads it from `AGENTS.md`, Kiro
+from its always-included steering file, Claude Code from `CLAUDE.md`.
+
+**Considered options for Claude Code.**
+
+- *Brief instruction (chosen).* Native, already loaded, the same text as the other two agent harnesses,
+  nothing new installed or executed. Bad: it depends on a model obeying it, which is not measured.
+- *Native status line (rejected).* It is a settings key (`statusLine`), not a `hooks` entry, but it runs
+  a command on every refresh, and the 2.1.289 bundle couples it to the hooks kill switch (the string
+  `Status line is configured but disableAllHooks is true`). It would add a recurring executed command
+  where the principle is no new hooks; `statusLine` holds one value, so installing ours would replace a
+  status line the user already has; the summary's source runs the installers' `--check`, too slow for
+  a refresh; and it renders neither in headless `-p` nor in the desktop app. Its one advantage is real:
+  it reaches the user without depending on a model. Revisit if the brief instruction proves unreliable.
+- *A `SessionStart` hook (rejected).* A new hook, against the stated principle.
+
+**Gaps, stated.** No agent harness reports overrides per layer natively; the summary reads only the
+user and workspace files it knows (Claude Code `settings.json` and `settings.local.json`, Codex
+`config.toml` top-level keys), so a command-line flag, a Codex profile or an environment variable that
+changes the session is not visible there, and the summary points to the native view for it. Kiro
+settings are not read. The summary is an instruction: no hook produces it.
+
+**Evidence, 2026-10-05**, throwaway home and admin root under the session scratch directory, `env -i`:
+`./workstation install --overlay=none` rendered the section into all three user briefs; `status
+--summary` with a project setting `permissions.defaultMode: acceptEdits` reported it as a workspace
+override and the permission mode. Claude Code 2.1.289 headless `init`, in the same project, reported
+`permissionMode: acceptEdits` and a model: the agent harness's own report agrees with the file-derived
+line. `/status` was not in the headless `slash_commands` list (`context` and `model` were): the Claude
+Code pointer is *documented*, not measured. Codex 0.160.0 `codex debug prompt-input`: the model-visible
+prompt carries the section. Kiro: rendered steering file only (*documented* loading). No model call.
+Six source mutations of `render_summary` and `read_settings` each turned `RuntimeSummary`/`Settings`
+red; the restored file stayed green.
+
+*Repair, same PR, after the agents-lead lens.* The first version listed the deny floor under
+`cannot override` with "a deny in any layer wins", and cut the installer's caveat at its first `;`.
+Without the admin layer the floor is user-level and a session flag drops it (#55, #59), so that line
+erred in the permissive direction. Now only what sits in the admin layer is named there; any other
+floor reads `deny floor NOT locked:` followed by the installer's `FLOOR   carried by:` text word for
+word. QA also found a pre-#66 admin drop-in (our filename, no stamp key) reported as `managed:
+absent`; `status` now reports it as `installed (legacy, pre-#66; reinstall to update)` and never says
+absent while a drop-in is present. Probed in throwaway homes and roots with the admin layer absent,
+present (staged, applied without `sudo` through `--root`) and as a legacy drop-in generated from the
+`install-managed.sh` template at `3742ffa`. Eight more source mutations each turned the suite red.
+
 ## Links
 
 - Requirements document, [section 7](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#7-version-key-per-project)
