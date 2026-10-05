@@ -16,6 +16,9 @@
 #   --managed-root=DIR          read the admin layer under DIR instead of / (tests only); this script
 #                               never writes the admin layer, it only reports which layer carries the
 #                               deny floor (FLOOR lines; install-managed.sh installs the admin copy)
+#   --shell-rc=FILE             opt-in (Issue #58): append the one line that activates the paste wrapper
+#                               to FILE (an absolute path, e.g. your ~/.zshrc), printing it; idempotent.
+#                               Without it the line is only printed. --check reports FILE; --dry-run writes nothing
 #
 # Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
 # 3 something UNMANAGED or unreadable is in the way. A file is managed when its marker line (below) is in
@@ -30,7 +33,10 @@
 # `clipboard_guard.py add-term` does).
 # The paste wrapper (ADR-0011, automatic cleaning at the paste boundary) is installed beside the core with
 # a managed shell snippet defining claude, codex and kiro-cli functions that run the CLIs through it. The
-# installer never sources that snippet and never edits a shell rc: activating it is the owner's act.
+# installer never sources that snippet. It edits a shell rc only when the owner names one with
+# --shell-rc=FILE (opt-in, Issue #58): one guarded line is appended, printed, and never duplicated.
+# The wrapper exports a session marker; the prompt hook stays as the safety net and blocks only where
+# the marker is absent (sessions not opened through the wrapper; ADR-0011, 2026-10-05 amendment).
 set -eu
 
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
@@ -56,6 +62,7 @@ mode=install
 hooks_mode=user
 overlay="$repo_root/overlay"
 managed_root=
+shell_rc=
 for arg in "$@"; do
   case $arg in
     --managed-root=*) managed_root=${arg#--managed-root=} ;;
@@ -65,10 +72,16 @@ for arg in "$@"; do
     --hooks=managed) hooks_mode=managed ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    --shell-rc=?*) shell_rc=${arg#--shell-rc=} ;;
+    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
+
+case $shell_rc in
+  ''|/*) ;;
+  *) echo "--shell-rc needs an absolute path, got: $shell_rc" >&2; exit 2 ;;
+esac
 
 for f in "$src" "$hook_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
@@ -228,6 +241,55 @@ fi
 status=0
 raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
 
+# The shell start-up line that activates the paste wrapper (Issue #58). Opt-in: it is written only with
+# --shell-rc=FILE, only into that file, only when absent, and printed as it is written. Without the flag
+# it is printed for the owner to add himself. A line carrying our tag but differing is never rewritten.
+rc_tag="# personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)"
+rc_line="[ -r \"$snippet_dest\" ] && . \"$snippet_dest\"  $rc_tag"
+shell_rc_line() {
+  if [ -z "$shell_rc" ]; then
+    if [ "$mode" = install ]; then
+      echo "NOTE    automatic paste cleaning starts only once this line is in your shell rc; add it yourself:"
+      echo "        $rc_line"
+      echo "        or re-run with --shell-rc=<absolute path of your rc> to have it appended (opt-in)"
+    fi
+    return 0
+  fi
+  if [ -e "$shell_rc" ] && [ ! -f "$shell_rc" ]; then
+    echo "REFUSE  $shell_rc is not a regular file; nothing written. Add this line yourself:"
+    echo "        $rc_line"
+    raise 3
+    return 0
+  fi
+  if [ -f "$shell_rc" ] && grep -qxF "$rc_line" "$shell_rc"; then
+    echo "OK      $shell_rc activates the paste wrapper"
+    return 0
+  fi
+  if [ -f "$shell_rc" ] && grep -qF "$rc_tag" "$shell_rc"; then
+    echo "STALE   $shell_rc carries a different paste-wrapper line; left alone. Replace it yourself with:"
+    echo "        $rc_line"
+    raise 1
+    return 0
+  fi
+  case $mode in
+    check)
+      echo "MISSING $shell_rc: no paste-wrapper start-up line; install --shell-rc=$shell_rc appends it"
+      raise 1
+      ;;
+    dry-run)
+      echo "WOULD APPEND to $shell_rc: $rc_line"
+      ;;
+    install)
+      if [ -s "$shell_rc" ] && [ -n "$(tail -c 1 "$shell_rc")" ]; then
+        printf '\n' >> "$shell_rc"
+      fi
+      printf '%s\n' "$rc_line" >> "$shell_rc"
+      echo "APPENDED to $shell_rc (opt-in, --shell-rc): $rc_line"
+      echo "NOTE    it takes effect in new shells; delete that one line to deactivate the wrapper"
+      ;;
+  esac
+}
+
 render() {
   # $1 = kind (plain|kiro|hook|conf), $2 = output file
   case $1 in
@@ -292,10 +354,11 @@ render() {
         printf '# %s; source: global/install.sh (paste wrapper, ADR-0011); %s; do not edit, re-run the installer\n' \
           "$MARKER_ID" "$stamp"
         printf '# The paste filter at the harness-CLI paste boundary (ADR-0011). To activate it, add this line to\n'
-        printf '# your ~/.zshrc or ~/.bashrc yourself (the installer never edits a shell rc):\n'
-        printf '#   . "%s"\n' "$snippet_dest"
+        printf '# your ~/.zshrc or ~/.bashrc yourself, or run install.sh --shell-rc=<that file> (opt-in):\n'
+        printf '#   %s\n' "$rc_line"
         printf '# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n'
-        printf '# CLI sees them. "command claude" (or codex, kiro-cli) runs a CLI without it.\n'
+        printf '# CLI sees them and marks the session (%s=1), so the prompt hook lets its prompts\n' "PMHWC_PASTE_WRAPPER"
+        printf '# through. "command claude" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\n'
         for cli in claude codex kiro-cli; do
           printf '%s() { /usr/bin/python3 -I -B "%s" run --config "%s" -- %s "$@"; }\n' \
             "$cli" "$wrap_dest" "$clip_conf_dest" "$cli"
@@ -582,10 +645,7 @@ if [ "$paste_ok" = 1 ]; then
   fi
   process wrapscript "$wrap_dest"
   process snippet "$snippet_dest"
-  if [ "$mode" = install ]; then
-    echo "NOTE    automatic paste cleaning starts only once you add this line to your shell rc yourself:"
-    echo "        . \"$snippet_dest\""
-  fi
+  shell_rc_line
 else
   raise 2
   echo "SKIP    $codex_hooks: the paste filter cannot run here (see the REFUSE line above)"
