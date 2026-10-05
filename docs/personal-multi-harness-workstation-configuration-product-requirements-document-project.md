@@ -364,7 +364,7 @@ and instructions. A hook stays only if all three hold:
 | Paste cleaning outside the wrapper | ~~*Open decision*~~ Decided ([#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58), 2026-10-05): the prompt hook stays, and blocks only where the wrapper's marker is absent. The prompt hook is the only candidate that passes the test, because once a secret is sent the provider already has it. The alternative is the wrapper (a terminal launcher, not a hook) plus the brief's instruction not to use, repeat or store a pasted secret. |
 | Stale configuration | Brief instruction (ADR-0022 rule) plus `./workstation status` |
 | One-question, short pickers | Owner overlay instruction, calibrated by the interaction interview ([5](#5-interaction-standards-user-layer)) |
-| Session-type intake | The workspace brief asks; native session-start context where the agent harness offers it without a hook |
+| ~~Session-type intake~~ | ~~The workspace brief asks; native session-start context where the agent harness offers it without a hook~~ Removed on the owner's interview (#60) |
 | Version-key check | Project brief instructs the agent to compare the key with the installed stamp at session start; `./workstation status` on demand |
 | Irreversible actions and secret writes | Native deny rules (deny floor) |
 | Connector access | Native per-agent tool lists |
@@ -374,20 +374,24 @@ and instructions. A hook stays only if all three hold:
 Consequence: ~~`/breaking-glass` and the admin-layer hook installation exist only if the paste prompt hook
 stays.~~ `/breaking-glass` is removed
 ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)). The admin-layer
-hook installation exists only while a hook stays: the paste prompt hook (#58) and the picker guard
-(until #60). The deny floor is native configuration, not a hook, and stays.
+hook installation exists only while a hook stays: the paste prompt hook (#58). ~~and the picker guard
+(until #60)~~ The picker guard is removed (#60). The deny floor is native configuration, not a hook, and stays.
 
 ## 5. Interaction standards (user layer)
 
-> **To be calibrated in an owner interview before anything here is built**
-> ([#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60)).
-> The rows are a starting proposal, not decisions.
+> ~~**To be calibrated in an owner interview before anything here is built**~~
+> ~~([#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60)).~~
+> ~~The rows are a starting proposal, not decisions.~~
+> Calibrated in the owner interview of 2026-10-05, recorded on
+> [#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60).
 
 | Element | Target behaviour | Status |
 | --- | --- | --- |
 | Owner overlay (language, tone, escalation limits, pacing) | Rendered into each agent harness's user brief by the profile compiler; the single place for owner-specific text (no owner language hard-coded in generic code) | Agreed |
-| Picker behaviour | Instruction in the owner overlay only: one question per ask, short question, options that state their consequence; no hook | Interview owed |
-| Session-type intake | Workspace brief instruction only; `workspace/session-policy.json` is the single source; the global brief keeps one generic sentence | Interview owed |
+| Picker behaviour | Instruction in the owner overlay only: one question per message, a stem of at most 280 characters, reasoning in a linked artifact; a decision gets three options (one extreme, the opposite extreme, the middle ground); no hook | Decided 2026-10-05 (#60) |
+| Language | Portuguese with the owner; English for everything published | Decided 2026-10-05 (#60) |
+| Session-type intake | ~~Workspace brief instruction only; `workspace/session-policy.json` is the single source; the global brief keeps one generic sentence~~ Removed entirely: no hook, no command, no brief copy | Decided 2026-10-05 (#60) |
+| Merge authority | Agents merge slices into `rc/next` after the review gate; only the release-candidate PR to `main` waits for the owner | Decided 2026-10-05 (#60) |
 | MCP definition renderer | Not part of the main line; it returns as a standard if use asks for it | Agreed |
 
 ## 5a. Documentation standards (user layer, every repository)
