@@ -113,4 +113,4 @@ that apply this rubric. This record decides no individual artifact's placement.
 - [ADR-0014](0014-purpose-boundary-firewall-vs-plugin.md): firewall versus plugin, refined here
 - [ADR-0024](0024-breaking-glass-per-layer-expiring-switches.md): native admin layers per harness
 - [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md): the first artifacts placed in the managed layer
-- [Restart handoff](../restart-handoff.md): the four-step plan this record starts
+- [Restart handoff](../archive/restart-handoff.md): the four-step plan this record starts

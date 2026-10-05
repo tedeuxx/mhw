@@ -201,9 +201,11 @@ instructions, and say so.~~ Since 2026-10-05 no hook exists on any row: every ru
 
 ~~On the reference install, both guards fire on `AskUserQuestion` and both deny two or more questions.
 The duplication is deliberate for now.~~ Since 2026-10-05 this repository's guard is removed; the
-plugin's duplicate is the plugin's to remove, under #63. This repository's guard is the owned one, and it adds the
-length limit and the owner notice. Retiring the plugin's copy is a decision for the owner in that
-repository; it is named here, not filed. If either is removed, the other still holds the count.
+plugin's duplicate is the plugin's to remove, under #63. ~~This repository's guard is the owned one, and it adds the
+length limit and the owner notice.~~ Retiring the plugin's copy is a decision for the owner in that
+repository; it is named here, not filed. ~~If either is removed, the other still holds the count.~~
+*(Struck 2026-10-05, Issue #65: this repository's guard is removed, so it adds nothing and holds no
+count; only the plugin's copy, while that plugin is enabled, still checks the count.)*
 
 ## Consequences
 

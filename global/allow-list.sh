@@ -65,6 +65,11 @@ allow_parse() {
           # allow on everything, and an agent able to edit this list would grant itself the world.
           if ($3 ~ /^(bash|sh|dash|zsh|ksh|mksh|fish|csh|tcsh|busybox|env|xargs|eval|exec|source|command|builtin|nohup|time|nice|timeout|watch|script|sudo|doas|su|python[0-9.]*|pypy[0-9.]*|node|nodejs|deno|bun|perl[0-9.]*|ruby|irb|php|lua|tclsh|osascript|awk|gawk|nawk|find|make|npm|npx|pnpm|yarn|pytest|cargo|go)$/)
             why = "the program \"" $3 "\" runs whatever it is given (a shell, an interpreter, a dispatcher or a project-code runner)"
+          # An option before the subcommand reaches every subcommand, and "git -c" sets core.pager,
+          # core.sshCommand or an alias that runs any program: the second word must be a subcommand
+          # (Issue #65; "git -C" and "gh -R" widen the prefix past every per-subcommand pin).
+          else if (($3 == "git" || $3 == "gh") && NF >= 4 && $4 ~ /^-/)
+            why = "\"" $3 " " $4 "\" is an option before the subcommand: it reaches every subcommand (and \"git -c\" can run any program)"
           # Never in any tier: each runs, publishes or writes through its own options or arguments.
           else if ((e = listed("git worktree add|git config|git archive|git format-patch|git am|git apply|git pull|gh issue comment|gh issue create|gh issue edit|gh pr comment|gh pr create|gh pr edit|gh pr review|gh gist|gh api|gh extension|gh alias", w)) != "")
             why = "\"" e "\" takes an option or argument that reads or writes any path, runs a program or publishes"
@@ -124,7 +129,8 @@ allow_words() { # $1 tier, $2 kind(s): the word lists rendered for that tier (na
 # ---- Claude Code: a union merge into ~/.claude/settings.json, with ownership like the deny floor's.
 # The files that decide what is pre-authorised. An Edit/Write deny for each, in every tier, so an agent
 # cannot widen its own list with an edit (Claude Code only: Codex has no file rule, Kiro no floor).
-# "//" is Claude Code's absolute-path form, "~/" its home form; the checkout's path is resolved here.
+# "//" is Claude Code's absolute-path form, "~/" its home form; the checkout's path is resolved here,
+# so the source rules cover only the checkout that ran this installer, never another clone or worktree.
 # shellcheck disable=SC2088 # the tilde is Claude Code rule syntax, written literally, never expanded
 allow_protect() {
   codex_dir="${CODEX_HOME:-$HOME/.codex}"

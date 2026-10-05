@@ -540,7 +540,8 @@ When an agent works in a consuming repo, these twelve principles are the lens fo
 first, ask on the boundaries, slice thin, keep the floor green, and verify your own work before
 handing the residual to a human. The deep-dive component skills tell you *how* to build each piece;
 this tells you *how to decide* while you do. Today that means three reference skills — `/backend`,
-`/frontend` and `/cloud-infrastructure`.
+`/frontend` and `/cloud-infrastructure` — which live in the site project, not in this method: in a
+repository without them, none of the three resolves.
 
 See also: `/definition-of-done` (the Definition of Done itself — the criteria, and the table naming
 which of them a gate proves), `/quality-gates` (the gate tables per loop model and the concrete

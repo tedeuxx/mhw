@@ -226,6 +226,17 @@ class RuntimeSummary(unittest.TestCase):
             with self.subTest(needle=needle):
                 self.assertIn(needle, section)
 
+    def test_brief_anchors_the_session_goal(self):
+        # Issue #11, #65: agree the objective in one line at session start, native /goal where present.
+        brief = (ws.HERE / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("\n## Session goal anchor\n", brief)
+        section = brief.split("## Session goal anchor", 1)[1].split("\n## ", 1)[0]
+        section = " ".join(section.split())
+        for needle in ("objective with the owner in one line", "Claude Code `/goal`", "Codex `/goal`",
+                       "Kiro CLI `/goal`", "first reply", "not a hook"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, section)
+
 
 class Settings(unittest.TestCase):
     def test_reads_user_and_workspace_layers(self):

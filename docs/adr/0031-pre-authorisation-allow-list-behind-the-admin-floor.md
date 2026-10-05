@@ -157,6 +157,11 @@ count, the Codex profile's sandbox mode and allow-rule count, and the Kiro trust
 - **The `Edit` deny protects this checkout's source files from every Claude Code session**, the owner's
   own improvement sessions on this repository included. Bash writes are not `Edit`, and a test runner can
   write anything (above).
+- **It covers only the checkout that ran the installer** (added 2026-10-05, Issue #65). The two source
+  rules name that checkout's absolute path, so another clone or worktree of this repository, an agent's
+  own worktree included, carries no `Edit` deny on its `global/allow-list.conf` or `overlay/**`. An
+  edit there changes nothing installed until someone runs that copy's installer, which is the owner's
+  act and is never pre-authorised; `**/.git/config` and `**/.git/hooks/**` are denied in every checkout.
 - **Per-agent tool lists** (the second ask on #83) are not rendered here: they belong to the agent
   definitions (#61, method rendering). Codex custom agents have no per-agent tool list (#55 matrix).
 - **Windows:** `install.ps1` renders no allow list yet.
