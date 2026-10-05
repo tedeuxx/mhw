@@ -1,6 +1,6 @@
 # ADR-0024: Breaking glass: one expiring, root-owned switch per hook protection layer
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ superseded by [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (2026-10-05)
 - **Date:** 2026-10-04
 - **Complements:** [ADR-0023](0023-breaking-glass-all-layers-native-switch.md), the total level of the same
   `/breaking-glass` name, kept as the last resort
@@ -96,3 +96,13 @@ Option 1.
 - Claude Code: settings, hooks and managed-settings documentation (code.claude.com)
 - Codex: hooks and managed configuration documentation (learn.chatgpt.com/docs)
 - Kiro: hooks, custom agent configuration and governance documentation (kiro.dev/docs)
+
+## Superseded 2026-10-05 (ADR-0028)
+
+The owner decided that no mechanical lock may require per-request or expiring waivers; an exception
+goes only through OS privilege (`sudo`/`su`), as with any OS-managed policy. The expiring per-layer
+switches, the `breaking_glass.py` module and the `/breaking-glass` command are removed. The
+administrator turns a hook off by editing or removing the managed documents with `sudo`
+([ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md), owner's words quoted
+there; [runbook](../runbooks/breaking-glass.md)). The record above is kept unchanged as the reasoning
+for what was built on 2026-10-04.

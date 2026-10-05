@@ -1,6 +1,6 @@
 # ADR-0025: Hook layers in each harness's native admin layer (workstation v2)
 
-- **Status:** proposed
+- **Status:** proposed; its restart-guard and switch parts superseded by [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (2026-10-05)
 - **Date:** 2026-10-04
 - **Amends:** [ADR-0013](0013-hitl-escalation-calibration.md), [ADR-0022](0022-restart-after-active-customization-changes.md),
   [ADR-0011](0011-clipboard-prompt-anonymisation.md) (where their hooks are registered, and two v1 defects)
@@ -53,19 +53,19 @@ Option 2, with the defect fixes:
 - **HITL (defect 1):** a configured `intake_exception=Session type|Melhoria de harness|Bugfix` in
   `global/hitl.conf` holds in any directory. It is exact on header, labels and order, and
   single-select. The `session-policy.json` route stays.
-- **Restart guard (defect 2):**
-  - The project anchor is Claude Code's session-stable `CLAUDE_PROJECT_DIR`. Codex keeps its hook
-    working directory, because its shell commands are separate processes.
-  - On any non-match, `Read`, `Grep`, `Glob`, `LS`, `NotebookRead`, `TodoWrite` and
-    `AskUserQuestion` pass with a notice.
-  - So does one simple read-only shell command. It must have no shell metacharacters, start with
-    `cat`, `ls`, `head`, `tail`, `wc`, `grep`, `rg`, `pwd`, `stat` or `find`, or be
-    `git status|diff|log|show|rev-parse`, and carry no executing or writing flag.
-  - This allowlist is the owner's choice for Codex (2026-10-04), and it applies to Claude Code's Bash
-    too.
-  - The baseline is still one aggregate hash.
-- **Switches:** every layer reads its ADR-0024 switch on every call. The restart guard's SessionStart
-  message announces every switched-off layer.
+- ~~**Restart guard (defect 2):**~~
+  - ~~The project anchor is Claude Code's session-stable `CLAUDE_PROJECT_DIR`. Codex keeps its hook~~
+    ~~working directory, because its shell commands are separate processes.~~
+  - ~~On any non-match, `Read`, `Grep`, `Glob`, `LS`, `NotebookRead`, `TodoWrite` and~~
+    ~~`AskUserQuestion` pass with a notice.~~
+  - ~~So does one simple read-only shell command. It must have no shell metacharacters, start with~~
+    ~~`cat`, `ls`, `head`, `tail`, `wc`, `grep`, `rg`, `pwd`, `stat` or `find`, or be~~
+    ~~`git status|diff|log|show|rev-parse`, and carry no executing or writing flag.~~
+  - ~~This allowlist is the owner's choice for Codex (2026-10-04), and it applies to Claude Code's Bash~~
+    ~~too.~~
+  - ~~The baseline is still one aggregate hash.~~
+- ~~**Switches:** every layer reads its ADR-0024 switch on every call. The restart guard's SessionStart~~
+  ~~message announces every switched-off layer.~~
 - **Installer:** `global/install-managed.sh` renders the hook files through `install.sh` into a
   throwaway home, validates both admin documents, and prints one sudo line. That line carries the
   stage's SHA-256, and `--apply` copies the stage before verifying the copy. Then
@@ -105,3 +105,14 @@ Option 2, with the defect fixes:
 - Claude Code managed settings: code.claude.com/docs/en/managed-settings
 - Codex managed configuration and hooks: learn.chatgpt.com/docs/enterprise/managed-configuration, learn.chatgpt.com/docs/hooks
 - Kiro hooks and governance: kiro.dev/docs/hooks, kiro.dev/docs/enterprise/governance
+
+## Amendment 2026-10-05: restart guard and switches removed (ADR-0028)
+
+The admin layer stays: the paste prompt hook (pending #58), the HITL picker guard (until #60) and the
+deny floor are still installed there by `install-managed.sh`. The restart guard and the ADR-0024
+switches are removed, and the two bullets above are struck in place
+([ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md), owner's words quoted
+there). The only way to turn an admin-layer hook off is the administrator editing or removing the
+managed documents with `sudo`. "That is why read-only tools are never denied and the switches exist"
+under option 2 no longer applies: no remaining hook denies a tool on configuration state. `--apply`
+and `--remove` delete the restart guard and switch files an earlier release installed.

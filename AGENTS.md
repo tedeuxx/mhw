@@ -260,7 +260,7 @@ from here now, and at what evidence level:
   the managed restart guard wrote this session's baseline at startup. On Codex the `hooks = false`
   line is absent; whether hooks fire there again is not measured.
 - **v2** (ADR-0024, ADR-0025, 2026-10-04): fixes for the intake picker and the restart-guard lockout,
-  per-layer expiring root-owned switches with `/breaking-glass`, and the admin-layer installer.
+  ~~per-layer expiring root-owned switches with `/breaking-glass`,~~ and the admin-layer installer.
   *Written and tested* in throwaway homes and roots; ~~**not installed**~~. The rollout is the owner's,
   in fresh sessions ([runbook](docs/runbooks/breaking-glass.md)).
   *Amended 2026-10-04:* the owner installed v2.1.0 in the admin layer (`install-managed.sh`, one
@@ -279,6 +279,14 @@ from here now, and at what evidence level:
   working-directory change, and reported every breaking-glass layer active. Managed restart-guard
   routing and pass/block enforcement are therefore *measured* on this Codex surface; other Codex
   surfaces remain unmeasured.
+  *Amended 2026-10-05 (ADR-0028, proposed):* on the owner's decision that no lock may require
+  per-request or expiring waivers, the restart guard, the per-layer switches and `/breaking-glass`
+  are removed from the source; a hook is turned off only by the administrator editing the admin
+  layer with `sudo`. The ADR-0022 restart rule stays as a brief instruction. The removal is
+  *written and tested* in throwaway homes and roots; **not installed**: the reference machine runs
+  the restart guard and the switches until the owner runs the admin-layer installer in a fresh
+  session ([runbook](docs/runbooks/breaking-glass.md)). The measurements above stay true of what is
+  installed until then.
 - **Conversation profile** (ADR-0019, 2026-10-02): paced clarification, concise output, scoped input
   retrieval, and three risk/benefit choices are installed in the user briefs for Claude Code, Codex
   and Kiro, and saved in Claude desktop account instructions. The brief was loaded into the current

@@ -25,6 +25,7 @@ else
   dropin="$r/etc/claude-code/managed-settings.d/50-$NAME.json"
 fi
 req="$r/etc/codex/requirements.toml"
+switches="$(dirname "$bin")/breaking-glass"
 export TMPDIR="$base/tmp"
 mkdir -p "$TMPDIR"
 
@@ -43,7 +44,7 @@ sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check before apply repo
 
 # 2. the hash binds every staged file: a wrong hash or a changed file installs nothing
 sh "$inst" --apply="$stage" --sha256=0000 --root="$r" > /dev/null 2>&1; expect "apply refuses a wrong hash" 3 $?
-for f in bin/restart_guard.py bin/hitl.conf claude.json requirements.toml; do
+for f in bin/clipboard_guard.py bin/hitl.conf claude.json requirements.toml; do
   cp "$stage/$f" "$base/keep"
   printf '\n' >> "$stage/$f"
   sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply refuses a changed $f" 3 $?
@@ -54,21 +55,21 @@ done
 # 3. apply installs the admin documents and the scripts
 sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply exits 0" 0 $?
 if jq -e --arg b "$bin" '
-    (.hooks | keys == ["PreToolUse", "SessionStart", "UserPromptSubmit"])
+    (.hooks | keys == ["PreToolUse", "UserPromptSubmit"])
     and ([.hooks[][] .hooks[] .command | contains($b)] | all)
     and ([.hooks.PreToolUse[] | select(.matcher == "AskUserQuestion")] | length == 1)' "$dropin" >/dev/null 2>&1; then
-  ok "the Claude Code drop-in registers the three layers from the admin bin"
+  ok "the Claude Code drop-in registers the paste filter and HITL guard from the admin bin, no restart guard"
 else
-  ko "the Claude Code drop-in registers the three layers from the admin bin"
+  ko "the Claude Code drop-in registers the paste filter and HITL guard from the admin bin, no restart guard"
 fi
 if head -n 1 "$req" | grep -q "managed-by: $NAME" && ! grep -qE '^[[:space:]]*(allow_managed_hooks_only|\[features\])' "$req" \
-   && [ "$(grep -c '^\[\[hooks\.[A-Za-z]*\.hooks\]\]' "$req")" -eq 3 ]; then
-  ok "the Codex requirements carry our marker, three hooks and no hooks-only lock"
+   && [ "$(grep -c '^\[\[hooks\.[A-Za-z]*\.hooks\]\]' "$req")" -eq 1 ] && grep -q '^\[\[hooks\.UserPromptSubmit\.hooks\]\]' "$req"; then
+  ok "the Codex requirements carry our marker, the paste filter hook only and no hooks-only lock"
 else
-  ko "the Codex requirements carry our marker, three hooks and no hooks-only lock"
+  ko "the Codex requirements carry our marker, the paste filter hook only and no hooks-only lock"
 fi
 if python3 -c 'import tomllib' 2>/dev/null; then
-  python3 -c 'import sys, tomllib; d = tomllib.load(open(sys.argv[1], "rb")); assert set(d["hooks"]) >= {"managed_dir", "PreToolUse", "SessionStart", "UserPromptSubmit"}' "$req"
+  python3 -c 'import sys, tomllib; d = tomllib.load(open(sys.argv[1], "rb")); assert set(d["hooks"]) == {"managed_dir", "UserPromptSubmit"}' "$req"
   expect "the Codex requirements parse as TOML" 0 $?
 fi
 # 3b. the deny floor in the admin layer (ADR-0016, 2026-10-05 amendment): the same rules install.sh
@@ -117,7 +118,7 @@ else
 fi
 
 modes_ok=1
-for f in hitl-escalation-guard.sh restart_guard.py clipboard_guard.py breaking_glass.py; do
+for f in hitl-escalation-guard.sh clipboard_guard.py; do
   [ -x "$bin/$f" ] || modes_ok=0
 done
 for f in hitl.conf clipboard.conf; do
@@ -140,14 +141,40 @@ cp "$base/dropin.keep" "$dropin"
 
 # 4. the registered commands run from the admin bin (direct payloads: proves the commands, not routing)
 h="$base/home"; mkdir -p "$h/project/.git"
-start=$(jq -r '.hooks.SessionStart[0].hooks[0].command' "$dropin")
-out=$(printf '%s' '{"hook_event_name":"SessionStart","source":"startup","session_id":"managed-test"}' \
-  | (cd "$h/project" && HOME="$h" sh -c "$start"))
-printf '%s' "$out" | grep -q 'baseline_created' && ok "the managed restart guard command runs" || ko "the managed restart guard command runs" "$out"
+if ! grep -qs -e restart_guard -e breaking_glass "$dropin" "$req" && [ ! -e "$bin/restart_guard.py" ] \
+   && [ ! -e "$bin/breaking_glass.py" ] && [ ! -e "$switches" ]; then
+  ok "no restart guard and no breaking-glass switch is installed (ADR-0028)"
+else
+  ko "no restart guard and no breaking-glass switch is installed (ADR-0028)"
+fi
+paste=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$dropin")
+out=$(printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"a clean prompt"}' | HOME="$h" sh -c "$paste")
+[ -z "$out" ] && ok "the managed paste filter passes a clean prompt" || ko "the managed paste filter passes a clean prompt" "$out"
 hitl=$(jq -r '.hooks.PreToolUse[] | select(.matcher == "AskUserQuestion") | .hooks[0].command' "$dropin")
 out=$(printf '%s' '{"tool_name":"AskUserQuestion","cwd":"/","tool_input":{"questions":[{"question":"q","header":"Session type","options":[{"label":"Melhoria de harness"},{"label":"Bugfix"}]}]}}' \
   | HOME="$h" sh -c "$hitl")
 [ -z "$out" ] && ok "the managed HITL guard passes the intake picker from /" || ko "the managed HITL guard passes the intake picker from /" "$out"
+
+# 4b. what an earlier release installed for the restart guard and the switches (ADR-0028): --check
+# reports it, the next --apply deletes it, and only it. Start from a clean install, so the leftovers
+# are the only thing --check can report.
+sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1
+sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check is clean before the leftovers are planted" 0 $?
+for f in restart_guard.py breaking_glass.py; do printf '# old\n' > "$bin/$f"; done
+mkdir -p "$switches"
+printf '{}' > "$switches/paste-filter.json"
+sh "$inst" --check --root="$r" > "$base/check-legacy.out" 2>&1; expect "check flags the removed guard's leftovers" 1 $?
+if [ "$(grep -c '^STALE' "$base/check-legacy.out")" -eq 3 ]; then ok "check names each leftover"; else ko "check names each leftover" "$(cat "$base/check-legacy.out")"; fi
+sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply over an earlier release exits 0" 0 $?
+if [ ! -e "$bin/restart_guard.py" ] && [ ! -e "$bin/breaking_glass.py" ] && [ ! -e "$switches" ] \
+   && [ -x "$bin/clipboard_guard.py" ] && [ -f "$dropin" ]; then
+  ok "apply deletes the restart guard and the switches, keeps the current layers"
+else
+  ko "apply deletes the restart guard and the switches, keeps the current layers"
+fi
+sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check is clean after the cleanup" 0 $?
+for f in restart_guard.py breaking_glass.py; do printf '# old\n' > "$bin/$f"; done
+mkdir -p "$switches"; printf '{}' > "$switches/hitl-guard.json"
 
 # 5. a foreign requirements.toml is never overwritten or removed
 r2="$base/root2"; mkdir -p "$r2/etc/codex"
