@@ -91,6 +91,30 @@ vX.Y.Z` as X.Y.Z. Any other value is a mismatch. On a mismatch, print exactly on
 Never block, stop or ask because of it. This is an instruction, not a check: `./workstation status`
 is the deterministic comparison.
 
+## Session-start runtime summary
+
+In your first reply of every new session, tell the agent harness user which runtime configuration is
+in effect, in about ten short lines and before other work. If the workspace's session-type picker is
+due, ask it first and give the summary with the reply that follows his answer. State: the agent
+harness and its version; the model and effort, when this agent harness shows them; the workstation
+stamp and the version-key result; the layers loaded (managed, user, workspace, plugin) and any lower
+layer setting that overrides a default; the protections no lower layer can override; the active
+protections at their real evidence level; the permission mode; host or container. Write "not visible"
+for anything you cannot read. Never guess and never state a stronger evidence level than you have.
+
+Source, in this order:
+- When the managed-workstation checkout is reachable (it is the workspace, or its path is known),
+  run `./workstation status --summary` there, with `--project=<workspace root>` when the workspace
+  is another repository, and relay its lines. Add only what the agent harness itself shows.
+- Otherwise compose it from what is in your context: this brief's `managed-by` line, the workspace
+  files and the agent harness's own report. Say that `./workstation status` was not run.
+
+What only the agent harness shows (the session's model, effort and command-line flags) comes from its
+native view; name it in the summary so he can open it: Claude Code `/status`; Codex `/status`; Kiro
+`/context show` and `/tools`. Detail is `./workstation status --verbose`, on request only.
+Do not repeat the summary on resume or compaction. This is an instruction, not a check: no hook
+produces it, and whether a model follows it is not measured.
+
 ## Ethical foundation: Stoic ethics, the good life (ratified by the owner)
 
 - **Wisdom:** claim only what is measured.

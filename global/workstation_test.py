@@ -18,6 +18,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import workstation as ws  # noqa: E402
 
 STAMP = "release: v3.1.0; commit: " + "a" * 40
+# The installer's own FLOOR line for a user-only floor, word for word (global/install.sh).
+USER_FLOOR = ("the user layer only; a session flag can drop it (--setting-sources project, measured); install the "
+              "admin copy with ./workstation install --admin")
 
 
 class VersionKey(unittest.TestCase):
@@ -75,7 +78,7 @@ def facts(**over):
          "harnesses": {"Claude Code": "2.1.0", "Codex": None, "Kiro": None},
          "workspace": {"name": "proj", "root": Path("/proj"), "carriers": [".workstation-version"]},
          "plugins": [], "brief": "installed in 2/3 agent harnesses (an instruction)",
-         "floor": "the user layer only", "hooks": "user layer (paste filter)",
+         "floor": USER_FLOOR, "admin_state": "absent", "hooks": "user layer (paste filter)",
          "key": {"required": ">=3.1 <4", "state": "match", "line": ""},
          "runtime": "host (Linux x86_64; no container marker found)"}
     f.update(over)
@@ -132,6 +135,130 @@ class StatusOutput(unittest.TestCase):
         self.assertEqual(ws.issues(lines), 4)
 
 
+class RuntimeSummary(unittest.TestCase):
+    """The session-start runtime summary (Issue #80): few lines, every item the brief names."""
+
+    def row(self, out, label):
+        hits = [line for line in out if line.startswith("  %-16s " % label)]
+        self.assertEqual(len(hits), 1, (label, out))
+        return hits[0][19:]
+
+    def test_every_item_in_ten_lines(self):
+        out = ws.render_summary(facts())
+        self.assertLessEqual(len(out), 10)
+        self.assertEqual(self.row(out, "agent harness"), "Claude Code 2.1.0")
+        self.assertEqual(self.row(out, "model, effort"), "Claude Code: default; the session's own values: "
+                                                         "Claude Code /status")
+        self.assertEqual(self.row(out, "workstation"), "v3.1.0 @ aaaaaaa · version key: >=3.1 <4 match")
+        self.assertEqual(self.row(out, "layers"), "managed: absent · user: installed · workspace: proj · "
+                                                  "plugin: none")
+        self.assertEqual(self.row(out, "overrides"), "no workspace setting overrides a user default")
+        self.assertEqual(self.row(out, "cannot override"), "nothing (no admin layer) · deny floor NOT locked: "
+                                                           + USER_FLOOR)
+        self.assertIn("brief installed in 2/3 agent harnesses (an instruction)", self.row(out, "protections"))
+        self.assertIn("evidence: installed; loaded and enforced need a session canary",
+                      self.row(out, "protections"))
+        self.assertEqual(self.row(out, "permission mode"), "Claude Code: default; session flags: "
+                                                           "Claude Code /status")
+        self.assertEqual(self.row(out, "runtime"), "host (Linux x86_64; no container marker found)")
+
+    def test_workspace_overrides_user_and_hooks_off_is_named(self):
+        settings = [("Claude Code", "user", "permissions.defaultMode", "default"),
+                    ("Claude Code", "workspace", "permissions.defaultMode", "acceptEdits"),
+                    ("Claude Code", "user", "model", "opus"),
+                    ("Claude Code", "user", "disableAllHooks", "true"),
+                    ("Codex", "user", "approval_policy", "on-request"),
+                    ("Codex", "workspace", "sandbox_mode", "workspace-write"),
+                    ("Codex", "user", "model_reasoning_effort", "high")]
+        out = ws.render_summary(facts(settings=settings, admin=True,
+                                      harnesses={"Claude Code": "2.1.0", "Codex": "0.1", "Kiro": None}))
+        self.assertEqual(self.row(out, "overrides"),
+                         "HOOKS OFF: disableAllHooks in Claude Code user; Claude Code permissions.defaultMode "
+                         "= acceptEdits; Codex sandbox_mode = workspace-write")
+        self.assertEqual(self.row(out, "permission mode"),
+                         "Claude Code: permissions.defaultMode acceptEdits (workspace) · Codex: approval_policy "
+                         "on-request (user), sandbox_mode workspace-write (workspace); session flags: "
+                         "Claude Code /status, Codex /status")
+        self.assertEqual(self.row(out, "model, effort"),
+                         "Claude Code: model opus (user) · Codex: model_reasoning_effort high (user); "
+                         "the session's own values: Claude Code /status, Codex /status")
+        self.assertEqual(self.row(out, "cannot override"),
+                         "managed layer (admin-owned) · deny floor NOT locked: " + USER_FLOOR)
+
+    def test_floor_is_locked_only_in_the_admin_layer(self):
+        admin_floor = "the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
+        out = ws.render_summary(facts(admin=True, admin_state="installed", floor=admin_floor))
+        self.assertEqual(self.row(out, "cannot override"), "managed layer (admin-owned) · deny floor: " + admin_floor)
+        none = "NO complete layer; run ./workstation install, then ./workstation install --admin"
+        out = ws.render_summary(facts(floor=none))
+        self.assertEqual(self.row(out, "cannot override"), "nothing (no admin layer) · deny floor NOT locked: " + none)
+
+    def test_legacy_dropin_is_never_absent(self):
+        for state, want in (("legacy", "installed (legacy, pre-#66; reinstall to update)"),
+                            ("unreadable", "present, not read"), ("absent", "absent")):
+            with self.subTest(state=state):
+                out = ws.render_summary(facts(admin_state=state))
+                self.assertTrue(self.row(out, "layers").startswith("managed: %s · " % want))
+                status = ws.render_status(facts(admin_state=state))
+                self.assertTrue(any(line.startswith("  layers           managed: %s · " % want) for line in status))
+        status = ws.render_status(facts(admin_state="legacy"))
+        self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: installed (legacy, pre-#66; reinstall "
+                      "to update)", status)
+        self.assertTrue(self.row(ws.render_summary(facts(admin_state="legacy")), "cannot override")
+                        .startswith("managed layer (admin-owned) · deny floor NOT locked: "))
+
+    def test_mismatch_and_no_harness(self):
+        line = ws.mismatch_line(">=3.1 <4", "v3.0.0")
+        out = ws.render_summary(facts(key={"required": ">=3.1 <4", "state": "mismatch", "line": line},
+                                      harnesses={"Claude Code": None, "Codex": None, "Kiro": None}))
+        self.assertEqual(out[-1], "  " + line)
+        self.assertLessEqual(len(out), 11)
+        self.assertEqual(self.row(out, "agent harness"), "none detected on PATH")
+        self.assertIn("Kiro: not read by this view", self.row(out, "model, effort"))
+        self.assertIn("Kiro /context show, /tools", self.row(out, "model, effort"))
+
+    def test_brief_names_the_summary_command(self):
+        brief = (ws.HERE / "AGENTS.md").read_text(encoding="utf-8")
+        section = brief.split("## Session-start runtime summary", 1)[1].split("\n## ", 1)[0]
+        section = " ".join(section.split())
+        for needle in ("./workstation status --summary", "./workstation status --verbose", "Claude Code `/status`",
+                       "Codex `/status`", "Kiro `/context show` and `/tools`", "agent harness"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, section)
+
+
+class Settings(unittest.TestCase):
+    def test_reads_user_and_workspace_layers(self):
+        with tempfile.TemporaryDirectory(prefix="workstation-settings-") as d:
+            base = Path(d)
+            saved = {k: os.environ.get(k) for k in ("HOME", "CODEX_HOME")}
+            os.environ["HOME"] = str(base / "home")
+            os.environ.pop("CODEX_HOME", None)
+            try:
+                (base / "home" / ".claude").mkdir(parents=True)
+                (base / "home" / ".codex").mkdir()
+                (base / "proj" / ".claude").mkdir(parents=True)
+                (base / "home" / ".claude" / "settings.json").write_text(json.dumps(
+                    {"model": "opus", "permissions": {"defaultMode": "plan", "deny": ["x"]}}), encoding="utf-8")
+                (base / "proj" / ".claude" / "settings.json").write_text(json.dumps(
+                    {"disableAllHooks": True}), encoding="utf-8")
+                (base / "home" / ".codex" / "config.toml").write_text(
+                    'model = "gpt-x"  # note\napproval_policy = \'never\'\n[profiles.a]\nsandbox_mode = "x"\n',
+                    encoding="utf-8")
+                got = ws.read_settings(base / "proj")
+            finally:
+                for k, v in saved.items():
+                    if v is None:
+                        os.environ.pop(k, None)
+                    else:
+                        os.environ[k] = v
+        self.assertEqual(got, [("Claude Code", "user", "model", "opus"),
+                               ("Claude Code", "user", "permissions.defaultMode", "plan"),
+                               ("Claude Code", "workspace", "disableAllHooks", "true"),
+                               ("Codex", "user", "approval_policy", "never"),
+                               ("Codex", "user", "model", "gpt-x")])
+
+
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
 class EndToEnd(unittest.TestCase):
     """The real installers in a throwaway HOME and admin root: status must read their output right."""
@@ -176,6 +303,17 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("  permissions      Claude Code: default (none set), %d allow rules · Codex: profile "
                       "workstation (on-request, read-only; with --profile workstation), %d allow rules · Kiro: agent "
                       "workstation, %d trusted commands\n" % (narrow, narrow, narrow), out)
+        # The summary is fed by the same gathered facts: same stamp, key and hooks as the status view.
+        code, out = self.run_ws("status", "--summary", "--overlay=none", project)
+        self.assertEqual(code, 0)
+        self.assertLessEqual(len(out.splitlines()), 11, out)
+        self.assertIn("  workstation      %s · version key: >=999 <1000 mismatch\n" % source.split(" (")[0], out)
+        self.assertIn("· hooks admin: none · user: paste filter (Claude Code)", out)
+        self.assertRegex(out, r"(?m)^  Workstation version key: required >=999 <1000, installed ")
+        # No admin layer: the floor is never listed as locked, and the installer's words arrive whole.
+        _, verbose = self.run_ws("status", "--verbose", "--overlay=none", project)
+        carried = re.search(r"(?m)^  \| FLOOR   carried by: (.*)$", verbose).group(1)
+        self.assertIn("  cannot override  nothing (no admin layer) · deny floor NOT locked: %s\n" % carried, out)
         # The hooks moved out of the user layer with no admin layer: status must say none, not claim them.
         subprocess.run(["sh", str(ws.INSTALL), "--overlay=none", "--hooks=managed"], env=self.env,
                        capture_output=True, check=False)
@@ -189,6 +327,50 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("  check            1 target(s) differ; run ./workstation install\n", out)
         code, _ = self.run_ws("check", "--overlay=none")
         self.assertNotEqual(code, 0)
+
+
+@unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
+class GatherLegacyDropin(unittest.TestCase):
+    """Through gather(), with a workspace version key AND a pre-#66 admin drop-in: the managed layer
+    must read legacy, never absent (the key's own verdict once overwrote the managed state)."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="workstation-gather-")
+        self.addCleanup(self.temp.cleanup)
+        b = Path(self.temp.name)
+        for d in ("home", "root", "tmp", "proj"):
+            (b / d).mkdir()
+        keys = ("HOME", "TMPDIR", "WORKSTATION_MANAGED_ROOT", "XDG_DATA_HOME", "CODEX_HOME", ws.OVERLAY_ENV)
+        saved = {k: os.environ.get(k) for k in keys}
+
+        def restore():
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        self.addCleanup(restore)
+        os.environ.update({"HOME": str(b / "home"), "TMPDIR": str(b / "tmp"),
+                           "WORKSTATION_MANAGED_ROOT": str(b / "root"), ws.OVERLAY_ENV: "none"})
+        os.environ.pop("XDG_DATA_HOME", None)
+        os.environ.pop("CODEX_HOME", None)
+        self.proj = b / "proj"
+        (self.proj / ws.KEY_FILE).write_text(">=3.1 <4\n", encoding="utf-8")
+
+    def test_key_present_and_legacy_dropin(self):
+        subprocess.run(["sh", str(ws.INSTALL), "--hooks=user"], capture_output=True, check=True)
+        # The pre-#66 drop-in shape (install-managed.sh at 3742ffa): hooks and deny, no stamp key.
+        legacy = {"hooks": {"PreToolUse": [{"matcher": "AskUserQuestion", "hooks": [
+                      {"type": "command", "command": "/bin/sh /x/" + ws.GUARD, "timeout": 5}]}]},
+                  "permissions": {"deny": ["Bash(sudo:*)"]}}
+        ws.admin_dropin().parent.mkdir(parents=True)
+        ws.admin_dropin().write_text(json.dumps(legacy), encoding="utf-8")
+        f = ws.gather(str(self.proj))
+        self.assertIn(f["key"]["state"], ("match", "mismatch"))
+        self.assertEqual(f["admin_state"], "legacy")
+        layers = [line for line in ws.render_summary(f) if line.startswith("  layers ")][0]
+        self.assertIn("managed: installed (legacy, pre-#66; reinstall to update) · ", layers)
+        self.assertTrue(any("managed: installed (legacy" in line for line in ws.render_status(f)))
 
 
 class Overlay(unittest.TestCase):
@@ -292,6 +474,21 @@ class Hooks(unittest.TestCase):
         self.write(Path(os.environ["HOME"]) / ".claude" / "settings.json", "not json")
         self.assertEqual(ws.read_hooks()["user"], "not read")
         self.assertEqual(ws.hooks_text(ws.read_hooks()), "admin: none · user: not read")
+
+    def test_admin_state_reads_the_dropin(self):
+        self.assertEqual(ws.admin_state(), "absent")
+        # The pre-#66 drop-in shape, from install-managed.sh at 3742ffa: hooks and deny, no stamp key.
+        legacy = {"hooks": {"PreToolUse": [{"matcher": "AskUserQuestion", "hooks": [
+                      {"type": "command", "command": "/bin/sh \"/x/%s/bin/%s\"" % (ws.NAME, ws.GUARD), "timeout": 5}]}]},
+                  "permissions": {"deny": ["Bash(sudo:*)"]}}
+        self.write(ws.admin_dropin(), json.dumps(legacy))
+        self.assertEqual(ws.admin_state(), "legacy")
+        self.assertFalse(ws.admin_installed())
+        self.write(ws.admin_dropin(), "{not json")
+        self.assertEqual(ws.admin_state(), "unreadable")
+        legacy[ws.NAME] = "stamp"
+        self.write(ws.admin_dropin(), json.dumps(legacy))
+        self.assertEqual(ws.admin_state(), "installed")
 
     def test_admin_layer(self):
         root = os.environ["WORKSTATION_MANAGED_ROOT"]

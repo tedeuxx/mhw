@@ -334,6 +334,12 @@ from here now, and at what evidence level:
   whether a model follows it is not measured. **Not installed** and not run on the reference machine.
   `status` reports what the installed files register, at the *installed* level only; loaded and enforced
   need a session canary.
+- **Session-start runtime summary** (ADR-0030 amendment, 2026-10-05; Issue #80): `./workstation status
+  --summary` and a user-brief section telling every agent harness to state the runtime configuration in
+  its first reply, pointing to Claude Code `/status`, Codex `/status` and Kiro `/context show` and
+  `/tools`. *Written and tested*; the section is measured present in the Codex model-visible prompt and
+  rendered into all three briefs in a throwaway home. No status line and no hook. Whether a model
+  follows it is not measured. **Not installed** on the reference machine.
 - **Inner-loop pre-authorisation** (ADR-0031, proposed, 2026-10-05; Issue #83): one source,
   `global/allow-list.conf`, rendered at user level as Claude Code `permissions.allow` and
   `permissions.defaultMode`, a Codex allow-rules file and `workstation` profile file, and a Kiro
