@@ -324,6 +324,18 @@ through `install-managed.sh` and `sudo`, like any OS-managed policy.
 floor, and this amendment does not add the floor to them. They conflict with the constraint above and
 are to be removed under Issue #56.
 
+**The owner's decision on squash merges** (2026-10-05, set while this slice was built):
+
+> *"nao podemos trabalhar com squash, lembre-se disso no nivel de managed workstation, padronizando
+> configuracoes de repo no github e account se necessario. corrija o pr atual para nao cair em
+> squash."*
+
+In English: never squash; it is a workstation-level standard, applied to GitHub repository (and
+account) settings where needed, and this pull request must not be merged by squash. Three changes
+follow, below: the floor denies the squash spellings a prefix can see; `workspace/delivery.py merge`
+uses a real merge commit (`--merge`); and a versioned repository settings standard turns squash off on
+the forge.
+
 ### Decision
 
 1. **The same floor is rendered into the admin layer.** `global/install-managed.sh` takes the deny list
@@ -351,7 +363,9 @@ are to be removed under Issue #56.
 ### The plugin's rules, mapped
 
 Source: `tadeumendonca-skills` 2.0.102, `hooks/scripts/permission-guard.sh` (read only). Each numbered
-deny the guard issues is one row. **11 already in the floor, 8 added, 13 left as gaps.**
+deny the guard issues is one row. ~~**11 already in the floor, 8 added, 13 left as gaps.**~~
+**11 already in the floor, 9 added, 12 left as gaps** (squash merge moved from gap to added, on the
+owner's decision below).
 
 | Plugin rule | Outcome | Floor entries, or the reason it is a gap |
 | --- | --- | --- |
@@ -378,7 +392,7 @@ deny the guard issues is one row. **11 already in the floor, 8 added, 13 left as
 | 7 `git push` while the trunk is checked out | gap | the act is in the checked-out branch, not the command |
 | 7 a brace expansion in the refspec | gap | needs the shell's expansion |
 | 7 a push whose target cannot be resolved | gap | needs argument parsing |
-| 7b squash merge | gap | the prescribed spelling puts the flag after the pull-request number. Also, this repository's own `workspace/delivery.py merge` squashes, so a no-squash rule would contradict it: the owner's call |
+| 7b squash merge | ~~gap~~ **added**, partial, plus the repository setting | `gh pr merge --squash`, `gh pr merge -s`. ~~The prescribed spelling puts the flag after the pull-request number. Also, this repository's own `workspace/delivery.py merge` squashes, so a no-squash rule would contradict it: the owner's call~~ The owner decided: never squash (quote below). A flag after the pull-request number (`gh pr merge 12 --squash`), `--auto --squash` and a script are not caught by the prefix; the GitHub repository setting `allow_squash_merge: false` refuses a squash on the forge whatever the spelling, once applied |
 | 7b only the reviewer persona merges | gap | needs the calling agent's identity (`agent_type`) |
 | 7c merge only on a verdict at the current head | gap | needs the pull request's state |
 | 5c/5d only the owner opens work | gap | needs `agent_type` |
@@ -394,14 +408,35 @@ out. The rows that need `agent_type` or a pull request's state are the method's,
 (ADR-0014); when the plugin drops its guard (#63), they survive only as instructions, and the method
 slices (#61) have to carry them. **No hook was added** (PRD section 4a, hook budget zero).
 
-**Counts after this amendment.** Generic floor: 99 `cmd` and 7 `file` entries, 113 Claude Code rules
-and 99 Codex rules (was 101 and 87). With the repository overlay: 124 Claude Code rules, 110 Codex
+**Counts after this amendment.** Generic floor: 101 `cmd` and 7 `file` entries, 115 Claude Code rules
+and 101 Codex rules (was 101 and 87). With the repository overlay: 126 Claude Code rules, 112 Codex
 rules. Computed by the test suites from the sources, not typed:
 `awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' global/deny-floor.conf overlay/deny-floor.conf`.
 
 **New over-matches, accepted as the price of a prefix:** `gh workflow run` is denied for every
 repository, including one whose workflow only lints; `git worktree remove --force` is denied on a
 clean but locked worktree; `git push --follow-tags` is denied even where no release follows a tag.
+
+### Never squash: the delivery route and the repository settings standard
+
+- **`workspace/delivery.py merge`** now merges with `gh pr merge <n> --merge --match-head-commit <head>`.
+  `delivery_test.py` fails if `--squash`, `-s`, `--rebase`, `--auto` or `--admin` returns, or if a second
+  merge spelling appears in the file; mutation-checked (restoring `--squash` turns it red). `verify`
+  needs no change: it checks that the merge commit is contained in the release tag, which a merge
+  commit satisfies, and it matches the version workflow run by the pull request's head SHA, which a
+  merge does not change.
+- **`global/github-repo-settings.json`** declares the standard: `allow_merge_commit: true`,
+  `allow_squash_merge: false`, and `allow_rebase_merge: false` (a rebase merge also rewrites the
+  branch's commits and leaves no merge commit). **`global/github-repo-settings.sh --check|--apply
+  OWNER/REPO`** reads or applies it with `gh api`; a setting it cannot read (a token without admin
+  rights) counts as a difference, never as a match. Tested against a stub `gh`
+  (`global/github-repo-settings.test.sh`, in CI). **Not applied to any repository by this change**:
+  applying it is the owner's act, and the floor itself denies `gh api --method PATCH` to agents.
+- **Account level.** No account-wide merge-method setting for a personal GitHub account was found in
+  the documentation (*assumed* absent). What GitHub does document is a ruleset rule, "Require a pull
+  request before merging", that can restrict the allowed merge type for the targeted branches
+  (*documented*, "Available rules for rulesets"); for an organization, rulesets can span its
+  repositories. Neither is applied or rendered here.
 
 ### Evidence
 
@@ -410,7 +445,7 @@ clean but locked worktree; `git push --follow-tags` is denied even where no rele
 | A user-level deny is dropped by `--setting-sources project` (Claude Code 2.1.289) | **measured**, table above |
 | The file-based managed source is still read under `--setting-sources project` | **measured**: in a throwaway home with no user and no project settings, the flag set, the owner's installed admin drop-in still fired its `SessionStart` and `UserPromptSubmit` hooks. That shows the source is loaded, not that its deny list is obeyed |
 | A managed `permissions.deny` denies a command | **documented** (managed settings override user and project; deny from any layer wins). **Not measured**: a managed file needs root, and a per-command deny needs a model call, which needs a login. The hidden `--managed-settings` flag is not a substitute: a deny passed through it did not remove `Bash` at all |
-| The rendered 124-rule deny list loads in Claude Code without a settings error | **structural**: loaded through `--settings` in a throwaway home; no settings error, `Read` and `Bash` listed |
+| The rendered 126-rule deny list loads in Claude Code without a settings error | **structural**: loaded through `--settings` in a throwaway home; no settings error, `Read` and `Bash` listed |
 | The admin prefix rules forbid what they name | **measured on the token lists, not on the admin path**: the suite turns them into a `.rules` file and `codex execpolicy check` forbids `gh workflow run deploy` and `git push --force origin x` and leaves `git push origin feature/x` alone. No override exists to load `/etc/codex/requirements.toml` from a throwaway root, so loading from the admin path is **documented** only |
 | `install-managed.sh` renders, validates, hashes, installs and checks both admin documents | **tested** in throwaway roots (`global/install-managed.test.sh`); the validator was mutation-checked under Python 3.13 (a `prompt` decision, a dropped rule, an empty or missing deny list and an extra key each fail) |
 | `install.sh --check` reports the carrying layer | **tested** (`global/install.test.sh`, section 16), including an incomplete admin copy on each side |
@@ -422,7 +457,7 @@ clean but locked worktree; `git push --follow-tags` is denied even where no rele
 - Good: one source and one stage: the admin copy cannot drift from the user copy, and the stage hash
   binds it.
 - Good: the plugin's irreversible-action rules no longer depend on a hook that a project can disable.
-- Bad: the 13 gaps above stay gaps. The ones that need an agent's identity or a pull request's state
+- Bad: the 12 gaps above stay gaps. The ones that need an agent's identity or a pull request's state
   leave with the plugin's guard unless the method carries them as instructions.
 - Bad: a misfiring admin rule cannot be removed from the user layer. It needs the owner's `sudo`
   (`install-managed.sh --uninstall` prints the line, or he edits the source and re-installs). That is

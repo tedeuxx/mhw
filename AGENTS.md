@@ -216,7 +216,7 @@ from here now, and at what evidence level:
   *enforced* in Claude Code and Codex, as measured headless in throwaway homes. Enforcement on the
   reference machine was not re-measured. Kiro carries no floor.
   *Amended 2026-10-05 (#59, ADR-0016 amendment, proposed):* the floor absorbs the plugin's
-  irreversible-action rules (113 generic rules, 124 with the owner overlay) and is also rendered into
+  irreversible-action rules (115 generic rules, 126 with the owner overlay) and is also rendered into
   the admin layer by `install-managed.sh`, because a session flag drops the user layer (measured).
   The admin copy is *written and tested* in throwaway roots, **not installed**; installing it is the
   owner's `sudo` act ([runbook](docs/runbooks/deny-floor-admin-layer.md)). `install.sh --check` names
