@@ -7,12 +7,15 @@ required item that is missing makes the section fail (exit 1). Authentication an
 and do not fail it: they are the owner's acts, and this command never prompts for a credential.
 
 Every probe is read-only and comes from a closed set implemented here; the declaration can only pick
-among them. Tool probes run `<command> --version`, `<command> version` or `<command> -p`. Account
-probes: `gh auth status` (its output, which names the account, is discarded; only the exit code is
-used); global/github-repo-settings.sh --check; and two HTTPS GETs that run only when their token is
-already in the environment (SONAR_TOKEN, TFC_API_TOKEN), plus a SonarCloud project lookup when the
-overlay names a project key. A credential is never read from anywhere but the environment, never
-printed and never written.
+among them. Each command may be probed only as COMMANDS below allows: its own version query, or for
+xcode-select its path query. No probe runs an agent harness in any mode but `--version`, so none can
+reach a model. Every child runs with PROBE_ENV, which turns off the auto-install and update checks
+the tools we probe are known to perform (a tfenv shim installs a missing Terraform otherwise,
+measured). Account probes: `gh auth status` (a network call; its output names the account and is only
+classified, never printed); global/github-repo-settings.sh --check; and HTTPS GETs that send a token
+only when it is already in the environment (SONAR_TOKEN, TFC_API_TOKEN), plus a SonarCloud project
+lookup when the overlay names a project key. A credential is never read from anywhere but the
+environment, never printed and never written.
 
 Owner-specific values live in the untracked overlay file prerequisites.local.json (gitignored by
 *.local.json): {"lanes": [...], "github_repos": ["OWNER/REPO"], "sonar_projects": ["KEY"]}. "lanes"
@@ -20,8 +23,9 @@ names the workflow lanes whose required items also fail the section (default: no
 required overall). With no github_repos, the GitHub merge-settings check reads this checkout's origin.
 
 Environment, tests and probes only: WORKSTATION_PREREQUISITES replaces the declaration path;
-WORKSTATION_SONAR_URL and WORKSTATION_TFC_URL replace the service base URLs and are honoured only for
-a loopback http://127.0.0.1 address, so a token can never be redirected to another host.
+WORKSTATION_SONAR_URL, WORKSTATION_TFC_URL and WORKSTATION_GITHUB_URL replace the service base URLs
+and are honoured only for a plain-HTTP 127.0.0.1 address with a port, so a token can never be
+redirected to another host.
 Standard library only, Python 3.9+.
 """
 import json
@@ -42,9 +46,27 @@ REPO_SETTINGS = HERE / "github-repo-settings.sh"
 OVERLAY_FILE = "prerequisites.local.json"
 SONAR_URL = "https://sonarcloud.io"
 TFC_URL = "https://app.terraform.io"
-LOOPBACK = re.compile(r"http://127\.0\.0\.1:\d+")
-# The only argument vectors a declared tool probe may use: version or path queries, nothing that writes.
-PROBE_ARGS = (["--version"], ["version"], ["-p"])
+GITHUB_URL = "https://api.github.com"
+LOOPBACK_HOST = "127.0.0.1"
+# The closed probe set: every command a declaration may name, with the only arguments it may be run with.
+# "version" is its version query; "path" a read-only path query. argv is built from these constants,
+# never from the declaration. Agent harnesses get --version only: nothing here can reach a model.
+COMMANDS = {
+    "claude": {"version": ("--version",)}, "codex": {"version": ("--version",)},
+    "kiro-cli": {"version": ("--version",)}, "gh": {"version": ("--version",)},
+    "git": {"version": ("--version",)}, "jq": {"version": ("--version",)},
+    "python3": {"version": ("--version",)}, "xcode-select": {"path": ("-p",)},
+    "security": {}, "node": {"version": ("--version",)}, "terraform": {"version": ("version",)},
+    "actionlint": {"version": ("--version",)}, "checkov": {"version": ("--version",)},
+    "shellcheck": {"version": ("--version",)}, "bump-my-version": {"version": ("--version",)},
+    "pwsh": {"version": ("--version",)}, "uv": {"version": ("--version",)},
+    "brew": {"version": ("--version",)}, "docker": {"version": ("--version",)},
+    "podman": {"version": ("--version",)},
+}
+# Every probe child runs with these set: no auto-install, no update or telemetry call. tfenv's shim
+# installs a missing Terraform when TFENV_AUTO_INSTALL is unset (measured, tfenv 3.0.0).
+PROBE_ENV = {"TFENV_AUTO_INSTALL": "false", "CHECKPOINT_DISABLE": "1", "GH_NO_UPDATE_NOTIFIER": "1",
+             "HOMEBREW_NO_AUTO_UPDATE": "1"}
 PRESENCE_KINDS = ("manual", "account")
 AUTH_KINDS = ("none", "gh-auth-status", "sonarcloud-token", "tfc-token")
 PREFERRED_KINDS = ("github-repo-settings", "sonarcloud-project")
@@ -90,17 +112,19 @@ def validate(doc):
             raise DeclarationError("%s: presence missing" % where)
         if "commands" in presence:
             cmds = presence["commands"]
-            if not (isinstance(cmds, list) and cmds and all(isinstance(c, str) and re.fullmatch(r"[\w.+-]+", c)
-                                                             for c in cmds)):
-                raise DeclarationError("%s: presence.commands must be bare command names" % where)
-            if "args" in presence and presence["args"] not in PROBE_ARGS:
-                raise DeclarationError("%s: presence.args outside the read-only probe set" % where)
+            if not (isinstance(cmds, list) and cmds and all(c in COMMANDS for c in cmds)):
+                raise DeclarationError("%s: presence.commands outside the closed probe set" % where)
+            if "args" in presence and not all(list(COMMANDS[c].get("path", ())) == presence["args"]
+                                              for c in cmds):
+                raise DeclarationError("%s: presence.args is not the path query of every command" % where)
         elif presence.get("kind") not in PRESENCE_KINDS:
             raise DeclarationError("%s: presence kind unknown" % where)
         version = item.get("version")
         if version is not None:
-            if "commands" not in presence or version.get("args") not in PROBE_ARGS:
-                raise DeclarationError("%s: version.args outside the read-only probe set" % where)
+            if "commands" not in presence or not all(
+                    "version" in COMMANDS[c] and list(COMMANDS[c]["version"]) == version.get("args")
+                    for c in presence["commands"]):
+                raise DeclarationError("%s: version.args is not the version query of every command" % where)
             for bound in ("minimum", "preferred"):
                 if bound in version and parse_version(version[bound]) is None:
                     raise DeclarationError("%s: version.%s is not a version" % (where, bound))
@@ -165,8 +189,10 @@ def load_overlay(lanes):
 
 def probe(argv):
     """-> (exit code, combined output, stripped). 127 when the command cannot be run, 124 on timeout."""
+    env = dict(os.environ, **PROBE_ENV)
     try:
-        p = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT, stdin=subprocess.DEVNULL)
+        p = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT, stdin=subprocess.DEVNULL,
+                           env=env)
     except FileNotFoundError:
         return 127, ""
     except (OSError, subprocess.TimeoutExpired):
@@ -176,7 +202,8 @@ def probe(argv):
 
 def probe_lines(argv):
     try:
-        p = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT * 2, stdin=subprocess.DEVNULL)
+        p = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT * 2, stdin=subprocess.DEVNULL,
+                           env=dict(os.environ, **PROBE_ENV))
     except (OSError, subprocess.TimeoutExpired):
         return 124, []
     return p.returncode, ((p.stdout or "") + (p.stderr or "")).splitlines()
@@ -184,7 +211,18 @@ def probe_lines(argv):
 
 def base_url(env_name, default):
     value = os.environ.get(env_name, "")
-    return value if value and LOOPBACK.fullmatch(value) else default
+    if not value:
+        return default
+    try:
+        parts = urllib.parse.urlsplit(value)
+        port = parts.port
+    except ValueError:
+        return default
+    if parts.scheme != "http" or parts.hostname != LOOPBACK_HOST or not port or \
+            parts.netloc != "%s:%d" % (LOOPBACK_HOST, port) or parts.path not in ("", "/") or \
+            parts.query or parts.fragment:
+        return default
+    return "%s://%s:%d" % (parts.scheme, LOOPBACK_HOST, port)
 
 
 def http_get(url, token=None):
@@ -233,15 +271,17 @@ def check_presence(item):
         return "manual", "not detectable here (manual)", None, None
     if presence.get("kind") == "account":
         return "account", "account, no local client to detect", None, None
-    for name in presence["commands"]:
+    for declared in presence["commands"]:
+        # The constant key and its constant arguments, never the declaration's own strings.
+        name = next(c for c in COMMANDS if c == declared)
+        allowed = COMMANDS[name]
         path = shutil.which(name)
         if not path:
             continue
-        if "args" in presence and probe([path] + presence["args"])[0] != 0:
+        if "args" in presence and probe([path] + list(allowed["path"]))[0] != 0:
             continue
-        version = item.get("version")
-        if version:
-            code, line = probe([path] + version["args"])
+        if item.get("version") and "version" in allowed:
+            code, line = probe([path] + list(allowed["version"]))
             found = parse_version(line) if code == 0 else None
             shown = ".".join(str(p) for p in found) if found else "version unknown"
             return "present", "present (%s %s)" % (name, shown), path, found
@@ -268,8 +308,16 @@ def check_auth(item, present_path):
     if kind == "gh-auth-status":
         if not present_path:
             return "unchecked", "authentication not checked (gh missing)"
-        code, _ = probe([present_path, "auth", "status"])  # output names the account: discarded
-        return ("ok", "authenticated") if code == 0 else ("no", "not authenticated")
+        code, out = probe([present_path, "auth", "status"])  # output names the account: classified only
+        if code == 0:
+            return "ok", "authenticated"
+        if "not logged in" in out.lower():
+            return "no", "not authenticated"
+        # gh auth status contacts GitHub: offline, it fails like a rejected token. Ask GitHub, no token.
+        status, _ = http_get(base_url("WORKSTATION_GITHUB_URL", GITHUB_URL) + "/zen")
+        if status == 0:
+            return "unreachable", "authentication not checked (GitHub unreachable)"
+        return "no", "not authenticated (gh auth status failed with GitHub reachable)"
     token = os.environ.get(auth["env"], "")
     if not token:
         return "unchecked", "authentication %s; $%s unset" % (NOT_AVAILABLE, auth["env"])
@@ -283,7 +331,7 @@ def check_auth(item, present_path):
         status, _ = http_get(base_url("WORKSTATION_TFC_URL", TFC_URL) + "/api/v2/account/details", token)
         valid = status == 200
     if status == 0:
-        return "unchecked", "authentication not checked (service unreachable)"
+        return "unreachable", "authentication not checked (service unreachable)"
     return ("ok", "authenticated ($%s)" % auth["env"]) if valid else ("no", "not authenticated ($%s rejected)" % auth["env"])
 
 
@@ -366,7 +414,7 @@ def evaluate(item, overlay, system=None):
         tag = "DRIFT"
     elif state == "manual":
         tag = "MANUAL"
-    elif state == "account" and auth_state != "ok":
+    elif auth_state == "unreachable" or (state == "account" and auth_state != "ok"):
         tag = "NOCHECK"
     else:
         tag = "OK"

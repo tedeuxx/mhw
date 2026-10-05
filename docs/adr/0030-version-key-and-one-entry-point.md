@@ -203,7 +203,11 @@ repair, and on credentials it must never ask for, trains the reader to ignore it
 **Consequences.** `./workstation check` can now fail on a machine whose installed targets all match,
 when a required tool is missing. `gh auth status` output names the account, so it is discarded.
 Tokens are read from the environment only and are never sent after a redirect or to a non-loopback
-override. Whether a subscription is paid and active is not observable and is reported as the client
+override. *Repair, same PR (QA and the agents-lead lens):* the probe table became constant
+command-and-argument pairs (`-p` only for `xcode-select`, agent harnesses `--version` only), every probe
+runs with the tools' auto-install and update switches off (a tfenv shim installed during `terraform
+version`, measured), and an offline `gh auth status` reads not-checked rather than not-authenticated.
+Whether a subscription is paid and active is not observable and is reported as the client
 only, or `MANUAL`. Evidence: [prerequisites](../prerequisites.md).
 
 ## Links
