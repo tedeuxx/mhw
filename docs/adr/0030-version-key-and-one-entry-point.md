@@ -1,0 +1,105 @@
+# ADR-0030: A per-project version key, checked by instruction and by `./workstation status`, behind one entry point
+
+- **Status:** proposed
+- **Date:** 2026-10-05
+- **Deciders:** the owner (written by agents-lead)
+- **Issues:** [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57),
+  [#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67) (part of
+  [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52);
+  requirements document, sections 7 and 9b)
+
+## Context and problem
+
+Two requirements from the approved plan meet here. A project must be able to say which workstation
+release it expects, so that a stale install or a stale configuration is visible (section 7; the owner
+chose a warning that never blocks). And installing must be one command run from the repository, with
+no remembered flags and no separate admin installer step (section 9b; owner, 2026-10-04: *"precisa de
+um mecanismos de instalacao facilitado gerenciado pelo proprio repo git"*). The status view is also the
+detailed source the session-start summary (#80) will condense.
+
+This sets a cross-cutting pattern every project follows (a key file and its format), which is why a
+record is owed.
+
+## Decision drivers
+
+- Native first, thin layer: no new hook (the owner's "defend the perimeter, not the behaviour").
+- One source of the installed release: the provenance stamp (ADR-0029), never a second derivation.
+- Never block on the key; report at the real evidence level.
+- The two existing installers stay as tested internals.
+
+## Considered options
+
+1. **A `.workstation-version` file, a user-brief instruction, and `./workstation` over the existing
+   installers (chosen).** *Trade-off:* the session-start comparison is an instruction a model may skip;
+   only `status` is deterministic.
+2. **A `SessionStart` hook that compares the key.** *Trade-off:* deterministic where hooks run, but a
+   new hook against the hook budget, absent in Kiro, skippable by `--bare` in Claude Code (measured in
+   the enforcement matrix), and it was the shape of the removed restart guard (ADR-0028).
+3. **The instruction in each project brief instead of the user brief.** *Trade-off:* every project
+   repeats it and can drift from the format; the user brief reaches every project from one copy.
+4. **Rewrite the installers into one program.** *Trade-off:* a large, retested rewrite for no new
+   behaviour; the entry point only has to choose flags and summarise output.
+
+## Decision outcome
+
+Option 1.
+
+- **Key file:** `.workstation-version` at the project root. The first line that is not blank or a `#`
+  comment holds comparators `>=`, `>`, `<=`, `<`, `=` with `X`, `X.Y` or `X.Y.Z`, separated by blanks
+  (or commas); all must hold. Anything else is reported as invalid.
+- **Installed release:** the `release:` field of the stamp. `vX.Y.Z` is that release; `unreleased,
+  after vX.Y.Z` compares as X.Y.Z, because no newer release is in it; anything else is a mismatch.
+- **On mismatch:** one line, the same in the brief and in `status`: `Workstation version key: required
+  <range>, installed <release>. Run ./workstation install in the managed-workstation checkout.` Nothing
+  blocks.
+- **`./workstation`** (POSIX shim, logic in `global/workstation.py`, Python 3.9+ standard library):
+  `install` runs `install.sh` with `--hooks=managed` when it finds the admin drop-in and `--hooks=user`
+  otherwise, then reports the admin layer's state and runs the check; `install --admin` runs
+  `install-managed.sh`, which prints the one `sudo` line; `check` runs both `--check`s; `status` reads
+  the installed stamps, the layers (managed, user, workspace carriers, Claude Code plugins), the
+  protections from the installers' own `--check` lines, the version key and the runtime (host, or a
+  Podman/Docker marker). `--verbose` adds every target and each agent harness's version.
+
+## Consequences
+
+- Good: one command to install, one to read state; the version key needs no hook and works in all three
+  agent harnesses wherever the brief is loaded.
+- Good: `status` reuses the installers' `--check`, so it cannot disagree with them on a target.
+- Bad: `status` parses the installers' line prefixes (`OK`, `STAMP`, `DRIFT`, `FLOOR   carried by:`); a
+  change there must move with it. The end-to-end test runs the real installers to catch that.
+- Bad: the session-start comparison is an instruction. Whether a model performs it is **not
+  measured**; it needs a login in a throwaway configuration.
+- Bad: Claude Code may not show the HTML `managed-by` comment to the model (not measured), so the
+  instruction tells the agent to read the brief file's first lines when the stamp is not in context.
+- Not built here: `update`, `uninstall`, `install [version]` (tag checkout) and a comparison with the
+  latest published release (section 9b). `install` writes the user layer for all three agent harnesses
+  whether or not each is installed; `status` reports which are on `PATH`. Windows keeps `install.ps1`.
+- This repository's key is `>=3.1 <4`: an install from `rc/next` (`unreleased, after v3.0.0`) reports a
+  mismatch until the release that carries this change is installed.
+
+## Evidence
+
+Measured 2026-10-05 in throwaway homes and a throwaway admin root under the session scratch directory
+(`env -i`, `HOME`, `TMPDIR` and `WORKSTATION_MANAGED_ROOT` there), never `sudo`:
+
+- `./workstation install`, then `status`: every user target written and `check` clean; `status`
+  showed the user stamp equal to the source, `managed: absent`, the floor carried by the user layer.
+- `./workstation install --admin` printed the `sudo` line; that line run **without** `sudo` through
+  the installer's test-only `--root` path, then `./workstation install` removed the user Codex hooks and
+  `status` showed `managed: installed`, the floor and hooks carried by the admin layer.
+- Version key: a project with `>=3.0 <4` read `match`; `>=9 <10` printed the mismatch line.
+- Codex 0.160.0, `codex debug prompt-input` with the installed `CODEX_HOME`: the model-visible prompt
+  carries the `managed-by` line with `release:` and the instruction. Claude Code 2.1.289 headless,
+  `InstructionsLoaded` probe hook: the installed `CLAUDE.md` loaded as `User` memory. No model call.
+- `global/workstation_test.py`: the comparison table, the status view, and one end-to-end run of the
+  real installers. Fourteen mutations of `global/workstation.py`, in a copy of the tree, each turned the
+  suite red; the unmutated copy stayed green.
+
+## Links
+
+- Requirements document, [section 7](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#7-version-key-per-project)
+  and [section 9b](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#9b-one-install-command-managed-by-the-repository)
+- [ADR-0029](0029-provenance-stamp-in-every-installed-file.md) (the stamp the key is compared with)
+- [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (why no hook)
+- [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md) (the admin layer `install --admin` renders)
+- [Native enforcement matrix](../native-enforcement-matrix.md)

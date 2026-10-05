@@ -54,9 +54,13 @@ Return to the repository root after preparing an external profile. After reviewi
 macOS/Linux:
 
 ```sh
-sh global/install.sh --overlay=none
-sh global/install.sh --overlay=none --check
+./workstation install --overlay=none
+./workstation status --overlay=none
+./workstation check --overlay=none
 ```
+
+`./workstation install --admin --overlay=none` prints the one `sudo` line for the admin layer, which you
+run yourself.
 
 Windows PowerShell:
 
