@@ -44,10 +44,11 @@ source: it is a CI-generated artifact of this repository.
   differently in each one, so behaviour drifts and replication to another device is manual.
 - The plugin and this repository both carry protections, and some of them overlap (secret writes and
   force-push, the one-question picker guard, stale-install checks).
-- Some controls cost more than they protect: a control that locks the owner out, or blocks routine work,
-  or needs remembered flags and many steps per preference change.
-- Front-page text that describes an old version over-claims coverage. Several protections are
-  instructions only, and must be reported as such.
+- Several controls cost more than they protect. The restart guard locked the owner out and blocks
+  commits after routine edits; the picker guard refuses yes/no questions; installation needs remembered
+  flags and five steps per preference change.
+- The front page and status text describe an old version and over-claim coverage: subagent sanitising
+  and health-data detection are instruction only.
 - Configuration management for agent harnesses is a high-complexity problem in its own right.
 
 ## 1a. Why the command line first
@@ -107,26 +108,28 @@ agent harness costs one command, not a migration.
 > **Draft, pending the owner's ratification.** Written from his own statements during the review, for him
 > to edit and ratify. Once ratified, they are the behavioural anchor of every agent harness on the
 > workstation: they are written at the top of the user-level brief rendered to Claude Code, Codex and
-> Kiro, so every session and every agent starts from them. Until then they are not installed anywhere.
+> Kiro, so every session and every agent starts from them. Until then they are not installed anywhere
+> ([#77](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/77)).
 
 1. **Native first, thin on top, one source for all.** Use each agent harness's own mechanisms before
-   building anything custom, and render one versioned source into every agent harness, so changing
+   building anything custom, and render one versioned source into every agent harness, so switching
    vendor costs one command, not a migration. A thin layer benefits most from how the agent harnesses
-   evolve: each vendor improvement arrives at no cost, and there is less custom code to retest.
-2. **Talk to your agents like an executive.** Communication between people and agents is direct in both
-   directions: plain instructions in, plain results out. Clarifying questions are asked only when a
-   decision truly needs one. Fewer words each way also saves tokens.
+   evolve: each vendor improvement arrives for free, and there is less custom code to retest along the
+   way.
+2. **Talk like executives with your agents.** Communication between people and agents is direct in both
+   directions: plain instructions in, plain results out. Clarifying questions are optional, asked only
+   when a decision truly needs one. Fewer words each way also saves tokens.
 3. **No build without an agreed document.** An idea becomes a requirements document before it becomes
    code, because that document is the refined context the agents work from: a clear, agreed brief
    instead of a scattered conversation.
-4. **All agent work runs on the issue tracker.** Every piece of agent work is tied to an Issue, so
+4. **All agent work runs on the issue tracker.** Every piece of agent work is tied to an Issue, so agile
    delivery metrics and the cost of each agent session can be measured against the work it served. The
-   tracker is also a shared context: sessions running in parallel, in any agent harness, read and write
-   the same context there.
-5. **The orchestrator talks, the agents work.** The session the owner talks to delegates every task and
-   keeps its own context light.
-6. **Best-effort teaching over hard mechanical hooks.** Behaviour is taught through instructions, skills
-   and native settings, accepting a best-effort result. A hard mechanical hook is used only for
+   tracker is also a shared context bus: sessions running in parallel, in any agent harness, read and
+   write the same context there.
+5. **The orchestrator talks, the agents work.** The session I talk to delegates every task and keeps its
+   own context light.
+6. **Best-effort enforcement over hard mechanical hooks.** Behaviour is taught through instructions,
+   skills and native settings, accepting a best-effort result. A hard mechanical hook is used only for
    irreversible harm or harm to third parties, where teaching would act too late.
 7. **Clean, don't ask.** Sensitive content is removed automatically, never logged or sent back for
    approval.
@@ -134,11 +137,11 @@ agent harness costs one command, not a migration.
    (tokens, model and effort) on its Issue. This builds cost observability over time, and that evidence
    can change how the workflow itself is configured: which agent harness, model and effort each kind of
    task gets.
-9. **Less is more.** Plain words any speaker of any language understands, simple diagrams, one decision
-   at a time.
-10. **Use disagreement between agents to reach agreement.** Where it adds value, agents with opposing
-    lenses disagree first and agree on one answer. When speed matters more, use fewer agents per layer
-    of the workflow.
+9. **Less is more.** Plain words any native speaker of any language understands, simple diagrams, one
+   decision at a time.
+10. **Use conflict between agents to reach consensus.** Where it adds value, agents with opposing lenses
+    disagree first and agree on one answer. When speed matters more, use fewer agents per layer of the
+    workflow.
 
 ## 2. Goals and principles (from the owner)
 
@@ -306,7 +309,7 @@ as subagents.
   default model and effort per agent harness (ADR-0007).
 - **Version 1 has no default on entry:** the orchestrating session can start in any of the three agent
   harnesses, with any model and any effort. The worklog shows what each choice costs, and defaults are
-  set later from that evidence.
+  set later from that evidence. Slice: [#76](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/76).
 
 ### Session goal anchor
 
@@ -319,14 +322,15 @@ as subagents.
 - **During the session:** `/what-else` answers what is left against that objective. If an agent
   harness's native goal command already shows progress, the command is not built there.
 - **Evidence:** which agent harnesses have a native `/goal` is not yet confirmed; it is measured in the
-  [enforcement matrix](#10-native-enforcement-matrix). This continues
+  [enforcement matrix](#10-native-enforcement-matrix). `/what-else` is [#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74). This continues
   [#11](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/11).
 
 ### Around the main flow
 
-- `/handover`: branches a focused child session and brings its result back through a return prompt.
+- `/handover`: branches a focused child session and brings its result back through a return prompt
+  ([#73](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/73)).
 - `/blueprint`: exports a project's effective agent harness setup as a requirements document, or imports
-  one after an alignment interview.
+  one after an alignment interview ([#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75)).
 - `agents-configuration` is the rulebook behind every step: which agent acts, with which skills and
   which components.
 
@@ -492,12 +496,12 @@ a technology stack; **Reference** holds unused patterns.
 | # | Command | What it does | Layer | Why |
 | --- | --- | --- | --- | --- |
 | 1 | `/autonomy` | `on` drains the ready pool end to end; `off` finishes the slice in flight and hands control back | user | The owner hands the backlog to the loop and takes it back with one word, instead of approving each in-pattern step. |
-| 2 | `/new-idea` | Turns a new idea, or a plan to refine, into an agreed requirements document. Interviews the owner in rounds until every decision is settled: each round asks every question that is now answerable, each with a recommended answer; facts are looked up by the agent, decisions are his. Ends by writing the requirements document ([5a](#5a-documentation-standards-user-layer-every-repository)). | user | A plan reaches building only after shared understanding, and that understanding lands in the versioned document instead of staying in the chat. Concept from Matt Pocock's MIT-licensed skills (grilling and to-spec), adapted. |
-| 3 | `/idea-to-issues` | Breaks a requirements document into vertical slices, each a complete path through every layer, small enough for one fresh session and demonstrable alone; asks the owner about granularity and blocking order; opens one Issue per slice with acceptance criteria and blocked-by links. | user | Turns an agreed document into tracked scope he can sequence, so work never starts untracked. Concept from Matt Pocock's MIT-licensed to-tickets skill, adapted to GitHub Issues. |
+| 2 | `/new-idea` ([#71](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/71)) | Turns a new idea, or a plan to refine, into an agreed requirements document. Interviews the owner in rounds until every decision is settled: each round asks every question that is now answerable, each with a recommended answer; facts are looked up by the agent, decisions are his. Ends by writing the requirements document ([5a](#5a-documentation-standards-user-layer-every-repository)). | user | A plan reaches building only after shared understanding, and that understanding lands in the versioned document instead of staying in the chat. Concept from Matt Pocock's MIT-licensed skills (grilling and to-spec), adapted. |
+| 3 | `/idea-to-issues` ([#72](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/72)) | Breaks a requirements document into vertical slices, each a complete path through every layer, small enough for one fresh session and demonstrable alone; asks the owner about granularity and blocking order; opens one Issue per slice with acceptance criteria and blocked-by links. | user | Turns an agreed document into tracked scope he can sequence, so work never starts untracked. Concept from Matt Pocock's MIT-licensed to-tickets skill, adapted to GitHub Issues. |
 | 4 | `/new-issue` | Captures a request as an Issue after searching for an existing decision | user | Every request becomes tracked scope before work starts, in every repository. |
-| 5 | `/handover` | Writes a handover prompt the owner pastes to open a new session derived from the current one. That prompt instructs the new session to write a **return prompt** for the parent session when its objective is done. | user | Work branches into focused child sessions and comes back without losing context. Both prompts carry only the minimum context and are sanitised under the firewall rules. |
-| 6 | `/what-else` | Restates the session's objective and answers what is still missing: what is done (with its evidence), what is left, what is blocked on the owner (that ask first) and the next step. | user | The owner can check at any moment how far the session is from its goal. |
-| 7 | `/blueprint` | `export` writes the project's effective agent harness configuration as a requirements document; `import` brings one into another project. | user | Carries a project's setup to other projects. The text it exports, and the text it accepts, is a requirements document in the [5a](#5a-documentation-standards-user-layer-every-repository) format: target behaviour and why, in English, with Mermaid diagrams, named `<repo>-product-requirements-document-*`. Import applies nothing before an expectation-alignment interview with the person running the session. |
+| 5 | `/handover` ([#73](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/73)) | Writes a handover prompt the owner pastes to open a new session derived from the current one. That prompt instructs the new session to write a **return prompt** for the parent session when its objective is done. | user | Work branches into focused child sessions and comes back without losing context. Both prompts carry only the minimum context and are sanitised under the firewall rules. |
+| 6 | `/what-else` ([#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74)) | Restates the session's objective and answers what is still missing: what is done (with its evidence), what is left, what is blocked on the owner (that ask first) and the next step. | user | The owner can check at any moment how far the session is from its goal. |
+| 7 | `/blueprint` ([#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75)) | `export` writes the project's effective agent harness configuration as a requirements document; `import` brings one into another project. | user | Carries a project's setup to other projects. The text it exports, and the text it accepts, is a requirements document in the [5a](#5a-documentation-standards-user-layer-every-repository) format: target behaviour and why, in English, with Mermaid diagrams, named `<repo>-product-requirements-document-*`. Import applies nothing before an expectation-alignment interview with the person running the session. |
 | 8 | `/breaking-glass` | Prints the `sudo` line that switches a hook layer off, with expiry | user | Exists only if the paste prompt hook stays ([4a](#4a-hook-budget), #58). |
 
 Not in the command set, because they were never designed for the owner's use of the loop: sprint
@@ -576,6 +580,9 @@ Slices: [#62](https://github.com/tedeuxx/personal-multi-harness-workstation-conf
 - The plugin is disabled at project scope.
 - The project keeps only its own items: site-stack skills, site commands, the browser MCP server where
   the open decision places it, and the version key.
+- The content agents (content-writer, content-reviewer) and the voice skill (published-voice) are not
+  site items: they live at user level, because they manage the owner's public persona in every external
+  interaction, not only the site ([6](#6-working-method-user-layer)).
 - Its README states the strategy and intent explicitly: its agent harness behaviour comes from the
   managed workstation at a declared version range, why that is, and that the plugin is not used.
 - It is changed through that repository's own delivery flow.
@@ -668,10 +675,14 @@ corporate enforcement" goal.
 | [#66](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/66) | Provenance stamp and installed manifest ([9a](#9a-provenance-stamp-in-every-installed-file)) | minor | install |
 | [#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67) | `./workstation` install, update, status, uninstall ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first run |
 | [#69](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/69) | Documentation standard, workstation-wide ([5a](#5a-documentation-standards-user-layer-every-repository)) | minor | install |
+| [#71](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/71) | Command `/new-idea` | minor | none |
+| [#72](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/72) | Command `/idea-to-issues` | minor | none |
+| [#73](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/73) | Command `/handover` | minor | none |
+| [#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74) | Command `/what-else` | minor | none |
+| [#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75) | `/blueprint` reshaped: export and import as a requirements document | minor | none |
+| [#76](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/76) | Per-Issue agent harness consumption record (worklog) | minor | none |
+| [#77](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/77) | Ten commandments in the user-level brief, after ratification | minor | ratify, install |
 
-The new commands (`/new-idea`, `/idea-to-issues`, `/handover`, `/what-else`), the reshaped `/blueprint`,
-the worklog and the ten commandments in the user-level brief are tracked under
-[#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52).
 
 Order rule: install the new protection before removing the old copy. Every installation on the machine
 is the owner's act, in a fresh session.
@@ -680,7 +691,8 @@ is the owner's act, in a fresh session.
 
 - A second device reaches the same behaviour with two commands (user install, then admin install) and
   no plugin installation.
-- No session in this repository is blocked by routine edits; there is no lockout.
+- No session in this repository is blocked by routine edits; there is no lockout during the review
+  period.
 - A synthetic credential pasted in a wrapper session arrives cleaned; outside the wrapper it is caught.
 - Every protection appears once, in one layer; nothing is duplicated between repositories (a CI check
   enforces it).
@@ -723,5 +735,5 @@ is the owner's act, in a fresh session.
 
 Decided: connector access is granted through native per-agent tool lists, not a hook.
 
-Separately pending in the decision-record library: the proposed records awaiting the owner's
-ratification. Each is raised only when a slice reaches it.
+Separately pending in the decision-record library: 18 ratifications listed in the setup review. Each
+is raised only when a slice reaches it.

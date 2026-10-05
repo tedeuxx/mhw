@@ -84,8 +84,8 @@ different claims). The detailed log is in [`AGENTS.md`](AGENTS.md), "Status".
 | Deny floor ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)) | Installed for Claude Code and Codex. Enforced when measured in throwaway homes; not re-measured on the reference machine. A prefix floor: other spellings of a denied command are not caught. Kiro carries none. |
 | Paste prompt hook ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md)) | Installed for Claude Code and Codex. Blocks and shows a redacted copy; it does not clean. Codex runs it only after the owner trusts it. |
 | Paste wrapper ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md)) | Written and tested; cleaning measured against real Claude Code and Codex in throwaway homes. Not activated on the reference machine. |
-| Hook layers in the admin layer, breaking glass, restart guard ([ADR-0024](docs/adr/0024-breaking-glass-per-layer-expiring-switches.md), [ADR-0025](docs/adr/0025-hook-layers-in-the-native-admin-layer.md)) | Installed. Loaded in Claude Code with the pass path measured; pass and block measured on one Codex surface. |
-| Interaction profile ([ADR-0019](docs/adr/0019-paced-conversation-and-three-path-decisions.md)) | Installed in the user briefs. Instructions only. |
+| Hook layers in the admin layer: picker guard (HITL escalation), restart guard, breaking glass ([ADR-0024](docs/adr/0024-breaking-glass-per-layer-expiring-switches.md), [ADR-0025](docs/adr/0025-hook-layers-in-the-native-admin-layer.md)) | Installed. Loaded in Claude Code with the pass path measured; pass and block measured on one Codex surface. |
+| Interaction profile ([ADR-0019](docs/adr/0019-paced-conversation-and-three-path-decisions.md)) | Installed in the user briefs. Instructions only; the picker guard hook in the row above is separate. |
 | MCP definition ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) | Written and tested. Not run on the reference machine. |
 
 Outside mechanical reach: the Claude and ChatGPT desktop apps (brief by manual paste), Windows (brief
