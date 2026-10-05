@@ -1,6 +1,6 @@
 # 0011 — Clipboard-borne prompts are anonymised and cleaned of employer and client references, automatically
 
-- **Status:** proposed. The requirement is accepted (the owner's words); the mechanism is proposed. The always-on watcher is withdrawn; see the amendment "the always-on watcher is withdrawn" below. Automatic cleaning of bracketed pastes into harness CLIs is built as a pty wrapper launcher; see the amendment "automatic cleaning at the paste boundary".
+- **Status:** proposed. The requirement is accepted (the owner's words); the mechanism is proposed. The always-on watcher is withdrawn; see the amendment "the always-on watcher is withdrawn" below. Automatic cleaning of bracketed pastes into harness CLIs is built as a pty wrapper launcher; see the amendment "automatic cleaning at the paste boundary". Since 2026-10-05 the wrapper is the primary mechanism and the prompt hook judges only sessions it did not start; see the amendment "the wrapper is primary; the prompt hook is the safety net".
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -649,8 +649,10 @@ Anthropic clause is undecided.
 
 ## Amendment 2026-10-01: automatic cleaning at the paste boundary, by a pty wrapper launcher
 
-**Status unchanged: proposed.** This amendment adds a mechanism. The prompt hook above stays, unchanged
-in what it blocks, as the backstop.
+**Status unchanged: proposed.** This amendment adds a mechanism. ~~The prompt hook above stays, unchanged
+in what it blocks, as the backstop.~~ *(Struck 2026-10-05: the hook stays, but it no longer judges a
+session the wrapper started. See the amendment "the wrapper is primary; the prompt hook is the safety
+net" below.)*
 
 ### The owner's words, verbatim
 
@@ -681,7 +683,9 @@ app ou ux do so"* and *"eu so quero filtrar o copy paste ao interagir com clis d
 - **Activation is the owner's act.** The installer writes the wrapper and a managed snippet,
   `<data dir>/paste-filter.sh`, beside the core. The snippet defines `claude`, `codex` and `kiro-cli`
   shell functions (zsh and bash) that run the CLI through the wrapper. The installer never sources it
-  and never edits a shell rc: it prints the `. "<data dir>/paste-filter.sh"` line for the owner to add.
+  ~~and never edits a shell rc: it prints the `. "<data dir>/paste-filter.sh"` line for the owner to add.~~
+  *(Struck 2026-10-05: it prints a guarded start-up line, and appends it to a shell rc only when the
+  owner names one with `--shell-rc=FILE`. See the 2026-10-05 amendment.)*
   `command claude` bypasses it.
 - **Fail direction.** A single paste fails **closed**. One over `max_bytes`, or one the core raised
   on, is replaced by a one-line notice in the CLI's input and is not forwarded. The session fails
@@ -690,8 +694,9 @@ app ou ux do so"* and *"eu so quero filtrar o copy paste ao interagir com clis d
   exit.
 - **What the owner sees.** Every notice is category only:
   - the `[REDACTED:<category>]` markers, in the CLI's input, as soon as he pastes;
-  - on submit, the prompt hook's `systemMessage` naming the categories of any markers in the prompt
-    (new in this amendment);
+  - ~~on submit, the prompt hook's `systemMessage` naming the categories of any markers in the prompt
+    (new in this amendment);~~ *(Struck 2026-10-05: in a session the wrapper started, the hook prints
+    nothing at all, so this notice appears only in a session it did not start.)*
   - at exit, one summary line: how many pastes were cleaned and which categories.
 
   Nothing is written into the TUI's screen area while it runs, except the no-bracketed-paste warning:
@@ -749,8 +754,9 @@ Also added from the lens's advisories:
 
 ### Limits, stated rather than hidden
 
-- **Only bracketed pastes are cleaned.** Typed text is never scanned by the wrapper (the hook still
-  scans it on submit). A paste while the CLI has bracketed paste off is not cleaned. While the CLI hands
+- **Only bracketed pastes are cleaned.** Typed text is never scanned by the wrapper ~~(the hook still
+  scans it on submit)~~ *(struck 2026-10-05: not in a session the wrapper started, where the hook now
+  passes every prompt; see the 2026-10-05 amendment)*. A paste while the CLI has bracketed paste off is not cleaned. While the CLI hands
   the terminal to another program (an external editor, a shell escape), that program's own mode decides.
 - **What does not pass through the terminal as a paste is not seen.** That covers a file attached by
   path, `@file` references and anything else the CLI reads from disk itself, and an image pasted into
@@ -778,7 +784,8 @@ Also added from the lens's advisories:
   and never forwarded. Lone Escape, Escape + an arrow-key tail, and Alt+[ are the controls. A fuzz
   run of 3,000 random splits with gaps of up to 0.9 s leaked nothing. **What "never forwarded" still
   does not cover:** a split marker whose two halves arrive more than 1 s apart is not recognised, and
-  its paste passes as typing. The hook still blocks it on submit. **The side effect, accepted:** an
+  its paste passes as typing. ~~The hook still blocks it on submit.~~ *(Struck 2026-10-05: the
+  session is a wrapped one, so the hook passes it; it reaches the CLI uncleaned.)* **The side effect, accepted:** an
   Escape key press followed within 1 s by the typed characters `[200~` opens a paste, which closes at
   the next end marker or after 2 s of silence, cleaned.
 - **A test-harness defect was found at the same time** and fixed: a pty reader thread that outlived its
@@ -800,14 +807,138 @@ Also added from the lens's advisories:
 ### Owner acts
 
 1. Re-run `global/install.sh` (it writes the wrapper and the snippet).
-2. Add the line it prints, `. "<data dir>/paste-filter.sh"`, to `~/.zshrc` yourself, and open a new
-   terminal.
+2. Add the line it prints, ~~`. "<data dir>/paste-filter.sh"`,~~ to `~/.zshrc` yourself, and open a new
+   terminal. *(Amended 2026-10-05: the printed line is now guarded, and `install.sh --shell-rc=FILE`
+   appends it on request.)*
 3. Optionally, paste a synthetic e-mail into `claude` and check that `[REDACTED:email]` is what
    appears.
 
 ### Version cut (ADR-0002)
 
 **Minor:** it adds a control and removes none.
+
+## Amendment 2026-10-05: the wrapper is primary; the prompt hook is the safety net
+
+**Status unchanged: proposed.** Issue #58. This amendment narrows what the prompt hook judges and adds
+an opt-in installer flag. The struck sentences in the amendment above are the ones it makes false.
+
+### The owner's decision
+
+Recorded on Issue #58 (owner decision of 2026-10-05, taken in a native picker):
+
+- the paste wrapper is the primary mechanism and cleans bracketed pastes before the agent harness
+  sees them;
+- the prompt hook **stays**, as the single justified hook (requirements document section 4a). The
+  wrapper exports a marker, and the hook blocks **only when that marker is absent**, which means the
+  session was not opened through the wrapper;
+- the admin-layer hook drop-in stays. Its only exception path is OS privilege (`sudo`). No
+  per-request or expiring waiver.
+
+### Decision: an environment marker, set only where the wrapper cleans
+
+- **The marker.** `PMHWC_PASTE_WRAPPER=1`. `paste_wrapper.py` puts it into the environment of the CLI
+  it relays for on a pseudo-terminal, and only that CLI. On its other path, when stdin or stdout is
+  not a terminal, it cleans nothing and `exec`s the CLI directly. There it **removes** the marker,
+  even one inherited from an outer session. The name and value live once, in `clipboard_guard.py`
+  (`WRAPPER_MARKER`, `WRAPPER_MARKER_VALUE`), and the wrapper imports them.
+- **Prompt arguments (lens finding on PR #90).** A prompt passed as an argument (`claude -p "<text>"`,
+  `codex exec "<text>"`) never crosses the terminal as a paste, so the wrapper cannot clean it.
+  Before the fix it reached the CLI uncleaned in a marked session, and the hook stayed silent; the
+  lens measured this on a pty. The wrapper now scans every argument with the same detection core
+  before it starts the CLI. If any argument carries a finding, or cannot be checked (a core error,
+  or a term list whose salt is unreadable), the wrapper **leaves the marker unset**. It also removes
+  an inherited one, and it says so in one category-only line. The hook then judges that session as
+  it judges any other. **Rewriting argv was rejected as the thicker option.** The wrapper cannot tell
+  a prompt from a path or a flag value, so a rewrite could change what the CLI does, and it would
+  need per-CLI argument parsing. Leaving the marker unset changes nothing about the CLI's input. It
+  fails toward checking, and it reuses the hook that already exists.
+- **The hook.** `prompt-hook` reads the payload. If the marker is exactly `1`, it prints nothing and
+  the prompt passes: no scan, no Keychain read, no notice. Otherwise it judges the prompt exactly as
+  before: it blocks a finding and shows a redacted copy. Any other value (`0`, empty, `true`, `1 `)
+  counts as absent.
+- **The marker is not a secret, and it proves nothing.** Anyone can set it by hand
+  (`PMHWC_PASTE_WRAPPER=1 claude`). Then the hook stops checking a session that nothing cleans.
+  This is accepted under *defend the perimeter, not the behaviour*. The control exists to catch an
+  accidental paste in an ordinary session; it does not defend against the owner switching it off on
+  purpose. A switch that is hard to flip by accident is what is wanted. This one is flipped only
+  by typing its exact name and value.
+- **The shell start-up line, opt-in.** `install.sh` prints one guarded line:
+  `[ -r "<data dir>/paste-filter.sh" ] && . "<data dir>/paste-filter.sh"`, followed by a tag comment.
+  With `--shell-rc=FILE` (an absolute path), it appends that line to FILE and prints what it wrote.
+  The flag is idempotent: a second run leaves FILE byte-identical. A different line carrying the same
+  tag is reported as `STALE` and left alone (exit 1). FILE must be a regular file (exit 3 otherwise).
+  `--dry-run` writes nothing, and `--check` reports `MISSING` (exit 1). Without the flag, no shell rc
+  is written, as before. The `[ -r … ]` guard keeps a shell starting cleanly if the data directory is
+  removed.
+
+### What this gives up, stated rather than hidden
+
+In a session the wrapper started, **nothing judges a prompt any more**. Before this amendment the
+hook was the backstop for everything the wrapper does not clean. These now reach the model unchecked
+in a wrapped session:
+
+- **typed text**, including a secret typed by hand or entered through an input method;
+- a paste made **while the CLI has bracketed paste off**, or after it turned it off. The wrapper
+  warns on screen, but the marker was set at start and cannot be withdrawn from a running process;
+- a paste whose split start marker arrives **more than 1 s apart** (it passes as typing);
+- anything a **descendant** of the wrapped CLI submits. Every process the CLI starts inherits the
+  marker, so a nested `claude -p` or `codex exec` run from inside a wrapped session passes its hook.
+  Those prompts are written by an agent, not pasted by the owner, but they are not checked.
+
+A prompt passed as a command-line argument is **not** on this list: since the PR #90 fix, an
+argument with a finding leaves the session unmarked, so the hook checks it. That covers only what the
+core detects. An argument whose sensitive content the core does not recognise passes in a marked
+session, as typed text does.
+
+What is **not** given up: every session not started through the wrapper keeps the hook exactly as it
+was. That covers `command claude`, a full path, scripts, IDE extensions, and a shell without the
+start-up line. This is the gap the owner kept the hook for.
+
+### Measured, 2026-10-05
+
+Synthetic data only. Throwaway `HOME` and `CODEX_HOME` under the session scratchpad. The model endpoint
+was pointed at `127.0.0.1:9` (closed), so no prompt left the machine.
+
+| What | Version | Evidence | Result |
+| --- | --- | --- | --- |
+| The marker reaches the hook process, Claude Code | 2.1.289 | **measured**, headless: `claude -p --setting-sources project --settings <throwaway> --no-session-persistence --tools "" --strict-mcp-config --output-format json`, once through the branch wrapper on a pty and once directly. The settings held one probe hook. It ran the branch core on a fixed synthetic sensitive payload, in the hook's own environment, and logged only the marker value and the verdict | Wrapped: `marker=1`, verdict **silent**. Direct: marker absent, verdict **block** |
+| The same, Codex CLI | 0.160.0 | **measured**, headless: `codex exec --skip-git-repo-check --ephemeral --json -s read-only --dangerously-bypass-hook-trust`, the probe hook in a throwaway `CODEX_HOME/hooks.json` | Wrapped: `marker=1`, **silent**. Direct: absent, **block** |
+| A wrapped sensitive prompt end to end, on the reference machine | both | **measured** | **Still blocked**, by the admin-layer copy of the core, which predates this amendment. Claude Code returned the block notice, and Codex ended the turn with zero usage. The marker logic takes effect at that layer only after the owner re-runs `install-managed.sh` with `sudo`. Until then, the reference machine stays on the stricter behaviour |
+| The wrapper cleans a synthetic bracketed paste, real Claude Code | 2.1.289 | **measured**: the interactive TUI through the branch wrapper on a pty, in a throwaway `HOME` pre-seeded past onboarding and trust, with a placeholder key and the closed endpoint. Nothing submitted; Ctrl+C to quit | Bracketed paste enabled. `[REDACTED:credential]` and `[REDACTED:email]` rendered. Neither original appeared in the terminal output or anywhere in the throwaway home |
+| The same, real Codex CLI | 0.160.0 | **measured**: the TUI with `--no-daemon`, a throwaway `CODEX_HOME` with the work directory trusted, and the closed endpoint. The driver answered the TUI's terminal-capability queries | Same: both markers rendered, no original in the output or the home. The exit summary counted one cleaned paste (credential, email) |
+| A sensitive prompt passed as an argument, through the wrapper (after the PR #90 fix) | 2.1.289 / 0.160.0 | **measured**, headless, the same setup: `claude -p "<synthetic key and e-mail>"` and `codex exec "<same>"` | Both: the wrapper printed its "NOT marked" line and the prompt was blocked. On Codex the probe hook logged the marker **absent** in the hook's environment, and the branch core **blocked**. On Claude Code the admin-layer hook blocked first, so the probe hook did not run there. That the marker is absent in this case is *tested* (a real wrapper process and a recorder child), not measured inside Claude Code |
+| Kiro CLI | — | **not measured** | The wrapper's no-bracketed-paste warning would reveal a Kiro CLI that does not enable it |
+| `--shell-rc` against throwaway rc files | — | **tested**, `install.test.sh` | Dry-run writes nothing. Install appends once on its own line and keeps the owner's content. A second run is byte-identical. zsh and bash, sourcing the rc, get the wrapper functions. A differing tagged line is left alone; a directory is refused; a relative path is a usage error |
+
+**Mutation-checked** (the source mutated, the suite run, the source restored). Each of these fourteen mutants
+turned at least one test red (11 to 14 were added with the PR #90 fix):
+
+1. the hook ignores the marker;
+2. the hook always passes;
+3. any marker value counts;
+4. the relay does not export the marker;
+5. the not-a-terminal path keeps an inherited marker;
+6. `--shell-rc` without the idempotency check;
+7. a default that writes `~/.zshrc` without the flag;
+8. `--dry-run` that appends;
+9. no newline before the appended line;
+10. a differing tagged line rewritten;
+11. an argument with a finding still marks the session;
+12. an argument the core raised on still marks it;
+13. the relay ignoring the argument verdict;
+14. arguments with an unreadable salt still marking it.
+
+### Owner acts
+
+1. After this reaches a release: re-run `global/install.sh` and, with `sudo`, `global/install-managed.sh`,
+   then open fresh sessions (the configuration-change rule).
+2. Optionally, `install.sh --shell-rc="$HOME/.zshrc"`, or add the printed line yourself.
+
+### Version cut (ADR-0002)
+
+**Major.** The prompt hook, an existing control, stops judging wrapped sessions, so typed text there is
+no longer checked. ADR-0002's table puts *a control weakened* in the major row, even though the
+weakening was the owner's own decision.
 
 ## Links
 
