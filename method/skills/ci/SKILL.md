@@ -93,13 +93,13 @@ Everything below is specific to GitHub Actions. A tool switch replaces this sect
   `version-main.yml` (and `version-develop.yml` under GitFlow), `release.yml` (`workflow_dispatch`),
   `claude.yml` and `claude-code-review.yml`.
 - `permissions:` per job, least privilege; `concurrency:` groups on deploys; third-party actions pinned
-  `uses: owner/action@<40-char-sha>`.
+  `uses: owner/action@<40-char-sha>` (every `@<sha>` below means that pin, never a tag such as `@v4`).
 
 ### A required check behind a `paths:` filter never reports
 If a *required* check is gated by a trigger-level `on.pull_request.paths:` filter, a pull request
 touching none of those paths never starts the workflow, and branch protection leaves it permanently
 `BLOCKED`. **Fix:** drop `paths:` from the `pull_request` trigger so the job always runs and reports,
-then gate the heavy steps inside it with a `dorny/paths-filter@v3` step and `if:`. Keep the `push`
+then gate the heavy steps inside it with a `dorny/paths-filter` step (v3, SHA-pinned) and `if:`. Keep the `push`
 trigger's `paths:` (the analysis baseline runs only on real changes).
 
 ### Cloud credentials through OIDC
@@ -126,8 +126,9 @@ The trust policy pins the repository's **immutable** OIDC subject,
   act: the deny floor forbids `gh workflow run` to agents.
 
 ### The Claude Code GitHub App workflows
-Both use `anthropics/claude-code-action@v1` with the `CLAUDE_CODE_OAUTH_TOKEN` repository secret; the
-app install is in `/scm`.
+Both use `anthropics/claude-code-action` (major version v1), pinned to a full commit SHA like every
+third-party action; `<sha>` in the examples stands for that pin. They use the `CLAUDE_CODE_OAUTH_TOKEN`
+repository secret; the app install is in `/scm`.
 
 **`claude.yml` — on-demand assistant (`@claude`):**
 ```yaml
@@ -141,8 +142,8 @@ jobs:
     if: contains(<event body/title>, '@claude')          # gate on the @claude mention
     permissions: { contents: read, pull-requests: read, issues: read, id-token: write, actions: read }
     steps:
-      - uses: actions/checkout@v4            # fetch-depth: 1
-      - uses: anthropics/claude-code-action@v1
+      - uses: actions/checkout@<sha>         # fetch-depth: 1
+      - uses: anthropics/claude-code-action@<sha>
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
@@ -161,8 +162,8 @@ jobs:
     if: github.event.pull_request.base.ref != 'main'   # skip the develop→main release PR
     permissions: { contents: read, pull-requests: read, issues: read, id-token: write }
     steps:
-      - uses: actions/checkout@v4            # fetch-depth: 1
-      - uses: anthropics/claude-code-action@v1
+      - uses: actions/checkout@<sha>         # fetch-depth: 1
+      - uses: anthropics/claude-code-action@<sha>
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'

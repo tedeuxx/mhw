@@ -1,6 +1,6 @@
 ---
 name: "provisioning"
-description: "Provision infrastructure for a `<project>` repo through the pipeline only — remote state and runs, one workspace per environment, plan on the pull request and apply on merge, never from a laptop, and infra-first ordering. Use when adding or changing infrastructure, wiring a plan or apply job, setting up remote state, or tearing something down. Not for the infrastructure code's patterns (see cloud-infrastructure), workflow wiring and pipeline roles (see ci), or branching (see scm)."
+description: "Provision infrastructure for a `<project>` repo through the pipeline only — remote state and runs, one workspace per environment, plan on the pull request and apply on merge, never from a laptop, and infra-first ordering. Use when adding or changing infrastructure, wiring a plan or apply job, setting up remote state, or tearing something down. Not for the infrastructure code's patterns (the site project's cloud-infrastructure skill, not in this method), workflow wiring and pipeline roles (see ci), or branching (see scm)."
 purpose: "keep every infrastructure state mutation on one reviewed route, the pipeline, so a destroyed resource never comes from a laptop"
 ---
 
@@ -77,7 +77,8 @@ only.
   apply` is not matched by the prefix; do not run it.
 - **The infrastructure gate** on a pull request: `checkov` (policy scan), `terraform fmt -check`,
   `terraform validate`, `terraform plan` with the plan posted on the pull request. The configuration
-  patterns themselves are in `/cloud-infrastructure`.
+  patterns themselves are in the site project's `cloud-infrastructure` skill, which is not part of
+  this method.
 - **Teardown:** a `workflow_dispatch` destroy workflow, reviewed like any other change. Dispatching it
   is the owner's act: the deny floor forbids `gh workflow run` to agents, because a dispatched workflow
   reaches the pipeline's credentials without the review a merge carries.

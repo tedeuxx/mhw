@@ -130,7 +130,7 @@ independence, since it is now a section of the skill every reviewing persona alr
 than a second file to preload alongside it.
 
 CI **blocks deploy** if any gate fails — no artifact upload, no CDN invalidation, no function update.
-IaC has its own gate (`checkov`, in `cloud-infrastructure`) and is not covered here.
+IaC has its own gate (`checkov`; see `/provisioning`) and is not covered here.
 
 **Quality — identical on both sides:** lint (zero errors), typecheck (zero type errors). No variation —
 these are the cheapest gates in the set and the ones most often made advisory "for now".
@@ -211,7 +211,7 @@ project, or the CI scanner is rejected.
 The legacy `sonarcloud-github-action` is **deprecated/archived**; use the unified scan action. One step
 both scans and gates through `qualitygate.wait` (no separate quality-gate action):
 ```yaml
-- uses: SonarSource/sonarqube-scan-action@v7
+- uses: SonarSource/sonarqube-scan-action@<sha>   # v7, pinned to a full commit SHA (/ci)
   env:
     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     SONAR_HOST_URL: https://sonarcloud.io   # SonarCloud host

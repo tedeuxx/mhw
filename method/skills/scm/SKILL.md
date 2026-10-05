@@ -131,7 +131,8 @@ git checkout develop && git merge --no-ff origin/main -m "chore: back-merge main
 
 ## Labels and issues
 
-Issues live in each repository — no central backlog repo. The live label vocabulary is
+Issues live in each repository — no central backlog repo. Review open issues at session start; on
+delivering a plan item, open or close its issue. Product ownership stays with the human. The live label vocabulary is
 `product`/`content`/`loop`/`ready`/`blocked`/`reader-facing` plus the `sp:N` class (see
 `/agents-configuration`), and on pull requests the `semver:*` cut label above. A label nothing queries
 is decoration; retired schemes (`type:`/`priority:`/`phase:`) stay retired.
@@ -177,6 +178,18 @@ carries none. No guard hook backs it any more (#61). Two consequences:
   fast-forward push, and branch protection does not stop an administrator credential when it exempts
   administrators. **Do not push to the trunk; branch and open a pull request.** That is an instruction.
 - **The merge gate is the gatekeeper's own procedure.** No layer reads its verdict before a merge.
+
+### Two layers, and deny wins
+
+1. **The workstation floor** carries the always-forbidden and protects every repo, even one with no
+   local configuration.
+2. **Per project, a committed settings file** holds that repo's inner-loop allow for its stack. It is a
+   versioned repo contract (in Claude Code, `.claude/settings.json`), **never** the untracked
+   local-override file (`settings.local.json`), which is never a place where a protection is relaxed.
+3. **Deny from any layer wins**, so the floor is inescapable and the project layer only adds autonomy.
+4. **A rule keyed on an environment name** (`staging`, `production`) lives in that repo's own settings,
+   never in the shared floor. A single-environment repo carries no production-name (`*prd*`) deny
+   patterns for environments it does not have.
 
 ### A settings entry's `:*` is a TOKEN boundary, not a raw prefix
 

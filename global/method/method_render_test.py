@@ -175,6 +175,12 @@ class CapabilitySkills(unittest.TestCase):
             later = [line for line in section[1:] if line.startswith("## ")]
             self.assertEqual(later, [], "%s: the tool section must be the last section" % name)
 
+    def test_scm_keeps_the_two_layers_and_deny_wins(self):
+        _, _, _, rest, _ = capability_parts("scm")
+        text = "\n".join(rest)
+        self.assertIn("Deny from any layer wins", text)
+        self.assertIn("settings.local.json", text)
+
     def test_no_tool_word_outside_the_disclaimer_and_the_tool_section(self):
         for name, (_, pattern) in CAPABILITY_SKILLS.items():
             _, _, _, rest, _ = capability_parts(name)
