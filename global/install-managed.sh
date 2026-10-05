@@ -3,6 +3,8 @@
 # owner can switch them off. Only an administrator can change or remove them, with sudo, as with any
 # OS-managed policy; there is no per-request or expiring waiver (ADR-0028, which removed the restart
 # guard and the ADR-0024 breaking-glass switches; --apply and --remove delete what they left behind).
+# The HITL picker guard is removed too (ADR-0013, 2026-10-05 amendment, Issue #60): --apply and
+# --remove delete its script and limits, and --check reports them as STALE.
 # The same admin documents carry the deny floor (ADR-0016, 2026-10-05 amendment): the Claude Code
 # drop-in's permissions.deny and the Codex requirements' [rules] prefix_rules, both rendered from the
 # rules install.sh renders, so the floor has one source. No session flag drops the admin layer.
@@ -28,9 +30,10 @@ set -eu
 NAME="personal-multi-harness-workstation-configuration"
 MARKER_ID="managed-by: $NAME"
 DROPIN="50-$NAME.json"
-FILES="hitl-escalation-guard.sh hitl.conf clipboard_guard.py clipboard.conf"
-# Removed by ADR-0028; an earlier --apply installed them. Deleted by --apply and --remove, reported by --check.
-LEGACY="restart_guard.py breaking_glass.py"
+FILES="clipboard_guard.py clipboard.conf"
+# Removed by ADR-0028 (restart guard, switches) and by ADR-0013's 2026-10-05 amendment (HITL picker
+# guard); an earlier --apply installed them. Deleted by --apply and --remove, reported by --check.
+LEGACY="restart_guard.py breaking_glass.py hitl-escalation-guard.sh hitl.conf"
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 mode=render
@@ -47,7 +50,7 @@ for arg in "$@"; do
     --sha256=*) sha=${arg#--sha256=} ;;
     --root=*) root=${arg#--root=} ;;
     --overlay=*) overlay_arg=$arg ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -116,23 +119,20 @@ render() { # $1 empty stage directory
   py="/usr/bin/python3 -I -B"
   paste_claude="$py \"$bin/clipboard_guard.py\" prompt-hook --harness claude --config \"$bin/clipboard.conf\""
   paste_codex="$py \"$bin/clipboard_guard.py\" prompt-hook --harness codex --config \"$bin/clipboard.conf\""
-  hitl="/bin/sh \"$bin/hitl-escalation-guard.sh\""
   # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin
   # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor.
   jq -c '.permissions.deny' "$st/home/.claude/settings.json" > "$st/floor.json"
   # The provenance stamp (Issue #66, ADR-0029) exactly as install.sh derived it for the same checkout,
   # read back from a file it rendered, so the admin documents and the scripts cannot name two sources.
-  stamp=$(grep -m 1 -F "$MARKER_ID" "$st/bin/hitl.conf" | sed -n 's/.*; \(release: [^;]*; commit: [^;]*\);.*/\1/p')
+  stamp=$(grep -m 1 -F "$MARKER_ID" "$st/bin/clipboard.conf" | sed -n 's/.*; \(release: [^;]*; commit: [^;]*\);.*/\1/p')
   [ -n "$stamp" ] || { echo "REFUSE  install.sh rendered no provenance stamp" >&2; exit 2; }
   # JSON has no comment: one top-level key of ours carries the stamp. Claude Code ignores a key it does
   # not know (measured on 2.1.289 through --settings; see ADR-0029).
-  jq -n --arg ps "$paste_claude" --arg h "$hitl" --slurpfile f "$st/floor.json" --arg sk "$NAME" \
+  jq -n --arg ps "$paste_claude" --slurpfile f "$st/floor.json" --arg sk "$NAME" \
       --arg sv "$MARKER_ID; source: global/install-managed.sh; $stamp; do not edit, re-run the installer" '
     def hook($c; $t): {type: "command", command: $c, timeout: $t};
     {($sk): $sv,
-     hooks: {
-      PreToolUse: [{matcher: "AskUserQuestion", hooks: [hook($h; 5)]}],
-      UserPromptSubmit: [{hooks: [hook($ps; 30)]}]},
+     hooks: {UserPromptSubmit: [{hooks: [hook($ps; 30)]}]},
      permissions: {deny: $f[0]}}' > "$st/claude.json"
   {
     printf '# %s; source: global/install-managed.sh; %s; do not edit, re-run the installer\n' "$MARKER_ID" "$stamp"
@@ -189,7 +189,7 @@ case $mode in
       stamp_got=$(printf '%s' "$stamp_line" | sed -n 's/.*; \(release: [^;"]*; commit: [^;"]*\);.*/\1/p')
       printf '%s' "${stamp_got:-none}"
     }
-    echo "SOURCE  $(stamp_of "$st/bin/hitl.conf")"
+    echo "SOURCE  $(stamp_of "$st/bin/clipboard.conf")"
     compare() {
       rendered=$1
       installed=$2
@@ -207,7 +207,7 @@ case $mode in
     }
     for f in $FILES; do compare "$st/bin/$f" "$bin/$f"; done
     for f in $LEGACY; do
-      if [ -e "$bin/$f" ]; then echo "STALE   $bin/$f: removed by ADR-0028; --apply deletes it"; status=1; fi
+      if [ -e "$bin/$f" ]; then echo "STALE   $bin/$f: a removed hook's file (ADR-0028, ADR-0013); --apply deletes it"; status=1; fi
     done
     if [ -e "$switches" ]; then echo "STALE   $switches: removed by ADR-0028; --apply deletes it"; status=1; fi
     compare "$st/claude.json" "$claude_file"
@@ -243,7 +243,8 @@ case $mode in
     done
     put "$work/claude.json" "$claude_file" 644
     put "$work/requirements.toml" "$codex_file" 644
-    # What an earlier release installed for the restart guard and the breaking-glass switches (ADR-0028).
+    # What an earlier release installed for the restart guard, the breaking-glass switches (ADR-0028)
+    # and the HITL picker guard (ADR-0013, 2026-10-05 amendment).
     for f in $LEGACY; do rm -f "$bin/$f"; done
     rm -f "$switches"/*.json
     rmdir "$switches" 2>/dev/null || true

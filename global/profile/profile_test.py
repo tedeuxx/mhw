@@ -131,18 +131,18 @@ class ProfileTests(unittest.TestCase):
 
     def test_unmanaged_target_refuses_all_writes(self):
         self.output.mkdir()
-        (self.output / "hitl.conf").write_text("unmanaged", encoding="utf-8")
+        (self.output / "clipboard.conf").write_text("unmanaged", encoding="utf-8")
         result = self.cli("render", output=True)
         self.assertEqual(result.returncode, 3)
-        self.assertEqual([p.name for p in self.output.iterdir()], ["hitl.conf"])
-        self.assertEqual((self.output / "hitl.conf").read_text(), "unmanaged")
+        self.assertEqual([p.name for p in self.output.iterdir()], ["clipboard.conf"])
+        self.assertEqual((self.output / "clipboard.conf").read_text(), "unmanaged")
 
     def test_symlink_refuses_all_writes(self):
         self.output.mkdir()
         other = self.base / "other"
         other.write_text("untouched", encoding="utf-8")
         try:
-            (self.output / "hitl.conf").symlink_to(other)
+            (self.output / "clipboard.conf").symlink_to(other)
         except OSError:
             self.skipTest("symlink creation unavailable on this host")
         self.assertEqual(self.cli("render", output=True).returncode, 3)
@@ -153,20 +153,18 @@ class ProfileTests(unittest.TestCase):
         self.output.mkdir()
         (self.output / "AGENTS.md").write_text("Notes about " + compiler.MANAGED, encoding="utf-8")
         self.assertEqual(self.cli("render", output=True).returncode, 3)
-        self.assertFalse((self.output / "hitl.conf").exists())
+        self.assertFalse((self.output / "clipboard.conf").exists())
 
     def test_pt_profile_localizes_notices_and_keeps_floor(self):
         self.doc["conversation"].update(language="pt-BR", decision_tone="executive-concise")
         self.doc["interaction"]["max_question_chars"] = 280
         self.doc["session_start"]["priority"] = "balanced"
         compiled = compiler.compile_profile(self.doc)
-        self.assertIn("max_question_chars=280", compiled["hitl.conf"])
-        self.assertIn("notice_count=Guarda HITL", compiled["hitl.conf"])
         self.assertIn("notice_paste_redacted=", compiled["clipboard.conf"])
         self.assertNotIn("block_categories=", compiled["clipboard.conf"])
-        self.assertNotIn("max_questions=", compiled["hitl.conf"])
         self.assertIn("moderate latency", compiled["AGENTS.md"])
-        self.assertIn("one ask per activation", compiled["AGENTS.md"])
+        self.assertIn("one question per message; a question stem is at most 280 characters; "
+                      "the reasoning goes in a linked artifact, not in the message.", compiled["AGENTS.md"])
         floor = (compiler.ROOT / "global" / "AGENTS.md").read_text(encoding="utf-8").rstrip()
         self.assertIn(floor, compiled["desktop-instructions.md"])
 
@@ -184,11 +182,16 @@ class ProfileTests(unittest.TestCase):
 
     def test_pacing_is_opt_in_and_reference_owner_selects_it(self):
         generic = compiler.compile_profile(self.doc)
-        self.assertNotIn("exact_options=", generic["hitl.conf"])
+        self.assertNotIn("**Path decisions:**", generic["AGENTS.md"])
         self.assertNotIn("**Paced conversation:**", generic["AGENTS.md"])
         owner = compiler.load_profile(compiler.ROOT / "overlay" / "profile.json")
         compiled = compiler.compile_profile(owner)
-        self.assertIn("exact_options=3", compiled["hitl.conf"])
+        # Issue #60: the owner's decisions are instructions; no picker-guard configuration is generated.
+        self.assertNotIn("hitl.conf", compiled)
+        self.assertIn("one extreme, the opposite extreme, and the middle ground", compiled["AGENTS.md"])
+        self.assertIn("talk to the owner in Brazilian Portuguese. Anything published is in English",
+                      compiled["AGENTS.md"])
+        self.assertIn("no hook checks it", compiler.plan(owner)["limits"]["decision_options"])
         self.assertIn("silence or elapsed time is not approval", compiled["AGENTS.md"])
         self.assertIn("risk and expected benefit", compiled["AGENTS.md"])
         self.assertIn("not a hard token or spending cap", compiled["AGENTS.md"])

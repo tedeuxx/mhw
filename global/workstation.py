@@ -4,6 +4,7 @@
     ./workstation install                 user layer, every agent harness, hooks mode detected
     ./workstation install --admin         render and validate the admin layer; print its one sudo line
     ./workstation status [--verbose]      what is installed, which layers and protections, the version key
+    ./workstation status --summary        the session-start runtime summary an agent harness relays (#80)
     ./workstation check                   exit non-zero when an installed target differs from this checkout
     ./workstation update [vX.Y.Z]         fetch tags, check out the newest release (or the one given), install
     ./workstation uninstall               remove the user layer; print the sudo line for the admin layer
@@ -140,7 +141,8 @@ def render_status(f, verbose=False):
     lines.append("  source           %s (this checkout)" % short_stamp(f["source"]))
     user = sorted(set(f["user_stamps"].values()))
     user_text = " / ".join(short_stamp(s) for s in user) if user else "none"
-    admin_text = short_stamp(f["admin_stamp"]) if f["admin"] else "not installed"
+    admin_text = short_stamp(f["admin_stamp"]) if f["admin"] else (
+        LEGACY if f.get("admin_state") == "legacy" else "not installed")
     lines.append("  installed        user: %s · admin: %s" % (user_text, admin_text))
     fix = f["user_issues"] + (f["admin_issues"] if f["admin"] else 0)
     check = "matches this checkout" if fix == 0 else "%d target(s) differ; run %s" % (fix, FIX)
@@ -153,7 +155,7 @@ def render_status(f, verbose=False):
     plugins = f["plugins"]
     plugin_text = "%d enabled in Claude Code" % len(plugins) if plugins else "none enabled in Claude Code"
     lines.append("  layers           managed: %s · user: %s · workspace: %s · plugin: %s" % (
-        "installed" if f["admin"] else "absent", "installed" if user else "absent", ws_text, plugin_text))
+        managed_text(f), "installed" if user else "absent", ws_text, plugin_text))
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
     key = f["key"]
@@ -167,12 +169,115 @@ def render_status(f, verbose=False):
     lines.append("  evidence         installed is the most this view observes; loaded and enforced need a "
                  "session canary")
     if verbose:
+        for h, layer, key, value in f.get("settings", []):
+            lines.append("  setting          %s %s: %s = %s" % (h, layer, key, value))
         for h, v in f["harnesses"].items():
             lines.append("  agent harness    %s: %s" % (h, v if v is not None else "not on PATH"))
         for p in plugins:
             lines.append("  plugin           %s" % p)
         for line in f["user_lines"] + f["admin_lines"]:
             lines.append("  | " + line)
+    return lines
+
+
+# ---------------------------------------------------------------------------------------------------
+# Session-start runtime summary (Issue #80): the few lines an agent harness relays in its first reply.
+# Pure, from the same facts dictionary as render_status; it gathers nothing of its own.
+
+# Where each agent harness shows what this view cannot see (the session's model, effort and flags).
+NATIVE_VIEW = {"Claude Code": "/status", "Codex": "/status", "Kiro": "/context show, /tools"}
+# Settings that set a session default. A workspace value overrides the user one; a session flag
+# overrides both and is visible only inside the agent harness.
+MODE_KEYS = {"Claude Code": ("permissions.defaultMode",), "Codex": ("approval_policy", "sandbox_mode")}
+MODEL_KEYS = {"Claude Code": ("model", "effortLevel"), "Codex": ("model", "model_reasoning_effort")}
+
+
+def _setting(settings, harness, key):
+    """-> (value, layer) of the lowest layer that sets the key (workspace beats user), or None."""
+    found = None
+    for h, layer, k, value in settings:
+        if h == harness and k == key and (found is None or layer == "workspace"):
+            found = (value, layer)
+    return found
+
+
+def _settings_text(settings, keys_by_harness, harnesses):
+    parts = []
+    for h in harnesses:
+        keys = keys_by_harness.get(h, ())
+        values = []
+        for key in keys:
+            hit = _setting(settings, h, key)
+            if hit:
+                values.append("%s %s (%s)" % (key, hit[0], hit[1]))
+        if values:
+            parts.append("%s: %s" % (h, ", ".join(values)))
+        elif keys:
+            parts.append("%s: default" % h)
+        else:
+            parts.append("%s: not read by this view" % h)
+    return " · ".join(parts)
+
+
+LEGACY = "installed (legacy, pre-#66; reinstall to update)"
+ADMIN_FLOOR = "the admin layer"
+
+
+def managed_text(f):
+    """The managed layer as a layer list shows it. Never 'absent' while a drop-in of ours is present."""
+    if f["admin"]:
+        return "installed"
+    return {"legacy": LEGACY, "unreadable": "present, not read"}.get(f.get("admin_state"), "absent")
+
+
+def cannot_override(f):
+    """Only what sits in the admin layer can be named here. The floor's own words come from the
+    installer, verbatim: a user-level floor is dropped by a session flag, so it is never listed as locked."""
+    admin = f["admin"] or f.get("admin_state") in ("legacy", "unreadable")
+    floor = f["floor"]
+    if floor.startswith(ADMIN_FLOOR):
+        parts = ["managed layer (admin-owned)", "deny floor: " + floor]
+        return " · ".join(parts)
+    parts = ["managed layer (admin-owned)"] if admin else ["nothing (no admin layer)"]
+    parts.append("deny floor NOT locked: " + floor)
+    return " · ".join(parts)
+
+
+def render_summary(f):
+    """At most ten lines: what is in effect, each item at the evidence level this view has."""
+    present = [h for h, v in f["harnesses"].items() if v is not None]
+    shown = present or list(f["harnesses"])
+    settings = f.get("settings", [])
+    lines = ["Runtime summary (./workstation status --summary; detail: ./workstation status --verbose)"]
+    lines.append("  agent harness    %s" % (" · ".join("%s %s" % (h, f["harnesses"][h]) for h in present)
+                                            if present else "none detected on PATH"))
+    lines.append("  model, effort    %s; the session's own values: %s" % (
+        _settings_text(settings, MODEL_KEYS, shown),
+        ", ".join("%s %s" % (h, NATIVE_VIEW[h]) for h in shown)))
+    user = sorted(set(f["user_stamps"].values()))
+    stamp = " / ".join(short_stamp(s) for s in user) if user else "none"
+    key = f["key"]
+    key_text = "no %s in the workspace" % KEY_FILE if key is None else "%s %s" % (key["required"], key["state"])
+    lines.append("  workstation      %s · version key: %s" % (stamp, key_text))
+    ws = f["workspace"]
+    plugins = f["plugins"]
+    lines.append("  layers           managed: %s · user: %s · workspace: %s · plugin: %s" % (
+        managed_text(f), "installed" if user else "absent",
+        ws["name"] or "none", "%d in Claude Code" % len(plugins) if plugins else "none"))
+    overrides = ["%s %s = %s" % (h, k, v) for h, layer, k, v in settings if layer == "workspace"]
+    off = ["%s %s" % (h, layer) for h, layer, k, v in settings if k == "disableAllHooks" and v == "true"]
+    if off:
+        overrides.insert(0, "HOOKS OFF: disableAllHooks in " + ", ".join(off))
+    lines.append("  overrides        %s" % ("; ".join(overrides) if overrides
+                                           else "no workspace setting overrides a user default"))
+    lines.append("  cannot override  %s" % cannot_override(f))
+    lines.append("  protections      brief %s · hooks %s · evidence: installed; loaded and enforced "
+                 "need a session canary" % (f["brief"], f["hooks"]))
+    lines.append("  permission mode  %s; session flags: %s" % (
+        _settings_text(settings, MODE_KEYS, shown), ", ".join("%s %s" % (h, NATIVE_VIEW[h]) for h in shown)))
+    lines.append("  runtime          %s" % f["runtime"])
+    if key is not None and key["line"]:
+        lines.append("  " + key["line"])
     return lines
 
 
@@ -186,6 +291,19 @@ def managed_root():
 def admin_dropin():
     base = "/Library/Application Support/ClaudeCode" if platform.system() == "Darwin" else "/etc/claude-code"
     return Path(managed_root() + base + "/managed-settings.d/50-%s.json" % NAME)
+
+
+def admin_state():
+    """installed (our stamped drop-in), legacy (our filename, no stamp key: written before #66),
+    unreadable (present, not JSON), or absent. A present drop-in is never reported as absent."""
+    path = admin_dropin()
+    if not path.exists():
+        return "absent"
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "unreadable"
+    return "installed" if isinstance(doc, dict) and NAME in doc else "legacy"
 
 
 def admin_installed():
@@ -292,6 +410,55 @@ def enabled_plugins(ws_root):
     return sorted(n for n, on in enabled.items() if on)
 
 
+_TOML_KEY = re.compile(r"""([A-Za-z_][\w-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^#\s]+))""")
+
+
+def _toml_top(path, keys):
+    """Top-level string or bare values of the given keys in a TOML file, before its first table.
+    Not a TOML parser: enough for the few scalar keys a session default lives in."""
+    out = {}
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return out
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("["):
+            break
+        m = _TOML_KEY.match(line)
+        if m and m.group(1) in keys:
+            out[m.group(1)] = next(g for g in m.groups()[1:] if g is not None)
+    return out
+
+
+def read_settings(ws_root):
+    """Session-default settings each layer sets, as (agent harness, layer, key, value) tuples.
+    Claude Code: user and workspace settings.json (+ settings.local.json); Codex: user and workspace
+    config.toml. The admin layer is reported as a layer, not read here."""
+    out = []
+    claude = [("user", Path.home() / ".claude" / "settings.json")]
+    codex = [("user", Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml")]
+    if ws_root:
+        claude += [("workspace", ws_root / ".claude" / "settings.json"),
+                   ("workspace", ws_root / ".claude" / "settings.local.json")]
+        codex.append(("workspace", ws_root / ".codex" / "config.toml"))
+    for layer, path in claude:
+        doc, _ = _json(path)
+        if not isinstance(doc, dict):
+            continue
+        perms = doc.get("permissions") if isinstance(doc.get("permissions"), dict) else {}
+        for key, value in (("model", doc.get("model")), ("effortLevel", doc.get("effortLevel")),
+                           ("permissions.defaultMode", perms.get("defaultMode")),
+                           ("disableAllHooks", doc.get("disableAllHooks"))):
+            if value is not None and not isinstance(value, (dict, list)):
+                out.append(("Claude Code", layer, key, json.dumps(value).strip('"')))
+    for layer, path in codex:
+        found = _toml_top(path, ("model", "model_reasoning_effort", "approval_policy", "sandbox_mode"))
+        for key in sorted(found):
+            out.append(("Codex", layer, key, found[key]))
+    return out
+
+
 def runtime():
     system = "%s %s" % (platform.system(), platform.machine())
     if Path("/run/.containerenv").exists():
@@ -310,7 +477,10 @@ def runtime():
     return "host (%s; no container marker found)" % system
 
 
+# The HITL picker guard was removed (ADR-0013, 2026-10-05 amendment, Issue #60). Its name is kept only so
+# status can name an entry an earlier install left registered: install (or install --admin) removes it.
 GUARD = "hitl-escalation-guard.sh"
+LEFTOVER = "removed picker guard still registered (Claude Code)"
 PASTE = "clipboard_guard.py"
 
 
@@ -337,7 +507,8 @@ def _json(path):
 
 def read_hooks():
     """Which of our hooks each layer actually registers, read from the installed files. A hook counts
-    only when its entry is registered AND the script it runs is present. -> {layer: [found] | 'not read'}."""
+    only when its entry is registered AND the script it runs is present; a removed hook's entry is named
+    whenever it is still registered, script or not. -> {layer: [found] | 'not read'}."""
     data = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / NAME
     codex_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
     if platform.system() == "Darwin":
@@ -349,8 +520,8 @@ def read_hooks():
     found, unread = [], False
     doc, state = _json(Path.home() / ".claude" / "settings.json")
     unread |= state == "not read"
-    if any(GUARD in c for c in _commands(doc, "PreToolUse")) and (data / GUARD).is_file():
-        found.append("picker guard (Claude Code)")
+    if any(GUARD in c for c in _commands(doc, "PreToolUse")):
+        found.append(LEFTOVER)
     if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (data / PASTE).is_file():
         found.append("paste filter (Claude Code)")
     doc, state = _json(codex_home / "hooks.json")
@@ -362,8 +533,8 @@ def read_hooks():
     found, unread = [], False
     doc, state = _json(admin_dropin())
     unread |= state == "not read"
-    if any(GUARD in c for c in _commands(doc, "PreToolUse")) and (admin_bin / GUARD).is_file():
-        found.append("picker guard (Claude Code)")
+    if any(GUARD in c for c in _commands(doc, "PreToolUse")):
+        found.append(LEFTOVER)
     if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (admin_bin / PASTE).is_file():
         found.append("paste filter (Claude Code)")
     req = Path(managed_root() + "/etc/codex/requirements.toml")
@@ -395,12 +566,13 @@ def summarise_protections(user_lines):
     floor = "not reported"
     for line in user_lines:
         if line.startswith("FLOOR   carried by: "):
-            floor = line[len("FLOOR   carried by: "):].split(";")[0]
+            floor = line[len("FLOOR   carried by: "):]
     return "installed in %d/3 agent harnesses (an instruction)" % brief, floor, hooks_text(read_hooks())
 
 
 def gather(project):
     admin = admin_installed()
+    managed_state = admin_state()
     hooks_mode = "managed" if admin else "user"
     code, user_lines = run(install_args(["--check", "--hooks=" + hooks_mode]))
     source = "none"
@@ -430,7 +602,8 @@ def gather(project):
             "user_issues": issues(user_lines), "admin_issues": issues(admin_lines),
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
             "workspace": ws, "plugins": enabled_plugins(ws["root"]), "brief": brief, "floor": floor,
-            "hooks": hooks, "key": key, "runtime": runtime()}
+            "hooks": hooks, "key": key, "runtime": runtime(), "admin_state": managed_state,
+            "settings": read_settings(ws["root"])}
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -566,7 +739,7 @@ def main(argv):
         print(__doc__.split("\n\n")[1] if argv else __doc__)
         return 0 if argv else 2
     command, rest = argv[0], argv[1:]
-    overlay, project, verbose, admin, wanted = None, None, False, False, None
+    overlay, project, verbose, admin, wanted, summary = None, None, False, False, None, False
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
@@ -574,6 +747,8 @@ def main(argv):
             project = arg[len("--project="):]
         elif arg in ("-v", "--verbose") and command == "status":
             verbose = True
+        elif arg == "--summary" and command == "status":
+            summary = True
         elif arg == "--admin" and command == "install":
             admin = True
         elif command == "update" and wanted is None and not arg.startswith("-"):
@@ -596,7 +771,8 @@ def main(argv):
     if command == "uninstall":
         return cmd_uninstall()
     if command == "status":
-        for line in render_status(gather(project), verbose):
+        facts = gather(project)
+        for line in render_summary(facts) if summary and not verbose else render_status(facts, verbose):
             print(line)
         return 0
     print("workstation: unknown subcommand %s (install, install --admin, status, check, update, uninstall)" % command,

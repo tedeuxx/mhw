@@ -35,7 +35,6 @@ jobs:
         run: |
           shellcheck --version
           shellcheck -s sh workstation global/install.sh global/install.test.sh \
-            global/hooks/hitl-escalation-guard.sh global/hooks/hitl-escalation-guard.test.sh \
             global/mcp/mcp-launch.sh
       - name: python compile check, warnings as errors (the runner's python3; no third-party linter)
         run: |
@@ -95,8 +94,6 @@ jobs:
             echo "/bin/sh -> $target"
             [ "$(basename "$target")" = dash ] || { echo "expected dash as /bin/sh on Linux"; exit 1; }
           fi
-      - name: hook suite
-        run: sh global/hooks/hitl-escalation-guard.test.sh "$RUNNER_TEMP/guard"
       - name: installer suite
         run: sh global/install.test.sh "$RUNNER_TEMP/install"
       - name: admin-layer installer suite (throwaway --root; never a system path, never root, ADR-0025)

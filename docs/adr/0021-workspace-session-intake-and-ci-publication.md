@@ -1,6 +1,8 @@
 # 0021 — Workspace session intake and CI publication at improvement-session completion
 
-- **Status:** accepted owner requirements, 2026-10-02; mechanisms and evidence scoped below.
+- **Status:** accepted owner requirements, 2026-10-02; mechanisms and evidence scoped below. ~~Intake~~
+  removed and the publication route replaced on the owner's interview of 2026-10-05 (amendment at the
+  end).
 - **Date:** 2026-10-02
 - **Deciders:** the owner
 
@@ -30,10 +32,10 @@ workspace session, carried in the managed workstation configuration.
 
 ## Decision outcome
 
-`workspace/session-policy.json` declares the intake and completion contract. The managed global brief
+~~`workspace/session-policy.json` declares the intake and completion contract. The managed global brief
 recognizes it. Project AGENTS.md, the Claude import/commands/SessionStart reminder and Kiro steering
 carry the same contract. The user-level picker guard permits exactly two specified labels only for
-this declared workspace intake; other path decisions retain three choices.
+this declared workspace intake; other path decisions retain three choices.~~
 
 The merge command enforces clean local state, exact pushed PR head, current main ancestry, one valid
 SemVer label and successful checks including `delivery-ci`. CI creates the version tag and GitHub
@@ -113,3 +115,40 @@ the first prompt when declared there and asked with the two-choice picker otherw
   hook fires before the first prompt exists, so honouring a declaration is instruction-following, not
   a mechanical check. The user-level briefs change on the reference machine only when the owner
   reinstalls; until then the installed global brief still carries the picker-first wording.
+
+## Amendment 2026-10-05: no intake; agents merge into rc/next, only the release candidate waits ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+
+**Owner, interview of 2026-10-05, verbatim:**
+
+- on the session-type intake: *"eu removeria. achei que traz mais problemas do que solucao."*
+- on who merges, once the type that authorised self-publication is gone: *"os agentes mergeiam no rc/next, só o RC espera mim"*
+
+**The intake is removed entirely.** Deleted: the Claude Code and Codex project `SessionStart` hooks
+(`.claude/settings.json`, `.codex/hooks.json`) and the script they ran (`workspace/startup.py`),
+`/session-start` and its Codex skill copy, every copy of the contract in `AGENTS.md`, `CLAUDE.md`,
+`global/AGENTS.md` (and so the rendered briefs and `overlay/desktop-instructions.md`), the Kiro
+steering file and `workspace/README.md`, and the `entry_*` fields of `workspace/session-policy.json`.
+The 2026-10-04 amendment above and the decision outcome's intake paragraph (struck in place) are
+superseded. A session starts on the owner's first prompt.
+
+**The publication route is replaced.** The per-session-type authorisation ("publish at the end of
+each improvement session") goes. In its place:
+
+- a slice is a PR into `rc/next`, merged by an agent with a real merge commit once its checks and
+  the review gate (and any lens the change requires) pass at its current head;
+- the release-candidate PR `rc/next` → `main` waits for the owner: no agent merges it without his
+  explicit go, and the install and canary after it are his.
+
+`workspace/session-policy.json` (schema version 2) now declares only this route: the integration
+branch, who merges slices and who merges the release, and the delivery evidence. `delivery.py` is
+kept unchanged as the gate for a PR into `main` (merge and verify); it does not merge slices into
+`rc/next`. `/session-finish` and its skill copy describe the new route.
+
+**What holds it.** The CI checks and `delivery.py` hold what they held before, when executed. That
+an agent never merges the release candidate without the owner's go is an **instruction**: nothing
+mechanical refuses it. `workspace/delivery_test.py` asserts that no project hook registers an intake
+again and that no carrier asks for one; it cannot observe a merge.
+
+**Evidence level.** *Written and tested*; the regression assertions were mutation-checked against
+their sources. Not installed: the installed global brief on the reference machine still carries the
+intake sentence until the owner reinstalls.
