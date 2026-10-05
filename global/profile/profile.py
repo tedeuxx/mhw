@@ -152,7 +152,7 @@ def plan(profile):
             "slash_commands": "preference-only; native command installation remains pending",
             "conversation_cadence": "instruction-only; no universal before-display output gate",
             "token_discipline": "minimum-sufficient context and concise output instructions; no hard token cap",
-            "decision_options": "Claude Code macOS/Linux hook checks the configured option count; other surfaces instruction-only; runtime routing not verified by compilation",
+            "decision_options": "instruction-only on every surface; no hook checks it (the picker guard was removed, ADR-0013 2026-10-05 amendment)",
             "desktop_notifications": "intent=" + profile.get("desktop", {}).get("notifications", "unselected") + "; instructions compiled; native GUI values require separate application and verification",
         },
     }
@@ -165,8 +165,8 @@ def compile_profile(profile):
     digest = hashlib.sha256(json.dumps(profile, sort_keys=True).encode()).hexdigest()
     marker = "managed-by: " + MANAGED + "; source-sha256: " + digest + "; generated; do not edit"
     limit = interaction["max_question_chars"]
-    length = ("a question stem is at most %d characters." % limit if limit else
-              "no numeric question-length limit is configured; keep each interruption concise.")
+    length = ("a question stem is at most %d characters" % limit if limit else
+              "no numeric question-length limit is configured; keep each interruption concise")
     command = ("Prefer native slash commands when available; explain the actual invocation on this harness."
                if interaction["command_preference"] == "slash" else
                "Accept ordinary language for directing work; explain command syntax only when useful.")
@@ -179,7 +179,7 @@ def compile_profile(profile):
     if conversation.get("context_discipline") == "minimum-sufficient":
         discipline.append("- **Input discipline:** retrieve the minimum sufficient context with scoped searches, bounded tool output and targeted excerpts. Reuse verified findings; do not repeatedly load full files, logs or history. Expand reads when correctness requires it. Never silently truncate the owner's request, governing instructions or essential evidence. This is context discipline, not a hard token or spending cap.")
     if interaction.get("decision_options") == 3:
-        discipline.append("- **Path decisions:** when escalating a choice of path, use one native multiple-choice question with exactly three authored, mutually exclusive options. Give each a short label and a concise description of risk and expected benefit; recommend one based on the evidence. Prefer distinct conservative, balanced and ambitious paths when meaningful. Never invent unsafe or misleading alternatives: deferral or a reversible investigation may be the third path. Leave the native free-text clarification route available; it is not an authored fourth option. If no picker is available, show three numbered choices and wait. An already-decided action remains one action line; native security approvals retain their own controls.")
+        discipline.append("- **Path decisions:** a decision always gets exactly three authored, mutually exclusive options: one extreme, the opposite extreme, and the middle ground between them. Use one native multiple-choice question when the harness offers one. Give each option a short label and a concise description of risk and expected benefit; recommend one based on the evidence. Never invent an unsafe or misleading option to fill a position. Leave the native free-text clarification route available; it is not an authored fourth option. If no picker is available, show three numbered choices and wait. An already-decided action remains one action line; native security approvals retain their own controls.")
     if profile.get("desktop", {}).get("notifications") == "essential":
         discipline.append("- **Attention and notifications:** minimize simultaneous information; one point at a time. Prefer notifications only when the owner's decision or action is needed. Do not proactively send routine progress or completion notifications. Keep requested results accessible in the conversation; do not hide blockers or material failures. This instruction does not itself change native desktop notification settings.")
     body = "\n".join([
@@ -187,7 +187,8 @@ def compile_profile(profile):
         "- **Language:** talk to the owner in " + LANGUAGES[locale] + ". Anything published is in "
         + LANGUAGES[conversation["publication_language"]] + ".",
         "- **Decision tone:** " + TONES[conversation["decision_tone"]],
-        "- **Escalation limits:** one ask per activation; " + length,
+        "- **Escalation limits:** one question per message; " + length
+        + "; the reasoning goes in a linked artifact, not in the message.",
         *discipline,
         "- **Commands:** " + command,
         "- **Session-start preference:** " + PRIORITIES[profile["session_start"]["priority"]],
@@ -195,15 +196,7 @@ def compile_profile(profile):
         "- **Authorization:** this profile grants no new tool permissions, paid API use, purchases or publication rights.",
         "",
     ])
-    hitl = "# " + marker + "\nmax_question_chars=" + str(limit) + "\n"
-    if "decision_options" in interaction:
-        hitl += "exact_options=" + str(interaction["decision_options"]) + "\n"
     if locale == "pt-BR":
-        hitl += (
-            "notice_count=Guarda HITL (ADR-0013) recusou um seletor antes de exibir: {count} perguntas, limite {max} (uma pergunta por ativação). Mitigação: o agente refaz só a primeira pergunta.\n"
-            "notice_length=Guarda HITL (ADR-0013) recusou um seletor antes de exibir: uma pergunta de {chars} caracteres, limite {max}. Mitigação: o agente refaz a pergunta mais curta.\n"
-            "notice_options=Guarda HITL (ADR-0013/0019) recusou um seletor fora do formato de {max} opções. Mitigação: o agente refaz uma escolha única com risco e benefício por opção.\n"
-        )
         notices = (HERE / "locales" / "pt-BR" / "clipboard.conf").read_text(encoding="utf-8")
     else:
         notices = "# No notice overrides: use the components' built-in English messages.\n"
@@ -211,7 +204,6 @@ def compile_profile(profile):
     floor = (ROOT / "global" / "AGENTS.md").read_text(encoding="utf-8")
     return {
         "AGENTS.md": "<!-- " + marker + " -->\n\n" + body,
-        "hitl.conf": hitl,
         "clipboard.conf": "# " + marker + "\n" + notices,
         "desktop-instructions.md": "<!-- " + marker + " -->\n\n" + floor.rstrip() + "\n\n" + body,
         "profile-plan.json": json.dumps(plan(profile), ensure_ascii=False, indent=2) + "\n",
@@ -236,7 +228,7 @@ def write_or_check(output, compiled, check=False, root=None):
     changed = []
     # Preflight every target before writing any file. Unrelated files are untouched.
     for name, desired in compiled.items():
-        if name not in {"AGENTS.md", "hitl.conf", "clipboard.conf", "desktop-instructions.md", "profile-plan.json"}:
+        if name not in {"AGENTS.md", "clipboard.conf", "desktop-instructions.md", "profile-plan.json"}:
             raise Refuse(3, "unknown generated artifact name; nothing written")
         path = output / name
         if path.is_symlink() or (path.exists() and not path.is_file()):

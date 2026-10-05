@@ -20,7 +20,7 @@ data() { echo "$1/.local/share/personal-multi-harness-workstation-configuration"
 targets() {
   targets_home=$1
   echo "$targets_home/.claude/CLAUDE.md $targets_home/.codex/AGENTS.md $targets_home/.kiro/steering/workstation-global-brief.md"
-  echo "$(data "$targets_home")/hitl-escalation-guard.sh $(data "$targets_home")/hitl.conf $targets_home/.claude/settings.json"
+  echo "$targets_home/.claude/settings.json"
   echo "$targets_home/.codex/rules/workstation-deny-floor.rules"
   echo "$(data "$targets_home")/clipboard_guard.py $(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
   echo "$(data "$targets_home")/paste_wrapper.py $(data "$targets_home")/paste-filter.sh"
@@ -29,7 +29,7 @@ plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
 wrap_src="$(cd "$(dirname "$0")" && pwd)/clipboard/paste_wrapper.py"
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
-ours() { # number of hook entries of ours in a settings file
+ours() { # number of entries of the removed HITL picker guard in a settings file (must stay 0)
   jq '[.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"))] | length' "$1"
 }
 pours() { # number of paste-filter entries of ours (UserPromptSubmit) in a settings file
@@ -60,7 +60,7 @@ HOME="$h" sh "$inst" --dry-run > "$base/dry.out"; expect "dry-run exits 0" 0 $?
 n=$(find "$h" -type f | wc -l | tr -d ' ')
 if [ "$n" -eq 0 ]; then ok "dry-run wrote no file"; else ko "dry-run wrote $n file(s)"; fi
 if grep -q '^WOULD WRITE' "$base/dry.out"; then ok "dry-run prints targets"; else ko "dry-run printed no target"; fi
-if grep -q '^WOULD MERGE' "$base/dry.out" && grep -q '^+.*AskUserQuestion' "$base/dry.out"; then
+if grep -q '^WOULD MERGE' "$base/dry.out" && grep -q '^+.*clipboard_guard.py' "$base/dry.out"; then
   ok "dry-run prints the settings diff"
 else
   ko "dry-run printed no settings diff"
@@ -88,19 +88,27 @@ if grep -q '^## Escalating to the owner' "$h/.claude/CLAUDE.md" && grep -q '^## 
 else
   ko "brief lacks the escalation section or the overlay"
 fi
-hook="$(data "$h")/hitl-escalation-guard.sh"
-if [ -x "$hook" ] && [ "$(head -n 1 "$hook")" = "#!/bin/sh" ]; then ok "hook installed executable with its shebang first"; else ko "hook not executable or shebang moved"; fi
-if [ "$(ours "$h/.claude/settings.json")" -eq 1 ]; then ok "settings carry exactly one entry of ours"; else ko "settings entry count wrong"; fi
-out=$(jq -cn '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:"a"},{question:"b"}]}}' | sh "$hook")
-if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
-  ok "the installed hook denies two questions"
+# Regression (Issue #60, ADR-0013 2026-10-05 amendment): the HITL picker guard is removed. A fresh
+# install writes no guard script or limits, and registers no PreToolUse hook at all.
+if [ ! -e "$(data "$h")/hitl-escalation-guard.sh" ] && [ ! -e "$(data "$h")/hitl.conf" ] \
+   && [ "$(ours "$h/.claude/settings.json")" -eq 0 ] \
+   && jq -e '(.hooks.PreToolUse // []) | length == 0' "$h/.claude/settings.json" >/dev/null \
+   && ! grep -qs AskUserQuestion "$h/.claude/settings.json" "$h/.codex/hooks.json"; then
+  ok "no HITL picker guard script, limits or hook entry is installed"
 else
-  ko "the installed hook did not deny two questions"
+  ko "a HITL picker guard artefact was installed"
 fi
-long=$(awk 'BEGIN { for (i = 0; i < 281; i++) printf "x" }')
-out=$(jq -cn --arg l "$long" '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:$l}]}}' | sh "$hook")
-if printf '%s' "$out" | grep -q 'limit is 280'; then ok "the installed hook reads the overlay's 280 limit"; else ko "overlay limit not applied"; fi
-if printf '%s' "$out" | jq -r .systemMessage | grep -q '^Guarda HITL (ADR-0013)'; then ok "the owner notice is in the overlay's language"; else ko "owner notice not from overlay"; fi
+# The interaction standards (Issue #60) reach the rendered brief of every harness as instructions.
+for b in "$h/.claude/CLAUDE.md" "$h/.codex/AGENTS.md" "$h/.kiro/steering/workstation-global-brief.md"; do
+  if grep -q 'one extreme, the opposite extreme, and the middle ground' "$b" \
+     && grep -q 'one question per message; a question stem is at most 280 characters; the reasoning goes in a linked artifact' "$b" \
+     && grep -q 'talk to the owner in Brazilian Portuguese. Anything published is in English' "$b" \
+     && ! grep -q 'session-policy.json' "$b" && ! grep -q 'Melhoria de harness' "$b"; then
+    ok "${b#"$h"/} carries the interaction standards and no session-type intake"
+  else
+    ko "${b#"$h"/} lacks an interaction standard or still carries the intake"
+  fi
+done
 HOME="$h" sh "$inst" --check; expect "check after install" 0 $?
 
 # The restart guard and /breaking-glass are removed (ADR-0028): nothing of theirs is rendered.
@@ -126,13 +134,20 @@ jq --arg c "$legacy_cmd" '.hooks.SessionStart = [{hooks: [{type: "command", comm
 jq --arg c "$legacy_cmd" '.hooks.SessionStart = [{hooks: [{type: "command", command: $c, timeout: 10}]}]
   | .hooks.PreToolUse = [{hooks: [{type: "command", command: $c, timeout: 10}]}]' \
   "$hl/.codex/hooks.json" > "$base/legacy.json" && cat "$base/legacy.json" > "$hl/.codex/hooks.json"
-for f in restart_guard.py breaking_glass.py; do
+for f in restart_guard.py breaking_glass.py hitl-escalation-guard.sh hitl.conf; do
   printf '#!/usr/bin/env python3\n# managed-by: personal-multi-harness-workstation-configuration; source: x\n' > "$(data "$hl")/$f"
 done
+# The removed HITL picker guard's entry, as an earlier release merged it (ADR-0013, 2026-10-05).
+jq --arg c "\"$(data "$hl")/hitl-escalation-guard.sh\"" \
+  '.hooks.PreToolUse += [{matcher: "AskUserQuestion", hooks: [{type: "command", command: $c, timeout: 5}]}]' \
+  "$hl/.claude/settings.json" > "$base/legacy.json" && cat "$base/legacy.json" > "$hl/.claude/settings.json"
 printf -- '---\n---\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: x -->\n' > "$hl/.claude/commands/breaking-glass.md"
 printf '{}' > "$(data "$hl")/restart-state/claude-code-0123.json"
 HOME="$hl" sh "$inst" --check > "$base/legacy-check.out" 2>&1; expect "check reports the removed guard's leftovers" 1 $?
-if [ "$(grep -c '^STALE' "$base/legacy-check.out")" -eq 4 ] && grep -q '^DRIFT .*settings.json' "$base/legacy-check.out" \
+if [ "$(grep -c '^STALE' "$base/legacy-check.out")" -eq 7 ] && grep -q '^DRIFT .*settings.json' "$base/legacy-check.out" \
+   && grep -q '^STALE .*hitl-escalation-guard.sh' "$base/legacy-check.out" && grep -q '^STALE .*hitl.conf' "$base/legacy-check.out" \
+   && grep -q '^STALE .*settings.json: the removed HITL picker guard' "$base/legacy-check.out" \
+   && [ -f "$(data "$hl")/hitl-escalation-guard.sh" ] && [ "$(ours "$hl/.claude/settings.json")" -eq 1 ] \
    && grep -q '^DRIFT .*hooks.json' "$base/legacy-check.out" && [ -f "$(data "$hl")/restart_guard.py" ]; then
   ok "check names every leftover and changes nothing"
 else
@@ -144,8 +159,10 @@ if ! grep -qs -e 'restart_guard' -e 'breaking_glass' "$hl/.claude/settings.json"
    && [ ! -e "$hl/.claude/commands/breaking-glass.md" ] && [ ! -e "$(data "$hl")/restart-state" ] \
    && jq -e '(.hooks.SessionStart // []) | length == 0' "$hl/.claude/settings.json" >/dev/null \
    && jq -e '[.hooks.PreToolUse[]?.hooks[]? | select(.command == "/foreign/pre.sh")] | length == 1' "$hl/.claude/settings.json" >/dev/null \
-   && [ "$(pours "$hl/.claude/settings.json")" -eq 1 ] && [ "$(ours "$hl/.claude/settings.json")" -eq 1 ]; then
-  ok "install removes the restart guard and breaking glass, keeps the paste filter, HITL guard and foreign hooks"
+   && [ ! -e "$(data "$hl")/hitl-escalation-guard.sh" ] && [ ! -e "$(data "$hl")/hitl.conf" ] \
+   && [ "$(pours "$hl/.claude/settings.json")" -eq 1 ] && [ "$(ours "$hl/.claude/settings.json")" -eq 0 ] \
+   && ! grep -qs AskUserQuestion "$hl/.claude/settings.json"; then
+  ok "install removes the restart guard, breaking glass and the HITL picker guard, keeps the paste filter and foreign hooks"
 else
   ko "install left a restart guard or breaking-glass artefact, or removed something else"
 fi
@@ -323,9 +340,13 @@ echo "local edit" >> "$h/.codex/AGENTS.md"
 HOME="$h" sh "$inst" --check; expect "check detects drift" 1 $?
 HOME="$h" sh "$inst"; expect "install repairs drift" 0 $?
 HOME="$h" sh "$inst" --check; expect "check clean after repair" 0 $?
-jq 'del(.hooks.PreToolUse)' "$h/.claude/settings.json" > "$base/s.json" && cp "$base/s.json" "$h/.claude/settings.json"
-HOME="$h" sh "$inst" --check; expect "check detects a removed hook entry" 1 $?
-HOME="$h" sh "$inst" > /dev/null; expect "install restores the hook entry" 0 $?
+jq --arg c "\"$(data "$h")/hitl-escalation-guard.sh\"" \
+  '.hooks.PreToolUse += [{matcher: "AskUserQuestion", hooks: [{type: "command", command: $c}]}]' \
+  "$h/.claude/settings.json" > "$base/s.json" && cp "$base/s.json" "$h/.claude/settings.json"
+HOME="$h" sh "$inst" --check > "$base/check-guard.out"; expect "check detects a re-registered picker guard entry" 1 $?
+if grep -q '^STALE .*settings.json: the removed HITL picker guard' "$base/check-guard.out"; then ok "check names the picker guard entry as STALE"; else ko "check did not name the picker guard entry"; fi
+HOME="$h" sh "$inst" > /dev/null; expect "install removes the picker guard entry" 0 $?
+if [ "$(ours "$h/.claude/settings.json")" -eq 0 ]; then ok "the picker guard entry is gone"; else ko "the picker guard entry survived install"; fi
 jq '.permissions.deny -= ["Bash(rm -rf:*)"]' "$h/.claude/settings.json" > "$base/s.json" && cp "$base/s.json" "$h/.claude/settings.json"
 HOME="$h" sh "$inst" --check > "$base/check-deny.out"; expect "check detects a removed deny-floor rule" 1 $?
 if grep -q '1 deny-floor rule(s) missing' "$base/check-deny.out"; then ok "check names how many floor rules are missing"; else ko "check did not count the missing rule"; fi
@@ -390,14 +411,14 @@ snap=$(cksum < "$s")
 HOME="$h" sh "$inst" > /dev/null; expect "re-merge" 0 $?
 if [ "$(cksum < "$s")" = "$snap" ]; then ok "re-merge left settings byte-identical"; else ko "re-merge rewrote settings"; fi
 
-# 7. stale and duplicate entries of ours collapse to one; foreign hooks in the same group survive
+# 7. stale and duplicate entries of the removed picker guard all go; foreign hooks in the same group survive
 jq '.hooks.PreToolUse += [
       {matcher: "AskUserQuestion", hooks: [{type: "command", command: "/old/path/personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"}]},
       {matcher: "AskUserQuestion", hooks: [
         {type: "command", command: "/old2/personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"},
         {type: "command", command: "/someone/else.sh"}]}]' "$s" > "$base/s.json" && cp "$base/s.json" "$s"
 HOME="$h" sh "$inst" > /dev/null; expect "merge with stale entries" 0 $?
-if [ "$(ours "$s")" -eq 1 ]; then ok "stale and duplicate entries collapsed to one"; else ko "entries of ours: $(ours "$s")"; fi
+if [ "$(ours "$s")" -eq 0 ]; then ok "stale and duplicate picker guard entries are all removed"; else ko "picker guard entries left: $(ours "$s")"; fi
 if jq -e '[.hooks.PreToolUse[].hooks[] | select(.command == "/someone/else.sh")] | length == 1' "$s" >/dev/null; then
   ok "a foreign hook sharing a group with a stale entry survives"
 else
@@ -436,16 +457,12 @@ if [ "$(cksum < "$h/.claude/settings.json")" = "$bad" ]; then ok "invalid settin
 h="$base/home-generic"; mkdir -p "$h"
 HOME="$h" sh "$inst" --overlay=none > /dev/null; expect "install without overlay" 0 $?
 if grep -q '^## Owner overlay' "$h/.claude/CLAUDE.md"; then ko "overlay leaked into generic brief"; else ok "generic brief has no owner overlay"; fi
-out=$(jq -cn --arg l "$long" '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:$l}]}}' | sh "$(data "$h")/hitl-escalation-guard.sh")
-if [ -z "$out" ]; then ok "generic install does not check question length"; else ko "generic install checked length"; fi
-out=$(jq -cn '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:"a"},{question:"b"}]}}' | sh "$(data "$h")/hitl-escalation-guard.sh")
-if printf '%s' "$out" | jq -r .systemMessage | grep -q '^HITL guard (ADR-0013)'; then ok "generic install notifies in the default English"; else ko "generic notice wrong"; fi
 if grep -q '^notice_blocked=' "$(data "$h")/clipboard.conf"; then ko "overlay leaked into generic paste filter settings"; else ok "generic paste filter settings carry no owner overlay"; fi
 
 # 9b. A structured profile changed without regeneration is refused before writing any target.
 profile_dir="$base/profile-stale"
 mkdir -p "$profile_dir"
-for profile_file in profile.json AGENTS.md hitl.conf clipboard.conf desktop-instructions.md profile-plan.json; do
+for profile_file in profile.json AGENTS.md clipboard.conf desktop-instructions.md profile-plan.json; do
   cp "$(dirname "$inst")/../overlay/$profile_file" "$profile_dir/$profile_file"
 done
 jq '.session_start.priority = "speed"' "$profile_dir/profile.json" > "$base/profile-next.json"
@@ -488,19 +505,14 @@ for e in 'cmd rm "-rf"' 'cmd git push --force*' 'path ~/.ssh' 'file ~/a ~/b' 'cm
   if [ "$rc" -eq 2 ] && [ "$n" -eq 0 ]; then ok "invalid entry refused, nothing written: $e"; else ko "invalid entry '$e': exit $rc, $n file(s)"; fi
 done
 
-# 12. XDG_DATA_HOME is honoured: the hook and its data go there, and the settings entry points there
+# 12. XDG_DATA_HOME is honoured: the paste filter and its data go there, and the entries point there
 h="$base/home-xdg"; x="$base/xdg-data"; mkdir -p "$h" "$x"
 HOME="$h" XDG_DATA_HOME="$x" sh "$inst" > /dev/null; expect "install with XDG_DATA_HOME set" 0 $?
 xd="$x/personal-multi-harness-workstation-configuration"
-if [ -x "$xd/hitl-escalation-guard.sh" ] && [ -f "$xd/hitl.conf" ] && [ ! -e "$(data "$h")" ]; then
-  ok "the hook and its config are under XDG_DATA_HOME, nothing under ~/.local/share"
+if [ -f "$xd/clipboard_guard.py" ] && [ -f "$xd/clipboard.conf" ] && [ ! -e "$(data "$h")" ]; then
+  ok "the paste filter and its config are under XDG_DATA_HOME, nothing under ~/.local/share"
 else
   ko "XDG_DATA_HOME not honoured"
-fi
-if jq -e --arg c "\"$xd/hitl-escalation-guard.sh\"" '[.hooks.PreToolUse[].hooks[] | select(.command == $c)] | length == 1' "$h/.claude/settings.json" >/dev/null; then
-  ok "the settings entry runs the hook from XDG_DATA_HOME"
-else
-  ko "the settings entry does not point at XDG_DATA_HOME"
 fi
 if jq -e --arg d "$xd/clipboard_guard.py" '[.hooks.UserPromptSubmit[].hooks[] | select(.command | contains($d))] | length == 1' "$h/.claude/settings.json" >/dev/null \
    && grep -qF "$xd/clipboard_guard.py" "$h/.codex/hooks.json"; then
@@ -588,9 +600,9 @@ else
 fi
 HOME="$hs" sh "$inst" > /dev/null 2>&1; expect "install restamps" 0 $?
 HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the restamp" 0 $?
-printf 'x\n' >> "$(data "$hs")/hitl.conf"
+printf 'x\n' >> "$(data "$hs")/clipboard.conf"
 HOME="$hs" sh "$inst" --check > "$base/stamp-check2.out" 2>&1; expect "check still flags a content change" 1 $?
-if grep -q '^DRIFT .*hitl.conf' "$base/stamp-check2.out"; then ok "a content change is DRIFT, not STAMP"; else ko "a content change was not reported as DRIFT"; fi
+if grep -q '^DRIFT .*clipboard.conf' "$base/stamp-check2.out"; then ok "a content change is DRIFT, not STAMP"; else ko "a content change was not reported as DRIFT"; fi
 
 # 15b. which release a stamp names: the tag rule, in a throwaway git repository holding a copy of the
 # sources (never the real repository's tags).
@@ -606,7 +618,7 @@ if [ "$s" = "release: unreleased, no tag reachable; commit: $c1" ]; then ok "no 
 g tag v9.8.7
 s=$(source_stamp)
 if [ "$s" = "release: v9.8.7; commit: $c1" ]; then ok "on a release tag: the tag"; else ko "on a tag: '$s'"; fi
-printf '# local edit\n' >> "$tr/global/hitl.conf"
+printf '# local edit\n' >> "$tr/global/clipboard.conf"
 s=$(source_stamp)
 if [ "$s" = "release: unreleased, after v9.8.7; commit: $c1-dirty" ]; then ok "tracked edit: unreleased, commit marked dirty"; else ko "dirty: '$s'"; fi
 g commit -qam two

@@ -75,7 +75,7 @@ def facts(**over):
          "harnesses": {"Claude Code": "2.1.0", "Codex": None, "Kiro": None},
          "workspace": {"name": "proj", "root": Path("/proj"), "carriers": [".workstation-version"]},
          "plugins": [], "brief": "installed in 2/3 agent harnesses (an instruction)",
-         "floor": "the user layer only", "hooks": "user layer (picker guard, paste filter)",
+         "floor": "the user layer only", "hooks": "user layer (paste filter)",
          "key": {"required": ">=3.1 <4", "state": "match", "line": ""},
          "runtime": "host (Linux x86_64; no container marker found)"}
     f.update(over)
@@ -163,7 +163,7 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("source: global/AGENTS.md;", marker)
         self.assertIn("  version key      >=999 <1000: mismatch\n", out)
         self.assertIn("Workstation version key: required >=999 <1000, installed ", out)
-        self.assertIn("hooks registered: admin: none · user: picker guard (Claude Code), "
+        self.assertIn("hooks registered: admin: none · user: "
                       "paste filter (Claude Code), paste filter (Codex)\n", out)
         # The hooks moved out of the user layer with no admin layer: status must say none, not claim them.
         subprocess.run(["sh", str(ws.INSTALL), "--overlay=none", "--hooks=managed"], env=self.env,
@@ -260,17 +260,22 @@ class Hooks(unittest.TestCase):
 
     def test_user_entries_count_only_with_their_script(self):
         settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
-        doc = self.entry("PreToolUse", "\"%s\"" % (self.data / ws.GUARD))
-        doc["hooks"].update(self.entry("UserPromptSubmit", "python3 %s prompt-hook" % (self.data / ws.PASTE))["hooks"])
+        doc = self.entry("UserPromptSubmit", "python3 %s prompt-hook" % (self.data / ws.PASTE))
         self.write(settings, json.dumps(doc))
         self.assertEqual(ws.read_hooks()["user"], [])
-        self.write(self.data / ws.GUARD, "#!/bin/sh\n")
-        self.assertEqual(ws.read_hooks()["user"], ["picker guard (Claude Code)"])
         self.write(self.data / ws.PASTE, "#\n")
         self.write(Path(os.environ["HOME"]) / ".codex" / "hooks.json",
                    json.dumps(self.entry("UserPromptSubmit", "python3 %s" % (self.data / ws.PASTE))))
-        self.assertEqual(ws.read_hooks()["user"], ["picker guard (Claude Code)", "paste filter (Claude Code)",
-                                                   "paste filter (Codex)"])
+        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Claude Code)", "paste filter (Codex)"])
+
+    def test_a_removed_picker_guard_entry_is_named(self):
+        # Issue #60: the picker guard is removed. An entry an earlier install left behind is named as a
+        # leftover, with or without its script, so status never reads it as a protection or hides it.
+        settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
+        doc = self.entry("PreToolUse", "\"%s\"" % (self.data / ws.GUARD))
+        self.write(settings, json.dumps(doc))
+        self.assertEqual(ws.read_hooks()["user"], [ws.LEFTOVER])
+        self.assertIn("removed", ws.LEFTOVER)
 
     def test_unreadable_is_not_read(self):
         self.write(Path(os.environ["HOME"]) / ".claude" / "settings.json", "not json")
@@ -282,15 +287,15 @@ class Hooks(unittest.TestCase):
         bin_dir = Path(root + ("/Library/Application Support/" if sys.platform == "darwin" else "/etc/") + ws.NAME + "/bin")
         doc = self.entry("PreToolUse", "/bin/sh \"%s\"" % (bin_dir / ws.GUARD))
         doc["hooks"].update(self.entry("UserPromptSubmit", "py \"%s\"" % (bin_dir / ws.PASTE))["hooks"])
+        # The removed picker guard's entry (an admin layer installed before Issue #60) is a leftover.
         doc[ws.NAME] = "stamp"
         self.write(ws.admin_dropin(), json.dumps(doc))
         req = Path(os.environ["WORKSTATION_MANAGED_ROOT"] + "/etc/codex/requirements.toml")
         self.write(req, "[[hooks.UserPromptSubmit]]\ncommand = \"%s\"\n" % (bin_dir / ws.PASTE))
-        self.write(bin_dir / ws.GUARD, "#\n")
         self.write(bin_dir / ws.PASTE, "#\n")
-        self.assertEqual(ws.read_hooks()["admin"], ["picker guard (Claude Code)", "paste filter (Claude Code)"])
+        self.assertEqual(ws.read_hooks()["admin"], [ws.LEFTOVER, "paste filter (Claude Code)"])
         self.write(req, "# %s\n[[hooks.UserPromptSubmit]]\ncommand = \"%s\"\n" % (ws.MARKER, bin_dir / ws.PASTE))
-        self.assertEqual(ws.read_hooks()["admin"], ["picker guard (Claude Code)", "paste filter (Claude Code)",
+        self.assertEqual(ws.read_hooks()["admin"], [ws.LEFTOVER, "paste filter (Claude Code)",
                                                     "paste filter (Codex)"])
 
 

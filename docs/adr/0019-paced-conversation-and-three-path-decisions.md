@@ -40,9 +40,9 @@ The compiler distributes the same instructions to user-level briefs and the desk
 
 For a path decision, show a concise proposal and leave space for doubts. At the decision point, use
 one native picker with three mutually exclusive authored choices, risk and benefit per choice, and
-an evidence-based recommendation. Conservative/balanced/ambitious is useful when those paths really
+an evidence-based recommendation. ~~Conservative/balanced/ambitious is useful when those paths really
 exist, not a mandatory fiction. Deferral or reversible investigation may supply a legitimate third
-path. Native free text is available for clarification and is not an authored fourth option.
+path.~~ The three are one extreme, the opposite extreme and the middle ground (2026-10-05 amendment). Native free text is available for clarification and is not an authored fourth option.
 When no picker exists, use three numbered choices. Native security approvals keep their own UI.
 An action already decided remains an action line, without invented alternatives.
 
@@ -55,7 +55,7 @@ it. No arbitrary numeric token ceiling, model change or new spending permission 
 
 | Surface / OS | Distribution | Mechanical coverage in this change |
 | --- | --- | --- |
-| Claude Code / macOS, Linux | User `CLAUDE.md`, existing `PreToolUse:AskUserQuestion` hook | `exact_options=3` rejects missing, two/four options and multi-selection; keeps question count/length checks |
+| Claude Code / macOS, Linux | User `CLAUDE.md`, ~~existing `PreToolUse:AskUserQuestion` hook~~ | ~~`exact_options=3` rejects missing, two/four options and multi-selection; keeps question count/length checks~~ Instructions only since 2026-10-05 |
 | Claude Code / Windows | User `CLAUDE.md` via PowerShell installer | Instructions only; POSIX hook not installed by that installer |
 | Codex CLI / app | User `AGENTS.md` | Instructions only; guard's standalone Codex serialization is not registered and native picker hook routing is unmeasured |
 | Kiro CLI / IDE | User global steering | Instructions only; actual resource loading depends on the agent; CLI absent from reference PATH during inspection |
@@ -112,3 +112,22 @@ Vendor references inspected 2026-10-02; no new minimum supported harness version
   the generated `overlay/AGENTS.md` block. Conversation behavior remains unmeasured. This was a
   user-authorized manual UI application, not a new account-sync adapter. The separate full-floor
   `desktop-instructions.md` handoff was not uploaded in its entirety.
+
+## Amendment 2026-10-05: three options are two extremes and the middle; no hook checks them ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+
+**Owner, interview of 2026-10-05, verbatim:** *"eu quero 3 opcoes da seguinte forma: extremo 1, extremo 2, meio termo."*
+
+- A decision always gets exactly three options: one extreme, the opposite extreme, and the middle
+  ground between them. This replaces "conservative, balanced and ambitious when meaningful" and the
+  deferral-as-third-path allowance, both struck in place above. Never invent an unsafe or misleading
+  option to fill a position; an action already decided remains one action line.
+- The `exact_options=3` check is removed with the Claude Code picker guard (ADR-0013, 2026-10-05
+  amendment). The Claude Code row of the mechanical-boundary table is struck in place: every surface
+  now carries this rule as an instruction only. `profile-plan.json` says so in its
+  `decision_options` limit.
+- The "Bad" consequence that a three-choice guard can force a binary decision into a made-up third
+  option no longer has a guard behind it; the instruction itself still asks for three options, and
+  the middle ground is the third.
+- Evidence level: *written* in the compiler and the regenerated overlay, *tested* by
+  `global/profile/profile_test.py` and `global/install.test.sh` (the three rendered briefs carry the
+  rule). Not installed; compliance is not measured.

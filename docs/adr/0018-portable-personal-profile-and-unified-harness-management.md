@@ -221,3 +221,11 @@ to the current Codex app session, establishing loading here only. The generated 
 was also appended to Claude desktop's account-level **Instructions for Claude** through its UI:
 the previous text remained present and the UI reported **Saved**. Automatic account synchronization
 and behavioral enforcement were not established. ADR-0019 records the control and its coverage.
+
+## Amendment 2026-10-05: no HITL limits file is generated ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+
+The compiler no longer generates `hitl.conf`: the picker guard that read it is removed (ADR-0013,
+2026-10-05 amendment). The owner's question-length limit and three-option rule are rendered into the
+generated brief as instructions. The generated artifacts are now `AGENTS.md`, `clipboard.conf`,
+`desktop-instructions.md` and `profile-plan.json`; a stale `hitl.conf` in an output directory is left
+alone and ignored.
