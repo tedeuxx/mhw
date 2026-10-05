@@ -89,6 +89,7 @@ different claims). The detailed log is in [`AGENTS.md`](AGENTS.md), "Status".
 | Interaction profile ([ADR-0019](docs/adr/0019-paced-conversation-and-three-path-decisions.md)) | Installed in the user briefs. Instructions only; the picker guard hook in the row above is separate. |
 | MCP definition ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) | Written and tested. Not run on the reference machine. |
 | Provenance stamp: release and commit in every installed file, reported by `--check` ([ADR-0029](docs/adr/0029-provenance-stamp-in-every-installed-file.md)) | Written and tested. Stamped files measured loading in headless Claude Code and Codex in throwaway homes; Kiro documented. Not installed on the reference machine. `install.ps1`: verified by Windows CI only. MCP renderer: JSON entries recorded in its manifest. A record, not a protection. |
+| `./workstation` entry point and version key ([ADR-0030](docs/adr/0030-version-key-and-one-entry-point.md)) | Written and tested; install, status and the admin `sudo` line probed in throwaway homes and a throwaway admin root. The version-key instruction is in the brief Codex shows the model and in the brief Claude Code loads; whether a model follows it is not measured. Not run on the reference machine. A report, never a block. |
 
 Outside mechanical reach: the Claude and ChatGPT desktop apps (brief by manual paste), Windows (brief
 and deny floor only), files read by path, pasted images, and sessions not started through the wrapper.
@@ -96,23 +97,35 @@ and deny floor only), files read by path, pasted images, and sessions not starte
 ## Install
 
 New machine: start with [Install on another workstation](docs/new-workstation.md), which previews the
-controls without inheriting the reference owner's overlay. A single `./workstation` entry point is
-planned ([#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67));
-until then, the steps are:
+controls without inheriting the reference owner's overlay.
 
-macOS and Linux (CI runs the suites on macOS and on Ubuntu):
+macOS and Linux, from the repository root (Python 3.9+ and `jq` required):
 
 ```sh
-sh global/install.sh            # install or update every user-level target
-sh global/install.sh --dry-run  # print what would be written where; write nothing
-sh global/install.sh --check    # exit non-zero if a target is missing, drifted or unmanaged
+./workstation install          # user layer, every agent harness; hooks move to the admin layer if it is there
+./workstation install --admin  # render and validate the admin layer; prints the one sudo line to run yourself
+./workstation status           # installed release per layer, protections, the version key, the runtime
+./workstation status --verbose # the same, plus every target and each agent harness's version
+./workstation check            # exit non-zero when an installed target differs from this checkout
+./workstation update [vX.Y.Z]  # fetch tags, check out the newest release (or the one given), install it
+./workstation uninstall        # remove the user layer; prints the sudo line that removes the admin layer
 ```
 
-Admin layer (macOS and Linux): `sh global/install-managed.sh` renders and validates into a stage and
-prints the one `sudo` line for the owner to run; `--check` compares the installed admin layer with a
-fresh render. With the admin layer installed, the user install runs with `--hooks=managed`. The
-procedure and the `sudo` route to turn a hook off are in the
-[breaking-glass runbook](docs/runbooks/breaking-glass.md).
+`update` refuses while a tracked file is modified and leaves the checkout detached at the release tag.
+`uninstall` removes only files carrying this repository's marker and, in `~/.claude/settings.json`, only
+its hook entries, the deny-floor rules the installer itself added (recorded in an ownership key, so a
+rule you wrote yourself stays even when it equals a floor rule), and its two keys. A single backup
+stays beside the file and is overwritten by the next install or uninstall.
+
+`--overlay=DIR|none` selects a profile other than the repository's `overlay/`. `global/install.sh` and
+`global/install-managed.sh` stay as the internals ([#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67)).
+The `sudo` route to turn a hook off is in the [breaking-glass runbook](docs/runbooks/breaking-glass.md).
+
+**Version key.** A project names the workstation release range it expects in `.workstation-version`
+(for example `>=3.1 <4`; this repository has one). `./workstation status` compares it with the
+installed release, and the user brief tells the agent to do the same at session start. On a mismatch
+both print one line, required and installed, and the command to run; nothing blocks
+([#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57)).
 
 Windows (PowerShell 5.1 and 7, tested in CI) renders the brief and the deny floor only:
 

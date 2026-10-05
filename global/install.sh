@@ -6,10 +6,14 @@
 #
 #   install.sh                  install or update every managed target
 #   install.sh --dry-run        print exactly what would be written or merged where; write nothing
+#   install.sh --uninstall      remove every file this script placed (only files carrying its marker) and
+#                               its hook entries, deny-floor rules and stamp key from ~/.claude/settings.json
 #   install.sh --check          exit non-zero if any target is missing, drifted, unmanaged, or carries a
 #                               provenance stamp (release and commit) other than the source's; each
 #                               line names the stamp the installed file carries (Issue #66, ADR-0029)
-#   install.sh --overlay=DIR    owner overlay directory (default: <repo>/overlay); --overlay=none for none
+#   install.sh --overlay=DIR    owner overlay directory (default: <repo>/overlay); --overlay=none for none.
+#                               WORKSTATION_OVERLAY=DIR|none in the environment sets the same default
+#                               (./workstation passes it that way); an --overlay argument wins over it
 #   install.sh --hooks=managed  the hooks run from the admin layer (install-managed.sh, ADR-0025): remove
 #                               this project's hook entries from the user settings and its Codex
 #                               hooks.json instead of writing them (default --hooks=user)
@@ -38,6 +42,9 @@ HOOK_ID="personal-multi-harness-workstation-configuration/hitl-escalation-guard.
 PASTE_ID="personal-multi-harness-workstation-configuration/clipboard_guard.py"
 # The top-level key that carries the provenance stamp in a JSON file with no comment syntax (Issue #66).
 STAMP_KEY="personal-multi-harness-workstation-configuration"
+# The deny-floor rules THIS installer appended to ~/.claude/settings.json (absent before it merged them),
+# so uninstall removes those and keeps a rule the owner wrote himself, even one equal to a floor rule.
+OWN_KEY="personal-multi-harness-workstation-configuration-owned-deny"
 # Removed hooks (ADR-0028): kept only so an entry an earlier version merged is found and deleted.
 RESTART_ID="personal-multi-harness-workstation-configuration/restart_guard.py"
 
@@ -55,17 +62,21 @@ CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-gua
 mode=install
 hooks_mode=user
 overlay="$repo_root/overlay"
+if [ "${WORKSTATION_OVERLAY+set}" = set ]; then
+  case $WORKSTATION_OVERLAY in none) overlay= ;; *) overlay=$WORKSTATION_OVERLAY ;; esac
+fi
 managed_root=
 for arg in "$@"; do
   case $arg in
     --managed-root=*) managed_root=${arg#--managed-root=} ;;
     --dry-run) mode=dry-run ;;
     --check) mode=check ;;
+    --uninstall) mode=uninstall ;;
     --hooks=user) hooks_mode=user ;;
     --hooks=managed) hooks_mode=managed ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -80,7 +91,7 @@ fi
 
 # Structured profiles must be compiled and current before any target is written (ADR-0018).
 # Hand-authored overlays and --overlay=none retain the previous installation path.
-if [ -n "$overlay" ] && [ -f "$overlay/profile.json" ]; then
+if [ "$mode" != uninstall ] && [ -n "$overlay" ] && [ -f "$overlay/profile.json" ]; then
   if ! command -v python3 >/dev/null 2>&1; then
     echo "profile overlay requires Python 3.9+; no target was written" >&2
     exit 2
@@ -453,7 +464,7 @@ merge_settings() {
   stamp_val="$MARKER_ID; source: global/install.sh (only the hook entries and deny-floor rules merged into this file; every other key is yours); $stamp; do not edit, re-run the installer"
   if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --argjson w "$want" --argjson p "$want_paste" \
       --arg rid "$RESTART_ID" --argjson r "$want_restart" --arg sk "$STAMP_KEY" --arg sv "$stamp_val" \
-      --argjson f "$deny" '
+      --arg ok "$OWN_KEY" --argjson f "$deny" '
       # One hook entry of ours per event: keep it when it is exactly the wanted one; otherwise drop every
       # entry of ours (and a group left empty by that) and append the wanted one, unless it is null.
       def place($ev; $id; $want):
@@ -471,7 +482,16 @@ merge_settings() {
                     else . end ]
                 + (if $want == null then [] else [$want] end))
           end;
-      if (.permissions != null and (.permissions | type) != "object")
+      # Ownership (Issue #67): the floor rules missing before this merge are ours. An earlier record is
+      # kept; a file stamped by an install that predates the record counts every floor rule present as
+      # ours, because nothing can tell those apart any more.
+      ((.permissions.deny? // []) | if type == "array" then . else [] end) as $d0
+      | (if (.[$ok] | type) == "array" then .[$ok]
+         elif .[$sk] != null then [$f[] | . as $x | select(any($d0[]; . == $x))]
+         else [] end) as $prev
+      | ($prev + [$f[] | . as $x | select(any($d0[]; . == $x) | not)]) as $own0
+      | ([$f[] | . as $x | select(any($own0[]; . == $x))]) as $own
+      | if (.permissions != null and (.permissions | type) != "object")
          or (.permissions.deny? != null and (.permissions.deny | type) != "array")
       then error("permissions has an unexpected shape") else . end
       | place("PreToolUse"; $id; $w)
@@ -485,15 +505,16 @@ merge_settings() {
       # The provenance stamp (Issue #66): JSON has no comment, so one top-level key of ours carries it.
       # Claude Code ignores a key it does not know: measured on 2.1.289, a user settings file holding
       # this key still applied its permissions.deny (see ADR-0029).
-      | .[$sk] = $sv' "$current" > "$merged" 2>/dev/null; then
+      | .[$sk] = $sv
+      | .[$ok] = $own' "$current" > "$merged" 2>/dev/null; then
     echo "REFUSE  $settings: its hooks or permissions section has an unexpected shape; left untouched" >&2
     raise 3
     return 0
   fi
 
   missing=$(jq --argjson f "$deny" '(.permissions.deny // []) as $d | [$f[] | . as $r | select(any($d[]; . == $r) | not)] | length' "$current")
-  jq -S --arg sk "$STAMP_KEY" 'del(.[$sk])' "$current" > "$work/before.json"
-  jq -S --arg sk "$STAMP_KEY" 'del(.[$sk])' "$merged" > "$work/after.json"
+  jq -S --arg sk "$STAMP_KEY" --arg ok "$OWN_KEY" 'del(.[$sk], .[$ok])' "$current" > "$work/before.json"
+  jq -S --arg sk "$STAMP_KEY" --arg ok "$OWN_KEY" 'del(.[$sk], .[$ok])' "$merged" > "$work/after.json"
   jq -r --arg sk "$STAMP_KEY" '.[$sk] // "" | tostring' "$current" > "$work/settings.stamp"
   settings_stamp=$(stamp_of "$work/settings.stamp")
   settings_restamp=
@@ -543,6 +564,73 @@ merge_settings() {
       ;;
   esac
 }
+
+# Uninstall (Issue #67): every file of ours goes, wherever a hooks mode put it; a file without the marker
+# is never touched. In the settings file only our hook entries, the deny-floor rules rendered from this
+# checkout and the stamp key are removed; every other key and rule stays, and a backup is left beside it.
+# Of the deny rules, only those recorded under OWN_KEY are removed, so a rule the owner wrote himself stays
+# even when it equals a floor rule. A file from an install that predates the record has none: then the
+# floor rules present are removed, as before, and the backup keeps the previous file.
+uninstall_user() {
+  for u_dest in "$HOME/.claude/CLAUDE.md" "${CODEX_HOME:-$HOME/.codex}/AGENTS.md" \
+      "$HOME/.kiro/steering/workstation-global-brief.md" "$hook_dest" "$data_dir/hitl.conf" "$codex_rules" \
+      "$clip_dest" "$clip_conf_dest" "$codex_hooks" "$wrap_dest" "$snippet_dest" "$restart_dest" \
+      "$glass_dest" "$glasscmd_dest" "$clip_plist"; do
+    if [ -f "$u_dest" ] && is_managed "$u_dest"; then
+      rm -f "$u_dest"
+      echo "REMOVED $u_dest"
+    elif [ -e "$u_dest" ] || [ -L "$u_dest" ]; then
+      echo "NOTE    $u_dest exists and is NOT managed by this project; left alone"
+    fi
+  done
+  if [ -d "$data_dir/restart-state" ] && [ ! -L "$data_dir/restart-state" ]; then
+    rm -f "$data_dir/restart-state"/*.json
+    rmdir "$data_dir/restart-state" 2>/dev/null && echo "REMOVED $data_dir/restart-state"
+  fi
+  rmdir "$data_dir" 2>/dev/null && echo "REMOVED $data_dir (empty)"
+  [ -e "$settings" ] || { echo "ABSENT  $settings"; return 0; }
+  command -v jq >/dev/null 2>&1 || { echo "REFUSE  $settings: jq is required to remove our entries" >&2; raise 2; return 0; }
+  deny=$(jq -cR -s 'split("\n") | map(select(length > 0))' "$floor_claude")
+  if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --arg rid "$RESTART_ID" --arg sk "$STAMP_KEY" \
+      --arg ok "$OWN_KEY" --argjson f "$deny" '
+      def drop($ev; $id):
+        if (.hooks[$ev]? | type) == "array" then
+          .hooks[$ev] = [ .hooks[$ev][]
+            | if any(.hooks[]?; (.command? // "") | tostring | contains($id))
+              then (.hooks |= map(select((.command? // "") | tostring | contains($id) | not)))
+                   | select(.hooks | length > 0)
+              else . end ]
+          | if (.hooks[$ev] | length) == 0 then del(.hooks[$ev]) else . end
+        else . end;
+      if type != "object" then error("not an object") else . end
+      | (if (.[$ok] | type) == "array" then .[$ok] elif .[$sk] != null then $f else [] end) as $mine
+      | drop("PreToolUse"; $id) | drop("UserPromptSubmit"; $pid) | drop("SessionStart"; $rid)
+      | drop("PreToolUse"; $rid)
+      | if .hooks == {} then del(.hooks) else . end
+      | if (.permissions.deny? | type) == "array" then
+          .permissions.deny |= map(select(. as $r | $mine | index($r) | not))
+          | if .permissions.deny == [] then del(.permissions.deny) else . end
+          | if .permissions == {} then del(.permissions) else . end
+        else . end
+      | del(.[$sk], .[$ok])' "$settings" > "$work/settings.unmerged.json" 2>/dev/null; then
+    echo "REFUSE  $settings: not a readable JSON object of the expected shape; left untouched" >&2
+    raise 3
+    return 0
+  fi
+  if jq -e --slurpfile a "$work/settings.unmerged.json" '. == $a[0]' "$settings" >/dev/null 2>&1; then
+    echo "OK      $settings holds no entry of ours"
+    return 0
+  fi
+  cp -p "$settings" "$settings.pmhwc-backup"
+  cat "$work/settings.unmerged.json" > "$settings.new.$$"
+  mv "$settings.new.$$" "$settings"
+  echo "UNMERGED $settings (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as $settings.pmhwc-backup)"
+}
+if [ "$mode" = uninstall ]; then
+  uninstall_user
+  echo "NOTE    the admin layer is not touched here; ./workstation uninstall prints its sudo line"
+  exit "$status"
+fi
 
 echo "SOURCE  $stamp"
 process plain "$HOME/.claude/CLAUDE.md"
@@ -649,11 +737,11 @@ report_floor() {
   if [ "$n_admin" -eq "$n_want" ] && [ "$n_codex_admin" -eq "$n_codex" ]; then
     echo "FLOOR   carried by: the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
   elif [ "$n_user" -ne "$n_want" ] || [ "$codex_user" != present ]; then
-    echo "FLOOR   carried by: NO complete layer; re-run install.sh, then install the admin copy with install-managed.sh"
+    echo "FLOOR   carried by: NO complete layer; run ./workstation install, then ./workstation install --admin"
   elif [ "$n_admin" -gt 0 ] || [ "$n_codex_admin" -gt 0 ]; then
-    echo "FLOOR   carried by: the user layer; the admin copy is INCOMPLETE (re-run install-managed.sh)"
+    echo "FLOOR   carried by: the user layer; the admin copy is INCOMPLETE (run ./workstation install --admin)"
   else
-    echo "FLOOR   carried by: the user layer only; a session flag can drop it (--setting-sources project, measured); install the admin copy with install-managed.sh"
+    echo "FLOOR   carried by: the user layer only; a session flag can drop it (--setting-sources project, measured); install the admin copy with ./workstation install --admin"
   fi
 }
 report_floor

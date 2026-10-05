@@ -86,6 +86,21 @@ This rule is an instruction on every agent harness and operating system. No hook
 restart guard that once denied tool calls on stale configuration was removed (ADR-0028), and no
 technical lock is claimed. See ADR-0022 for the rule and the fresh-session verification procedure.
 
+## Workstation version key
+
+At session start, when the project root holds a `.workstation-version` file, compare the range in
+its first line that is not blank or a `#` comment (for example `>=3.1 <4`) with the installed
+release. The installed release is the `release:` field of the `managed-by` line at the top of this
+brief. When that line is not in your context, read the first lines of the brief file: Claude Code
+`~/.claude/CLAUDE.md`, Codex `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`), Kiro
+`~/.kiro/steering/workstation-global-brief.md`. Compare `vX.Y.Z` as X.Y.Z, and `unreleased, after
+vX.Y.Z` as X.Y.Z. Any other value is a mismatch. On a mismatch, print exactly one line and carry on:
+
+`Workstation version key: required <range>, installed <release>. Run ./workstation install in the managed-workstation checkout.`
+
+Never block, stop or ask because of it. This is an instruction, not a check: `./workstation status`
+is the deterministic comparison.
+
 ## Ethical foundation: Stoic ethics, the good life (ratified by the owner)
 
 - **Wisdom:** claim only what is measured.

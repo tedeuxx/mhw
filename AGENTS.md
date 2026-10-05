@@ -293,3 +293,11 @@ from here now, and at what evidence level:
   Codex app session. The Claude Code picker guard's option-count extension is installed and passes
   synthetic tests; live runtime routing was not re-measured. Cadence, risk/benefit semantics and token
   discipline remain instructions, with no universal mechanical enforcement or hard token ceiling.
+- **`./workstation` entry point and version key** (ADR-0030, proposed, 2026-10-05; Issues #57, #67):
+  `install`, `install --admin`, `status`, `check`, `update` and `uninstall` over the existing installers,
+  plus `.workstation-version` and a user-brief instruction to compare it at session start. *Written and
+  tested*, and probed in throwaway homes, a throwaway admin root and their own synthetic clones. The
+  instruction is measured present in the Codex model-visible prompt and in the brief Claude Code loads;
+  whether a model follows it is not measured. **Not installed** and not run on the reference machine.
+  `status` reports what the installed files register, at the *installed* level only; loaded and enforced
+  need a session canary.
