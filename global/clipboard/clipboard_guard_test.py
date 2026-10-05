@@ -213,8 +213,8 @@ def install_keychain_guard():
 def sec_run(argv, **kw):
     """`run` for production code under test: its /usr/bin/security goes to the stub unless opted in."""
     argv = list(argv)
-    if argv and argv[0] == REAL_SECURITY:
-        argv[0] = SECURITY
+    if argv and argv[0] == REAL_SECURITY and not REAL_KEYCHAIN:     # read at call time, not import time
+        argv[0] = SECURITY_STUB
     return subprocess.run(argv, **kw)
 
 
