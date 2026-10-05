@@ -657,6 +657,9 @@ Each cell is labelled *documented*, *measured* or *assumed*. Measurement runs in
 matrix decides the mechanism for sections 4 to 6, and it is the learning product of the "practise
 corporate enforcement" goal.
 
+The matrix itself, with its findings against this document, is
+[`docs/native-enforcement-matrix.md`](native-enforcement-matrix.md) (2026-10-05).
+
 ## 11. Delivery slices
 
 | Issue | Slice | Release | Owner act |
