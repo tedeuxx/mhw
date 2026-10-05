@@ -2,17 +2,18 @@
 """Render the working method (method/) into each agent harness's user-level native carrier (ADR-0031).
 
     method_render.py --mode=install|check|dry-run|uninstall [--stamp="release: R; commit: C"] [--source=DIR]
+                     [--home=DIR]
 
 install.sh runs this as its own rendering step and passes the provenance stamp it derived (ADR-0029), so
 the stamp is derived once. ./workstation install, check, status and uninstall reach it through install.sh.
 
 Carriers (ADR-0027 matrix, ADR-0031):
-    Claude Code  ~/.claude/agents/<n>.md (with tools and skills), ~/.claude/skills/<n>/SKILL.md,
+    Claude Code  ~/.claude/agents/<n>.md (tools, disallowedTools, skills), ~/.claude/skills/<n>/SKILL.md,
                  ~/.claude/commands/<n>.md
     Codex        ${CODEX_HOME:-~/.codex}/agents/<n>.toml (no tool list exists: an instruction, plus a
                  read-only sandbox for an agent granted no tool), ~/.agents/skills/<n>/SKILL.md, and each
                  command as a skill with agents/openai.yaml policy.allow_implicit_invocation false
-    Kiro         ~/.kiro/agents/<n>.json (tools, allowedTools, preloaded skills as file resources),
+    Kiro         ~/.kiro/agents/<n>.json (tools, allowedTools, excludedTools, preloaded skills as files),
                  ~/.kiro/skills/<n>/SKILL.md, and each command as a skill (a slash command in CLI and IDE)
 
 Every rendered file carries the managed-by line with the stamp, "source: method/...", in its own
@@ -134,6 +135,14 @@ def load(source):
                 raise SourceError("%s: invalid tool name %r" % (where, t))
             if t not in KIRO_TOOLS and not t.startswith("mcp__"):
                 raise SourceError("%s: tool %s has no Kiro mapping" % (where, t))
+        raw = fields.get("disallowed-tools", [])
+        excluded = raw if isinstance(raw, list) else [t.strip() for t in raw.split(",") if t.strip()]
+        for t in excluded:
+            # An exclusion narrows a granted MCP server to fewer of its tools: mcp__<server>__<tool>.
+            m = re.fullmatch(r"mcp__([A-Za-z0-9_-]+?)__([A-Za-z0-9_-]+)", t)
+            if not m or ("mcp__" + m.group(1)) not in tools:
+                raise SourceError("%s: disallowed tool %r must be mcp__<server>__<tool> of a granted server"
+                                  % (where, t))
         preload = fields.get("skills", [])
         if not isinstance(preload, list):
             raise SourceError("%s: skills must be a list" % where)
@@ -141,7 +150,7 @@ def load(source):
             if s not in skills:
                 raise SourceError("%s: preloads unknown skill %s" % (where, s))
         agents[name] = {"description": need(fields, "description", where), "purpose": fields.get("purpose", ""),
-                        "tools": tools, "skills": preload, "body": body, "where": where}
+                        "tools": tools, "excluded": excluded, "skills": preload, "body": body, "where": where}
     clash = set(skills) & set(commands)
     if clash:
         raise SourceError("a skill and a command share a name: %s" % ", ".join(sorted(clash)))
@@ -196,6 +205,8 @@ def codex_policy(where, stamp):
 def claude_agent(a, name, stamp):
     head = ["---", "# " + marker(a["where"], stamp), "name: " + name, "description: " + q(a["description"])]
     head.append("tools: " + (", ".join(a["tools"]) if a["tools"] else "[]"))
+    if a["excluded"]:
+        head.append("disallowedTools: " + ", ".join(a["excluded"]))
     if a["skills"]:
         head.append("skills:")
         head += ["  - " + s for s in a["skills"]]
@@ -210,13 +221,14 @@ def codex_agent(a, name, stamp):
     tools = ", ".join(a["tools"]) if a["tools"] else "none"
     preload = ", ".join("$" + s for s in a["skills"]) if a["skills"] else "none"
     read_only = not (set(a["tools"]) & WRITING_TOOLS)
+    excluded = (" Excluded tools, even within a granted server: %s." % ", ".join(a["excluded"])) if a["excluded"] else ""
     instructions = (
         "You are the `%s` agent of the owner's working method (source: %s).\n\n"
         "Preloaded skills: %s. In Claude Code and Kiro these are loaded into your context before you start. "
         "A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\n\n"
-        "Allowed tools for this agent: %s. A Codex custom agent carries no tool list (ADR-0027): here this "
+        "Allowed tools for this agent: %s.%s A Codex custom agent carries no tool list (ADR-0027): here this "
         "limit is an instruction, not a control. Do not use a tool outside it.%s\n\n---\n"
-        % (name, a["where"], preload, tools,
+        % (name, a["where"], preload, tools, excluded,
            " This agent also runs in a read-only sandbox, the one native narrowing Codex offers." if read_only else "")
         + a["body"])
     lines = ["# " + marker(a["where"], stamp),
@@ -254,17 +266,24 @@ def kiro_agent(a, name, stamp, kiro_skills):
         "prompt": "<!-- %s -->\n\n%s" % (marker(a["where"], stamp), a["body"].lstrip("\n")),
         "tools": tools,
         "allowedTools": list(tools),
-        "resources": ["file://%s" % (kiro_skills / s / "SKILL.md") for s in a["skills"]],
+        "resources": [(kiro_skills / s / "SKILL.md").as_uri() for s in a["skills"]],
     }
+    if a["excluded"]:
+        # mcp__<server>__<tool> -> @<server>/<tool>; documented for Kiro IDE 1.x and CLI V3.
+        doc["excludedTools"] = ["@%s/%s" % re.fullmatch(r"mcp__([A-Za-z0-9_-]+?)__([A-Za-z0-9_-]+)", t).groups()
+                                for t in a["excluded"]]
     return json.dumps(doc, ensure_ascii=False, indent=2) + "\n"
 
 
 # --------------------------------------------------------------------------------------------------
 # Targets.
 
+HOME_OVERRIDE = None  # --home=DIR (install.ps1 passes the profile directory, so HOME is never read there)
+
+
 def homes():
-    home = Path(os.environ.get("HOME") or Path.home())
-    codex = Path(os.environ.get("CODEX_HOME") or home / ".codex")
+    home = Path(HOME_OVERRIDE or os.environ.get("HOME") or Path.home()).absolute()
+    codex = Path(os.environ.get("CODEX_HOME") or home / ".codex").absolute()
     return {"claude": home / ".claude", "codex": codex, "agents": home / ".agents", "kiro": home / ".kiro"}
 
 
@@ -419,6 +438,9 @@ def main(argv):
             stamp = arg[len("--stamp="):]
         elif arg.startswith("--source="):
             source = Path(arg[len("--source="):])
+        elif arg.startswith("--home="):
+            global HOME_OVERRIDE
+            HOME_OVERRIDE = arg[len("--home="):]
         else:
             print("method_render: unknown argument %s" % arg, file=sys.stderr)
             return 2

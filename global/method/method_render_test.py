@@ -37,7 +37,9 @@ def source_agents():
     for path in sorted((SOURCE / "agents").glob("*.md")):
         fields, _ = mr.split_front_matter(path.read_text(encoding="utf-8"), path.name)
         raw = fields["tools"]
+        ex = fields.get("disallowed-tools", [])
         out[path.stem] = {"tools": raw if isinstance(raw, list) else [t.strip() for t in raw.split(",")],
+                          "excluded": ex if isinstance(ex, list) else [t.strip() for t in ex.split(",")],
                           "skills": fields.get("skills", [])}
     return out
 
@@ -98,7 +100,8 @@ class SourceShape(unittest.TestCase):
                                                  "content-reviewer"]))
         self.assertEqual(SKILLS, sorted(["agents-configuration", "shell", "documentation-standard",
                                          "engineering-standards", "definition-of-ready", "definition-of-done",
-                                         "quality-gates", "published-voice", "devops", "planning-poker"]))
+                                         "quality-gates", "published-voice", "devops", "planning-poker",
+                                         "code-review", "content-publishing"]))
         self.assertEqual(COMMANDS, ["autonomy", "new-issue"])
 
     def test_planning_poker_no_longer_says_reference_pattern_only(self):
@@ -111,6 +114,8 @@ class SourceShape(unittest.TestCase):
             for s in a["skills"]:
                 self.assertIn(s, SKILLS, name)
         self.assertEqual(AGENTS["scrum-master"]["tools"], [])
+        # the browser grant stays read-only natively: the input-carrying tools are excluded
+        self.assertIn("mcp__chrome-devtools__evaluate_script", AGENTS["product-lead"]["excluded"])
 
 
 class Render(unittest.TestCase):
@@ -139,6 +144,8 @@ class Render(unittest.TestCase):
             tools = [l for l in fm if l.startswith("tools:")]
             want = "tools: " + (", ".join(a["tools"]) if a["tools"] else "[]")
             self.assertEqual(tools, [want], name)
+            dis = [l for l in fm if l.startswith("disallowedTools:")]
+            self.assertEqual(dis, ["disallowedTools: " + ", ".join(a["excluded"])] if a["excluded"] else [], name)
             got = [l.strip()[2:] for l in fm if l.startswith("  - ")]
             self.assertEqual(got, a["skills"], name)
 
@@ -153,7 +160,9 @@ class Render(unittest.TestCase):
             self.assertIn("tools", doc, name)
             self.assertEqual(doc["tools"], want, name)
             self.assertEqual(doc["allowedTools"], want, name)
-            self.assertEqual(doc["resources"], ["file://%s" % self.h.p(".kiro/skills/%s/SKILL.md" % s)
+            ex = ["@%s/%s" % tuple(t[5:].split("__", 1)) for t in a["excluded"]]
+            self.assertEqual(doc.get("excludedTools", []), ex, name)
+            self.assertEqual(doc["resources"], [self.h.p(".kiro/skills/%s/SKILL.md" % s).as_uri()
                                                 for s in a["skills"]], name)
 
     def test_codex_agent_carries_its_tool_list_as_an_instruction(self):
@@ -164,6 +173,9 @@ class Render(unittest.TestCase):
             tools = ", ".join(a["tools"]) if a["tools"] else "none"
             self.assertIn("Allowed tools for this agent: %s." % tools, doc["developer_instructions"], name)
             self.assertIn("carries no tool list", doc["developer_instructions"], name)
+            if a["excluded"]:
+                self.assertIn("Excluded tools, even within a granted server: %s." % ", ".join(a["excluded"]),
+                              doc["developer_instructions"], name)
             writes = set(a["tools"]) & {"Write", "Edit", "Bash"}
             self.assertEqual(doc.get("sandbox_mode"), None if writes else "read-only", name)
 
@@ -211,6 +223,14 @@ class Render(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertEqual([p for p in h.root.rglob("*") if p.is_file()], [])
         self.assertEqual(len(re.findall(r"^WOULD WRITE ", out, re.M)), len(h.all_targets()))
+
+    def test_home_argument_wins_over_HOME(self):
+        # install.ps1 passes --home=<profile> so a HOME set on Windows is never written to.
+        h, other = Home(), Home()
+        code, out = h.run("--mode=install", "--home=%s" % other.root)
+        self.assertEqual(code, 0, out)
+        self.assertTrue(other.p(".claude/agents/developer.md").is_file())
+        self.assertEqual([p for p in h.root.rglob("*") if p.is_file()], [])
 
     def test_unmanaged_file_is_refused_and_kept(self):
         h = Home()
@@ -292,7 +312,7 @@ def parse_toml(text):
 
 
 if __name__ == "__main__":
-    base = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix="method-render-test-")
+    base = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix="method-render-test-"))
     Path(base).mkdir(parents=True, exist_ok=True)
     BASE = base
     sys.argv = sys.argv[:1]
