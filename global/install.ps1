@@ -297,7 +297,7 @@ function Merge-DenyFloor([string]$settings) {
         'check' {
             if (-not (Test-Path -LiteralPath $settings)) { Write-Output "MISSING $settings" }
             elseif ($missing.Count -eq 0) { Write-Output "STAMP   ${settings}: the deny floor matches, but its ""$StampKey"" key carries ($was) and the source is ($stamp)" }
-            else { Write-Output "DRIFT   $settings ($($missing.Count) deny-floor rule(s) missing; $was)" }
+            else { Write-Output "DRIFT   $settings ($($missing.Count) deny-floor rule(s) missing) ($was)" }
             Set-Status 1
         }
         'dry-run' {
