@@ -86,9 +86,25 @@ install may deny acting tools once the admin files change. That is expected; end
   scratch file). Both pass: no `fingerprint_mismatch` or `missing_baseline` denial.
 - `/breaking-glass` is no longer offered.
 - The paste prompt hook still blocks a synthetic credential and shows a redacted copy (a harmless
-  block canary, never a real secret).
+  block canary, never a real secret). **Run this canary outside the paste wrapper** (`command claude`,
+  `command codex`): since 2026-10-05 (#58) the hook passes silently in a session the wrapper started,
+  so inside one this canary passes by design and proves nothing.
 
 Record only the agent harness, its version and the pass/block outcomes.
+
+## Owner install act for the wrapper-primary release (#58, ADR-0011 2026-10-05 amendment)
+
+The marker logic lives in the core both layers run. Until the admin copy is replaced, the admin hook
+keeps blocking wrapped sessions too (the stricter behaviour, measured). In a fresh session, from the
+merged, released commit, in your own terminal:
+
+1. `sh global/install-managed.sh`, then run the printed `sudo … --apply=… --sha256=…` line yourself.
+2. `sh global/install.sh --hooks=managed` as yourself. Optionally add `--shell-rc="$HOME/.zshrc"` to
+   append the wrapper's start-up line, or add the printed line yourself.
+3. `sh global/install-managed.sh --check` and `sh global/install.sh --check --hooks=managed` both exit 0.
+4. Open fresh Claude Code and Codex sessions, then two canaries with a synthetic credential:
+   outside the wrapper (`command claude`) the prompt is **blocked**; inside the wrapper a **pasted**
+   credential arrives as `[REDACTED:credential]` and nothing blocks.
 
 ## History
 

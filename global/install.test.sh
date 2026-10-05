@@ -283,6 +283,57 @@ for shl in zsh bash; do
   fi
 done
 
+# 2c''. the opt-in shell start-up line (Issue #58), against THROWAWAY rc files only. It is written only
+# with --shell-rc=FILE, appended once, printed, and never duplicated or rewritten.
+h3="$base/home-rc"; mkdir -p "$h3"
+rc="$h3/zshrc-throwaway"
+printf 'export SYNTHETIC_OWNER_SETTING=1' > "$rc"          # no trailing newline, on purpose
+sn3="$(data "$h3")/paste-filter.sh"
+want_rc="[ -r \"$sn3\" ] && . \"$sn3\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)"
+rc_before=$(cksum < "$rc")
+HOME="$h3" sh "$inst" --dry-run --shell-rc="$rc" > "$base/rc-dry.out"; expect "dry-run with --shell-rc" 0 $?
+if [ "$(cksum < "$rc")" = "$rc_before" ] && grep -qxF "WOULD APPEND to $rc: $want_rc" "$base/rc-dry.out"; then
+  ok "dry-run prints the rc line and writes nothing"
+else
+  ko "dry-run with --shell-rc wrote the rc or printed the wrong line"
+fi
+HOME="$h3" sh "$inst" --shell-rc="$rc" > "$base/rc-1.out"; expect "install with --shell-rc" 0 $?
+if [ "$(grep -cxF "$want_rc" "$rc")" -eq 1 ] && [ "$(sed -n 1p "$rc")" = "export SYNTHETIC_OWNER_SETTING=1" ] \
+   && [ "$(wc -l < "$rc" | tr -d ' ')" -eq 2 ] && grep -qxF "APPENDED to $rc (opt-in, --shell-rc): $want_rc" "$base/rc-1.out"; then
+  ok "install appends the line once, on its own line, keeps the owner's content and prints what it wrote"
+else
+  ko "install --shell-rc produced the wrong rc: $(cat "$rc")"
+fi
+rc_once=$(cksum < "$rc")
+HOME="$h3" sh "$inst" --shell-rc="$rc" > "$base/rc-2.out"; expect "install with --shell-rc, again" 0 $?
+if [ "$(cksum < "$rc")" = "$rc_once" ] && grep -qxF "OK      $rc activates the paste wrapper" "$base/rc-2.out"; then
+  ok "a second install leaves the rc byte-identical (idempotent)"
+else
+  ko "a second install changed the rc"
+fi
+HOME="$h3" sh "$inst" --check --shell-rc="$rc" > "$base/rc-check.out"; expect "check with the rc line present" 0 $?
+for shl in zsh bash; do
+  if command -v "$shl" >/dev/null 2>&1; then
+    t=$(HOME="$h3" "$shl" -c ". \"$rc\"; type claude" 2>&1 | head -n 1)
+    case $t in
+      *function*) ok "$shl: sourcing the rc defines the wrapper functions" ;;
+      *) ko "$shl: the rc line did not define claude: $t" ;;
+    esac
+  fi
+done
+rc_new="$h3/never-created-rc"
+HOME="$h3" sh "$inst" --check --shell-rc="$rc_new" > "$base/rc-miss.out"; expect "check reports a missing rc line" 1 $?
+if grep -q "^MISSING $rc_new" "$base/rc-miss.out" && [ ! -e "$rc_new" ]; then ok "check names the missing line and creates nothing"; else ko "check on a missing rc line"; fi
+rc_stale="$h3/stale-rc"
+printf '. /old/place/paste-filter.sh  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n' > "$rc_stale"
+stale_before=$(cksum < "$rc_stale")
+HOME="$h3" sh "$inst" --shell-rc="$rc_stale" > "$base/rc-stale.out"; expect "install refuses to rewrite a different tagged line" 1 $?
+if [ "$(cksum < "$rc_stale")" = "$stale_before" ] && grep -q "^STALE   $rc_stale" "$base/rc-stale.out"; then ok "a differing tagged line is reported and left alone"; else ko "a differing tagged line was rewritten"; fi
+mkdir -p "$h3/rc-is-a-dir"
+HOME="$h3" sh "$inst" --shell-rc="$h3/rc-is-a-dir" > "$base/rc-dir.out"; expect "install refuses a non-regular rc" 3 $?
+HOME="$h3" sh "$inst" --shell-rc=relative-rc > /dev/null 2>&1; expect "a relative --shell-rc is a usage error" 2 $?
+if [ ! -e "$h3/relative-rc" ] && [ ! -e relative-rc ]; then ok "a relative --shell-rc writes nothing"; else ko "a relative --shell-rc wrote a file"; fi
+
 # 2d. a managed watcher plist left by an earlier version is removed on install; launchctl never runs
 h2="$base/home-oldplist"; mkdir -p "$h2/Library/LaunchAgents"
 printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \

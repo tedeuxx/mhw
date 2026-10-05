@@ -612,6 +612,68 @@ class PromptHook(unittest.TestCase):
             self.assertNotIn(name, src, name)
 
 
+class WrapperMarker(unittest.TestCase):
+    """Issue #58: the paste wrapper is the primary mechanism. In a session it started (the marker in the
+    environment), the hook passes silently; without the marker it blocks, as the safety net."""
+
+    SENSITIVE = "deploy for %s with %s, mail ana@zyxw-mail.zyxw" % (TERM, CREDENTIALS["github"])
+
+    def env(self, value=None):
+        return {} if value is None else {g.WRAPPER_MARKER: value}
+
+    def run_hook(self, conf, environ, harness="claude"):
+        out = io.StringIO()
+        payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": self.SENSITIVE}).encode()
+        g.cmd_prompt_hook(conf, harness, io.BytesIO(payload), out, FakeSalts(), environ=environ)
+        return out.getvalue()
+
+    def test_marker_present_passes_silently(self):
+        d, conf = hook_conf("marker-on")
+        with_term(conf)
+        for harness in ("claude", "codex"):
+            self.assertEqual(self.run_hook(conf, self.env(g.WRAPPER_MARKER_VALUE), harness), "", harness)
+
+    def test_marker_absent_or_wrong_blocks(self):
+        d, conf = hook_conf("marker-off")
+        with_term(conf)
+        for value in (None, "", "0", "true", g.WRAPPER_MARKER_VALUE + " "):
+            for harness in ("claude", "codex"):
+                raw = self.run_hook(conf, self.env(value), harness)
+                out = json.loads(raw)
+                self.assertEqual(out.get("decision"), "block", (value, harness))
+                self.assertIn("[REDACTED:credential]", out["reason"])
+                self.assertNotIn(b"quillon", raw.lower().encode())
+
+    def test_the_default_reads_this_process_environment(self):
+        d, conf = hook_conf("marker-default")
+        saved = os.environ.get(g.WRAPPER_MARKER)
+        try:
+            os.environ[g.WRAPPER_MARKER] = g.WRAPPER_MARKER_VALUE
+            self.assertTrue(g.wrapped_session())
+            os.environ.pop(g.WRAPPER_MARKER)
+            self.assertFalse(g.wrapped_session())
+        finally:
+            if saved is not None:
+                os.environ[g.WRAPPER_MARKER] = saved
+
+    def test_a_real_hook_process_follows_the_marker(self):
+        """As a harness runs it: the hook process inherits the CLI's environment."""
+        d, conf_unused = hook_conf("marker-proc")
+        conf_path = os.path.join(d, "clipboard.conf")
+        py = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
+        payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": "use " + CREDENTIALS["aws"]}).encode()
+        base_env = {"HOME": os.path.join(d, "home"), "PATH": "/usr/bin:/bin"}
+        for marker, blocked in ((None, True), (g.WRAPPER_MARKER_VALUE, False)):
+            env = dict(base_env, **self.env(marker))
+            r = subprocess.run([py, "-I", "-B", g.__file__, "prompt-hook", "--harness", "codex", "--config", conf_path],
+                               input=payload, capture_output=True, env=env, timeout=60)
+            self.assertEqual((r.returncode, r.stderr), (0, b""), marker)
+            if blocked:
+                self.assertEqual(json.loads(r.stdout)["decision"], "block")
+            else:
+                self.assertEqual(r.stdout, b"")
+
+
 class Config(unittest.TestCase):
     def test_invalid_values_fall_back(self):
         d = os.path.join(BASE, "conf")
@@ -872,6 +934,7 @@ if __name__ == "__main__":
     if os.path.exists(BASE) and os.listdir(BASE):
         sys.exit("refusing: %s exists and is not empty (the suite only writes into a fresh directory)" % BASE)
     os.makedirs(BASE, exist_ok=True)
+    os.environ.pop(g.WRAPPER_MARKER, None)     # a suite run from a wrapped session must still judge prompts
     use_throwaway_home()
     GUARD = make_guard(BASE)
     install_keychain_guard()
