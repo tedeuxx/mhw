@@ -26,7 +26,7 @@ allow_parse() {
   if [ -n "$overlay" ] && [ -f "$overlay/allow-list.conf" ]; then
     cat "$overlay/allow-list.conf" >> "$work/allow.conf"
   fi
-  for t in narrow wide; do for k in cmd runner; do : > "$work/allow.$t.$k"; done; done
+  for t in narrow wide; do for k in cmd runner deny; do : > "$work/allow.$t.$k"; done; done
   if ! awk -v dir="$work" -v floor="$floor_codex" '
       BEGIN { while ((getline line < floor) > 0) { nf++; fl[nf] = line } }
       function prefix(a, b,   na, nb, x, y, i) { # 1 when word list a is a word prefix of b
@@ -35,32 +35,54 @@ allow_parse() {
         for (i = 1; i <= na; i++) if (x[i] != y[i]) return 0
         return 1
       }
+      function listed(list, w,   e, k, n) { # the first member of list that is a word prefix of w, or ""
+        n = split(list, e, "|")
+        for (k = 1; k <= n; k++) if (prefix(e[k], w)) return e[k]
+        return ""
+      }
       { sub(/\r$/, "") }
       /^[ \t]*(#|$)/ { next }
       {
         why = ""
         if ($1 != "narrow" && $1 != "wide") why = "tier must be narrow or wide"
-        else if ($2 != "cmd" && $2 != "runner") why = "kind must be cmd or runner"
+        else if ($2 != "cmd" && $2 != "runner" && $2 != "deny") why = "kind must be cmd, runner or deny"
         else if (NF < 3) why = "no words"
-        for (i = 3; i <= NF && why == ""; i++)
-          if ($i !~ /^[A-Za-z0-9._~=:@+-]+$/) why = "word outside the allowed set (no path, no wildcard)"
-        # A shell, an interpreter or a dispatcher runs anything it is handed: an allow on one is an
-        # allow on everything, and an agent able to edit this list would grant itself the world.
-        if (why == "" && $3 ~ /^(bash|sh|dash|zsh|ksh|mksh|fish|csh|tcsh|busybox|env|xargs|eval|exec|source|command|builtin|nohup|time|nice|timeout|watch|script|sudo|doas|su|python[0-9.]*|pypy[0-9.]*|node|nodejs|deno|bun|perl[0-9.]*|ruby|irb|php|lua|tclsh|osascript|awk|gawk|nawk|find|make|npm|npx|pnpm|yarn|pytest|cargo|go)$/)
-          why = "the program \"" $3 "\" runs whatever it is given (a shell, an interpreter, a dispatcher or a project-code runner)"
         w = $3; for (i = 4; i <= NF; i++) w = w " " $i
-        # Commands whose own options read or write an arbitrary path or run a program (ADR-0031, "What
-        # the list leaves out"). Matched as a word prefix, so no narrower spelling slips back in.
-        n_esc = split("git diff|git log|git show|git grep|git blame|git ls-files|git branch|git fetch|git pull|git add|git commit|git worktree add|git config|git archive|git format-patch|git am|git apply|gh issue comment|gh issue create|gh issue edit|gh pr comment|gh pr create|gh pr edit|gh pr review|gh gist|gh api|gh extension|gh alias", esc, "|")
-        for (j = 1; j <= n_esc && why == ""; j++)
-          if (prefix(esc[j], w)) why = "\"" esc[j] "\" takes an option that reads or writes any path or runs a program"
-        for (j = 1; j <= nf && why == ""; j++) {
-          if (prefix(w, fl[j])) why = "it covers the floor entry \"" fl[j] "\", which denies only part of that family"
-          else if (prefix(fl[j], w)) why = "the floor entry \"" fl[j] "\" denies it, so it could never apply"
+        if (why == "" && $2 == "runner") {
+          # A runner names ONE repository script, by relative path, through sh, bash or python3, with
+          # no option but -B or -I: an exact suite, never the interpreter (ADR-0031, owner 2026-10-05).
+          if ($1 != "wide") why = "a runner runs repository code, so it belongs to the wide tier only"
+          else if ($3 !~ /^(sh|bash|python3)$/) why = "a runner starts with sh, bash or python3"
+          else if ($NF !~ /^[A-Za-z0-9_-][A-Za-z0-9._-]*(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\.(sh|py)$/ || $NF ~ /(^|\/)\.\.(\/|$)/)
+            why = "a runner ends with one relative .sh or .py script path"
+          for (i = 4; i < NF && why == ""; i++) if ($i != "-B" && $i != "-I") why = "a runner takes no option but -B or -I"
+        } else {
+          for (i = 3; i <= NF && why == ""; i++)
+            if ($i !~ /^[A-Za-z0-9._~=:@+-]+$/) why = "word outside the allowed set (no path, no wildcard)"
         }
+        if (why == "" && $2 == "cmd") {
+          # A shell, an interpreter or a dispatcher runs anything it is handed: an allow on one is an
+          # allow on everything, and an agent able to edit this list would grant itself the world.
+          if ($3 ~ /^(bash|sh|dash|zsh|ksh|mksh|fish|csh|tcsh|busybox|env|xargs|eval|exec|source|command|builtin|nohup|time|nice|timeout|watch|script|sudo|doas|su|python[0-9.]*|pypy[0-9.]*|node|nodejs|deno|bun|perl[0-9.]*|ruby|irb|php|lua|tclsh|osascript|awk|gawk|nawk|find|make|npm|npx|pnpm|yarn|pytest|cargo|go)$/)
+            why = "the program \"" $3 "\" runs whatever it is given (a shell, an interpreter, a dispatcher or a project-code runner)"
+          # Never in any tier: each runs, publishes or writes through its own options or arguments.
+          else if ((e = listed("git worktree add|git config|git archive|git format-patch|git am|git apply|git pull|gh issue comment|gh issue create|gh issue edit|gh pr comment|gh pr create|gh pr edit|gh pr review|gh gist|gh api|gh extension|gh alias", w)) != "")
+            why = "\"" e "\" takes an option or argument that reads or writes any path, runs a program or publishes"
+          # The read and build routes are the WIDE tier only (owner, 2026-10-05): the narrow tier stays read-only.
+          else if ($1 == "narrow" && (e = listed("git diff|git log|git show|git grep|git blame|git ls-files|git branch|git fetch|git add|git commit", w)) != "")
+            why = "\"" e "\" has options that read or write any path, so it is wide-tier only"
+          # Pinned natively: "git add --" ends option parsing; "git commit -m" makes git refuse -F/--file.
+          else if (prefix("git add", w) && w != "git add --") why = "git add is pre-authorised only as \"git add --\""
+          else if (prefix("git commit", w) && w != "git commit -m") why = "git commit is pre-authorised only as \"git commit -m\""
+        }
+        if (why == "" && $2 != "deny")
+          for (j = 1; j <= nf && why == ""; j++) {
+            if (prefix(w, fl[j])) why = "it covers the floor entry \"" fl[j] "\", which denies only part of that family"
+            else if (prefix(fl[j], w)) why = "the floor entry \"" fl[j] "\" denies it, so it could never apply"
+          }
         if (why != "") { printf "invalid allow-list entry (%s): %s\n", why, $0 > "/dev/stderr"; err = 1; next }
         print w >> (dir "/allow." $1 "." $2)
-        n++
+        if ($2 != "deny") n++
       }
       END { if (err) exit 1; if (!n) { print "the allow list has no entry" > "/dev/stderr"; exit 1 } }
     ' "$work/allow.conf"; then
@@ -116,7 +138,7 @@ allow_protect() {
 
 allow_claude_render() { # $1 tier, $2 input settings, $3 output
   ac_want=$(allow_words "$1" "cmd runner" | jq -cR -s 'split("\n") | map(select(length > 0) | "Bash(" + . + ":*)")')
-  ac_protect=$(allow_protect | jq -cR -s 'split("\n") | map(select(length > 0))')
+  ac_protect=$({ allow_protect; allow_words "$1" deny | sed 's/.*/Bash(&:*)/'; } | jq -cR -s 'split("\n") | map(select(length > 0))')
   ac_mode=null
   [ "$1" = wide ] && ac_mode='"acceptEdits"'
   jq --indent 4 --arg ok "$ALLOW_OWN_KEY" --argjson w "$ac_want" --argjson m "$ac_mode" --argjson pd "$ac_protect" '
@@ -246,6 +268,7 @@ allow_codex_rules_render() { # $1 tier, $2 output
     printf '# rule whatever file holds it (measured, codex execpolicy check). Test runners have no rule here:\n'
     printf '# they run inside the workspace-write sandbox of the "%s" profile without one.\n' "$ALLOW_PROFILE"
     allow_words "$1" cmd | awk '{ printf "prefix_rule(pattern=["; for (i = 1; i <= NF; i++) printf "%s\"%s\"", (i > 1 ? ", " : ""), $i; print "], decision=\"allow\")" }'
+    allow_words "$1" deny | awk '{ printf "prefix_rule(pattern=["; for (i = 1; i <= NF; i++) printf "%s\"%s\"", (i > 1 ? ", " : ""), $i; print "], decision=\"forbidden\")" }'
   } > "$2"
 }
 

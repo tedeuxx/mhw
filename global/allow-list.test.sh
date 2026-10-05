@@ -23,10 +23,15 @@ ko() { fail=$((fail + 1)); echo "FAIL  $1"; }
 expect() { if [ "$2" -eq "$3" ]; then ok "$1 (exit $3)"; else ko "$1 (expected $2, got $3)"; fi; }
 
 # Expected sizes, counted from the source independently of the installer's awk.
-n_narrow=$(awk '$1 == "narrow" { n++ } END { print n + 0 }' "$conf")
-n_wide_cmd=$(awk '$1 == "wide" && $2 == "cmd" { n++ } END { print n + 0 }' "$conf")
-n_wide_all=$(awk '$1 == "wide" { n++ } END { print n + 0 }' "$conf")
-n_narrow_cmd=$(awk '$1 == "narrow" && $2 == "cmd" { n++ } END { print n + 0 }' "$conf")
+# The default install appends the repository overlay's entries (its test runners), so they count too.
+overlay_allow="$here/../overlay/allow-list.conf"
+[ -f "$overlay_allow" ] || overlay_allow=/dev/null
+n_narrow=$(awk '$1 == "narrow" && $2 != "deny" { n++ } END { print n + 0 }' "$conf" "$overlay_allow")
+n_wide_cmd=$(awk '$1 == "wide" && $2 == "cmd" { n++ } END { print n + 0 }' "$conf" "$overlay_allow")
+n_wide_all=$(awk '$1 == "wide" && $2 != "deny" { n++ } END { print n + 0 }' "$conf" "$overlay_allow")
+n_wide_deny=$(awk '$1 == "wide" && $2 == "deny" { n++ } END { print n + 0 }' "$conf" "$overlay_allow")
+n_narrow_cmd=$(awk '$1 == "narrow" && $2 == "cmd" { n++ } END { print n + 0 }' "$conf" "$overlay_allow")
+owned_deny() { jq '[.["personal-multi-harness-workstation-configuration-owned-allow"].deny[]? | select(startswith("Bash("))] | length' "$1"; }
 allow_n() { jq '[.permissions.allow[]?] | length' "$1"; }
 mode_of() { jq -r '.permissions.defaultMode // "none"' "$1"; }
 rules_n() { grep -c 'decision="allow")$' "$1"; }
@@ -41,8 +46,9 @@ if [ "$(allow_n "$s")" -eq "$n_narrow" ] && [ "$(mode_of "$s")" = none ]; then
 else
   ko "Claude Code narrow tier wrong: $(allow_n "$s") rules, mode $(mode_of "$s"); expected $n_narrow, none"
 fi
-if ! jq -e '.permissions.allow[] | select(test("^Bash\\(git switch"))' "$s" > /dev/null; then
-  ok "no wide rule (git switch -c) is rendered without the admin floor"
+if ! jq -e '.permissions.allow[] | select(test("^Bash\\((git switch|git diff|git commit|git add|python3|sh) "))' "$s" > /dev/null \
+   && ! jq -e '.permissions.deny[]? | select(test("^Bash\\(git diff --no-index"))' "$s" > /dev/null; then
+  ok "no wide rule, runner or escape deny is rendered without the admin floor"
 else
   ko "a wide rule was rendered without the admin floor"
 fi
@@ -97,8 +103,9 @@ else
 fi
 if [ "$(rules_n "$h/.codex/rules/workstation-allow-list.rules")" -eq $((n_narrow_cmd + n_wide_cmd)) ] \
    && [ "$(sandbox_of "$h/.codex/workstation.config.toml")" = workspace-write ] \
-   && ! grep -q '"npm", "test"' "$h/.codex/rules/workstation-allow-list.rules"; then
-  ok "Codex: wide allow rules without test runners, workspace-write profile"
+   && ! grep -q '"python3"' "$h/.codex/rules/workstation-allow-list.rules" \
+   && [ "$(grep -c 'decision="forbidden")$' "$h/.codex/rules/workstation-allow-list.rules")" -eq "$n_wide_deny" ]; then
+  ok "Codex: wide allow rules, $n_wide_deny escaping options forbidden, no test runner, workspace-write profile"
 else
   ko "Codex wide tier wrong"
 fi
@@ -109,6 +116,22 @@ else
 fi
 HOME="$h" sh "$inst" --check --managed-root="$root" > /dev/null 2>&1; expect "check clean on the wide tier" 0 $?
 if protect_ok "$s"; then ok "wide tier keeps the protecting Edit denies"; else ko "a protecting Edit deny is missing (wide)"; fi
+# The owner's wide tier (2026-10-05): the read/build routes, pinned add and commit, the repository's
+# suites, and each escaping option denied as a prefix. Expected entries named here, not derived.
+miss=0
+for r in "Bash(git diff:*)" "Bash(git log:*)" "Bash(git show:*)" "Bash(git grep:*)" "Bash(git blame:*)" \
+    "Bash(git ls-files:*)" "Bash(git branch:*)" "Bash(git fetch:*)" "Bash(git add --:*)" "Bash(git commit -m:*)"; do
+  [ "$(jq --arg r "$r" '[.permissions.allow[]? | select(. == $r)] | length' "$s")" -eq 1 ] || { miss=1; echo "  allow missing: $r"; }
+done
+for r in "Bash(git diff --no-index:*)" "Bash(git diff --output:*)" "Bash(git log --output:*)" "Bash(git show --output:*)" \
+    "Bash(git grep --no-index:*)" "Bash(git grep -O:*)" "Bash(git blame --contents:*)" "Bash(git ls-files --exclude-from:*)" \
+    "Bash(git fetch --upload-pack:*)"; do
+  [ "$(jq --arg r "$r" '[.permissions.deny[]? | select(. == $r)] | length' "$s")" -eq 1 ] || { miss=1; echo "  deny missing: $r"; }
+done
+if [ "$overlay_allow" != /dev/null ] && [ "$(jq '[.permissions.allow[]? | select(startswith("Bash(python3 -B global/") or startswith("Bash(sh global/"))] | length' "$s")" -lt 1 ]; then
+  miss=1; echo "  no repository suite in the wide allow list"
+fi
+if [ "$miss" -eq 0 ]; then ok "wide tier: read/build routes, pinned add and commit, suites, escaping options denied"; else ko "wide tier entries wrong"; fi
 
 # 3. The admin floor gone again: a wide list without the barrier is drift, and install narrows it.
 HOME="$h" sh "$inst" --check --managed-root="$empty" > "$base/g.out" 2>&1; expect "wide list without the admin floor is drift" 1 $?
@@ -134,7 +157,7 @@ if awk 'NR == FNR { f[++n] = $0; next }
 else
   ko "an allow rule overlaps the floor"
 fi
-if [ "$(jq '[.permissions.deny[]? | select(startswith("Bash("))] | length' "$s")" -eq "$(wc -l < "$base/floor.words" | tr -d ' ')" ]; then
+if [ "$(jq '[.permissions.deny[]? | select(startswith("Bash("))] | length' "$s")" -eq $(($(wc -l < "$base/floor.words" | tr -d ' ') + $(owned_deny "$s"))) ]; then
   ok "the deny floor is still merged beside the allow list"
 else
   ko "the deny floor is missing beside the allow list"
@@ -161,9 +184,13 @@ for bad in "wide cmd git push" "narrow cmd sudo -n" "narrow cmd git *" "loose cm
            "wide cmd xargs" "wide cmd node" "wide cmd perl" "wide cmd ruby" "wide cmd zsh" "wide runner npm test" \
            "wide runner make test" "narrow cmd ./workstation status" "wide cmd /bin/sh" \
            "narrow cmd git diff" "narrow cmd git log --oneline" "narrow cmd git show" "narrow cmd git grep" \
-           "narrow cmd git blame" "narrow cmd git ls-files" "narrow cmd git branch --list" "wide cmd git fetch" \
-           "wide cmd git add" "wide cmd git commit" "wide cmd git worktree add" "wide cmd gh issue comment" \
-           "wide cmd gh pr comment"; do
+           "narrow cmd git blame" "narrow cmd git ls-files" "narrow cmd git branch --list" "narrow cmd git fetch" \
+           "wide cmd git add" "wide cmd git commit" "wide cmd git commit -F" "wide cmd git worktree add" \
+           "wide cmd gh issue comment" "wide cmd gh pr comment" "wide cmd python3 -B global/x.py" \
+           "wide runner python3 -c x.py" "wide runner python3 -m pytest" "wide runner python3 global/../x.py" \
+           "wide runner sh /abs/x.sh" "narrow runner sh global/x.sh" "wide runner node x.js" \
+           "wide runner python3 x.py y.py" "wide runner sh global/x.txt" \
+           "wide runner node global/x.py" "wide runner perl global/x.sh" "wide runner env global/x.sh"; do
   ov="$base/ov-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"; hb="$base/home-bad-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"
   mkdir -p "$ov" "$hb"
   printf '%s\n' "$bad" > "$ov/allow-list.conf"
@@ -246,6 +273,14 @@ if [ -n "$cx" ] && [ -x "$cx" ]; then
       done
     done
   fi
+  # The wide tier's escaping options are forbidden while their command is allowed.
+  for pair in "allow:git commit -m msg" "allow:git add -- a" "allow:git diff HEAD" "forbidden:git diff --no-index a b" \
+              "forbidden:git log --output x" "forbidden:git fetch --upload-pack x" "forbidden:git grep -O less x"; do
+    want=${pair%%:*}; form=${pair#*:}
+    # shellcheck disable=SC2086
+    d=$(HOME="$base/cx" CODEX_HOME="$base/cx" "$cx" execpolicy check -r "$r1" -r "$r2" -- $form 2>/dev/null | jq -r .decision)
+    [ "$d" = "$want" ] || { bad=1; echo "  $form: $d, expected $want"; }
+  done
   # The allow rules load in every session, not only under --profile: the model-visible prompt lists them.
   mkdir -p "$base/cxw"
   if (cd "$base/cxw" && HOME="$h" CODEX_HOME="$h/.codex" "$cx" debug prompt-input hi 2>/dev/null) \
