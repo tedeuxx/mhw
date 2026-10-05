@@ -568,7 +568,7 @@ def summarise_protections(user_lines):
 
 def gather(project):
     admin = admin_installed()
-    state = admin_state()
+    managed_state = admin_state()
     hooks_mode = "managed" if admin else "user"
     code, user_lines = run(install_args(["--check", "--hooks=" + hooks_mode]))
     source = "none"
@@ -598,7 +598,7 @@ def gather(project):
             "user_issues": issues(user_lines), "admin_issues": issues(admin_lines),
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
             "workspace": ws, "plugins": enabled_plugins(ws["root"]), "brief": brief, "floor": floor,
-            "hooks": hooks, "key": key, "runtime": runtime(), "admin_state": state,
+            "hooks": hooks, "key": key, "runtime": runtime(), "admin_state": managed_state,
             "settings": read_settings(ws["root"])}
 
 

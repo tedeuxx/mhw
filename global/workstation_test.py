@@ -318,6 +318,50 @@ class EndToEnd(unittest.TestCase):
         self.assertNotEqual(code, 0)
 
 
+@unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
+class GatherLegacyDropin(unittest.TestCase):
+    """Through gather(), with a workspace version key AND a pre-#66 admin drop-in: the managed layer
+    must read legacy, never absent (the key's own verdict once overwrote the managed state)."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="workstation-gather-")
+        self.addCleanup(self.temp.cleanup)
+        b = Path(self.temp.name)
+        for d in ("home", "root", "tmp", "proj"):
+            (b / d).mkdir()
+        keys = ("HOME", "TMPDIR", "WORKSTATION_MANAGED_ROOT", "XDG_DATA_HOME", "CODEX_HOME", ws.OVERLAY_ENV)
+        saved = {k: os.environ.get(k) for k in keys}
+
+        def restore():
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        self.addCleanup(restore)
+        os.environ.update({"HOME": str(b / "home"), "TMPDIR": str(b / "tmp"),
+                           "WORKSTATION_MANAGED_ROOT": str(b / "root"), ws.OVERLAY_ENV: "none"})
+        os.environ.pop("XDG_DATA_HOME", None)
+        os.environ.pop("CODEX_HOME", None)
+        self.proj = b / "proj"
+        (self.proj / ws.KEY_FILE).write_text(">=3.1 <4\n", encoding="utf-8")
+
+    def test_key_present_and_legacy_dropin(self):
+        subprocess.run(["sh", str(ws.INSTALL), "--hooks=user"], capture_output=True, check=True)
+        # The pre-#66 drop-in shape (install-managed.sh at 3742ffa): hooks and deny, no stamp key.
+        legacy = {"hooks": {"PreToolUse": [{"matcher": "AskUserQuestion", "hooks": [
+                      {"type": "command", "command": "/bin/sh /x/" + ws.GUARD, "timeout": 5}]}]},
+                  "permissions": {"deny": ["Bash(sudo:*)"]}}
+        ws.admin_dropin().parent.mkdir(parents=True)
+        ws.admin_dropin().write_text(json.dumps(legacy), encoding="utf-8")
+        f = ws.gather(str(self.proj))
+        self.assertIn(f["key"]["state"], ("match", "mismatch"))
+        self.assertEqual(f["admin_state"], "legacy")
+        layers = [line for line in ws.render_summary(f) if line.startswith("  layers ")][0]
+        self.assertIn("managed: installed (legacy, pre-#66; reinstall to update) · ", layers)
+        self.assertTrue(any("managed: installed (legacy" in line for line in ws.render_status(f)))
+
+
 class Overlay(unittest.TestCase):
     def test_only_none_or_an_existing_directory(self):
         self.assertEqual(ws.valid_overlay("none"), "none")
