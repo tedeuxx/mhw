@@ -40,6 +40,9 @@ HOOK_ID="personal-multi-harness-workstation-configuration/hitl-escalation-guard.
 PASTE_ID="personal-multi-harness-workstation-configuration/clipboard_guard.py"
 # The top-level key that carries the provenance stamp in a JSON file with no comment syntax (Issue #66).
 STAMP_KEY="personal-multi-harness-workstation-configuration"
+# The deny-floor rules THIS installer appended to ~/.claude/settings.json (absent before it merged them),
+# so uninstall removes those and keeps a rule the owner wrote himself, even one equal to a floor rule.
+OWN_KEY="personal-multi-harness-workstation-configuration-owned-deny"
 # Removed hooks (ADR-0028): kept only so an entry an earlier version merged is found and deleted.
 RESTART_ID="personal-multi-harness-workstation-configuration/restart_guard.py"
 
@@ -456,7 +459,7 @@ merge_settings() {
   stamp_val="$MARKER_ID; source: global/install.sh (only the hook entries and deny-floor rules merged into this file; every other key is yours); $stamp; do not edit, re-run the installer"
   if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --argjson w "$want" --argjson p "$want_paste" \
       --arg rid "$RESTART_ID" --argjson r "$want_restart" --arg sk "$STAMP_KEY" --arg sv "$stamp_val" \
-      --argjson f "$deny" '
+      --arg ok "$OWN_KEY" --argjson f "$deny" '
       # One hook entry of ours per event: keep it when it is exactly the wanted one; otherwise drop every
       # entry of ours (and a group left empty by that) and append the wanted one, unless it is null.
       def place($ev; $id; $want):
@@ -474,7 +477,16 @@ merge_settings() {
                     else . end ]
                 + (if $want == null then [] else [$want] end))
           end;
-      if (.permissions != null and (.permissions | type) != "object")
+      # Ownership (Issue #67): the floor rules missing before this merge are ours. An earlier record is
+      # kept; a file stamped by an install that predates the record counts every floor rule present as
+      # ours, because nothing can tell those apart any more.
+      ((.permissions.deny? // []) | if type == "array" then . else [] end) as $d0
+      | (if (.[$ok] | type) == "array" then .[$ok]
+         elif .[$sk] != null then [$f[] | . as $x | select(any($d0[]; . == $x))]
+         else [] end) as $prev
+      | ($prev + [$f[] | . as $x | select(any($d0[]; . == $x) | not)]) as $own0
+      | ([$f[] | . as $x | select(any($own0[]; . == $x))]) as $own
+      | if (.permissions != null and (.permissions | type) != "object")
          or (.permissions.deny? != null and (.permissions.deny | type) != "array")
       then error("permissions has an unexpected shape") else . end
       | place("PreToolUse"; $id; $w)
@@ -488,15 +500,16 @@ merge_settings() {
       # The provenance stamp (Issue #66): JSON has no comment, so one top-level key of ours carries it.
       # Claude Code ignores a key it does not know: measured on 2.1.289, a user settings file holding
       # this key still applied its permissions.deny (see ADR-0029).
-      | .[$sk] = $sv' "$current" > "$merged" 2>/dev/null; then
+      | .[$sk] = $sv
+      | .[$ok] = $own' "$current" > "$merged" 2>/dev/null; then
     echo "REFUSE  $settings: its hooks or permissions section has an unexpected shape; left untouched" >&2
     raise 3
     return 0
   fi
 
   missing=$(jq --argjson f "$deny" '(.permissions.deny // []) as $d | [$f[] | . as $r | select(any($d[]; . == $r) | not)] | length' "$current")
-  jq -S --arg sk "$STAMP_KEY" 'del(.[$sk])' "$current" > "$work/before.json"
-  jq -S --arg sk "$STAMP_KEY" 'del(.[$sk])' "$merged" > "$work/after.json"
+  jq -S --arg sk "$STAMP_KEY" --arg ok "$OWN_KEY" 'del(.[$sk], .[$ok])' "$current" > "$work/before.json"
+  jq -S --arg sk "$STAMP_KEY" --arg ok "$OWN_KEY" 'del(.[$sk], .[$ok])' "$merged" > "$work/after.json"
   jq -r --arg sk "$STAMP_KEY" '.[$sk] // "" | tostring' "$current" > "$work/settings.stamp"
   settings_stamp=$(stamp_of "$work/settings.stamp")
   settings_restamp=
@@ -550,7 +563,9 @@ merge_settings() {
 # Uninstall (Issue #67): every file of ours goes, wherever a hooks mode put it; a file without the marker
 # is never touched. In the settings file only our hook entries, the deny-floor rules rendered from this
 # checkout and the stamp key are removed; every other key and rule stays, and a backup is left beside it.
-# A deny rule the owner also wrote by hand and that equals a floor rule is removed too: the backup has it.
+# Of the deny rules, only those recorded under OWN_KEY are removed, so a rule the owner wrote himself stays
+# even when it equals a floor rule. A file from an install that predates the record has none: then the
+# floor rules present are removed, as before, and the backup keeps the previous file.
 uninstall_user() {
   for u_dest in "$HOME/.claude/CLAUDE.md" "${CODEX_HOME:-$HOME/.codex}/AGENTS.md" \
       "$HOME/.kiro/steering/workstation-global-brief.md" "$hook_dest" "$data_dir/hitl.conf" "$codex_rules" \
@@ -572,7 +587,7 @@ uninstall_user() {
   command -v jq >/dev/null 2>&1 || { echo "REFUSE  $settings: jq is required to remove our entries" >&2; raise 2; return 0; }
   deny=$(jq -cR -s 'split("\n") | map(select(length > 0))' "$floor_claude")
   if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --arg rid "$RESTART_ID" --arg sk "$STAMP_KEY" \
-      --argjson f "$deny" '
+      --arg ok "$OWN_KEY" --argjson f "$deny" '
       def drop($ev; $id):
         if (.hooks[$ev]? | type) == "array" then
           .hooks[$ev] = [ .hooks[$ev][]
@@ -583,15 +598,16 @@ uninstall_user() {
           | if (.hooks[$ev] | length) == 0 then del(.hooks[$ev]) else . end
         else . end;
       if type != "object" then error("not an object") else . end
+      | (if (.[$ok] | type) == "array" then .[$ok] elif .[$sk] != null then $f else [] end) as $mine
       | drop("PreToolUse"; $id) | drop("UserPromptSubmit"; $pid) | drop("SessionStart"; $rid)
       | drop("PreToolUse"; $rid)
       | if .hooks == {} then del(.hooks) else . end
       | if (.permissions.deny? | type) == "array" then
-          .permissions.deny |= map(select(. as $r | $f | index($r) | not))
+          .permissions.deny |= map(select(. as $r | $mine | index($r) | not))
           | if .permissions.deny == [] then del(.permissions.deny) else . end
           | if .permissions == {} then del(.permissions) else . end
         else . end
-      | del(.[$sk])' "$settings" > "$work/settings.unmerged.json" 2>/dev/null; then
+      | del(.[$sk], .[$ok])' "$settings" > "$work/settings.unmerged.json" 2>/dev/null; then
     echo "REFUSE  $settings: not a readable JSON object of the expected shape; left untouched" >&2
     raise 3
     return 0
@@ -603,7 +619,7 @@ uninstall_user() {
   cp -p "$settings" "$settings.pmhwc-backup"
   cat "$work/settings.unmerged.json" > "$settings.new.$$"
   mv "$settings.new.$$" "$settings"
-  echo "UNMERGED $settings (our hook entries, deny-floor rules and stamp key removed; previous version kept as $settings.pmhwc-backup)"
+  echo "UNMERGED $settings (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as $settings.pmhwc-backup)"
 }
 if [ "$mode" = uninstall ]; then
   uninstall_user

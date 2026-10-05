@@ -160,6 +160,14 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("brief: installed in 3/3 agent harnesses", out)
         self.assertIn("  version key      >=999 <1000: mismatch\n", out)
         self.assertIn("Workstation version key: required >=999 <1000, installed ", out)
+        self.assertIn("hooks registered: admin: none · user: picker guard (Claude Code), "
+                      "paste filter (Claude Code), paste filter (Codex)\n", out)
+        # The hooks moved out of the user layer with no admin layer: status must say none, not claim them.
+        subprocess.run(["sh", str(ws.INSTALL), "--overlay=none", "--hooks=managed"], env=self.env,
+                       capture_output=True, check=False)
+        code, out = self.run_ws("status", "--overlay=none", project)
+        self.assertIn("hooks registered: admin: none · user: none\n", out)
+        code, out = self.run_ws("install", "--overlay=none")
         # A hand edit to one installed file is a difference status must count.
         brief = self.base / "home" / ".claude" / "CLAUDE.md"
         brief.write_text(brief.read_text(encoding="utf-8") + "edited\n", encoding="utf-8")
@@ -167,6 +175,104 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("  check            1 target(s) differ; run ./workstation install\n", out)
         code, _ = self.run_ws("check", "--overlay=none")
         self.assertNotEqual(code, 0)
+
+
+class Overlay(unittest.TestCase):
+    def test_only_none_or_an_existing_directory(self):
+        self.assertEqual(ws.valid_overlay("none"), "none")
+        with tempfile.TemporaryDirectory(prefix="workstation-overlay-") as d:
+            here = os.getcwd()
+            os.chdir(d)
+            try:
+                os.mkdir("prof")
+                Path("file").write_text("x", encoding="utf-8")
+                self.assertEqual(ws.valid_overlay("prof"), str((Path(d) / "prof").resolve()))
+                for bad in ("file", "missing", "", "-x", "--hooks=user", "a\0b"):
+                    with self.subTest(bad=bad):
+                        self.assertIsNone(ws.valid_overlay(bad))
+            finally:
+                os.chdir(here)
+
+    def test_main_refuses_before_running_anything(self):
+        calls = []
+        real = ws.run
+        ws.run = lambda *a, **k: calls.append(a) or (0, [])
+        try:
+            for cmd in ("install", "check", "status", "uninstall", "update"):
+                with self.subTest(cmd=cmd):
+                    self.assertEqual(ws.main([cmd, "--overlay=/nonexistent/overlay/dir"]), 2)
+        finally:
+            ws.run = real
+        self.assertEqual(calls, [])
+
+
+class Hooks(unittest.TestCase):
+    """read_hooks() reports only what the installed files register, per layer."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="workstation-hooks-")
+        self.addCleanup(self.temp.cleanup)
+        b = self.base = Path(self.temp.name)
+        saved = {k: os.environ.get(k) for k in ("HOME", "WORKSTATION_MANAGED_ROOT", "XDG_DATA_HOME", "CODEX_HOME")}
+
+        def restore():
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        self.addCleanup(restore)
+        os.environ["HOME"] = str(b / "home")
+        os.environ["WORKSTATION_MANAGED_ROOT"] = str(b / "root")
+        os.environ.pop("XDG_DATA_HOME", None)
+        os.environ.pop("CODEX_HOME", None)
+        self.data = b / "home" / ".local" / "share" / ws.NAME
+
+    def write(self, path, text):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def entry(self, event, command):
+        return {"hooks": {event: [{"hooks": [{"type": "command", "command": command}]}]}}
+
+    def test_nothing_installed(self):
+        self.assertEqual(ws.read_hooks(), {"user": [], "admin": []})
+        self.assertEqual(ws.hooks_text(ws.read_hooks()), "admin: none · user: none")
+
+    def test_user_entries_count_only_with_their_script(self):
+        settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
+        doc = self.entry("PreToolUse", "\"%s\"" % (self.data / ws.GUARD))
+        doc["hooks"].update(self.entry("UserPromptSubmit", "python3 %s prompt-hook" % (self.data / ws.PASTE))["hooks"])
+        self.write(settings, json.dumps(doc))
+        self.assertEqual(ws.read_hooks()["user"], [])
+        self.write(self.data / ws.GUARD, "#!/bin/sh\n")
+        self.assertEqual(ws.read_hooks()["user"], ["picker guard (Claude Code)"])
+        self.write(self.data / ws.PASTE, "#\n")
+        self.write(Path(os.environ["HOME"]) / ".codex" / "hooks.json",
+                   json.dumps(self.entry("UserPromptSubmit", "python3 %s" % (self.data / ws.PASTE))))
+        self.assertEqual(ws.read_hooks()["user"], ["picker guard (Claude Code)", "paste filter (Claude Code)",
+                                                   "paste filter (Codex)"])
+
+    def test_unreadable_is_not_read(self):
+        self.write(Path(os.environ["HOME"]) / ".claude" / "settings.json", "not json")
+        self.assertEqual(ws.read_hooks()["user"], "not read")
+        self.assertEqual(ws.hooks_text(ws.read_hooks()), "admin: none · user: not read")
+
+    def test_admin_layer(self):
+        root = os.environ["WORKSTATION_MANAGED_ROOT"]
+        bin_dir = Path(root + ("/Library/Application Support/" if sys.platform == "darwin" else "/etc/") + ws.NAME + "/bin")
+        doc = self.entry("PreToolUse", "/bin/sh \"%s\"" % (bin_dir / ws.GUARD))
+        doc["hooks"].update(self.entry("UserPromptSubmit", "py \"%s\"" % (bin_dir / ws.PASTE))["hooks"])
+        doc[ws.NAME] = "stamp"
+        self.write(ws.admin_dropin(), json.dumps(doc))
+        req = Path(os.environ["WORKSTATION_MANAGED_ROOT"] + "/etc/codex/requirements.toml")
+        self.write(req, "[[hooks.UserPromptSubmit]]\ncommand = \"%s\"\n" % (bin_dir / ws.PASTE))
+        self.write(bin_dir / ws.GUARD, "#\n")
+        self.write(bin_dir / ws.PASTE, "#\n")
+        self.assertEqual(ws.read_hooks()["admin"], ["picker guard (Claude Code)", "paste filter (Claude Code)"])
+        self.write(req, "# %s\n[[hooks.UserPromptSubmit]]\ncommand = \"%s\"\n" % (ws.MARKER, bin_dir / ws.PASTE))
+        self.assertEqual(ws.read_hooks()["admin"], ["picker guard (Claude Code)", "paste filter (Claude Code)",
+                                                    "paste filter (Codex)"])
 
 
 class LatestRelease(unittest.TestCase):
@@ -243,10 +349,13 @@ class UpdateAndUninstall(unittest.TestCase):
         self.assertTrue(self.stamp().startswith("release: v9.0.0; commit: "), self.stamp())
 
     def test_uninstall_removes_ours_and_keeps_the_rest(self):
-        code, out = self.ws("install")
-        self.assertEqual(code, 0, out)
         home = self.base / "home"
         settings = home / ".claude" / "settings.json"
+        settings.parent.mkdir(parents=True)
+        # A rule the owner wrote himself that equals a floor rule: ours to keep, never to remove.
+        settings.write_text(json.dumps({"permissions": {"deny": ["Bash(sudo:*)"]}}), encoding="utf-8")
+        code, out = self.ws("install")
+        self.assertEqual(code, 0, out)
         doc = json.loads(settings.read_text(encoding="utf-8"))
         doc["mine"] = 1
         doc["permissions"]["deny"].append("Bash(mytool:*)")
@@ -258,7 +367,7 @@ class UpdateAndUninstall(unittest.TestCase):
                 and ws.MARKER in p.read_text(encoding="utf-8", errors="replace")]
         self.assertEqual(left, [])
         self.assertEqual(json.loads(settings.read_text(encoding="utf-8")),
-                         {"mine": 1, "permissions": {"deny": ["Bash(mytool:*)"]}})
+                         {"mine": 1, "permissions": {"deny": ["Bash(sudo:*)", "Bash(mytool:*)"]}})
         self.assertEqual((home / ".codex" / "notes.md").read_text(encoding="utf-8"), "mine\n")
         self.assertIn("ADMIN   not installed", out)
 

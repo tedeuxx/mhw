@@ -154,7 +154,7 @@ def render_status(f, verbose=False):
     plugin_text = "%d enabled in Claude Code" % len(plugins) if plugins else "none enabled in Claude Code"
     lines.append("  layers           managed: %s · user: %s · workspace: %s · plugin: %s" % (
         "installed" if f["admin"] else "absent", "installed" if user else "absent", ws_text, plugin_text))
-    lines.append("  protections      brief: %s · deny floor: %s · hooks: %s" % (
+    lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
     key = f["key"]
     if key is None:
@@ -309,16 +309,93 @@ def runtime():
     return "host (%s; no container marker found)" % system
 
 
-def summarise_protections(user_lines, admin, hooks_mode):
+GUARD = "hitl-escalation-guard.sh"
+PASTE = "clipboard_guard.py"
+
+
+def _commands(doc, event):
+    """Every hook command string registered for one event in a Claude Code or Codex JSON hooks document."""
+    out = []
+    groups = (doc.get("hooks") or {}).get(event) if isinstance(doc, dict) else None
+    for group in groups if isinstance(groups, list) else []:
+        for hook in (group.get("hooks") or []) if isinstance(group, dict) else []:
+            if isinstance(hook, dict) and isinstance(hook.get("command"), str):
+                out.append(hook["command"])
+    return out
+
+
+def _json(path):
+    """-> (document, state): state is 'absent', 'read' or 'not read' (unreadable or not JSON)."""
+    if not path.exists():
+        return None, "absent"
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), "read"
+    except (OSError, ValueError):
+        return None, "not read"
+
+
+def read_hooks():
+    """Which of our hooks each layer actually registers, read from the installed files. A hook counts
+    only when its entry is registered AND the script it runs is present. -> {layer: [found] | 'not read'}."""
+    data = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / NAME
+    codex_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+    if platform.system() == "Darwin":
+        admin_bin = Path(managed_root() + "/Library/Application Support/%s/bin" % NAME)
+    else:
+        admin_bin = Path(managed_root() + "/etc/%s/bin" % NAME)
+    result = {}
+
+    found, unread = [], False
+    doc, state = _json(Path.home() / ".claude" / "settings.json")
+    unread |= state == "not read"
+    if any(GUARD in c for c in _commands(doc, "PreToolUse")) and (data / GUARD).is_file():
+        found.append("picker guard (Claude Code)")
+    if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (data / PASTE).is_file():
+        found.append("paste filter (Claude Code)")
+    doc, state = _json(codex_home / "hooks.json")
+    unread |= state == "not read"
+    if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (data / PASTE).is_file():
+        found.append("paste filter (Codex)")
+    result["user"] = "not read" if unread and not found else found + (["a file not read"] if unread else [])
+
+    found, unread = [], False
+    doc, state = _json(admin_dropin())
+    unread |= state == "not read"
+    if any(GUARD in c for c in _commands(doc, "PreToolUse")) and (admin_bin / GUARD).is_file():
+        found.append("picker guard (Claude Code)")
+    if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (admin_bin / PASTE).is_file():
+        found.append("paste filter (Claude Code)")
+    req = Path(managed_root() + "/etc/codex/requirements.toml")
+    try:
+        text = req.read_text(encoding="utf-8") if req.exists() else ""
+    except OSError:
+        text, unread = "", True
+    if MARKER in text and "[[hooks.UserPromptSubmit" in text and PASTE in text and (admin_bin / PASTE).is_file():
+        found.append("paste filter (Codex)")
+    result["admin"] = "not read" if unread and not found else found + (["a file not read"] if unread else [])
+    return result
+
+
+def hooks_text(found):
+    """'admin: … · user: …' from read_hooks(); a layer with nothing registered reads 'none'."""
+    parts = []
+    for layer in ("admin", "user"):
+        value = found.get(layer, "not read")
+        if isinstance(value, str):
+            parts.append("%s: %s" % (layer, value))
+        else:
+            parts.append("%s: %s" % (layer, ", ".join(value) if value else "none"))
+    return " · ".join(parts)
+
+
+def summarise_protections(user_lines):
     brief = sum(1 for line in user_lines if line.startswith(("OK", "STAMP"))
                 and any(str(p) in line for p in brief_paths().values()))
     floor = "not reported"
     for line in user_lines:
         if line.startswith("FLOOR   carried by: "):
             floor = line[len("FLOOR   carried by: "):].split(";")[0]
-    hooks = ("admin layer (picker guard, paste filter)" if hooks_mode == "managed"
-             else "user layer (picker guard, paste filter)")
-    return "installed in %d/3 agent harnesses (an instruction)" % brief, floor, hooks
+    return "installed in %d/3 agent harnesses (an instruction)" % brief, floor, hooks_text(read_hooks())
 
 
 def gather(overlay, project):
@@ -347,7 +424,7 @@ def gather(overlay, project):
         release = release_of(stamps[0]) if len(stamps) == 1 else ("none" if not stamps else "mixed")
         state, line = key_verdict(required, release)
         key = {"required": required or "(empty)", "state": state, "line": line}
-    brief, floor, hooks = summarise_protections(user_lines, admin, hooks_mode)
+    brief, floor, hooks = summarise_protections(user_lines)
     return {"source": source, "user_stamps": user_stamps, "admin": admin, "admin_stamp": admin_stamp,
             "user_issues": issues(user_lines), "admin_issues": issues(admin_lines),
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
@@ -465,6 +542,17 @@ def cmd_check(overlay):
     return code
 
 
+def valid_overlay(value):
+    """The --overlay value an installer may receive: 'none', or an existing directory as an absolute,
+    resolved path. Anything else -> None, and the caller refuses before any subprocess runs."""
+    if value == "none":
+        return value
+    if not value or value.startswith("-") or "\0" in value:
+        return None
+    path = Path(value).expanduser().resolve()
+    return str(path) if path.is_dir() else None
+
+
 def main(argv):
     if not argv or argv[0] in ("-h", "--help", "help"):
         print(__doc__.split("\n\n")[1] if argv else __doc__)
@@ -484,6 +572,11 @@ def main(argv):
             wanted = arg
         else:
             print("workstation: unknown argument for %s: %s" % (command, arg), file=sys.stderr)
+            return 2
+    if overlay is not None:
+        overlay = valid_overlay(overlay)
+        if overlay is None:
+            print("workstation: --overlay takes 'none' or an existing directory", file=sys.stderr)
             return 2
     if command == "install":
         return cmd_install(overlay, admin)

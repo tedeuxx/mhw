@@ -113,7 +113,9 @@ macOS and Linux, from the repository root (Python 3.9+ and `jq` required):
 
 `update` refuses while a tracked file is modified and leaves the checkout detached at the release tag.
 `uninstall` removes only files carrying this repository's marker and, in `~/.claude/settings.json`, only
-its hook entries, deny-floor rules and stamp key (a backup stays beside it).
+its hook entries, the deny-floor rules the installer itself added (recorded in an ownership key, so a
+rule you wrote yourself stays even when it equals a floor rule), and its two keys. A single backup
+stays beside the file and is overwritten by the next install or uninstall.
 
 `--overlay=DIR|none` selects a profile other than the repository's `overlay/`. `global/install.sh` and
 `global/install-managed.sh` stay as the internals ([#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67)).

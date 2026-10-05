@@ -63,10 +63,23 @@ Option 1.
   tags, checks out the newest strictly numeric release tag or the one given (detached), and installs
   with the checked-out release's `workstation.py`, or its `install.sh` when the release predates it.
 - **`uninstall`** runs the new `install.sh --uninstall`: it removes only files carrying the marker, and
-  in the settings file only our hook entries, the deny-floor rules rendered from the checkout and the
-  stamp key, with a backup. With an admin layer present it prints `install-managed.sh --uninstall`'s
-  `sudo … --remove` line for the owner. A deny rule the owner also wrote by hand that equals a floor
-  rule is removed with the floor; the backup keeps it.
+  in the settings file only our hook entries, our two keys and ~~the deny-floor rules rendered from the
+  checkout~~ the deny-floor rules the installer recorded as its own. With an admin layer present it
+  prints `install-managed.sh --uninstall`'s `sudo … --remove` line for the owner. ~~A deny rule the owner
+  also wrote by hand that equals a floor rule is removed with the floor; the backup keeps it.~~
+  *Amended 2026-10-05 (lens finding on #88): ownership is tracked.* The merge records, in a second
+  top-level key (`…-owned-deny`), the floor rules that were absent before it appended them. `uninstall`
+  removes only those, so a hand-written rule equal to a floor rule stays. A settings file stamped by an
+  install that predates the record counts every floor rule present as ours, because nothing can tell
+  them apart. Measured: Claude Code 2.1.289 still applies `permissions.deny` from a user settings file
+  carrying both keys (a probe `Bash` deny removed `Bash` from the tool list; calibration without it kept
+  `Bash`).
+- **Hooks in `status`** (*amended 2026-10-05, lens finding on #88*): ~~derived from whether the admin
+  drop-in exists~~. Read per layer from the installed files: a hook is named only when its entry is
+  registered (user settings, Codex `hooks.json`; admin drop-in, `requirements.toml` carrying the marker)
+  **and** its script is present. An unreadable file reads `not read`, never a claim.
+- **`--overlay`** accepts only `none` or an existing directory, passed on as an absolute resolved path;
+  anything else is refused before any installer runs.
 
 ## Consequences
 
@@ -107,7 +120,7 @@ Measured 2026-10-05 in throwaway homes and a throwaway admin root under the sess
   foreign file, a foreign settings key and a foreign deny rule, and with an admin layer printed the
   `sudo … --remove` line.
 - `global/workstation_test.py`: the comparison table, the status view, one end-to-end run of the real
-  installers, and `update`/`uninstall` against their own clones. Twenty-four source mutations
+  installers, and `update`/`uninstall` against their own clones, the hooks read per layer, the overlay validation and deny ownership. Thirty-three source mutations
   (`global/workstation.py` and `install.sh --uninstall`), in a copy of the tree, each turned the suite
   red; the unmutated copy stayed green.
 
