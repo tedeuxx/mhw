@@ -96,11 +96,19 @@ def latest_checks(checks):
 
 def tests_jobs():
     """The jobs the stable delivery-ci job aggregates, read from the workflow itself, not restated."""
-    text = (ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
-    match = re.search(r"^ {2}delivery-ci:\n(?: {4}.*\n)*? {4}needs: \[([^\]]+)\]", text, re.M)
-    if not match:
-        raise Pending("cannot read the tests workflow's delivery-ci job list")
-    return [job.strip() for job in match[1].split(",") if job.strip()]
+    lines = (ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8").splitlines()
+    # Line scan, no backtracking regex: the `needs:` key directly inside the delivery-ci job block.
+    inside = False
+    for line in lines:
+        if line == "  delivery-ci:":
+            inside = True
+        elif inside and not line.startswith("    "):
+            break
+        elif inside and line.startswith("    needs: [") and line.endswith("]"):
+            jobs = [job.strip() for job in line[len("    needs: ["):-1].split(",") if job.strip()]
+            if jobs:
+                return jobs
+    raise Pending("cannot read the tests workflow's delivery-ci job list")
 
 
 def tests_registered(checks, jobs):
