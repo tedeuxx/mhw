@@ -33,13 +33,31 @@ pending; a pause for questions publishes nothing.
    because that workflow runs only on PRs into `main`. A pending check, a missing `tests` run (a
    "CLEAN" PR on which no tests ran) and a merge state other than clean (DIRTY, BEHIND, UNKNOWN...)
    are refused. It also reads the review gate from the PR's comments, because the plugin's merge
-   floor cannot see this script's own merge. The newest `quality-assurance` verdict
-   (`<!-- gatekeeper-verdict:` envelope, trusted author) must name the exact head on its `head:` line
-   and carry `APPROVE-AND-MERGE` or `APPROVE-AND-MERGE-BOUNDARY`. When the diff from the merge base
-   touches a harness path (`.claude/`, `.codex/`, `.github/`, `.agents/`, `.kiro/`, `AGENTS.md`,
-   `CLAUDE.md`, at any depth), the newest `agents-lead` lens marker (`<!-- harness-lead-verdict`
-   at column 0, outside a code fence) must also name the exact head on its `commit:` line and say
-   `the lens is CLOSED`. A marker posted for an earlier head never carries forward here. It merges
+   floor cannot see this script's own merge. Only a strict header on the **first three lines** of a
+   comment counts. Lines are compared whole, and nothing below the header is read, so text in a
+   fence, a blockquote or the prose can neither supply nor override a verdict. The newest trusted
+   comment that opens with each envelope wins, so a later `REQUEST-CHANGES`, a later open lens or a
+   later malformed header refuses. `quality-assurance` must post:
+
+   ```
+   <!-- gatekeeper-verdict: quality-assurance -->
+   APPROVE-AND-MERGE            (or APPROVE-AND-MERGE-BOUNDARY; any other line 2 refuses)
+   head: <the full 40-character head SHA>
+   ```
+
+   When the diff from the merge base touches a harness path (`.claude/`, `.codex/`, `.github/`,
+   `.agents/`, `.kiro/`, `AGENTS.md`, `CLAUDE.md`, at any depth), `agents-lead` must also post:
+
+   ```
+   <!-- harness-lead-verdict: <one-line summary> -->
+   commit: <the full 40-character head SHA>
+   the lens is CLOSED           (any other line 3 means the lens is open)
+   ```
+
+   Both are the plugin's existing envelopes, with the fields pinned to fixed lines. A marker posted
+   for an earlier head never carries forward here. **Authorship is not proven:** every persona posts
+   through the owner's account, so "trusted author" means `OWNER`, `MEMBER` or `COLLABORATOR`, not
+   "this persona wrote it". The plugin's own merge floor has the same limit. It merges
    with `--merge --match-head-commit SHA`, never a squash. No force push, no admin bypass.
 4. Run `python3 -B workspace/delivery.py verify --pr NUMBER`. For a slice, exit 0 means the PR is
    merged into `rc/next` with its checks green at the exact local head; no tag or release is

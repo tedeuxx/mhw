@@ -29,18 +29,29 @@ MERGEABLE_STATES = {"CLEAN", "HAS_HOOKS"}
 # read at that repository's origin/main 01045b660fc31fa6cb4f063fc0c5a2f1aa04db7c). The plugin's merge
 # floor guards a bare `gh pr merge`; it cannot see this script's subprocess, so the slice route reads
 # the verdicts itself rather than leaving the review gate as an instruction.
-GATE_ENVELOPE = "<!-- gatekeeper-verdict:"
-LENS_ENVELOPE = "<!-- harness-lead-verdict"
+# Only a strict header at the very top of a comment counts; nothing in the prose below it is read, so
+# a fence, a blockquote or a sentence can never supply or override a verdict. Lines are compared whole
+# (a trailing CR from a CRLF body is the only thing removed), never as substrings.
+#   quality-assurance:  line 1  <!-- gatekeeper-verdict: quality-assurance -->
+#                       line 2  one verdict literal, alone on the line
+#                       line 3  head: <full 40-character head SHA>
+#   agents-lead:        line 1  <!-- harness-lead-verdict: <one-line summary> -->
+#                       line 2  commit: <full 40-character head SHA>
+#                       line 3  the lens is CLOSED      (any other line 3 means the lens is open)
+GATE_PREFIX = "<!-- gatekeeper-verdict"
+GATE_HEADER = "<!-- gatekeeper-verdict: quality-assurance -->"
+LENS_PREFIX = "<!-- harness-lead-verdict"
+LENS_HEADER = re.compile(r"<!-- harness-lead-verdict: (?:(?!-->).)* -->")
 LENS_CLOSED = "the lens is CLOSED"
-VERDICT_LITERALS = ("APPROVE-AND-MERGE-BOUNDARY", "APPROVE-AND-MERGE", "APPROVE-PENDING-HUMAN",
-                    "APPROVE-EXECUTOR-BLOCKED", "REQUEST-CHANGES")
+# The plugin's verdict enum also has APPROVE-PENDING-HUMAN, APPROVE-EXECUTOR-BLOCKED and
+# REQUEST-CHANGES; only these two exact lines authorize a merge, anything else on line 2 refuses.
 MERGE_LITERALS = ("APPROVE-AND-MERGE", "APPROVE-AND-MERGE-BOUNDARY")
 TRUSTED_AUTHORS = ("OWNER", "MEMBER", "COLLABORATOR")
+HEAD_LINE = re.compile(r"head: ([0-9a-f]{40})")
+COMMIT_LINE = re.compile(r"commit: ([0-9a-f]{40})")
 # Hold 2's harness-path list for a consuming repository (no .claude-plugin/plugin.json), at any depth,
 # plus this repository's own other harness carriers, .agents/ and .kiro/ (stricter, never looser).
-HARNESS_PATH = re.compile(r"(^|/)(\.claude|\.codex|\.github|\.agents|\.kiro)/|(^|/)(AGENTS|CLAUDE)\.md$")
-FULL_SHA = re.compile(r"[0-9a-f]{40}")
-
+HARNESS_PATH = re.compile(r"(?:^|/)(?:(?:\.claude|\.codex|\.github|\.agents|\.kiro)/|(?:AGENTS|CLAUDE)\.md$)")
 
 class Pending(Exception):
     pass
@@ -129,33 +140,39 @@ def pr_matches(pr, head):
         raise Pending("PR must carry exactly one valid semver label")
 
 
-def unfenced_lines(body):
-    """Lines outside fenced code blocks: a marker quoted inside a fence is discussion, not a verdict."""
-    fenced, lines = False, []
-    for line in (body or "").split("\n"):
-        if re.match(r" {0,3}(```|~~~)", line):
-            fenced = not fenced
-        elif not fenced:
-            lines.append(line)
-    return lines
+def header(comment, size=3):
+    """The first lines of a comment, whole, with only a CRLF's trailing CR removed."""
+    lines = [line[:-1] if line.endswith("\r") else line for line in (comment.get("body") or "").split("\n")]
+    return (lines + [""] * size)[:size]
 
 
 def trusted(comment):
     return comment.get("authorAssociation") in TRUSTED_AUTHORS
 
 
+def newest(comments, prefix):
+    """The newest trusted comment whose FIRST line opens with the envelope; a quoted one never counts."""
+    found = [c for c in comments if trusted(c) and header(c, 1)[0].startswith(prefix)]
+    return found[-1] if found else None
+
+
 def gate_approves(comments, head):
-    """The newest quality-assurance verdict must name this exact head and authorize the merge."""
-    verdicts = [c for c in comments if trusted(c) and (c.get("body") or "").startswith(GATE_ENVELOPE)]
-    if not verdicts:
+    """The newest quality-assurance verdict must be well formed, name this exact head and authorize it.
+
+    Newest wins whatever it says: a later REQUEST-CHANGES (or a malformed verdict) beats an earlier
+    approval at the same head.
+    """
+    verdict = newest(comments, GATE_PREFIX)
+    if verdict is None:
         raise Pending("no quality-assurance gatekeeper-verdict on the PR")
-    lines = unfenced_lines(verdicts[-1].get("body"))
-    named = [m[1] for m in (re.match(r"head:\s*(\S+)\s*$", l) for l in lines) if m]
-    if not named or named[0] != head:
+    envelope, literal, head_line = header(verdict)
+    named = HEAD_LINE.fullmatch(head_line)
+    if envelope != GATE_HEADER or not named:
+        raise Pending("the newest gatekeeper-verdict is not in the strict header format")
+    if named[1] != head:
         raise Pending("the newest gatekeeper-verdict does not name the current head")
-    literal = next((v for l in lines for v in VERDICT_LITERALS if re.match(re.escape(v) + r"\b", l)), None)
     if literal not in MERGE_LITERALS:
-        raise Pending("the newest gatekeeper-verdict does not authorize a merge: " + str(literal))
+        raise Pending("the newest gatekeeper-verdict does not authorize a merge: " + literal)
 
 
 def harness_paths(paths):
@@ -163,22 +180,21 @@ def harness_paths(paths):
 
 
 def lens_closed(comments, head):
-    """Hold 2: the newest agents-lead lens marker must name this exact head and say the lens is CLOSED.
+    """Hold 2: the newest agents-lead lens marker must name this exact head with line 3 CLOSED.
 
-    Same selection as the plugin's lens_marker: a trusted author, a body that is not a gatekeeper
-    verdict, and a line opening with the lens envelope at column 0 outside a fence. No carry-forward:
-    a marker for an older head never satisfies this route.
+    No carry-forward: a marker for an older head never satisfies this route, and a newer marker that
+    leaves the lens open withdraws an earlier closed one.
     """
-    markers = [c for c in comments if trusted(c)
-               and not (c.get("body") or "").startswith(GATE_ENVELOPE)
-               and any(l.startswith(LENS_ENVELOPE) for l in unfenced_lines(c.get("body")))]
-    if not markers:
+    marker = newest(comments, LENS_PREFIX)
+    if marker is None:
         raise Pending("harness paths changed and no agents-lead lens marker is on the PR")
-    lines = unfenced_lines(markers[-1].get("body"))
-    named = [m[1] for m in (re.match(r"commit:\s*(\S+)\s*$", l) for l in lines) if m]
-    if not named or not FULL_SHA.fullmatch(named[0]) or named[0] != head:
+    envelope, commit_line, state = header(marker)
+    named = COMMIT_LINE.fullmatch(commit_line)
+    if not LENS_HEADER.fullmatch(envelope) or not named:
+        raise Pending("the newest agents-lead lens marker is not in the strict header format")
+    if named[1] != head:
         raise Pending("the newest agents-lead lens marker does not name the current head")
-    if not any(LENS_CLOSED in l for l in lines):
+    if state != LENS_CLOSED:
         raise Pending("the newest agents-lead lens marker at this head does not say the lens is CLOSED")
 
 
