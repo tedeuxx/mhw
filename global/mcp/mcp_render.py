@@ -3,7 +3,8 @@
 
     mcp_render.py                 render into every installed surface (backup kept beside each file)
     mcp_render.py --dry-run       print what would change where; write nothing
-    mcp_render.py --check         exit 1 if a surface is missing a server, holds a stale one, or drifted
+    mcp_render.py --check         exit 1 if a surface is missing a server, holds a stale one, drifted, or
+                                  carries a provenance stamp other than the source's (ADR-0029)
     mcp_render.py --scan          read-only, owner-run: list the MCP config KEYS that look like
                                   credentials, in every surface and backup file. Never prints a value
     mcp_render.py --adopt         take over a same-named server that was configured by hand
@@ -136,6 +137,54 @@ def version():
     if not m:
         raise Refuse(2, "cannot read current_version from .bumpversion.toml")
     return m.group(1)
+
+
+NUMERIC_TAG_RE = re.compile(r"v[0-9]+\.[0-9]+\.[0-9]+")
+STAMP_RE = re.compile(r"; (release: [^;\"]*; commit: [^;\"]*);")
+UNSTAMP_RE = re.compile(r"; (?:version|release|commit): [^;\"]*")
+
+
+def provenance():
+    """The provenance stamp (Issue #66, ADR-0029), by the same rule global/install.sh applies:
+    release vX.Y.Z on a clean checkout exactly at a numeric tag, otherwise "unreleased, after <nearest
+    tag>" (or "no tag reachable"); the full HEAD SHA, plus "-dirty" when a tracked file is modified.
+    install.sh is the reference; mcp_render_test.py asserts the two agree."""
+    root = os.path.dirname(os.path.dirname(HERE))
+
+    def git(*args):
+        try:
+            p = subprocess.run(["git", "-C", root] + list(args), capture_output=True, text=True)
+        except OSError:
+            return None
+        return p.stdout.strip() if p.returncode == 0 else None
+
+    commit = git("rev-parse", "--verify", "HEAD") if git("rev-parse", "--is-inside-work-tree") else None
+    if not commit:
+        return "release: unknown, not a git checkout (.bumpversion.toml says %s); commit: unknown" % version()
+    dirty = "-dirty" if git("status", "--porcelain", "--untracked-files=no") else ""
+    glob = "v[0-9]*.[0-9]*.[0-9]*"
+    exact = None if dirty else git("describe", "--tags", "--exact-match", "--match", glob, "HEAD")
+    near = git("describe", "--tags", "--abbrev=0", "--match", glob, "HEAD")
+    if exact and NUMERIC_TAG_RE.fullmatch(exact):
+        release = exact
+    elif near and NUMERIC_TAG_RE.fullmatch(near):
+        release = "unreleased, after " + near
+    else:
+        release = "unreleased, no tag reachable"
+    return "release: %s; commit: %s%s" % (release, commit, dirty)
+
+
+def stamp_of(text):
+    """The release and commit fields of the first managed-by line in text, or "none"."""
+    for line in text.splitlines():
+        if MARKER_ID in line:
+            m = STAMP_RE.search(line)
+            return m.group(1) if m else "none"
+    return "none"
+
+
+def unstamp(text):
+    return "\n".join(UNSTAMP_RE.sub("", l) if MARKER_ID in l else l for l in text.split("\n"))
 
 
 # -------------------------------------------------------------------------------------- definition
@@ -328,8 +377,9 @@ def toml_str(s):
     return json.dumps(s, ensure_ascii=True)
 
 
-def toml_block(servers):
-    lines = [BLOCK_BEGIN]
+def toml_block(servers, stamp=None):
+    """stamp: the provenance stamp (ADR-0029), written into the block's opening marker line."""
+    lines = [BLOCK_BEGIN if not stamp else BLOCK_BEGIN.replace(" (mcp servers); ", " (mcp servers); %s; " % stamp, 1)]
     for name, e in servers.items():
         lines.append("[mcp_servers.%s]" % name)
         lines.append("command = %s" % toml_str(e["command"]))
@@ -356,7 +406,7 @@ def _without(parsed, names):
     return p
 
 
-def codex_plan(old_text, want):
+def codex_plan(old_text, want, stamp=None):
     """Return the new config.toml text. Every edit is proved with tomllib before it is accepted."""
     if tomllib is None:
         raise Refuse(2, "the Codex surface needs Python 3.11+ (tomllib), to verify the TOML before writing")
@@ -389,7 +439,7 @@ def codex_plan(old_text, want):
                         "(after moving any credential to the Keychain), then re-run" % ", ".join(hand))
     base = outside.rstrip("\n")
     if want:
-        new_text = (base + "\n\n" if base else "") + toml_block(want)
+        new_text = (base + "\n\n" if base else "") + toml_block(want, stamp)
     else:
         new_text = base + "\n" if base else ""
     try:
@@ -485,8 +535,8 @@ def real_home_dir():
 
 
 class Run:
-    def __init__(self, mode, adopt):
-        self.mode, self.adopt, self.status = mode, adopt, 0
+    def __init__(self, mode, adopt, stamp="none"):
+        self.mode, self.adopt, self.status, self.stamp = mode, adopt, 0, stamp
 
     def raise_(self, code):
         self.status = max(self.status, code)
@@ -497,6 +547,15 @@ class Run:
     def refuse(self, path, msg, code):
         print("REFUSE  %s: %s" % (path, msg), file=sys.stderr)
         self.raise_(code)
+
+    def restamp(self, path, installed):
+        """Matching content under another provenance stamp (ADR-0029): STAMP in --check; rewritten."""
+        if self.mode == "check":
+            print("STAMP   %s: content matches, but it carries (%s) and the source is (%s)"
+                  % (path, installed, self.stamp))
+            self.raise_(1)
+            return False
+        return True
 
     def apply(self, path, new_text, exists, summary, show):
         if self.mode == "check":
@@ -511,12 +570,12 @@ class Run:
             atomic_write(path, new_text, backup=True)
             self.say("WROTE", path, summary + ("; previous version kept as .pmhwc-backup" if exists else ""))
 
-    def launcher(self, ver):
+    def launcher(self):
         dest = launcher_dest()
         with open(LAUNCHER_SRC, encoding="utf-8") as fh:
             src = fh.read().split("\n", 1)
-        text = "%s\n# %s; source: global/mcp/mcp-launch.sh; version: %s; do not edit, re-run the renderer\n%s" % (
-            src[0], MARKER_ID, ver, src[1])
+        text = "%s\n# %s; source: global/mcp/mcp-launch.sh; %s; do not edit, re-run the renderer\n%s" % (
+            src[0], MARKER_ID, self.stamp, src[1])
         if os.path.exists(dest):
             with open(dest, encoding="utf-8", errors="replace") as fh:
                 current = fh.read()
@@ -525,7 +584,10 @@ class Run:
                                   "rendered, because every secret-bearing entry would execute that file", 3)
                 return False
             if current == text and stat.S_IMODE(os.stat(dest).st_mode) == 0o700:
-                self.say("OK", dest)
+                self.say("OK", dest, self.stamp)
+                return True
+            if (unstamp(current) == unstamp(text) and stat.S_IMODE(os.stat(dest).st_mode) == 0o700
+                    and not self.restamp(dest, stamp_of(current))):
                 return True
         if self.mode == "check":
             self.say("DRIFT" if os.path.exists(dest) else "MISSING", dest)
@@ -548,13 +610,16 @@ class Run:
         except (OSError, UnicodeDecodeError) as e:
             return self.refuse(path, "unreadable (%s); left untouched" % e, 3)
         try:
-            new_text, before = codex_plan(old_text, want)
+            new_text, before = codex_plan(old_text, want, self.stamp)
         except Refuse as e:
             return self.refuse(path, str(e), e.code)
         if new_text == old_text:
-            return self.say("OK", path, "%d managed server(s)" % len(want))
+            return self.say("OK", path, "%d managed server(s); %s" % (len(want), self.stamp) if want else "no managed server")
+        if unstamp(new_text) == unstamp(old_text) and not self.restamp(path, stamp_of(old_text)):
+            return None
         summary = change_summary(before, want)
-        self.apply(path, new_text, exists, summary, toml_block(want) if want else "(the managed block is removed)\n")
+        self.apply(path, new_text, exists, summary,
+                   toml_block(want, self.stamp) if want else "(the managed block is removed)\n")
 
     def json_surface(self, surface, path, want, managed):
         exists = os.path.exists(path)
@@ -600,7 +665,21 @@ def load_manifest():
     surfaces = m.get("surfaces", {}) if isinstance(m, dict) else None
     if not isinstance(surfaces, dict) or not all(isinstance(v, list) for v in surfaces.values()):
         raise Refuse(3, "the managed-server manifest %s has an unexpected shape" % manifest_path())
+    stamps = m.get("stamps", {})
+    if not isinstance(stamps, dict) or not all(isinstance(v, str) for v in stamps.values()):
+        raise Refuse(3, "the managed-server manifest %s has an unexpected shape" % manifest_path())
     return m.get("surfaces", {})
+
+
+def load_stamps():
+    """The provenance stamp recorded per JSON surface (ADR-0029). Those files are the apps' own JSON,
+    with no comment syntax and no field this project has measured each app to ignore, so the stamp of
+    the entries rendered there lives in this project's manifest instead."""
+    try:
+        with open(manifest_path(), encoding="utf-8") as fh:
+            return json.load(fh).get("stamps", {})
+    except (OSError, ValueError, AttributeError):
+        return {}
 
 
 def render(mode, source, surfaces, adopt):
@@ -614,13 +693,16 @@ def render(mode, source, surfaces, adopt):
         raise Refuse(2, "%s is inside a git work tree and not ignored, so it could be committed. The definition "
                         "lives only in the untracked local overlay" % source)
     doc = load_source(source)
-    ver = version()
+    stamp = provenance()
+    print("SOURCE  %s" % stamp)
     managed = load_manifest()
-    run = Run(mode, adopt)
+    stamps = load_stamps()
+    run = Run(mode, adopt, stamp)
     launcher = launcher_dest()
-    if any(s.get("secrets") for s in doc["servers"].values()) and not run.launcher(ver):
+    if any(s.get("secrets") for s in doc["servers"].values()) and not run.launcher():
         return run.status
     new_manifest = dict(managed)
+    new_stamps = dict(stamps)
     for surface in surfaces:
         target = surface_target(surface)
         if target is None:
@@ -637,12 +719,23 @@ def render(mode, source, surfaces, adopt):
             names = run.json_surface(surface, path, want, managed)
             if names is not None:
                 new_manifest[surface] = names
+                if not names:
+                    new_stamps.pop(surface, None)
+                elif stamps.get(surface) != stamp:
+                    if mode == "install":
+                        new_stamps[surface] = stamp
+                    elif mode == "check":
+                        run.restamp("%s (its entries, recorded in %s)" % (path, manifest_path()),
+                                    stamps.get(surface, "none"))
+                    else:
+                        print("WOULD RECORD %s's stamp (%s) in %s" % (path, stamp, manifest_path()))
         if surface != "codex" and any(src.startswith("env:") for n in want
                                       for src in doc["servers"][n].get("secrets", {}).values()):
             print("NOTE    %s: an env: secret depends on this app passing that variable to the launcher; "
                   "only Codex is told to (env_vars)" % surface)
-    if mode == "install" and new_manifest != managed:
-        atomic_write(manifest_path(), json.dumps({"version": 1, "surfaces": new_manifest}, indent=2) + "\n", backup=False)
+    if mode == "install" and (new_manifest != managed or new_stamps != stamps):
+        atomic_write(manifest_path(), json.dumps({"version": 1, "surfaces": new_manifest, "stamps": new_stamps},
+                                                 indent=2) + "\n", backup=False)
     return run.status
 
 

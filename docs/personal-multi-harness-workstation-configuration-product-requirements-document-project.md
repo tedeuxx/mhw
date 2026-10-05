@@ -618,7 +618,9 @@ agent harnesses, carries the commit SHA and the SemVer tag it came from, written
   the JSON files carry the stamp in a field the agent harness ignores (Codex `hooks.json`
   `description`; one top-level key in the Claude Code settings and admin drop-in), measured to load,
   instead of an installed manifest. `install.sh --check` and `install-managed.sh --check` report the
-  stamp. Not yet stamped: `install.ps1` and the MCP renderer.
+  stamp. `install.ps1` does the same (CI-verified on Windows). The MCP renderer stamps its launcher and
+  Codex block. For the entries it writes into the apps' JSON files, it records the stamp in its own
+  manifest.
 
 ## 9b. One install command, managed by the repository
 

@@ -87,8 +87,15 @@ reverses the earlier rule that an older release's stamp on matching content is O
 - Bad: the owner's `settings.json` carries one key of ours. If Claude Code ever rewrites that file and
   drops unknown keys, `--check` reports `STAMP` (missing) rather than losing anything else. Whether it
   does was **not measured**.
-- Not covered by this record: `install.ps1` (Windows), whose files still carry `version:` only, and
-  `global/mcp/mcp_render.py` (ADR-0017), which no installer runs. Both are stated gaps on #66.
+- `install.ps1` (Windows) applies the same rule and carriers: the brief, Kiro steering, Codex rules
+  and the settings key. Only the Windows CI jobs (PowerShell 5.1 and 7) verify it, because the
+  reference machine has no PowerShell. Its test was not mutation-checked.
+- `global/mcp/mcp_render.py` (ADR-0017) stamps the credential launcher and the opening line of its
+  Codex `config.toml` block. It also merges entries into the apps' own JSON files (`~/.claude.json`,
+  the Claude desktop config, Kiro `mcp.json`). Their stamp is recorded in its manifest
+  (`mcp-managed.json`), as section 9a first proposed. Those files belong to the apps, and no field in
+  them was measured to be ignored. Its `--check` reports `STAMP` the same way. Its suite asserts that
+  its stamp equals `install.sh`'s for the same checkout, so the two derivations cannot drift silently.
 
 ## Evidence
 

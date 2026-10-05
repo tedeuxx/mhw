@@ -299,6 +299,53 @@ class Render(unittest.TestCase):
         self.assertEqual(run(h).returncode, 0)
         self.assertEqual(fingerprint(h), before, "a re-run changed a file")
 
+    def test_every_rendered_file_carries_the_source_stamp(self):
+        # The provenance stamp (Issue #66, ADR-0029): the launcher and the Codex block carry it in a
+        # comment line; the JSON surfaces' entries are recorded with it in the manifest.
+        h = mk_home("home-stamp")
+        write_source(h, source_doc())
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        src = [l[len("SOURCE  "):] for l in p.stdout.splitlines() if l.startswith("SOURCE  ")]
+        self.assertEqual(len(src), 1, p.stdout)
+        src = src[0]
+        repo = os.path.dirname(os.path.dirname(HERE))
+        head = subprocess.run(["git", "-C", repo, "rev-parse", "--verify", "HEAD"], capture_output=True, text=True)
+        if head.returncode == 0:
+            self.assertRegex(src, r"^release: [^;]+; commit: %s(-dirty)?$" % head.stdout.strip())
+        # The same stamp global/install.sh derives for this checkout: the rule has one reference.
+        if shutil.which("sh") and shutil.which("jq"):
+            ih = os.path.join(BASE, "home-stamp-install")
+            os.makedirs(ih, exist_ok=True)
+            q = subprocess.run(["sh", os.path.join(repo, "global", "install.sh"), "--dry-run"],
+                               env=clean_env(ih), capture_output=True, text=True)
+            self.assertIn("SOURCE  %s\n" % src, q.stdout, q.stderr)
+        t = targets(h)
+        launcher = os.path.join(data(h), "mcp-launch.sh")
+        self.assertEqual(r.stamp_of(read(launcher)), src)
+        self.assertEqual(r.stamp_of(read(t["codex"])), src)
+        stamps = jload(os.path.join(data(h), "mcp-managed.json"))["stamps"]
+        json_surfaces = [s for s in t if s != "codex"]
+        self.assertEqual({s: stamps.get(s) for s in json_surfaces}, {s: src for s in json_surfaces})
+        self.assertEqual(run(h, "--check").returncode, 0)
+        # Another commit's stamp on unchanged content: STAMP (not DRIFT), and install rewrites it.
+        other = "release: v0.0.1; commit: 0123456789abcdef0123456789abcdef01234567"
+        for path in (launcher, t["codex"]):
+            text = read(path).replace(src, other)
+            with open(path, "w") as fh:
+                fh.write(text)
+        m = jload(os.path.join(data(h), "mcp-managed.json"))
+        m["stamps"]["kiro"] = other
+        with open(os.path.join(data(h), "mcp-managed.json"), "w") as fh:
+            json.dump(m, fh)
+        c = run(h, "--check")
+        self.assertEqual(c.returncode, 1, c.stdout)
+        self.assertEqual(sum(1 for l in c.stdout.splitlines() if l.startswith("STAMP") and other in l), 3, c.stdout)
+        self.assertNotIn("DRIFT", c.stdout)
+        self.assertEqual(run(h).returncode, 0)
+        self.assertEqual(r.stamp_of(read(launcher)), src)
+        self.assertEqual(run(h, "--check").returncode, 0)
+
     def test_codex_parses_the_rendered_config(self):
         codex = shutil.which("codex")
         if not codex:
