@@ -9,19 +9,20 @@ Decision and evidence: [ADR-0016](../adr/0016-user-level-deny-floor-rendered-per
 From a checkout of `main` at the merged, released commit, in your own terminal:
 
 ```sh
-sh global/install-managed.sh
+./workstation install --admin
 ```
 
 It renders and validates a stage, installs nothing, and prints one line starting `RUN     sudo`. Run
 that one line as printed. It carries the stage's SHA-256, so a changed stage installs nothing. The same
-line also refreshes the admin-layer hooks (ADR-0025).
+line also refreshes the admin-layer hooks (ADR-0025). Then run `./workstation install` as yourself: it
+detects the admin layer and removes the user-level hook duplicates.
 
 Then close every Claude Code and Codex session and open fresh ones.
 
 ## Verify (canary)
 
-1. `sh global/install-managed.sh --check` exits 0, every line `OK`.
-2. `sh global/install.sh --check` ends with `FLOOR   carried by: the admin layer`.
+1. `./workstation check` exits 0, every line `OK`.
+2. `./workstation status` shows `managed: installed` and `deny floor: the admin layer`.
 3. **Block, Claude Code**, in an empty scratch folder: start `claude --setting-sources project` (the
    flag that dropped the user floor) and ask it to run `npm publish --dry-run`. Expected: the command
    is denied by a permission rule. Harmless if it were not: there is no `package.json`, and

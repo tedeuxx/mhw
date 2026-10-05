@@ -560,6 +560,12 @@ product-lead lands (open decision, #61).
 - **Coverage:** the same instruction in all three agent harnesses; `./workstation status` is the
   deterministic check.
 
+- **As built (2026-10-05, [ADR-0030](adr/0030-version-key-and-one-entry-point.md)):** the file is
+  `.workstation-version` at the project root; comparators `>=`, `>`, `<=`, `<`, `=` separated by blanks.
+  The instruction sits in the **user** brief (one copy reaches every project), not in each project
+  brief. The installed release is the provenance stamp ([9a](#9a-provenance-stamp-in-every-installed-file));
+  `unreleased, after vX.Y.Z` compares as X.Y.Z. This repository carries `>=3.1 <4`.
+
 Slice: [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57).
 
 ## 8. Plugin as a generated artifact
@@ -642,6 +648,15 @@ Owner requirement: an easy install mechanism run from the git repository itself
   - The admin layer still needs the owner's `sudo`, because the agent cannot run `sudo`.
   - Pasting the desktop-app instructions stays manual, but `status` flags when they are stale.
   - No automatic install on `git pull`: installing stays an explicit act.
+
+- **As built (2026-10-05, [ADR-0030](adr/0030-version-key-and-one-entry-point.md)):** `install`,
+  `install --admin`, `status [--verbose]`, `check`, `update [vX.Y.Z]` and `uninstall`. `install` works
+  from the current checkout, writes the user layer for all three agent harnesses and moves the hooks to
+  the admin layer when it detects one; `install --admin` prints the `sudo` line. `update` refuses a
+  modified tracked file, fetches tags, checks out the newest numeric release (or the one given) and
+  installs with that release's own code; selecting a version is `update vX.Y.Z`, not `install [version]`.
+  `uninstall` removes the user layer and prints the admin layer's `sudo` removal line. `status` does not
+  yet compare with the latest published release.
 
 Easier distribution beyond this command (for example a bootstrap line or a package-manager formula) is a
 later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68)).

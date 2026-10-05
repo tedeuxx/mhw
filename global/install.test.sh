@@ -424,8 +424,8 @@ if [ "$(jq -S . "$h/.claude/settings.json")" = "$orig" ]; then ok "dry-run left 
 if grep -q 're-serialized' "$base/dry6.out"; then ok "dry-run warns that formatting changes"; else ko "dry-run did not warn about formatting"; fi
 HOME="$h" sh "$inst"; expect "merge into existing settings" 0 $?
 s="$h/.claude/settings.json"
-if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contains("personal-multi-harness-workstation-configuration/") | not)))) | del(.hooks.UserPromptSubmit, .hooks.SessionStart, .["personal-multi-harness-workstation-configuration"]) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
-  ok "every pre-existing key, hook and rule survives in place; only our entries and stamp key were appended"
+if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contains("personal-multi-harness-workstation-configuration/") | not)))) | del(.hooks.UserPromptSubmit, .hooks.SessionStart, .["personal-multi-harness-workstation-configuration"], .["personal-multi-harness-workstation-configuration-owned-deny"]) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
+  ok "every pre-existing key, hook and rule survives in place; only our entries, stamp key and ownership key were appended"
 else
   ko "pre-existing content changed"
 fi

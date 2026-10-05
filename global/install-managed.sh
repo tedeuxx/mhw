@@ -167,11 +167,11 @@ case $mode in
     fi
     echo "STAGED  $st (validated; nothing installed)"
     echo "RUN     sudo /bin/sh \"$script_dir/install-managed.sh\" --apply=\"$st\" --sha256=$(stage_hash "$st")${root:+ --root=\"$root\"}"
-    echo "THEN    sh \"$script_dir/install.sh\" --hooks=managed   (removes the user-level duplicates), then open fresh sessions"
+    echo "THEN    ./workstation install   (detects the admin layer and removes the user-level duplicates), then open fresh sessions"
     ;;
   uninstall)
     echo "RUN     sudo /bin/sh \"$script_dir/install-managed.sh\" --remove${root:+ --root=\"$root\"}"
-    echo "THEN    sh \"$script_dir/install.sh\"   (restores the user-level hooks), then open fresh sessions"
+    echo "THEN    ./workstation install   (restores the user-level hooks), then open fresh sessions"
     ;;
   check)
     st=$(mktemp -d "${TMPDIR:-/tmp}/pmhwc-managed.XXXXXX")
@@ -248,7 +248,7 @@ case $mode in
     rm -f "$switches"/*.json
     rmdir "$switches" 2>/dev/null || true
     echo "INSTALLED $bin, $claude_file, $codex_file"
-    echo "THEN    as yourself: sh \"$script_dir/install.sh\" --hooks=managed; then open fresh Claude Code and Codex sessions"
+    echo "THEN    as yourself, in the checkout: ./workstation install; then open fresh Claude Code and Codex sessions"
     ;;
   remove)
     is_root_run || { echo "REFUSE  --remove needs administrator privilege (sudo)" >&2; exit 2; }
