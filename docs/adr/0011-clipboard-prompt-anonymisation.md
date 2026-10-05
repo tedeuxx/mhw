@@ -525,7 +525,10 @@ Option 1 of this record, alone: harness-level prompt hooks.
         - `list-keychains` and every other search-list verb;
         - a call without a throwaway keychain path;
         - an inherited `HOME`.
-      - The one no-process guard test is mutation-checked: nine mutations, nine reds.
+      - The guard is one module shared with the MCP suite, `global/keychain_test_guard.py`. This suite
+        adds the hook-child and lock-probe checks.
+      - The one no-process guard test is mutation-checked: seven mutations of the shared module and
+        four of this suite's own each turn it red.
       - The search list is no longer compared before and after a test, because reading it is itself
         refused.
     - **Not measured:** whether `security find-generic-password` would raise an unlock dialog on a

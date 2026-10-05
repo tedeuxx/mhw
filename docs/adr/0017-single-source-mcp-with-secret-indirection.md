@@ -203,9 +203,12 @@ under a throwaway `HOME`.** A guard installed for the whole run refuses, before 
 - an inherited `HOME`;
 - a Keychain launch without `--keychain`.
 
-One test, which executes no process, is mutation-checked. Eight mutations give eight reds: either
-launcher read drops the path, the opt-in is ignored, and the guard is opened or not installed in
-five more ways.
+The guard is one module shared with the paste-filter suite, `global/keychain_test_guard.py`. This suite
+adds only the launcher's checks. One test, which executes no process, is mutation-checked:
+
+- six mutations of the shared module turn it red;
+- so do four of this suite's own: either launcher read drops the path, a launch without `--keychain`
+  is allowed, or the real launcher runs without the opt-in.
 
 ## Consequences
 

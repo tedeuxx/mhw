@@ -46,7 +46,7 @@ jobs:
                   compile(fh.read(), f, "exec")' \
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
-            global/mcp/mcp_render.py global/mcp/mcp_render_test.py \
+            global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/profile/profile.py global/profile/profile_test.py
 
   # Pure preference compilation: no harness installation, account calls or credential reads.

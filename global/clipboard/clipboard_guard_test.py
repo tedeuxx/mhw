@@ -15,7 +15,6 @@ import io
 import json
 import os
 import pty
-import re
 import select
 import stat
 import subprocess
@@ -26,18 +25,14 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import clipboard_guard as g  # noqa: E402
+sys.path.insert(0, os.path.dirname(HERE))
+import keychain_test_guard as kg  # noqa: E402
 
 BASE = None
 SALT = "5a" * 32
 TERM = "Zyxw Quillon Synthetic"          # a made-up three-word "employer" for tests
 DARWIN = sys.platform == "darwin"
 REAL_SLEEP = time.sleep
-REAL_SECURITY = "/usr/bin/security"
-SECURITY_STUB = os.path.join(os.path.dirname(HERE), "security.test.stub")
-# The real binary only on an ephemeral CI macOS runner, by explicit opt-in (issue #58).
-REAL_KEYCHAIN = (os.environ.get("PMHWC_REAL_KEYCHAIN_TESTS") == "1" and os.environ.get("GITHUB_ACTIONS") == "true"
-                 and DARWIN)
-SECURITY = REAL_SECURITY if REAL_KEYCHAIN else SECURITY_STUB
 
 
 def tok(prefix, n, alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ234567"):
@@ -79,123 +74,32 @@ CREDENTIALS = {
 
 
 # ------------------------------------------------------------------------- real-keychain guard (#58)
-KEYCHAIN_PW = "throwaway-test-pw"
+# The shared guard (global/keychain_test_guard.py) holds the rules; this suite adds the hook child's
+# and the Security.framework lock probe's. lock-keychain is the one extra verb this suite needs.
+GUARD = None                            # set in __main__, once BASE is known
+_REAL_PROBE = g.keychain_unlocked
 
 
-class RealKeychainRefused(AssertionError):
-    pass
-
-
-# The only `security` verbs a test may run, each against a keychain FILE under BASE. list-keychains,
-# default-keychain, login-keychain and every other verb (any search-list read or change) are refused.
-SECURITY_VERBS = {"create-keychain", "delete-keychain", "lock-keychain", "add-generic-password",
-                  "find-generic-password", "delete-generic-password"}
-
-
-def _real_ok():
-    """The real `security` binary and Security.framework may be reached only with the CI opt-in."""
-    return REAL_KEYCHAIN
-
-
-def _under_base(p):
-    if not p or not os.path.isabs(p):
-        return False
-    base = os.path.realpath(BASE)
-    return os.path.commonpath([os.path.realpath(p), base]) == base
-
-
-def _home_ok(kw=None):
-    """The HOME a child (or this process) runs under must be a throwaway one under BASE: `security`
-    resolves the user's keychain search list and default keychain from HOME."""
-    env = (kw or {}).get("env")
-    return _under_base((env if env is not None else os.environ).get("HOME", ""))
-
-
-def _security_target_ok(argv, stdin_text):
-    """True when a `security` call uses an allowed verb on a keychain FILE under BASE. Everything else
-    (an item call with no keychain argument, any search-list read or change) is refused before it runs."""
-    args = list(argv[1:])
-    if args == ["-i"]:
-        lines = [ln.strip() for ln in (stdin_text or "").splitlines() if ln.strip()]
-        return bool(lines) and all(ln.split(" ", 1)[0] in SECURITY_VERBS and ln.endswith('"')
-                                   and _under_base(ln[:-1].rsplit('"', 1)[-1]) for ln in lines)
-    return bool(args) and args[0] in SECURITY_VERBS and _under_base(args[-1])
-
-
-def _check_spawn(argv, stdin_text=None, kw=None):
-    if isinstance(argv, (str, bytes)):
-        if "security" in os.fsdecode(argv):
-            raise RealKeychainRefused("a shell-string spawn names security: refused unread")
-        return
-    if not argv:
-        return
-    argv = [os.fsdecode(a) for a in argv]
-    name = os.path.basename(argv[0])
-    if name == "security" and not _real_ok():
-        raise RealKeychainRefused("the real security binary, without the CI opt-in PMHWC_REAL_KEYCHAIN_TESTS=1")
-    if name in ("security", os.path.basename(SECURITY_STUB)) and not (
-            _home_ok(kw) and _security_target_ok(argv, stdin_text)):
-        raise RealKeychainRefused("a test reached the real keychain: %r" % argv[:3])
-    if g.__file__ in argv and "--config" in argv:     # a hook child process: its config must be throwaway too
+def hook_child_check(guard, argv, kw):
+    """A hook child process reading the Keychain runs the real binary and framework itself."""
+    if g.__file__ in argv and "--config" in argv:
         conf = g.load_config(argv[argv.index("--config") + 1])
         if conf["salt_store"] == "keychain":
-            if not _real_ok():
-                raise RealKeychainRefused("a hook child would run the real security binary, without the opt-in")
-            if not (_home_ok(kw) and _security_target_ok(
-                    ["security", "find-generic-password", conf["keychain_path"] or "-"], None)):
-                raise RealKeychainRefused("a child process was configured for the real keychain")
+            guard.require_real("a hook child reading the Keychain")
+            if not (guard.home_ok(kw) and guard.security_ok(["find-generic-password", conf["keychain_path"] or "-"], None)):
+                raise kg.RealKeychainRefused("a child process was configured for the real keychain")
 
 
-_REAL_RUN, _REAL_POPEN, _REAL_PROBE = subprocess.run, subprocess.Popen, g.keychain_unlocked
-_EXEC = _REAL_RUN       # replaced by a refusing stub inside KeychainIsolation, so its probes never execute
-
-
-WATCHED = {"security", os.path.basename(SECURITY_STUB), os.path.basename(g.__file__)}
-
-
-def _log_spawn(argv, stdin_text, kw):
-    """Probe: with PMHWC_SECURITY_CALL_LOG set, record every vetted `security`, launcher or hook-child
-    spawn (argv with -w values redacted, and the HOME it runs under). Off by default."""
-    path = os.environ.get("PMHWC_SECURITY_CALL_LOG")
-    if not path or isinstance(argv, (str, bytes)) or not argv:
-        return
-    argv = [os.fsdecode(a) for a in argv]
-    if not any(os.path.basename(a) in WATCHED for a in argv):
-        return
-    env = (kw or {}).get("env")
-    red = lambda s: re.sub(r'(-w\s+)("[^"]*"|\S+)', r'\1<redacted>', s or "")
-    with open(path, "a") as fh:
-        fh.write(json.dumps({"argv": [red(a) for a in argv], "stdin": red(stdin_text),
-                             "home": (env if env is not None else os.environ).get("HOME", "")}) + "\n")
-
-
-def _guarded_run(*args, **kw):
-    argv = args[0] if args else kw.get("args")
-    data = kw.get("input")
-    text = data.decode() if isinstance(data, bytes) else data
-    _check_spawn(argv, text, kw)
-    _log_spawn(argv, text, kw)
-    return _EXEC(*args, **kw)
-
-
-class _GuardedPopen(_REAL_POPEN):
-    def __init__(self, args, *a, **kw):
-        name = "" if isinstance(args, (str, bytes)) or not args else os.path.basename(os.fsdecode(args[0]))
-        if name in ("security", os.path.basename(SECURITY_STUB)) and list(args[1:]) == ["-i"]:
-            # stdin is only visible to _guarded_run, which has vetted it; the binary and HOME are checked here
-            if (name == "security" and not _real_ok()) or not _home_ok(kw):
-                raise RealKeychainRefused("security -i outside the opt-in or under the real HOME")
-        else:
-            _check_spawn(args, None, kw)
-        super().__init__(args, *a, **kw)
-
-
-def _guarded_probe(path=None):
-    if not _real_ok():
-        raise RealKeychainRefused("the Security.framework lock probe, without the CI opt-in")
-    if path is None or not _under_base(path) or not _home_ok():
-        raise RealKeychainRefused("the lock probe was pointed at the default keychain or ran under the real HOME")
+def guarded_probe(path=None):
+    GUARD.require_real("the Security.framework lock probe")
+    if path is None or not GUARD.under_base(path) or not GUARD.home_ok():
+        raise kg.RealKeychainRefused("the lock probe was pointed at the default keychain or ran under the real HOME")
     return _REAL_PROBE(path)
+
+
+def make_guard(base):
+    return kg.Guard(base, verbs=kg.BASE_VERBS | {"lock-keychain"}, inherit_home=True, extra=hook_child_check,
+                    watched=(os.path.basename(g.__file__),))
 
 
 def use_throwaway_home():
@@ -207,25 +111,16 @@ def use_throwaway_home():
 
 
 def install_keychain_guard():
-    subprocess.run, subprocess.Popen, g.keychain_unlocked = _guarded_run, _GuardedPopen, _guarded_probe
-
-
-def sec_run(argv, **kw):
-    """`run` for production code under test: its /usr/bin/security goes to the stub unless opted in."""
-    argv = list(argv)
-    if argv and argv[0] == REAL_SECURITY and not REAL_KEYCHAIN:     # read at call time, not import time
-        argv[0] = SECURITY_STUB
-    return subprocess.run(argv, **kw)
+    GUARD.install()
+    g.keychain_unlocked = guarded_probe
 
 
 def throwaway_keychain(name):
-    path = os.path.join(BASE, name + ".keychain-db")
-    subprocess.run([SECURITY, "create-keychain", "-p", KEYCHAIN_PW, path], check=True, capture_output=True)
-    return path
+    return GUARD.create_keychain(name)
 
 
 def drop_keychain(path):
-    subprocess.run([SECURITY, "delete-keychain", path], capture_output=True)
+    GUARD.delete_keychain(path)
 
 
 class KeychainIsolation(unittest.TestCase):
@@ -234,35 +129,17 @@ class KeychainIsolation(unittest.TestCase):
     Nothing in this test executes a process; a broken guard makes it fail, never touch a keychain."""
 
     def test_no_test_path_can_reach_the_real_keychain(self):
-        global _EXEC, REAL_KEYCHAIN, _REAL_PROBE
-        self.assertIs(subprocess.run, _guarded_run, "the guard is not installed for this run")
-        self.assertIs(subprocess.Popen, _GuardedPopen)
-        self.assertIs(g.keychain_unlocked, _guarded_probe)
-        self.assertTrue(_home_ok(), "this run's HOME is not a throwaway one")
-        if REAL_KEYCHAIN:
-            self.assertEqual((os.environ.get("PMHWC_REAL_KEYCHAIN_TESTS"), os.environ.get("GITHUB_ACTIONS")),
-                             ("1", "true"), "the real binary is enabled outside the CI opt-in")
-        else:
-            self.assertEqual(SECURITY, SECURITY_STUB, "without the opt-in, tests must use the stub")
+        global _REAL_PROBE
+        G = GUARD
+        G.assert_mode(self)
+        self.assertIs(g.keychain_unlocked, guarded_probe)
+        self.assertTrue(G.home_ok(), "this run's HOME is not a throwaway one")
         kc = os.path.join(BASE, "never-created.keychain-db")
-        real_home = {"env": {"HOME": os.path.dirname(os.path.realpath(BASE))}}
-        valid_add = ('add-generic-password -s "s" -a "a" -w "v" "%s"\n' % kc).encode()
-        refused_always = [("security list-keychains", {"shell": True})]
-        for sec in (REAL_SECURITY, SECURITY_STUB):
-            refused_always += [
-                ([sec, "find-generic-password", "-s", "svc", "-w"], {}),
-                ([sec, "list-keychains"], {}), ([sec, "list-keychains", "-s", kc], {}),
-                ([sec, "list-keychains", "-d", "user", "-s", kc], {}), ([sec, "default-keychain", "-s", kc], {}),
-                ([sec, "login-keychain", "-s", kc], {}), ([sec, "create-keychain", "-p", "x", kc], real_home),
-                ([sec, "-i"], {"input": b'list-keychains -s "%s"\n' % kc.encode()}),
-                ([sec, "-i"], {"input": b'add-generic-password -s "s" -a "a" -w "v"\n'}),
-            ]
+        outside = {"env": {"HOME": os.path.dirname(os.path.realpath(BASE))}}
         child_conf = conf_in(os.path.join(BASE, "kc-guard-child"), salt_store="keychain", keychain_path=kc)
         child = [sys.executable, g.__file__, "prompt-hook", "--harness", "claude", "--config", child_conf]
-        refused_always.append((child, real_home))
-        refused_without_optin = [([REAL_SECURITY, "find-generic-password", "-s", "svc", "-w", kc], {}),
-                                 ([REAL_SECURITY, "create-keychain", "-p", "x", kc], {}),
-                                 ([REAL_SECURITY, "-i"], {"input": valid_add}), (child, {})]
+        refused_always = G.refused_cases(kc, {}, outside) + [(child, outside)]
+        real_only = G.real_only_cases(kc, {}) + [(child, {})]
         default = g.load_config(conf_in(os.path.join(BASE, "kc-guard-default"), salt_store="keychain"))
         conf = g.load_config(conf_in(os.path.join(BASE, "kc-guard"), salt_store="keychain", keychain_path=kc))
         calls, stored, probes = [], [SALT], []
@@ -272,47 +149,35 @@ class KeychainIsolation(unittest.TestCase):
             if kw.get("input"):
                 stored[0] = kw["input"].decode().split('-w "', 1)[1].split('"', 1)[0]
             return subprocess.CompletedProcess(argv, 0, stdout=(stored[0] + "\n").encode(), stderr=b"")
-        real_exec, real_flag, real_probe = _EXEC, REAL_KEYCHAIN, _REAL_PROBE
+        saved = (G.exec, G.real, _REAL_PROBE)
         try:
-            _EXEC = lambda *a, **k: self.fail("the guard let a real-keychain call through: %r" % (a[:1],))
+            G.exec = lambda *a, **k: self.fail("the guard let a real-keychain call through: %r" % (a[:1],))
             _REAL_PROBE = lambda *a: self.fail("the guard let the Security.framework probe run")
-            REAL_KEYCHAIN = False
-            for argv, kw in refused_without_optin:
-                with self.subTest(opt_in=False, argv=argv):
-                    with self.assertRaises(RealKeychainRefused):
-                        subprocess.run(argv, capture_output=True, **kw)
+            G.assert_refused(self, real_only, False)
             # Production code with a throwaway path still reaches the real binary and framework: refused.
-            with self.assertRaises(RealKeychainRefused):
-                g.SaltStore(conf, _guarded_run).create()
-            with self.assertRaises(RealKeychainRefused):
-                g.keychain_unlocked(kc)
+            for attempt in (lambda: g.SaltStore(conf, G.guarded_run).create(), lambda: g.keychain_unlocked(kc)):
+                with self.assertRaises(kg.RealKeychainRefused):
+                    attempt()
             for flag in (False, True):
-                REAL_KEYCHAIN = flag
+                G.real = flag
                 for interactive in (True, False):
-                    with self.assertRaises(RealKeychainRefused):
-                        g.SaltStore(default, _guarded_run, interactive=interactive, lock_probe=lambda *a: True).get()
-                with self.assertRaises(RealKeychainRefused):
-                    g.SaltStore(default, _guarded_run).create()
-                with self.assertRaises(RealKeychainRefused):
-                    g.keychain_unlocked()
-                # The search list is never read or changed, and nothing runs under the real HOME.
-                for argv, kw in refused_always:
-                    with self.subTest(opt_in=flag, argv=argv):
-                        with self.assertRaises(RealKeychainRefused):
-                            subprocess.run(argv, capture_output=True, **kw)
+                    with self.assertRaises(kg.RealKeychainRefused):
+                        g.SaltStore(default, G.guarded_run, interactive=interactive, lock_probe=lambda *a: True).get()
+                for attempt in (lambda: g.SaltStore(default, G.guarded_run).create(), g.keychain_unlocked):
+                    with self.assertRaises(kg.RealKeychainRefused):
+                        attempt()
+                G.assert_refused(self, refused_always, flag)
             # With the opt-in, the production code given a throwaway path must name it on EVERY call.
-            _EXEC = fake
-            REAL_KEYCHAIN = True
-            g.SaltStore(conf, _guarded_run).create()
-            g.SaltStore(conf, _guarded_run, interactive=False, lock_probe=lambda *a: probes.append(a) or True).get()
+            G.exec, G.real = fake, True
+            g.SaltStore(conf, G.guarded_run).create()
+            g.SaltStore(conf, G.guarded_run, interactive=False, lock_probe=lambda *a: probes.append(a) or True).get()
             # Without it, the same calls through the stub are allowed.
-            REAL_KEYCHAIN = False
-            g.SaltStore(conf, sec_run).create()
+            G.real = False
+            g.SaltStore(conf, G.stub_run).create()
         finally:
-            _EXEC, REAL_KEYCHAIN, _REAL_PROBE = real_exec, real_flag, real_probe
+            G.exec, G.real, _REAL_PROBE = saved
         self.assertEqual(probes, [(kc,)], "the lock probe was not pointed at the throwaway keychain")
-        self.assertEqual(len(calls), 5)
-        self.assertEqual([c[0][0] for c in calls], [REAL_SECURITY] * 3 + [SECURITY_STUB] * 2)
+        self.assertEqual([c[0][0] for c in calls], [kg.REAL_SECURITY] * 3 + [kg.SECURITY_STUB] * 2)
         for argv, data in calls:
             self.assertTrue(argv[-1] == kc or (argv[1:] == ["-i"] and data.decode().rstrip().endswith('"%s"' % kc)), argv[:2])
 
@@ -414,18 +279,18 @@ class Salt(unittest.TestCase):
 
         def run(argv, **kw):
             seen.append(list(argv))
-            return sec_run(argv, **kw)
+            return GUARD.stub_run(argv, **kw)
         try:
             try:
                 value = g.SaltStore(conf, run).create()
             except RuntimeError:
                 self.skipTest("the throwaway keychain is not writable here")
-            self.assertEqual(g.SaltStore(conf, sec_run).get(), value)
+            self.assertEqual(g.SaltStore(conf, GUARD.stub_run).get(), value)
             self.assertTrue(all(value not in " ".join(a) for a in seen), "the salt reached a process argv")
             self.assertTrue(all(a[-1] == kc for a in seen if a[1:] != ["-i"]), "a call did not name the throwaway keychain")
-            subprocess.run([SECURITY, "delete-generic-password", "-s", service, "-a", g._account(), kc],
+            subprocess.run([GUARD.security, "delete-generic-password", "-s", service, "-a", g._account(), kc],
                            capture_output=True)
-            self.assertIsNone(g.SaltStore(conf, sec_run).get(), "the throwaway Keychain item was not deleted")
+            self.assertIsNone(g.SaltStore(conf, GUARD.stub_run).get(), "the throwaway Keychain item was not deleted")
         finally:
             drop_keychain(kc)
 
@@ -619,7 +484,7 @@ class PromptHook(unittest.TestCase):
         self.assertEqual(calls, [], "the file-salt branch touched the Keychain or started a process")
         self.assertEqual(out["decision"], "block")
 
-    @unittest.skipUnless(REAL_KEYCHAIN, "real Keychain: CI macOS opt-in only (PMHWC_REAL_KEYCHAIN_TESTS=1)")
+    @unittest.skipUnless(kg.real_opt_in(), "real Keychain: CI macOS opt-in only (PMHWC_REAL_KEYCHAIN_TESTS=1)")
     def test_hook_process_reads_a_real_namespaced_keychain_salt(self):
         """A real prompt-hook process against a THROWAWAY keychain file, under the throwaway HOME, through
         the real lock probe and the real `security` read. The keychain is deleted afterwards."""
@@ -645,14 +510,14 @@ class PromptHook(unittest.TestCase):
             drop_keychain(kc)
         self.assertFalse(os.path.exists(kc), "the throwaway keychain was not deleted")
 
-    @unittest.skipUnless(REAL_KEYCHAIN, "real Keychain: CI macOS opt-in only (PMHWC_REAL_KEYCHAIN_TESTS=1)")
+    @unittest.skipUnless(kg.real_opt_in(), "real Keychain: CI macOS opt-in only (PMHWC_REAL_KEYCHAIN_TESTS=1)")
     def test_lock_probe_reports_a_locked_throwaway_keychain_without_waiting(self):
         """A THROWAWAY keychain file under the test's base directory (never the login keychain), locked:
         the probe must say False at once. A probe that waited on an unlock dialog would take seconds."""
         kc = throwaway_keychain("probe")
         try:
             self.assertIs(g.keychain_unlocked(kc), True)
-            subprocess.run([SECURITY, "lock-keychain", kc], check=True, capture_output=True)
+            subprocess.run([GUARD.security, "lock-keychain", kc], check=True, capture_output=True)
             t = time.monotonic()
             self.assertIs(g.keychain_unlocked(kc), False)
             self.assertLess(time.monotonic() - t, 1.0)
@@ -1008,5 +873,6 @@ if __name__ == "__main__":
         sys.exit("refusing: %s exists and is not empty (the suite only writes into a fresh directory)" % BASE)
     os.makedirs(BASE, exist_ok=True)
     use_throwaway_home()
+    GUARD = make_guard(BASE)
     install_keychain_guard()
     unittest.main(verbosity=2)
