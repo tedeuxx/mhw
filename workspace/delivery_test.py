@@ -101,7 +101,10 @@ class DeliveryTests(unittest.TestCase):
         foreign_ci = sonar_only + [{"name": "delivery-ci", "workflowName": "other", "conclusion": "SUCCESS"}]
         # delivery-ci present but one aggregated job never registered.
         partial = [c for c in self.slice["statusCheckRollup"] if not c["name"].startswith("windows")]
-        for checks in (sonar_only, foreign_ci, partial):
+        # Every job name present, but reported by another workflow: the tests workflow still never ran.
+        renamed = [dict(c, workflowName="other") if c.get("workflowName") == "tests" else c
+                   for c in self.slice["statusCheckRollup"]]
+        for checks in (sonar_only, foreign_ci, partial, renamed):
             with self.subTest(n=len(checks)), self.assertRaises(d.Pending):
                 d.checks_pass(dict(self.slice, statusCheckRollup=checks))
         self.assertEqual(d.tests_jobs(), ["shellcheck", "profiles", "suites", "windows"])
