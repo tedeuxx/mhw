@@ -32,12 +32,18 @@ MERGEABLE_STATES = {"CLEAN", "HAS_HOOKS"}
 # Only a strict header at the very top of a comment counts; nothing in the prose below it is read, so
 # a fence, a blockquote or a sentence can never supply or override a verdict. Lines are compared whole
 # (a trailing CR from a CRLF body is the only thing removed), never as substrings.
-#   quality-assurance:  line 1  <!-- gatekeeper-verdict: quality-assurance -->
-#                       line 2  one verdict literal, alone on the line
-#                       line 3  head: <full 40-character head SHA>
-#   agents-lead:        line 1  <!-- harness-lead-verdict: <one-line summary> -->
-#                       line 2  commit: <full 40-character head SHA>
-#                       line 3  the lens is CLOSED      (any other line 3 means the lens is open)
+#   quality-assurance (the plugin's own required shape, lines 1-3 exactly as its brief fixes them):
+#     line 1  <!-- gatekeeper-verdict: quality-assurance -->
+#     line 2  one verdict literal, alone on the line
+#     line 3  head: <full 40-character head SHA>
+#   agents-lead: lines 1-2 are the plugin's required shape. LINE 3 IS THIS REPOSITORY'S CONTRACT, NOT
+#   THE PLUGIN'S: the plugin brief asks for "the lens is CLOSED" in those words but fixes no position,
+#   so a marker that only follows the plugin brief is refused here (fail closed) until line 3 says it.
+#     line 1  <!-- harness-lead-verdict: <one-line summary> -->
+#     line 2  commit: <full 40-character head SHA>
+#     line 3  the lens is CLOSED      (any other line 3 means the lens is open)
+#   Line 3 is pinned rather than searched for (option b over a): finding the sentence anywhere in the
+#   body means parsing fences, blockquotes and prose again, which is exactly where the spoofs lived.
 GATE_PREFIX = "<!-- gatekeeper-verdict"
 GATE_HEADER = "<!-- gatekeeper-verdict: quality-assurance -->"
 LENS_PREFIX = "<!-- harness-lead-verdict"

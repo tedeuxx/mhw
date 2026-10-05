@@ -37,25 +37,33 @@ pending; a pause for questions publishes nothing.
    comment counts. Lines are compared whole, and nothing below the header is read, so text in a
    fence, a blockquote or the prose can neither supply nor override a verdict. The newest trusted
    comment that opens with each envelope wins, so a later `REQUEST-CHANGES`, a later open lens or a
-   later malformed header refuses. `quality-assurance` must post:
+   later malformed header refuses. `quality-assurance` must open its comment with these three lines,
+   which are exactly the plugin's own required verdict shape. Line 2 is `APPROVE-AND-MERGE` or
+   `APPROVE-AND-MERGE-BOUNDARY`; any other literal refuses. Anything may follow line 3.
 
    ```
    <!-- gatekeeper-verdict: quality-assurance -->
-   APPROVE-AND-MERGE            (or APPROVE-AND-MERGE-BOUNDARY; any other line 2 refuses)
+   APPROVE-AND-MERGE
    head: <the full 40-character head SHA>
    ```
 
    When the diff from the merge base touches a harness path (`.claude/`, `.codex/`, `.github/`,
-   `.agents/`, `.kiro/`, `AGENTS.md`, `CLAUDE.md`, at any depth), `agents-lead` must also post:
+   `.agents/`, `.kiro/`, `AGENTS.md`, `CLAUDE.md`, at any depth), `agents-lead` must also open a
+   comment with these three lines. Lines 1 and 2 are the plugin's required marker shape. **Line 3
+   is this repository's contract, not the plugin's:** the plugin brief asks the lens to say
+   `the lens is CLOSED` in those words but fixes no position, so a marker that follows only the
+   plugin brief is refused here (fail closed) until line 3 is exactly that sentence. Any other
+   line 3 means the lens is open.
 
    ```
    <!-- harness-lead-verdict: <one-line summary> -->
    commit: <the full 40-character head SHA>
-   the lens is CLOSED           (any other line 3 means the lens is open)
+   the lens is CLOSED
    ```
 
-   Both are the plugin's existing envelopes, with the fields pinned to fixed lines. A marker posted
-   for an earlier head never carries forward here. **Authorship is not proven:** every persona posts
+   Line 3 is pinned rather than searched for: finding the sentence anywhere in the body would mean
+   parsing fences, blockquotes and prose again, which is where the spoofs this gate refuses lived.
+   A marker posted for an earlier head never carries forward here. **Authorship is not proven:** every persona posts
    through the owner's account, so "trusted author" means `OWNER`, `MEMBER` or `COLLABORATOR`, not
    "this persona wrote it". The plugin's own merge floor has the same limit. It merges
    with `--merge --match-head-commit SHA`, never a squash. No force push, no admin bypass.

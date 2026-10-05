@@ -215,6 +215,30 @@ class DeliveryTests(unittest.TestCase):
         self.assertFalse(d.harness_paths(["workspace/delivery.py", "docs/adr/0001-x.md", "global/a.sh",
                                           "docs/CLAUDE.md.bak", "x.claude/a", "AGENTS.mdx", ".claude"]))
 
+    def test_plugin_brief_shapes_against_this_repository_contract(self):
+        # The plugin's agents-lead brief fixes lines 1-2 only, then a blank line and the scenarios; it
+        # asks for "the lens is CLOSED" in those words at no fixed position. Such a marker is REFUSED
+        # here: line 3 is this repository's contract, not the plugin's. Fail closed, by design.
+        plugin_lens = ("<!-- harness-lead-verdict: PR #93 rc/next route - nothing falsifiable-and-false remains -->\n"
+                       "commit: " + HEAD + "\n"
+                       "\n"
+                       "Scenarios: none open.\n"
+                       "\n"
+                       "the lens is CLOSED")
+        with self.assertRaises(d.Pending):
+            d.lens_closed([raw(plugin_lens)], HEAD)
+        # The same plugin lines 1-2 with this repository's line 3 are accepted.
+        lines = plugin_lens.split("\n")
+        d.lens_closed([raw("\n".join(lines[:2] + ["the lens is CLOSED"] + lines[2:5]))], HEAD)
+        # The plugin's quality-assurance shape already pins lines 1-3, including its closes: line after.
+        plugin_gate = ("<!-- gatekeeper-verdict: quality-assurance -->\n"
+                       "APPROVE-AND-MERGE\n"
+                       "head: " + HEAD + "\n"
+                       "closes: 52\n"
+                       "\n"
+                       "| criterion | verdict |")
+        d.gate_approves([raw(plugin_gate)], HEAD)
+
     def test_strict_header_spoofs_are_refused(self):
         marker = "<!-- harness-lead-verdict: x -->\ncommit: " + HEAD + "\nthe lens is CLOSED"
         verdict = "<!-- gatekeeper-verdict: quality-assurance -->\nAPPROVE-AND-MERGE\nhead: " + HEAD
