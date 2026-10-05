@@ -141,7 +141,8 @@ def render_status(f, verbose=False):
     lines.append("  source           %s (this checkout)" % short_stamp(f["source"]))
     user = sorted(set(f["user_stamps"].values()))
     user_text = " / ".join(short_stamp(s) for s in user) if user else "none"
-    admin_text = short_stamp(f["admin_stamp"]) if f["admin"] else "not installed"
+    admin_text = short_stamp(f["admin_stamp"]) if f["admin"] else (
+        LEGACY if f.get("admin_state") == "legacy" else "not installed")
     lines.append("  installed        user: %s · admin: %s" % (user_text, admin_text))
     fix = f["user_issues"] + (f["admin_issues"] if f["admin"] else 0)
     check = "matches this checkout" if fix == 0 else "%d target(s) differ; run %s" % (fix, FIX)
@@ -154,7 +155,7 @@ def render_status(f, verbose=False):
     plugins = f["plugins"]
     plugin_text = "%d enabled in Claude Code" % len(plugins) if plugins else "none enabled in Claude Code"
     lines.append("  layers           managed: %s · user: %s · workspace: %s · plugin: %s" % (
-        "installed" if f["admin"] else "absent", "installed" if user else "absent", ws_text, plugin_text))
+        managed_text(f), "installed" if user else "absent", ws_text, plugin_text))
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
     key = f["key"]
@@ -218,6 +219,30 @@ def _settings_text(settings, keys_by_harness, harnesses):
     return " · ".join(parts)
 
 
+LEGACY = "installed (legacy, pre-#66; reinstall to update)"
+ADMIN_FLOOR = "the admin layer"
+
+
+def managed_text(f):
+    """The managed layer as a layer list shows it. Never 'absent' while a drop-in of ours is present."""
+    if f["admin"]:
+        return "installed"
+    return {"legacy": LEGACY, "unreadable": "present, not read"}.get(f.get("admin_state"), "absent")
+
+
+def cannot_override(f):
+    """Only what sits in the admin layer can be named here. The floor's own words come from the
+    installer, verbatim: a user-level floor is dropped by a session flag, so it is never listed as locked."""
+    admin = f["admin"] or f.get("admin_state") in ("legacy", "unreadable")
+    floor = f["floor"]
+    if floor.startswith(ADMIN_FLOOR):
+        parts = ["managed layer (admin-owned)", "deny floor: " + floor]
+        return " · ".join(parts)
+    parts = ["managed layer (admin-owned)"] if admin else ["nothing (no admin layer)"]
+    parts.append("deny floor NOT locked: " + floor)
+    return " · ".join(parts)
+
+
 def render_summary(f):
     """At most ten lines: what is in effect, each item at the evidence level this view has."""
     present = [h for h, v in f["harnesses"].items() if v is not None]
@@ -237,7 +262,7 @@ def render_summary(f):
     ws = f["workspace"]
     plugins = f["plugins"]
     lines.append("  layers           managed: %s · user: %s · workspace: %s · plugin: %s" % (
-        "installed" if f["admin"] else "absent", "installed" if user else "absent",
+        managed_text(f), "installed" if user else "absent",
         ws["name"] or "none", "%d in Claude Code" % len(plugins) if plugins else "none"))
     overrides = ["%s %s = %s" % (h, k, v) for h, layer, k, v in settings if layer == "workspace"]
     off = ["%s %s" % (h, layer) for h, layer, k, v in settings if k == "disableAllHooks" and v == "true"]
@@ -245,10 +270,7 @@ def render_summary(f):
         overrides.insert(0, "HOOKS OFF: disableAllHooks in " + ", ".join(off))
     lines.append("  overrides        %s" % ("; ".join(overrides) if overrides
                                            else "no workspace setting overrides a user default"))
-    fixed = ["deny floor (%s; a deny in any layer wins)" % f["floor"]]
-    if f["admin"]:
-        fixed.insert(0, "managed layer (admin-owned)")
-    lines.append("  cannot override  %s" % " · ".join(fixed))
+    lines.append("  cannot override  %s" % cannot_override(f))
     lines.append("  protections      brief %s · hooks %s · evidence: installed; loaded and enforced "
                  "need a session canary" % (f["brief"], f["hooks"]))
     lines.append("  permission mode  %s; session flags: %s" % (
@@ -269,6 +291,19 @@ def managed_root():
 def admin_dropin():
     base = "/Library/Application Support/ClaudeCode" if platform.system() == "Darwin" else "/etc/claude-code"
     return Path(managed_root() + base + "/managed-settings.d/50-%s.json" % NAME)
+
+
+def admin_state():
+    """installed (our stamped drop-in), legacy (our filename, no stamp key: written before #66),
+    unreadable (present, not JSON), or absent. A present drop-in is never reported as absent."""
+    path = admin_dropin()
+    if not path.exists():
+        return "absent"
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "unreadable"
+    return "installed" if isinstance(doc, dict) and NAME in doc else "legacy"
 
 
 def admin_installed():
@@ -527,12 +562,13 @@ def summarise_protections(user_lines):
     floor = "not reported"
     for line in user_lines:
         if line.startswith("FLOOR   carried by: "):
-            floor = line[len("FLOOR   carried by: "):].split(";")[0]
+            floor = line[len("FLOOR   carried by: "):]
     return "installed in %d/3 agent harnesses (an instruction)" % brief, floor, hooks_text(read_hooks())
 
 
 def gather(project):
     admin = admin_installed()
+    state = admin_state()
     hooks_mode = "managed" if admin else "user"
     code, user_lines = run(install_args(["--check", "--hooks=" + hooks_mode]))
     source = "none"
@@ -562,7 +598,8 @@ def gather(project):
             "user_issues": issues(user_lines), "admin_issues": issues(admin_lines),
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
             "workspace": ws, "plugins": enabled_plugins(ws["root"]), "brief": brief, "floor": floor,
-            "hooks": hooks, "key": key, "runtime": runtime(), "settings": read_settings(ws["root"])}
+            "hooks": hooks, "key": key, "runtime": runtime(), "admin_state": state,
+            "settings": read_settings(ws["root"])}
 
 
 # ---------------------------------------------------------------------------------------------------

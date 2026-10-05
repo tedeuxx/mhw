@@ -171,6 +171,17 @@ prompt carries the section. Kiro: rendered steering file only (*documented* load
 Six source mutations of `render_summary` and `read_settings` each turned `RuntimeSummary`/`Settings`
 red; the restored file stayed green.
 
+*Repair, same PR, after the agents-lead lens.* The first version listed the deny floor under
+`cannot override` with "a deny in any layer wins", and cut the installer's caveat at its first `;`.
+Without the admin layer the floor is user-level and a session flag drops it (#55, #59), so that line
+erred in the permissive direction. Now only what sits in the admin layer is named there; any other
+floor reads `deny floor NOT locked:` followed by the installer's `FLOOR   carried by:` text word for
+word. QA also found a pre-#66 admin drop-in (our filename, no stamp key) reported as `managed:
+absent`; `status` now reports it as `installed (legacy, pre-#66; reinstall to update)` and never says
+absent while a drop-in is present. Probed in throwaway homes and roots with the admin layer absent,
+present (staged, applied without `sudo` through `--root`) and as a legacy drop-in generated from the
+`install-managed.sh` template at `3742ffa`. Eight more source mutations each turned the suite red.
+
 ## Links
 
 - Requirements document, [section 7](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#7-version-key-per-project)

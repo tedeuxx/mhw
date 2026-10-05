@@ -18,6 +18,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import workstation as ws  # noqa: E402
 
 STAMP = "release: v3.1.0; commit: " + "a" * 40
+# The installer's own FLOOR line for a user-only floor, word for word (global/install.sh).
+USER_FLOOR = ("the user layer only; a session flag can drop it (--setting-sources project, measured); install the "
+              "admin copy with ./workstation install --admin")
 
 
 class VersionKey(unittest.TestCase):
@@ -75,7 +78,7 @@ def facts(**over):
          "harnesses": {"Claude Code": "2.1.0", "Codex": None, "Kiro": None},
          "workspace": {"name": "proj", "root": Path("/proj"), "carriers": [".workstation-version"]},
          "plugins": [], "brief": "installed in 2/3 agent harnesses (an instruction)",
-         "floor": "the user layer only", "hooks": "user layer (picker guard, paste filter)",
+         "floor": USER_FLOOR, "admin_state": "absent", "hooks": "user layer (picker guard, paste filter)",
          "key": {"required": ">=3.1 <4", "state": "match", "line": ""},
          "runtime": "host (Linux x86_64; no container marker found)"}
     f.update(over)
@@ -145,8 +148,8 @@ class RuntimeSummary(unittest.TestCase):
         self.assertEqual(self.row(out, "layers"), "managed: absent · user: installed · workspace: proj · "
                                                   "plugin: none")
         self.assertEqual(self.row(out, "overrides"), "no workspace setting overrides a user default")
-        self.assertEqual(self.row(out, "cannot override"),
-                         "deny floor (the user layer only; a deny in any layer wins)")
+        self.assertEqual(self.row(out, "cannot override"), "nothing (no admin layer) · deny floor NOT locked: "
+                                                           + USER_FLOOR)
         self.assertIn("brief installed in 2/3 agent harnesses (an instruction)", self.row(out, "protections"))
         self.assertIn("evidence: installed; loaded and enforced need a session canary",
                       self.row(out, "protections"))
@@ -174,7 +177,30 @@ class RuntimeSummary(unittest.TestCase):
         self.assertEqual(self.row(out, "model, effort"),
                          "Claude Code: model opus (user) · Codex: model_reasoning_effort high (user); "
                          "the session's own values: Claude Code /status, Codex /status")
-        self.assertTrue(self.row(out, "cannot override").startswith("managed layer (admin-owned) · deny floor"))
+        self.assertEqual(self.row(out, "cannot override"),
+                         "managed layer (admin-owned) · deny floor NOT locked: " + USER_FLOOR)
+
+    def test_floor_is_locked_only_in_the_admin_layer(self):
+        admin_floor = "the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
+        out = ws.render_summary(facts(admin=True, admin_state="installed", floor=admin_floor))
+        self.assertEqual(self.row(out, "cannot override"), "managed layer (admin-owned) · deny floor: " + admin_floor)
+        none = "NO complete layer; run ./workstation install, then ./workstation install --admin"
+        out = ws.render_summary(facts(floor=none))
+        self.assertEqual(self.row(out, "cannot override"), "nothing (no admin layer) · deny floor NOT locked: " + none)
+
+    def test_legacy_dropin_is_never_absent(self):
+        for state, want in (("legacy", "installed (legacy, pre-#66; reinstall to update)"),
+                            ("unreadable", "present, not read"), ("absent", "absent")):
+            with self.subTest(state=state):
+                out = ws.render_summary(facts(admin_state=state))
+                self.assertTrue(self.row(out, "layers").startswith("managed: %s · " % want))
+                status = ws.render_status(facts(admin_state=state))
+                self.assertTrue(any(line.startswith("  layers           managed: %s · " % want) for line in status))
+        status = ws.render_status(facts(admin_state="legacy"))
+        self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: installed (legacy, pre-#66; reinstall "
+                      "to update)", status)
+        self.assertTrue(self.row(ws.render_summary(facts(admin_state="legacy")), "cannot override")
+                        .startswith("managed layer (admin-owned) · deny floor NOT locked: "))
 
     def test_mismatch_and_no_harness(self):
         line = ws.mismatch_line(">=3.1 <4", "v3.0.0")
@@ -273,6 +299,10 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("  workstation      %s · version key: >=999 <1000 mismatch\n" % source.split(" (")[0], out)
         self.assertIn("· hooks admin: none · user: picker guard (Claude Code)", out)
         self.assertRegex(out, r"(?m)^  Workstation version key: required >=999 <1000, installed ")
+        # No admin layer: the floor is never listed as locked, and the installer's words arrive whole.
+        _, verbose = self.run_ws("status", "--verbose", "--overlay=none", project)
+        carried = re.search(r"(?m)^  \| FLOOR   carried by: (.*)$", verbose).group(1)
+        self.assertIn("  cannot override  nothing (no admin layer) · deny floor NOT locked: %s\n" % carried, out)
         # The hooks moved out of the user layer with no admin layer: status must say none, not claim them.
         subprocess.run(["sh", str(ws.INSTALL), "--overlay=none", "--hooks=managed"], env=self.env,
                        capture_output=True, check=False)
@@ -384,6 +414,21 @@ class Hooks(unittest.TestCase):
         self.write(Path(os.environ["HOME"]) / ".claude" / "settings.json", "not json")
         self.assertEqual(ws.read_hooks()["user"], "not read")
         self.assertEqual(ws.hooks_text(ws.read_hooks()), "admin: none · user: not read")
+
+    def test_admin_state_reads_the_dropin(self):
+        self.assertEqual(ws.admin_state(), "absent")
+        # The pre-#66 drop-in shape, from install-managed.sh at 3742ffa: hooks and deny, no stamp key.
+        legacy = {"hooks": {"PreToolUse": [{"matcher": "AskUserQuestion", "hooks": [
+                      {"type": "command", "command": "/bin/sh \"/x/%s/bin/%s\"" % (ws.NAME, ws.GUARD), "timeout": 5}]}]},
+                  "permissions": {"deny": ["Bash(sudo:*)"]}}
+        self.write(ws.admin_dropin(), json.dumps(legacy))
+        self.assertEqual(ws.admin_state(), "legacy")
+        self.assertFalse(ws.admin_installed())
+        self.write(ws.admin_dropin(), "{not json")
+        self.assertEqual(ws.admin_state(), "unreadable")
+        legacy[ws.NAME] = "stamp"
+        self.write(ws.admin_dropin(), json.dumps(legacy))
+        self.assertEqual(ws.admin_state(), "installed")
 
     def test_admin_layer(self):
         root = os.environ["WORKSTATION_MANAGED_ROOT"]
