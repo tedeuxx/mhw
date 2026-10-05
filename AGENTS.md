@@ -178,7 +178,7 @@ The source of truth for every layer lives here, versioned; what is installed on 
   his. This is the owner's standing authorization for this repository, not permission to bypass
   tests or protection rules, and a pause for questions publishes nothing.
 - Follow `workspace/README.md` and `workspace/session-policy.json`. For a slice and for the release
-  candidate alike, use the checked merge command (`workspace/delivery.py merge`), then the
+  candidate alike, use the checked merge command (`python3 -B workspace/delivery.py merge --pr N`), then the
   read-only delivery verifier. For a slice into `rc/next` it requires the `tests` run registered on
   the head, `delivery-ci` and Sonar green and a clean merge state, and merges with a real merge
   commit pinned to the head; a PR into `main` from any branch other than `rc/next` is refused. This

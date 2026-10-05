@@ -205,6 +205,16 @@ class DeliveryTests(unittest.TestCase):
                 self.assertIn("rc/next", text)
                 self.assertRegex(text, r"(?i)owner")
 
+    def test_finish_carriers_route_slices_through_the_gate(self):
+        # Slices merge through delivery.py's rc/next gate; no carrier tells an agent to merge by hand.
+        for carrier in (".claude/commands/session-finish.md",
+                        ".agents/skills/source-command-session-finish/SKILL.md",
+                        "workspace/README.md", "AGENTS.md"):
+            text = " ".join((d.ROOT / carrier).read_text().split())
+            with self.subTest(carrier=carrier):
+                self.assertIn("python3 -B workspace/delivery.py merge --pr", text)
+                self.assertNotIn("gh pr merge NUMBER", text)
+
     def test_old_draft_prerelease_and_unrelated_release_block(self):
         for changes in ({"tag_name": "v1.1.0"}, {"tag_name": "v1.2.0-rc.1"},
                         {"draft": True}, {"prerelease": True}, {"published_at": None}):
