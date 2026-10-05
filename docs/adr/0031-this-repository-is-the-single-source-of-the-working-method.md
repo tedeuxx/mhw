@@ -103,13 +103,23 @@ commands, which section 6 leaves out of the set; every hook.
 
 | Component | Claude Code | Codex | Kiro |
 | --- | --- | --- | --- |
-| Agent | `~/.claude/agents/<n>.md`: `tools` (an explicit `[]` for none), `disallowedTools`, and `skills` preloads | `${CODEX_HOME:-~/.codex}/agents/<n>.toml`, name with underscores; preloads and the tool list as an instruction; `sandbox_mode = "read-only"` when the agent is granted no writing tool | `~/.kiro/agents/<n>.json`: `tools` and `allowedTools` (the same list, so no prompt within purpose), `excludedTools`, preloaded skills as `file://` resources |
+| Agent | `~/.claude/agents/<n>.md`: `tools` (an explicit `[]` for none), `disallowedTools`, and `skills` preloads | `${CODEX_HOME:-~/.codex}/agents/<n>.toml`, name with underscores; preloads, the tool list and MCP use as an instruction; `sandbox_mode = "read-only"` when the agent is granted no writing tool; no `mcp_servers` narrowing rendered | `~/.kiro/agents/<n>.json`: `tools`, `excludedTools`, preloaded skills as `file://` resources; **no `allowedTools`**, so nothing is auto-approved, because Kiro carries no deny floor |
 | Skill | `~/.claude/skills/<n>/SKILL.md` | `~/.agents/skills/<n>/SKILL.md` | `~/.kiro/skills/<n>/SKILL.md` |
 | Command | `~/.claude/commands/<n>.md` | a skill in `~/.agents/skills/<n>/` with `agents/openai.yaml` `policy.allow_implicit_invocation: false`; invoked as `$<n>` | a skill in `~/.kiro/skills/<n>/`, a slash command in CLI and IDE |
 | Stamp | a `#` comment in the YAML front matter | a `#` comment (TOML, YAML); front matter comment in `SKILL.md` | front matter comment in `SKILL.md`; the first line of the agent's `prompt` (JSON has no comment) |
 
 Tool names map from Claude Code to Kiro tags: `Read`, `Grep`, `Glob` to `read`; `Write`, `Edit` to
 `write`; `Bash` to `shell`; `mcp__<server>` to `@<server>`. A tool with no mapping stops the render.
+
+**Opt-in until the plugin cutover.** The method is installed only with `./workstation install --method`
+(`install.sh --method`, `install.ps1 -Method`). Without it, and with no rendered method file present,
+the step writes nothing and prints `METHOD  not installed`. Once installed, later runs keep it current and
+`--check` covers it; `--uninstall` removes it. `./workstation status` prints a `method` line and names a
+**DUPLICATE** when the method is installed while the `tadeumendonca-skills` plugin is enabled in Claude
+Code (`enabledPlugins`) or Codex (`config.toml`). The reason, measured by the agents-lead lens on this PR:
+with both present, Claude Code 2.1.289 and Codex list every agent, skill and command twice, and the
+plugin's still-running `permission-guard.sh` keys its role rules on the namespaced agent type, so it
+refuses the bare-named agents' posting, filing and merging.
 
 **How it runs.** `install.sh` calls the renderer after its other targets, in every mode: install,
 `--check` (`OK`, `STAMP`, `DRIFT`, `MISSING`, `STALE`), `--dry-run` and `--uninstall`, so
@@ -123,9 +133,13 @@ rendered file whose source was deleted is `STALE` and removed on install.
 
 - Good: one source for the method, edited here and rendered into all three agent harnesses; Kiro gets
   the agents for the first time.
-- Good: least privilege per agent is native in Claude Code (measured) and Kiro (documented).
+- Good: least privilege per agent is native in Claude Code (measured) and Kiro (documented) as a tool
+  list. In Kiro nothing is auto-approved, so every call within the list prompts.
 - Bad: **Codex agents carry no tool list.** The limit is an instruction, plus a read-only sandbox for
-  `scrum-master`, the only agent granted no writing tool. Codex agents also have no preload field:
+  `scrum-master`, the only agent granted no writing tool. Codex documents a per-agent `mcp_servers`
+  narrowing; this step does not render it, because the server names live in the owner's untracked MCP
+  overlay (ADR-0017) and are not known here. So every Codex agent inherits the parent session's MCP
+  servers, held back by an instruction only. Codex agents also have no preload field:
   they are told to load their skills by name.
 - Bad: **Kiro is documented only.** `kiro-cli agent list` and `agent validate` need a login (measured).
   The tool tags are documented for Kiro IDE 1.x and CLI V3; on the CLI's default v2 engine they are
@@ -140,8 +154,9 @@ rendered file whose source was deleted is `STALE` and removed on install.
   subcommand, and the deny floor matches prefixes for every session alike.
 - Bad: the browser connector `product-lead` names is not defined by this step; its server definition
   is the MCP renderer's (ADR-0017).
-- Bad: while the plugin stays enabled in Claude Code, its namespaced agents and skills sit beside these
-  user-level ones, and its hooks still run, until #63 retires it.
+- Bad: installing the method while the plugin is enabled duplicates everything and lets the plugin's
+  hooks refuse the bare-named agents (above). The opt-in and the `status` warning make that visible; they
+  do not prevent it.
 - Bad: on Windows the renderer needs a Python 3.9+ interpreter on `PATH`; without one, `install.ps1` prints `SKIP` and exits 2. The Windows CI jobs are the only probe there.
 - Bad: the rendered files are large (the method's source is about 1.0 MB of text (`cat method/agents/*.md method/skills/*/SKILL.md method/commands/*.md | wc -c`), rendered once per agent harness), and Kiro
   loads preloaded skills in full at agent start.
@@ -170,9 +185,10 @@ Measured 2026-10-05 on the reference machine, in throwaway homes under the sessi
   [Skills](https://kiro.dev/docs/skills.md)).
 - **Tests:** `global/method/method_render_test.py` asserts, per rendered file, the stamp and, per agent
   and agent harness, the tool list. It was mutation-checked by breaking the renderer in a copy of the
-  tree: 17 mutations (each agent harness losing an agent's tool list, its exclusions or the stamp, an
+  tree: 19 mutations (each agent harness losing an agent's tool list, its exclusions or the stamp, an
   explicit `[]` becoming absent, the read-only sandbox dropped, `--home` ignored, a source agent
-  without `tools` accepted) all turned it red; the unmutated copy stayed green.
+  without `tools` accepted, the opt-in gate removed, Kiro auto-approval restored, the Codex MCP note
+  dropped) all turned it red; the unmutated copy stayed green.
 - **Windows:** no local PowerShell. `global/install.test.ps1` checks the rendered method (tool list,
   stamp, Codex policy file, Kiro tools, `-Check` clean) on the Windows CI jobs, which are the probe.
 

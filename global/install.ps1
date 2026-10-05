@@ -6,6 +6,7 @@
 #   install.ps1 -Check     exit non-zero if any target is missing, drifted, unmanaged, or carries a
 #                          provenance stamp other than the source's (Issue #66, ADR-0029)
 #   install.ps1 -Overlay D owner overlay directory (default: <repo>\overlay); -Overlay none for none
+#   install.ps1 -Method    opt-in (Issue #61): also render the working method; off until the plugin cutover
 #
 # Renders the brief, the deny floor and the working method (global\method\method_render.py, ADR-0031). The deny floor is merged into %USERPROFILE%\.claude\settings.json
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
@@ -24,6 +25,7 @@
 param(
     [switch]$DryRun,
     [switch]$Check,
+    [switch]$Method,
     [string]$Overlay
 )
 $ErrorActionPreference = 'Stop'
@@ -335,7 +337,9 @@ function Invoke-Method {
         Set-Status 2
         return
     }
-    & $py -B (Join-Path $scriptDir 'method\method_render.py') "--mode=$mode" "--stamp=$stamp" "--home=$home_"
+    $a = @("--mode=$mode", "--stamp=$stamp", "--home=$home_")
+    if ($Method) { $a += '--opt-in' }
+    & $py -B (Join-Path $scriptDir 'method\method_render.py') @a
     Set-Status $LASTEXITCODE
 }
 Invoke-Method

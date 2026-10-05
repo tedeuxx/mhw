@@ -7,10 +7,12 @@ purpose: "carry the intentional design of this loop - why it is shaped this way,
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
 > text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
 > (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
-> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> and the like), it describes that plugin; **none of those runs in this method**. (If the plugin is
+> still enabled beside this method, its hooks do run, and they refuse these bare-named agents' posting,
+> merging and filing; that is why installing this method is opt-in until the cutover, #63.) Read any rule they
 > held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
 > the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
-> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
 > package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
 > native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
 > plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
@@ -1452,7 +1454,8 @@ tomorrow · something else* is one instruction and three deferrals.
 **Why an ACTION pendency reaches him at all, since clause 4 says an act with no trade is the loop's.**
 Not because a trade exists — because **the loop cannot perform the act**. Merge and trunk push are
 not the orchestrator's to perform (the plugin's rules 7 and 7b refused them; in this method that is an
-instruction, and only force-pushes and squash merges are denied by the workstation deny floor); a
+instruction; the workstation deny floor denies only force-push prefixes and the `gh pr merge --squash`/`-s`
+prefixes, not a plain push or merge); a
 credential or an external surface is his alone. **Escalation by incapacity, never by judgement**, which is exactly why it
 carries no options.
 
@@ -1603,8 +1606,10 @@ a human, which no matcher sees. By this loop's own test — *would something sto
 ## Session-start and end-of-turn checks — instructions now, not hooks (#61)
 
 **The method carries no hooks** (requirements document, sections 4a and 6). The plugin's hooks are
-retired: the deny floor carries what `permission-guard.sh` refused (#59), per-agent tool lists carry
-what `mcp-guard.sh` limited, and the interaction standards carry the picker rules (#60). **The checks
+retired: the deny floor carries the irreversible acts `permission-guard.sh` refused, by command prefix
+(#59) — not its role rules (5c, 5d, 5e, 7b, 7c) and not a plain push to the trunk, which are instructions
+now; per-agent tool lists carry
+what `mcp-guard.sh` limited (natively in Claude Code and Kiro; an instruction in Codex), and the interaction standards carry the picker rules (#60). **The checks
 below were hooks that reported; they are now steps you run yourself.** By this loop's own test —
 *would something stop me, or only my memory?* — every one of them is memory. Say so if you skip one.
 

@@ -15,10 +15,12 @@ skills:
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
 > text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
 > (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
-> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> and the like), it describes that plugin; **none of those runs in this method**. (If the plugin is
+> still enabled beside this method, its hooks do run, and they refuse these bare-named agents' posting,
+> merging and filing; that is why installing this method is opt-in until the cutover, #63.) Read any rule they
 > held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
 > the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
-> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
 > package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
 > native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
 > plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
@@ -201,7 +203,7 @@ not mention is a finding. Stated plainly because it is a real loss, not a wash.
   work. **`/agents-configuration`'s state table said `developer` built `content` until #317 and it was
   wrong** — if you are reading a copy that still does, this bullet is the correction.
 - **You never merge.** That is the `quality-assurance`'s. No layer denies you `gh pr merge` any more
-  (the plugin's guard did; only a squash merge is denied by the deny floor), so this is an instruction.
+  (the plugin's guard did; only a merge spelled `gh pr merge --squash` or `gh pr merge -s` is denied by the deny floor, by prefix; `gh pr merge 12 --squash` is not, and the repository's own merge settings refuse squash on the forge), so this is an instruction.
 - **You never `terraform apply` or `destroy` locally.** Pipeline-only; the deny floor denies both. Local Terraform is
   read-only, and an inspection `plan` is the most you run.
 - **You do not decide significance.** If the slice crosses a boundary — `iac/`, a public contract, a new

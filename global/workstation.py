@@ -3,6 +3,8 @@
 
     ./workstation install                 user layer, every agent harness, hooks mode detected
     ./workstation install --admin         render and validate the admin layer; print its one sudo line
+    ./workstation install --method        also render the working method (method/); off by default until
+                                          the plugin cutover (#63, #64), kept current once installed
     ./workstation status [--verbose]      what is installed, which layers and protections, the version key
     ./workstation status --summary        the session-start runtime summary an agent harness relays (#80)
     ./workstation check                   exit non-zero when an installed target differs from this checkout
@@ -158,6 +160,7 @@ def render_status(f, verbose=False):
         managed_text(f), "installed" if user else "absent", ws_text, plugin_text))
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
+    lines.append("  method           %s" % method_text(f.get("method")))
     key = f["key"]
     if key is None:
         lines.append("  version key      none (%s absent in the workspace)" % KEY_FILE)
@@ -392,6 +395,56 @@ def workspace(project):
     return {"name": top.name, "root": top, "carriers": carriers}
 
 
+METHOD_PLUGIN = "tadeumendonca-skills"
+
+
+def codex_plugin_enabled(name):
+    """True when Codex's config.toml carries a [plugins."<name>@..."] section not set enabled = false."""
+    path = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    found, inside = False, False
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("["):
+            inside = bool(re.match(r'\[plugins\.(?:"%s@[^"]*"|%s)\]$' % (re.escape(name), re.escape(name)), s))
+            found = found or inside
+        elif inside and re.match(r"enabled\s*=\s*false\b", s):
+            return False
+    return found
+
+
+def method_state(user_lines, claude_plugins):
+    """The working method's state from install.sh --check, and where the plugin duplicates it (#61)."""
+    installed = None
+    for line in user_lines:
+        if line.startswith("METHOD  installed: "):
+            installed = True
+        elif line.startswith("METHOD  not installed"):
+            installed = False
+    dup = []
+    if any(p.split("@")[0] == METHOD_PLUGIN for p in claude_plugins):
+        dup.append("Claude Code")
+    if codex_plugin_enabled(METHOD_PLUGIN):
+        dup.append("Codex")
+    return {"installed": installed, "duplicate": dup if installed else []}
+
+
+def method_text(m):
+    if not m or m["installed"] is None:
+        return "not reported"
+    if not m["installed"]:
+        return "not installed (opt-in: ./workstation install --method, until the plugin cutover #63 #64)"
+    text = "installed in the user layer"
+    if m["duplicate"]:
+        text += ("; DUPLICATE: the %s plugin is also enabled in %s, so every agent, skill and command appears "
+                 "twice and its hooks refuse the bare-named agents; disable one of the two"
+                 % (METHOD_PLUGIN, " and ".join(m["duplicate"])))
+    return text
+
+
 def enabled_plugins(ws_root):
     """Claude Code plugins enabled in the user settings, minus those a project settings file disables."""
     enabled = {}
@@ -603,19 +656,20 @@ def gather(project):
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
             "workspace": ws, "plugins": enabled_plugins(ws["root"]), "brief": brief, "floor": floor,
             "hooks": hooks, "key": key, "runtime": runtime(), "admin_state": managed_state,
-            "settings": read_settings(ws["root"])}
+            "settings": read_settings(ws["root"]),
+            "method": method_state(user_lines, enabled_plugins(ws["root"]))}
 
 
 # ---------------------------------------------------------------------------------------------------
 # Subcommands.
 
-def cmd_install(admin_flag):
+def cmd_install(admin_flag, method=False):
     if admin_flag:
         # Renders into a stage and prints the one sudo line; the owner runs it. Never sudo here.
         code, _ = run(managed_args([]), capture=False)
         return code
     hooks_mode = "managed" if admin_installed() else "user"
-    code, _ = run(install_args(["--hooks=" + hooks_mode]), capture=False)
+    code, _ = run(install_args(["--hooks=" + hooks_mode] + (["--method"] if method else [])), capture=False)
     if admin_installed():
         acode, alines = run(managed_args(["--check"]))
         if acode == 0:
@@ -739,7 +793,7 @@ def main(argv):
         print(__doc__.split("\n\n")[1] if argv else __doc__)
         return 0 if argv else 2
     command, rest = argv[0], argv[1:]
-    overlay, project, verbose, admin, wanted, summary = None, None, False, False, None, False
+    overlay, project, verbose, admin, wanted, summary, method = None, None, False, False, None, False, False
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
@@ -751,6 +805,8 @@ def main(argv):
             summary = True
         elif arg == "--admin" and command == "install":
             admin = True
+        elif arg == "--method" and command == "install":
+            method = True
         elif command == "update" and wanted is None and not arg.startswith("-"):
             wanted = arg
         else:
@@ -763,7 +819,7 @@ def main(argv):
             return 2
         os.environ[OVERLAY_ENV] = overlay
     if command == "install":
-        return cmd_install(admin)
+        return cmd_install(admin, method)
     if command == "check":
         return cmd_check()
     if command == "update":

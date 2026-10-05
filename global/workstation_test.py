@@ -496,6 +496,39 @@ class Hooks(unittest.TestCase):
                                                     "paste filter (Codex)"])
 
 
+class MethodStatus(unittest.TestCase):
+    """Issue #61: the working method is opt-in, and status names a duplicate with the plugin."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.saved = os.environ.get("CODEX_HOME")
+        os.environ["CODEX_HOME"] = str(self.tmp)
+
+    def tearDown(self):
+        if self.saved is None:
+            os.environ.pop("CODEX_HOME", None)
+        else:
+            os.environ["CODEX_HOME"] = self.saved
+        shutil.rmtree(self.tmp)
+
+    def test_not_installed_by_default(self):
+        m = ws.method_state(["METHOD  not installed (opt-in: ...)"], ["tadeumendonca-skills@tadeumendonca"])
+        self.assertEqual(m, {"installed": False, "duplicate": []})
+        self.assertIn("opt-in: ./workstation install --method", ws.method_text(m))
+
+    def test_duplicate_named_per_agent_harness(self):
+        (self.tmp / "config.toml").write_text('[plugins."tadeumendonca-skills@tadeumendonca"]\nenabled = true\n')
+        m = ws.method_state(["METHOD  installed: 8 agents"], ["tadeumendonca-skills@tadeumendonca"])
+        self.assertEqual(m["duplicate"], ["Claude Code", "Codex"])
+        self.assertIn("DUPLICATE", ws.method_text(m))
+
+    def test_codex_plugin_disabled_is_no_duplicate(self):
+        (self.tmp / "config.toml").write_text('[plugins."tadeumendonca-skills@tadeumendonca"]\nenabled = false\n')
+        m = ws.method_state(["METHOD  installed: 8 agents"], [])
+        self.assertEqual(m["duplicate"], [])
+        self.assertNotIn("DUPLICATE", ws.method_text(m))
+
+
 class LatestRelease(unittest.TestCase):
     def test_numeric_order_and_strictness(self):
         tags = ["v3.0.0", "v3.10.0", "v3.9.9", "v4.0.0-rc1", "v10", "latest", "v3.2.1"]

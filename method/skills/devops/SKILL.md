@@ -7,10 +7,12 @@ purpose: "hold the pipeline, the state backend, branching and the permission mod
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
 > text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
 > (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
-> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> and the like), it describes that plugin; **none of those runs in this method**. (If the plugin is
+> still enabled beside this method, its hooks do run, and they refuse these bare-named agents' posting,
+> merging and filing; that is why installing this method is opt-in until the cutover, #63.) Read any rule they
 > held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
 > the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
-> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> the `gh pr merge --squash`/`-s` prefixes, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
 > package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
 > native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
 > plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
@@ -551,7 +553,8 @@ the command string, and no other. The plugin's `PreToolUse` guard hook that used
   `enforce_admins` is disabled, and agents in this loop act through such a credential. **Do not push to
   the trunk; branch and open a PR.** That is an instruction.
 - **The merge gate is the gatekeeper's own procedure.** No layer reads its verdict before a merge;
-  `gh pr merge --squash` is the only merge spelling the floor denies.
+  the floor denies only the `gh pr merge --squash` and `gh pr merge -s` prefixes, so `gh pr merge 12
+  --squash` passes it and is refused by the forge's merge settings instead.
 
 A rule keyed on an environment name (`staging`, `production`) belongs in the repo's own settings, never
 in the shared floor. The floor denies `gh api` write methods, so a read of the forge's branch-protection

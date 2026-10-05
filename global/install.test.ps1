@@ -123,8 +123,10 @@ foreach ($f in Targets $h) { Check "written: $($f.Substring($h.Length + 1))" (Te
 # 2b. the working method (Issue #61, ADR-0031): install.ps1 runs global\method\method_render.py with the
 # profile directory, and every agent harness gets its carrier, with its tool list and the stamp.
 $hm = Join-Path $Base 'home-method'; New-Item -ItemType Directory -Force -Path $hm | Out-Null
-$mout = Run $hm; Expect 'install with the working method' 0 $script:rc
-Check 'method: the METHOD summary line is printed' ([bool]($mout | Where-Object { $_ -like 'METHOD  *agents*skills*commands*' }))
+# Off by default (until the plugin cutover, #63 #64): a plain install writes no method file.
+Check 'method: a plain install renders no agent' (-not (Test-Path -LiteralPath (Join-Path $h '.claude\agents\developer.md')))
+$mout = Run $hm @('-Method'); Expect 'install with the working method (-Method)' 0 $script:rc
+Check 'method: the METHOD summary line is printed' ([bool]($mout | Where-Object { $_ -like 'METHOD  installed: *agents*skills*commands*' }))
 $ccAgent = Join-Path $hm '.claude\agents\developer.md'
 Check 'method: Claude Code agent keeps its tool list and stamp' (
     (Test-Path -LiteralPath $ccAgent -PathType Leaf) -and
@@ -134,7 +136,8 @@ Check 'method: Codex agent and implicit-off command skill rendered' (
     (Test-Path -LiteralPath (Join-Path $hm '.codex\agents\scrum-master.toml') -PathType Leaf) -and
     ([System.IO.File]::ReadAllText((Join-Path $hm '.agents\skills\autonomy\agents\openai.yaml')) -match 'allow_implicit_invocation: false'))
 $kAgent = Get-Content -LiteralPath (Join-Path $hm '.kiro\agents\developer.json') -Raw | ConvertFrom-Json
-Check 'method: Kiro agent keeps its tool list' ((@($kAgent.tools) -join ',') -ceq 'read,write,shell')
+Check 'method: Kiro agent keeps its tool list and auto-approves nothing' (
+    ((@($kAgent.tools) -join ',') -ceq 'read,write,shell') -and (-not $kAgent.PSObject.Properties['allowedTools']))
 $null = Run $hm @('-Check'); Expect 'check is clean with the working method installed' 0 $script:rc
 $kiro = @(Get-Content -LiteralPath (Join-Path $h '.kiro\steering\workstation-global-brief.md') -TotalCount 3)
 Check 'kiro file opens with inclusion: always front matter' ($kiro[0] -ceq '---' -and $kiro[1] -ceq 'inclusion: always' -and $kiro[2] -ceq '---')

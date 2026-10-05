@@ -62,10 +62,12 @@ class Home:
                     "TMPDIR": str(Path(BASE) / "tmp")}
         (Path(BASE) / "tmp").mkdir(exist_ok=True)
 
-    def run(self, *args, stamp=STAMP):
+    def run(self, *args, stamp=STAMP, opt_in=True):
         cmd = [sys.executable, "-B", str(RENDER)] + list(args)
         if stamp is not None and not any(a.startswith("--stamp=") for a in args):
             cmd.append("--stamp=" + stamp)
+        if opt_in:
+            cmd.append("--opt-in")
         p = subprocess.run(cmd, env=self.env, capture_output=True, text=True)
         return p.returncode, p.stdout + p.stderr
 
@@ -128,7 +130,8 @@ class Render(unittest.TestCase):
         self.assertEqual(self.code, 0, self.out)
         for rel in self.h.all_targets():
             self.assertTrue(self.h.p(rel).is_file(), rel)
-        self.assertIn("METHOD  %d agents, %d skills, %d commands" % (len(AGENTS), len(SKILLS), len(COMMANDS)), self.out)
+        self.assertIn("METHOD  installed: %d agents, %d skills, %d commands" % (len(AGENTS), len(SKILLS), len(COMMANDS)),
+                      self.out)
 
     def test_every_rendered_file_carries_the_stamp(self):
         missing = []
@@ -159,7 +162,8 @@ class Render(unittest.TestCase):
                     want.append(tag)
             self.assertIn("tools", doc, name)
             self.assertEqual(doc["tools"], want, name)
-            self.assertEqual(doc["allowedTools"], want, name)
+            # Kiro carries no deny floor, so nothing may be auto-approved (agents-lead lens, PR #94).
+            self.assertNotIn("allowedTools", doc, name)
             ex = ["@%s/%s" % tuple(t[5:].split("__", 1)) for t in a["excluded"]]
             self.assertEqual(doc.get("excludedTools", []), ex, name)
             self.assertEqual(doc["resources"], [self.h.p(".kiro/skills/%s/SKILL.md" % s).as_uri()
@@ -173,6 +177,8 @@ class Render(unittest.TestCase):
             tools = ", ".join(a["tools"]) if a["tools"] else "none"
             self.assertIn("Allowed tools for this agent: %s." % tools, doc["developer_instructions"], name)
             self.assertIn("carries no tool list", doc["developer_instructions"], name)
+            self.assertIn("inherit the parent session's MCP", doc["developer_instructions"], name)
+            self.assertNotIn("the one native narrowing", doc["developer_instructions"], name)
             if a["excluded"]:
                 self.assertIn("Excluded tools, even within a granted server: %s." % ", ".join(a["excluded"]),
                               doc["developer_instructions"], name)
@@ -223,6 +229,20 @@ class Render(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertEqual([p for p in h.root.rglob("*") if p.is_file()], [])
         self.assertEqual(len(re.findall(r"^WOULD WRITE ", out, re.M)), len(h.all_targets()))
+
+    def test_off_by_default_then_kept_current(self):
+        h = Home()
+        for mode in ("install", "check", "dry-run"):
+            code, out = h.run("--mode=" + mode, opt_in=False)
+            self.assertEqual(code, 0, out)
+            self.assertIn("METHOD  not installed", out)
+        self.assertEqual([p for p in h.root.rglob("*") if p.is_file()], [])
+        self.assertEqual(h.run("--mode=install")[0], 0)
+        f = h.p(".claude/agents/developer.md")
+        f.write_text(f.read_text(encoding="utf-8").replace(STAMP, OTHER), encoding="utf-8")
+        code, out = h.run("--mode=check", opt_in=False)  # once present, it is checked without the flag
+        self.assertEqual(code, 1, out)
+        self.assertRegex(out, r"(?m)^STAMP   .*developer\.md")
 
     def test_home_argument_wins_over_HOME(self):
         # install.ps1 passes --home=<profile> so a HOME set on Windows is never written to.
@@ -285,9 +305,13 @@ class ThroughTheInstaller(unittest.TestCase):
         inst = REPO / "global" / "install.sh"
         p = subprocess.run(["sh", str(inst)], env=h.env, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("METHOD  not installed", p.stdout)  # off by default until the plugin cutover
+        self.assertFalse(h.p(".claude/agents/developer.md").exists())
+        p = subprocess.run(["sh", str(inst), "--method"], env=h.env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         source = re.search(r"(?m)^SOURCE  (.*)$", p.stdout).group(1)
         self.assertIn("; %s;" % source, marker_line(h.p(".kiro/agents/quality-assurance.json")))
-        self.assertIn("METHOD  ", p.stdout)
+        self.assertIn("METHOD  installed: ", p.stdout)
         p = subprocess.run(["sh", str(inst), "--check"], env=h.env, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         p = subprocess.run(["sh", str(inst), "--uninstall"], env=h.env, capture_output=True, text=True)

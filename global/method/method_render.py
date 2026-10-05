@@ -2,7 +2,11 @@
 """Render the working method (method/) into each agent harness's user-level native carrier (ADR-0031).
 
     method_render.py --mode=install|check|dry-run|uninstall [--stamp="release: R; commit: C"] [--source=DIR]
-                     [--home=DIR]
+                     [--home=DIR] [--opt-in]
+
+Off by default (#61, until the plugin cutover #63 and #64): without --opt-in, and with no rendered file
+of the method present, it writes nothing and prints one METHOD line saying so. With --opt-in, or once a
+rendered file is present, it renders and checks every target.
 
 install.sh runs this as its own rendering step and passes the provenance stamp it derived (ADR-0029), so
 the stamp is derived once. ./workstation install, check, status and uninstall reach it through install.sh.
@@ -13,7 +17,8 @@ Carriers (ADR-0027 matrix, ADR-0031):
     Codex        ${CODEX_HOME:-~/.codex}/agents/<n>.toml (no tool list exists: an instruction, plus a
                  read-only sandbox for an agent granted no tool), ~/.agents/skills/<n>/SKILL.md, and each
                  command as a skill with agents/openai.yaml policy.allow_implicit_invocation false
-    Kiro         ~/.kiro/agents/<n>.json (tools, allowedTools, excludedTools, preloaded skills as files),
+    Kiro         ~/.kiro/agents/<n>.json (tools, excludedTools, preloaded skills as files; no allowedTools,
+                 so nothing is auto-approved: Kiro carries no deny floor),
                  ~/.kiro/skills/<n>/SKILL.md, and each command as a skill (a slash command in CLI and IDE)
 
 Every rendered file carries the managed-by line with the stamp, "source: method/...", in its own
@@ -227,9 +232,11 @@ def codex_agent(a, name, stamp):
         "Preloaded skills: %s. In Claude Code and Kiro these are loaded into your context before you start. "
         "A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\n\n"
         "Allowed tools for this agent: %s.%s A Codex custom agent carries no tool list (ADR-0027): here this "
-        "limit is an instruction, not a control. Do not use a tool outside it.%s\n\n---\n"
+        "limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent "
+        "`mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP "
+        "servers: use none that your tool list does not name.%s\n\n---\n"
         % (name, a["where"], preload, tools, excluded,
-           " This agent also runs in a read-only sandbox, the one native narrowing Codex offers." if read_only else "")
+           " This agent also runs in a read-only sandbox." if read_only else "")
         + a["body"])
     lines = ["# " + marker(a["where"], stamp),
              "name = " + json.dumps(codex_role(name), ensure_ascii=False),
@@ -265,7 +272,6 @@ def kiro_agent(a, name, stamp, kiro_skills):
         "description": a["description"],
         "prompt": "<!-- %s -->\n\n%s" % (marker(a["where"], stamp), a["body"].lstrip("\n")),
         "tools": tools,
-        "allowedTools": list(tools),
         "resources": [(kiro_skills / s / "SKILL.md").as_uri() for s in a["skills"]],
     }
     if a["excluded"]:
@@ -430,7 +436,7 @@ def remove(path):
 
 
 def main(argv):
-    mode, stamp, source = None, None, DEFAULT_SOURCE
+    mode, stamp, source, opt_in = None, None, DEFAULT_SOURCE, False
     for arg in argv:
         if arg.startswith("--mode="):
             mode = arg[len("--mode="):]
@@ -441,6 +447,8 @@ def main(argv):
         elif arg.startswith("--home="):
             global HOME_OVERRIDE
             HOME_OVERRIDE = arg[len("--home="):]
+        elif arg == "--opt-in":
+            opt_in = True
         else:
             print("method_render: unknown argument %s" % arg, file=sys.stderr)
             return 2
@@ -454,6 +462,13 @@ def main(argv):
                 remove(path)
                 print("REMOVED %s" % path)
         return run.status
+    if not opt_in and not any(ours(p) for p in candidate_files()):
+        # Off by default until the plugin cutover (#63, #64): with the plugin enabled, every agent, skill
+        # and command would appear twice, and the plugin's still-running hooks refuse the bare-named
+        # agents. Once installed by opt-in, later runs keep the files current; uninstall removes them.
+        print("METHOD  not installed (opt-in: ./workstation install --method, or install.sh --method; "
+              "off by default until the plugin cutover, #63 #64)")
+        return 0
     if not stamp or not re.fullmatch(r"release: [^;\"\\]+; commit: [^;\"\\\s]+", stamp):
         print("method_render: --stamp must be 'release: R; commit: C' as install.sh derives it", file=sys.stderr)
         return 2
@@ -477,7 +492,7 @@ def main(argv):
         else:
             remove(path)
             print("REMOVED %s (no longer in method/)" % path)
-    print("METHOD  %d agents, %d skills, %d commands from method/ into Claude Code (agents, skills, commands), "
+    print("METHOD  installed: %d agents, %d skills, %d commands from method/ into Claude Code (agents, skills, commands), "
           "Codex (custom agents without a tool list, skills; commands as skills with implicit invocation off) "
           "and Kiro (agents, skills; commands as skills)" % (len(agents), len(skills), len(commands)))
     return run.status
