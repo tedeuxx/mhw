@@ -345,7 +345,10 @@ from here now, and at what evidence level:
   `permissions.defaultMode`, a Codex allow-rules file and `workstation` profile file, and a Kiro
   `workstation` agent. The wide tier (commits, branch creation, tracker comments, test runners,
   `acceptEdits`, `workspace-write`) is rendered only while the admin deny floor is complete; otherwise a
-  read-only narrow tier and one `RISK` line. `git push` is deliberately not pre-authorised. *Written and
+  read-only narrow tier and one `RISK` line. `git push` is deliberately not pre-authorised: the owner overlay floor now
+  also denies the `-u`, `--set-upstream` and `main:main` trunk forms, but a prefix cannot see
+  `git -C`, another remote name or a `+` refspec, so the trunk's real perimeter is a server-side rule
+  the owner has not decided. *Written and
   tested* in throwaway homes and a throwaway admin root; the rendered Claude Code mode and the Codex
   profile are *measured loaded* headless, and Codex's deny-over-allow is measured with `execpolicy check`.
   Whether an allowed command runs without a prompt in a live session is **not measured** (it needs a

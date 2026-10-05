@@ -129,6 +129,21 @@ else
   ko "the deny floor is missing beside the allow list"
 fi
 
+# 4b. Issue #83: the trunk-push forms the owner overlay denies, each with a Claude Code deny rule that
+# matches it as a word prefix (the overlay is the default install's; skipped with --overlay=none).
+if [ "$overlay_floor" != /dev/null ]; then
+  missing=0
+  for b in main master; do
+    for form in "git push -u origin $b" "git push origin $b" "git push origin $b:$b" "git push origin HEAD:$b" \
+                "git push --set-upstream origin $b" "git push -u origin HEAD:$b"; do
+      n=$(jq --arg f "$form " '[.permissions.deny[] | select(startswith("Bash(")) | sub("^Bash\\("; "") | sub(":\\*\\)$"; "")
+            | select(. as $p | $f | startswith($p + " "))] | length' "$s")
+      [ "$n" -ge 1 ] || { missing=1; echo "  no deny rule for: $form"; }
+    done
+  done
+  if [ "$missing" -eq 0 ]; then ok "every trunk-push form has a deny rule beside the allow list"; else ko "a trunk-push form has no deny rule"; fi
+fi
+
 # 5. Invalid or floor-overlapping entries stop the run before anything is written.
 for bad in "wide cmd git push" "narrow cmd sudo -n" "narrow cmd git *" "loose cmd git status" "wide tool Edit"; do
   ov="$base/ov-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"; hb="$base/home-bad-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"
@@ -203,6 +218,15 @@ if [ -n "$cx" ] && [ -x "$cx" ]; then
     d=$(HOME="$base/cx" CODEX_HOME="$base/cx" "$cx" execpolicy check -r "$r1" -r "$r2" -- $words x 2>/dev/null | jq -r .decision)
     [ "$d" = forbidden ] || { bad=1; echo "  not forbidden: $words ($d)"; }
   done < "$base/floor.words"
+  if [ "$overlay_floor" != /dev/null ]; then
+    for b in main master; do
+      for form in "git push -u origin $b" "git push origin $b:$b" "git push -u origin HEAD:$b" "git push --set-upstream origin $b"; do
+        # shellcheck disable=SC2086
+        d=$(HOME="$base/cx" CODEX_HOME="$base/cx" "$cx" execpolicy check -r "$r1" -r "$r2" -- $form 2>/dev/null | jq -r .decision)
+        [ "$d" = forbidden ] || { bad=1; echo "  trunk form not forbidden: $form ($d)"; }
+      done
+    done
+  fi
   if [ "$bad" -eq 0 ]; then ok "codex: every floor prefix stays forbidden with the allow list loaded"; else ko "codex: a floor prefix is not forbidden"; fi
 else
   echo "SKIP  codex not found; the execpolicy arm did not run"

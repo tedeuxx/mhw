@@ -80,10 +80,19 @@ count, the Codex profile's sandbox mode and allow-rule count, and the Kiro trust
 
 ### Gaps, stated
 
-- **`git push` is not pre-authorised.** The floor denies only some spellings of pushing to the trunk or
-  tags. `git push -u origin main` and `git push origin main:main` match no floor entry, so an allow
-  would let them run without a prompt. Pushing stays a prompt until the trunk is protected by a control
-  that does not depend on spelling.
+- **`git push` is not pre-authorised, and the floor cannot make it safe to.** This slice added the
+  upstream-setting and refspec trunk forms to the owner overlay floor (`git push -u origin main`,
+  `--set-upstream`, `origin main:main`, `-u origin HEAD:main`, and the same for `master`); with the
+  wide allow list loaded, Codex 0.160.0 `execpolicy check` returns `forbidden` for all twelve, and the
+  Claude Code settings carry a matching `Bash(...:*)` deny for each (rendered, not live-measured).
+  **A prefix still sees only the spellings it lists.** Measured as *no match* in Codex:
+  `git -C <dir> push origin main`, `git push upstream main` (another remote name),
+  `git push origin feature:main`, `git push origin refs/heads/main`. A `+` refspec (`git push origin
+  +feature`) force-pushes past every `--force` entry. An allow of `git push` would let all of those
+  run without a prompt, so the installer's floor-overlap refusal keeps it out, and pushing stays a
+  prompt. **The real perimeter for the trunk is a server-side rule on `main`** (a GitHub ruleset or
+  branch protection that applies to administrators). That is the owner's decision and is not applied
+  here; #89 only checks repository settings.
 - **Codex has no default-profile selector here.** Codex 0.160.0 refuses `--profile` while `config.toml`
   holds a `[profiles.*]` table or a top-level `profile =` line ("legacy"), so the profile is a separate
   file and the owner opts in per session with `--profile workstation`.
