@@ -120,7 +120,7 @@ Measured 2026-10-05 in throwaway homes and a throwaway admin root under the sess
   foreign file, a foreign settings key and a foreign deny rule, and with an admin layer printed the
   `sudo … --remove` line.
 - `global/workstation_test.py`: the comparison table, the status view, one end-to-end run of the real
-  installers, and `update`/`uninstall` against their own clones, the hooks read per layer, the overlay validation and deny ownership. Thirty-three source mutations
+  installers, and `update`/`uninstall` against their own clones, the hooks read per layer, the overlay validation and deny ownership. Thirty-seven source mutations
   (`global/workstation.py` and `install.sh --uninstall`), in a copy of the tree, each turned the suite
   red; the unmutated copy stayed green.
 

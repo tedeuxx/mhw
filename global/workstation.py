@@ -220,19 +220,20 @@ def run(args, capture=True):
     return p.returncode, ((p.stdout or "") + (p.stderr or "")).splitlines() if capture else []
 
 
-def install_args(extra, overlay):
+# The validated --overlay reaches the installers through this environment variable, never through their
+# argv: main() sets it once, every child inherits it, and no CLI string is forwarded as an argument.
+OVERLAY_ENV = "WORKSTATION_OVERLAY"
+
+
+def install_args(extra):
     args = ["sh", str(INSTALL)] + extra
-    if overlay is not None:
-        args.append("--overlay=" + overlay)
     if managed_root():
         args.append("--managed-root=" + managed_root())
     return args
 
 
-def managed_args(extra, overlay):
+def managed_args(extra):
     args = ["sh", str(INSTALL_MANAGED)] + extra
-    if overlay is not None:
-        args.append("--overlay=" + overlay)
     if managed_root():
         args.append("--root=" + managed_root())
     return args
@@ -398,17 +399,17 @@ def summarise_protections(user_lines):
     return "installed in %d/3 agent harnesses (an instruction)" % brief, floor, hooks_text(read_hooks())
 
 
-def gather(overlay, project):
+def gather(project):
     admin = admin_installed()
     hooks_mode = "managed" if admin else "user"
-    code, user_lines = run(install_args(["--check", "--hooks=" + hooks_mode], overlay))
+    code, user_lines = run(install_args(["--check", "--hooks=" + hooks_mode]))
     source = "none"
     for line in user_lines:
         if line.startswith("SOURCE  "):
             source = line[len("SOURCE  "):]
     admin_lines, admin_stamp = [], "none"
     if admin:
-        _, admin_lines = run(managed_args(["--check"], overlay))
+        _, admin_lines = run(managed_args(["--check"]))
         try:
             value = json.loads(admin_dropin().read_text(encoding="utf-8"))[NAME]
             m = re.search(r"; (release: [^;]*; commit: [^;]*);", value)
@@ -435,15 +436,15 @@ def gather(overlay, project):
 # ---------------------------------------------------------------------------------------------------
 # Subcommands.
 
-def cmd_install(overlay, admin_flag):
+def cmd_install(admin_flag):
     if admin_flag:
         # Renders into a stage and prints the one sudo line; the owner runs it. Never sudo here.
-        code, _ = run(managed_args([], overlay), capture=False)
+        code, _ = run(managed_args([]), capture=False)
         return code
     hooks_mode = "managed" if admin_installed() else "user"
-    code, _ = run(install_args(["--hooks=" + hooks_mode], overlay), capture=False)
+    code, _ = run(install_args(["--hooks=" + hooks_mode]), capture=False)
     if admin_installed():
-        acode, alines = run(managed_args(["--check"], overlay))
+        acode, alines = run(managed_args(["--check"]))
         if acode == 0:
             print("ADMIN   installed and matching this checkout")
         else:
@@ -451,7 +452,7 @@ def cmd_install(overlay, admin_flag):
                   "and its one sudo line" % max(issues(alines), 1))
     else:
         print("ADMIN   not installed; ./workstation install --admin prints its one sudo line")
-    ccode, clines = run(install_args(["--check", "--hooks=" + hooks_mode], overlay))
+    ccode, clines = run(install_args(["--check", "--hooks=" + hooks_mode]))
     if ccode == 0:
         print("CHECK   every user-level target matches this checkout")
     else:
@@ -476,7 +477,7 @@ def git(*args):
     return run(["git", "-C", str(ROOT)] + list(args))
 
 
-def cmd_update(overlay, wanted):
+def cmd_update(wanted):
     """Fetch tags, check out the newest release (or the one asked for), then install from it. Refuses on a
     working tree with a tracked change, so nothing uncommitted is carried into or lost by the checkout."""
     code, dirty = git("status", "--porcelain", "--untracked-files=no")
@@ -493,15 +494,23 @@ def cmd_update(overlay, wanted):
         return 2
     _, tags = git("tag", "--list", "v*")
     if wanted is not None:
-        if not _RELEASE.fullmatch(wanted):
-            print("REFUSE  %s is not a numeric release tag (vX.Y.Z)" % wanted, file=sys.stderr)
+        # The tag passed to git is the repository's own tag name, never the CLI string.
+        known = [t for t in tags if _RELEASE.fullmatch(t) and t == wanted]
+        if not known:
+            print("REFUSE  %s is not a numeric release tag of this repository (vX.Y.Z)" % wanted,
+                  file=sys.stderr)
             return 2
-        target = wanted
+        target = known[0]
     else:
         target = latest_release(tags)
         if target is None:
             print("REFUSE  no numeric release tag found", file=sys.stderr)
             return 2
+    new_entry = git("cat-file", "-e", target + ":global/workstation.py")[0] == 0
+    if not new_entry and os.environ.get(OVERLAY_ENV) is not None:
+        print("REFUSE  %s predates ./workstation and cannot receive --overlay; nothing checked out" % target,
+              file=sys.stderr)
+        return 2
     _, before = git("rev-parse", "--abbrev-ref", "HEAD")
     if before == ["HEAD"]:
         _, before = git("rev-parse", "--short", "HEAD")
@@ -512,17 +521,16 @@ def cmd_update(overlay, wanted):
     print("UPDATE  checked out %s (detached; was %s)" % (target, (before or ["?"])[0]), flush=True)
     # Install with the code of the release just checked out, not with this process's copy.
     new = ROOT / "global" / "workstation.py"
-    extra = ["--overlay=" + overlay] if overlay is not None else []
     if new.is_file():
-        return run([sys.executable, "-B", str(new), "install"] + extra, capture=False)[0]
+        return run([sys.executable, "-B", str(new), "install"], capture=False)[0]
     hooks_mode = "managed" if admin_installed() else "user"
-    return run(install_args(["--hooks=" + hooks_mode], overlay), capture=False)[0]
+    return run(install_args(["--hooks=" + hooks_mode]), capture=False)[0]
 
 
-def cmd_uninstall(overlay):
-    code, _ = run(install_args(["--uninstall"], overlay), capture=False)
+def cmd_uninstall():
+    code, _ = run(install_args(["--uninstall"]), capture=False)
     if admin_installed():
-        _, lines = run(managed_args(["--uninstall"], overlay))
+        _, lines = run(managed_args(["--uninstall"]))
         for line in lines:
             if line.startswith("RUN "):
                 print(line)
@@ -533,11 +541,11 @@ def cmd_uninstall(overlay):
     return code
 
 
-def cmd_check(overlay):
+def cmd_check():
     hooks_mode = "managed" if admin_installed() else "user"
-    code, _ = run(install_args(["--check", "--hooks=" + hooks_mode], overlay), capture=False)
+    code, _ = run(install_args(["--check", "--hooks=" + hooks_mode]), capture=False)
     if admin_installed():
-        acode, _ = run(managed_args(["--check"], overlay), capture=False)
+        acode, _ = run(managed_args(["--check"]), capture=False)
         code = max(code, acode)
     return code
 
@@ -578,16 +586,17 @@ def main(argv):
         if overlay is None:
             print("workstation: --overlay takes 'none' or an existing directory", file=sys.stderr)
             return 2
+        os.environ[OVERLAY_ENV] = overlay
     if command == "install":
-        return cmd_install(overlay, admin)
+        return cmd_install(admin)
     if command == "check":
-        return cmd_check(overlay)
+        return cmd_check()
     if command == "update":
-        return cmd_update(overlay, wanted)
+        return cmd_update(wanted)
     if command == "uninstall":
-        return cmd_uninstall(overlay)
+        return cmd_uninstall()
     if command == "status":
-        for line in render_status(gather(overlay, project), verbose):
+        for line in render_status(gather(project), verbose):
             print(line)
         return 0
     print("workstation: unknown subcommand %s (install, install --admin, status, check, update, uninstall)" % command,

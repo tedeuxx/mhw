@@ -11,7 +11,9 @@
 #   install.sh --check          exit non-zero if any target is missing, drifted, unmanaged, or carries a
 #                               provenance stamp (release and commit) other than the source's; each
 #                               line names the stamp the installed file carries (Issue #66, ADR-0029)
-#   install.sh --overlay=DIR    owner overlay directory (default: <repo>/overlay); --overlay=none for none
+#   install.sh --overlay=DIR    owner overlay directory (default: <repo>/overlay); --overlay=none for none.
+#                               WORKSTATION_OVERLAY=DIR|none in the environment sets the same default
+#                               (./workstation passes it that way); an --overlay argument wins over it
 #   install.sh --hooks=managed  the hooks run from the admin layer (install-managed.sh, ADR-0025): remove
 #                               this project's hook entries from the user settings and its Codex
 #                               hooks.json instead of writing them (default --hooks=user)
@@ -60,6 +62,9 @@ CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-gua
 mode=install
 hooks_mode=user
 overlay="$repo_root/overlay"
+if [ "${WORKSTATION_OVERLAY+set}" = set ]; then
+  case $WORKSTATION_OVERLAY in none) overlay= ;; *) overlay=$WORKSTATION_OVERLAY ;; esac
+fi
 managed_root=
 for arg in "$@"; do
   case $arg in
@@ -71,7 +76,7 @@ for arg in "$@"; do
     --hooks=managed) hooks_mode=managed ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done

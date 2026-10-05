@@ -158,6 +158,9 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("  check            matches this checkout\n", out)
         self.assertIn("managed: absent · user: installed", out)
         self.assertIn("brief: installed in 3/3 agent harnesses", out)
+        # --overlay=none reached the installer: the brief names no overlay as its source.
+        marker = (self.base / "home" / ".claude" / "CLAUDE.md").read_text(encoding="utf-8").splitlines()[0]
+        self.assertIn("source: global/AGENTS.md;", marker)
         self.assertIn("  version key      >=999 <1000: mismatch\n", out)
         self.assertIn("Workstation version key: required >=999 <1000, installed ", out)
         self.assertIn("hooks registered: admin: none · user: picker guard (Claude Code), "
@@ -204,6 +207,22 @@ class Overlay(unittest.TestCase):
         finally:
             ws.run = real
         self.assertEqual(calls, [])
+
+    def test_overlay_travels_in_the_environment_not_argv(self):
+        calls = []
+        real, saved = ws.run, os.environ.get(ws.OVERLAY_ENV)
+        ws.run = lambda *a, **k: calls.append(a[0]) or (0, [])
+        try:
+            self.assertEqual(ws.main(["check", "--overlay=none"]), 0)
+            self.assertEqual(os.environ.get(ws.OVERLAY_ENV), "none")
+        finally:
+            ws.run = real
+            if saved is None:
+                os.environ.pop(ws.OVERLAY_ENV, None)
+            else:
+                os.environ[ws.OVERLAY_ENV] = saved
+        self.assertTrue(calls)
+        self.assertFalse([a for argv in calls for a in argv if "overlay" in a])
 
 
 class Hooks(unittest.TestCase):
@@ -340,6 +359,15 @@ class UpdateAndUninstall(unittest.TestCase):
             code, out = self.ws("update", ref)
             self.assertEqual(code, 2, out)
             self.assertEqual(self.head(), "v9.0.0")
+        # A release that predates ./workstation cannot receive --overlay: refused before any checkout.
+        origin = self.base / "origin"
+        self.git(origin, "rm", "-q", "global/workstation.py")
+        self.git(origin, "commit", "-q", "-m", "old shape")
+        self.git(origin, "tag", "v1.0.0")
+        code, out = self.ws("update", "v1.0.0")
+        self.assertEqual(code, 2, out)
+        self.assertIn("predates ./workstation", out)
+        self.assertEqual(self.head(), "v9.0.0")
         with open(self.clone / "README.md", "a", encoding="utf-8") as fh:
             fh.write("local edit\n")
         code, out = self.ws("update")
