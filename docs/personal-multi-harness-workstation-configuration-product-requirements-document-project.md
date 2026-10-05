@@ -614,6 +614,11 @@ agent harnesses, carries the commit SHA and the SemVer tag it came from, written
 - **Drift check:** `status` compares each file's stamp and content hash with the manifest and names any
   file that was edited by hand or left behind by an older version.
 - **Generated plugin:** every file in the `tadeumendonca-skills` mirror carries the same stamp.
+- **As built for the installers (2026-10-05, [ADR-0029](adr/0029-provenance-stamp-in-every-installed-file.md)):**
+  the JSON files carry the stamp in a field the agent harness ignores (Codex `hooks.json`
+  `description`; one top-level key in the Claude Code settings and admin drop-in), measured to load,
+  instead of an installed manifest. `install.sh --check` and `install-managed.sh --check` report the
+  stamp. Not yet stamped: `install.ps1` and the MCP renderer.
 
 ## 9b. One install command, managed by the repository
 
