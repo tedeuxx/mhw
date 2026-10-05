@@ -4,6 +4,17 @@ description: "Apply the platform's working-files and shell discipline in any `<p
 purpose: "state the working-file and shell discipline once, because the same procedure copied into every brief is exactly what a preloaded skill exists to remove"
 ---
 
+> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
+> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
+> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
+> the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
+> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
+> native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
+> plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
+
 Apply this working-files and shell-command discipline in any `<project>` repo, for any persona dispatched
 into it.
 
@@ -16,9 +27,10 @@ apenas»* — during the pass that put every distributed mechanism to him one at
 not change; the identifier did, because *hygiene* names a virtue and *shell* names the object.
 
 **One mechanism difference is NOT renamed away, and it is the part worth knowing if this file is read
-on other machinery:** here **part of** the discipline is **enforced** — `permission-guard.sh` denies
-`$(...)`/backticks, `VAR=x` prefixes and a redirect that creates a file, which is why those rules read
-as facts rather than as advice. ~~denies chained commands, stdout redirects and `2>/dev/null`
+on other machinery:** in the plugin, **part of** the discipline was **enforced** — its retired
+`permission-guard.sh` denied `$(...)`/backticks, `VAR=x` prefixes and a redirect that creates a file.
+**No hook does that in this method (#61).** What still stops for a human is the agent harness's own
+permission matcher, measured below; the rest of this file is an instruction you follow. ~~denies chained commands, stdout redirects and `2>/dev/null`
 outright~~ — **struck 2026-09-05 (#383): the chain branch is removed and a `/dev/null` target is
 exempt, both measured. See the table below.** The atomic-call preference is an instruction here too.
 On a harness without that guard the same file is an instruction only, and a
@@ -135,8 +147,9 @@ Put the flag after the subcommand and it matches.
 `command > path` prompts a human regardless of destination — `.scratch/`, the session scratchpad,
 anywhere — and regardless of whether `command` itself is allowlisted; measured directly, repeatedly, in
 this session (`git show … > file`, `gh pr diff … > file`, a generator script's own stdout). Guidance
-alone did not hold — the pattern kept recurring after it was already diagnosed — so
-`hooks/scripts/permission-guard.sh` denies it outright now. Two routes cover everything `>` was used
+alone did not hold — the pattern kept recurring after it was already diagnosed — so the plugin's
+retired `permission-guard.sh` denied it outright. **That hook is gone; the rule is now an instruction,
+and the agent harness's own prompt is what still stops a file-creating redirect.** Two routes cover everything `>` was used
 for: content the agent is composing itself goes through `Write`; content that is a command's own stdout
 is obtained by running the command *without* the redirect (the output already returns to the caller) and
 `Write`-ing it from there if it needs to persist. `2>&1` / `1>&2` / `>&2` (redirecting one stream to

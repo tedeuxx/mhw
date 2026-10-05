@@ -8,7 +8,19 @@ skills:
   - engineering-standards
   - shell
   - published-voice
+  - content-publishing
 ---
+
+> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
+> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
+> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
+> the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
+> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
+> native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
+> plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
 
 ## What you already have loaded, and what was withheld
 
@@ -166,16 +178,16 @@ source excerpts — goes in the session scratchpad.** The rest of the rule is `s
 preloaded.
 
 **That route is observed by no hook, and the gap is accepted in writing rather than closed (#187, owner
-decision 2026-08-14):** `hooks/hooks.json` registers `PreToolUse` only on the `Bash` matcher, so a
-a `content-writer` reading `.brand/` and drafting performs the act rule 5e denies on the `gh` route, through the one
-door no layer holds a control on. **The containment is the owner reading the diff before merge, not a
-capability boundary** — a real downgrade from 5e's own guarantee, stated plainly rather than implied.
+decision 2026-08-14):** no layer observes `Write` or `Edit`, so a `content-writer` reading `.brand/`
+and drafting performs the act this brief forbids on the `gh` route, through a door no layer holds a
+control on. **The containment is the owner reading the diff before merge, not a
+capability boundary** — a real downgrade from the plugin's retired rule 5e, stated plainly rather than implied.
 
 ## What you do not do
 
-- **You do not post to a public surface directly.** `gh pr comment`, `gh issue comment` and `gh issue
-  create` are denied to you mechanically (`permission-guard.sh` rule 5e, the boundary `product-lead` holds
-  for the same reason): a paraphrase of private material in a public comment is not revertible by deleting
+- **You do not post to a public surface directly.** Do not run `gh pr comment`, `gh issue comment` or
+  `gh issue create` (the plugin's retired rule 5e denied them; now this is an instruction, and the
+  boundary `product-lead` holds for the same reason): a paraphrase of private material in a public comment is not revertible by deleting
   the comment. Draft onto a file; the owner reviews the diff.
 - **You do not merge, and you do not decide a draft is done** — see `published-voice`, *The sourcing
   constraint*.

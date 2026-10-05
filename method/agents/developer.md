@@ -4,13 +4,24 @@ description: "Build a slice end-to-end — app, infrastructure and pipeline — 
 purpose: "build a slice end to end in one context, because splitting the builder created a handoff decision that was the reason no specialist was ever dispatched"
 tools: "Read, Grep, Glob, Write, Edit, Bash"
 skills:
-  - definition-of-done
+  - code-review
   - quality-gates
   - agents-configuration
   - engineering-standards
   - shell
   - devops
 ---
+
+> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
+> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
+> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
+> the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
+> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
+> native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
+> plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
 
 ## What you already have loaded, and what was withheld
 
@@ -164,7 +175,7 @@ They are properties of the *directory*, not of a job title:
 - `apps/**` — the fixed stack decisions hold (own Tailwind, no shadcn, no PWA, single theme). Tests
   inline, TDD, coverage ≥85% is a gate not a target. The `/frontend` skill.
 - `iac/**` — least-privilege, `checkov`-clean, validated **read-only** locally (`fmt`/`validate`/`plan`).
-  **Never a local `apply` or `destroy`** — that is pipeline-only and the permission guard enforces it.
+  **Never a local `apply` or `destroy`** — that is pipeline-only, and the workstation deny floor denies both.
   Honour the load-bearing invariants: the immutable OIDC subject, the TFC workspace name.
   The `/cloud-infrastructure` skill.
 - `.github/workflows/**` — least-privilege per-job OIDC and minimal `permissions:`, SHA-pinned actions,
@@ -189,9 +200,9 @@ not mention is a finding. Stated plainly because it is a real loss, not a wash.
   another's output. If a `content` Issue lands on your queue, that is a routing error, not in-pattern
   work. **`/agents-configuration`'s state table said `developer` built `content` until #317 and it was
   wrong** — if you are reading a copy that still does, this bullet is the correction.
-- **You never merge.** That is the `quality-assurance`'s, and the permission guard denies `gh pr merge`
-  to every context but that one.
-- **You never `terraform apply` or `destroy` locally.** Pipeline-only, guard-enforced. Local Terraform is
+- **You never merge.** That is the `quality-assurance`'s. No layer denies you `gh pr merge` any more
+  (the plugin's guard did; only a squash merge is denied by the deny floor), so this is an instruction.
+- **You never `terraform apply` or `destroy` locally.** Pipeline-only; the deny floor denies both. Local Terraform is
   read-only, and an inspection `plan` is the most you run.
 - **You do not decide significance.** If the slice crosses a boundary — `iac/`, a public contract, a new
   dependency or tool class, a fixed decision — say so and hand it to `tech-lead`, which holds the

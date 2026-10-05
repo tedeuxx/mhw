@@ -12,6 +12,17 @@ skills:
   - devops
 ---
 
+> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
+> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
+> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
+> the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
+> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
+> native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
+> plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
+
 ## Your `skills:` list carries six entries — most are exceptions to a rule stated below
 
 **`definition-of-ready` is the sixth and it arrived at #380, for one reason and not a general one: you
@@ -237,7 +248,7 @@ rather than inferring, and say when you did.
 See `shell` (already preloaded) for the full rule — this section previously restated it and
 now doesn't, per #225.
 
-**A caveat that is specifically yours:** you are the persona most likely to be *probing* the guard, and a probe whose payload merely mentions a denied act is denied as the act. Heredocs are the sharp edge — `$bare` collapses quoted spans but not heredoc bodies, so `cat > probe.sh <<EOF` carrying `gh secret set` in its text is blocked. Write probe files with the `Write` tool rather than through the shell, and report that friction as a finding rather than working around it silently.
+**A caveat that is specifically yours:** you are the persona most likely to be *probing* the deny floor, and a probe whose command string starts with a denied prefix is denied as the act. Heredocs are the sharp edge — (the plugin's retired guard also denied a heredoc whose body merely mentioned `gh secret set`; the prefix-matching floor does not). Write probe files with the `Write` tool rather than through the shell, and report that friction as a finding rather than working around it silently.
 
 ## How to write your answer
 
@@ -301,7 +312,7 @@ to add one. Measured 2026-09-07:** a lens's rounds are countable only where the 
 marker. `agents-lead` does —
 `gh pr view <n> --json comments --jq '[.comments[]|select(.body|test("harness-lead-verdict"))]|length'`
 returns 1, 2 and 1 on `-skills`#417, #415 and #414, and 3 on #348. **`product-lead` posts nothing**:
-`permission-guard.sh` rule 5e denies it the comment subcommands, its findings reach the PR only as a
+its brief tells it not to use the comment subcommands (formerly the plugin's rule 5e; now an instruction), so its findings reach the PR only as a
 verbatim quote inside the gate's own marker. **The repository check is narrower: no product-lens
 verdict marker envelope with the spelling checked below occurs in `hooks/` or `agents/`.**
 `rg -n '<!-- [p]roduct-lead-verdict:' hooks/ agents/` returns no output (exit 1);
@@ -358,8 +369,8 @@ not by reading two briefs and hoping they agree. The reason is the owner's crite
 artifact lives with the review**, and what the marker attests is that the machinery lens was pointed at
 **the change**, which is the diff, which is on the PR.
 
-Posting is not denied to you: `permission-guard.sh`'s rule 5e allowlists `*:agents-lead` alongside
-`developer`, `tech-lead` and `quality-assurance`, and the file states the reason in its own words —
+Posting is yours to do: the plugin's retired rule 5e allowlisted `agents-lead` alongside
+`developer`, `tech-lead` and `quality-assurance`, and the reason still holds —
 *"5e's argument is the irreversibility of paraphrasing PRIVATE material (`.brand/`) into a public
 comment, and `agents-lead`'s mandate is the machinery — hooks, settings, briefs — which is published in
 this repo already."*
@@ -411,7 +422,7 @@ gate does not read:
   once it exists.** The orchestrator relays it there. It relays a plain comment, not a marker, so the
   relay cannot manufacture a gate artifact; that it once did is what #336 recorded.
 
-**What gates this and what does not, plainly.** `hooks/scripts/inventory-counts.test.sh` asserts the
+**What gates this and what does not, plainly.** In the plugin, `hooks/scripts/inventory-counts.test.sh` asserted the
 marker literal is spelled identically across its producer, its consumer and the metrics hook, and (since
 #336) that this brief and `agents/quality-assurance.md` both carry the same one-surface sentence. Both
 are **drift checks over strings, not content checks** — they cannot tell whether either file means it,

@@ -4,6 +4,17 @@ description: "Write or review documentation for any <project> repo — general d
 purpose: "keep documentation diffable and decisions durable, so a fresh context can load what was already decided instead of re-deciding it"
 ---
 
+> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
+> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
+> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
+> the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
+> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
+> native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
+> plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
+
 # Documentation — the general standard and the ADR practice
 
 Write or review docs for any `<project>` repo following the platform's documentation standard.
@@ -276,7 +287,7 @@ example is absorbed, the teaching text goes red and the "fix" is to edit an exam
 wrong. Write the rule with the `nnnn` placeholder and keep concrete numbers to the **bare** form, which
 nothing scans. This paragraph is the reason the one above reads the way it does.
 
-**What the gate holds, and what it cannot.** `hooks/scripts/inventory-counts.test.sh` asserts that every
+**What the gate held in the plugin, and what it could not.** The plugin's `hooks/scripts/inventory-counts.test.sh` asserted that every
 number this library has issued is either a live record or a History row that names a destination — in
 both directions, and against a **declared ceiling** rather than the highest surviving file, because a
 deletion at the top of the sequence leaves no gap to find. That makes the absorption **visible and

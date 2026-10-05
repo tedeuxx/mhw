@@ -4,6 +4,17 @@ description: "Operate DevOps for a `<project>` repo — GitHub Actions, Terrafor
 purpose: "hold the pipeline, the state backend, branching and the permission model in one place, so an infrastructure mutation has exactly one route and that route is CI"
 ---
 
+> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
+> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
+> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
+> the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
+> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
+> native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
+> plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
+
 Operate the DevOps capability for any `<project>` repo — GitHub Actions, Terraform Cloud, branching, and
 the permission floor that keeps infrastructure mutation pipeline-only. Pick the repo's loop model first —
 everything below (branching, environments, the permission boundary) follows from it.
@@ -425,8 +436,9 @@ floor stays in Deny rather than moving to this layer.
 `develop` (the branch doesn't exist); don't deny working on `main` (it's the working branch); don't add
 `*prd*` deny patterns for environments the repo doesn't have.
 
-**Two layers.** Global (`~/.claude/settings.json`): the universal floor — deny the always-forbidden and
-register the guard hook, protecting every repo even with no local config. Per-project (committed
+**Two layers.** The workstation floor: the always-forbidden as native deny rules (on this workstation,
+`global/deny-floor.conf`, rendered per agent harness, ADR-0016), protecting every repo even with no
+local config. No guard hook backs it any more (#61). Per-project (committed
 `.claude/settings.json`): the inner-loop allow for that repo's stack — a versioned repo contract, never
 `settings.local.json`. **Deny from any layer wins**, so the global floor is inescapable and the project
 layer only adds autonomy. **Never `--dangerously-skip-permissions`.**
@@ -527,49 +539,23 @@ property of the host's operating mode, not of the hook, and it is a measurement 
 Third, **measure the mode your humans actually run before you rely on it**: two contexts here give
 opposite answers, and the reassuring one is the cheap one to obtain.
 
-**Enforcement = static deny + the guard hook.** Static allow/deny covers every case where the target is
-visible in the command string. The `PreToolUse` guard hook (`hooks/permission-guard.sh`, matcher `Bash`)
-is the backstop for the irreversible floor in every repo regardless of model — inspects the command
-string only, fails open on a parse error by design. **One rule is excepted, and only one: the merge
-floor (rule 7c) fails CLOSED since 2026-08-28** — if it cannot READ the gatekeeper's verdict on the PR
-(no `gh`, no network, expired auth, a PR ref resolving to nothing), the merge is denied with a message
-naming which precondition was missing, rather than passing silently. The owner's rule for that case is
-*no readable verdict, no merge*, and the unblock is his. **Do not read that as the guard's general
-posture** — everything else here still fails open, and the criterion for the exception is that this one
-rule's degradation lands on the irreversible act itself. ~~**It is deliberately branch-agnostic**: no
-`git branch`/`rev-parse` call, no environment-name matching~~ — **STRUCK 2026-09-02 (#383): the
-property is false, and the sentence was technically-true-and-misleading, which is the worse shape.**
-The literal half held (no `git branch`, no `rev-parse`); the property it asserted did not. The trunk-push
-rule **resolves the checked-out branch and denies on it**, using a third command the sentence did not
-name:
+**Enforcement = the static deny floor, and nothing else.** On this workstation the irreversible floor
+is `global/deny-floor.conf`, rendered as native deny rules into Claude Code and Codex (ADR-0016). It
+matches **command prefixes** only, so it holds every case where the target is visible at the start of
+the command string, and no other. The plugin's `PreToolUse` guard hook that used to back it
+(`permission-guard.sh`), including its fail-closed merge rule and its trunk-push rule, is **retired**
+(requirements document, section 4a). Two consequences to carry:
 
-```
-branch="$(git -C "$dir" symbolic-ref --short HEAD 2>/dev/null || true)"
-case "$branch" in main|master) deny "…HEAD is '$branch', so this push lands on the trunk…" ;; esac
-```
+- **A plain push to `main` is not denied by any layer here.** The floor denies force-pushes, not a
+  fast-forward push. Branch protection on `main` does not stop an administrator credential when
+  `enforce_admins` is disabled, and agents in this loop act through such a credential. **Do not push to
+  the trunk; branch and open a PR.** That is an instruction.
+- **The merge gate is the gatekeeper's own procedure.** No layer reads its verdict before a merge;
+  `gh pr merge --squash` is the only merge spelling the floor denies.
 
-`symbolic-ref` rather than `rev-parse` is deliberate in the guard — it reports the branch even on an
-unborn HEAD, where `rev-parse` fails and the check would silently skip. **So the hook reads the branch;
-what it does not read is an ENVIRONMENT NAME**, and that is the property that actually makes one hook
-correct under both loop models. A rule keyed on `staging`/`production` belongs in the repo's own
-`settings.json`, never the shared hook. **And the local deny is the only layer refusing that push today, which is a
-CONTINGENCY rather than a property.** Branch protection on `main` is configured with
-`enforce_admins` disabled, so protection does not apply to administrators — and every agent in this
-loop acts through an admin credential, so the forge would accept the push the hook refuses. Read
-2026-09-02:
-
-```
-gh api repos/<owner>/<repo>/branches/main/protection --jq '.enforce_admins.enabled'   → false
-```
-
-**Carry the caveat wherever that fact is repeated:** if `enforce_admins` is ever enabled the forge
-starts refusing this actor and the local rule becomes the redundant layer — **and nothing in this
-plugin observes that today**. The setting lives at the forge and changes without a commit, and the
-command above is denied to every context **inside the loop** by the `Bash(gh api:*)` floor entry, so
-the reading is a human's. **Treat it as dated, not as settled — and note the gap is unwatched rather
-than unwatchable**: CI is not an in-loop context and that floor entry does not reach it, so a job
-that re-reads the setting is buildable, one token-scope decision away. Nothing here forecloses
-closing it.
+A rule keyed on an environment name (`staging`, `production`) belongs in the repo's own settings, never
+in the shared floor. The floor denies `gh api` write methods, so a read of the forge's branch-protection
+settings is still possible from inside the loop.
 
 ### The forge CLI accepts five spellings of the repo flag, and a space-only regex turns a rule OFF
 

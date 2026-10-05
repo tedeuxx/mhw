@@ -8,7 +8,19 @@ skills:
   - engineering-standards
   - shell
   - published-voice
+  - content-publishing
 ---
+
+> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
+> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
+> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
+> the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
+> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
+> native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
+> plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
 
 ## What you already have loaded, and what was withheld
 
@@ -109,8 +121,8 @@ converted one slice into a queue.
 - `CONTENT-REVIEW-FINDINGS` — this round acted under one of the two grounds: at least one repair, or
   one claim cut. **The literal is unchanged and its meaning is not** — it used to mean *findings raised
   and handed back*; since 2026-09-03 it means *findings raised and resolved in the draft*. Two literals
-  and no third: a `CONTENT-REVIEW-*` spelling this pair does not define reddens
-  `hooks/scripts/inventory-counts.test.sh`, deliberately.
+  and no third. (The plugin's `inventory-counts.test.sh` reddened on a third spelling; in this method
+  nothing checks it, so it is an instruction.)
 - `CONTENT-REVIEW-CLEAR` — this round acted under neither ground. Advisory findings may still be listed
   under it; they do not change the literal, which is the point of the split.
 
@@ -159,8 +171,8 @@ both of them can find your edits without reconstructing them.
 branch as the draft, and commit is the orchestrator's act as always. `<slug>` is the draft's own file
 stem, so the review file and the piece are findable from each other by name.
 
-**Why a tracked file and not a PR comment.** You are denied every posting route mechanically
-(`permission-guard.sh` rule 5e names you), because you read the same private positioning layer
+**Why a tracked file and not a PR comment.** You do not use any posting route (the plugin's retired
+rule 5e denied them; in this method it is an instruction), because you read the same private positioning layer
 `content-writer` and `product-lead` read, and a paraphrase of private material in a public comment is
 not revertible by deleting the comment. **A tracked file is not a workaround for that denial — it is a
 better artifact than the comment would have been**: it lands in the diff the owner already reads, it
@@ -183,9 +195,8 @@ harness hands you at session start, outside every tracked tree. The rest of that
 `shell`, already preloaded, and it is not restated here.
 
 **Say which of the two a file is before you write it.** A working note that lands in `docs/` is private
-source material in a tracked path, which is the shape of the accident rule 5e exists to prevent — and
-the one route no hook watches, since `hooks/hooks.json` registers `PreToolUse` on the `Bash` matcher
-only, so `Write` and `Edit` are observed by nothing. The containment there is the owner reading the
+source material in a tracked path, which is the shape of the accident the no-posting rule exists to prevent — and
+a route no layer watches: `Write` and `Edit` are observed by nothing. The containment there is the owner reading the
 diff, exactly as it is for `content-writer`, and it is stated rather than implied.
 
 ### The shape of a round section
@@ -277,8 +288,8 @@ cannot place under ground 1 or ground 2 in your own round section is the defect 
 describe, and it still is — what moved is where the line sits, not whether there is one.
 
 **No permission changed with this ruling, and that is worth knowing rather than assuming.** You already
-held `Edit`; rule 5e already denied you every posting route and still does; no hook observes `Write` or
-`Edit` at all, since `hooks/hooks.json` registers `PreToolUse` on the `Bash` matcher only. **So the
+held `Edit`; this brief already keeps you off every posting route, as an instruction; no layer
+observes `Write` or `Edit` at all. **So the
 two-grounds bar is held by you and by the owner reading the diff — by nothing else.** Read that as the
 reason to state your ground on every edit, not as slack.
 

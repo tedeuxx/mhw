@@ -5,6 +5,17 @@ purpose: "put both directions of the autonomy decision behind one canonical comm
 argument-hint: "on [repo] | off [repo] | (no argument prints help and does nothing)"
 ---
 
+> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
+> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
+> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
+> the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
+> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
+> native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
+> plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
+
 Hand the wheel to the loop, or take it back.
 
 ## The three modes
@@ -245,7 +256,7 @@ stay pending for their own later activation rather than moving into prose.
 | a description not closed on its lane | open, in the active iteration, **no `ready`** |
 | **an item with no estimate** | open, in the active iteration, **no `sp:` label** |
 | a decision pending on the owner | the **`blocked`** label — already queried by the *Reporting* section below |
-| an outstanding `APPROVE-PENDING-HUMAN` at the current head | `zombie-loop-detect.sh` already reads exactly this artifact at `Stop` — reuse it, do not build a second reader |
+| an outstanding `APPROVE-PENDING-HUMAN` at the current head | the same artifact `agents-configuration`'s end-of-turn check 6 reads (formerly the plugin's `zombie-loop-detect.sh`) — read it the same way |
 
 **The estimate class is the one that is new**, and `/agents-configuration`'s *Estimation* section is where
 its vocabulary, its estimator sets per issue type and the median-of-isolated-dispatches rule live. Read
@@ -305,11 +316,8 @@ above included. **`--limit 100` is part of the claim, not tidiness:** the defaul
 open issues, so the same command without it silently drops the tail — which is where stale items live.
 
 **Why the line belongs here and nowhere else.** Nothing in the loop reads the **open** queue — and the
-reason is not that every `gh issue` call in `hooks/scripts/` is a write path, which is **false at head**:
-`closure-artifact-guard.sh` makes two live reads. Neither touches this pass's subject. One resolves a
-single Issue **by number**; the other enumerates **closed** Issues in a rolling date window, which is the
-opposite end of the queue from a stale *open* item. No registered hook selects a `--label` or a
-`--milestone` at all, so nothing can derive the eligible set this line is about.
+reason is simple in this method: no hook runs at all (#61), so nothing derives the eligible set this
+line is about unless a session runs the query.
 `/agents-configuration`'s *"Closing an issue is a
 step, with a criterion"* already specifies the pruning pass and gives it **no trigger** — a mandate with
 no trigger, which is the shape this repo names as a document rather than a mechanism. Naming staleness at
@@ -369,11 +377,10 @@ Follow `/agents-configuration`. Nothing here relaxes it:
   dispatch** — no check, job or hook — so an undispatched lens fails silently. Where the repo's guide
   makes this the only review of copy, an undispatched one is the whole gate missing.
 - Adjacent debt is **named in the report**, never filed *by the review* — a review has no way to
-  know whether anyone wants the work, and the guard denies it. *(Since #124 the guard exempts
-  `developer`, so "denies every subagent" is no longer accurate — but a **review** is still denied,
-  which is the case this bullet is about.)* The **main loop may open
-  issues**, and should: recording something the owner asked for is not generating demand. The guard
-  asks rather than denies there, so the owner decides per issue. See `/agents-configuration`,
+  know whether anyone wants the work. *(The plugin's retired guard denied `gh issue create` to every
+  subagent but `developer`; in this method that is an instruction.)* The **main loop may open
+  issues**, and should: recording something the owner asked for is not generating demand. The owner
+  decides per issue. See `/agents-configuration`,
   *Review does not open work* — which is about reviews, not about the queue being unwritable.
 
 ## What autonomy does NOT extend to
@@ -438,14 +445,14 @@ the decision made, only the act outstanding.
 builder. `APPROVE-AND-MERGE` and `APPROVE-AND-MERGE-BOUNDARY` are clearances the gate acts on itself
 (ADR-0002 amendment #16), which is why almost every open PR is one he has nothing to do with.
 
-**And the rule now has an inverse with its own hook (#374).** A turn that ends while one of those two
+**And the rule has an inverse (#374).** A turn that ends while one of those two
 literals sits at an open, green PR's head, and surfaces no link, is a turn that ended owing him one —
-reported by `owed-pr-link-detect.sh`. **It does not address the incident that produced it**, and saying
+`agents-configuration`'s end-of-turn check 7 (formerly the plugin's `owed-pr-link-detect.sh`). **It does not address the incident that produced it**, and saying
 so is part of the rule rather than a footnote: the motivating complaint was a link he had received twice
 and could not find, buried mid-message under paragraphs of machinery. **So
 when the link goes, the ask goes FIRST.** That half is a discipline; nothing checks it. *(The measured
-character offsets are deliberately not here — see `hooks/scripts/owed-pr-link-detect.sh`'s header for the
-full table and ADR-0004's 2026-09-01 amendment for the argument they support.)*
+character offsets live in the plugin's retired `owed-pr-link-detect.sh` header and its ADR-0004
+2026-09-01 amendment.)*
 
 **A second case is legitimate, and it is the second limb of his own rule (#327).** A PR link also goes to
 him when **the ask is explicitly a decision he holds** — a title, a positioning call on a draft —
@@ -457,10 +464,9 @@ above forbids it. And **such a PR very often has no gate verdict at its head at 
 has not run yet: which is precisely why the verdict-literal test cannot be the whole rule, and why the
 first limb alone would withhold something he asked to keep.
 
-**The detector cannot tell this case from a violation, and does not try.** *"Is this ask a decision he
-holds"* is not mechanically knowable at any layer, so `premature-pr-link-detect.sh` **will** flag a
-legitimate decision-ask link. It is detection-only, so the cost is a spurious notice in the next turn's
-context and never a withheld link. Read the notice, judge it, and carry on — a notice is not a verdict.
+**No check can tell this case from a violation.** *"Is this ask a decision he holds"* is not
+mechanically knowable at any layer; the plugin's retired `premature-pr-link-detect.sh` flagged such
+links anyway. In this method the end-of-turn check is yours, so judge the case rather than the URL.
 
 **The rule is about DIRECTING HIS ATTENTION, not about the character sequence** — and the distinction is
 load-bearing rather than pedantic. `gh pr create` prints the PR URL as its own stdout: measured on #327,
@@ -486,12 +492,12 @@ open.** The sweep's report closes only the third clause (a post-deploy look now 
 it surfaces nothing per-merge, which is exactly what this paragraph is about. **Do not strike it**; if
 the `APPROVE-AND-MERGE-BOUNDARY` `SessionStart` arm is ever built, that is when this paragraph changes.
 
-**Enforcement, and its exact limits.** `hooks/scripts/premature-pr-link-detect.sh` is a `Stop` hook that
-reads the turn's own assistant prose and flags a PR URL whose PR is not open-green-and-pending-human. It
-is **detection, never prevention** — it fires after the text has already reached him, so it makes the
-mistake visible in the same turn rather than a session later. And it matches **full URLs only**: GitHub
+**Enforcement: none in this method.** The plugin's `premature-pr-link-detect.sh` was a `Stop` hook that
+read the turn's own prose and flagged a PR URL whose PR was not open-green-and-pending-human — detection,
+never prevention. It is retired (#61); the check is now `agents-configuration`'s end-of-turn check 7, an
+instruction. And it matches **full URLs only**: GitHub
 shares one number space between Issues and PRs, so a bare `#508` cannot be classified without a network
-call. **The form this rule recommends is the form the hook cannot check.** Read a silent turn as
+call. **The form this rule recommends was the form the retired hook could not check.** Read a silent turn as
 "nothing was measured", never as "the rule was kept".
 
 ## Report in delivery, not in issues closed
@@ -575,7 +581,7 @@ git cat-file -e 5cfea0b:commands/sprint-retrospective.md
 # → exit 128, the path is not in that tree: nothing an owner or a drain could invoke
 ```
 
-**Two mentions and no object is the exact failure `closure-artifact-guard.sh` was built for** — a
+**Two mentions and no object is the exact failure the plugin's `closure-artifact-guard.sh` was built for** — a
 promise resolves in prose and not in the tree — and it survived here for a month because the promise
 reads like a description of something that already runs.
 
@@ -616,8 +622,8 @@ is fired by anything, neither is observed by anything, and the sweep is a **lowe
 declaration. Two objects existing is not two rites running.
 
 **Nothing fires it.** This is an instruction in a command file, and by this loop's own test — *would
-something stop me, or only my memory?* — it is not engineered. No hook can be: nothing in
-`hooks/scripts/` reads the queue at all, so no layer here can observe that a snapshot went empty.
+something stop me, or only my memory?* — it is not engineered. No hook runs in this method
+(#61), so no layer here can observe that a snapshot went empty.
 
 ~~**no open issue outranks the cost of continuing**~~ — **struck as the DRAIN's terminal condition at
 #326, and moved rather than retired.** It is now what **planning** asks: the criterion for admitting the
@@ -675,11 +681,8 @@ denominator** rather than as an event.
 
 **What nothing observes, said plainly.** No artifact records the snapshot. A drain that terminated against
 its snapshot, one that terminated against the live pool, and one that quietly dropped an item are
-**indistinguishable** from the tracker and from the diff, because no registered hook reads the queue.
-~~every `gh issue` call in `hooks/scripts/` is a write path~~ — **struck, false at head:**
-`closure-artifact-guard.sh` reads an Issue body by number and lists **closed** Issues in a rolling date
-window. Neither reads the *eligible* set — no registered hook selects a `--label` or a `--milestone` —
-so the snapshot stays unobservable for the reason that survives rather than the one that was published.
+**indistinguishable** from the tracker and from the diff, because nothing reads the queue on its own:
+no hook runs in this method (#61).
 **And no detector is proposed**, unlike
 #337's closing rule, because the only mechanically checkable signal here — *the drain reported exhaustion
 while the iteration still holds open `ready` items* — is **true of every correct snapshot termination that

@@ -4,6 +4,17 @@ description: "Run a slice through this loop's intentional design — its intake 
 purpose: "carry the intentional design of this loop - why it is shaped this way, not only what its steps are - so every agent acting inside it can decide correctly in the cases the state table does not enumerate"
 ---
 
+> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
+> text moved from the `tadeumendonca-skills` plugin. Where it names a plugin hook, guard rule or test
+> (`hooks/…`, `permission-guard.sh` and its numbered rules, `mcp-guard.sh`, `inventory-counts.test.sh`
+> and the like), it describes that plugin; **none of those runs in this method**. Read any rule they
+> held as an **instruction you follow**. What is still mechanical, where the workstation installed it:
+> the **deny floor** (native deny rules by command prefix — force-push, `git reset --hard`, recursive `rm`, `git clean -f`,
+> squash merge, secret writes, `gh api` write methods, `gh repo delete`/`archive`/`rename`, releases and
+> package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
+> native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
+> plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
+
 Apply Agent Harness Engineering — the owner's name for how this loop is built and run, the state
 machine a change travels through, and the design intent behind every part of it — in any
 `<project>` repo.
@@ -37,7 +48,7 @@ there and the enforcement here, once each.
 Four companion skills carry adjacent ground and are **not** folded in here: `/engineering-standards`
 (the judgment), `/definition-of-done` (what "done" means — the criteria, and which of them a gate
 proves), `/quality-gates` (the CI/CD gates and their tables) and
-`/devops` (the permission zones and guard hook that make the deny-boundary mechanical, plus CI/CD and
+`/devops` (the permission zones and the deny floor that makes the irreversible boundary mechanical, plus CI/CD and
 the branching topology). The single-
 vs. two-environment branching topology lives in `/devops` (#227) — this skill keeps only how the state
 machine, labels and inner loop work once a mode is chosen, not the mode itself.
@@ -92,8 +103,9 @@ WIP-respected). What has no other owner is the loop **as a system**:
    the human's residual small, and does the slice boundary fall where the human's attention is
    actually worth spending?" A loop that asks the human on in-pattern work is a **design defect**,
    not mere friction.
-2. **The gates as a composed system** — the gatekeeper (`quality-assurance`), the mechanical hooks
-   (`permission-guard`, `wip-guard`, `session-wip`, `session-plugin-version`), the CI gates. The
+2. **The gates as a composed system** — the gatekeeper (`quality-assurance`), the workstation deny
+   floor (ADR-0016 of the workstation repository), the CI gates, and the session checks below that
+   replaced the plugin's hooks (#61). The
    failure mode this discipline exists to catch is **a gate that verifies nothing**: a hook committed
    non-executable so it silently no-ops; a job that prints PASS having run nothing; a test that
    exercises the guard through a shell call and so never checks the *installed* form. A green that
@@ -335,8 +347,9 @@ escape hatch.**
 **What this does NOT enforce, said plainly so the rows are not read as a mechanism.** Nothing observes a
 dispatch. A `loop` Issue whose intake was run by both personas is indistinguishable, from the tracker and
 from the diff, from one run correctly — the artifact column names the closed description, and a
-description says nothing about who was asked. `hooks/scripts/inventory-counts.test.sh` asserts that these
-rows and the `new-issue.md` branch **exist and say this**; it cannot assert that anyone obeyed them.
+description says nothing about who was asked. Nothing in this method asserts even that these rows and
+the `new-issue.md` branch **exist and say this** (the plugin's `inventory-counts.test.sh` did), and
+nothing could assert that anyone obeyed them.
 
 **These rows route INTAKE. The REVIEW chain is routed too, and its operative wording is NOT here (#393).**
 It lives in `CLAUDE.md` at each repository's root, as one table: `loop` → one lens pass plus the gate ·
@@ -707,9 +720,8 @@ made it available: the installed build accepts `permissionDecision: "ask"` on `P
 in 2026-09-04 is narrower and must not be read back onto it: *this particular act* was priced below the
 bar. **Available is not the same as worth building** — the same sentence the escalation standard
 already carries — and the next obligation that genuinely needs a human's answer should reach for `ask`
-on this evidence. **Note the one thing that did change mechanically: `permission-guard.sh` now emits no
-`ask` verdict anywhere**, and its `ask` helper was deleted with its last caller, so reaching for it
-means re-adding it deliberately.
+on this evidence. **Note that no hook runs in this method at all (#61)**, so reaching for `ask` means
+adding a hook deliberately, against the hook budget of the workstation's requirements document.
 
 ~~**What it costs, priced rather than shrugged at:** planning assigns N milestones, so the prompt fires N
 times. Accepted, because planning is an owner-present act by construction — there is no path where this
@@ -848,7 +860,7 @@ he could release.
 numbered positions across both trees, and the open recommendations not yet ruled on. It was chosen for
 lack of an alternative and it is stated as such rather than as a design:
 
-- **Nothing reads it.** No script under `hooks/scripts/` resolves a milestone at all. The order is
+- **Nothing reads it.** No hook runs in this method (#61), and none of the plugin's resolved a milestone. The order is
   prose, read by a human, in a field no gate opens. ~~`grep -rn "milestone" hooks/scripts/*.sh` matches
   exactly one line, and that line is a **comment** in `closure-artifact-guard.sh`~~ — **the falsifier's
   COUNT went stale within a day and the claim it supports did not**, which is the distinction worth
@@ -877,11 +889,11 @@ layer this harness has:
 
 | layer | can it hold *loop first*? |
 |---|---|
-| `permission-guard.sh` (`PreToolUse`/`Bash`) | **no** — it reads a command string. `gh pr create` on a product slice is character-identical whether a loop item is outstanding or not. |
+| the deny floor (native `deny` rules; in the plugin, `permission-guard.sh`) | **no** — it reads a command prefix. `gh pr create` on a product slice is character-identical whether a loop item is outstanding or not. |
 | `wip-guard.sh` | **no** — same matcher, keyed on file overlap. |
-| `session-wip.sh` (`SessionStart`) | **no** — it can *report* outstanding loop items, but it fires before any pick and cannot observe the pick that follows. |
+| session check 1 (formerly `session-wip.sh`) | **no** — it can *report* outstanding loop items, but it fires before any pick and cannot observe the pick that follows. |
 | a `Stop` hook | **detection only, one turn late** — and see the measurement below for why one is not built here. |
-| `inventory-counts.test.sh` | **presence only** — it can assert this rule is WRITTEN, which is what the arm added with this section does, and all it does. |
+| a test over the text | **presence only** — it could assert this rule is WRITTEN (the plugin's `inventory-counts.test.sh` did); nothing in this method does. |
 
 **The only artifact that could record *"this was picked next"* is a PR's creation timestamp against the
 queue state at that moment, and nothing captures the queue state at that moment.**
@@ -997,8 +1009,8 @@ is a `loop` item belonging in that repo. Write every rule here so it survives th
 and *the rule can take effect* is bounded by whenever the owner next updates — his choice, available
 after every slice. Under one batch per iteration **there is no installable intermediate by
 construction**, so the iteration's entire `loop` work is authored, reviewed and gated under the
-pre-batch configuration. That is tolerable for a documentation change and **not** tolerable for a hook:
-this iteration shipped `hooks/scripts/preflight.sh`, a hook that can refuse a prompt, which under a
+pre-batch configuration. That is tolerable for a documentation change and **not** tolerable for a control:
+the plugin's iteration that wrote this shipped `hooks/scripts/preflight.sh`, a hook that could refuse a prompt (retired since #61), which under a
 single batch would have sat inert while the rest of the batch was built against sessions it was written
 to stop.
 
@@ -1034,8 +1046,8 @@ for hook-shaped ones.**
 
 - **"One Loop Batch per iteration" as a RULE.** False by construction across repositories, and it
   removes the installable intermediate. Adopted as a permission instead. *(Above.)*
-- **The authored traceability matrix.** Nothing in this harness parses a PR body except
-  `closure-artifact-guard.sh`, which reads closing keywords rather than tables. An authored matrix is
+- **The authored traceability matrix.** Nothing in this method parses a PR body (the plugin's
+  retired `closure-artifact-guard.sh` read closing keywords, never tables). An authored matrix is
   claim-carrying prose with no reader — this repository's named recurring failure. **Its content is
   worth having DERIVED**, which is the deferred item below.
 - **Step 6, the consumer reinstall.** It has no mechanism here. There is no install path: the owner runs
@@ -1045,8 +1057,8 @@ for hook-shaped ones.**
   *"confirmar que as cópias instaladas são idênticas ao manifest"* is a **content** identity check that
   does not exist and is not built here. **And a batch buys nothing here anyway** — one update instead of
   N was always available as the owner's choice.
-- **Enforcement.** Every layer was walked and none can carry it. `permission-guard.sh` and `wip-guard.sh`
-  read a command string, and `gh pr create` on a second `loop` PR is character-identical to the first.
+- **Enforcement.** Every layer was walked and none can carry it. A deny rule (and, in the plugin,
+  `permission-guard.sh` and `wip-guard.sh`) reads a command string, and `gh pr create` on a second `loop` PR is character-identical to the first.
   `wip-guard.sh` additionally sees only **open** PRs, so under WIP=1 the previous `loop` PR is already
   merged and there is nothing to overlap with — it bounds concurrency, never count-per-iteration. A
   `PreToolUse` deny would have to resolve a branch to an Issue (a suffix heuristic measured at 11 of 12
@@ -1110,12 +1122,11 @@ enforcement and abstains on the biggest diffs is the shape this loop exists to c
 
 - **The rule** is in the gate's own brief, held by the gate, using a payload ADR-0006 already makes it
   fetch — zero new network calls and no classification, because the gate reads the diff anyway.
-- **The observation** is `hooks/scripts/zombie-loop-detect.sh`, registered on **`Stop`**
-  (`hooks/hooks.json`), which reports a PR carrying harness markers of which **none** names the current
-  head. It needs no classification either, and that is why it is buildable where a deny is not: it
-  fires only when a marker is PRESENT and stale, so a diff carrying no marker is invisible to it and no
-  misclassification is possible. **It is detection, one turn late**, and it cannot bound a merge — a
-  turn that dispatched the gate and merged is over before it runs.
+- **The observation** was the plugin's `zombie-loop-detect.sh`, a `Stop` hook that reported a PR
+  carrying harness markers of which **none** names the current head. It is retired (#61); the same
+  observation is now `agents-configuration`'s end-of-turn check 6, run by the session. It needs no
+  classification: it applies only when a marker is PRESENT and stale. **It is detection after the
+  act**, and it cannot bound a merge.
 
 **The measurement that made it worth doing, taken at head rather than reasoned from the rule:** PR #454
 carried **three** harness markers and **one** named the current head, so two of three cleared hold 2
@@ -1172,8 +1183,8 @@ loop-first `Stop` hook, and it is named here rather than filed.
 
 #### Nothing gates this either, and the arm says only that it is written
 
-`hooks/scripts/inventory-counts.test.sh` asserts this section exists and carries its load-bearing
-clauses. **It cannot observe whether any iteration was composed as a batch, because nothing captures the
+Nothing in this method asserts even that this section exists (the plugin's `inventory-counts.test.sh`
+did). **No check could observe whether any iteration was composed as a batch, because nothing captures the
 composition** — same limit, same words, as the loop-first arm above. By this loop's own test — *would
 something stop me, or only my memory?* — this is an instruction, and it is one that only ever **permits**,
 which is the shape with the least to lose from being unenforced.
@@ -1252,9 +1263,10 @@ wrong, empty, and a chart drawn over it would be inventing its own subject.
 **SCOPED TO `scrum` (#406), and the difference is not cosmetic.** In `kanban` exhausting the entry
 snapshot ends the drain and **fires no rite** — an empty container means nothing there, and a ceremony
 fired on it would be firing on noise. What exists in both modes instead is a **clock**:
-`hooks/scripts/cadence-notice.sh` reports at session start how long since each rite's own artifact root
-last moved, reads no mode, no container and no queue, and **reports rather than fires**. So *"nothing
-fires either rite"* below is unchanged by it in either mode — a hook cannot dispatch — and the honest
+session check 3 (formerly the plugin's `cadence-notice.sh`) reports at session start how long since each
+rite's own artifact root last moved, reads no mode, no container and no queue, and **reports rather than
+fires**. So *"nothing fires either rite"* below is unchanged by it in either mode — a report cannot
+dispatch — and the honest
 comparison the carrier was built on is **clock versus nothing**, never clock versus boundary.
 
 
@@ -1299,13 +1311,11 @@ emulated phone is not a phone. Two objects existing is not two rites running.
 instruction in a command file and it is the whole of the mechanism. ~~No hook can be built for either,
 and the reason is one this file already establishes for a different rule:~~ **struck 2026-09-09 (#406
 slice C) — the sentence was true about FIRING and read as true about NOTICING, and one of those is now
-built.** The reason it gave still holds for firing: **nothing in `hooks/scripts/` reads
-the queue** — so no layer here can observe a snapshot going
-empty, and a hook receives one `cwd` while the iteration is two milestone objects in two repositories.
-**What `hooks/scripts/cadence-notice.sh` does is sidestep that reason rather than defeat it: it reads a
-CLOCK — the version-control date of each rite's own artifact root — and makes no tracker call at all**,
-so the queue's invisibility and the one-`cwd` bound never arise. It says a rite is owed; it cannot run
-one, because a hook cannot dispatch. **The distinction is the whole content of this correction:
+built.** The reason it gave still holds for firing: **nothing reads the queue on its own** — no hook runs in
+this method (#61) — so no layer here can observe a snapshot going empty.
+**What session check 3 (formerly the plugin's `cadence-notice.sh`) does is sidestep that reason: it
+reads a CLOCK — the version-control date of each rite's own artifact root — and makes no tracker call
+at all.** It says a rite is owed; it cannot run one. **The distinction is the whole content of this correction:
 NOTICING moved from impossible-looking to built; FIRING did not move.**
 By this loop's own test — *would something stop me, or only my memory?* — **neither rite is engineered.**
 A notice does not change that: it is a report, and a report is not a bound.
@@ -1394,19 +1404,15 @@ carried over), not a gate.
   **Struck rather than deleted because this file is loaded on every dispatch** — a persona that read
   *"planning is unbuilt"* would not reach for a rite that exists, and the strike is what tells it the
   claim changed rather than leaving the absence to be inferred. **What has NOT changed: nothing fires
-  it.** No hook in `hooks/scripts/` reads the queue and a hook sees one `cwd` while an iteration is two
+  it.** No hook runs in this method (#61), and any hook would see one `cwd` while an iteration is two
   milestone objects in two repositories, so by this loop's own test the rite is **not engineered** —
   ~~the same limit the retrospective half carries, and the reason *"the closing ceremonies"* still reads
   as one built and one owed.~~ **Struck 2026-09-02 (#379): all three rites now exist, so the plural is
   satisfied in COUNT.** The limit is unchanged and is now the only thing left of that sentence —
   **three objects, zero triggers.**
-- **Anything that observes an iteration.** No registered hook reads the queue — ~~every `gh issue` call
-  in `hooks/scripts/` is a write path~~, **struck 2026-09-09 (#406) as false at head**: two calls in
-  `closure-artifact-guard.sh` are live READS (an Issue body by number; **closed** Issues in a rolling
-  date window). **The conclusion is unchanged, and the reason that carries it is the property rather
-  than the proxy — no registered hook selects a `--label` or a `--milestone`**, so nothing can derive an
-  eligible pool. This section is a rule the loop follows, and a gate asserts only that
-  the rule is **written**, never that a session obeyed it.
+- **Anything that observes an iteration.** No hook runs in this method (#61), so nothing selects a
+  `--label` or a `--milestone` on its own, and nothing can derive an eligible pool unless a session runs
+  the query. This section is a rule the loop follows, not a control.
 
 ## The escalation standard, as this loop applies it (#393)
 
@@ -1445,8 +1451,9 @@ tomorrow · something else* is one instruction and three deferrals.
 
 **Why an ACTION pendency reaches him at all, since clause 4 says an act with no trade is the loop's.**
 Not because a trade exists — because **the loop cannot perform the act**. Merge and trunk push are
-refused to the orchestrator by `permission-guard.sh` rules 7 and 7b; a credential or an external
-surface is his alone. **Escalation by incapacity, never by judgement**, which is exactly why it
+not the orchestrator's to perform (the plugin's rules 7 and 7b refused them; in this method that is an
+instruction, and only force-pushes and squash merges are denied by the workstation deny floor); a
+credential or an external surface is his alone. **Escalation by incapacity, never by judgement**, which is exactly why it
 carries no options.
 
 **A guard was built to enforce this half and DELETED in the same slice, on the owner's ruling. Read
@@ -1550,8 +1557,9 @@ uses, where an unsettled disagreement goes **up** rather than **down** as compet
 
 ### What is instrumented here, and what does not exist
 
-**The instrument exists and nothing reads it.** `dispatch-metrics-stop.sh` records tokens and duration
-per dispatch, so the cost axis and the wait half of the time axis are both measured in this tree today.
+**The instrument is each agent harness's own usage reporting, and nothing reads it.** The plugin's
+`dispatch-metrics-stop.sh`, which recorded tokens and duration per dispatch, is retired (#61); Claude Code
+and Codex report tokens natively, Kiro reports credits only (the workstation's enforcement matrix).
 **No threshold exists anywhere and none is authored** — the calibration comes from metrics and worklog
 over real iterations, which is his decision and not a build's.
 
@@ -1561,8 +1569,7 @@ over real iterations, which is his decision and not a build's.
    `dispatch-metrics-stop.sh` and the worklog half has no equivalent in this tree.~~ **Struck
    2026-09-23 (#499): a host-neutral, explicit worklog now exists at `scripts/worklog.py`, with its
    contract in `docs/worklog/`.** It has no automatic producer and does not read the metrics hook.
-   **Do not read `dispatch-metrics-stop.sh` as the worklog:** it remains a separate cumulative
-   token/duration instrument with its existing format and deduplication.
+   **Do not read native usage reporting as the worklog:** they are separate instruments.
 2. **The mapping from a story point to tokens and hours does not exist.** The worklog uses frozen
    points for team planning velocity and deliberately does not make `sp:N` a token/hour denominator.
    **The question is open and asked rather than answered:** *how does this loop
@@ -1691,7 +1698,8 @@ unbuilt** — #313 shipped `docs/blueprint-registry.md` and closed with `/bluepr
 truth-fix against a ratified ask for a detector nobody built. Each was found because the owner asked.
 
 **So the promise is written into the Issue body as a field, at column 0**, and the field name is a
-parsing contract read literally by `hooks/scripts/closure-artifact-guard.sh`:
+parsing contract read literally by `agents-configuration`'s end-of-turn check 8 (formerly the
+plugin's `closure-artifact-guard.sh`):
 
 ```
 invocable: /blueprint                    a plugin identifier a reader can type
@@ -1765,13 +1773,11 @@ finding into an Issue has decided something should exist and is merely asking fo
 afterwards. Findings are **named** — in a verdict, in the PR, to the human — and the owner decides
 whether any of them becomes tracked work.
 
-**Enforced by WHO is asking.** `permission-guard` rule 5c reads `agent_type`, ~~which the harness
-stamps and the model cannot forge~~ which on Claude Code the harness stamps and the model cannot
-forge, and which on Codex, since #501, is DECLARED by the session (a parent names the role it
-spawns, and a config can declare any role name), so there it is a routing signal and not an
-identity check (ADR-0004's 2026-09-23 amendment); every subagent except `developer` (rule 5d) is denied
-`gh issue create` outright, and the main loop is asked. Reading, listing, commenting, labelling and
-closing stay open everywhere.
+**Held by instruction, keyed on WHO is asking.** In the plugin, `permission-guard` rule 5c denied
+`gh issue create` to every subagent except `developer` (rule 5d) and asked the main loop. That hook is
+retired (#61), and no native per-agent tool list can split `Bash` by subcommand, so **in this method
+it is an instruction: a dispatched agent other than `developer` does not run `gh issue create`.**
+Reading, listing, commenting, labelling and closing stay open everywhere.
 
 **The one exception.** A story is broken into tasks, and `developer` executes them. **Opening scope**
 is creating work nobody asked for; **decomposing** is dividing work the owner opened and the leads
@@ -1882,16 +1888,18 @@ are still four. `APPROVE-EXECUTOR-BLOCKED` means *DoD green, class safe or bound
 holds applies* — so the verdict would have been a clearance — **and the gate could not execute the
 merge**. The decision is made; only the act is outstanding, and it becomes the owner's by exception.
 
-**Why the state needed a name rather than an inference.** Rule 7b makes `quality-assurance` the only
-permitted executor of an authorised merge, so a layer outside this harness refusing to dispatch it —
+**Why the state needed a name rather than an inference.** The single-executor rule (the plugin's
+rule 7b; in this method an instruction) makes `quality-assurance` the only permitted executor of an
+authorised merge, so a layer outside this harness refusing to dispatch it —
 Claude Code's auto-mode classifier does, recorded in the transcript as `toolDenialKind:
 "automode-blocked"` — leaves the PR open, cleared, with nothing anywhere saying so. And *"a clearance
 posted and the PR still open"* is a **race detector**, not a strand detector: the healthy sequence is
 verdict-then-merge seconds later, and no artifact distinguishes the two at any single instant.
 
 **Two things this does not change**, said because a new literal invites the assumption that it does.
-**Rule 7b's single-executor design stays** — the strand is the correct failure of a correct rule, and
-rule 7c refuses a merge carrying this literal, deliberately. And **the gate must have ATTEMPTED the
+**The single-executor design stays** — the strand is the correct failure of a correct rule, and a
+merge is never made on this literal, deliberately (the plugin's rule 7c refused it; in this method it is
+an instruction). And **the gate must have ATTEMPTED the
 merge once at that head to be entitled to post it**: a refusal nobody attempted leaves no record, and
 measured across two PRs in one session, the loop that skipped the attempt as pointless produced no
 signal at all. The full decision, its rejected options and the readers that must move in lockstep are
