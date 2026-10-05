@@ -197,7 +197,8 @@ execpolicy check`, these escape it:
 
 Claude Code's prefix has the same shape: a token-bounded prefix, so a flag later in the command and
 `git -C <dir>` are not covered. That is *documented* in the plugin's `devops` skill, measured there on
-2.1.261, and not re-measured here. Neither harness's rule sees inside a script, a `Makefile` or an
+2.1.261, and not re-measured here. (In this repository's method that text is in the `scm` skill since
+#97, which split `devops` by capability.) Neither harness's rule sees inside a script, a `Makefile` or an
 `npm run` target, or a command an MCP tool runs. In Claude Code, `Read`/`Edit` rules govern the
 built-in file tools, not `cat` in Bash.
 

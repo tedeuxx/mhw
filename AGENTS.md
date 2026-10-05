@@ -379,6 +379,13 @@ from here now, and at what evidence level:
   command skills from implicit use; Codex agents and every Kiro cell are documented only (Kiro needs a
   login). Codex agents carry no tool list: there it is an instruction. **Not installed** on the
   reference machine; the plugin stays the running copy until #62 and #63.
+- **Capability skills** (ADR-0032 amendment, 2026-10-05; Issue #97): the method's `devops` skill is split
+  by capability into `scm` (GitHub), `ci` (GitHub Actions), `provisioning` (Terraform Cloud) and the
+  existing `quality-gates`, which absorbed the SonarCloud part; the method now has 14 skills. Each opens
+  with a disclaimer naming its selected tool and keeps the tool-specific text in one closing section.
+  *Written and tested*: the renderer suite fails on a missing disclaimer or tool section (mutation-checked),
+  and a throwaway-home install lists the four in Claude Code and Codex. **Not installed** on the
+  reference machine, like the rest of the method.
 - **Workflow commands** (Issues #71 to #75, 2026-10-05): `/new-idea`, `/idea-to-issues`, `/handover`,
   `/what-else` and `/blueprint` added to `method/commands/`, rendered with the rest of the method
   (Claude Code command files; Codex skills with implicit invocation off; Kiro skills). They instruct

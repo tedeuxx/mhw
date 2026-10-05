@@ -192,6 +192,35 @@ Measured 2026-10-05 on the reference machine, in throwaway homes under the sessi
 - **Windows:** no local PowerShell. `global/install.test.ps1` checks the rendered method (tool list,
   stamp, Codex policy file, Kiro tools, `-Check` clean) on the Windows CI jobs, which are the probe.
 
+## Amendment 2026-10-05: `devops` split by capability (#97)
+
+The ruling above moved `devops` **whole** to user level. It stays at user level; it is no longer whole.
+The owner, on [#97](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/97):
+*"pois ficaria melhor ajustado a densidade de cada skill"*, *"eu acho valido nomear por capability"*,
+and *"talvez quality e quality-gates deveria virar 1 coisa so"*. The method's skill set is now **14**,
+not the 12 in *What moved* (that table records the plugin snapshot and is unchanged):
+
+| Capability skill | Selected tool | Took from `devops` |
+| --- | --- | --- |
+| `scm` | GitHub | branching per model, the PR-only path and the integration branch `rc/next`, merge commits only, the SemVer scheme and release flow, labels, the repository-settings standard, the permission floor for forge acts, the Claude Code GitHub App |
+| `ci` | GitHub Actions | the workflow set, required checks and the `paths:` gotcha, OIDC roles, the secrets standard, pinned actions, the version and release workflows, the two Claude workflows |
+| `quality-gates` (existing, merged) | SonarCloud | setup, analysis mode, the CI step, gate wiring, thresholds; red-gate diagnosis was added |
+| `provisioning` | Terraform Cloud | remote state, the pipeline-only IaC floor, infra-first ordering, the runner-role deletion gotcha |
+
+Each opens with a disclaimer naming the selected tool and keeps every tool-specific word in one closing
+`## Tool section — <tool>`, so a tool switch replaces that section only. Preloads: `agents-lead` takes
+`scm` and `ci`; `tech-lead`, `developer` and `quality-assurance` take `scm`, `ci` and `provisioning`.
+No new record: this keeps the decision above (user level, one source, native carriers) and changes only
+the cut of one skill.
+
+**Evidence, measured 2026-10-05 in a throwaway home** (`install.sh --method --overlay=none`):
+`METHOD installed: 8 agents, 14 skills, 2 commands`; Claude Code 2.1.289's headless `init` lists `scm`,
+`ci`, `quality-gates` and `provisioning` in `skills` and no `devops`; `codex debug prompt-input` (Codex
+0.160.0) lists the four from `~/.agents/skills` and no `devops`. Kiro is *documented*, not measured.
+`global/method/method_render_test.py` gained `CapabilitySkills`, which fails when a capability skill
+lacks the disclaimer, lacks exactly one closing tool section, or carries a tool word outside both; 11
+mutations of the skill sources turned it red and the unmutated copy stayed green.
+
 ## Links
 
 - [Requirements document, section 6](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#6-working-method-user-layer)

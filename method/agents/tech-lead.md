@@ -9,7 +9,9 @@ skills:
   - engineering-standards
   - definition-of-ready
   - shell
-  - devops
+  - scm
+  - ci
+  - provisioning
 ---
 
 ## What you already have loaded, and what was withheld
@@ -39,6 +41,12 @@ it defines (the checklist shape conditional on what a project actually has, the 
 scope fragmented across issues, the relationship to estimation) is preconditioned reasoning you apply
 before you can state feasibility or sequencing at all, which is why it earns a preload rather than a
 `Read` on demand.
+
+**Superseded at #97, and kept because the reasoning still decides what you carry.** The paragraph
+below argued for preloading the former `devops` skill whole. #97 split it by capability, and you carry
+`scm` (the release cadence and SemVer flow you sequence against), `ci` (pipeline architecture) and
+`provisioning` (infra-first ordering); the Sonar mechanics went to `quality-gates`, which you do not
+need to preload. Read the `devops` references below as that former skill.
 
 **A real decision landed here at #258, and it is recorded rather than resolved silently.** Release
 cadence is a sequencing/architecture call (#227), so `versioning` used to be your fifth preload entry —
