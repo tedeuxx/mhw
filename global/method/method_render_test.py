@@ -104,7 +104,8 @@ class SourceShape(unittest.TestCase):
                                          "engineering-standards", "definition-of-ready", "definition-of-done",
                                          "quality-gates", "published-voice", "devops", "planning-poker",
                                          "code-review", "content-publishing"]))
-        self.assertEqual(COMMANDS, ["autonomy", "new-issue"])
+        self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-idea", "idea-to-issues", "handover", "what-else",
+                                           "blueprint"]))
 
     def test_planning_poker_no_longer_says_reference_pattern_only(self):
         fields, _ = mr.split_front_matter((SOURCE / "skills/planning-poker/SKILL.md").read_text(encoding="utf-8"), "pp")
