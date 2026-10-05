@@ -2,7 +2,12 @@
 # Launch one local MCP server with its credentials taken from the OS secret store at process start
 # (ADR-0017). The harness config that starts this script holds only secret NAMES, never a value.
 #
-#   mcp-launch.sh [--secret NAME=SOURCE]... -- <server command> [server args...]
+#   mcp-launch.sh [--keychain PATH] [--secret NAME=SOURCE]... -- <server command> [server args...]
+#
+# --keychain PATH names one keychain FILE that every keychain: read uses instead of the default search
+# list. The renderer never writes it, so in use the launcher reads the login Keychain exactly as before.
+# It exists for the test suite, which must never touch the real Keychain (issue #58). It must come
+# before any --secret and be an absolute path.
 #
 # SOURCE is one of:
 #   keychain:<service>   macOS login Keychain, generic password with that service name, read with
@@ -33,9 +38,19 @@ valid_name() {
   return 0
 }
 
+keychain=
+seen_secret=
 while [ $# -gt 0 ]; do
   case $1 in
+    --keychain)
+      [ $# -ge 2 ] || die "--keychain needs an absolute path"
+      [ -z "$seen_secret" ] || die "--keychain must come before every --secret"
+      case $2 in /?*) ;; *) die "--keychain '$2' is not an absolute path" ;; esac
+      keychain=$2
+      shift 2
+      ;;
     --secret)
+      seen_secret=1
       [ $# -ge 2 ] || die "--secret needs NAME=SOURCE"
       spec=$2
       shift 2
@@ -49,7 +64,8 @@ while [ $# -gt 0 ]; do
           [ -x /usr/bin/security ] || die "secret $name: keychain: needs macOS (/usr/bin/security not found)"
           # `-w` prints a non-printable value as hex, byte-identical to a printable value that happens
           # to be hex (measured), so the form is read first with -g, which marks the hex case "0x".
-          if ! form=$(/usr/bin/security find-generic-password -s "$service" -g 2>&1 >/dev/null); then
+          # ${keychain:+"$keychain"} adds no argument at all when --keychain is absent (production).
+          if ! form=$(/usr/bin/security find-generic-password -s "$service" -g ${keychain:+"$keychain"} 2>&1 >/dev/null); then
             die "secret $name: no readable Keychain item for service '$service' (absent, or the Keychain is locked)" 3
           fi
           case $form in
@@ -59,7 +75,7 @@ while [ $# -gt 0 ]; do
               ;;
           esac
           unset form
-          if ! value=$(/usr/bin/security find-generic-password -s "$service" -w 2>/dev/null); then
+          if ! value=$(/usr/bin/security find-generic-password -s "$service" -w ${keychain:+"$keychain"} 2>/dev/null); then
             die "secret $name: no readable Keychain item for service '$service' (absent, or the Keychain is locked)" 3
           fi
           ;;

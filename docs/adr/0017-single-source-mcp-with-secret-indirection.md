@@ -158,7 +158,9 @@ or shape, and nothing announces that miss.
 
 In throwaway HOMEs on macOS (the suite, `global/mcp/mcp_render_test.py`):
 
-1. A namespaced Keychain item with a random synthetic value is created through `security -i` on stdin,
+1. ~~A namespaced Keychain item~~ *(struck 2026-10-05, issue #58: the test wrote the owner's real login
+   Keychain. It now uses a throwaway keychain file; see the amendment below.)* A Keychain item with a
+   random synthetic value is created through `security -i` on stdin,
    the definition references it, and the renderer runs. **A byte search of every file under the
    throwaway HOME** (configs, backups, manifest, launcher) **does not find the value.** The renderer's
    own output does not carry it either.
@@ -174,9 +176,39 @@ The renderer never reads a secret by construction: no code path calls the Keycha
 source. A mutation that makes it do so turns the suite red (see the pull request).
 
 **Measured surprise:** `security` resolves the user's Keychain search list from `HOME`. Under a
-throwaway `HOME` the launcher found no login Keychain and refused to start the server. In the test,
-only the launcher runs with the real `HOME`. In use, a surface that started MCP servers with a
-rewritten `HOME` would get a failed server, loudly. Whether any surface does is not measured.
+throwaway `HOME` the launcher found no login Keychain and refused to start the server. ~~In the test,
+only the launcher runs with the real `HOME`.~~ *(Struck 2026-10-05, issue #58; see below.)* In use, a
+surface that started MCP servers with a rewritten `HOME` would get a failed server, loudly. Whether any
+surface does is not measured.
+
+**Amendment 2026-10-05 (issue #58): the suite no longer touches the real Keychain.** The launcher takes
+an optional `--keychain PATH` (absolute, before every `--secret`) and passes it to each `security`
+read. The renderer never writes it, so in use the launcher reads the login Keychain exactly as before.
+
+**By default, the suite never runs the real `security` binary.** `security create-keychain` adds the
+new keychain to the user's search list, and a throwaway `HOME` does not prove that list is untouched,
+so a throwaway keychain file alone is not isolation. The Keychain test runs against
+`global/security.test.stub`, which records its argv and simulates a keychain as a JSON file. The
+launcher names `/usr/bin/security` by absolute path, so a stub on `PATH` would never be reached. The
+test therefore runs a copy of the launcher whose `security` calls go to the stub. The real binary
+runs **only** with `PMHWC_REAL_KEYCHAIN_TESTS=1` on a GitHub Actions macOS runner, which is ephemeral.
+That variable is set in `tests.yml` only.
+
+**Either way, every keychain is a throwaway file under the test's base directory, named explicitly,
+under a throwaway `HOME`.** A guard installed for the whole run refuses, before anything executes:
+
+- the real binary, or the real launcher reading the Keychain, without the opt-in;
+- a `security` call that does not name a keychain file under the base directory;
+- a verb outside a short list, such as `list-keychains` or `default-keychain`;
+- an inherited `HOME`;
+- a Keychain launch without `--keychain`.
+
+The guard is one module shared with the paste-filter suite, `global/keychain_test_guard.py`. This suite
+adds only the launcher's checks. One test, which executes no process, is mutation-checked:
+
+- six mutations of the shared module turn it red;
+- so do four of this suite's own: either launcher read drops the path, a launch without `--keychain`
+  is allowed, or the real launcher runs without the opt-in.
 
 ## Consequences
 
