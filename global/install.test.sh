@@ -24,8 +24,6 @@ targets() {
   echo "$targets_home/.codex/rules/workstation-deny-floor.rules"
   echo "$(data "$targets_home")/clipboard_guard.py $(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
   echo "$(data "$targets_home")/paste_wrapper.py $(data "$targets_home")/paste-filter.sh"
-  echo "$(data "$targets_home")/restart_guard.py $(data "$targets_home")/breaking_glass.py"
-  echo "$targets_home/.claude/commands/breaking-glass.md"
 }
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
@@ -105,26 +103,60 @@ if printf '%s' "$out" | grep -q 'limit is 280'; then ok "the installed hook read
 if printf '%s' "$out" | jq -r .systemMessage | grep -q '^Guarda HITL (ADR-0013)'; then ok "the owner notice is in the overlay's language"; else ko "owner notice not from overlay"; fi
 HOME="$h" sh "$inst" --check; expect "check after install" 0 $?
 
-# Exercise the registered commands without starting a model or trusting a native hook.
-for harness in claude-code codex; do
-  if [ "$harness" = claude-code ]; then restart_settings="$h/.claude/settings.json"; else restart_settings="$h/.codex/hooks.json"; fi
-  start_cmd=$(jq -r '.hooks.SessionStart[].hooks[] | select(.command | contains("restart_guard.py")) | .command' "$restart_settings")
-  pre_cmd=$(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | contains("restart_guard.py")) | .command' "$restart_settings")
-  restart_workspace="$base/restart-$harness"
-  mkdir -p "$restart_workspace/.git"
-  jq -cn --arg cwd "$restart_workspace" '{hook_event_name:"SessionStart",source:"startup",session_id:"installed-test",cwd:$cwd}' |
-    (cd "$restart_workspace" && HOME="$h" sh -c "$start_cmd") > "$base/restart-start.out"
-  jq -cn --arg cwd "$restart_workspace" '{hook_event_name:"PreToolUse",session_id:"installed-test",cwd:$cwd}' > "$base/restart-event.json"
-  (cd "$restart_workspace" && HOME="$h" sh -c "$pre_cmd") < "$base/restart-event.json" > "$base/restart-pre.out"
-  if jq -e '.systemMessage == "Restart guard: baseline_created."' "$base/restart-start.out" >/dev/null && [ ! -s "$base/restart-pre.out" ]; then
-    ok "$harness installed restart command permits a clean baseline"
-  else ko "$harness installed restart command rejected a clean baseline"; fi
-  echo 'synthetic update' > "$restart_workspace/AGENTS.md"
-  (cd "$restart_workspace" && HOME="$h" sh -c "$pre_cmd") < "$base/restart-event.json" > "$base/restart-pre.out"
-  if jq -e '.hookSpecificOutput.permissionDecision == "deny"' "$base/restart-pre.out" >/dev/null; then
-    ok "$harness installed restart command denies changed workspace configuration"
-  else ko "$harness installed restart command did not deny drift"; fi
+# The restart guard and /breaking-glass are removed (ADR-0028): nothing of theirs is rendered.
+if ! grep -qs -e 'restart_guard' -e 'breaking_glass' "$h/.claude/settings.json" "$h/.codex/hooks.json" \
+   && [ ! -e "$(data "$h")/restart_guard.py" ] && [ ! -e "$(data "$h")/breaking_glass.py" ] \
+   && [ ! -e "$h/.claude/commands/breaking-glass.md" ] \
+   && [ "$(jq -c '.hooks | keys' "$h/.codex/hooks.json")" = '["UserPromptSubmit"]' ]; then
+  ok "no restart guard or breaking-glass file or hook entry is installed"
+else
+  ko "a restart guard or breaking-glass artefact was installed"
+fi
+
+# 2a. an earlier release's restart guard and breaking glass are removed cleanly, but only by a run
+# of the installer: --check reports them, install deletes what this project wrote, and nothing foreign.
+hl="$base/home-legacy"; mkdir -p "$hl/.claude/commands" "$hl/.codex"
+HOME="$hl" sh "$inst" > /dev/null 2>&1
+mkdir -p "$(data "$hl")/restart-state"
+legacy_cmd="/usr/bin/python3 -I -B \"$(data "$hl")/restart_guard.py\" --harness claude-code"
+jq --arg c "$legacy_cmd" '.hooks.SessionStart = [{hooks: [{type: "command", command: $c, timeout: 10}]}]
+  | .hooks.PreToolUse += [{hooks: [{type: "command", command: $c, timeout: 10}]}]
+  | .hooks.PreToolUse += [{hooks: [{type: "command", command: "/foreign/pre.sh"}]}]' \
+  "$hl/.claude/settings.json" > "$base/legacy.json" && cat "$base/legacy.json" > "$hl/.claude/settings.json"
+jq --arg c "$legacy_cmd" '.hooks.SessionStart = [{hooks: [{type: "command", command: $c, timeout: 10}]}]
+  | .hooks.PreToolUse = [{hooks: [{type: "command", command: $c, timeout: 10}]}]' \
+  "$hl/.codex/hooks.json" > "$base/legacy.json" && cat "$base/legacy.json" > "$hl/.codex/hooks.json"
+for f in restart_guard.py breaking_glass.py; do
+  printf '#!/usr/bin/env python3\n# managed-by: personal-multi-harness-workstation-configuration; source: x\n' > "$(data "$hl")/$f"
 done
+printf -- '---\n---\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: x -->\n' > "$hl/.claude/commands/breaking-glass.md"
+printf '{}' > "$(data "$hl")/restart-state/claude-code-0123.json"
+HOME="$hl" sh "$inst" --check > "$base/legacy-check.out" 2>&1; expect "check reports the removed guard's leftovers" 1 $?
+if [ "$(grep -c '^STALE' "$base/legacy-check.out")" -eq 4 ] && grep -q '^DRIFT .*settings.json' "$base/legacy-check.out" \
+   && grep -q '^DRIFT .*hooks.json' "$base/legacy-check.out" && [ -f "$(data "$hl")/restart_guard.py" ]; then
+  ok "check names every leftover and changes nothing"
+else
+  ko "check did not name every leftover"; cat "$base/legacy-check.out"
+fi
+HOME="$hl" sh "$inst" > /dev/null 2>&1; expect "install over an earlier release" 0 $?
+if ! grep -qs -e 'restart_guard' -e 'breaking_glass' "$hl/.claude/settings.json" "$hl/.codex/hooks.json" \
+   && [ ! -e "$(data "$hl")/restart_guard.py" ] && [ ! -e "$(data "$hl")/breaking_glass.py" ] \
+   && [ ! -e "$hl/.claude/commands/breaking-glass.md" ] && [ ! -e "$(data "$hl")/restart-state" ] \
+   && jq -e '(.hooks.SessionStart // []) | length == 0' "$hl/.claude/settings.json" >/dev/null \
+   && jq -e '[.hooks.PreToolUse[]?.hooks[]? | select(.command == "/foreign/pre.sh")] | length == 1' "$hl/.claude/settings.json" >/dev/null \
+   && [ "$(pours "$hl/.claude/settings.json")" -eq 1 ] && [ "$(ours "$hl/.claude/settings.json")" -eq 1 ]; then
+  ok "install removes the restart guard and breaking glass, keeps the paste filter, HITL guard and foreign hooks"
+else
+  ko "install left a restart guard or breaking-glass artefact, or removed something else"
+fi
+HOME="$hl" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the cleanup" 0 $?
+printf 'mine\n' > "$hl/.claude/commands/breaking-glass.md"
+HOME="$hl" sh "$inst" > "$base/legacy-foreign.out" 2>&1
+if [ "$(cat "$hl/.claude/commands/breaking-glass.md")" = mine ] && grep -q '^NOTE .*breaking-glass.md' "$base/legacy-foreign.out"; then
+  ok "an unmanaged file at a removed path is left alone"
+else
+  ko "an unmanaged file at a removed path was touched"
+fi
 
 # 2b. the deny floor, rendered for Claude Code and Codex
 s="$h/.claude/settings.json"
@@ -186,7 +218,7 @@ ch="$h/.codex/hooks.json"
 want_codex="/usr/bin/python3 -I -B \"$cg\" prompt-hook --harness codex --config \"$cc\""
 if jq -e --arg c "$want_codex" '(.description | startswith("managed-by: personal-multi-harness-workstation-configuration"))
       and ([.hooks.UserPromptSubmit[].hooks[] | select(.command == $c and .type == "command")] | length == 1)
-      and (.hooks | keys == ["PreToolUse", "SessionStart", "UserPromptSubmit"])' "$ch" >/dev/null; then
+      and (.hooks | keys == ["UserPromptSubmit"])' "$ch" >/dev/null; then
   ok "codex hooks.json is valid JSON, managed, and runs the installed core for codex"
 else
   ko "codex hooks.json wrong"
@@ -507,18 +539,12 @@ else
 fi
 if jq -e '[.hooks.PreToolUse[]?.hooks[]? | select(.command == "/foreign/guard.sh")] | length == 1' "$s" >/dev/null \
    && jq -e '.permissions.deny | index("Bash(sudo:*)") != null' "$s" >/dev/null \
-   && [ -f "$h/.claude/CLAUDE.md" ] && [ -f "$(data "$h")/breaking_glass.py" ]; then
+   && [ -f "$h/.claude/CLAUDE.md" ] && [ -f "$(data "$h")/clipboard_guard.py" ]; then
   ok "managed mode keeps foreign hooks, the deny floor, the brief and the hook scripts"
 else
   ko "managed mode removed something that is not a user-level hook of ours"
 fi
 HOME="$h" sh "$inst" --check --hooks=managed > /dev/null 2>&1; expect "managed check is clean after a managed install" 0 $?
-c="$h/.claude/commands/breaking-glass.md"
-if [ -f "$c" ] && ! grep -q '@[A-Z]*@' "$c" && grep -qF "\"$(data "$h")/breaking_glass.py\" sudo-line" "$c"; then
-  ok "/breaking-glass is rendered for every workspace and calls the installed module"
-else
-  ko "/breaking-glass is rendered for every workspace and calls the installed module"
-fi
 HOME="$h" sh "$inst" --check > /dev/null 2>&1; expect "user check flags the missing user-level hooks" 1 $?
 
 # 15. a stamp from an earlier release with the same content is not drift; a content change still is

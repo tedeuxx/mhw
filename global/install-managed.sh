@@ -1,6 +1,8 @@
 #!/bin/sh
 # Install the hook layers in each harness's native admin layer (ADR-0025), so no process running as the
-# owner can switch them off; only a root-owned, expiring breaking-glass switch can (ADR-0024).
+# owner can switch them off. Only an administrator can change or remove them, with sudo, as with any
+# OS-managed policy; there is no per-request or expiring waiver (ADR-0028, which removed the restart
+# guard and the ADR-0024 breaking-glass switches; --apply and --remove delete what they left behind).
 # The same admin documents carry the deny floor (ADR-0016, 2026-10-05 amendment): the Claude Code
 # drop-in's permissions.deny and the Codex requirements' [rules] prefix_rules, both rendered from the
 # rules install.sh renders, so the floor has one source. No session flag drops the admin layer.
@@ -26,7 +28,9 @@ set -eu
 NAME="personal-multi-harness-workstation-configuration"
 MARKER_ID="managed-by: $NAME"
 DROPIN="50-$NAME.json"
-FILES="hitl-escalation-guard.sh hitl.conf clipboard_guard.py clipboard.conf restart_guard.py breaking_glass.py"
+FILES="hitl-escalation-guard.sh hitl.conf clipboard_guard.py clipboard.conf"
+# Removed by ADR-0028; an earlier --apply installed them. Deleted by --apply and --remove, reported by --check.
+LEGACY="restart_guard.py breaking_glass.py"
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 mode=render
@@ -43,7 +47,7 @@ for arg in "$@"; do
     --sha256=*) sha=${arg#--sha256=} ;;
     --root=*) root=${arg#--root=} ;;
     --overlay=*) overlay_arg=$arg ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -56,7 +60,7 @@ else
   claude_dir="$root/etc/claude-code/managed-settings.d"
 fi
 bin="$base/bin"
-switches="$base/breaking-glass"
+switches="$base/breaking-glass"   # removed (ADR-0028): an earlier --apply created it
 claude_file="$claude_dir/$DROPIN"
 codex_file="$root/etc/codex/requirements.toml"
 
@@ -109,19 +113,16 @@ render() { # $1 empty stage directory
   fi
   for f in $FILES; do cp "$st/home/.local/share/$NAME/$f" "$st/bin/$f"; done
   py="/usr/bin/python3 -I -B"
-  restart_claude="$py \"$bin/restart_guard.py\" --harness claude-code"
-  restart_codex="$py \"$bin/restart_guard.py\" --harness codex"
   paste_claude="$py \"$bin/clipboard_guard.py\" prompt-hook --harness claude --config \"$bin/clipboard.conf\""
   paste_codex="$py \"$bin/clipboard_guard.py\" prompt-hook --harness codex --config \"$bin/clipboard.conf\""
   hitl="/bin/sh \"$bin/hitl-escalation-guard.sh\""
   # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin
   # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor.
   jq -c '.permissions.deny' "$st/home/.claude/settings.json" > "$st/floor.json"
-  jq -n --arg rs "$restart_claude" --arg ps "$paste_claude" --arg h "$hitl" --slurpfile f "$st/floor.json" '
+  jq -n --arg ps "$paste_claude" --arg h "$hitl" --slurpfile f "$st/floor.json" '
     def hook($c; $t): {type: "command", command: $c, timeout: $t};
     {hooks: {
-      SessionStart: [{hooks: [hook($rs; 10)]}],
-      PreToolUse: [{hooks: [hook($rs; 10)]}, {matcher: "AskUserQuestion", hooks: [hook($h; 5)]}],
+      PreToolUse: [{matcher: "AskUserQuestion", hooks: [hook($h; 5)]}],
       UserPromptSubmit: [{hooks: [hook($ps; 30)]}]},
      permissions: {deny: $f[0]}}' > "$st/claude.json"
   version=$(sed -n 's/^current_version = "\(.*\)"/\1/p' "$script_dir/../.bumpversion.toml" | head -n 1)
@@ -129,11 +130,9 @@ render() { # $1 empty stage directory
     printf '# %s; source: global/install-managed.sh; version: %s; do not edit, re-run the installer\n' "$MARKER_ID" "$version"
     printf '# ADR-0025. No allow_managed_hooks_only and no [features] pin: user and plugin hooks keep running.\n'
     printf '[hooks]\nmanaged_dir = %s\n' "$(jq -n --arg v "$bin" '$v')"
-    for pair in "SessionStart|$restart_codex|10" "PreToolUse|$restart_codex|10" "UserPromptSubmit|$paste_codex|30"; do
-      ev=${pair%%|*}; rest=${pair#*|}; cmd=${rest%|*}; t=${rest##*|}
-      printf '\n[[hooks.%s]]\n\n[[hooks.%s.hooks]]\ntype = "command"\ncommand = %s\ntimeout = %s\n' \
-        "$ev" "$ev" "$(jq -n --arg v "$cmd" '$v')" "$t"
-    done
+    # One hook since ADR-0028 removed the restart guard: the paste filter.
+    printf '\n[[hooks.UserPromptSubmit]]\n\n[[hooks.UserPromptSubmit.hooks]]\ntype = "command"\ncommand = %s\ntimeout = 30\n' \
+      "$(jq -n --arg v "$paste_codex" '$v')"
     # The deny floor's command entries as admin prefix rules (ADR-0016, 2026-10-05 amendment). They
     # merge with every .rules file and the most restrictive decision wins, so "codex exec
     # --ignore-rules" cannot skip them. A file entry has no Codex form (ADR-0016).
@@ -186,6 +185,10 @@ case $mode in
       else echo "OK      $installed"; fi
     }
     for f in $FILES; do compare "$st/bin/$f" "$bin/$f"; done
+    for f in $LEGACY; do
+      if [ -e "$bin/$f" ]; then echo "STALE   $bin/$f: removed by ADR-0028; --apply deletes it"; status=1; fi
+    done
+    if [ -e "$switches" ]; then echo "STALE   $switches: removed by ADR-0028; --apply deletes it"; status=1; fi
     compare "$st/claude.json" "$claude_file"
     compare "$st/requirements.toml" "$codex_file"
     rm -rf "$st"
@@ -204,27 +207,31 @@ case $mode in
     validate "$work" || { echo "REFUSE  the stage does not validate; nothing installed" >&2; exit 3; }
     if codex_foreign; then echo "REFUSE  $codex_file exists and is NOT managed by this project" >&2; exit 3; fi
     umask 022
-    mkdir -p "$bin" "$switches" "$claude_dir" "$(dirname "$codex_file")"
-    chmod 755 "$base" "$bin" "$switches"
+    mkdir -p "$bin" "$claude_dir" "$(dirname "$codex_file")"
+    chmod 755 "$base" "$bin"
     put() { # $1 source, $2 destination, $3 mode: atomic replace, root-owned on a real run
       cp "$1" "$2.new.$$"
       chmod "$3" "$2.new.$$"
       [ -n "$root" ] || chown 0:0 "$2.new.$$"
       mv "$2.new.$$" "$2"
     }
-    [ -n "$root" ] || chown 0:0 "$base" "$bin" "$switches"
+    [ -n "$root" ] || chown 0:0 "$base" "$bin"
     for f in $FILES; do
       case $f in *.sh|*.py) m=755 ;; *) m=644 ;; esac
       put "$work/bin/$f" "$bin/$f" "$m"
     done
     put "$work/claude.json" "$claude_file" 644
     put "$work/requirements.toml" "$codex_file" 644
+    # What an earlier release installed for the restart guard and the breaking-glass switches (ADR-0028).
+    for f in $LEGACY; do rm -f "$bin/$f"; done
+    rm -f "$switches"/*.json
+    rmdir "$switches" 2>/dev/null || true
     echo "INSTALLED $bin, $claude_file, $codex_file"
     echo "THEN    as yourself: sh \"$script_dir/install.sh\" --hooks=managed; then open fresh Claude Code and Codex sessions"
     ;;
   remove)
     is_root_run || { echo "REFUSE  --remove needs administrator privilege (sudo)" >&2; exit 2; }
-    for f in $FILES; do rm -f "$bin/$f"; done
+    for f in $FILES $LEGACY; do rm -f "$bin/$f"; done
     rm -f "$switches"/*.json "$claude_file"
     if [ -e "$codex_file" ] && ! codex_foreign; then rm -f "$codex_file"; fi
     rmdir "$switches" "$bin" "$base" 2>/dev/null || true

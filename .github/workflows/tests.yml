@@ -46,9 +46,7 @@ jobs:
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py \
-            global/profile/profile.py global/profile/profile_test.py \
-            global/hooks/restart_guard.py global/hooks/restart_guard_test.py \
-            global/hooks/breaking_glass.py global/hooks/breaking_glass_test.py
+            global/profile/profile.py global/profile/profile_test.py
 
   # Pure preference compilation: no harness installation, account calls or credential reads.
   profiles:
@@ -69,7 +67,6 @@ jobs:
           python -B global/profile/profile_test.py
           python -B global/profile/profile.py check --source overlay/profile.json --output overlay
           python -B workspace/delivery_test.py
-          python -B global/hooks/restart_guard_test.py
 
   suites:
     strategy:
@@ -97,8 +94,6 @@ jobs:
           fi
       - name: hook suite
         run: sh global/hooks/hitl-escalation-guard.test.sh "$RUNNER_TEMP/guard"
-      - name: breaking-glass suite (POSIX ownership checks; Windows unsupported, ADR-0024)
-        run: python3 -B global/hooks/breaking_glass_test.py
       - name: installer suite
         run: sh global/install.test.sh "$RUNNER_TEMP/install"
       - name: admin-layer installer suite (throwaway --root; never a system path, never root, ADR-0025)

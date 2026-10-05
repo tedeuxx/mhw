@@ -1,5 +1,9 @@
 # Restart guard diagnosis and native verification
 
+> **Historical (2026-10-05):** the restart guard and `/breaking-glass` described here were removed by
+> [ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md). Kept as the
+> record of what was measured; the commands below no longer exist in the source.
+
 ## Evidence from the 2026-10-02 bugfix investigation
 
 The reported first-tool refusal cannot be attributed retrospectively to either a missing baseline

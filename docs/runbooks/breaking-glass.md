@@ -1,58 +1,97 @@
-# Runbook: /breaking-glass
+# Runbook: breaking glass (OS privilege only)
 
-Two levels, one name. **Per layer** (`/breaking-glass`, ADR-0024): one expiring, root-owned switch
-per hook layer; it needs the v2 admin layer. **Total** (ADR-0023): every hook off through each
-harness's native switch; the last resort, and the only one v1 offers. This runbook covers the total level.
+Decision record: [ADR-0028](../adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md).
 
-Decision record: [ADR-0023](../adr/0023-breaking-glass-all-layers-native-switch.md).
+There is no per-request or expiring waiver, and no `/breaking-glass` command. The hooks this project
+installs live in each agent harness's admin layer. Only an administrator changes that layer, with
+`sudo`, as with any OS-managed policy. A change stays until the administrator reverts it; nothing
+expires. An agent never runs `sudo`: it is in the deny floor (ADR-0016). An agent may print a line
+for the owner to run.
 
-## Check the current state
+The owner's decision (2026-10-05), quoted in ADR-0028: no mechanical lock may require individual,
+temporary waiver requests unless the waiver is tied to a privilege level that stays valid for the
+whole session; `sudo`/`su` serves that purpose.
 
-```sh
-python3 -c "import json,os;print('claude disableAllHooks =',json.load(open(os.path.expanduser('~/.claude/settings.json'))).get('disableAllHooks'))"
-python3 -c "import tomllib,os;print('codex features.hooks =',tomllib.load(open(os.path.expanduser('~/.codex/config.toml'),'rb')).get('features',{}).get('hooks'))"
-```
+## What is in the admin layer
 
-Total breaking glass is on when Claude prints `True` and Codex prints `False`.
+| Path (macOS; Linux in brackets) | Carries |
+| --- | --- |
+| `/Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json` [`/etc/claude-code/managed-settings.d/…`] | Claude Code: the paste prompt hook (`UserPromptSubmit`), the HITL picker guard (`PreToolUse`, matcher `AskUserQuestion`), and the deny floor (`permissions.deny`) |
+| `/etc/codex/requirements.toml` | Codex: the paste prompt hook (`[[hooks.UserPromptSubmit]]`) and the deny floor (`[rules] prefix_rules`) |
+| `/Library/Application Support/personal-multi-harness-workstation-configuration/bin/` [`/etc/personal-multi-harness-workstation-configuration/bin/`] | the hook scripts those entries run |
 
-## Start the total breaking glass (what was done on 2026-10-04)
+Kiro has no admin layer for hooks and runs none of these. Windows installs no hook.
 
-1. Claude Code: `cp -p ~/.claude/settings.json ~/.claude/settings.json.bak-v1`, then set
-   `"disableAllHooks": true` at the top level of `~/.claude/settings.json`.
-2. Codex: `cp -p ~/.codex/config.toml ~/.codex/config.toml.bak-v1`, then add `hooks = false` under
-   the existing `[features]` table of `~/.codex/config.toml`.
-3. Kiro: nothing. v1 installs no Kiro hook.
-4. Start a fresh session in each harness. Neither switch is claimed to reload mid-session.
+## Turn every hook off
 
-## End the total breaking glass (the v2 rollout, ADR-0025)
+1. In the repository checkout, as yourself: `sh global/install-managed.sh --uninstall`. It prints one
+   line, `sudo /bin/sh "<checkout>/global/install-managed.sh" --remove`. Run it in your own terminal.
+2. This also removes the **admin copy of the deny floor**, which lives in the same documents. The
+   user-level copy stays when `install.sh` installed it; check with `sh global/install.sh --check
+   --hooks=managed` (its `FLOOR` lines name the layer that carries it).
+3. Do **not** run plain `sh global/install.sh` afterwards: that registers the hooks again at user
+   level. Keep `--hooks=managed`.
+4. Open fresh sessions (ADR-0022).
 
-Only from a merged, released commit. Each stage ends in fresh sessions; an agent never runs sudo and
-never grants hook trust.
+## Turn one hook off
 
-1. **User level, v2 hooks.** `sh global/install.sh`; then remove `disableAllHooks` from
-   `~/.claude/settings.json` and the `hooks = false` line under `[features]` in `~/.codex/config.toml`
-   (restoring the `.bak-v1` files also works, but discards later edits; compare first). Open fresh
-   sessions. Codex: the owner reviews and trusts the changed hooks in `/hooks`.
-2. **Canary.** Observe `Restart guard: baseline_created.`; the intake picker passes; `Read` after a
-   `cd` passes; `/breaking-glass status` answers. Stop on an unexpected refusal and note its reason code.
-3. **Admin layer.** `sh global/install-managed.sh` prints one sudo line; the owner runs it, then
-   `sh global/install.sh --hooks=managed`. Fresh sessions, the same canary. Codex managed hooks need no
-   `/hooks` trust.
-4. If a stage fails: `/breaking-glass` switches one layer off for up to 240 minutes, or
-   `install-managed.sh --uninstall` prints the removal line. A new total breaking glass remains
-   the last resort; with v2 in the admin layer, the user-level switches no longer reach those hooks.
+Edit the admin document with `sudo`, keeping every other entry, the deny floor included:
 
-## What stays active during a total breaking glass
+- Claude Code paste prompt hook: remove the `UserPromptSubmit` entry from the drop-in.
+- Claude Code HITL picker guard: remove the `PreToolUse` entry whose matcher is `AskUserQuestion`.
+- Codex paste prompt hook: remove the `[[hooks.UserPromptSubmit]]` block and its
+  `[[hooks.UserPromptSubmit.hooks]]` table from `requirements.toml`.
 
-| Control | Mechanism | Affected? |
-| --- | --- | --- |
-| Global brief | user instruction files (all three harnesses) | no |
-| Deny floor | Claude `permissions.deny`; Codex `rules/workstation-deny-floor.rules`; once installed, the same rules in the admin drop-in and `requirements.toml` (ADR-0016, 2026-10-05 amendment) | no |
-| Paste wrapper | shell functions for `claude`, `codex`, `kiro-cli` | no, when sourced |
-| Paste filter | prompt hook | **suspended** |
-| Restart guard | SessionStart/PreToolUse hook | **suspended** |
-| HITL picker guard | Claude Code PreToolUse hook | **suspended** |
-| Plugin hooks | plugin hook definitions | **suspended** |
+Then, as yourself:
 
-Only the agent's adherence to the brief protects a pasted third-party reference typed into a CLI
-started without the wrapper. Prefer starting CLIs through the wrapper while this mode is on.
+- Check the JSON still parses: `/usr/bin/python3 -m json.tool "<drop-in path>"`. A malformed managed
+  document can stop the agent harness from loading managed settings.
+- `sh global/install-managed.sh --check` now reports `DRIFT` for the edited document. That is the
+  visible record that a layer is off.
+- Open fresh sessions. The Claude Code drop-in is documented to reload when the file changes; that is
+  not measured here, so do not rely on it.
+
+## Turn hooks back on
+
+`sh global/install-managed.sh` renders a fresh stage and prints one line:
+`sudo /bin/sh "<checkout>/global/install-managed.sh" --apply="<stage>" --sha256=<hash>`. Run it in your
+own terminal, then `sh global/install.sh --hooks=managed` as yourself, then open fresh sessions. Use
+a merged, released commit: the line runs the checked-out installer as root.
+
+## Owner install act for the release that removes the restart guard (ADR-0028)
+
+In a fresh session, from the merged, released commit, running steps 1 to 3 in your own terminal.
+Until step 1 lands, the old restart guard is still loaded: any agent session open during the
+install may deny acting tools once the admin files change. That is expected; end it and use step 4.
+
+1. `sh global/install-managed.sh`, then run the printed `sudo … --apply=… --sha256=…` line yourself.
+   It rewrites the admin documents without the restart guard and deletes `restart_guard.py`,
+   `breaking_glass.py` and the `breaking-glass/` switch directory from the admin layer.
+2. `sh global/install.sh --hooks=managed` as yourself. It deletes the user-level `restart_guard.py`,
+   `breaking_glass.py`, `~/.claude/commands/breaking-glass.md` and the guard's `restart-state/`
+   baselines, and drops any restart-guard hook entry left in the user settings.
+3. `sh global/install-managed.sh --check` and `sh global/install.sh --check --hooks=managed` both
+   exit 0.
+4. Open fresh Claude Code and Codex sessions. Codex may ask you to trust the paste hook again in
+   `/hooks` if it ran from the user level before; whether a rewritten `hooks.json` triggers that is not
+   measured.
+
+**Canary (fresh session, disposable workspace):**
+
+- At startup there is no `Restart guard:` message.
+- Edit a synthetic configuration file the old guard watched, for example create or change `AGENTS.md`
+  in a throwaway git directory. Then make one harmless read (`ls`) and one harmless write (create a
+  scratch file). Both pass: no `fingerprint_mismatch` or `missing_baseline` denial.
+- `/breaking-glass` is no longer offered.
+- The paste prompt hook still blocks a synthetic credential and shows a redacted copy (a harmless
+  block canary, never a real secret).
+
+Record only the agent harness, its version and the pass/block outcomes.
+
+## History
+
+- 2026-10-04: total breaking glass through each vendor's native user switch
+  ([ADR-0023](../adr/0023-breaking-glass-all-layers-native-switch.md)), ended the same day. Those user
+  switches do not reach admin-layer hooks.
+- 2026-10-04 to 2026-10-05: per-layer expiring switches and `/breaking-glass`
+  ([ADR-0024](../adr/0024-breaking-glass-per-layer-expiring-switches.md)), superseded by ADR-0028.

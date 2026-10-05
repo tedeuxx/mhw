@@ -344,7 +344,7 @@ as subagents.
 | **Client and employer terms** | The owner registers the names to catch; stored salted, never in plain text. | The mission's first rule. | Empty until terms are registered; status shows the count, including a visible "0 terms" notice. |
 | **Deny floor** | About 100 native deny rules: `sudo`, reading `~/.ssh` and `~/.aws`, GitHub and AWS secret writes, force-push, `rm -rf`, bypass flags; it also carries the irreversible-action rules that used to live in the plugin. | Irreversible damage and credential reads. | Claude Code and Codex. Prefix match: `git -C dir push --force` is not caught. ~~*Open decision* ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59)): whether it sits in the managed layer.~~ Decided on #59: rendered into the managed layer, user copy kept until that one is installed ([ADR-0016](adr/0016-user-level-deny-floor-rendered-per-harness.md), 2026-10-05 amendment). |
 | **Connector access per agent** | Each agent declares its allowed tools (native per-agent tool list), so access to account connectors (mail, files, professional network) is granted per agent; a brief instruction says the same. No hook. | A subagent reading or sending through the owner's accounts. | Claude Code natively; other agent harnesses per the [enforcement matrix](#10-native-enforcement-matrix). |
-| **Breaking glass** | A root-owned, expiring switch; the agent only prints the `sudo` line. Exists only while a hook exists. | A protection misfiring with no way out. | macOS and Linux. Scope follows the paste prompt hook decision ([#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56), [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)). |
+| **Breaking glass** | ~~A root-owned, expiring switch; the agent only prints the `sudo` line.~~ No switch and no expiry: the administrator edits or removes the managed documents with `sudo`, as with any OS-managed policy ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md), [runbook](runbooks/breaking-glass.md)). Exists only while a hook exists. | A protection misfiring with no way out. | macOS and Linux. Scope follows the paste prompt hook decision ([#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56), [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)). |
 | **Stale configuration** | Covered by the version key ([7](#7-version-key-per-project)) and the restart rule of ADR-0022 as an instruction; no restart-guard hook. | A session running on stale configuration. | All three agent harnesses, best effort. |
 
 The protection core carries nothing that protects against no harm: code and names left from withdrawn
@@ -371,8 +371,11 @@ and instructions. A hook stays only if all three hold:
 | Session-start checks (open pull requests, rite cadence, stale worktrees) | The method skill `agents-configuration` tells the agent to check them at session start |
 | End-of-session and dispatch checks | The rules they checked are instructions in the method skills |
 
-Consequence: `/breaking-glass` and the admin-layer hook installation exist only if the paste prompt hook
-stays. The deny floor is native configuration, not a hook, and stays.
+Consequence: ~~`/breaking-glass` and the admin-layer hook installation exist only if the paste prompt hook
+stays.~~ `/breaking-glass` is removed
+([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)). The admin-layer
+hook installation exists only while a hook stays: the paste prompt hook (#58) and the picker guard
+(until #60). The deny floor is native configuration, not a hook, and stays.
 
 ## 5. Interaction standards (user layer)
 
@@ -425,7 +428,7 @@ workstation follows them ([#69](https://github.com/tedeuxx/personal-multi-harnes
   it.
 - **Families read alike:** `/new-idea` and `/new-issue`; `/idea-to-issues`.
 - **Checked against this line:** `/handover`, `/blueprint` and `/breaking-glass` all fit, because teams
-  already say them (owner, 2026-10-05).
+  already say them (owner, 2026-10-05). (`/breaking-glass` was later removed, ADR-0028.)
 
 ### Documents
 
@@ -502,7 +505,7 @@ a technology stack; **Reference** holds unused patterns.
 | 5 | `/handover` ([#73](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/73)) | Writes a handover prompt the owner pastes to open a new session derived from the current one. That prompt instructs the new session to write a **return prompt** for the parent session when its objective is done. | user | Work branches into focused child sessions and comes back without losing context. Both prompts carry only the minimum context and are sanitised under the firewall rules. |
 | 6 | `/what-else` ([#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74)) | Restates the session's objective and answers what is still missing: what is done (with its evidence), what is left, what is blocked on the owner (that ask first) and the next step. | user | The owner can check at any moment how far the session is from its goal. |
 | 7 | `/blueprint` ([#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75)) | `export` writes the project's effective agent harness configuration as a requirements document; `import` brings one into another project. | user | Carries a project's setup to other projects. The text it exports, and the text it accepts, is a requirements document in the [5a](#5a-documentation-standards-user-layer-every-repository) format: target behaviour and why, in English, with Mermaid diagrams, named `<repo>-product-requirements-document-*`. Import applies nothing before an expectation-alignment interview with the person running the session. |
-| 8 | `/breaking-glass` | Prints the `sudo` line that switches a hook layer off, with expiry | user | Exists only if the paste prompt hook stays ([4a](#4a-hook-budget), #58). |
+| 8 | ~~`/breaking-glass`~~ | ~~Prints the `sudo` line that switches a hook layer off, with expiry~~ Removed ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)): the [runbook](runbooks/breaking-glass.md) gives the `sudo` route | user | ~~Exists only if the paste prompt hook stays ([4a](#4a-hook-budget), #58).~~ No expiring waiver is allowed; `install-managed.sh --uninstall` already prints the removal line. |
 
 Not in the command set, because they were never designed for the owner's use of the loop: sprint
 planning, sprint retrospective, sprint review, funnel review, and session start and finish commands.

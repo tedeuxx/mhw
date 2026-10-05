@@ -1,7 +1,8 @@
 #!/bin/sh
 # Render the global brief to each harness, install the HITL escalation guard, install the user-level
 # deny floor, and install the paste filter at the harness-CLI prompt (ADR-0010, ADR-0013, ADR-0016,
-# ADR-0011), and the stale-session restart guard (ADR-0022).
+# ADR-0011). The stale-session restart guard (ADR-0022) and the /breaking-glass switches (ADR-0024)
+# were removed (ADR-0028): a run of this installer deletes what an earlier version wrote for them.
 #
 #   install.sh                  install or update every managed target
 #   install.sh --dry-run        print exactly what would be written or merged where; write nothing
@@ -33,15 +34,13 @@ set -eu
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
 HOOK_ID="personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"
 PASTE_ID="personal-multi-harness-workstation-configuration/clipboard_guard.py"
+# Removed hooks (ADR-0028): kept only so an entry an earlier version merged is found and deleted.
 RESTART_ID="personal-multi-harness-workstation-configuration/restart_guard.py"
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_root=$(dirname "$script_dir")
 src="$script_dir/AGENTS.md"
 hook_src="$script_dir/hooks/hitl-escalation-guard.sh"
-restart_src="$script_dir/hooks/restart_guard.py"
-glass_src="$script_dir/hooks/breaking_glass.py"
-glasscmd_src="$script_dir/commands/breaking-glass.md"
 conf_src="$script_dir/hitl.conf"
 floor_src="$script_dir/deny-floor.conf"
 clip_src="$script_dir/clipboard/clipboard_guard.py"
@@ -67,7 +66,7 @@ for arg in "$@"; do
   esac
 done
 
-for f in "$src" "$hook_src" "$restart_src" "$glass_src" "$glasscmd_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
+for f in "$src" "$hook_src" "$conf_src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -87,8 +86,9 @@ fi
 
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/personal-multi-harness-workstation-configuration"
 hook_dest="$data_dir/hitl-escalation-guard.sh"
-restart_dest="$data_dir/restart_guard.py"
-glass_dest="$data_dir/breaking_glass.py"
+restart_dest="$data_dir/restart_guard.py"        # removed (ADR-0028); retired below
+glass_dest="$data_dir/breaking_glass.py"         # removed (ADR-0028); retired below
+glasscmd_dest="$HOME/.claude/commands/breaking-glass.md"   # removed (ADR-0028); retired below
 settings="$HOME/.claude/settings.json"
 clip_dest="$data_dir/clipboard_guard.py"
 clip_conf_dest="$data_dir/clipboard.conf"
@@ -237,26 +237,6 @@ render() {
         sed 1d "$clip_src"
       } > "$2"
       ;;
-    glassscript)
-      {
-        sed -n 1p "$glass_src"
-        printf '# %s; source: global/hooks/breaking_glass.py; version: %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$version"
-        sed 1d "$glass_src"
-      } > "$2"
-      ;;
-    glasscommand)
-      # /breaking-glass (ADR-0024) for every workspace: it calls the installed module, not a checkout.
-      sed -e "s|@MARKER@|$MARKER_ID|" -e "s|@GLASS@|$glass_dest|g" "$glasscmd_src" > "$2"
-      ;;
-    restartscript)
-      restart_output=$2
-      {
-        sed -n 1p "$restart_src"
-        printf '# %s; source: global/hooks/restart_guard.py; do not edit, re-run the installer\n' "$MARKER_ID"
-        sed 1d "$restart_src"
-      } > "$restart_output"
-      ;;
     clipconf)
       {
         printf '# %s; source: global/clipboard.conf + overlay; version: %s; do not edit, re-run the installer\n' \
@@ -297,11 +277,7 @@ render() {
         printf '{\n  "description": "%s; source: global/install.sh (paste filter, ADR-0011); do not edit, re-run the installer",\n' "$MARKER_ID"
         printf '  "hooks": {\n    "UserPromptSubmit": [\n      {\n        "hooks": [\n'
         printf '          {"type": "command", "command": "%s", "timeout": 30}\n' "$(paste_cmd codex | sed 's/"/\\"/g')"
-        printf '        ]\n      }\n    ],\n'
-        printf '    "SessionStart": [{"hooks": [{"type": "command", "command": "%s", "timeout": 10}]}],\n' \
-          "$(printf '/usr/bin/python3 -I -B "%s" --harness codex' "$restart_dest" | sed 's/"/\\"/g')"
-        printf '    "PreToolUse": [{"hooks": [{"type": "command", "command": "%s", "timeout": 10}]}]\n  }\n}\n' \
-          "$(printf '/usr/bin/python3 -I -B "%s" --harness codex' "$restart_dest" | sed 's/"/\\"/g')"
+        printf '        ]\n      }\n    ]\n  }\n}\n'
       } > "$2"
       ;;
   esac
@@ -391,18 +367,16 @@ merge_settings() {
     '{matcher: "AskUserQuestion", hooks: [{type: "command", command: $cmd, timeout: 5}]}')
   if [ "$paste_ok" = 1 ]; then
     want_paste=$(jq -cn --arg cmd "$(paste_cmd claude)" '{hooks: [{type: "command", command: $cmd, timeout: 30}]}')
-    want_restart=$(jq -cn --arg cmd "/usr/bin/python3 -I -B \"$restart_dest\" --harness claude-code" \
-      '{hooks: [{type: "command", command: $cmd, timeout: 10}]}')
   else
     want_paste=null
-    want_restart=null
   fi
   if [ "$hooks_mode" = managed ]; then
     # ADR-0025: the admin layer registers the hooks; a user-level copy would run them twice.
     want=null
     want_paste=null
-    want_restart=null
   fi
+  # The restart guard is removed (ADR-0028): an entry an earlier version merged is always dropped.
+  want_restart=null
   deny=$(jq -cR -s 'split("\n") | map(select(length > 0))
                     | reduce .[] as $r ([]; if any(.[]; . == $r) then . else . + [$r] end)' "$floor_claude")
 
@@ -504,14 +478,32 @@ process plain "$HOME/.claude/CLAUDE.md"
 process plain "${CODEX_HOME:-$HOME/.codex}/AGENTS.md"
 process kiro "$HOME/.kiro/steering/workstation-global-brief.md"
 process hook "$hook_dest"
-process glassscript "$glass_dest"
-process glasscommand "$HOME/.claude/commands/breaking-glass.md"
+retire "$glass_dest" "the removed breaking-glass switch module (ADR-0028)"
+retire "$glasscmd_dest" "the removed /breaking-glass command (ADR-0028)"
+retire "$restart_dest" "the removed restart guard (ADR-0028)"
+# The removed restart guard's per-session baselines: opaque aggregate hashes, one JSON file each.
+restart_state="$data_dir/restart-state"
+if [ -L "$restart_state" ]; then
+  echo "NOTE    $restart_state is a symbolic link; left alone"
+elif [ -d "$restart_state" ]; then
+  case $mode in
+    check) echo "STALE   $restart_state: the removed restart guard's baselines; install removes them"; raise 1 ;;
+    dry-run) echo "WOULD REMOVE $restart_state (the removed restart guard's baselines)" ;;
+    install)
+      rm -f "$restart_state"/*.json
+      if rmdir "$restart_state" 2>/dev/null; then
+        echo "REMOVED $restart_state (the removed restart guard's baselines, ADR-0028)"
+      else
+        echo "NOTE    $restart_state still holds files this project did not write; left alone"
+      fi
+      ;;
+  esac
+fi
 process conf "$data_dir/hitl.conf"
 process codexrules "$codex_rules"
 process clipscript "$clip_dest"
 process clipconf "$clip_conf_dest"
 if [ "$paste_ok" = 1 ]; then
-  process restartscript "$restart_dest"
   if [ "$hooks_mode" = user ]; then
     process codexhooks "$codex_hooks"
   else

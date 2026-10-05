@@ -5,6 +5,8 @@
 Accepted requirement, 2026-10-02, on the owner's explicit instruction: never continue a session
 after changing user or workspace customization that requires restart; always multiharness.
 The implementation below has synthetic coverage; installation is not native enforcement evidence.
+*Amended 2026-10-05 ([ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)):
+the requirement stays, as an instruction only; its hook enforcement is removed.*
 
 ## Context and problem
 
@@ -34,30 +36,30 @@ avoid restart. Source edits in an inactive checkout do not themselves install us
 Updating an active workspace instruction is itself a restart boundary when not demonstrably reloaded.
 Publication can precede installation; installation evidence can be reported in the conversation.
 
-`global/hooks/restart_guard.py` uses SessionStart with source `startup` to save an opaque metadata
-fingerprint under a hashed session ID. PreToolUse compares it before covered tools. Missing or changed
-baselines deny the call. Resume, clear and compaction cannot reset a stale baseline. A genuinely new
-session ID establishes a new baseline. The installer registers these hooks for Claude Code and Codex
-on macOS/Linux; Codex trust remains an owner action in `/hooks`. SessionStart context/stop handling
-varies by vendor: **PreToolUse is the blocking mechanism**, not a claim to prevent app launch or text.
+~~`global/hooks/restart_guard.py` uses SessionStart with source `startup` to save an opaque metadata~~
+~~fingerprint under a hashed session ID. PreToolUse compares it before covered tools. Missing or changed~~
+~~baselines deny the call. Resume, clear and compaction cannot reset a stale baseline. A genuinely new~~
+~~session ID establishes a new baseline. The installer registers these hooks for Claude Code and Codex~~
+~~on macOS/Linux; Codex trust remains an owner action in `/hooks`. SessionStart context/stop handling~~
+~~varies by vendor: **PreToolUse is the blocking mechanism**, not a claim to prevent app launch or text.~~
 
-Only path metadata is inspected: modification time, size, inode and mode. Only an aggregate hash is
-persisted, in private files: no paths, configuration values, tool inputs or transcript. The known
-user and project paths are declared in `NATIVE`; managed helper scripts are included. Changes to
-metadata alone can conservatively require restart. External symlink targets, metadata-preserving
-edits, non-listed paths, tool calls the harness does not route through hooks, and disabled/untrusted
-hooks are outside coverage. This is not tamper-resistant managed policy. Opaque session state is not
-automatically pruned because deleting it would block a still-live session; remove it only when those
-sessions have ended.
+~~Only path metadata is inspected: modification time, size, inode and mode. Only an aggregate hash is~~
+~~persisted, in private files: no paths, configuration values, tool inputs or transcript. The known~~
+~~user and project paths are declared in `NATIVE`; managed helper scripts are included. Changes to~~
+~~metadata alone can conservatively require restart. External symlink targets, metadata-preserving~~
+~~edits, non-listed paths, tool calls the harness does not route through hooks, and disabled/untrusted~~
+~~hooks are outside coverage. This is not tamper-resistant managed policy. Opaque session state is not~~
+~~automatically pruned because deleting it would block a still-live session; remove it only when those~~
+~~sessions have ended.~~
 
-The hook process's working directory selects the workspace; a `cwd` value in the event payload is
-ignored. Native verification must confirm the vendor runs hooks from that workspace. An unexpected
-execution directory is a coverage gap, not evidence that a caller-supplied path should be trusted.
+~~The hook process's working directory selects the workspace; a `cwd` value in the event payload is~~
+~~ignored. Native verification must confirm the vendor runs hooks from that workspace. An unexpected~~
+~~execution directory is a coverage gap, not evidence that a caller-supplied path should be trusted.~~
 
 | Surface / OS | Carrier | Evidence / remaining boundary |
 | --- | --- | --- |
-| Claude Code, macOS/Linux | User brief + native hook registration | Synthetic pass/block and installer tests; fresh native canary still required |
-| Codex CLI, macOS/Linux | User brief + hooks.json | Same; owner trust required |
+| Claude Code, macOS/Linux | User brief ~~+ native hook registration~~ | ~~Synthetic pass/block and installer tests; fresh native canary still required~~ Instruction only (ADR-0028) |
+| Codex CLI, macOS/Linux | User brief ~~+ hooks.json~~ | ~~Same; owner trust required~~ Instruction only (ADR-0028) |
 | Codex desktop, macOS/Linux | Shared user brief/config | App hook routing not measured; instruction fallback |
 | Kiro CLI/IDE | Global steering brief | Instruction only; CLI absent on reference PATH; native v3 hooks need payload/routing validation |
 | Claude desktop/Cowork | Generated account-instructions handoff | Instruction only; account application is separate from file generation |
@@ -72,8 +74,9 @@ selector is not a registered Kiro adapter. Desktop restrictions are not bypassed
 
 1. Open a genuinely new session after installation; restart the app if it retains old configuration.
 2. Inspect native hooks and ask the owner to trust changed Codex commands when required.
-3. In a disposable workspace, allow a harmless read, modify a tracked synthetic configuration,
-   observe the next covered read being denied, then verify a fresh session allows it again.
+3. ~~In a disposable workspace, allow a harmless read, modify a tracked synthetic configuration,
+   observe the next covered read being denied, then verify a fresh session allows it again.~~
+   (Struck 2026-10-05, ADR-0028: see the amendment below.)
 4. Record only version, surface and pass/block outcomes. Never use real private configuration values
    as canary input or infer another harness's result from one passing harness.
 
@@ -105,7 +108,7 @@ startup trace was available. Plugin drift is not established as its cause. See t
 - [Codex hooks](https://learn.chatgpt.com/docs/hooks)
 - [Kiro hook actions](https://kiro.dev/docs/hooks/actions/)
 - [Global source](../../global/AGENTS.md)
-- [Guard](../../global/hooks/restart_guard.py)
+- ~~[Guard](../../global/hooks/restart_guard.py)~~ (deleted, ADR-0028)
 
 ## Amendment 2026-10-04: no lockout (ADR-0023, ADR-0025)
 
@@ -124,3 +127,22 @@ user-level subtree for Claude Code. Everything else under `~/.claude/skills`, an
 `.claude/skills` including a folder named `synced`, is still watched. Trade-off: a skill the vendor
 sync changes mid-session is no longer detected; it is account-managed, not installed by this
 repository, and it is added to the paths outside the detector. The restart obligation is unchanged.
+
+## Amendment 2026-10-05: hook enforcement removed (ADR-0028)
+
+The owner decided that no mechanical lock may require per-request or expiring waivers, and that the
+protection layer defends the perimeter, not the agent's behaviour
+([ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md), owner's words
+quoted there). The restart guard enforced a behaviour, and it locked the owner out once.
+
+- **The requirement stays, unchanged:** a configuration change that needs a restart is followed by a
+  fresh session. It is carried by the global brief as an instruction, on every agent harness and
+  operating system.
+- **The hook enforcement is removed:** `global/hooks/restart_guard.py`, its tests and its registration
+  in both installers. The paragraphs above that describe it are struck in place. The next run of
+  either installer deletes what an earlier release installed.
+- **Fresh-session verification:** step 3's deny canary no longer applies. The canary after an install
+  is that a configuration edit produces **no** restart-guard denial (see the
+  [breaking-glass runbook](../runbooks/breaking-glass.md)).
+- **Evidence:** the removal is *written and tested*, not installed. Stale configuration is now
+  instruction only everywhere; the version key (#57) is the planned report.
