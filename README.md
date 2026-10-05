@@ -1,153 +1,117 @@
 # personal-multi-harness-workstation-configuration
 
-A personal **LLM firewall**, kept as the governed configuration of one developer workstation. It sits
-between the owner and every AI agent harness on the machine, and protects him, as a private individual,
-from violating third parties' commercial rights and intellectual property in his personal professional
-activity. Only his own individual knowledge and learning is his; client and employer material is not.
+The managed workstation: one versioned source for how every agent harness (Claude Code, Codex and
+Kiro) behaves on the owner's devices. One release installs the same protection, standards and working
+method into every agent harness, on any of his machines.
 
-It does that by sanitising prompts in both directions it can reach: prompts that leave the machine for a
-model provider or another service, and prompts passed between agents. It removes secrets and
-credentials, personal data, client and employer confidential data, and sensitive personal data. The same
-policy is expressed in each harness's own mechanism, so switching tools never silently drops a
-protection.
+This page is the short version. The target behaviour and the reasons for it are in the
+[Product Requirements Document](docs/personal-multi-harness-workstation-configuration-product-requirements-document-project.md).
+The mission, principles and hard rules for agents working here are in [`AGENTS.md`](AGENTS.md).
 
-It is also the owner's master of first principles: it places ethical locks on what he himself seeks
-to achieve, and those locks are still being defined with him
-([ADR-0015](docs/adr/0015-master-of-first-principles-ethical-locks-on-own-aims.md)).
+## Why it exists
 
-The full mission, the principles and the hard rules for agents working here are in
-[`AGENTS.md`](AGENTS.md). The brief installed into every session is
-[`global/AGENTS.md`](global/AGENTS.md).
+Work done with AI agents must respect other people: clients' and employers' confidential material,
+third parties' commercial rights and intellectual property, and everyone's personal data. Only the
+owner's own knowledge and learning is his. This repository is the protection layer that keeps that line
+for every agent at once, and stops credential reads, irreversible commands and unsafe actions while the
+agents run. It is also a rehearsal, on one person's workstations, of what a company would roll out to
+its engineers.
 
-**Status:** bootstrapped 2026-10-01. The policy is still being defined with the owner, and several
-decisions are still proposed rather than accepted. On 2026-10-01 `global/install.sh` ran on the
-reference machine from v0.7.0 with `--check` clean (Issue #4). That installed the global brief, the
-HITL escalation guard ([ADR-0013](docs/adr/0013-hitl-escalation-calibration.md); firing there not
-re-measured) and the user-level deny floor
-([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md), accepted; enforcement there
-not re-measured). The always-on macOS clipboard watcher was withdrawn on the owner's correction
-(Issue #5): it is stopped on the reference machine and this version no longer installs it. In its place
-a paste filter blocks a prompt carrying a finding at the Claude Code and Codex prompt
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), mechanism proposed; measured headless;
-installed on the reference machine from v1.0.0 on the owner's go,
-[Issue #5](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5942877343)).
-A paste wrapper now cleans bracketed pastes automatically before the CLI sees them. It is written,
-tested, and measured against real Claude Code and Codex in throwaway homes. It is not activated on the
-reference machine: sourcing its snippet is the owner's act. The MCP renderer
-([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md), proposed) has not been run
-there (Issue #8). Per-component evidence levels are in [`AGENTS.md`](AGENTS.md), "Status".
+The command-line agent harnesses come first: they are fast, tile well, scale to many parallel sessions,
+and keep configuration in files that can be versioned, tested in CI and installed by one command.
+Running the same behaviour on three agent harnesses protects against any one vendor's cost changes,
+feature changes and outages.
 
-## This repository vs the plugin
-
-This repository is the firewall: the personal protection floor. The owner's public plugin,
-[`tadeumendonca-skills`](https://github.com/tedeuxx/tadeumendonca-skills), is the way of working:
-personas, the delivery loop, skills and project hooks. The plugin may add controls but never weaken the
-floor ([ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md)). Being the last barrier is the
-firewall's purpose. Its first mechanical control, a user-level deny floor that a project cannot carve
-out in Claude Code, is accepted and was installed on the reference workstation on 2026-10-01
-([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)). It is a prefix floor, not a
-wall: other spellings of a denied command escape it, and the global brief is still an instruction that
-project configuration can override.
-
-| Layer | Owns | May it weaken the floor? |
-| --- | --- | --- |
-| This repository | The protection floor | It is the floor |
-| `tadeumendonca-skills` | The way of working | No, it may only add controls |
-| A project's own config | That project's needs | No |
-
-## Architecture of the personal workstation configuration
-
-The [harness baseline](docs/harness-baseline.md) defines runtime, customization, plugin, project and
-workstation profile using the owner's existing engineering repositories as references.
+## Four layers
 
 ```mermaid
-flowchart TB
-  owner(["Owner — human in the loop"])
-
-  subgraph WS["Personal workstation · macOS reference · Linux · Windows"]
-
-    subgraph LAYERS["Configuration layers per harness"]
-      managed["System-managed policy · admin only<br/>firewall promotion · ADR-0014 proposed"]:::oursPlanned
-      ubrief["User level · global brief<br/>CLAUDE.md · AGENTS.md · Kiro steering<br/>ADR-0010 · loaded: Claude Code, Codex (headless)"]:::ours
-      uhooks["User level · hooks<br/>HITL escalation · ADR-0013 · installed (firing not re-measured)"]:::ours
-      upaste["User level · prompt hook<br/>paste filter · Claude Code, Codex · ADR-0011<br/>blocks, never rewrites · installed"]:::ours
-      uwrap["Shell level · paste wrapper<br/>claude · codex · kiro-cli on a pty · ADR-0011<br/>cleans bracketed pastes · not activated (owner sources it)"]:::oursPlanned
-      udeny["User level · deny floor<br/>Claude permissions.deny · Codex rules<br/>ADR-0016 · accepted · installed"]:::ours
-      plugin["Plugin · tadeumendonca-skills<br/>personas · skills · loop · project hooks"]
-      project["Project config<br/>AGENTS.md · .claude/ · .codex/rules"]
-      local["Local overrides · untracked"]
-    end
-
-    subgraph HARN["Harnesses"]
-      cc["Claude Code"]
-      cx["Codex CLI / app"]
-      kiro["Kiro IDE / CLI"]
-    end
-
-    proxy["Local sanitising proxy<br/>ADR-0003 · contingent on measurement"]:::oursPlanned
-    desk["Claude desktop · Cowork · ChatGPT desktop"]
-  end
-
-  subgraph CLOUD["Outside local reach · dichotomy of control"]
-    acct["Account-side custom instructions"]
-    llm[("LLM providers")]
-  end
-
-  owner -->|paste into a CLI| uwrap
-  uwrap -->|cleaned paste| HARN
-  owner -->|"paste outside the wrapper: hook blocks only"| HARN
-  owner -->|paste| desk
-  managed --- ubrief --- uhooks --- upaste --- udeny --- plugin --- project --- local
-  LAYERS -. govern .-> HARN
-  HARN --> proxy --> llm
-  desk --> acct --> llm
-  HARN -->|"intervention notice: category + mitigation"| owner
-
-  classDef ours fill:#1f6feb,stroke:#0b3d91,color:#ffffff,stroke-width:2px
-  classDef oursPlanned fill:#9ec5fe,stroke:#1f6feb,color:#0b1f44,stroke-width:2px,stroke-dasharray:5 4
+block-beta
+  columns 1
+  L5["Session (command line) · machine user"]
+  L4["Workspace (git repository / multi-root) · project contributors"]
+  L3["User (global) · machine user"]
+  L2["Managed (admin policy) · administrator only"]
+  L1["Built-in defaults: Claude Code · Codex · Kiro · vendor"]
+  classDef admin fill:#F9D8C4,stroke:#D55E00,stroke-width:2px,color:#1d2228
+  classDef project fill:#CDEDE2,stroke:#009E73,stroke-width:2px,color:#1d2228
+  classDef user fill:#CFE3F2,stroke:#0072B2,stroke-width:2px,color:#1d2228
+  classDef vendor fill:#E3E5E8,stroke:#6b7178,stroke-width:2px,color:#1d2228,stroke-dasharray:5 4
+  class L5 user
+  class L4 project
+  class L3 user
+  class L2 admin
+  class L1 vendor
 ```
 
-Legend: solid dark blue means distributed and installed by this repository; light blue dashed means
-distributed by this repository but planned, proposed or still in a pull request;
-unshaded means not this repository.
+*Read bottom-up. Grey dashed: vendor. Orange: administrator only. Blue: machine user. Green: project
+contributors.*
 
-The vertical order of the layers is the firewall's view, floor first. It is not the harnesses'
-override precedence, where a project value usually beats a user-level one; see
-[ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md).
+- **Managed:** a thin protection core that no agent can switch off, because changing it needs `sudo` and
+  `sudo` is denied to agents.
+- **User:** the global brief, the owner overlay, interaction standards and the working method (agents,
+  skills, commands), rendered into each agent harness's native mechanism.
+- **Workspace:** only what one project needs, plus a version key that names the workstation release
+  range it expects.
+- The `tadeumendonca-skills` plugin is a generated copy of the method, never a source and never a
+  protection.
+
+Hard locks are kept for irreversible or third-party harm only. Everything else is taught through
+instructions, native settings and automatic cleaning, and reported at its real evidence level.
+
+## Workflow
+
+```mermaid
+flowchart LR
+  W1["Idea"] --> W2["Requirements document"] --> W3["Issues"] --> W4["Build and gate"] --> W5["Release"]
+  classDef owner fill:#CFE3F2,stroke:#0072B2,stroke-width:2px,color:#1d2228
+  classDef agents fill:#CDEDE2,stroke:#009E73,stroke-width:2px,color:#1d2228
+  class W1,W2,W3 owner
+  class W4,W5 agents
+```
+
+*Read left to right. Blue: the owner decides. Green: the agents carry the work to the end.*
+
+## Current state
+
+The target above is being delivered in slices tracked under
+[#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52). What the
+repository carries today, at its evidence level (*written*, *installed*, *loaded*, *enforced* are four
+different claims). The detailed log is in [`AGENTS.md`](AGENTS.md), "Status".
+
+| Control | Evidence level |
+| --- | --- |
+| Global brief ([ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md)) | Installed for Claude Code, Codex and Kiro. Loaded in Claude Code and Codex (measured headless); Kiro documented. An instruction, never claimed as enforced. |
+| Deny floor ([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)) | Installed for Claude Code and Codex. Enforced when measured in throwaway homes; not re-measured on the reference machine. A prefix floor: other spellings of a denied command are not caught. Kiro carries none. |
+| Paste prompt hook ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md)) | Installed for Claude Code and Codex. Blocks and shows a redacted copy; it does not clean. Codex runs it only after the owner trusts it. |
+| Paste wrapper ([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md)) | Written and tested; cleaning measured against real Claude Code and Codex in throwaway homes. Not activated on the reference machine. |
+| Hook layers in the admin layer: picker guard (HITL escalation), restart guard, breaking glass ([ADR-0024](docs/adr/0024-breaking-glass-per-layer-expiring-switches.md), [ADR-0025](docs/adr/0025-hook-layers-in-the-native-admin-layer.md)) | Installed. Loaded in Claude Code with the pass path measured; pass and block measured on one Codex surface. |
+| Interaction profile ([ADR-0019](docs/adr/0019-paced-conversation-and-three-path-decisions.md)) | Installed in the user briefs. Instructions only; the picker guard hook in the row above is separate. |
+| MCP definition ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) | Written and tested. Not run on the reference machine. |
+
+Outside mechanical reach: the Claude and ChatGPT desktop apps (brief by manual paste), Windows (brief
+and deny floor only), files read by path, pasted images, and sessions not started through the wrapper.
 
 ## Install
 
-Installing on your own machine? Start with [Install on another workstation](docs/new-workstation.md)
-to preview the existing controls without inheriting the reference owner's personal overlay.
-The [unified workstation design](docs/adr/0018-portable-personal-profile-and-unified-harness-management.md)
-records the requested personal profile, slash commands, shared MCP catalog, synchronized
-pre-authorizations and session-start model/effort defaults. That complete workflow is proposed,
-not installed by the commands below. Its first implemented component is the
-[preference profile compiler](global/profile/README.md): edit `overlay/profile.json` and regenerate
-the instruction overlay, localized notices and desktop instruction handoff. Native model/effort
-settings and new permissions are not applied by compilation.
+New machine: start with [Install on another workstation](docs/new-workstation.md), which previews the
+controls without inheriting the reference owner's overlay. A single `./workstation` entry point is
+planned ([#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67));
+until then, the steps are:
 
-The global brief has one source, `global/AGENTS.md`, rendered into each harness's user-level location
-([ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md)):
-
-| Harness | Target |
-| --- | --- |
-| Claude Code | `~/.claude/CLAUDE.md` |
-| Codex | `${CODEX_HOME:-~/.codex}/AGENTS.md` |
-| Kiro (IDE and CLI) | `~/.kiro/steering/workstation-global-brief.md` (with `inclusion: always` front matter). Kiro CLI reads the same global steering directory, documented; a custom agent loads it only if listed in its `resources` |
-
-macOS and Linux (CI runs the suite on macOS and on Ubuntu, where `/bin/sh` is dash):
+macOS and Linux (CI runs the suites on macOS and on Ubuntu):
 
 ```sh
-sh global/install.sh            # install or update every target
-sh global/install.sh --dry-run  # print exactly what would be written where; write nothing
+sh global/install.sh            # install or update every user-level target
+sh global/install.sh --dry-run  # print what would be written where; write nothing
 sh global/install.sh --check    # exit non-zero if a target is missing, drifted or unmanaged
 ```
 
-Windows (PowerShell). Tested in CI on a Windows runner under Windows PowerShell 5.1 and PowerShell 7
-(`global/install.test.ps1`). It renders the brief and the deny floor only: the HITL guard and the
-paste filter are not ported. The per-feature parity table is in
-[ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md):
+Admin layer (macOS and Linux): `sh global/install-managed.sh` renders and validates into a stage and
+prints the one `sudo` line for the owner to run; `--check` compares the installed admin layer with a
+fresh render. With the admin layer installed, the user install runs with `--hooks=managed`. The
+procedure and the switch-off route are in the [breaking-glass runbook](docs/runbooks/breaking-glass.md).
+
+Windows (PowerShell 5.1 and 7, tested in CI) renders the brief and the deny floor only:
 
 ```powershell
 .\global\install.ps1
@@ -155,249 +119,34 @@ paste filter are not ported. The per-feature parity table is in
 .\global\install.ps1 -Check
 ```
 
-The same run installs the user-level deny floor, one source (`global/deny-floor.conf`, plus
-`overlay/deny-floor.conf` when present) rendered per harness
-([ADR-0016](docs/adr/0016-user-level-deny-floor-rendered-per-harness.md)):
-
-| Harness | Target |
-| --- | --- |
-| Claude Code | `permissions.deny` in `~/.claude/settings.json`, merged as a union: no existing rule is removed, a backup is kept |
-| Codex | `${CODEX_HOME:-~/.codex}/rules/workstation-deny-floor.rules` (`prefix_rule(…, decision="forbidden")`) |
-| Kiro | nothing: no rule layer is established for it |
-
-Each rendered file carries a marker line with the source version (the briefs also carry the SHA-256 of
-their source). The installer never overwrites a file without that marker; it refuses and exits 3
-instead. `~/.claude/settings.json` carries no marker: it is merged, never overwritten. Exit codes: `0`
-ok, `1` drift or missing (`--check`), `2` usage or an invalid deny-floor entry, `3` an unmanaged or
-unreadable file is in the way.
-
-`global/install.test.sh <base dir>` exercises the installer against throwaway home directories, never
-the real one.
-
-### Paste filter at the harness-CLI prompt (macOS and Linux)
-
-The same run installs the paste filter
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), amendment "the always-on watcher is
-withdrawn"): a user-level `UserPromptSubmit` hook that scans what you submit to Claude Code or Codex,
-pasted content included, for a known employer or client term, a credential, an e-mail address, a payment
-card, a CPF or a CNPJ. On a finding it **blocks** the prompt, names the category, and shows a redacted
-copy you can submit instead. It never rewrites the prompt, never touches the system clipboard, and calls
-no dialog or notification tool. Once you have added a term, it reads the salt from your login Keychain on
-each prompt, but only after a non-interactive check says the keychain is unlocked, and with a 2-second
-limit. Otherwise term matching is skipped with a visible warning. Whether a locked keychain would have
-raised a dialog is not measured: the check exists so that it is never asked.
-
-A blocked prompt is not kept off disk. Claude Code documents that the text can remain in the transcript
-and prompt history. For Codex this is not measured, so assume it persists. See ADR-0011, "Residuals".
-
-- the core and its settings (`global/clipboard.conf`, then `overlay/clipboard.conf`) under
-  `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/`;
-- Claude Code: one `UserPromptSubmit` entry merged into `~/.claude/settings.json`;
-- Codex: `${CODEX_HOME:-~/.codex}/hooks.json`. **Codex skips it until you trust it**: open `/hooks` in
-  Codex, review the entry, trust it. That is your act; the installer writes no trust state.
-
-It needs `/usr/bin/python3` (on macOS, the Command Line Tools). An earlier version installed an always-on
-clipboard watcher as a LaunchAgent; the installer now removes that plist if it wrote it, and prints the
-`launchctl bootout` command instead of running it.
-
-Add an employer or client term from **your own terminal, outside any agent session**. The term is read
-with echo off and only its salted hash is stored, in the local overlay outside this repository:
-
-```sh
-/usr/bin/python3 ~/.local/share/personal-multi-harness-workstation-configuration/clipboard_guard.py add-term
-```
-
-`python3 -B global/clipboard/clipboard_guard_test.py <empty dir>` runs its suite. On macOS the suite
-uses a namespaced Keychain item and deletes it; it never reads or writes the system clipboard.
-
-### Automatic cleaning of pastes into harness CLIs (macOS and Linux)
-
-The hook above blocks. **The paste wrapper cleans**
-([ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), amendment "automatic cleaning at the
-paste boundary"). `global/clipboard/paste_wrapper.py` starts `claude`, `codex` or `kiro-cli` on a
-pseudo-terminal and relays every byte. When you paste, the terminal wraps the text in bracketed-paste
-markers, because both CLIs turn that mode on (measured: Claude Code 2.1.287, Codex 0.155.0-alpha.16.3).
-The wrapper replaces each finding with `[REDACTED:<category>]` before the CLI sees it. What you type,
-and a paste with no finding, pass through byte for byte. It touches no other app, no terminal setting
-and no clipboard, and it writes no file.
-
-The installer writes the wrapper and a snippet of shell functions,
-`${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/paste-filter.sh`.
-**It never edits your shell rc.** To activate the wrapper, add the line it prints to `~/.zshrc` or
-`~/.bashrc` yourself:
+Paste wrapper: the installer writes a snippet of shell functions and never edits a shell start-up file.
+Activating it is the owner's act:
 
 ```sh
 . "$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh"
 ```
 
-`command claude` runs a CLI without it. The redaction markers show up in the input as soon as you paste.
-On exit, one line says how many pastes were cleaned and which categories. If a CLI never turns
-bracketed paste on, you get one warning line, and nothing is cleaned in that session.
-
-Limits, in full in the ADR:
-
-- Only bracketed pastes are cleaned.
-- Files attached by path, `@file` references and pasted images are read by the CLI itself, so the
-  wrapper never sees them.
-- IME input passes as typing.
-- A 100 KB paste adds about 0.3 s (measured), and a 1 MB paste about 3 s.
-- Sessions not started through the functions are not covered.
-
-`python3 -B global/clipboard/paste_wrapper_test.py <empty dir>` runs its suite against a recorder
-child on a pty the suite owns.
-
-### MCP servers: one definition, credentials at launch
-
-One definition renders each surface's local MCP servers
-([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md), proposed). The definition is
-**not** in this repository: it lives in the untracked local overlay,
-`${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json`.
-Start from the synthetic [`global/mcp/mcp-servers.example.json`](global/mcp/mcp-servers.example.json). A
-credential is never written in it. It is named under `secrets` with its source, and
-`global/mcp/mcp-launch.sh` reads it from the macOS Keychain when the server starts.
-
-| Surface | Target |
-| --- | --- |
-| Codex | `[mcp_servers.*]` in `${CODEX_HOME:-~/.codex}/config.toml`, inside one marked block; nothing outside it is edited |
-| Claude Code | `mcpServers` in `~/.claude.json` (user scope) |
-| Claude desktop app | `mcpServers` in its `claude_desktop_config.json` (macOS, Windows) |
-| Kiro IDE and CLI | `mcpServers` in `~/.kiro/settings/mcp.json` |
+Client and employer terms are added from the owner's own terminal, outside any agent session; only a
+salted hash is stored, outside this repository:
 
 ```sh
-python3 global/mcp/mcp_render.py --scan     # owner only: credential-looking key NAMES in today's configs
-python3 global/mcp/mcp_render.py --dry-run  # what would change where; never prints a current value
-python3 global/mcp/mcp_render.py            # render (a backup is kept beside each file)
-python3 global/mcp/mcp_render.py --check    # exit 1 on drift
+/usr/bin/python3 ~/.local/share/personal-multi-harness-workstation-configuration/clipboard_guard.py add-term
 ```
 
-It needs Python 3.11 or later. **It is not installed on the reference machine.** Inside an agent session
-it refuses `--scan`, and refuses any write outside a throwaway home (`CODEX_HOME` and `XDG_DATA_HOME`
-included). That refusal reads environment markers a process can unset: it is a speed bump, not a
-control. Before installing, quit the apps that write these files, including every running Claude Code
-CLI session. The migration steps are in ADR-0017.
-`python3 -B global/mcp/mcp_render_test.py <empty dir>` runs its suite in throwaway homes.
+Every installation on the owner's machine is his act, in a fresh session.
 
-## Decisions
+## Decisions and versioning
 
-Every significant decision is an ADR in MADR format in [`docs/adr/`](docs/adr/), numbered
-sequentially. Each record states its own status (`proposed`, `accepted`, `superseded` or `rejected`);
-a record becomes `accepted` only when the owner ratifies it.
+- Significant decisions are Architecture Decision Records in MADR format in [`docs/adr/`](docs/adr/).
+  A record becomes `accepted` only when the owner ratifies it.
+- Every merge to `main` cuts a numeric SemVer tag and a GitHub Release through CI. A pull request carries
+  exactly one `semver:major`, `semver:minor` or `semver:patch` label
+  ([ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md)).
+- The session and publication contract for agents working here is in
+  [`workspace/README.md`](workspace/README.md).
 
-## Versioning
+## Further reading
 
-Every merge to `main` cuts a numeric SemVer tag with bump-my-version. A pull request carries exactly one
-`semver:major`, `semver:minor` or `semver:patch` label, and a check fails without it
-([ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md), proposed).
-
-At the end of each improvement session, the workspace contract requires a committed/pushed PR,
-successful CI, merge, a new numeric tag and a published GitHub Release. New workspace sessions begin
-with **Melhoria de harness** or **Bugfix**. Use the checked commands in
-[`workspace/README.md`](workspace/README.md); `/session-start` and `/session-finish` are available in
-Claude Code. A conversational pause does not publish. Mechanisms and remaining native-harness gaps
-are recorded in [ADR-0021](docs/adr/0021-workspace-session-intake-and-ci-publication.md).
-
-## Reference workstation
-
-The machine this policy set is developed and installed on. These facts were **observed on 2026-10-01**.
-They describe that day's state and are not a supported or guaranteed configuration; versions move
-whenever a tool updates.
-
-### Hardware and OS
-
-| | |
-| --- | --- |
-| Machine | Mac mini (Mac16,10) |
-| Chip | Apple M4, 10 cores (4 performance + 6 efficiency) |
-| Memory | 16 GB |
-| Architecture | arm64 |
-| OS | macOS 26.6.2 (25G83) |
-| Shell | zsh |
-| Terminal | iTerm2 |
-| Editors | VS Code, Kiro |
-
-### Agent harnesses
-
-| Harness | Version / form |
-| --- | --- |
-| Claude Code | 2.1.286 (CLI) |
-| Claude desktop app | installed, including Cowork |
-| Codex CLI | 0.155.0-alpha.16.4, bundled with the ChatGPT desktop app |
-| ChatGPT desktop app | installed |
-| Kiro IDE | 1.0.437 |
-| Kiro CLI | not installed (its global brief location is documented: `~/.kiro/steering/`, ADR-0010) |
-
-### Access modes
-
-See [ADR-0003](docs/adr/0003-distribution-requirements-access-modes.md).
-
-| Vendor | How the model is reached |
-| --- | --- |
-| Anthropic (Claude) | the owner's top-tier personal subscription, subscription login |
-| OpenAI (Codex, ChatGPT) | the owner's top-tier personal subscription, subscription login |
-| Kiro | no active subscription |
-
-### Plugins
-
-- **Claude Code:** the owner's own public plugin, `tadeumendonca-skills`, from the marketplace
-  [`tedeuxx/tadeumendonca-skills`](https://github.com/tedeuxx/tadeumendonca-skills).
-- **Codex:** the same plugin, plus plugins bundled by the vendor, plus eight plugins enabled from a
-  Cowork plugin marketplace.
-
-### MCP servers
-
-Listed by category only. Server names and launch commands are deliberately not published here.
-
-- cloud provider API, read-only
-- source control
-- maps
-- spreadsheets
-- professional network
-- productivity suite
-- messaging
-- media and streaming
-- market data
-- video platform
-- file transfer
-
-They are configured independently in the Claude desktop app and in Codex; each surface keeps its own
-configuration ([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)). A single definition for them
-is written ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) and not yet
-installed.
-
-### Toolchain
-
-| Tool | Version |
-| --- | --- |
-| git | 2.52.0 |
-| GitHub CLI (`gh`) | 2.93.0 |
-| Node.js / npm | 25.9.0 / 11.13.0 |
-| Python | 3.14.6 |
-| uv | 0.11.30 |
-| Terraform | 1.12.1 |
-| AWS CLI | 2.32.28 |
-| Podman | 5.7.1 |
-| jq | 1.7.1 |
-| ShellCheck | installed |
-| actionlint | 1.7.12 |
-| bump-my-version | CI only (not installed locally) |
-| Homebrew | 7.0.7 |
-
-### Local persistence on this machine
-
-[`docs/persistence-inventory.md`](docs/persistence-inventory.md) inventories, per surface, what each
-agent surface stores locally: transcripts, history, memory, uploads, caches and logs. For each store it
-gives the retention and the setting that controls it. The inventory was built from metadata only. The
-stores that conflict with
-[ADR-0008](docs/adr/0008-personal-workstation-no-confidential-persistence.md), and candidate controls
-for them, are in that record's 2026-10-01 amendment. The controls are proposed, not installed.
-
-### Global brief on this machine
-
-Installed by `global/install.sh` into all three user-level locations above, and `--check` reports them
-in sync at version 0.7.0 (the 2026-10-01 install, Issue #4). **Evidence level: loaded for Claude Code and Codex, measured headless
-(2026-10-01). Kiro remains documented.** A fresh `claude -p` and a fresh `codex exec`, each run with
-tools disabled in an unrelated empty directory, quoted the brief's title and rule 1 verbatim. Each
-calibration run returned `NOT_IN_CONTEXT` once the user-level brief was removed from its sources.
-Interactive sessions were not measured. The brief is an instruction, and "enforced" is not claimed.
-Commands and bounds: [ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md), amendment
-2026-10-01 on loading.
+- [Product Requirements Document](docs/personal-multi-harness-workstation-configuration-product-requirements-document-project.md)
+- [Agent harness baseline vocabulary](docs/harness-baseline.md)
+- [Local persistence inventory](docs/persistence-inventory.md)
