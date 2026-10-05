@@ -25,6 +25,22 @@ REQUIRED = {
 # mergeStateStatus values a merge may proceed from; DIRTY, BEHIND, BLOCKED, UNKNOWN, UNSTABLE refuse.
 MERGEABLE_STATES = {"CLEAN", "HAS_HOOKS"}
 
+# Review artifacts, in the tadeumendonca-skills plugin's own formats (agents/quality-assurance.md,
+# read at that repository's origin/main 01045b660fc31fa6cb4f063fc0c5a2f1aa04db7c). The plugin's merge
+# floor guards a bare `gh pr merge`; it cannot see this script's subprocess, so the slice route reads
+# the verdicts itself rather than leaving the review gate as an instruction.
+GATE_ENVELOPE = "<!-- gatekeeper-verdict:"
+LENS_ENVELOPE = "<!-- harness-lead-verdict"
+LENS_CLOSED = "the lens is CLOSED"
+VERDICT_LITERALS = ("APPROVE-AND-MERGE-BOUNDARY", "APPROVE-AND-MERGE", "APPROVE-PENDING-HUMAN",
+                    "APPROVE-EXECUTOR-BLOCKED", "REQUEST-CHANGES")
+MERGE_LITERALS = ("APPROVE-AND-MERGE", "APPROVE-AND-MERGE-BOUNDARY")
+TRUSTED_AUTHORS = ("OWNER", "MEMBER", "COLLABORATOR")
+# Hold 2's harness-path list for a consuming repository (no .claude-plugin/plugin.json), at any depth,
+# plus this repository's own other harness carriers, .agents/ and .kiro/ (stricter, never looser).
+HARNESS_PATH = re.compile(r"(^|/)(\.claude|\.codex|\.github|\.agents|\.kiro)/|(^|/)(AGENTS|CLAUDE)\.md$")
+FULL_SHA = re.compile(r"[0-9a-f]{40}")
+
 
 class Pending(Exception):
     pass
@@ -113,6 +129,67 @@ def pr_matches(pr, head):
         raise Pending("PR must carry exactly one valid semver label")
 
 
+def unfenced_lines(body):
+    """Lines outside fenced code blocks: a marker quoted inside a fence is discussion, not a verdict."""
+    fenced, lines = False, []
+    for line in (body or "").split("\n"):
+        if re.match(r" {0,3}(```|~~~)", line):
+            fenced = not fenced
+        elif not fenced:
+            lines.append(line)
+    return lines
+
+
+def trusted(comment):
+    return comment.get("authorAssociation") in TRUSTED_AUTHORS
+
+
+def gate_approves(comments, head):
+    """The newest quality-assurance verdict must name this exact head and authorize the merge."""
+    verdicts = [c for c in comments if trusted(c) and (c.get("body") or "").startswith(GATE_ENVELOPE)]
+    if not verdicts:
+        raise Pending("no quality-assurance gatekeeper-verdict on the PR")
+    lines = unfenced_lines(verdicts[-1].get("body"))
+    named = [m[1] for m in (re.match(r"head:\s*(\S+)\s*$", l) for l in lines) if m]
+    if not named or named[0] != head:
+        raise Pending("the newest gatekeeper-verdict does not name the current head")
+    literal = next((v for l in lines for v in VERDICT_LITERALS if re.match(re.escape(v) + r"\b", l)), None)
+    if literal not in MERGE_LITERALS:
+        raise Pending("the newest gatekeeper-verdict does not authorize a merge: " + str(literal))
+
+
+def harness_paths(paths):
+    return [p for p in paths if HARNESS_PATH.search(p)]
+
+
+def lens_closed(comments, head):
+    """Hold 2: the newest agents-lead lens marker must name this exact head and say the lens is CLOSED.
+
+    Same selection as the plugin's lens_marker: a trusted author, a body that is not a gatekeeper
+    verdict, and a line opening with the lens envelope at column 0 outside a fence. No carry-forward:
+    a marker for an older head never satisfies this route.
+    """
+    markers = [c for c in comments if trusted(c)
+               and not (c.get("body") or "").startswith(GATE_ENVELOPE)
+               and any(l.startswith(LENS_ENVELOPE) for l in unfenced_lines(c.get("body")))]
+    if not markers:
+        raise Pending("harness paths changed and no agents-lead lens marker is on the PR")
+    lines = unfenced_lines(markers[-1].get("body"))
+    named = [m[1] for m in (re.match(r"commit:\s*(\S+)\s*$", l) for l in lines) if m]
+    if not named or not FULL_SHA.fullmatch(named[0]) or named[0] != head:
+        raise Pending("the newest agents-lead lens marker does not name the current head")
+    if not any(LENS_CLOSED in l for l in lines):
+        raise Pending("the newest agents-lead lens marker at this head does not say the lens is CLOSED")
+
+
+def review_gate(pr, head, paths):
+    """The slice review gate: a QA approval at this head, and the lens closed at it on harness paths."""
+    comments = pr.get("comments") or []
+    gate_approves(comments, head)
+    if harness_paths(paths):
+        lens_closed(comments, head)
+
+
 def mergeable(pr):
     state = pr.get("mergeStateStatus")
     if state not in MERGEABLE_STATES:
@@ -156,7 +233,7 @@ def main():
     repo = match[1]
     pr = json.loads(run("gh", "pr", "view", str(args.pr), "--repo", repo, "--json",
                         "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,"
-                        "mergeStateStatus,labels,statusCheckRollup"))
+                        "mergeStateStatus,labels,statusCheckRollup,comments"))
     pr_matches(pr, head)
     checks_pass(pr)
     base = pr["baseRefName"]
@@ -167,6 +244,11 @@ def main():
         if pr["state"] != "OPEN":
             raise Pending("PR is not open")
         mergeable(pr)
+        if base == INTEGRATION:
+            # A tree diff from the merge base, never the paginated PR file list.
+            run("git", "fetch", "origin", base)
+            paths = run("git", "diff", "--no-renames", "--name-only", "origin/" + base + "..." + head)
+            review_gate(pr, head, paths.splitlines())
         branch = run("git", "branch", "--show-current")
         if branch in ("", base) or branch != pr["headRefName"]:
             raise Pending("check out the PR's head branch (the slice branch, or rc/next for a release)")

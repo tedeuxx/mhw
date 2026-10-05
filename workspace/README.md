@@ -32,8 +32,15 @@ pending; a pause for questions publishes nothing.
    the `tests` workflow, plus `delivery-ci` and Sonar green. `semver-label` is not required there,
    because that workflow runs only on PRs into `main`. A pending check, a missing `tests` run (a
    "CLEAN" PR on which no tests ran) and a merge state other than clean (DIRTY, BEHIND, UNKNOWN...)
-   are refused. It merges with `--merge --match-head-commit SHA`, never a squash. No force push, no
-   admin bypass.
+   are refused. It also reads the review gate from the PR's comments, because the plugin's merge
+   floor cannot see this script's own merge. The newest `quality-assurance` verdict
+   (`<!-- gatekeeper-verdict:` envelope, trusted author) must name the exact head on its `head:` line
+   and carry `APPROVE-AND-MERGE` or `APPROVE-AND-MERGE-BOUNDARY`. When the diff from the merge base
+   touches a harness path (`.claude/`, `.codex/`, `.github/`, `.agents/`, `.kiro/`, `AGENTS.md`,
+   `CLAUDE.md`, at any depth), the newest `agents-lead` lens marker (`<!-- harness-lead-verdict`
+   at column 0, outside a code fence) must also name the exact head on its `commit:` line and say
+   `the lens is CLOSED`. A marker posted for an earlier head never carries forward here. It merges
+   with `--merge --match-head-commit SHA`, never a squash. No force push, no admin bypass.
 4. Run `python3 -B workspace/delivery.py verify --pr NUMBER`. For a slice, exit 0 means the PR is
    merged into `rc/next` with its checks green at the exact local head; no tag or release is
    expected.

@@ -13,6 +13,23 @@ TESTS_RUN = [{"name": n, "workflowName": "tests", "conclusion": "SUCCESS"} for n
     "suites (ubuntu-latest)", "suites (macos-latest)", "windows (powershell)", "windows (pwsh)")]
 
 
+HEAD = "a" * 40
+OLD_HEAD = "b" * 40
+
+
+def gate(head=HEAD, literal="APPROVE-AND-MERGE", author="OWNER"):
+    return {"authorAssociation": author,
+            "body": "<!-- gatekeeper-verdict: quality-assurance -->\n" + literal + "\nhead: " + head + "\n\nok"}
+
+
+def lens(commit=HEAD, closed=True, author="OWNER", fenced=False):
+    body = "<!-- harness-lead-verdict: probe -->\ncommit: " + commit + "\n\n" + (
+        "the lens is CLOSED" if closed else "one finding open")
+    if fenced:
+        body = "earlier round:\n```\n" + body + "\n```"
+    return {"authorAssociation": author, "body": body}
+
+
 class DeliveryTests(unittest.TestCase):
     def setUp(self):
         # The release candidate: rc/next -> main.
@@ -23,8 +40,9 @@ class DeliveryTests(unittest.TestCase):
                        {"name": "semver-label", "workflowName": "semver-label", "conclusion": "SUCCESS"},
                        {"name": "SonarCloud Code Analysis", "conclusion": "SUCCESS"}]}
         # A slice: feature branch -> rc/next. semver-label never runs there.
-        self.slice = dict(self.pr, baseRefName="rc/next", headRefName="feat/x", statusCheckRollup=[
-            c for c in self.pr["statusCheckRollup"] if c["name"] != "semver-label"])
+        self.slice = dict(self.pr, baseRefName="rc/next", headRefName="feat/x", comments=[gate()],
+                          statusCheckRollup=[c for c in self.pr["statusCheckRollup"]
+                                             if c["name"] != "semver-label"])
         self.release = {"tag_name": "v1.2.0", "draft": False, "prerelease": False,
                         "published_at": "2026-10-02T00:00:00Z"}
 
@@ -118,9 +136,13 @@ class DeliveryTests(unittest.TestCase):
             with self.subTest(state=state), self.assertRaises(d.Pending):
                 d.mergeable(dict(self.slice, mergeStateStatus=state))
 
-    def drive(self, action, pr, branch):
-        """Run main() against a synthetic git/gh; returns every command it issued and the API paths."""
+    def drive(self, action, pr, branch, changed=("workspace/delivery.py",), remote_head=HEAD, behind=0):
+        """Run main() against a synthetic git/gh; returns every command it issued and the API paths.
+
+        self.calls keeps the commands even when main() raises, so a refusal can be shown to issue no merge.
+        """
         calls, paths = [], []
+        self.calls = calls
         view = dict(pr, number=7, url="https://example.invalid/pr/7", state="OPEN", mergeCommit=None)
 
         def run(*args):
@@ -133,14 +155,16 @@ class DeliveryTests(unittest.TestCase):
             if args[:3] == ("gh", "pr", "view"):
                 return json.dumps(view)
             if args[:3] == ("git", "ls-remote", "--heads"):
-                return "a" * 40 + "\trefs/heads/" + branch
-            if args[:3] == ("gh", "pr", "merge"):
+                return remote_head + "\trefs/heads/" + branch
+            if args[:3] == ("gh", "pr", "merge") or args[:2] == ("git", "fetch"):
                 return ""
+            if args[:2] == ("git", "diff"):
+                return "\n".join(changed)
             raise AssertionError("unexpected command " + repr(args))
 
         def api(repo, path):
             paths.append(path)
-            return {"behind_by": 0}
+            return {"behind_by": behind}
 
         with mock.patch.object(d, "run", run), mock.patch.object(d, "api", api), \
                 mock.patch("sys.argv", ["delivery.py", action, "--pr", "7"]), \
@@ -156,6 +180,60 @@ class DeliveryTests(unittest.TestCase):
         self.assertNotIn("--squash", merges[0])
         self.assertEqual(merges[0][merges[0].index("--match-head-commit") + 1], "a" * 40)
         self.assertEqual(paths, ["compare/rc/next..." + "a" * 40])
+
+    def merged(self, calls):
+        return [c for c in calls if c[:3] == ("gh", "pr", "merge")]
+
+    def test_slice_without_a_verdict_is_refused(self):
+        for comments in ([], [gate(author="NONE")], [lens()]):
+            with self.subTest(n=len(comments)), self.assertRaises(d.Pending):
+                self.drive("merge", dict(self.slice, comments=comments), "feat/x")
+
+    def test_slice_verdict_for_an_older_head_or_not_approving_is_refused(self):
+        for comments in ([gate(head=OLD_HEAD)], [gate(), gate(head=OLD_HEAD)],
+                         [gate(literal="REQUEST-CHANGES")], [gate(literal="APPROVE-PENDING-HUMAN")],
+                         [gate(), gate(literal="REQUEST-CHANGES")]):
+            with self.subTest(comments=[c["body"][46:80] for c in comments]), self.assertRaises(d.Pending):
+                self.drive("merge", dict(self.slice, comments=comments), "feat/x")
+
+    def test_slice_on_harness_paths_needs_the_closed_lens_at_head(self):
+        harness = ("workspace/delivery.py", ".agents/skills/x/SKILL.md")
+        for comments in ([gate()], [gate(), lens(commit=OLD_HEAD)], [gate(), lens(closed=False)],
+                         [gate(), lens(fenced=True)], [gate(), lens(author="NONE")],
+                         [gate(), lens(), lens(closed=False)], [gate(), lens(commit=HEAD[:12])]):
+            with self.subTest(n=len(comments)), self.assertRaises(d.Pending):
+                self.drive("merge", dict(self.slice, comments=comments), "feat/x", changed=harness)
+        calls, _ = self.drive("merge", dict(self.slice, comments=[gate(), lens()]), "feat/x", changed=harness)
+        self.assertEqual(len(self.merged(calls)), 1)
+        for path in ("AGENTS.md", "docs/CLAUDE.md", ".github/workflows/tests.yml", ".claude/x.md",
+                     ".codex/hooks.json", ".kiro/steering/a.md"):
+            self.assertTrue(d.harness_paths([path]), path)
+        self.assertFalse(d.harness_paths(["workspace/delivery.py", "docs/adr/0001-x.md", "global/a.sh"]))
+
+    def test_main_calls_every_gate_before_merging(self):
+        # One gate fails at a time while every other passes; main() must refuse and never merge.
+        harness = ("workspace/delivery.py", "AGENTS.md")
+        no_ci = [c for c in self.slice["statusCheckRollup"] if c["name"] != "delivery-ci"]
+        table = {
+            "pr_matches (stale head)": (dict(self.slice, headRefOid=OLD_HEAD), {}),
+            "checks_pass (delivery-ci missing)": (dict(self.slice, statusCheckRollup=no_ci), {}),
+            "mergeable (DIRTY)": (dict(self.slice, mergeStateStatus="DIRTY"), {}),
+            "review_gate (no QA verdict)": (dict(self.slice, comments=[]), {}),
+            "review_gate (harness, no lens)": (self.slice, {"changed": harness}),
+            "local branch is not the PR head": (self.slice, {"branch": "other"}),
+            "head not pushed": (self.slice, {"remote_head": OLD_HEAD}),
+            "behind rc/next": (self.slice, {"behind": 1}),
+        }
+        for name, (pr, knobs) in table.items():
+            knobs = dict(knobs)
+            branch = knobs.pop("branch", "feat/x")
+            with self.subTest(gate=name):
+                with self.assertRaises(d.Pending):
+                    self.drive("merge", pr, branch, **knobs)
+                self.assertEqual(self.merged(self.calls), [])
+        # Calibration: with every gate passing, the same harness does merge.
+        self.drive("merge", dict(self.slice, comments=[gate(), lens()]), "feat/x", changed=harness)
+        self.assertEqual(len(self.merged(self.calls)), 1)
 
     def test_slice_to_main_end_to_end_never_merges(self):
         for branch in ("feat/x",):

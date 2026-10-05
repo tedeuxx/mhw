@@ -180,8 +180,9 @@ The source of truth for every layer lives here, versioned; what is installed on 
 - Follow `workspace/README.md` and `workspace/session-policy.json`. For a slice and for the release
   candidate alike, use the checked merge command (`python3 -B workspace/delivery.py merge --pr N`), then the
   read-only delivery verifier. For a slice into `rc/next` it requires the `tests` run registered on
-  the head, `delivery-ci` and Sonar green and a clean merge state, and merges with a real merge
-  commit pinned to the head; a PR into `main` from any branch other than `rc/next` is refused. This
+  the head, `delivery-ci` and Sonar green, a clean merge state, a `quality-assurance` verdict
+  approving that exact head and, on harness paths, the `agents-lead` lens CLOSED at that head; it
+  merges with a real merge commit pinned to the head; a PR into `main` from any branch other than `rc/next` is refused. This
   route is *written* and tested against a synthetic `gh`; no real PR has exercised it yet. Never announce a release complete
   until it confirms the exact head is in a merged PR covered by a successful version workflow and a
   published newer numeric SemVer release. Report a blocker instead of calling local commits a
