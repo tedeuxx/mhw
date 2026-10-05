@@ -26,14 +26,57 @@ pending; a pause for questions publishes nothing.
    feature branch cut from a fresh `origin/rc/next`. Do not sweep unrelated work into the commit.
 2. Push normally, open the PR with `--base rc/next`, and give it exactly one
    `semver:major|minor|patch` label.
-3. After CI and the review gate, merge with a real merge commit pinned to the reviewed head:
-   `gh pr merge NUMBER --merge --match-head-commit SHA`. No force push, no admin bypass.
+3. After CI and the review gate, run `python3 -B workspace/delivery.py merge --pr NUMBER` from the
+   slice branch checkout. For a PR into `rc/next` it requires every job that the `tests` workflow's
+   `delivery-ci` aggregates (read from `.github/workflows/tests.yml`) to be registered on the head by
+   the `tests` workflow, plus `delivery-ci` and Sonar green. `semver-label` is not required there,
+   because that workflow runs only on PRs into `main`. A pending check, a missing `tests` run (a
+   "CLEAN" PR on which no tests ran) and a merge state other than clean (DIRTY, BEHIND, UNKNOWN...)
+   are refused. It also reads the review gate from the PR's comments, because the plugin's merge
+   floor cannot see this script's own merge. Only a strict header on the **first three lines** of a
+   comment counts. Lines are compared whole, and nothing below the header is read, so text in a
+   fence, a blockquote or the prose can neither supply nor override a verdict. The newest trusted
+   comment that opens with each envelope wins, so a later `REQUEST-CHANGES`, a later open lens or a
+   later malformed header refuses. `quality-assurance` must open its comment with these three lines,
+   which are exactly the plugin's own required verdict shape. Line 2 is `APPROVE-AND-MERGE` or
+   `APPROVE-AND-MERGE-BOUNDARY`; any other literal refuses. Anything may follow line 3.
+
+   ```
+   <!-- gatekeeper-verdict: quality-assurance -->
+   APPROVE-AND-MERGE
+   head: <the full 40-character head SHA>
+   ```
+
+   When the diff from the merge base touches a harness path (`.claude/`, `.codex/`, `.github/`,
+   `.agents/`, `.kiro/`, `AGENTS.md`, `CLAUDE.md`, at any depth), `agents-lead` must also open a
+   comment with these three lines. Lines 1 and 2 are the plugin's required marker shape. **Line 3
+   is this repository's contract, not the plugin's:** the plugin brief asks the lens to say
+   `the lens is CLOSED` in those words but fixes no position, so a marker that follows only the
+   plugin brief is refused here (fail closed) until line 3 is exactly that sentence. Any other
+   line 3 means the lens is open.
+
+   ```
+   <!-- harness-lead-verdict: <one-line summary> -->
+   commit: <the full 40-character head SHA>
+   the lens is CLOSED
+   ```
+
+   Line 3 is pinned rather than searched for: finding the sentence anywhere in the body would mean
+   parsing fences, blockquotes and prose again, which is where the spoofs this gate refuses lived.
+   A marker posted for an earlier head never carries forward here. **Authorship is not proven:** every persona posts
+   through the owner's account, so "trusted author" means `OWNER`, `MEMBER` or `COLLABORATOR`, not
+   "this persona wrote it". The plugin's own merge floor has the same limit. It merges
+   with `--merge --match-head-commit SHA`, never a squash. No force push, no admin bypass.
+4. Run `python3 -B workspace/delivery.py verify --pr NUMBER`. For a slice, exit 0 means the PR is
+   merged into `rc/next` with its checks green at the exact local head; no tag or release is
+   expected.
 
 ## Releasing the candidate (the owner's go)
 
 1. Open or update the PR `rc/next` → `main` with one semver label.
 2. On the owner's go, run `python3 -B workspace/delivery.py merge --pr NUMBER` from a checkout of
-   `rc/next`. It refuses dirty workspaces, a different/unpushed head, a stale base, missing labels and
+   `rc/next`. It refuses a head branch other than `rc/next`, dirty workspaces, a different/unpushed
+   head, a stale base, a non-clean merge state, missing labels, a missing `tests` run and
    incomplete or failed checks. The stable `delivery-ci` job requires every test matrix to pass; the
    semver and Sonar checks must also be present and successful. Only the most recent run of each
    check on the head counts: a re-run that passed supersedes an older failure of the same check, and
@@ -47,11 +90,13 @@ pending; a pause for questions publishes nothing.
    stable release contains the merge commit. Exit 1 means pending or blocked, including network/auth
    failures. Never reinterpret it as success. Report the release link only after exit 0.
 
-`delivery.py` gates only a PR into `main`; it does not merge slices into `rc/next`.
+`delivery.py` refuses any PR into `main` whose head branch is not `rc/next`: a slice never goes
+straight to `main`. Bases other than `rc/next` and `main` are refused.
 
 ## Boundaries and recovery
 
-The merge and verify commands are a mechanical gate for the supported release route. Workspace
+The merge and verify commands are a mechanical gate for both supported routes. The `rc/next`
+route is written and tested against a synthetic `gh` only; no real PR has exercised it yet. Workspace
 instructions require agents to use it; it cannot prevent a human or agent from invoking unrelated
 GitHub commands directly, and nothing mechanical stops an agent from merging the release candidate
 without the owner's go: that rule is an instruction. No background watcher, detached agent or
