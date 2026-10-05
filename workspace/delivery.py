@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Gated session merge and read-only publication proof. Python 3.9+, git and gh.
+"""Gated merge and read-only proof for both delivery routes. Python 3.9+, git and gh.
 
-No credentials, prompts or transcripts are read or persisted. Exit 1 means pending/blocked.
-`merge` changes GitHub only after the local and remote gates pass; `verify` never writes.
+A slice PR targets the integration branch rc/next; only the release candidate (rc/next -> main) may
+target main. No credentials, prompts or transcripts are read or persisted. Exit 1 means
+pending/blocked. `merge` changes GitHub only after the local and remote gates pass; `verify` never
+writes.
 """
 import argparse
 import json
@@ -12,7 +14,16 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
-REQUIRED = {"delivery-ci", "semver-label", "SonarCloud Code Analysis"}
+INTEGRATION = "rc/next"
+RELEASE = "main"
+TESTS_WORKFLOW = "tests"
+# Required per base. The semver-label workflow runs only on PRs into main, so a slice cannot carry it.
+REQUIRED = {
+    INTEGRATION: {"delivery-ci", "SonarCloud Code Analysis"},
+    RELEASE: {"delivery-ci", "semver-label", "SonarCloud Code Analysis"},
+}
+# mergeStateStatus values a merge may proceed from; DIRTY, BEHIND, BLOCKED, UNKNOWN, UNSTABLE refuse.
+MERGEABLE_STATES = {"CLEAN", "HAS_HOOKS"}
 
 
 class Pending(Exception):
@@ -53,9 +64,32 @@ def latest_checks(checks):
     return [check for _, check in latest.values()]
 
 
-def checks_pass(pr):
+def tests_jobs():
+    """The jobs the stable delivery-ci job aggregates, read from the workflow itself, not restated."""
+    text = (ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+    match = re.search(r"^  delivery-ci:\n(?:    .*\n)*?    needs: \[([^\]]+)\]", text, re.M)
+    if not match:
+        raise Pending("cannot read the tests workflow's delivery-ci job list")
+    return [job.strip() for job in match[1].split(",") if job.strip()]
+
+
+def tests_registered(checks, jobs):
+    """The tests workflow must actually have run on this head: a CLEAN PR with no tests run is not green.
+
+    Every job delivery-ci needs (a matrix job reports as "job (variant)") and delivery-ci itself must be
+    reported by the tests workflow, not merely by a same-named check from somewhere else.
+    """
+    names = [c.get("name", c.get("context")) or "" for c in checks
+             if c.get("workflowName") == TESTS_WORKFLOW]
+    for job in list(jobs) + ["delivery-ci"]:
+        if not any(n == job or n.startswith(job + " (") for n in names):
+            raise Pending("the tests workflow has not registered on this head: " + job)
+
+
+def checks_pass(pr, jobs=None):
     checks = latest_checks(pr.get("statusCheckRollup") or [])
-    for name in REQUIRED:
+    tests_registered(checks, tests_jobs() if jobs is None else jobs)
+    for name in REQUIRED[pr.get("baseRefName")]:
         matches = [c for c in checks if c.get("name", c.get("context")) == name]
         if not matches or any(c.get("conclusion", c.get("state")) != "SUCCESS" for c in matches):
             raise Pending("required CI not successful: " + name)
@@ -66,11 +100,23 @@ def checks_pass(pr):
 
 
 def pr_matches(pr, head):
-    if pr.get("headRefOid") != head or pr.get("baseRefName") != "main" or pr.get("isCrossRepository"):
-        raise Pending("PR does not match this exact local session head and same-repository main target")
+    base = pr.get("baseRefName")
+    if pr.get("headRefOid") != head or base not in REQUIRED or pr.get("isCrossRepository"):
+        raise Pending("PR does not match this exact local head and a same-repository rc/next or main target")
+    # A slice never goes straight to main: the only PR main accepts is the release candidate.
+    if base == RELEASE and pr.get("headRefName") != INTEGRATION:
+        raise Pending("only the rc/next release candidate may target main; open the slice against rc/next")
+    if base == INTEGRATION and pr.get("headRefName") in (INTEGRATION, RELEASE):
+        raise Pending("a slice must come from its own feature branch")
     labels = [v["name"] for v in pr.get("labels", []) if v["name"].startswith("semver:")]
     if len(labels) != 1 or labels[0] not in ("semver:major", "semver:minor", "semver:patch"):
         raise Pending("PR must carry exactly one valid semver label")
+
+
+def mergeable(pr):
+    state = pr.get("mergeStateStatus")
+    if state not in MERGEABLE_STATES:
+        raise Pending("PR merge state is not clean: " + str(state))
 
 
 def merge_command(number, repo, head):
@@ -109,28 +155,39 @@ def main():
         raise Pending("origin is not a supported GitHub repository URL")
     repo = match[1]
     pr = json.loads(run("gh", "pr", "view", str(args.pr), "--repo", repo, "--json",
-                        "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,labels,statusCheckRollup"))
+                        "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,"
+                        "mergeStateStatus,labels,statusCheckRollup"))
     pr_matches(pr, head)
     checks_pass(pr)
+    base = pr["baseRefName"]
     if args.action == "merge":
         if pr["state"] == "MERGED":
             print("MERGED: " + pr["url"] + "; run verify for publication proof")
             return
         if pr["state"] != "OPEN":
             raise Pending("PR is not open")
+        mergeable(pr)
         branch = run("git", "branch", "--show-current")
-        if branch in ("", "main") or branch != pr["headRefName"]:
-            raise Pending("use the session feature branch")
+        if branch in ("", base) or branch != pr["headRefName"]:
+            raise Pending("check out the PR's head branch (the slice branch, or rc/next for a release)")
         refs = run("git", "ls-remote", "--heads", "origin", "refs/heads/" + branch).split()
         if not refs or refs[0] != head:
             raise Pending("session HEAD has not been pushed")
-        if api(repo, "compare/main..." + head).get("behind_by", 1):
-            raise Pending("session branch is behind main; update it and rerun CI")
+        if api(repo, "compare/" + base + "..." + head).get("behind_by", 1):
+            raise Pending("head is behind " + base + "; update it and rerun CI")
         run(*merge_command(args.pr, repo, head))
-        print("MERGED: " + pr["url"] + "; CI publication is pending, run verify")
+        if base == INTEGRATION:
+            print("MERGED: " + pr["url"] + " into rc/next; no release is cut, run verify")
+        else:
+            print("MERGED: " + pr["url"] + "; CI publication is pending, run verify")
         return
     if pr["state"] != "MERGED" or not pr.get("mergeCommit"):
         raise Pending("session PR is not merged")
+    if base == INTEGRATION:
+        # A slice only integrates: merged with its checks green at this head; no tag or release expected.
+        print(json.dumps({"status": "integrated", "base": INTEGRATION, "session_head": head,
+                          "pr": pr["url"], "merge_commit": pr["mergeCommit"]["oid"]}))
+        return
     match = re.search(r'^current_version\s*=\s*"([0-9.]+)"',
                       (ROOT / ".bumpversion.toml").read_text(), re.M)
     if not match:

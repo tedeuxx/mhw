@@ -1,17 +1,30 @@
 #!/usr/bin/env python3
 """Synthetic negative and positive gates, no network and no writes."""
+import contextlib
+import io
 import unittest
 import json
+from unittest import mock
 import delivery as d
+
+
+TESTS_RUN = [{"name": n, "workflowName": "tests", "conclusion": "SUCCESS"} for n in (
+    "shellcheck", "profiles (ubuntu-latest)", "profiles (macos-latest)", "profiles (windows-latest)",
+    "suites (ubuntu-latest)", "suites (macos-latest)", "windows (powershell)", "windows (pwsh)")]
 
 
 class DeliveryTests(unittest.TestCase):
     def setUp(self):
-        self.pr = {"headRefOid": "a" * 40, "baseRefName": "main", "isCrossRepository": False,
-                   "labels": [{"name": "semver:minor"}], "statusCheckRollup": [
-                       {"name": "delivery-ci", "conclusion": "SUCCESS"},
-                       {"name": "semver-label", "conclusion": "SUCCESS"},
+        # The release candidate: rc/next -> main.
+        self.pr = {"headRefOid": "a" * 40, "baseRefName": "main", "headRefName": "rc/next",
+                   "isCrossRepository": False, "mergeStateStatus": "CLEAN",
+                   "labels": [{"name": "semver:minor"}], "statusCheckRollup": TESTS_RUN + [
+                       {"name": "delivery-ci", "workflowName": "tests", "conclusion": "SUCCESS"},
+                       {"name": "semver-label", "workflowName": "semver-label", "conclusion": "SUCCESS"},
                        {"name": "SonarCloud Code Analysis", "conclusion": "SUCCESS"}]}
+        # A slice: feature branch -> rc/next. semver-label never runs there.
+        self.slice = dict(self.pr, baseRefName="rc/next", headRefName="feat/x", statusCheckRollup=[
+            c for c in self.pr["statusCheckRollup"] if c["name"] != "semver-label"])
         self.release = {"tag_name": "v1.2.0", "draft": False, "prerelease": False,
                         "published_at": "2026-10-02T00:00:00Z"}
 
@@ -64,6 +77,92 @@ class DeliveryTests(unittest.TestCase):
         foreign = dict(old, workflowName="other", startedAt="2026-10-04T09:00:00Z")
         with self.assertRaises(d.Pending):
             d.checks_pass(dict(self.pr, statusCheckRollup=others + [new, foreign]))
+
+    def test_slice_to_rc_next_passes_without_semver_label_check(self):
+        d.pr_matches(self.slice, "a" * 40)
+        d.checks_pass(self.slice)
+        d.mergeable(self.slice)
+
+    def test_slice_pr_to_main_is_refused(self):
+        # Only the release candidate may target main; any other head branch is a slice going straight
+        # to main, whatever its checks say.
+        for head in ("feat/x", "main", "", None, "rc/nextx"):
+            with self.subTest(head=head), self.assertRaises(d.Pending):
+                d.pr_matches(dict(self.pr, headRefName=head), "a" * 40)
+        # And rc/next or main can never be a slice's own head branch.
+        for head in ("rc/next", "main"):
+            with self.subTest(slice_head=head), self.assertRaises(d.Pending):
+                d.pr_matches(dict(self.slice, headRefName=head), "a" * 40)
+
+    def test_missing_tests_run_is_refused(self):
+        # The "CLEAN but no tests ran" case: Sonar green, merge state clean, the tests workflow absent.
+        sonar_only = [c for c in self.slice["statusCheckRollup"] if c["name"] == "SonarCloud Code Analysis"]
+        # delivery-ci reported by something other than the tests workflow does not count either.
+        foreign_ci = sonar_only + [{"name": "delivery-ci", "workflowName": "other", "conclusion": "SUCCESS"}]
+        # delivery-ci present but one aggregated job never registered.
+        partial = [c for c in self.slice["statusCheckRollup"] if not c["name"].startswith("windows")]
+        for checks in (sonar_only, foreign_ci, partial):
+            with self.subTest(n=len(checks)), self.assertRaises(d.Pending):
+                d.checks_pass(dict(self.slice, statusCheckRollup=checks))
+        self.assertEqual(d.tests_jobs(), ["shellcheck", "profiles", "suites", "windows"])
+
+    def test_pending_tests_or_dirty_merge_state_is_refused(self):
+        pending = self.slice["statusCheckRollup"] + [
+            {"name": "shellcheck", "workflowName": "tests", "conclusion": "", "startedAt": "9"}]
+        with self.assertRaises(d.Pending):
+            d.checks_pass(dict(self.slice, statusCheckRollup=pending))
+        for state in ("DIRTY", "BEHIND", "BLOCKED", "UNKNOWN", "UNSTABLE", None):
+            with self.subTest(state=state), self.assertRaises(d.Pending):
+                d.mergeable(dict(self.slice, mergeStateStatus=state))
+
+    def drive(self, action, pr, branch):
+        """Run main() against a synthetic git/gh; returns every command it issued and the API paths."""
+        calls, paths = [], []
+        view = dict(pr, number=7, url="https://example.invalid/pr/7", state="OPEN", mergeCommit=None)
+
+        def run(*args):
+            calls.append(args)
+            table = {("git", "status", "--porcelain"): "", ("git", "rev-parse", "HEAD"): "a" * 40,
+                     ("git", "remote", "get-url", "origin"): "https://github.com/o/r.git",
+                     ("git", "branch", "--show-current"): branch}
+            if args in table:
+                return table[args]
+            if args[:3] == ("gh", "pr", "view"):
+                return json.dumps(view)
+            if args[:3] == ("git", "ls-remote", "--heads"):
+                return "a" * 40 + "\trefs/heads/" + branch
+            if args[:3] == ("gh", "pr", "merge"):
+                return ""
+            raise AssertionError("unexpected command " + repr(args))
+
+        def api(repo, path):
+            paths.append(path)
+            return {"behind_by": 0}
+
+        with mock.patch.object(d, "run", run), mock.patch.object(d, "api", api), \
+                mock.patch("sys.argv", ["delivery.py", action, "--pr", "7"]), \
+                contextlib.redirect_stdout(io.StringIO()):
+            d.main()
+        return calls, paths
+
+    def test_slice_merge_route_end_to_end_is_a_pinned_merge_commit(self):
+        calls, paths = self.drive("merge", self.slice, "feat/x")
+        merges = [c for c in calls if c[:3] == ("gh", "pr", "merge")]
+        self.assertEqual(len(merges), 1)
+        self.assertIn("--merge", merges[0])
+        self.assertNotIn("--squash", merges[0])
+        self.assertEqual(merges[0][merges[0].index("--match-head-commit") + 1], "a" * 40)
+        self.assertEqual(paths, ["compare/rc/next..." + "a" * 40])
+
+    def test_slice_to_main_end_to_end_never_merges(self):
+        for branch in ("feat/x",):
+            with self.assertRaises(d.Pending):
+                self.drive("merge", dict(self.pr, headRefName=branch), branch)
+
+    def test_main_still_requires_semver_label_check(self):
+        no_label = [c for c in self.pr["statusCheckRollup"] if c["name"] != "semver-label"]
+        with self.assertRaises(d.Pending):
+            d.checks_pass(dict(self.pr, statusCheckRollup=no_label))
 
     def test_new_release_with_ancestry_passes(self):
         d.release_matches(self.release, "1.1.0", {"status": "ahead"})
