@@ -58,6 +58,9 @@ Minimal: only what the child needs, with pointers instead of copied content.
 - **Session type**, when the target repository declares a session contract, so the child skips its
   intake question.
 - **Objective** in one line, and **Issue** `<owner>/<repo>#<n>`.
+- **Goal anchor**: the child's first act is to anchor that objective with the agent harness's native
+  `/goal` where it exists (listed in Claude Code and Codex, documented for the Kiro CLI), so the goal
+  lives in the session; where there is no native `/goal`, it states the objective in its first reply.
 - **Context**: the paths, Issue comments or pull requests to read, by reference. No pasted logs or files.
 - **Constraints**: what it must not touch, and the delivery route of the repository.
 - **Done when**: the observable result that ends the child's objective.

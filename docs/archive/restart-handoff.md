@@ -1,7 +1,7 @@
 # Restart handoff
 
 > **Historical (2026-10-05):** the restart guard and `/breaking-glass` described here were removed by
-> [ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md). Kept as the
+> [ADR-0028](../adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md). Kept as the
 > record of what was measured; the commands below no longer exist in the source.
 
 State on 2026-10-04, after the v2 canary (bugfix session):
@@ -18,7 +18,7 @@ State on 2026-10-04, after the v2 canary (bugfix session):
   - the HITL guard script accepted a synthetic intake picker and refused a two-option non-intake
     picker. A live intake picker was not shown, because the session type was declared in the prompt;
   - a prompt carrying a public example credential was blocked by the paste filter, with a redacted copy.
-- **Codex canary:** recorded in [AGENTS.md](../AGENTS.md) (2026-10-04 Codex amendment): managed
+- **Codex canary:** recorded in [AGENTS.md](../../AGENTS.md) (2026-10-04 Codex amendment): managed
   restart-guard routing and pass/block measured on one Codex surface; other Codex surfaces unmeasured.
 - Bash command substitution is refused by the owner's plugin permission guard, not by this
   repository; the fix belongs to that plugin.

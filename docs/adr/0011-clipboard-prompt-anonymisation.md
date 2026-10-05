@@ -1,6 +1,8 @@
 # 0011 — Clipboard-borne prompts are anonymised and cleaned of employer and client references, automatically
 
-- **Status:** proposed. The requirement is accepted (the owner's words); the mechanism is proposed. The always-on watcher is withdrawn; see the amendment "the always-on watcher is withdrawn" below. Automatic cleaning of bracketed pastes into harness CLIs is built as a pty wrapper launcher; see the amendment "automatic cleaning at the paste boundary". Since 2026-10-05 the wrapper is the primary mechanism and the prompt hook judges only sessions it did not start; see the amendment "the wrapper is primary; the prompt hook is the safety net".
+- **Status:** superseded by [ADR-0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md)
+  (2026-10-05, Issue #65), which states the decision in force; this record is kept as its history.
+  ~~proposed.~~ The requirement is accepted (the owner's words); the mechanism is proposed. The always-on watcher is withdrawn; see the amendment "the always-on watcher is withdrawn" below. Automatic cleaning of bracketed pastes into harness CLIs is built as a pty wrapper launcher; see the amendment "automatic cleaning at the paste boundary". Since 2026-10-05 the wrapper is the primary mechanism and the prompt hook judges only sessions it did not start; see the amendment "the wrapper is primary; the prompt hook is the safety net".
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 

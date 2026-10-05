@@ -44,7 +44,7 @@ PHRASES = {
     "new-idea": ["product-requirements-document-<subject>.md", "recommended answer", "Mermaid"],
     "idea-to-issues": ["--body-file", "Blocked by #N", "definition-of-ready", "acceptance criteria"],
     "handover": ["fresh worktree", "status --porcelain", "Claude Code", "Codex", "Kiro", "kiro-cli chat",
-                 "## Return to the parent session", "gh issue comment"],
+                 "## Return to the parent session", "gh issue comment", "**Goal anchor**", "`/goal`"],
     "what-else": ["native goal command (`/goal`)", "gh pr list --state open", "owner decisions"],
     "blueprint": ["product-requirements-document-agent-harness-setup.md", "Mermaid",
                   "Nothing is changed before the alignment interview is complete"],

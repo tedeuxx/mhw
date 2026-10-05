@@ -190,7 +190,12 @@ for bad in "wide cmd git push" "narrow cmd sudo -n" "narrow cmd git *" "loose cm
            "wide runner python3 -c x.py" "wide runner python3 -m pytest" "wide runner python3 global/../x.py" \
            "wide runner sh /abs/x.sh" "narrow runner sh global/x.sh" "wide runner node x.js" \
            "wide runner python3 x.py y.py" "wide runner sh global/x.txt" \
-           "wide runner node global/x.py" "wide runner perl global/x.sh" "wide runner env global/x.sh"; do
+           "wide runner node global/x.py" "wide runner perl global/x.sh" "wide runner env global/x.sh" \
+           "wide cmd git -c" "wide cmd git -c core.pager=less" "wide cmd git -C" "wide cmd git --exec-path" \
+           "narrow cmd gh -R" "wide cmd gh pr -R" "narrow cmd gh issue -R" "wide cmd gh pr --repo" \
+           "wide cmd gh pr --repo=o" "wide cmd gh pr view -Ro" \
+           "wide cmd GIT_CONFIG_PARAMETERS=x git log" "narrow cmd GIT_PAGER=x git status" \
+           "wide deny GIT_PAGER=x git diff"; do
   ov="$base/ov-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"; hb="$base/home-bad-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"
   mkdir -p "$ov" "$hb"
   printf '%s\n' "$bad" > "$ov/allow-list.conf"

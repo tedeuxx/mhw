@@ -100,7 +100,7 @@ state. Malformed baseline JSON is explicitly refused instead of escaping as an u
 The aggregate-only format, watched paths, native trust boundary and no-reset rule are unchanged.
 The historical first-tool refusal remains unattributed: no exact affected session ID or native
 startup trace was available. Plugin drift is not established as its cause. See the
-[diagnostic evidence and fresh-session procedure](../restart-guard-diagnosis.md).
+[diagnostic evidence and fresh-session procedure](../archive/restart-guard-diagnosis.md).
 
 ## Links
 

@@ -96,8 +96,7 @@ is the deterministic comparison.
 ## Session-start runtime summary
 
 In your first reply of every new session, tell the agent harness user which runtime configuration is
-in effect, in about ten short lines and before other work. If the workspace's session-type picker is
-due, ask it first and give the summary with the reply that follows his answer. State: the agent
+in effect, in about ten short lines and before other work. State: the agent
 harness and its version; the model and effort, when this agent harness shows them; the workstation
 stamp and the version-key result; the layers loaded (managed, user, workspace, plugin) and any lower
 layer setting that overrides a default; the protections no lower layer can override; the active
@@ -116,6 +115,17 @@ native view; name it in the summary so he can open it: Claude Code `/status`; Co
 `/context show` and `/tools`. Detail is `./workstation status --verbose`, on request only.
 Do not repeat the summary on resume or compaction. This is an instruction, not a check: no hook
 produces it, and whether a model follows it is not measured.
+
+## Session goal anchor
+
+At the start of every new session, agree the session's objective with the owner in one line before
+any other work. Where the agent harness has a native goal command, anchor the objective there and tell
+him the one line to type: Claude Code `/goal`, Codex `/goal`, Kiro CLI `/goal`. Where it has none (for
+example the Kiro IDE or a desktop chat), state the objective in your first reply instead. When his
+first prompt already states the objective, restate it in one line; do not ask again. Later, answer
+"what is left" against that objective. Do not repeat this on resume or compaction. This is an
+instruction, not a hook: nothing can make him type a command, and whether a model follows it is not
+measured.
 
 ## Ethical foundation: Stoic ethics, the good life (ratified by the owner)
 
