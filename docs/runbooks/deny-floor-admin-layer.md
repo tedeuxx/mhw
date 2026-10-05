@@ -6,6 +6,20 @@ Decision and evidence: [ADR-0016](../adr/0016-user-level-deny-floor-rendered-per
 
 ## Install (one `sudo` line, in a fresh session)
 
+**Order: the admin layer first, then the user layer.** This holds for a new machine and for every
+upgrade. An admin layer an earlier release installed (v2.x: the restart guard, the picker guard with its
+session-intake exception, timed breaking-glass) stays registered until step 1 and its `sudo` line
+replace it. A plain `./workstation install` does not touch the admin layer.
+
+1. `./workstation install --admin`, then the one `RUN     sudo` line it prints.
+2. `./workstation install`, as yourself.
+3. Close every Claude Code and Codex session and open fresh ones.
+
+If step 1 was skipped, `./workstation install`, `./workstation check` and `./workstation status` name
+every `STALE` and `DRIFT` admin target and every removed control still installed, print
+`next: ./workstation install --admin, then run the one sudo line it prints`, and `install` and `check`
+exit non-zero ([#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52)).
+
 From a checkout of `main` at the merged, released commit, in your own terminal:
 
 ```sh
@@ -21,8 +35,8 @@ Then close every Claude Code and Codex session and open fresh ones.
 
 ## Verify (canary)
 
-1. `./workstation check` exits 0, every installed-target line `OK` (the `PREREQ` section that follows
-   reports tools and subscriptions; see [prerequisites](../prerequisites.md)).
+1. `./workstation check` exits 0, every installed-target line `OK`, and no `ADMIN` line (the `PREREQ`
+   section that follows reports tools and subscriptions; see [prerequisites](../prerequisites.md)).
 2. `./workstation status` shows `managed: installed` and `deny floor: the admin layer`.
 3. **Block, Claude Code**, in an empty scratch folder: start `claude --setting-sources project` (the
    flag that dropped the user floor) and ask it to run `npm publish --dry-run`. Expected: the command
