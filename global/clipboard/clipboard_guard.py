@@ -47,6 +47,7 @@ DEFAULTS = {
     "show_cleaned_chars": "8000",   # the redacted copy is shown in the block message up to this size
     "salt_store": "",           # keychain | file; empty means keychain on macOS, file elsewhere
     "keychain_service": PROJECT + ".clipboard-salt",
+    "keychain_path": "",        # empty (production) means the default keychain; tests name a throwaway file
     "terms_file": "",           # empty means <local overlay>/clipboard-terms
     "salt_file": "",            # empty means <local overlay>/clipboard-salt (salt_store=file only)
     "notice_blocked": "Paste filter (ADR-0011): {categories} in this prompt. It was NOT sent, and nothing "
@@ -112,6 +113,11 @@ def load_config(path):
         conf["terms_file"] = os.path.join(local_overlay_dir(), "clipboard-terms")
     if not conf["salt_file"]:
         conf["salt_file"] = os.path.join(local_overlay_dir(), "clipboard-salt")
+    kc = conf["keychain_path"]
+    if kc and (not os.path.isabs(kc) or any(c in kc for c in '"\\\n\r')):
+        # Only an absolute, quote-free path can be passed through `security -i`. Refuse rather than fall
+        # back to "": falling back would silently send a test's writes to the default keychain.
+        raise ValueError("keychain_path must be an absolute path without quotes or line breaks")
     return conf
 
 # ---------------------------------------------------------------------------------- normalisation
@@ -344,12 +350,14 @@ class SaltStore:
     def get(self):
         run = self.run or subprocess.run
         if self.conf["salt_store"] == "keychain":
+            kc = self.conf.get("keychain_path") or ""
             argv = ["/usr/bin/security", "find-generic-password", "-s", self.conf["keychain_service"],
-                    "-a", _account(), "-w"]
+                    "-a", _account(), "-w"] + ([kc] if kc else [])
             if self.interactive:
                 r = run(argv, capture_output=True)
             else:
-                if (self.lock_probe or keychain_unlocked)() is not True:
+                probe = self.lock_probe or keychain_unlocked
+                if (probe(kc) if kc else probe()) is not True:
                     return None
                 try:
                     r = run(argv, capture_output=True, stdin=subprocess.DEVNULL, timeout=KEYCHAIN_READ_SECONDS)
@@ -367,7 +375,9 @@ class SaltStore:
     def create(self):
         value = secrets.token_hex(32)
         if self.conf["salt_store"] == "keychain":
-            cmd = 'add-generic-password -s "%s" -a "%s" -w "%s"\n' % (self.conf["keychain_service"], _account(), value)
+            kc = self.conf.get("keychain_path") or ""
+            cmd = 'add-generic-password -s "%s" -a "%s" -w "%s"%s\n' % (
+                self.conf["keychain_service"], _account(), value, ' "%s"' % kc if kc else "")
             r = (self.run or subprocess.run)(["/usr/bin/security", "-i"], input=cmd.encode(), capture_output=True)
             if r.returncode != 0:
                 raise RuntimeError("could not store the salt in the Keychain")
@@ -623,7 +633,7 @@ def main(argv):
         return cmd_add_term(conf)
     if command == "check-config":
         for key in ("max_bytes", "block_categories", "show_cleaned_chars", "salt_store", "keychain_service",
-                    "terms_file", "salt_file"):
+                    "keychain_path", "terms_file", "salt_file"):
             sys.stdout.write("%s=%s\n" % (key, conf[key]))
         sys.stdout.write("terms=%d\n" % len(read_terms(conf["terms_file"])))
         return 0
