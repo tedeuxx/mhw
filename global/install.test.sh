@@ -177,10 +177,10 @@ fi
 
 # 2b. the deny floor, rendered for Claude Code and Codex
 s="$h/.claude/settings.json"
-if [ "$(jq '.permissions.deny | length' "$s")" -eq "$floor_rules" ] && [ "$floor_rules" -gt 0 ]; then
-  ok "settings carry every deny-floor rule ($floor_rules), nothing else"
+if [ "$(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s")" -eq "$floor_rules" ] && [ "$floor_rules" -gt 0 ]; then
+  ok "settings carry every deny-floor rule ($floor_rules), nothing else beside the allow list's own Edit protections"
 else
-  ko "deny count $(jq '.permissions.deny | length' "$s"), expected $floor_rules"
+  ko "deny count $(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s"), expected $floor_rules"
 fi
 for r in 'Bash(rm -rf:*)' 'Bash(git push --force:*)' 'Bash(gh auth token:*)' 'Read(~/.ssh/id_*)' 'Edit(~/.aws/credentials)'; do
   if [ "$(has_rule "$s" "$r")" -eq 1 ]; then ok "deny holds $r once"; else ko "deny lacks $r"; fi
@@ -445,16 +445,16 @@ if [ "$(jq -S . "$h/.claude/settings.json")" = "$orig" ]; then ok "dry-run left 
 if grep -q 're-serialized' "$base/dry6.out"; then ok "dry-run warns that formatting changes"; else ko "dry-run did not warn about formatting"; fi
 HOME="$h" sh "$inst"; expect "merge into existing settings" 0 $?
 s="$h/.claude/settings.json"
-if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contains("personal-multi-harness-workstation-configuration/") | not)))) | del(.hooks.UserPromptSubmit, .hooks.SessionStart, .["personal-multi-harness-workstation-configuration"], .["personal-multi-harness-workstation-configuration-owned-deny"]) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
-  ok "every pre-existing key, hook and rule survives in place; only our entries, stamp key and ownership key were appended"
+if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contains("personal-multi-harness-workstation-configuration/") | not)))) | del(.hooks.UserPromptSubmit, .hooks.SessionStart, .["personal-multi-harness-workstation-configuration"], .["personal-multi-harness-workstation-configuration-owned-deny"], .["personal-multi-harness-workstation-configuration-owned-allow"], .permissions.defaultMode) | .permissions.deny |= .[0:2] | .permissions.allow |= .[0:1]' "$s")" = "$orig" ]; then
+  ok "every pre-existing key, hook and rule survives in place; only our entries, stamp key and ownership keys were appended"
 else
   ko "pre-existing content changed"
 fi
-if [ "$(jq '.permissions.deny | length' "$s")" -eq $((floor_rules + 1)) ] \
+if [ "$(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s")" -eq $((floor_rules + 1)) ] \
    && [ "$(has_rule "$s" 'Bash(rm -rf:*)')" -eq 1 ] && [ "$(has_rule "$s" 'Bash(my-own-rule:*)')" -eq 1 ]; then
   ok "deny is a union: a floor rule already present is not duplicated, a foreign rule is kept"
 else
-  ko "deny union wrong: $(jq '.permissions.deny | length' "$s") entries, expected $((floor_rules + 1))"
+  ko "deny union wrong: $(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s") entries, expected $((floor_rules + 1))"
 fi
 if [ "$(jq -S . "$s.pmhwc-backup")" = "$orig" ]; then ok "backup holds the previous settings"; else ko "backup missing or wrong"; fi
 if [ "$(stat -c %a "$s" 2>/dev/null || stat -f %Lp "$s")" = 600 ]; then ok "file mode preserved (600)"; else ko "file mode changed"; fi

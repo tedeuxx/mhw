@@ -346,3 +346,19 @@ from here now, and at what evidence level:
   `/tools`. *Written and tested*; the section is measured present in the Codex model-visible prompt and
   rendered into all three briefs in a throwaway home. No status line and no hook. Whether a model
   follows it is not measured. **Not installed** on the reference machine.
+- **Inner-loop pre-authorisation** (ADR-0031, proposed, 2026-10-05; Issue #83): one source,
+  `global/allow-list.conf` (plus the owner overlay's test suites), rendered at user level as Claude Code
+  `permissions.allow`, `permissions.deny` and `permissions.defaultMode`, a Codex rules file (loaded in
+  every session, measured) and a `workstation` profile file, and a Kiro `workstation` agent. The narrow
+  tier is ten read routes. The wide tier is the full inner loop, by the owner's decision on #83: git
+  read routes, `git add --`, `git commit -m`, branch creation, fetch, the repository's suites by script,
+  `acceptEdits` and `workspace-write`, with the escaping options (`--no-index`, `--output`, ...) denied
+  as prefixes. It is rendered only while the root-owned admin deny floor is complete, because a test
+  runner runs repository code without a prompt: his accepted trade-off. The installer refuses
+  standalone shells and interpreters, `./workstation`, and the publishing routes. `git push` is not
+  pre-authorised; the owner overlay floor now denies the `-u`, `--set-upstream` and `main:main` trunk
+  forms, and the trunk's real perimeter is a server-side rule he has not decided. *Written and tested*
+  in throwaway homes and a throwaway admin root; the Claude Code mode and the Codex rules and profile
+  are *measured loaded* headless, and Codex's decisions are measured with `execpolicy check`. Whether an
+  allowed command runs without a prompt in a live session is **not measured** (it needs a login).
+  **Not installed** on the reference machine.

@@ -1,6 +1,7 @@
 #!/bin/sh
 # Render the global brief to each harness, install the user-level deny floor, and install the paste
-# filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0011). The stale-session restart guard
+# filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0011), and render the inner-loop allow
+# list (allow-list.conf; ADR-0031: wide only while the admin deny floor is complete). The stale-session restart guard
 # (ADR-0022) and the /breaking-glass switches (ADR-0024) were removed (ADR-0028), and so was the HITL
 # picker guard (ADR-0013, 2026-10-05 amendment, Issue #60): a run of this installer deletes what an
 # earlier version wrote for them, and --check reports it as STALE.
@@ -220,6 +221,11 @@ if ! awk -v claude="$floor_claude" -v codex="$floor_codex" '
   exit 2
 fi
 : >> "$floor_codex"
+
+# The allow list (Issue #83, ADR-0031): parsed and checked against the floor before anything is written.
+# shellcheck source=global/allow-list.sh
+. "$script_dir/allow-list.sh"
+allow_parse
 
 # The clipboard guard's settings: generic defaults, then the overlay's (last value of a key wins).
 clip_conf="$work/clipboard.conf"
@@ -677,6 +683,7 @@ uninstall_user() {
   echo "UNMERGED $settings (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as $settings.pmhwc-backup)"
 }
 if [ "$mode" = uninstall ]; then
+  allow_uninstall
   uninstall_user
   if [ -n "$shell_rc" ] && [ -f "$shell_rc" ] && grep -qF "$rc_tag" "$shell_rc"; then
     echo "NOTE    $shell_rc still carries the paste-wrapper line; it is guarded and now does nothing. Delete it yourself"
@@ -754,6 +761,7 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
   fi
 fi
 merge_settings
+allow_step
 
 # Which layer carries the deny floor (ADR-0016, 2026-10-05 amendment). A report, never a status change:
 # the admin copy is the owner's sudo act (install-managed.sh), and its drift is install-managed.sh
