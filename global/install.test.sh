@@ -177,10 +177,10 @@ fi
 
 # 2b. the deny floor, rendered for Claude Code and Codex
 s="$h/.claude/settings.json"
-if [ "$(jq '.permissions.deny | length' "$s")" -eq "$floor_rules" ] && [ "$floor_rules" -gt 0 ]; then
-  ok "settings carry every deny-floor rule ($floor_rules), nothing else"
+if [ "$(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s")" -eq "$floor_rules" ] && [ "$floor_rules" -gt 0 ]; then
+  ok "settings carry every deny-floor rule ($floor_rules), nothing else beside the allow list's own Edit protections"
 else
-  ko "deny count $(jq '.permissions.deny | length' "$s"), expected $floor_rules"
+  ko "deny count $(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s"), expected $floor_rules"
 fi
 for r in 'Bash(rm -rf:*)' 'Bash(git push --force:*)' 'Bash(gh auth token:*)' 'Read(~/.ssh/id_*)' 'Edit(~/.aws/credentials)'; do
   if [ "$(has_rule "$s" "$r")" -eq 1 ]; then ok "deny holds $r once"; else ko "deny lacks $r"; fi
@@ -450,11 +450,11 @@ if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contain
 else
   ko "pre-existing content changed"
 fi
-if [ "$(jq '.permissions.deny | length' "$s")" -eq $((floor_rules + 1)) ] \
+if [ "$(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s")" -eq $((floor_rules + 1)) ] \
    && [ "$(has_rule "$s" 'Bash(rm -rf:*)')" -eq 1 ] && [ "$(has_rule "$s" 'Bash(my-own-rule:*)')" -eq 1 ]; then
   ok "deny is a union: a floor rule already present is not duplicated, a foreign rule is kept"
 else
-  ko "deny union wrong: $(jq '.permissions.deny | length' "$s") entries, expected $((floor_rules + 1))"
+  ko "deny union wrong: $(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s") entries, expected $((floor_rules + 1))"
 fi
 if [ "$(jq -S . "$s.pmhwc-backup")" = "$orig" ]; then ok "backup holds the previous settings"; else ko "backup missing or wrong"; fi
 if [ "$(stat -c %a "$s" 2>/dev/null || stat -f %Lp "$s")" = 600 ]; then ok "file mode preserved (600)"; else ko "file mode changed"; fi

@@ -41,8 +41,8 @@ if [ "$(allow_n "$s")" -eq "$n_narrow" ] && [ "$(mode_of "$s")" = none ]; then
 else
   ko "Claude Code narrow tier wrong: $(allow_n "$s") rules, mode $(mode_of "$s"); expected $n_narrow, none"
 fi
-if ! jq -e '.permissions.allow[] | select(test("^Bash\\((git add|git commit|npm test):"))' "$s" > /dev/null; then
-  ok "no wide rule (git add, git commit, npm test) is rendered without the admin floor"
+if ! jq -e '.permissions.allow[] | select(test("^Bash\\(git switch"))' "$s" > /dev/null; then
+  ok "no wide rule (git switch -c) is rendered without the admin floor"
 else
   ko "a wide rule was rendered without the admin floor"
 fi
@@ -68,6 +68,16 @@ if [ "$(cksum "$s" "$h/.codex/workstation.config.toml" "$h/.codex/rules/workstat
 else
   ko "re-run changed an allow-list target"
 fi
+
+# 1b. The files that decide the allow list are protected from an agent's edit, in every tier (Claude Code).
+protect_ok() { # $1 settings file
+  for r in "Edit(~/.claude/settings.json)" "Edit(~/.codex/rules/**)" "Edit(~/.codex/*.config.toml)" \
+      "Edit(~/.kiro/agents/**)" "Edit(/$(cd "$here/.." && pwd)/global/allow-list.conf)" \
+      "Edit(/$(cd "$here/.." && pwd)/overlay/**)" "Edit(**/.git/config)" "Edit(**/.git/hooks/**)"; do
+    [ "$(jq --arg r "$r" '[.permissions.deny[]? | select(. == $r)] | length' "$1")" -eq 1 ] || { echo "  missing: $r"; return 1; }
+  done
+}
+if protect_ok "$s"; then ok "narrow tier: Edit denies protect the allow-list source, overlay, rendered files and .git config/hooks"; else ko "a protecting Edit deny is missing (narrow)"; fi
 
 # 2. The admin floor installed under a throwaway root: check notes it, install widens.
 root="$base/root-admin"; mkdir -p "$root"
@@ -98,6 +108,7 @@ else
   ko "Kiro was widened without a floor"
 fi
 HOME="$h" sh "$inst" --check --managed-root="$root" > /dev/null 2>&1; expect "check clean on the wide tier" 0 $?
+if protect_ok "$s"; then ok "wide tier keeps the protecting Edit denies"; else ko "a protecting Edit deny is missing (wide)"; fi
 
 # 3. The admin floor gone again: a wide list without the barrier is drift, and install narrows it.
 HOME="$h" sh "$inst" --check --managed-root="$empty" > "$base/g.out" 2>&1; expect "wide list without the admin floor is drift" 1 $?
@@ -145,7 +156,14 @@ if [ "$overlay_floor" != /dev/null ]; then
 fi
 
 # 5. Invalid or floor-overlapping entries stop the run before anything is written.
-for bad in "wide cmd git push" "narrow cmd sudo -n" "narrow cmd git *" "loose cmd git status" "wide tool Edit"; do
+for bad in "wide cmd git push" "narrow cmd sudo -n" "narrow cmd git *" "loose cmd git status" "wide tool Edit" \
+           "wide cmd python3" "wide cmd python3.12 -m pytest" "narrow cmd bash" "narrow cmd sh -c" "wide cmd env" \
+           "wide cmd xargs" "wide cmd node" "wide cmd perl" "wide cmd ruby" "wide cmd zsh" "wide runner npm test" \
+           "wide runner make test" "narrow cmd ./workstation status" "wide cmd /bin/sh" \
+           "narrow cmd git diff" "narrow cmd git log --oneline" "narrow cmd git show" "narrow cmd git grep" \
+           "narrow cmd git blame" "narrow cmd git ls-files" "narrow cmd git branch --list" "wide cmd git fetch" \
+           "wide cmd git add" "wide cmd git commit" "wide cmd git worktree add" "wide cmd gh issue comment" \
+           "wide cmd gh pr comment"; do
   ov="$base/ov-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"; hb="$base/home-bad-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"
   mkdir -p "$ov" "$hb"
   printf '%s\n' "$bad" > "$ov/allow-list.conf"
@@ -171,6 +189,7 @@ else
 fi
 HOME="$h" sh "$inst" --uninstall > /dev/null 2>&1; expect "uninstall" 0 $?
 if [ "$(jq -c '.permissions.allow' "$s")" = '["Bash(make lint:*)","Bash(git status:*)"]' ] && [ "$(mode_of "$s")" = plan ] \
+   && ! jq -e '.permissions.deny[]? | select(startswith("Edit("))' "$s" > /dev/null \
    && [ "$(jq -r 'keys | join(",")' "$s")" = permissions ]; then
   ok "uninstall keeps every rule and the mode the owner wrote, removes only ours"
 else
@@ -197,9 +216,9 @@ import json, re, sys
 pats = [re.compile(p) for p in json.load(open(sys.argv[1]))["toolsSettings"]["execute_bash"]["allowedCommands"]]
 def ok(c):
     return any(p.fullmatch(c) for p in pats)
-good = ["git status", "git status --short", "gh pr view 12 --json body", "./workstation status --verbose"]
+good = ["git status", "git status --short", "gh pr view 12 --json body", "git rev-parse --show-toplevel"]
 bad = ["git status; touch x", "git status && touch x", "git status | sh", "git status $(touch x)",
-       "git status\ntouch x", "Xgit status", "a/workstation status", "git statusx", "git commit -m x"]
+       "git status\ntouch x", "Xgit status", "git statusx", "git commit -m x", "xgit status"]
 sys.exit(0 if all(ok(c) for c in good) and not any(ok(c) for c in bad) else 1)
 PY
 then ok "Kiro patterns admit the inner loop and refuse chaining, expansion and lookalikes"; else ko "a Kiro pattern is too broad or too narrow"; fi
@@ -226,6 +245,14 @@ if [ -n "$cx" ] && [ -x "$cx" ]; then
         [ "$d" = forbidden ] || { bad=1; echo "  trunk form not forbidden: $form ($d)"; }
       done
     done
+  fi
+  # The allow rules load in every session, not only under --profile: the model-visible prompt lists them.
+  mkdir -p "$base/cxw"
+  if (cd "$base/cxw" && HOME="$h" CODEX_HOME="$h/.codex" "$cx" debug prompt-input hi 2>/dev/null) \
+       | grep -qF '[\"gh\", \"pr\", \"view\"]'; then
+    ok "codex: the allow rules are approved prefixes without --profile"
+  else
+    ko "codex: the allow rules are not listed without --profile"
   fi
   if [ "$bad" -eq 0 ]; then ok "codex: every floor prefix stays forbidden with the allow list loaded"; else ko "codex: a floor prefix is not forbidden"; fi
 else

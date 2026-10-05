@@ -43,8 +43,17 @@ allow_parse() {
         else if ($2 != "cmd" && $2 != "runner") why = "kind must be cmd or runner"
         else if (NF < 3) why = "no words"
         for (i = 3; i <= NF && why == ""; i++)
-          if ($i !~ /^[A-Za-z0-9._\/~=:@+-]+$/) why = "word outside the allowed set"
+          if ($i !~ /^[A-Za-z0-9._~=:@+-]+$/) why = "word outside the allowed set (no path, no wildcard)"
+        # A shell, an interpreter or a dispatcher runs anything it is handed: an allow on one is an
+        # allow on everything, and an agent able to edit this list would grant itself the world.
+        if (why == "" && $3 ~ /^(bash|sh|dash|zsh|ksh|mksh|fish|csh|tcsh|busybox|env|xargs|eval|exec|source|command|builtin|nohup|time|nice|timeout|watch|script|sudo|doas|su|python[0-9.]*|pypy[0-9.]*|node|nodejs|deno|bun|perl[0-9.]*|ruby|irb|php|lua|tclsh|osascript|awk|gawk|nawk|find|make|npm|npx|pnpm|yarn|pytest|cargo|go)$/)
+          why = "the program \"" $3 "\" runs whatever it is given (a shell, an interpreter, a dispatcher or a project-code runner)"
         w = $3; for (i = 4; i <= NF; i++) w = w " " $i
+        # Commands whose own options read or write an arbitrary path or run a program (ADR-0031, "What
+        # the list leaves out"). Matched as a word prefix, so no narrower spelling slips back in.
+        n_esc = split("git diff|git log|git show|git grep|git blame|git ls-files|git branch|git fetch|git pull|git add|git commit|git worktree add|git config|git archive|git format-patch|git am|git apply|gh issue comment|gh issue create|gh issue edit|gh pr comment|gh pr create|gh pr edit|gh pr review|gh gist|gh api|gh extension|gh alias", esc, "|")
+        for (j = 1; j <= n_esc && why == ""; j++)
+          if (prefix(esc[j], w)) why = "\"" esc[j] "\" takes an option that reads or writes any path or runs a program"
         for (j = 1; j <= nf && why == ""; j++) {
           if (prefix(w, fl[j])) why = "it covers the floor entry \"" fl[j] "\", which denies only part of that family"
           else if (prefix(fl[j], w)) why = "the floor entry \"" fl[j] "\" denies it, so it could never apply"
@@ -91,11 +100,26 @@ allow_words() { # $1 tier, $2 kind(s): the word lists rendered for that tier (na
 }
 
 # ---- Claude Code: a union merge into ~/.claude/settings.json, with ownership like the deny floor's.
+# The files that decide what is pre-authorised. An Edit/Write deny for each, in every tier, so an agent
+# cannot widen its own list with an edit (Claude Code only: Codex has no file rule, Kiro no floor).
+# "//" is Claude Code's absolute-path form, "~/" its home form; the checkout's path is resolved here.
+# shellcheck disable=SC2088 # the tilde is Claude Code rule syntax, written literally, never expanded
+allow_protect() {
+  codex_dir="${CODEX_HOME:-$HOME/.codex}"
+  case $codex_dir in "$HOME"/*) codex_rule="~/${codex_dir#"$HOME"/}" ;; *) codex_rule="/$codex_dir" ;; esac
+  for r in "~/.claude/settings.json" "$codex_rule/rules/**" "$codex_rule/config.toml" "$codex_rule/*.config.toml" \
+      "~/.kiro/agents/**" "/$repo_root/global/allow-list.conf" "/$repo_root/overlay/**" \
+      "**/.git/config" "**/.git/hooks/**"; do
+    printf 'Edit(%s)\n' "$r"
+  done
+}
+
 allow_claude_render() { # $1 tier, $2 input settings, $3 output
   ac_want=$(allow_words "$1" "cmd runner" | jq -cR -s 'split("\n") | map(select(length > 0) | "Bash(" + . + ":*)")')
+  ac_protect=$(allow_protect | jq -cR -s 'split("\n") | map(select(length > 0))')
   ac_mode=null
   [ "$1" = wide ] && ac_mode='"acceptEdits"'
-  jq --indent 4 --arg ok "$ALLOW_OWN_KEY" --argjson w "$ac_want" --argjson m "$ac_mode" '
+  jq --indent 4 --arg ok "$ALLOW_OWN_KEY" --argjson w "$ac_want" --argjson m "$ac_mode" --argjson pd "$ac_protect" '
     if (.permissions != null and (.permissions | type) != "object")
        or (.permissions.allow? != null and (.permissions.allow | type) != "array")
        or (.permissions.deny? != null and (.permissions.deny | type) != "array")
@@ -115,8 +139,15 @@ allow_claude_render() { # $1 tier, $2 input settings, $3 output
     | .permissions = ((.permissions // {}) | .allow = ($a1 + $add)
         | if .allow == [] then del(.allow) else . end
         | if $mode == null then del(.defaultMode) else .defaultMode = $mode end)
+    | ($o.deny // []) as $pdeny
+    | ((.permissions.deny // []) | map(select(. as $r | (($pdeny | index($r)) and (($pd | index($r)) | not)) | not))) as $d1
+    | ([$pd[] | . as $r | select(($d1 | index($r)) | not)]) as $dadd
+    | ([$pdeny[] | . as $r | select($pd | index($r))] + $dadd) as $downs
+    | .permissions = (.permissions // {}) | .permissions.deny = ($d1 + $dadd)
+    | if .permissions.deny == [] then del(.permissions.deny) else . end
     | if .permissions == {} then del(.permissions) else . end
-    | if $own == [] and $omode == null then del(.[$ok]) else .[$ok] = {allow: $own, defaultMode: $omode} end
+    | if $own == [] and $omode == null and $downs == [] then del(.[$ok])
+      else .[$ok] = {allow: $own, defaultMode: $omode, deny: $downs} end
   ' "$2" > "$3" 2>/dev/null
 }
 
@@ -271,12 +302,16 @@ allow_uninstall() {
   [ -f "$settings" ] && command -v jq >/dev/null 2>&1 || return 0
   if jq -e --arg ok "$ALLOW_OWN_KEY" 'type == "object" and has($ok)' "$settings" >/dev/null 2>&1; then
     jq --indent 4 --arg ok "$ALLOW_OWN_KEY" '
-      (.[$ok].allow // []) as $mine | (.[$ok].defaultMode // null) as $m
+      (.[$ok].allow // []) as $mine | (.[$ok].defaultMode // null) as $m | (.[$ok].deny // []) as $mdeny
       | if (.permissions.allow? | type) == "array" then
           .permissions.allow |= map(select(. as $r | $mine | index($r) | not))
           | if .permissions.allow == [] then del(.permissions.allow) else . end
         else . end
       | if $m != null and .permissions.defaultMode? == $m then del(.permissions.defaultMode) else . end
+      | if (.permissions.deny? | type) == "array" then
+          .permissions.deny |= map(select(. as $r | $mdeny | index($r) | not))
+          | if .permissions.deny == [] then del(.permissions.deny) else . end
+        else . end
       | if .permissions == {} then del(.permissions) else . end
       | del(.[$ok])' "$settings" > "$settings.new.$$" && mv "$settings.new.$$" "$settings"
     echo "UNMERGED $settings (the allow rules and permission mode this installer added)"
