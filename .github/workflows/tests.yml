@@ -48,7 +48,8 @@ jobs:
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/profile/profile.py global/profile/profile_test.py \
-            global/workstation.py global/workstation_test.py
+            global/workstation.py global/workstation_test.py \
+            global/method/method_render.py global/method/method_render_test.py
 
   # Pure preference compilation: no harness installation, account calls or credential reads.
   profiles:
@@ -106,6 +107,13 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
+      # Issue #61, ADR-0031: the working method rendered into the three agent harnesses' user-level
+      # carriers, in throwaway HOMEs only. Asserts every rendered agent keeps its tool list and every
+      # rendered file its provenance stamp.
+      - name: working-method renderer suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/method/method_render_test.py "$RUNNER_TEMP/method"
       - name: GitHub repository settings standard suite (stub gh on PATH; no network, never squash)
         run: sh global/github-repo-settings.test.sh "$RUNNER_TEMP/repo-settings"
       # ADR-0011, the paste filter. It never reads or writes the system clipboard. Issue #58: the real

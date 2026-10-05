@@ -689,8 +689,21 @@ uninstall_user() {
   mv "$settings.new.$$" "$settings"
   echo "UNMERGED $settings (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as $settings.pmhwc-backup)"
 }
+# The working method (Issue #61, ADR-0031): agents, skills and commands from <repo>/method, rendered into
+# each agent harness's user-level native carrier by its own step, global/method/method_render.py. It
+# receives this script's mode and stamp, so the stamp is derived once (ADR-0029). It writes only files
+# carrying the managed-by line with "source: method/", and never an unmanaged one.
+method_step() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP    the working method (method/): python3 3.9 or later is required to render it"
+    raise 2
+    return 0
+  fi
+  python3 -B "$script_dir/method/method_render.py" "--mode=$mode" "--stamp=$stamp" || raise $?
+}
 if [ "$mode" = uninstall ]; then
   uninstall_user
+  method_step
   if [ -n "$shell_rc" ] && [ -f "$shell_rc" ] && grep -qF "$rc_tag" "$shell_rc"; then
     echo "NOTE    $shell_rc still carries the paste-wrapper line; it is guarded and now does nothing. Delete it yourself"
   fi
@@ -767,6 +780,7 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
   fi
 fi
 merge_settings
+method_step
 
 # Which layer carries the deny floor (ADR-0016, 2026-10-05 amendment). A report, never a status change:
 # the admin copy is the owner's sudo act (install-managed.sh), and its drift is install-managed.sh
