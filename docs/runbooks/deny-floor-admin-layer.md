@@ -21,7 +21,8 @@ Then close every Claude Code and Codex session and open fresh ones.
 
 ## Verify (canary)
 
-1. `./workstation check` exits 0, every line `OK`.
+1. `./workstation check` exits 0, every installed-target line `OK` (the `PREREQ` section that follows
+   reports tools and subscriptions; see [prerequisites](../prerequisites.md)).
 2. `./workstation status` shows `managed: installed` and `deny floor: the admin layer`.
 3. **Block, Claude Code**, in an empty scratch folder: start `claude --setting-sources project` (the
    flag that dropped the user floor) and ask it to run `npm publish --dry-run`. Expected: the command

@@ -5,7 +5,9 @@
     ./workstation install --admin         render and validate the admin layer; print its one sudo line
     ./workstation status [--verbose]      what is installed, which layers and protections, the version key
     ./workstation status --summary        the session-start runtime summary an agent harness relays (#80)
-    ./workstation check                   exit non-zero when an installed target differs from this checkout
+    ./workstation check                   exit non-zero when an installed target differs from this checkout,
+                                          or a required prerequisite is missing (global/prerequisites.json)
+    ./workstation check --prerequisites   the prerequisites section only (Issue #89); never applies anything
     ./workstation update [vX.Y.Z]         fetch tags, check out the newest release (or the one given), install
     ./workstation uninstall               remove the user layer; print the sudo line for the admin layer
 
@@ -714,13 +716,19 @@ def cmd_uninstall():
     return code
 
 
-def cmd_check():
-    hooks_mode = "managed" if admin_installed() else "user"
-    code, _ = run(install_args(["--check", "--hooks=" + hooks_mode]), capture=False)
-    if admin_installed():
-        acode, _ = run(managed_args(["--check"]), capture=False)
-        code = max(code, acode)
-    return code
+def cmd_check(prerequisites_only=False):
+    code = 0
+    if not prerequisites_only:
+        hooks_mode = "managed" if admin_installed() else "user"
+        code, _ = run(install_args(["--check", "--hooks=" + hooks_mode]), capture=False)
+        if admin_installed():
+            acode, _ = run(managed_args(["--check"]), capture=False)
+            code = max(code, acode)
+    # Issue #89: present or missing, authenticated or not, drift from the preferred settings. Read-only.
+    import prerequisites
+    pcode, lines = prerequisites.report()
+    print("\n".join(lines), flush=True)
+    return max(code, pcode)
 
 
 def valid_overlay(value):
@@ -740,6 +748,7 @@ def main(argv):
         return 0 if argv else 2
     command, rest = argv[0], argv[1:]
     overlay, project, verbose, admin, wanted, summary = None, None, False, False, None, False
+    prereq_only = False
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
@@ -749,6 +758,8 @@ def main(argv):
             verbose = True
         elif arg == "--summary" and command == "status":
             summary = True
+        elif arg == "--prerequisites" and command == "check":
+            prereq_only = True
         elif arg == "--admin" and command == "install":
             admin = True
         elif command == "update" and wanted is None and not arg.startswith("-"):
@@ -765,7 +776,7 @@ def main(argv):
     if command == "install":
         return cmd_install(admin)
     if command == "check":
-        return cmd_check()
+        return cmd_check(prereq_only)
     if command == "update":
         return cmd_update(wanted)
     if command == "uninstall":

@@ -106,7 +106,8 @@ macOS and Linux, from the repository root (Python 3.9+ and `jq` required):
 ./workstation install --admin  # render and validate the admin layer; prints the one sudo line to run yourself
 ./workstation status           # installed release per layer, protections, the version key, the runtime
 ./workstation status --verbose # the same, plus every target and each agent harness's version
-./workstation check            # exit non-zero when an installed target differs from this checkout
+./workstation check            # exit non-zero when an installed target differs, or a required prerequisite is missing
+./workstation check --prerequisites  # tools and subscriptions only: present, authenticated, drift (docs/prerequisites.md)
 ./workstation update [vX.Y.Z]  # fetch tags, check out the newest release (or the one given), install it
 ./workstation uninstall        # remove the user layer; prints the sudo line that removes the admin layer
 ```
