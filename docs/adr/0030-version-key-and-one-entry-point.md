@@ -59,6 +59,14 @@ Option 1.
   the installed stamps, the layers (managed, user, workspace carriers, Claude Code plugins), the
   protections from the installers' own `--check` lines, the version key and the runtime (host, or a
   Podman/Docker marker). `--verbose` adds every target and each agent harness's version.
+- **`update [vX.Y.Z]`** refuses while a tracked file is modified (the stamp's own *dirty* rule), fetches
+  tags, checks out the newest strictly numeric release tag or the one given (detached), and installs
+  with the checked-out release's `workstation.py`, or its `install.sh` when the release predates it.
+- **`uninstall`** runs the new `install.sh --uninstall`: it removes only files carrying the marker, and
+  in the settings file only our hook entries, the deny-floor rules rendered from the checkout and the
+  stamp key, with a backup. With an admin layer present it prints `install-managed.sh --uninstall`'s
+  `sudo … --remove` line for the owner. A deny rule the owner also wrote by hand that equals a floor
+  rule is removed with the floor; the backup keeps it.
 
 ## Consequences
 
@@ -71,8 +79,10 @@ Option 1.
   measured**; it needs a login in a throwaway configuration.
 - Bad: Claude Code may not show the HTML `managed-by` comment to the model (not measured), so the
   instruction tells the agent to read the brief file's first lines when the stamp is not in context.
-- Not built here: `update`, `uninstall`, `install [version]` (tag checkout) and a comparison with the
-  latest published release (section 9b). `install` writes the user layer for all three agent harnesses
+- ~~Not built here: `update`, `uninstall`, `install [version]` (tag checkout) and a comparison with the
+  latest published release (section 9b).~~ *Amended 2026-10-05, same PR:* `update [vX.Y.Z]` and
+  `uninstall` are built (below); a version is selected through `update`, not `install`. Still not built:
+  a comparison with the latest published release. `install` writes the user layer for all three agent harnesses
   whether or not each is installed; `status` reports which are on `PATH`. Windows keeps `install.ps1`.
 - This repository's key is `>=3.1 <4`: an install from `rc/next` (`unreleased, after v3.0.0`) reports a
   mismatch until the release that carries this change is installed.
@@ -91,9 +101,15 @@ Measured 2026-10-05 in throwaway homes and a throwaway admin root under the sess
 - Codex 0.160.0, `codex debug prompt-input` with the installed `CODEX_HOME`: the model-visible prompt
   carries the `managed-by` line with `release:` and the instruction. Claude Code 2.1.289 headless,
   `InstructionsLoaded` probe hook: the installed `CLAUDE.md` loaded as `User` memory. No model call.
-- `global/workstation_test.py`: the comparison table, the status view, and one end-to-end run of the
-  real installers. Fourteen mutations of `global/workstation.py`, in a copy of the tree, each turned the
-  suite red; the unmutated copy stayed green.
+- `update` and `uninstall`, each with its own synthetic origin (two numeric tags) and clone: `update`
+  checked out v9.1.0 and the installed stamp read `release: v9.1.0`; `update v9.0.0` went back; a
+  modified tracked file was refused with HEAD unchanged; `uninstall` removed all 12 files of ours, kept a
+  foreign file, a foreign settings key and a foreign deny rule, and with an admin layer printed the
+  `sudo … --remove` line.
+- `global/workstation_test.py`: the comparison table, the status view, one end-to-end run of the real
+  installers, and `update`/`uninstall` against their own clones. Twenty-four source mutations
+  (`global/workstation.py` and `install.sh --uninstall`), in a copy of the tree, each turned the suite
+  red; the unmutated copy stayed green.
 
 ## Links
 

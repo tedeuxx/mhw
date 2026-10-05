@@ -6,6 +6,8 @@
 #
 #   install.sh                  install or update every managed target
 #   install.sh --dry-run        print exactly what would be written or merged where; write nothing
+#   install.sh --uninstall      remove every file this script placed (only files carrying its marker) and
+#                               its hook entries, deny-floor rules and stamp key from ~/.claude/settings.json
 #   install.sh --check          exit non-zero if any target is missing, drifted, unmanaged, or carries a
 #                               provenance stamp (release and commit) other than the source's; each
 #                               line names the stamp the installed file carries (Issue #66, ADR-0029)
@@ -61,11 +63,12 @@ for arg in "$@"; do
     --managed-root=*) managed_root=${arg#--managed-root=} ;;
     --dry-run) mode=dry-run ;;
     --check) mode=check ;;
+    --uninstall) mode=uninstall ;;
     --hooks=user) hooks_mode=user ;;
     --hooks=managed) hooks_mode=managed ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -80,7 +83,7 @@ fi
 
 # Structured profiles must be compiled and current before any target is written (ADR-0018).
 # Hand-authored overlays and --overlay=none retain the previous installation path.
-if [ -n "$overlay" ] && [ -f "$overlay/profile.json" ]; then
+if [ "$mode" != uninstall ] && [ -n "$overlay" ] && [ -f "$overlay/profile.json" ]; then
   if ! command -v python3 >/dev/null 2>&1; then
     echo "profile overlay requires Python 3.9+; no target was written" >&2
     exit 2
@@ -543,6 +546,70 @@ merge_settings() {
       ;;
   esac
 }
+
+# Uninstall (Issue #67): every file of ours goes, wherever a hooks mode put it; a file without the marker
+# is never touched. In the settings file only our hook entries, the deny-floor rules rendered from this
+# checkout and the stamp key are removed; every other key and rule stays, and a backup is left beside it.
+# A deny rule the owner also wrote by hand and that equals a floor rule is removed too: the backup has it.
+uninstall_user() {
+  for u_dest in "$HOME/.claude/CLAUDE.md" "${CODEX_HOME:-$HOME/.codex}/AGENTS.md" \
+      "$HOME/.kiro/steering/workstation-global-brief.md" "$hook_dest" "$data_dir/hitl.conf" "$codex_rules" \
+      "$clip_dest" "$clip_conf_dest" "$codex_hooks" "$wrap_dest" "$snippet_dest" "$restart_dest" \
+      "$glass_dest" "$glasscmd_dest" "$clip_plist"; do
+    if [ -f "$u_dest" ] && is_managed "$u_dest"; then
+      rm -f "$u_dest"
+      echo "REMOVED $u_dest"
+    elif [ -e "$u_dest" ] || [ -L "$u_dest" ]; then
+      echo "NOTE    $u_dest exists and is NOT managed by this project; left alone"
+    fi
+  done
+  if [ -d "$data_dir/restart-state" ] && [ ! -L "$data_dir/restart-state" ]; then
+    rm -f "$data_dir/restart-state"/*.json
+    rmdir "$data_dir/restart-state" 2>/dev/null && echo "REMOVED $data_dir/restart-state"
+  fi
+  rmdir "$data_dir" 2>/dev/null && echo "REMOVED $data_dir (empty)"
+  [ -e "$settings" ] || { echo "ABSENT  $settings"; return 0; }
+  command -v jq >/dev/null 2>&1 || { echo "REFUSE  $settings: jq is required to remove our entries" >&2; raise 2; return 0; }
+  deny=$(jq -cR -s 'split("\n") | map(select(length > 0))' "$floor_claude")
+  if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --arg rid "$RESTART_ID" --arg sk "$STAMP_KEY" \
+      --argjson f "$deny" '
+      def drop($ev; $id):
+        if (.hooks[$ev]? | type) == "array" then
+          .hooks[$ev] = [ .hooks[$ev][]
+            | if any(.hooks[]?; (.command? // "") | tostring | contains($id))
+              then (.hooks |= map(select((.command? // "") | tostring | contains($id) | not)))
+                   | select(.hooks | length > 0)
+              else . end ]
+          | if (.hooks[$ev] | length) == 0 then del(.hooks[$ev]) else . end
+        else . end;
+      if type != "object" then error("not an object") else . end
+      | drop("PreToolUse"; $id) | drop("UserPromptSubmit"; $pid) | drop("SessionStart"; $rid)
+      | drop("PreToolUse"; $rid)
+      | if .hooks == {} then del(.hooks) else . end
+      | if (.permissions.deny? | type) == "array" then
+          .permissions.deny |= map(select(. as $r | $f | index($r) | not))
+          | if .permissions.deny == [] then del(.permissions.deny) else . end
+          | if .permissions == {} then del(.permissions) else . end
+        else . end
+      | del(.[$sk])' "$settings" > "$work/settings.unmerged.json" 2>/dev/null; then
+    echo "REFUSE  $settings: not a readable JSON object of the expected shape; left untouched" >&2
+    raise 3
+    return 0
+  fi
+  if jq -e --slurpfile a "$work/settings.unmerged.json" '. == $a[0]' "$settings" >/dev/null 2>&1; then
+    echo "OK      $settings holds no entry of ours"
+    return 0
+  fi
+  cp -p "$settings" "$settings.pmhwc-backup"
+  cat "$work/settings.unmerged.json" > "$settings.new.$$"
+  mv "$settings.new.$$" "$settings"
+  echo "UNMERGED $settings (our hook entries, deny-floor rules and stamp key removed; previous version kept as $settings.pmhwc-backup)"
+}
+if [ "$mode" = uninstall ]; then
+  uninstall_user
+  echo "NOTE    the admin layer is not touched here; ./workstation uninstall prints its sudo line"
+  exit "$status"
+fi
 
 echo "SOURCE  $stamp"
 process plain "$HOME/.claude/CLAUDE.md"

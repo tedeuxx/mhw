@@ -1,6 +1,6 @@
 #!/bin/sh
 # The one entry point of the managed workstation (Issue #67), macOS and Linux:
-#   ./workstation install | install --admin | status [--verbose] | check
+#   ./workstation install | install --admin | status [--verbose] | check | update [vX.Y.Z] | uninstall
 # The logic is global/workstation.py; global/install.sh and global/install-managed.sh stay the internals.
 # Windows keeps global/install.ps1.
 dir=$(cd "$(dirname "$0")" && pwd)

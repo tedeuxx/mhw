@@ -4,6 +4,7 @@ output. Throwaway HOME and admin root only; never a real configuration, never su
 
     python3 -B global/workstation_test.py
 """
+import json
 import os
 from pathlib import Path
 import re
@@ -166,6 +167,112 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("  check            1 target(s) differ; run ./workstation install\n", out)
         code, _ = self.run_ws("check", "--overlay=none")
         self.assertNotEqual(code, 0)
+
+
+class LatestRelease(unittest.TestCase):
+    def test_numeric_order_and_strictness(self):
+        tags = ["v3.0.0", "v3.10.0", "v3.9.9", "v4.0.0-rc1", "v10", "latest", "v3.2.1"]
+        self.assertEqual(ws.latest_release(tags), "v3.10.0")
+        self.assertIsNone(ws.latest_release(["v1", "rc", "v2.0.0-beta"]))
+
+
+GIT = ["git", "-c", "user.name=test", "-c", "user.email=test@example.invalid",
+       "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"]
+
+
+@unittest.skipUnless(os.name == "posix" and shutil.which("jq") and shutil.which("git"), "needs sh, jq, git")
+class UpdateAndUninstall(unittest.TestCase):
+    """update and uninstall against their own synthetic origin and clone, never this checkout."""
+
+    def git(self, cwd, *args):
+        subprocess.run(GIT + list(args), cwd=cwd, check=True, capture_output=True)
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="workstation-update-")
+        self.addCleanup(self.temp.cleanup)
+        b = self.base = Path(self.temp.name)
+        for d in ("home", "root", "tmp"):
+            (b / d).mkdir()
+        origin = b / "origin"
+        shutil.copytree(ws.ROOT, origin, ignore=shutil.ignore_patterns(".git"))
+        self.git(origin, "init", "-q")
+        self.git(origin, "add", "-A")
+        self.git(origin, "commit", "-q", "-m", "base")
+        self.git(origin, "tag", "v9.0.0")
+        with open(origin / "global" / "AGENTS.md", "a", encoding="utf-8") as fh:
+            fh.write("\nline added in 9.1\n")
+        self.git(origin, "commit", "-q", "-am", "next")
+        self.git(origin, "tag", "v9.1.0")
+        self.clone = b / "clone"
+        self.git(b, "clone", "-q", str(origin), str(self.clone))
+        self.git(self.clone, "checkout", "-q", "v9.0.0")
+        self.env = {"PATH": os.environ["PATH"], "HOME": str(b / "home"), "TMPDIR": str(b / "tmp"),
+                    "WORKSTATION_MANAGED_ROOT": str(b / "root")}
+
+    def ws(self, *args):
+        p = subprocess.run([str(self.clone / "workstation")] + list(args) + ["--overlay=none"], env=self.env,
+                           capture_output=True, text=True)
+        return p.returncode, p.stdout + p.stderr
+
+    def head(self):
+        return subprocess.run(["git", "-C", str(self.clone), "describe", "--tags", "--exact-match"],
+                              capture_output=True, text=True).stdout.strip()
+
+    def stamp(self):
+        return ws.stamp_in(self.base / "home" / ".claude" / "CLAUDE.md")
+
+    def test_update_latest_given_dirty_and_unknown(self):
+        code, out = self.ws("update")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.head(), "v9.1.0")
+        self.assertTrue(self.stamp().startswith("release: v9.1.0; commit: "), self.stamp())
+        code, out = self.ws("update", "v9.0.0")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.head(), "v9.0.0")
+        self.assertTrue(self.stamp().startswith("release: v9.0.0; commit: "), self.stamp())
+        for ref in ("v8.0.0", "main"):
+            code, out = self.ws("update", ref)
+            self.assertEqual(code, 2, out)
+            self.assertEqual(self.head(), "v9.0.0")
+        with open(self.clone / "README.md", "a", encoding="utf-8") as fh:
+            fh.write("local edit\n")
+        code, out = self.ws("update")
+        self.assertEqual(code, 3, out)
+        self.assertIn("REFUSE  the working tree has 1 tracked change(s)", out)
+        self.assertEqual(self.head(), "v9.0.0")
+        self.assertTrue(self.stamp().startswith("release: v9.0.0; commit: "), self.stamp())
+
+    def test_uninstall_removes_ours_and_keeps_the_rest(self):
+        code, out = self.ws("install")
+        self.assertEqual(code, 0, out)
+        home = self.base / "home"
+        settings = home / ".claude" / "settings.json"
+        doc = json.loads(settings.read_text(encoding="utf-8"))
+        doc["mine"] = 1
+        doc["permissions"]["deny"].append("Bash(mytool:*)")
+        settings.write_text(json.dumps(doc), encoding="utf-8")
+        (home / ".codex" / "notes.md").write_text("mine\n", encoding="utf-8")
+        code, out = self.ws("uninstall")
+        self.assertEqual(code, 0, out)
+        left = [p for p in home.rglob("*") if p.is_file() and not p.name.endswith("pmhwc-backup")
+                and ws.MARKER in p.read_text(encoding="utf-8", errors="replace")]
+        self.assertEqual(left, [])
+        self.assertEqual(json.loads(settings.read_text(encoding="utf-8")),
+                         {"mine": 1, "permissions": {"deny": ["Bash(mytool:*)"]}})
+        self.assertEqual((home / ".codex" / "notes.md").read_text(encoding="utf-8"), "mine\n")
+        self.assertIn("ADMIN   not installed", out)
+
+    def test_uninstall_prints_the_admin_sudo_line(self):
+        self.ws("install")
+        _, out = self.ws("install", "--admin")
+        stage = re.search(r'--apply="([^"]+)"', out).group(1)
+        digest = re.search(r"--sha256=([0-9a-f]+)", out).group(1)
+        subprocess.run(["/bin/sh", str(self.clone / "global" / "install-managed.sh"), "--apply=" + stage,
+                        "--sha256=" + digest, "--root=" + str(self.base / "root")],
+                       check=True, capture_output=True)
+        code, out = self.ws("uninstall")
+        self.assertEqual(code, 0, out)
+        self.assertRegex(out, r"(?m)^RUN     sudo /bin/sh .*install-managed\.sh\" --remove")
 
 
 if __name__ == "__main__":

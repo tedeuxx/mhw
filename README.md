@@ -107,7 +107,13 @@ macOS and Linux, from the repository root (Python 3.9+ and `jq` required):
 ./workstation status           # installed release per layer, protections, the version key, the runtime
 ./workstation status --verbose # the same, plus every target and each agent harness's version
 ./workstation check            # exit non-zero when an installed target differs from this checkout
+./workstation update [vX.Y.Z]  # fetch tags, check out the newest release (or the one given), install it
+./workstation uninstall        # remove the user layer; prints the sudo line that removes the admin layer
 ```
+
+`update` refuses while a tracked file is modified and leaves the checkout detached at the release tag.
+`uninstall` removes only files carrying this repository's marker and, in `~/.claude/settings.json`, only
+its hook entries, deny-floor rules and stamp key (a backup stays beside it).
 
 `--overlay=DIR|none` selects a profile other than the repository's `overlay/`. `global/install.sh` and
 `global/install-managed.sh` stay as the internals ([#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67)).
