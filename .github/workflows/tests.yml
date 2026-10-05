@@ -48,6 +48,7 @@ jobs:
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/profile/profile.py global/profile/profile_test.py \
             global/workstation.py global/workstation_test.py \
+            global/method/method_render.py global/method/method_render_test.py \
             global/prerequisites.py global/prerequisites_test.py
 
   # Pure preference compilation: no harness installation, account calls or credential reads.
@@ -108,6 +109,13 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
+      # Issue #61, ADR-0032: the working method rendered into the three agent harnesses' user-level
+      # carriers, in throwaway HOMEs only. Asserts every rendered agent keeps its tool list and every
+      # rendered file its provenance stamp.
+      - name: working-method renderer suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/method/method_render_test.py "$RUNNER_TEMP/method"
       # Issue #89: the prerequisites section of ./workstation check. Fake tool shims on a PATH holding
       # nothing else, a stub gh, a loopback server for SonarCloud and HCP Terraform; no network, no account.
       - name: prerequisites suite

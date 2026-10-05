@@ -6,8 +6,9 @@
 #   install.ps1 -Check     exit non-zero if any target is missing, drifted, unmanaged, or carries a
 #                          provenance stamp other than the source's (Issue #66, ADR-0029)
 #   install.ps1 -Overlay D owner overlay directory (default: <repo>\overlay); -Overlay none for none
+#   install.ps1 -Method    opt-in (Issue #61): also render the working method; off until the plugin cutover
 #
-# Renders the brief and the deny floor. The deny floor is merged into %USERPROFILE%\.claude\settings.json
+# Renders the brief, the deny floor and the working method (global\method\method_render.py, ADR-0032). The deny floor is merged into %USERPROFILE%\.claude\settings.json
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
 # <CODEX_HOME>\rules\workstation-deny-floor.rules. The escalation rules (ADR-0013) are instructions
 # on every OS; the HITL picker guard hook was never ported here and is removed everywhere since Issue
@@ -24,6 +25,7 @@
 param(
     [switch]$DryRun,
     [switch]$Check,
+    [switch]$Method,
     [string]$Overlay
 )
 $ErrorActionPreference = 'Stop'
@@ -318,5 +320,28 @@ function Merge-DenyFloor([string]$settings) {
     }
 }
 Merge-DenyFloor (Join-Path $home_ '.claude\settings.json')
+
+# The working method (Issue #61, ADR-0032): agents, skills and commands from <repo>\method, rendered into
+# each agent harness's user-level carrier by global\method\method_render.py, the same step install.sh
+# runs. It gets this script's mode, its stamp and the profile directory, so it never reads HOME.
+function Invoke-Method {
+    $py = $null
+    foreach ($c in @('python3', 'python', 'py')) {
+        $cmd = Get-Command $c -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $cmd) { continue }
+        try { $v = & $cmd.Source --version } catch { continue }
+        if ($LASTEXITCODE -eq 0 -and "$v" -match 'Python 3\.(9|[1-9][0-9])') { $py = $cmd.Source; break }
+    }
+    if (-not $py) {
+        Write-Output 'SKIP    the working method (method\): Python 3.9 or later is required to render it'
+        Set-Status 2
+        return
+    }
+    $a = @("--mode=$mode", "--stamp=$stamp", "--home=$home_")
+    if ($Method) { $a += '--opt-in' }
+    & $py -B (Join-Path $scriptDir 'method\method_render.py') @a
+    Set-Status $LASTEXITCODE
+}
+Invoke-Method
 
 exit $script:status

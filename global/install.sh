@@ -25,6 +25,9 @@
 #   --shell-rc=FILE             opt-in (Issue #58): append the one line that activates the paste wrapper
 #                               to FILE (an absolute path, e.g. your ~/.zshrc), printing it; idempotent.
 #                               Without it the line is only printed. --check reports FILE; --dry-run writes nothing
+#   --method                    opt-in (Issue #61): render the working method (method/) too. Off by default
+#                               until the plugin cutover (#63, #64); once rendered, later runs keep it
+#                               current and --uninstall removes it (global/method/method_render.py)
 #
 # Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
 # 3 something UNMANAGED or unreadable is in the way. A file is managed when its marker line (below) is in
@@ -69,6 +72,7 @@ CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-gua
 
 mode=install
 hooks_mode=user
+method_optin=
 overlay="$repo_root/overlay"
 if [ "${WORKSTATION_OVERLAY+set}" = set ]; then
   case $WORKSTATION_OVERLAY in none) overlay= ;; *) overlay=$WORKSTATION_OVERLAY ;; esac
@@ -83,10 +87,11 @@ for arg in "$@"; do
     --uninstall) mode=uninstall ;;
     --hooks=user) hooks_mode=user ;;
     --hooks=managed) hooks_mode=managed ;;
+    --method) method_optin=--opt-in ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
     --shell-rc=?*) shell_rc=${arg#--shell-rc=} ;;
-    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -682,9 +687,23 @@ uninstall_user() {
   mv "$settings.new.$$" "$settings"
   echo "UNMERGED $settings (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as $settings.pmhwc-backup)"
 }
+# The working method (Issue #61, ADR-0032): agents, skills and commands from <repo>/method, rendered into
+# each agent harness's user-level native carrier by its own step, global/method/method_render.py. It
+# receives this script's mode and stamp, so the stamp is derived once (ADR-0029). It writes only files
+# carrying the managed-by line with "source: method/", and never an unmanaged one.
+method_step() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP    the working method (method/): python3 3.9 or later is required to render it"
+    raise 2
+    return 0
+  fi
+  # shellcheck disable=SC2086 # $method_optin is empty or the single word --opt-in
+  python3 -B "$script_dir/method/method_render.py" "--mode=$mode" "--stamp=$stamp" $method_optin || raise $?
+}
 if [ "$mode" = uninstall ]; then
   allow_uninstall
   uninstall_user
+  method_step
   if [ -n "$shell_rc" ] && [ -f "$shell_rc" ] && grep -qF "$rc_tag" "$shell_rc"; then
     echo "NOTE    $shell_rc still carries the paste-wrapper line; it is guarded and now does nothing. Delete it yourself"
   fi
@@ -762,6 +781,7 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
 fi
 merge_settings
 allow_step
+method_step
 
 # Which layer carries the deny floor (ADR-0016, 2026-10-05 amendment). A report, never a status change:
 # the admin copy is the owner's sudo act (install-managed.sh), and its drift is install-managed.sh

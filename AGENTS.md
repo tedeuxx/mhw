@@ -369,3 +369,13 @@ from here now, and at what evidence level:
   are *measured loaded* headless, and Codex's decisions are measured with `execpolicy check`. Whether an
   allowed command runs without a prompt in a live session is **not measured** (it needs a login).
   **Not installed** on the reference machine.
+- **Working method at user level** (ADR-0032, proposed, 2026-10-05; Issue #61): 8 agents, 12 skills
+  and 2 commands moved from the plugin into `method/`, rendered by `global/method/method_render.py` as
+  `install.sh`'s own step (and `install.ps1`'s on Windows) into Claude Code, Codex and Kiro user-level
+  carriers, each file stamped (ADR-0029). **Opt-in** (`./workstation install --method`) until the
+  plugin cutover; `status` names a duplicate when the plugin is also enabled. The hook-era text is
+  marked as the retired plugin's, and its rules are instructions. *Written and tested*, and probed in throwaway homes: Claude Code 2.1.289 lists the agents,
+  skills and commands and applies each agent's tool list; Codex 0.160.0 lists the skills and hides the
+  command skills from implicit use; Codex agents and every Kiro cell are documented only (Kiro needs a
+  login). Codex agents carry no tool list: there it is an instruction. **Not installed** on the
+  reference machine; the plugin stays the running copy until #62 and #63.
