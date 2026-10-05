@@ -45,10 +45,13 @@ run_paste() { # $1 home, $2 command, $3 prompt
   payload "$3" | HOME="$1" sh -c "$2"
 }
 floor_src="$(cd "$(dirname "$0")" && pwd)/deny-floor.conf"
+# The default install appends the repository overlay's floor entries (ADR-0016), so they count too.
+overlay_floor="$(cd "$(dirname "$0")/.." && pwd)/overlay/deny-floor.conf"
+[ -f "$overlay_floor" ] || overlay_floor=/dev/null
 # Expected Claude rules, derived from the source independently of the installer's awk: a cmd line is
 # one rule, a file line is two (Read and Edit).
-floor_rules=$(awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' "$floor_src")
-floor_cmds=$(awk '$1 == "cmd" { n++ } END { print n }' "$floor_src")
+floor_rules=$(awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' "$floor_src" "$overlay_floor")
+floor_cmds=$(awk '$1 == "cmd" { n++ } END { print n }' "$floor_src" "$overlay_floor")
 has_rule() { # $1 settings file, $2 rule; prints how many times the rule is in permissions.deny
   jq --arg r "$2" '[.permissions.deny[]? | select(. == $r)] | length' "$1"
 }
@@ -528,6 +531,54 @@ if grep -q 'version: 0.0.1;' "$hs/.claude/CLAUDE.md"; then ok "the stamp was rew
 HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check ignores an earlier release's stamp" 0 $?
 printf 'x\n' >> "$(data "$hs")/hitl.conf"
 HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check still flags a content change under an old stamp" 1 $?
+
+# 16. --check reports which layer carries the deny floor (ADR-0016, 2026-10-05 amendment). The admin
+# layer is read under a throwaway --managed-root and installed there by install-managed.sh --root; no
+# system path is read or written. The report never changes the exit status.
+hf="$base/floor-layer"; mr="$base/floor-root"; mkdir -p "$hf" "$mr"
+HOME="$hf" sh "$inst" > /dev/null 2>&1; expect "install for the floor-layer report" 0 $?
+HOME="$hf" sh "$inst" --check --managed-root="$mr" > "$base/floor1.out" 2>&1; expect "check without an admin floor stays clean" 0 $?
+if grep -q "^FLOOR   Claude Code: user layer $floor_rules/$floor_rules rules; admin layer 0/$floor_rules rules" "$base/floor1.out" \
+   && grep -q '^FLOOR   carried by: the user layer only' "$base/floor1.out"; then
+  ok "check reports the floor carried by the user layer only"
+else
+  ko "check did not report the user-only floor"
+fi
+mgr="$(dirname "$inst")/install-managed.sh"
+TMPDIR="$base" HOME="$hf" sh "$mgr" --root="$mr" > "$base/floor-render.out" 2>&1
+fline=$(sed -n 's/^RUN     //p' "$base/floor-render.out")
+fstage=$(printf '%s' "$fline" | sed -n 's/.*--apply="\([^"]*\)".*/\1/p')
+fsha=$(printf '%s' "$fline" | sed -n 's/.*--sha256=\([0-9a-f]*\).*/\1/p')
+TMPDIR="$base" sh "$mgr" --apply="$fstage" --sha256="$fsha" --root="$mr" > /dev/null 2>&1; expect "admin floor applied under a throwaway root" 0 $?
+HOME="$hf" sh "$inst" --check --managed-root="$mr" > "$base/floor2.out" 2>&1; expect "check with the admin floor stays clean" 0 $?
+if grep -q "admin layer $floor_rules/$floor_rules rules" "$base/floor2.out" \
+   && grep -q "admin requirements $floor_cmds/$floor_cmds prefix rules" "$base/floor2.out" \
+   && grep -q '^FLOOR   carried by: the admin layer' "$base/floor2.out"; then
+  ok "check reports the floor carried by the admin layer, every rule in both admin documents"
+else
+  ko "check did not report the admin floor"
+fi
+if [ "$(uname -s)" = Darwin ]; then
+  mdrop="$mr/Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json"
+else
+  mdrop="$mr/etc/claude-code/managed-settings.d/50-personal-multi-harness-workstation-configuration.json"
+fi
+jq '.permissions.deny |= map(select(. != "Bash(sudo:*)"))' "$mdrop" > "$base/drop.t" && cat "$base/drop.t" > "$mdrop"
+HOME="$hf" sh "$inst" --check --managed-root="$mr" > "$base/floor3.out" 2>&1
+if grep -q "admin layer $((floor_rules - 1))/$floor_rules rules" "$base/floor3.out" \
+   && grep -q '^FLOOR   carried by: the user layer; the admin copy is INCOMPLETE' "$base/floor3.out"; then
+  ok "check reports an incomplete admin floor instead of crediting it"
+else
+  ko "check credited an incomplete admin floor"
+fi
+mreq="$mr/etc/codex/requirements.toml"
+grep -v '{ token = "sudo" }]' "$mreq" > "$base/req.t"; cat "$base/req.t" > "$mreq"
+HOME="$hf" sh "$inst" --check --managed-root="$mr" > "$base/floor4.out" 2>&1
+if grep -q "admin requirements $((floor_cmds - 1))/$floor_cmds prefix rules" "$base/floor4.out"; then
+  ok "check counts the Codex admin prefix rules one by one"
+else
+  ko "check did not notice a Codex admin prefix rule removed"
+fi
 
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

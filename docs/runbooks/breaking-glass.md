@@ -47,7 +47,7 @@ never grants hook trust.
 | Control | Mechanism | Affected? |
 | --- | --- | --- |
 | Global brief | user instruction files (all three harnesses) | no |
-| Deny floor | Claude `permissions.deny`; Codex `rules/workstation-deny-floor.rules` | no |
+| Deny floor | Claude `permissions.deny`; Codex `rules/workstation-deny-floor.rules`; once installed, the same rules in the admin drop-in and `requirements.toml` (ADR-0016, 2026-10-05 amendment) | no |
 | Paste wrapper | shell functions for `claude`, `codex`, `kiro-cli` | no, when sourced |
 | Paste filter | prompt hook | **suspended** |
 | Restart guard | SessionStart/PreToolUse hook | **suspended** |

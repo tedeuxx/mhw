@@ -3,7 +3,9 @@
 - **Status:** ~~proposed. The owner asked for a mechanical floor (Issue #4). The entries in
   `global/deny-floor.conf` are the agent's proposal and await his ratification, entry by entry if he
   wants.~~ **accepted** (the owner's ratification, 2026-10-01). See the amendment "2026-10-01:
-  ratified by the owner and installed on the reference workstation" below.
+  ratified by the owner and installed on the reference workstation" below. The amendment
+  "2026-10-05: the floor absorbs the plugin's irreversible-action rules and moves to the admin layer"
+  is **proposed**.
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -59,8 +61,9 @@ guard is a hook, and a project's `disableAllHooks: true` turns user hooks off (d
    name his repositories. They stay in his settings, untouched. The ones that are generic are in the
    floor too, and the merge does not duplicate them.
 5. **Managed layer** (`managed-settings.json`, `/etc/codex/requirements.toml`). This is the only
-   documented non-overridable layer (ADR-0014). It is still the proposed hardening, not done here: it
-   needs admin rights, and the floor had to exist first. This record is that prerequisite.
+   documented non-overridable layer (ADR-0014). ~~It is still the proposed hardening, not done here: it
+   needs admin rights, and the floor had to exist first. This record is that prerequisite.~~ Rendered
+   since the 2026-10-05 amendment below; installing it is the owner's `sudo` act.
 
 ## Decision outcome
 
@@ -278,6 +281,159 @@ evidence is still the headless measurement in throwaway homes ("Per harness: evi
 HOME; that needs his go" no longer holds and is struck in place. The 2026-10-01 counts beside it are
 marked as the pre-install state. The rest stands: Kiro still carries no floor, Windows is still not enforced-measured,
 and every escape in "What a deny cannot do" still escapes.
+
+## Amendment 2026-10-05: the floor absorbs the plugin's irreversible-action rules and moves to the admin layer
+
+**Status of this amendment: proposed.** The owner approved the slice (Issue #59, part of #52). The new
+entries below are the agent's proposal and await his ratification, as the first 101 did.
+
+### Why
+
+[`docs/native-enforcement-matrix.md`](../native-enforcement-matrix.md) measured, on Claude Code
+2.1.289, that the session flag `--setting-sources project` drops the user layer: a user-level
+`deny: ["Bash"]` removed `Bash` from the session, and with the flag `Bash` was back. Re-measured for
+this amendment in a throwaway home, same version, no login and no model call:
+
+| Settings | `Bash` in the session's tools |
+| --- | --- |
+| no deny (control) | yes |
+| user `settings.json` deny | **no** |
+| user `settings.json` deny, `--setting-sources project` | **yes**: the floor is gone |
+| `--settings` file deny, with or without `--setting-sources project` | no |
+
+Codex has the same weakness by its help text: `codex exec --ignore-rules` skips user and project
+`.rules` files (0.160.0, not exercised). Neither flag needs privilege, and an agent can type either.
+The admin layer is the only one outside their reach (ADR-0014, ADR-0027). The PRD's placement rule
+(ADR-0026, proposed) puts a protection in one layer, installed before the old copy is removed.
+
+**The owner's constraint on exceptions** (2026-10-05, set while this slice was built):
+
+> *"nao podemos ter nenhuma trava mecanica que individualize pedidos de waiver temporarios que nao
+> esteja associado a um nivel de privilegio que permaneça valido ao longo da sessao. o sudo/su pode
+> servir para esse proposito alinhado a um comportamento padrao de industria de so."*
+
+In English: no mechanical lock may require per-request, temporary or expiring waivers; any exception
+path is tied to an OS privilege level that stays valid across the session, which is the standard OS
+behaviour of an administrator changing managed policy with `sudo`/`su`. So the admin floor has **no
+waiver, no per-rule exception and no expiring switch**. It is changed only by an administrator,
+through `install-managed.sh` and `sudo`, like any OS-managed policy.
+
+**Conflict named, not extended:** the ADR-0024 breaking-glass switches are timed, per-request waivers
+(each expires after at most a fixed number of minutes). They cover only the three hook layers
+(`paste-filter`, `restart-guard`, `hitl-guard` in `global/hooks/breaking_glass.py`), never the deny
+floor, and this amendment does not add the floor to them. They conflict with the constraint above and
+are to be removed under Issue #56.
+
+### Decision
+
+1. **The same floor is rendered into the admin layer.** `global/install-managed.sh` takes the deny list
+   `install.sh` renders (global entries, then the overlay's) and writes it into the admin documents it
+   already installs (ADR-0025): the Claude Code drop-in
+   `managed-settings.d/50-personal-multi-harness-workstation-configuration.json` gains
+   `permissions.deny`, and `/etc/codex/requirements.toml` gains `[rules] prefix_rules`, one rule per
+   `cmd` entry, `decision = "forbidden"`. Requirements rules can only prompt or forbid, and they merge
+   with every `.rules` file with the most restrictive result winning (Codex configuration reference).
+   The stage hash, the validation and the one `sudo` line are unchanged in shape; the validation now
+   also refuses a stage whose drop-in lacks the deny list or whose prefix rules are not all
+   `forbidden` or not one per `cmd` entry. A `file` entry still has no Codex form. Kiro gets nothing.
+2. **The user copy stays for now.** The placement rule removes the old copy only after the new one is
+   installed. The admin copy is not installed (that is the owner's `sudo` act), so the user copy is the
+   only one in force on the reference machine today. Retiring it is a later step, after the owner's
+   install and canary; `install.sh` cannot remove it anyway, because its union never removes a rule.
+3. **`install.sh` reports which layer carries the floor.** Every run, `--check` included, ends with
+   `FLOOR` lines: the user and admin counts for Claude Code, the user file and admin prefix-rule count
+   for Codex, Kiro as none, and one `carried by:` verdict (the admin layer; the user layer only; the
+   user layer with an incomplete admin copy; or no complete layer). The report never changes the exit
+   status: admin drift is `install-managed.sh --check`'s to report.
+4. **The plugin's irreversible-action rules are absorbed where a native prefix can carry them.** The
+   plugin keeps its copy until this ships; dropping it is Issue #63.
+
+### The plugin's rules, mapped
+
+Source: `tadeumendonca-skills` 2.0.102, `hooks/scripts/permission-guard.sh` (read only). Each numbered
+deny the guard issues is one row. **11 already in the floor, 8 added, 13 left as gaps.**
+
+| Plugin rule | Outcome | Floor entries, or the reason it is a gap |
+| --- | --- | --- |
+| 1 `--dangerously-skip-permissions` anywhere | already | `claude --dangerously-skip-permissions` and the other bypass flags |
+| 2 `terraform apply/destroy` | already | both |
+| 3a `git reset --hard` | already | |
+| 3b force-push | already, flag-first spellings | `--force`, `--force-with-lease`, `--force-if-includes`, `-f`, `--mirror`. A `+refspec`, a flag after the refspec, `-c remote.<r>.push=+…` and `git -C <dir> push` are gaps |
+| 4 recursive force `rm` | already, 10 spellings | `rm -rfv`, `/bin/rm` are gaps |
+| 4b `git clean -f` | already, 14 spellings | |
+| 5 SSM `put-parameter` SecureString | already, stricter | the floor denies every `aws ssm put-parameter` |
+| 5b `gh secret set/delete/remove` | already | |
+| 5g `gh repo delete` | already | |
+| 5g `gh repo archive/rename` | already | |
+| 5g `gh release create/delete` | already | plus `edit` and `upload` |
+| 4c `git worktree remove` of a dirty worktree | **added**, stricter | `git worktree remove --force`, `-f`. A clean worktree needs no force; the dirty-state test needs a `git status` read, which no rule makes |
+| 5 Secrets Manager writes | **added** the missing one | `aws secretsmanager restore-secret` |
+| 5f `gh api` that writes | **added**, partial | `gh api -X` and `gh api --method` with `POST`, `PUT`, `PATCH`, `DELETE` (8). The method after the endpoint, `--method=POST`, `-XPOST` and `-f`/`-F` fields are gaps |
+| 5g `gh workflow run` | **added** | `gh workflow run` |
+| 7 a push whose refspec is the trunk | **added** to the overlay | `git push origin main`, `master`, `HEAD:main`, `HEAD:master` |
+| 7 an empty-source refspec (deletes the trunk) | **added** to the overlay | `git push origin :main`, `:master`, `--delete main`, `--delete master` |
+| 7 `--all`/`--mirror` | **added** to the overlay | `git push --all` (`--mirror` was already global) |
+| 7 `--tags`/`--follow-tags` | **added** to the overlay | both |
+| 6 `aws <service> delete-*`, `terminate-*`, … | gap | needs a wildcard on the service and the verb. Claude Code reads `*`, Codex reads it as a literal, and the grammar keeps the two agent harnesses identical |
+| 7 `git push` while the trunk is checked out | gap | the act is in the checked-out branch, not the command |
+| 7 a brace expansion in the refspec | gap | needs the shell's expansion |
+| 7 a push whose target cannot be resolved | gap | needs argument parsing |
+| 7b squash merge | gap | the prescribed spelling puts the flag after the pull-request number. Also, this repository's own `workspace/delivery.py merge` squashes, so a no-squash rule would contradict it: the owner's call |
+| 7b only the reviewer persona merges | gap | needs the calling agent's identity (`agent_type`) |
+| 7c merge only on a verdict at the current head | gap | needs the pull request's state |
+| 5c/5d only the owner opens work | gap | needs `agent_type` |
+| 5e copy personas post nothing public | gap | needs `agent_type` |
+| 8 `$(…)`, backticks | gap | a composition form, not an act; the runtime already asks for approval (measured in the plugin) |
+| 8 a `VAR=x` prefix | gap | same |
+| 8b a redirect that creates a file | gap | same |
+| the `bash -c '<payload>'` unwrap | gap | a prefix sees only `bash` |
+
+**The four rule-7 rows marked "overlay" are owner-specific, so they sit in `overlay/deny-floor.conf`,
+not in the generic floor** (11 entries): they encode his rule that a merge to the trunk is the deploy. An adopter who pushes to `main` himself leaves the overlay
+out. The rows that need `agent_type` or a pull request's state are the method's, not the floor's
+(ADR-0014); when the plugin drops its guard (#63), they survive only as instructions, and the method
+slices (#61) have to carry them. **No hook was added** (PRD section 4a, hook budget zero).
+
+**Counts after this amendment.** Generic floor: 99 `cmd` and 7 `file` entries, 113 Claude Code rules
+and 99 Codex rules (was 101 and 87). With the repository overlay: 124 Claude Code rules, 110 Codex
+rules. Computed by the test suites from the sources, not typed:
+`awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' global/deny-floor.conf overlay/deny-floor.conf`.
+
+**New over-matches, accepted as the price of a prefix:** `gh workflow run` is denied for every
+repository, including one whose workflow only lints; `git worktree remove --force` is denied on a
+clean but locked worktree; `git push --follow-tags` is denied even where no release follows a tag.
+
+### Evidence
+
+| Claim | Level |
+| --- | --- |
+| A user-level deny is dropped by `--setting-sources project` (Claude Code 2.1.289) | **measured**, table above |
+| The file-based managed source is still read under `--setting-sources project` | **measured**: in a throwaway home with no user and no project settings, the flag set, the owner's installed admin drop-in still fired its `SessionStart` and `UserPromptSubmit` hooks. That shows the source is loaded, not that its deny list is obeyed |
+| A managed `permissions.deny` denies a command | **documented** (managed settings override user and project; deny from any layer wins). **Not measured**: a managed file needs root, and a per-command deny needs a model call, which needs a login. The hidden `--managed-settings` flag is not a substitute: a deny passed through it did not remove `Bash` at all |
+| The rendered 124-rule deny list loads in Claude Code without a settings error | **structural**: loaded through `--settings` in a throwaway home; no settings error, `Read` and `Bash` listed |
+| The admin prefix rules forbid what they name | **measured on the token lists, not on the admin path**: the suite turns them into a `.rules` file and `codex execpolicy check` forbids `gh workflow run deploy` and `git push --force origin x` and leaves `git push origin feature/x` alone. No override exists to load `/etc/codex/requirements.toml` from a throwaway root, so loading from the admin path is **documented** only |
+| `install-managed.sh` renders, validates, hashes, installs and checks both admin documents | **tested** in throwaway roots (`global/install-managed.test.sh`); the validator was mutation-checked under Python 3.13 (a `prompt` decision, a dropped rule, an empty or missing deny list and an extra key each fail) |
+| `install.sh --check` reports the carrying layer | **tested** (`global/install.test.sh`, section 16), including an incomplete admin copy on each side |
+| Installed on the reference machine | **no**. The owner's `sudo` act; [runbook](../runbooks/deny-floor-admin-layer.md) |
+
+### Consequences
+
+- Good: once installed, no session flag an agent can type drops the floor in Claude Code or Codex.
+- Good: one source and one stage: the admin copy cannot drift from the user copy, and the stage hash
+  binds it.
+- Good: the plugin's irreversible-action rules no longer depend on a hook that a project can disable.
+- Bad: the 13 gaps above stay gaps. The ones that need an agent's identity or a pull request's state
+  leave with the plugin's guard unless the method carries them as instructions.
+- Bad: a misfiring admin rule cannot be removed from the user layer. It needs the owner's `sudo`
+  (`install-managed.sh --uninstall` prints the line, or he edits the source and re-installs). That is
+  the intended exception path under the owner's constraint above: no waiver and no expiring switch
+  for the floor. A deny rule denies one command, never a read tool, so it cannot lock a session out.
+- Bad: two copies coexist until the user copy is retired, which the placement rule calls a defect.
+  Accepted for the install window, and named so it is not forgotten.
+- Bad: Kiro still carries no floor. Its documented admin file applies only to the IDE and the opt-in
+  CLI V3 engine (ADR-0027); rendering it is a later slice.
+- Version cut (ADR-0002): **minor**. New protection; nothing an adopter had is removed or weakened, and
+  the admin copy is opt-in by `sudo`.
 
 ## Links
 

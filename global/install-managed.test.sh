@@ -71,6 +71,51 @@ if python3 -c 'import tomllib' 2>/dev/null; then
   python3 -c 'import sys, tomllib; d = tomllib.load(open(sys.argv[1], "rb")); assert set(d["hooks"]) >= {"managed_dir", "PreToolUse", "SessionStart", "UserPromptSubmit"}' "$req"
   expect "the Codex requirements parse as TOML" 0 $?
 fi
+# 3b. the deny floor in the admin layer (ADR-0016, 2026-10-05 amendment): the same rules install.sh
+# renders at user level, global entries plus the repository overlay's.
+here="$(cd "$(dirname "$0")" && pwd)"
+ofloor="$here/../overlay/deny-floor.conf"; [ -f "$ofloor" ] || ofloor=/dev/null
+want_rules=$(awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' "$here/deny-floor.conf" "$ofloor")
+want_cmds=$(awk '$1 == "cmd" { n++ } END { print n }' "$here/deny-floor.conf" "$ofloor")
+if jq -e --argjson n "$want_rules" '(.permissions | keys == ["deny"]) and (.permissions.deny | length == $n)
+    and (.permissions.deny | index("Bash(sudo:*)") != null)
+    and (.permissions.deny | index("Bash(gh workflow run:*)") != null)
+    and (.permissions.deny | index("Read(~/.ssh/id_*)") != null)' "$dropin" >/dev/null 2>&1; then
+  ok "the Claude Code drop-in carries every deny-floor rule ($want_rules) in permissions.deny"
+else
+  ko "the Claude Code drop-in carries every deny-floor rule ($want_rules) in permissions.deny" \
+    "got $(jq '.permissions.deny | length' "$dropin" 2>/dev/null)"
+fi
+if [ "$ofloor" = /dev/null ] || jq -e '.permissions.deny | index("Bash(git push origin main:*)") != null' "$dropin" >/dev/null 2>&1; then
+  ok "the overlay's floor entries reach the admin drop-in"
+else
+  ko "the overlay's floor entries reach the admin drop-in"
+fi
+nrules=$(grep -c '^  { pattern = \[.*\], decision = "forbidden", justification = ' "$req")
+if [ "$nrules" -eq "$want_cmds" ] && grep -q '^\[rules\]$' "$req" \
+   && grep -qF '{ pattern = [{ token = "git" }, { token = "push" }, { token = "--force" }], decision = "forbidden"' "$req" \
+   && ! grep -q 'decision = "allow"' "$req"; then
+  ok "the Codex requirements carry one forbidden prefix rule per cmd entry ($want_cmds)"
+else
+  ko "the Codex requirements carry one forbidden prefix rule per cmd entry ($want_cmds)" "got $nrules"
+fi
+if command -v codex >/dev/null 2>&1; then
+  # Credential-free: the same token lists, written as a user .rules file, through Codex's own evaluator.
+  # This proves the lists, not that Codex loads them from the admin path (that needs root).
+  sed -n 's/^  { pattern = \[\(.*\)\], decision = "forbidden".*/\1/p' "$req" \
+    | sed -e 's/{ token = \("[^"]*"\) }/\1/g' -e 's/^/prefix_rule(pattern=[/' -e 's/$/], decision="forbidden")/' > "$base/admin.rules"
+  d1=$(codex execpolicy check --rules "$base/admin.rules" gh workflow run deploy | jq -r '.decision // "none"')
+  d2=$(codex execpolicy check --rules "$base/admin.rules" git push --force origin x | jq -r '.decision // "none"')
+  d3=$(codex execpolicy check --rules "$base/admin.rules" git push origin feature/x | jq -r '.decision // "none"')
+  if [ "$d1" = forbidden ] && [ "$d2" = forbidden ] && [ "$d3" = none ]; then
+    ok "codex execpolicy: the admin token lists forbid workflow run and force-push, and leave a branch push alone"
+  else
+    ko "codex execpolicy on the admin token lists" "workflow=$d1 force=$d2 branch=$d3"
+  fi
+else
+  echo "SKIP  codex not on PATH: the admin token lists were not evaluated by Codex here"
+fi
+
 modes_ok=1
 for f in hitl-escalation-guard.sh restart_guard.py clipboard_guard.py breaking_glass.py; do
   [ -x "$bin/$f" ] || modes_ok=0
@@ -87,6 +132,11 @@ if grep -q 'version: 0.0.1;' "$req"; then ok "the stamp was rewritten for the te
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check ignores an earlier release's stamp" 0 $?
 printf '\n' >> "$bin/hitl.conf"
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check flags a drifted script or conf" 1 $?
+cp "$dropin" "$base/dropin.keep"
+jq '.permissions.deny |= map(select(. != "Bash(sudo:*)"))' "$base/dropin.keep" > "$dropin"
+sh "$inst" --check --root="$r" > "$base/check-floor.out" 2>&1; expect "check flags a deny-floor rule removed from the admin drop-in" 1 $?
+if grep -q '^DRIFT .*managed-settings.d' "$base/check-floor.out"; then ok "the drift names the drop-in"; else ko "the drift names the drop-in"; fi
+cp "$base/dropin.keep" "$dropin"
 
 # 4. the registered commands run from the admin bin (direct payloads: proves the commands, not routing)
 h="$base/home"; mkdir -p "$h/project/.git"

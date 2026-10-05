@@ -69,8 +69,10 @@ Option 2, with the defect fixes:
 - **Installer:** `global/install-managed.sh` renders the hook files through `install.sh` into a
   throwaway home, validates both admin documents, and prints one sudo line. That line carries the
   stage's SHA-256, and `--apply` copies the stage before verifying the copy. Then
-  `install.sh --hooks=managed` removes the user-level duplicates. Brief and deny floor stay at user
-  level.
+  `install.sh --hooks=managed` removes the user-level duplicates. ~~Brief and deny floor stay at user
+  level.~~ The brief stays at user level. The deny floor is also rendered into the same admin
+  documents since ADR-0016's 2026-10-05 amendment (proposed); its user copy stays until that copy is
+  installed and verified.
 - **Kiro:** no admin layer for hooks is documented, so it has no v2 hook. It keeps the brief and the
   paste wrapper.
 - **Windows:** not supported.

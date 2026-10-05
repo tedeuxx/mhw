@@ -1,6 +1,9 @@
 #!/bin/sh
 # Install the hook layers in each harness's native admin layer (ADR-0025), so no process running as the
 # owner can switch them off; only a root-owned, expiring breaking-glass switch can (ADR-0024).
+# The same admin documents carry the deny floor (ADR-0016, 2026-10-05 amendment): the Claude Code
+# drop-in's permissions.deny and the Codex requirements' [rules] prefix_rules, both rendered from the
+# rules install.sh renders, so the floor has one source. No session flag drops the admin layer.
 #
 #   install-managed.sh                       render and validate into a fresh stage, print the ONE sudo
 #                                            line for the owner; writes nothing outside the stage
@@ -81,12 +84,18 @@ validate() { # $1 stage: both admin documents must parse, or the harness may ref
   /usr/bin/python3 -I -B -c '
 import json, sys
 d = json.load(open(sys.argv[1] + "/claude.json"))
-assert isinstance(d, dict) and set(d) == {"hooks"}
+assert isinstance(d, dict) and set(d) == {"hooks", "permissions"}
+assert set(d["permissions"]) == {"deny"}
+deny = d["permissions"]["deny"]
+assert isinstance(deny, list) and deny and all(isinstance(r, str) and r for r in deny)
 try:
     import tomllib
 except ImportError:
     sys.exit(0)
-tomllib.load(open(sys.argv[1] + "/requirements.toml", "rb"))' "$1" 2>/dev/null
+t = tomllib.load(open(sys.argv[1] + "/requirements.toml", "rb"))
+rules = t["rules"]["prefix_rules"]
+assert rules and all(r["decision"] == "forbidden" and r["pattern"] for r in rules)
+assert len(rules) == sum(r.startswith("Bash(") for r in deny)' "$1" 2>/dev/null
 }
 
 render() { # $1 empty stage directory
@@ -105,12 +114,16 @@ render() { # $1 empty stage directory
   paste_claude="$py \"$bin/clipboard_guard.py\" prompt-hook --harness claude --config \"$bin/clipboard.conf\""
   paste_codex="$py \"$bin/clipboard_guard.py\" prompt-hook --harness codex --config \"$bin/clipboard.conf\""
   hitl="/bin/sh \"$bin/hitl-escalation-guard.sh\""
-  jq -n --arg rs "$restart_claude" --arg ps "$paste_claude" --arg h "$hitl" '
+  # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin
+  # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor.
+  jq -c '.permissions.deny' "$st/home/.claude/settings.json" > "$st/floor.json"
+  jq -n --arg rs "$restart_claude" --arg ps "$paste_claude" --arg h "$hitl" --slurpfile f "$st/floor.json" '
     def hook($c; $t): {type: "command", command: $c, timeout: $t};
     {hooks: {
       SessionStart: [{hooks: [hook($rs; 10)]}],
       PreToolUse: [{hooks: [hook($rs; 10)]}, {matcher: "AskUserQuestion", hooks: [hook($h; 5)]}],
-      UserPromptSubmit: [{hooks: [hook($ps; 30)]}]}}' > "$st/claude.json"
+      UserPromptSubmit: [{hooks: [hook($ps; 30)]}]},
+     permissions: {deny: $f[0]}}' > "$st/claude.json"
   version=$(sed -n 's/^current_version = "\(.*\)"/\1/p' "$script_dir/../.bumpversion.toml" | head -n 1)
   {
     printf '# %s; source: global/install-managed.sh; version: %s; do not edit, re-run the installer\n' "$MARKER_ID" "$version"
@@ -121,6 +134,16 @@ render() { # $1 empty stage directory
       printf '\n[[hooks.%s]]\n\n[[hooks.%s.hooks]]\ntype = "command"\ncommand = %s\ntimeout = %s\n' \
         "$ev" "$ev" "$(jq -n --arg v "$cmd" '$v')" "$t"
     done
+    # The deny floor's command entries as admin prefix rules (ADR-0016, 2026-10-05 amendment). They
+    # merge with every .rules file and the most restrictive decision wins, so "codex exec
+    # --ignore-rules" cannot skip them. A file entry has no Codex form (ADR-0016).
+    printf '\n# The workstation deny floor (ADR-0016). One rule per line; a prefix matches the command words\n'
+    printf '# from the program name on, so another spelling, a wrapper or a script is not matched.\n'
+    printf '[rules]\nprefix_rules = [\n'
+    jq -r '.[] | select(startswith("Bash(") and endswith(":*)")) | .[5:-3] | split(" ")
+      | "  { pattern = [" + (map("{ token = " + tojson + " }") | join(", "))
+        + "], decision = \"forbidden\", justification = \"workstation deny floor (ADR-0016)\" },"' "$st/floor.json"
+    printf ']\n'
   } > "$st/requirements.toml"
   validate "$st" || { echo "REFUSE  the rendered admin documents do not validate" >&2; exit 3; }
 }
