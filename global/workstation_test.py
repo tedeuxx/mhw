@@ -850,16 +850,16 @@ class AdminNotInstalled(unittest.TestCase):
         for d in ("home", "root", "tmp"):
             (base / d).mkdir()
         saved_env = dict(os.environ)
-        saved_sudo = ws.ensure_sudo
+        saved_sudo = ws.admin_access
         os.environ.update({"HOME": str(base / "home"), "TMPDIR": str(base / "tmp"),
                            "WORKSTATION_MANAGED_ROOT": str(base / "root"), ws.OVERLAY_ENV: "none"})
-        ws.ensure_sudo = lambda asking: False
+        ws.admin_access = lambda asking: False
         out = io.StringIO()
         try:
             with contextlib.redirect_stdout(out):
                 code = ws.cmd_install(yes=True)
         finally:
-            ws.ensure_sudo = saved_sudo
+            ws.admin_access = saved_sudo
             os.environ.clear()
             os.environ.update(saved_env)
         text = out.getvalue()
@@ -869,6 +869,48 @@ class AdminNotInstalled(unittest.TestCase):
         self.assertRegex(text, r"(?m)^1\. Run `\S+ install` in a terminal to install the system-wide protections")
         self.assertTrue((base / "home" / ".claude" / "CLAUDE.md").exists())
         self.assertEqual([p for p in (base / "root").rglob("*") if p.is_file()], [])
+
+
+@unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
+class AdminNotRemoved(unittest.TestCase):
+    """PR #114 lens: an uninstall that leaves the admin layer is not complete, and does not send the owner
+    to npm uninstall, which would delete the only tool able to remove that layer."""
+
+    def test_skipped_admin_removal_is_partly_removed(self):
+        import contextlib
+        import io
+        temp = tempfile.TemporaryDirectory(prefix="workstation-partial-un-")
+        self.addCleanup(temp.cleanup)
+        base = Path(temp.name)
+        for d in ("home", "root", "tmp"):
+            (base / d).mkdir()
+        env = {"HOME": str(base / "home"), "TMPDIR": str(base / "tmp"),
+               "WORKSTATION_MANAGED_ROOT": str(base / "root"), ws.OVERLAY_ENV: "none"}
+        saved_env, saved_access, saved_npm = dict(os.environ), ws.admin_access, ws.npm_package
+        os.environ.update(env)
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(ws.cmd_install(yes=True), 0, out.getvalue())
+            self.assertTrue(ws.admin_present())
+            ws.admin_access = lambda asking: False
+            ws.npm_package = lambda root=None: True
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = ws.cmd_uninstall(yes=True)
+            still = ws.admin_present()
+        finally:
+            ws.admin_access, ws.npm_package = saved_access, saved_npm
+            os.environ.clear()
+            os.environ.update(saved_env)
+        text = out.getvalue()
+        self.assertEqual(code, 1, text)
+        self.assertTrue(still)
+        self.assertIn("Partly removed: your settings are gone; the system-wide protections are still "
+                      "installed.", text)
+        self.assertNotIn("Uninstall complete.", text)
+        self.assertNotIn("npm uninstall", text)
+        self.assertRegex(text, r"(?m)^1\. Run `\S+ uninstall` in a terminal to remove the system-wide protections")
 
 
 class OwnerSteps(unittest.TestCase):
@@ -889,12 +931,16 @@ class OwnerSteps(unittest.TestCase):
         saved_run, saved_root = ws.subprocess.run, os.environ.pop("WORKSTATION_MANAGED_ROOT", None)
         ws.subprocess.run = lambda *a, **k: calls.append(a) or subprocess.CompletedProcess(a, 0)
         try:
-            self.assertFalse(ws.ensure_sudo(False))
+            self.assertFalse(ws.admin_access(False))
+            self.assertTrue(ws.admin_access(True))
             self.assertEqual(calls, [])
-            # In a terminal the password is asked every time: the cached credential is dropped first.
-            self.assertTrue(ws.ensure_sudo(True))
-            self.assertEqual(len(calls), 1, calls)
-            self.assertEqual(calls[0][0][:3], [ws.SUDO, "-k", "-v"])
+            # One sudo call that asks for the password itself and ignores any cached credential; never
+            # -n (it would rely on a cache that -k does not fill) and never -v followed by another call.
+            cmd = ws.as_root(["/bin/sh", "x.sh", "--remove"])
+            self.assertEqual(cmd[:2], [ws.SUDO, "-k"])
+            self.assertNotIn("-n", cmd)
+            self.assertNotIn("-v", cmd)
+            self.assertEqual(cmd[-3:], ["/bin/sh", "x.sh", "--remove"])
         finally:
             ws.subprocess.run = saved_run
             if saved_root is not None:

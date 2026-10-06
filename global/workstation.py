@@ -997,9 +997,19 @@ def show(lines, verbose):
             print("    " + line, flush=True)
 
 
+def as_root(args):
+    """The admin-layer step, run as root by one sudo call that asks for the password itself. `-k` makes
+    sudo ignore any cached credential, so the password is typed for this very step; sudo reads it from
+    the terminal, not from the captured output. (`sudo -k -v` followed by `sudo -n` would fail: with
+    -k, sudo does not cache, per its manual; PR #114 lens.) Under WORKSTATION_MANAGED_ROOT (tests) the
+    admin root is a directory of the tests and no sudo runs."""
+    if managed_root():
+        return args + ["--root=" + managed_root()]
+    return [SUDO, "-k", "-p", "Password for %u: "] + args
+
+
 def admin_apply(verbose):
-    """Render the admin stage as the owner, then apply it with sudo (asked for once, before, by
-    ensure_sudo). Under WORKSTATION_MANAGED_ROOT (tests) no sudo runs. -> (code, lines)."""
+    """Render the admin stage as the owner, then apply it as root (as_root). -> (code, lines)."""
     code, lines = run(managed_args([]))
     show([l for l in lines if not l.startswith(("RUN ", "THEN"))], verbose)
     if code != 0:
@@ -1008,30 +1018,26 @@ def admin_apply(verbose):
     m = re.search(r'--apply="([^"]+)" --sha256=([0-9a-f]+)', run_line)
     if not m:
         return 3, ["REFUSE  the admin stage did not render"]
-    args = ["/bin/sh", str(INSTALL_MANAGED), "--apply=" + m.group(1), "--sha256=" + m.group(2)]
-    if managed_root():
-        args.append("--root=" + managed_root())
-    else:
-        args = [SUDO, "-n"] + args
-    acode, alines = run(args)
+    acode, alines = run(as_root(["/bin/sh", str(INSTALL_MANAGED), "--apply=" + m.group(1),
+                                 "--sha256=" + m.group(2)]))
     show([l for l in alines if not l.startswith("THEN")], verbose)
     return acode, alines
 
 
-def ensure_sudo(asking):
-    """True once the owner typed his password for this step. The barrier is the password, asked every
-    time: `sudo -k -v` drops any cached credential first, so a process that only fakes a terminal (an
-    agent can, with `script`) still meets a password prompt it cannot answer (PR #114 lens). Without a
-    terminal (`asking` false) sudo is not run at all. Under WORKSTATION_MANAGED_ROOT (tests) no sudo
-    runs."""
+def admin_access(asking):
+    """True when the admin-layer step may run: in a terminal (`asking`), after saying why the password is
+    needed. The barrier is the password itself, asked by the one sudo call of as_root with `-k`, so a
+    process that only fakes a terminal (an agent can, with `script`) meets a prompt it cannot answer
+    (PR #114 lens). Without a terminal, sudo is not run at all. Under WORKSTATION_MANAGED_ROOT (tests)
+    no sudo runs, so this is True."""
     if managed_root():
         return True
     if not asking:
         return False
     heading("Administrator access")
     print("The system-wide protections live in folders only an administrator can change, so that no agent")
-    print("session can switch them off. sudo asks for your password once; mhw uses it for that step only.")
-    return subprocess.run([SUDO, "-k", "-v", "-p", "Password for %u: "]).returncode == 0
+    print("session can switch them off. sudo asks for your password now; mhw uses it for that step only.")
+    return True
 
 
 def owner_steps(lines):
@@ -1082,7 +1088,7 @@ def cmd_install(admin_only=False, method=False, verbose=False, yes=False, no_adm
             return 1
     failed, steps, owner, pending = [], [], [], False
     if plan["admin"] in ("absent", "differs"):
-        if ensure_sudo(asking):
+        if admin_access(asking):
             heading("Installing the system-wide protections")
             code, lines = admin_apply(verbose)
             if code != 0:
@@ -1295,11 +1301,9 @@ def cmd_uninstall(verbose=False, yes=False):
             return 1
     failed, steps = [], []
     if admin:
-        if ensure_sudo(asking):
+        if admin_access(asking):
             heading("Removing the system-wide protections")
-            args = ["/bin/sh", str(INSTALL_MANAGED), "--remove"]
-            args = args + ["--root=" + managed_root()] if managed_root() else [SUDO, "-n"] + args
-            acode, alines = run(args)
+            acode, alines = run(as_root(["/bin/sh", str(INSTALL_MANAGED), "--remove"]))
             show(alines, verbose)
             if acode != 0:
                 failed.append("System-wide protections (exit %d; `%s uninstall --verbose` shows why)" % (acode, CMD))
@@ -1311,18 +1315,24 @@ def cmd_uninstall(verbose=False, yes=False):
     show(lines, verbose)
     if code != 0:
         failed.append("Your settings (exit %d; `%s uninstall --verbose` shows why)" % (code, CMD))
+    # The admin layer still on disk (skipped or failed): not a success, and the package that holds the only
+    # tool able to remove it (install-managed.sh --remove) must stay (PR #114 lens).
+    left = admin and admin_present()
     print()
     if failed:
         print(_styled("31;1", "Uninstall incomplete:"))
         for f in failed:
             print("  - " + f)
+    elif left:
+        print(_styled("33;1", "Partly removed:") + " your settings are gone; the system-wide protections "
+              "are still installed.")
     else:
         print(_styled("32;1", "Uninstall complete."))
     steps.append(FRESH)
-    if npm_package():
+    if npm_package() and not left:
         steps.append("Run `npm uninstall -g %s` to remove the mhw command itself." % package_name())
     next_steps(steps)
-    return 1 if failed else 0
+    return 1 if failed or left else 0
 
 
 def cmd_check(prerequisites_only=False):

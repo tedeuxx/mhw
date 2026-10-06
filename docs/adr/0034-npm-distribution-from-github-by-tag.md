@@ -258,15 +258,20 @@ reader had to copy a `sudo /bin/sh … --apply=… --sha256=…` line by hand, t
   then both checks; the result and numbered next steps, including the acts `install.sh` names for the
   owner (the paste-wrapper shell line, Codex `/hooks`). `--verbose`, `--yes`, `--no-admin` and
   `--admin` (that layer only).
-- **The barrier is the password, asked every time.** `mhw` runs `sudo -k -v`, which drops any cached
-  credential, so the admin layer needs the password typed for that run. A terminal alone is not the
+- **The barrier is the password, asked every time.** `mhw` runs the admin step itself as one
+  `sudo -k -p … /bin/sh install-managed.sh --apply=… --sha256=…` (and `--remove`), which ignores any
+  cached credential, so the password prompt covers that exact command. (A first fix ran `sudo -k -v`
+  then `sudo -n`; with `-k` sudo does not cache, per its manual, so the second call would fail: found by
+  the PR #114 lens and gate, documented, not measured.) A terminal alone is not the
   barrier: an agent can fake one (`script -q /dev/null mhw install --yes` reports a tty, measured by the
   PR #114 lens), and then meets a password prompt it cannot answer. With no terminal at all, `sudo` is
   not run. The deny floor's `sudo` rule still keeps agents from typing `sudo` themselves; it does not see
   `sudo` started by `mhw`. Not measured: a passwordless `sudo` rule (NOPASSWD) for the owner would remove
   this barrier.
 - When the plan listed the admin layer and it was not installed (no terminal, password refused), the
-  result is `Partly installed:` and exit 1, never `Installation successful!` (PR #114 lens).
+  result is `Partly installed:` and exit 1, never `Installation successful!`; an uninstall that leaves it
+  reads `Partly removed:`, exits 1 and holds back `npm uninstall -g mhw`, which would delete the only tool
+  able to remove it (PR #114 lens).
 - `mhw update` in an npm install runs the npm update with the npm beside the `node` running `mhw` (by
   absolute path), then `mhw install` from the new package. `mhw uninstall` is the same conversation.
 - Messages are in English, like every published artifact of this repository.
