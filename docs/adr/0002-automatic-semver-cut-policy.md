@@ -111,7 +111,13 @@ the one thing it was meant to: whether he has to act.
 | --- | --- |
 | **major** | A **breaking change**: a consumer of the workstation must change something on his side. Examples: the install or update interface (commands, arguments, layout an adopter relies on), or the version-key contract that projects declare. |
 | **minor** | An **incremental feature**, with nothing a consumer must change. This includes **adding or removing a control** when no consumer has to change anything. |
-| **patch** | A **bug fix**: something that did not do what it declared now does. |
+| **patch** | A **bug fix**: something that did not do what it declared now does. Also any change with **no behaviour change**, such as docs, tests and CI. |
+
+**The patch row's second sentence extends the owner's rule; it is not his wording.** He named three
+categories, but every pull request still needs exactly one label, and a docs-, test- or CI-only change
+fits none of them. Patch is the lowest part, and that change alters no behaviour, so it goes there.
+The coordinator decided this on review of the pull request that introduced this amendment and reports
+it to the owner. It stands until he ratifies or changes it.
 
 When a change fits more than one row, the highest row wins. That rule is unchanged, and it is also what
 sets the release-candidate label: each pull request carries exactly one `semver:major|minor|patch`

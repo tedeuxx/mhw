@@ -130,7 +130,7 @@ Concretely, it must keep three things true on this machine:
    [`.bumpversion.toml`](.bumpversion.toml). The part bumped is chosen by a **predefined cut policy**
    ~~suited to a policy-set artifact~~ — plain SemVer since 2026-10-06: **major** for a breaking change
    (something a consumer must change), **minor** for an incremental feature (including adding or
-   removing a control when no consumer has to change anything), **patch** for a bug fix — declared on the pull request as exactly one
+   removing a control when no consumer has to change anything), **patch** for a bug fix or a change with no behaviour change (docs, tests, CI) — declared on the pull request as exactly one
    `semver:major|minor|patch` label; a pull request without exactly one fails a check. The cut policy
    and the mechanism are in [ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md), which is
    **proposed** until the owner ratifies the cut table. Since 2026-10-05 the only pull request into

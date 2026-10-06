@@ -827,7 +827,7 @@ release: it merges into `rc/next`, and the release-candidate pull request cuts o
 them, at the highest part any of them carries ([3b](#delivery-route-slices-into-rcnext-only-the-release-candidate-into-main)).
 Since 2026-10-06 the parts follow plain SemVer ([ADR-0002](adr/0002-automatic-semver-cut-policy.md),
 2026-10-06 amendment): major only for a breaking change a consumer must act on, minor for a feature,
-including adding or removing a control when no consumer has to change anything, patch for a bug fix.
+including adding or removing a control when no consumer has to change anything, patch for a bug fix or a change with no behaviour change (docs, tests, CI).
 The three rows struck to minor were major under the former rule only because they remove a control.
 
 
