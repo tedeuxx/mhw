@@ -14,3 +14,7 @@ __pycache__/
 
 # Agent worktrees — they appear untracked in the main checkout.
 .claude/worktrees/
+
+# npm pack output and an npm work tree (Issue #68); the package is installed from GitHub, never packed in.
+*.tgz
+node_modules/

@@ -1,0 +1,33 @@
+{
+  "name": "personal-multi-harness-workstation-configuration",
+  "version": "4.0.0",
+  "private": true,
+  "description": "The owner's LLM firewall: one managed workstation configuration for every agent harness. Installed from GitHub by tag, never published to a registry (ADR-0034).",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tedeuxx/personal-multi-harness-workstation-configuration.git"
+  },
+  "bin": {
+    "workstation": "bin/workstation.js"
+  },
+  "files": [
+    "workstation",
+    ".bumpversion.toml",
+    ".workstation-archive",
+    "bin/workstation.js",
+    "global/",
+    "!global/**/*_test.py",
+    "!global/**/*.test.sh",
+    "!global/**/*.test.ps1",
+    "!global/**/*.test.stub",
+    "!global/keychain_test_guard.py",
+    "method/",
+    "overlay/",
+    "!overlay/mcp-servers.json",
+    "!**/*.local.json",
+    "!**/__pycache__/"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

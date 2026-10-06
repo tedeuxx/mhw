@@ -151,11 +151,16 @@ version=$(sed -n 's/^current_version[[:space:]]*=[[:space:]]*"\([0-9][0-9.]*\)".
 #   release: unreleased, after vX.Y.Z     any other commit (rc/next, a branch, between releases): the nearest tag
 #   release: unreleased, no tag reachable a checkout without tags (a shallow CI clone)
 #   commit:  the full HEAD SHA, with "-dirty" appended when a tracked file differs from HEAD
-# Outside a git checkout both fields say unknown and name the .bumpversion.toml version instead.
+# Outside a git checkout (a GitHub source archive, which is what an npm install downloads; Issue #68,
+# ADR-0034) the same fields come from .workstation-archive, which git archive filled in; otherwise
+# both fields say unknown and name the .bumpversion.toml version instead.
 # Only a strictly numeric tag is a release (ADR-0002), and only such a string ever enters a stamp.
 tag_glob='v[0-9]*.[0-9]*.[0-9]*'
 numeric_tag() { printf '%s\n' "$1" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'; }
+# The checkout must be this repository itself: an npm package installed under some other git work tree
+# (a home directory kept in git, say) must not borrow that tree's HEAD (Issue #68).
 if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+   && [ "$(git -C "$repo_root" rev-parse --show-toplevel 2>/dev/null)" = "$(cd "$repo_root" && pwd -P)" ] \
    && commit=$(git -C "$repo_root" rev-parse --verify HEAD 2>/dev/null); then
   dirty=
   [ -n "$(git -C "$repo_root" status --porcelain --untracked-files=no 2>/dev/null)" ] && dirty=-dirty
@@ -169,11 +174,23 @@ if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
     release="unreleased, no tag reachable"
   fi
   commit="$commit$dirty"
+  stamp="release: $release; commit: $commit"
+elif archive_commit=$(sed -n 's/^commit: \([0-9a-f]\{40\}\)$/\1/p' "$repo_root/.workstation-archive" 2>/dev/null | head -n 1) \
+   && [ -n "$archive_commit" ] \
+   && archive_describe=$(sed -n 's/^describe: //p' "$repo_root/.workstation-archive" | head -n 1) \
+   && if numeric_tag "$archive_describe"; then release=$archive_describe
+      elif printf '%s\n' "$archive_describe" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-g[0-9a-f]+'; then
+        release="unreleased, after $(printf '%s\n' "$archive_describe" | sed -E 's/-[0-9]+-g[0-9a-f]+$//')"
+      elif [ -z "$archive_describe" ]; then release="unreleased, no tag reachable"
+      else false; fi; then
+  # A source archive has no .git: an npm install from GitHub (Issue #68, ADR-0034). git archive filled
+  # .workstation-archive in (export-subst, .gitattributes) with the commit and its git describe, which
+  # maps onto the same three release forms. Taken only in exactly that shape; anything else, such as a
+  # copy that still carries the placeholders, falls through to unknown.
+  stamp="release: $release; commit: $archive_commit"
 else
-  release="unknown, not a git checkout (.bumpversion.toml says $version)"
-  commit=unknown
+  stamp="release: unknown, not a git checkout (.bumpversion.toml says $version); commit: unknown"
 fi
-stamp="release: $release; commit: $commit"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
