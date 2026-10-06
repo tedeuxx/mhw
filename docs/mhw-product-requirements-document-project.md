@@ -786,8 +786,9 @@ later discussion ([#68](https://github.com/tedeuxx/mhw/issues/68)).~~
     `sudo npm`; with `ignore-scripts`, nothing runs. From a tarball, `status` then says
     `installed by npm but postinstall did not run`; from GitHub the install fails and is repeated without
     it.
-  - Upgrading from v4.1.0 (package `personal-multi-harness-workstation-configuration`) works with the same
-    line; `status` names the old package left beside `mhw` and how to remove it.
+  - ~~Upgrading from v4.1.0 (package `personal-multi-harness-workstation-configuration`) works with the same
+    line~~ *(struck 2026-10-06: npm refuses it with `EEXIST`, measured)*. Upgrading from v4.1.0: remove the v4.1.0 package first: `npm uninstall -g personal-multi-harness-workstation-configuration`, then
+    install `mhw`. `status` repeats that instruction if both packages are installed.
 
 ## 9c. Prerequisites: declared and checked, never applied
 

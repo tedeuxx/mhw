@@ -482,9 +482,12 @@ class PackAndInstall(Base):
         p = self.npm(d, env, "install", "-g", "--offline", "--force", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
-        self.assertIn("  npm              a second global package, %s v4.1.0 (the name before mhw), is "
-                      "installed beside this one; remove it with: npm uninstall -g %s, then run the npm line "
-                      "mhw update prints to restore the workstation alias" % (LEGACY, LEGACY), p.stdout)
+        self.assertIn("  npm              the v4.1.0 package (the name before mhw) is still installed beside mhw; "
+                      "remove the v4.1.0 package first: `npm uninstall -g %s`, then run the npm line mhw update "
+                      "prints" % LEGACY, p.stdout)
+        # The docs carry the same instruction, word for word.
+        for doc in ("README.md", "docs/runbooks/npm-install.md"):
+            self.assertIn(ws.UPGRADE_FIRST, (ROOT / doc).read_text(encoding="utf-8"), doc)
         # The documented route: remove the old package, then install. The user layer is the new one's.
         d, env = self.env("up2")
         self.assertEqual(self.npm(d, env, "install", "-g", "--offline", str(old_tgz)).returncode, 0)
@@ -494,7 +497,7 @@ class PackAndInstall(Base):
         self.assertIn("; %s;" % expected_stamp(), self.brief(d))
         p = self.cmd(d, env, "workstation", "status", "--project=" + str(d / "proj"))
         self.assertEqual((p.returncode, p.stderr), (0, ALIAS + "\n"))
-        self.assertNotIn("a second global package", p.stdout)
+        self.assertNotIn("still installed beside mhw", p.stdout)
 
 
 if __name__ == "__main__":

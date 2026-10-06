@@ -62,6 +62,8 @@ FIX = CMD + " install"
 SOURCE_NAME = "this package" if CMD == "mhw" else "this checkout"
 # The npm package name v4.1.0 shipped, before the rename to mhw (Issue #68).
 LEGACY_PACKAGE = NAME
+# The one instruction for the upgrade from it, in status, check, the postinstall summary and the docs.
+UPGRADE_FIRST = "remove the v4.1.0 package first: `npm uninstall -g %s`" % LEGACY_PACKAGE
 
 # ---------------------------------------------------------------------------------------------------
 # Version key (Issue #57): pure functions, no I/O.
@@ -883,11 +885,12 @@ def npm_notes(source, user_stamps, root=ROOT):
     old = root.parent / LEGACY_PACKAGE
     if root.parent.name == "node_modules" and root.name != LEGACY_PACKAGE and (old / "package.json").is_file():
         version = package_version(old)
-        # From GitHub, npm's git preparation (install --force) hands the workstation command to mhw and
-        # keeps the old package (measured, npm 11.13.0); removing the old package deletes that link too.
-        out.append("a second global package, %s %s (the name before mhw), is installed beside this one; "
-                   "remove it with: npm uninstall -g %s, then run the npm line mhw update prints to restore "
-                   "the workstation alias (the user layer stays)" % (LEGACY_PACKAGE, version, LEGACY_PACKAGE))
+        # Both packages present means the upgrade went through by luck of route or by --force: npm refuses
+        # mhw's workstation bin while the old package owns it (EEXIST, measured with npm 11.13.0 from a
+        # tag or branch ref and from a tarball; a pinned commit happened to pass). The documented order is
+        # the same either way, so the line names it.
+        out.append("the %s package (the name before mhw) is still installed beside mhw; %s, then run the "
+                   "npm line mhw update prints (the user layer stays)" % (version, UPGRADE_FIRST))
     return out
 
 

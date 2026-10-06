@@ -144,10 +144,9 @@ script's output, and with it the `sudo` line and the restart notice. If the outp
   leaves a dangling `mhw` link, because npm's git preparation links a temporary clone that only the
   postinstall puts right (measured, npm 11.13.0). Install again without it. From a packed tarball the
   install succeeds and `mhw status` reports `installed by npm but postinstall did not run`.
-- **From v4.1.0**, whose package was named `personal-multi-harness-workstation-configuration`: the
-  same npm line upgrades, and `mhw status` then names the old package to remove (`npm uninstall -g
-  personal-multi-harness-workstation-configuration`), after which the npm line once more restores the
-  `workstation` alias.
+- **From v4.1.0**, whose package was named `personal-multi-harness-workstation-configuration`:
+  remove the v4.1.0 package first: `npm uninstall -g personal-multi-harness-workstation-configuration`, then run the npm line. Otherwise npm refuses with `EEXIST`, because the old package owns the
+  `workstation` alias name (measured). Do not use `--force`.
 - `workstation` is a deprecated alias of `mhw` until the next major; it prints one notice.
 - The install line names this repository. It changes when the repository is renamed (a separate step).
 
