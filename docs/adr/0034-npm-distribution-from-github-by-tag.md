@@ -252,10 +252,11 @@ reader had to copy a `sudo /bin/sh … --apply=… --sha256=…` line by hand, t
 - `bin/postinstall.js` installs nothing. On a global install it prints one line naming `mhw install`
   (to `/dev/tty` when there is one) and exits 0; npm's git-preparation repair stays; the skip runs are
   silent. `MHW_METHOD` is gone with it: `mhw install --method` is the opt-in.
-- `mhw install` (macOS and Linux) is a conversation: the plan, RETURN (any other key aborts, exit 1),
-  `sudo -v` once with a sentence saying why, only when the admin layer changes; the admin stage is
-  rendered as the owner and installed with `sudo -n … --apply=STAGE --sha256=HEX`, then the user layer,
-  then both checks; the result and numbered next steps, including the acts `install.sh` names for the
+- `mhw install` (macOS and Linux) is a conversation: the plan, RETURN (any other key aborts, exit 1);
+  only when the admin layer changes, a sentence saying why the password is needed, then the admin stage
+  rendered as the owner and installed with one
+  `sudo -k -p … /bin/sh install-managed.sh --apply=STAGE --sha256=HEX` call; then the user layer, then
+  both checks; the result and numbered next steps, including the acts `install.sh` names for the
   owner (the paste-wrapper shell line, Codex `/hooks`). `--verbose`, `--yes`, `--no-admin` and
   `--admin` (that layer only).
 - **The barrier is the password, asked every time.** `mhw` runs the admin step itself as one
