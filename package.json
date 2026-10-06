@@ -10,13 +10,9 @@
   "bin": {
     "workstation": "bin/workstation.js"
   },
-  "scripts": {
-    "prepare": "node bin/stamp.js"
-  },
   "files": [
     "workstation",
     ".bumpversion.toml",
-    ".workstation-stamp",
     "bin/workstation.js",
     "bin/stamp.js",
     "global/",
