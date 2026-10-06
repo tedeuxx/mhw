@@ -75,7 +75,7 @@ flowchart LR
 
 The single record of what each control reaches, per agent harness surface and operating system, at
 its real evidence level. It replaces the amendment log that `AGENTS.md` used to carry (Issue
-[#65](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/65)); that log
+[#65](https://github.com/tedeuxx/mhw/issues/65)); that log
 stays in the git history.
 
 **Two claims per row, never mixed.** The agent harness columns describe **this source** (the
@@ -105,8 +105,8 @@ owner's act, in a fresh session, after the release-candidate pull request reache
 | Provenance stamp ([ADR-0029](docs/adr/0029-provenance-stamp-in-every-installed-file.md)) | written; stamped files loaded, probed | written; loaded, probed | written; documented | none | macOS, Linux, Windows (CI) | not installed. A record, not a protection |
 | `./mhw` (formerly `./mhw`), version key, `status` and `check` ([ADR-0030](docs/adr/0030-version-key-and-one-entry-point.md)) | written; the version-key instruction in the loaded brief, probed | written; in the model-visible prompt, probed | written; documented | none | macOS, Linux | not run. A report, never a block |
 | npm install from GitHub by tag, `mhw` command and its `postinstall` ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md)) | not an agent harness control | | | | macOS, Linux, Windows (CI) | written. Probed in throwaway prefixes and HOMEs from GitHub at the branch head (npm 11.13.0, macOS): the postinstall installed the stamped user layer and printed the sudo line; upgrade from v4.1.0, a local install and `npm uninstall -g` measured; not installed on the reference machine |
-| Prerequisites check, check-only ([#89](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/89)) | not an agent harness control | | | | macOS, Linux | written and tested with fake tools; one read-only run of `gh auth status` and the merge-settings check. Applies nothing |
-| GitHub repository standard: merge commits only, no squash ([#82](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/82)) | not an agent harness control | | | | any | written and tested against a stub; `--apply` is the owner's act |
+| Prerequisites check, check-only ([#89](https://github.com/tedeuxx/mhw/issues/89)) | not an agent harness control | | | | macOS, Linux | written and tested with fake tools; one read-only run of `gh auth status` and the merge-settings check. Applies nothing |
+| GitHub repository standard: merge commits only, no squash ([#82](https://github.com/tedeuxx/mhw/issues/82)) | not an agent harness control | | | | any | written and tested against a stub; `--apply` is the owner's act |
 | MCP definition ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) | written | written | written | written (Claude desktop) | macOS | not run. Not part of the main line |
 | Removed from the source: restart guard, expiring switches, `/breaking-glass`, picker guard, session-type intake ([ADR-0028](docs/adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)) | written: the installers delete what an earlier version wrote; `--check` reports it as `STALE` | same | none was installed | none | macOS, Linux | still *installed* until the owner reinstalls both layers in a fresh session |
 
@@ -126,7 +126,7 @@ or later and git; on macOS and Linux also Python 3.9+ and `jq`. The package and 
 (multi-harness managed workstation):
 
 ```sh
-npm install -g --foreground-scripts github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z
+npm install -g --foreground-scripts github:tedeuxx/mhw#vX.Y.Z
 sudo /bin/sh ".../mhw/global/install-managed.sh" --apply="..." --sha256=...   # macOS and Linux: the line the install printed, only when it printed one
 ```
 
@@ -177,7 +177,7 @@ rule you wrote yourself stays even when it equals a floor rule), and its two key
 stays beside the file and is overwritten by the next install or uninstall.
 
 `--overlay=DIR|none` selects a profile other than the repository's `overlay/`. `global/install.sh` and
-`global/install-managed.sh` stay as the internals ([#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67)).
+`global/install-managed.sh` stay as the internals ([#67](https://github.com/tedeuxx/mhw/issues/67)).
 The `sudo` route to turn a hook off is in the [breaking-glass runbook](docs/runbooks/breaking-glass.md).
 
 **What `check` reports.** `./mhw check` runs `install.sh --check` (with the hooks mode it
@@ -187,7 +187,7 @@ admin layer differs, `check`, `install` and `status` name each `STALE` and `DRIF
 control still installed (restart guard, picker guard, session intake, timed breaking-glass) and the
 next step, `./mhw install --admin` and its sudo line; `status` says "matches this checkout" ("this package" in an npm install)
 only when the user layer and any admin layer both match
-([#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52)). The installers' check exits non-zero when a target is missing, differs from this checkout,
+([#52](https://github.com/tedeuxx/mhw/issues/52)). The installers' check exits non-zero when a target is missing, differs from this checkout,
 is not managed by this repository, carries another release's provenance stamp, or is left over from a
 removed control (`STALE`). The prerequisites section exits non-zero when a required item is missing.
 It changes nothing.
@@ -211,7 +211,7 @@ It changes nothing.
 (for example `>=4.0 <5`, what this repository expects from the release candidate on). `./mhw
 status` compares it with the installed release, and the user brief tells the agent to do the same at
 session start. On a mismatch both print one line, required and installed, and the command to run;
-nothing blocks ([#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57)).
+nothing blocks ([#57](https://github.com/tedeuxx/mhw/issues/57)).
 An install from an untagged checkout of `rc/next` stamps `unreleased, after v3.0.0`, which compares as
 3.0.0 and is a mismatch here until v4.0.0 is tagged.
 

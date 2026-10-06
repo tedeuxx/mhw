@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/global/mcp/mcp-servers.schema.json",
+  "$id": "https://github.com/tedeuxx/mhw/global/mcp/mcp-servers.schema.json",
   "title": "Single-source MCP server definition (ADR-0017)",
   "description": "Lives only in the untracked local overlay. Holds server names, commands, args and NON-secret environment values. A credential is never written here: it is named under secrets with its source and read by global/mcp/mcp-launch.sh when the server starts. global/mcp/mcp_render.py enforces this schema itself (plus two credential-name checks a schema cannot express); this file documents it for editors.",
   "type": "object",

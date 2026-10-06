@@ -661,8 +661,12 @@ class LatestRelease(unittest.TestCase):
         self.assertIsNone(ws.latest_release(["v1", "rc", "v2.0.0-beta"]))
 
 
+# gc.auto=0 and maintenance.auto=false: whether a commit triggers a detached auto-gc depends on how the
+# object hashes fall (git samples one objects/ subdirectory), so some tree contents raced the clone below
+# with "unable to read tree". The fixture never needs a gc.
 GIT = ["git", "-c", "user.name=test", "-c", "user.email=test@example.invalid",
-       "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"]
+       "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false",
+       "-c", "gc.auto=0", "-c", "maintenance.auto=false"]
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq") and shutil.which("git"), "needs sh, jq, git")

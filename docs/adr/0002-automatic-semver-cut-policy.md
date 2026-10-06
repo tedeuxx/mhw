@@ -91,7 +91,7 @@ The cut table remains proposed as a general policy; this feature uses its additi
 **Status unchanged: proposed** until the owner ratifies this table.
 
 The owner, 2026-10-06, on
-[#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52), verbatim:
+[#52](https://github.com/tedeuxx/mhw/issues/52), verbatim:
 
 > "precisamos revisar a regra de semver agora para evitar muitos tags de major"
 > "deveria seguir a regra de major (breaking changes), minor (features incrementais) e patch (bugfixing)"

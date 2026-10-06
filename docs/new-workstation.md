@@ -8,8 +8,8 @@ The commands below install only the existing components described in the [README
 ## Obtain and review the source
 
 ```sh
-git clone https://github.com/tedeuxx/personal-multi-harness-workstation-configuration.git
-cd personal-multi-harness-workstation-configuration
+git clone https://github.com/tedeuxx/mhw.git
+cd mhw
 ```
 
 Choose a reviewed release tag before applying configuration. Review the README's component and OS

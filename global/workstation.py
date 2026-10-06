@@ -969,7 +969,8 @@ def git(*args):
     return run(["git", "-C", str(ROOT)] + list(args))
 
 
-REPO = "tedeuxx/" + NAME
+# The GitHub slug (Issue #68). NAME stays the internal identifier of installed files; only the URL moves.
+REPO = "tedeuxx/mhw"
 
 
 def npm_update_lines(wanted, root=ROOT):

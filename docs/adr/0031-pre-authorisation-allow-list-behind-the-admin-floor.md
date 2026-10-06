@@ -3,11 +3,11 @@
 - **Status:** proposed
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead)
-- **Issue:** [#83](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/83)
-  (part of [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52);
-  related: [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55),
-  [#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59),
-  [#80](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/80))
+- **Issue:** [#83](https://github.com/tedeuxx/mhw/issues/83)
+  (part of [#52](https://github.com/tedeuxx/mhw/issues/52);
+  related: [#55](https://github.com/tedeuxx/mhw/issues/55),
+  [#59](https://github.com/tedeuxx/mhw/issues/59),
+  [#80](https://github.com/tedeuxx/mhw/issues/80))
 
 ## Context and problem
 

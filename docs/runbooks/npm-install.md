@@ -22,7 +22,7 @@ Pick the release and name it. The first installable tag is the first release tha
 `package.json`. Older tags fail with `Could not read package.json` (measured on `v4.0.0`).
 
 ```sh
-npm install -g --foreground-scripts github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z
+npm install -g --foreground-scripts github:tedeuxx/mhw#vX.Y.Z
 ```
 
 That line is the install and the update. The package's `postinstall` (`bin/postinstall.js`) runs the same

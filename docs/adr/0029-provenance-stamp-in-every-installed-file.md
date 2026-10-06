@@ -3,8 +3,8 @@
 - **Status:** proposed
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead)
-- **Issue:** [#66](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/66)
-  (part of [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52);
+- **Issue:** [#66](https://github.com/tedeuxx/mhw/issues/66)
+  (part of [#52](https://github.com/tedeuxx/mhw/issues/52);
   requirements document, section 9a)
 
 ## Context and problem

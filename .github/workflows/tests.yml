@@ -254,7 +254,7 @@ jobs:
           $err = Get-Content -LiteralPath $notice -Raw
           if (-not $err.Contains('is renamed')) { Fail "the alias printed no rename notice: $err" }
           $out = (& $mhw update v4.2.0) -join ' | '
-          if ($LASTEXITCODE -or -not $out.Contains('npm install -g --foreground-scripts github:tedeuxx/personal-multi-harness-workstation-configuration#v4.2.0')) { Fail "update: $out" }
+          if ($LASTEXITCODE -or -not $out.Contains('npm install -g --foreground-scripts github:tedeuxx/mhw#v4.2.0')) { Fail "update: $out" }
           & $mhw uninstall 2>$null
           if ($LASTEXITCODE -ne 2) { Fail "uninstall should be refused on Windows, exited $LASTEXITCODE" }
           Pop-Location

@@ -13,7 +13,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const REPO = 'tedeuxx/personal-multi-harness-workstation-configuration';
+const REPO = 'tedeuxx/mhw';
 const RELEASE = /^v(\d+)\.(\d+)\.(\d+)$/;
 const USAGE = [
   'mhw install [--method] [--overlay=DIR|none] | check | status | update [vX.Y.Z]',

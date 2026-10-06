@@ -18,7 +18,7 @@ replace it. A plain `./mhw install` does not touch the admin layer.
 If step 1 was skipped, `./mhw install`, `./mhw check` and `./mhw status` name
 every `STALE` and `DRIFT` admin target and every removed control still installed, print
 `next: ./mhw install --admin, then run the one sudo line it prints`, and `install` and `check`
-exit non-zero ([#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52)).
+exit non-zero ([#52](https://github.com/tedeuxx/mhw/issues/52)).
 
 From a checkout of `main` at the merged, released commit, in your own terminal:
 

@@ -7,7 +7,7 @@
   [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md),
   [ADR-0026](0026-four-distribution-layers-rubric.md)
 - **Evidence:** [`docs/native-enforcement-matrix.md`](../native-enforcement-matrix.md)
-- **Issue:** [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55)
+- **Issue:** [#55](https://github.com/tedeuxx/mhw/issues/55)
 
 ## Context and problem
 

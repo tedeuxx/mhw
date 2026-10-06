@@ -5,7 +5,7 @@
   "description": "multi-harness managed workstation",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tedeuxx/personal-multi-harness-workstation-configuration.git"
+    "url": "git+https://github.com/tedeuxx/mhw.git"
   },
   "bin": {
     "mhw": "bin/mhw.js",
