@@ -1,5 +1,5 @@
 {
-  "description": "Prerequisite tools and subscriptions of the managed workstation and its delivery lanes (Issue #89). Generic: no account, project key or credential value. Read by global/prerequisites.py for ./workstation check; check-only, nothing here is ever applied. Owner-specific values (active lanes, repositories, Sonar project keys) go in the untracked overlay/prerequisites.local.json.",
+  "description": "Prerequisite tools and subscriptions of the managed workstation and its delivery lanes (Issue #89). Generic: no account, project key or credential value. Read by global/prerequisites.py for ./mhw check; check-only, nothing here is ever applied. Owner-specific values (active lanes, repositories, Sonar project keys) go in the untracked overlay/prerequisites.local.json.",
   "schema": 1,
   "lanes": {
     "workstation": "use the agent harnesses under the managed configuration",
@@ -96,7 +96,7 @@
     {"id": "admin-layer", "name": "macOS admin account (managed settings)", "category": "os-feature", "os": ["Darwin"],
      "required": "required", "lanes": {"workstation": "required"},
      "presence": {"kind": "manual"},
-     "manual": "An administrator account to run the one sudo line ./workstation install --admin prints"},
+     "manual": "An administrator account to run the one sudo line ./mhw install --admin prints"},
     {"id": "bracketed-paste", "name": "Terminal with bracketed paste", "category": "os-feature",
      "required": "required", "lanes": {"workstation": "required"},
      "presence": {"kind": "manual"},

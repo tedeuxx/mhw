@@ -15,7 +15,7 @@
 #                               line names the stamp the installed file carries (Issue #66, ADR-0029)
 #   install.sh --overlay=DIR    owner overlay directory (default: <repo>/overlay); --overlay=none for none.
 #                               WORKSTATION_OVERLAY=DIR|none in the environment sets the same default
-#                               (./workstation passes it that way); an --overlay argument wins over it
+#                               (./mhw passes it that way); an --overlay argument wins over it
 #   install.sh --hooks=managed  the hooks run from the admin layer (install-managed.sh, ADR-0025): remove
 #                               this project's hook entries from the user settings and its Codex
 #                               hooks.json instead of writing them (default --hooks=user)
@@ -724,7 +724,7 @@ if [ "$mode" = uninstall ]; then
   if [ -n "$shell_rc" ] && [ -f "$shell_rc" ] && grep -qF "$rc_tag" "$shell_rc"; then
     echo "NOTE    $shell_rc still carries the paste-wrapper line; it is guarded and now does nothing. Delete it yourself"
   fi
-  echo "NOTE    the admin layer is not touched here; ./workstation uninstall prints its sudo line"
+  echo "NOTE    the admin layer is not touched here; ${MHW_CMD:-./mhw} uninstall prints its sudo line"
   exit "$status"
 fi
 
@@ -832,11 +832,11 @@ report_floor() {
   if [ "$n_admin" -eq "$n_want" ] && [ "$n_codex_admin" -eq "$n_codex" ]; then
     echo "FLOOR   carried by: the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
   elif [ "$n_user" -ne "$n_want" ] || [ "$codex_user" != present ]; then
-    echo "FLOOR   carried by: NO complete layer; run ./workstation install, then ./workstation install --admin"
+    echo "FLOOR   carried by: NO complete layer; run ${MHW_CMD:-./mhw} install, then ${MHW_CMD:-./mhw} install --admin"
   elif [ "$n_admin" -gt 0 ] || [ "$n_codex_admin" -gt 0 ]; then
-    echo "FLOOR   carried by: the user layer; the admin copy is INCOMPLETE (run ./workstation install --admin)"
+    echo "FLOOR   carried by: the user layer; the admin copy is INCOMPLETE (run ${MHW_CMD:-./mhw} install --admin)"
   else
-    echo "FLOOR   carried by: the user layer only; a session flag can drop it (--setting-sources project, measured); install the admin copy with ./workstation install --admin"
+    echo "FLOOR   carried by: the user layer only; a session flag can drop it (--setting-sources project, measured); install the admin copy with ${MHW_CMD:-./mhw} install --admin"
   fi
 }
 report_floor
