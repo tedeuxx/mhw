@@ -2,8 +2,11 @@
 
 One versioned source for how every agent harness behaves on the owner's devices.
 
-- **Status:** approved by the owner, revision 3, 2026-10-05. Items marked *open decision* or *draft* are
-  not yet decided.
+- **Status:** approved by the owner, revision 3, 2026-10-05. Revision 4 (2026-10-05, Issue #65) mirrors
+  the decisions taken since on the Issues, without new ones: the `rc/next` route, the interaction
+  standards, paste cleaning, the capability skills, the pre-authorisation tiers, prerequisites as
+  check-only, GitHub as the only code host, no per-request waivers, and perimeter defence. Items marked
+  *open decision* or *draft* are not yet decided.
 - **Source:** the setup review on [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52),
   the owner interview on [#54](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/54),
   and the slices [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55)
@@ -167,6 +170,22 @@ agent harness costs one command, not a migration.
 7. **Teach rather than lock.** Hooks are mechanical locks. Keep them to the minimum and replace them with
    behaviour taught through briefs, skills and agent instructions, accepting a best-effort result. Every
    hook that remains must pass the [hook budget](#4a-hook-budget).
+8. **Perimeter, not behaviour.** *Draft, proposed on #77, pending the owner's ratification.* In the owner's words (translated, #77): "every attempt to build
+   explicit blocking of agent behaviour, or hard control over how agents behave, has proved
+   ineffective. Perimeter defence is therefore the right approach." The workstation protects the
+   boundary: the managed layer that only an administrator changes, the operating system's privilege
+   model, and native deny rules on irreversible actions. Inside that perimeter, behaviour is taught and
+   accepted as best effort. Until he ratifies it, this principle is not installed anywhere
+   ([1c](#1c-ten-commandments-for-working-with-an-agent-harness-every-day)).
+9. **No per-request waivers; exceptions only through `sudo`.** In the owner's words (translated, #52):
+   "no mechanical lock may require individual, temporary waiver requests unless the waiver is tied to a
+   privilege level that stays valid for the whole session. `sudo`/`su` serves that purpose." A
+   protection in the managed layer is changed or switched off only by an administrator with `sudo`, as
+   any operating-system policy is. There is no expiring switch and no per-request exception
+   ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)).
+10. **GitHub is the only code host.** In the owner's words (translated, #89): "GitLab is not a target of
+    this distribution; focus on GitHub only." The source-control and CI skills, the repository-settings
+    standard and the prerequisites declaration name GitHub and nothing else.
 
 ### Non-goals
 
@@ -292,7 +311,25 @@ as subagents.
 | 2. Requirements document | The agreed target behaviour and why, versioned as `<repo>-product-requirements-document-<subject>.md`. | `/new-idea` (writes it) | tech-lead | documentation-standard |
 | 3. Issues | The document is cut into vertical slices with acceptance criteria and blocking order; each slice must clear the definition of ready. | `/idea-to-issues` | agents-lead, tech-lead, product-lead | definition-of-ready |
 | 4. Build and gate | The loop takes ready Issues one at a time; a builder implements with tests and checks itself; one gate verifies against the definition of done and the quality thresholds. | `/autonomy on` · `off` | scrum-master (orders), developer or agents-lead (builds), content-writer and content-reviewer (published text), quality-assurance (gate) | agents-configuration, shell, definition-of-done, quality-gates, published-voice |
-| 5. Release | The merge cuts a numeric SemVer release through CI; the session reports the release link only once it is verified. | none (automatic) | quality-assurance | devops |
+| 5. Release | Slices accumulate on `rc/next`. The release-candidate pull request to `main` waits for the owner; its merge cuts a numeric SemVer release through CI, and the session reports the release link only once it is verified. | none (automatic) | quality-assurance, then the owner | scm, ci |
+
+### Delivery route: slices into `rc/next`, only the release candidate into `main`
+
+In the owner's words (translated, #52 and #60): "only make pull requests for release candidates" and
+"the agents merge into `rc/next`; only the RC waits for me".
+
+- **Slices.** Each slice is a pull request into the integration branch `rc/next`, cut from `main`. An
+  agent merges it with a real merge commit, never squash, once its checks, the review gate and any
+  lens the change requires pass at its current head. No owner approval is needed for that.
+- **The release candidate.** When `rc/next` is mature, one pull request `rc/next` → `main` carries a
+  single `semver:` label. It is the only pull request into `main`, and only the owner merges it. Its
+  merge cuts the purely numeric tag and the GitHub Release ([ADR-0002](adr/0002-automatic-semver-cut-policy.md),
+  unchanged: every merge to `main` still cuts a tag).
+- **After it.** The owner installs the release in a fresh session and runs the canary. Only that
+  release is ever installed on his machines.
+- **Carrier.** The workspace brief and `workspace/delivery.py`, whose checked merge refuses a pull
+  request into `main` from any branch other than `rc/next`. The rule itself is an instruction
+  ([ADR-0021](adr/0021-workspace-session-intake-and-ci-publication.md), 2026-10-05 amendment).
 
 ### Measurement for an economic drive
 
@@ -321,13 +358,17 @@ as subagents.
   a command.
 - **During the session:** `/what-else` answers what is left against that objective. If an agent
   harness's native goal command already shows progress, the command is not built there.
-- **Evidence:** which agent harnesses have a native `/goal` is not yet confirmed; it is measured in the
-  [enforcement matrix](#10-native-enforcement-matrix). `/what-else` is [#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74). This continues
+- **Evidence:** all three command-line agent harnesses have a native `/goal`: listed in Claude Code
+  2.1.289 and enabled as a feature in Codex 0.160.0 (measured), documented for the Kiro CLI; none was
+  exercised ([enforcement matrix](#10-native-enforcement-matrix)). The instruction is the user brief's
+  section *Session goal anchor*; `/handover` tells a child session to anchor its objective the same way.
+  `/what-else` is [#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74). This continues
   [#11](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/11).
 
 ### Around the main flow
 
-- `/handover`: branches a focused child session and brings its result back through a return prompt
+- `/handover`: branches a focused child session, which anchors its objective with the native `/goal`
+  where it exists, and brings its result back through a return prompt
   ([#73](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/73)).
 - `/blueprint`: exports a project's effective agent harness setup as a requirements document, or imports
   one after an alignment interview ([#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75)).
@@ -339,10 +380,10 @@ as subagents.
 | Control | What it does | Harm it addresses | Coverage |
 | --- | --- | --- | --- |
 | **Global brief** | Policy instructions loaded by every agent harness in every session: no third-party material, sanitise what is sent, clean proactively, report every intervention. | Employer or client material entering prompts, commits or publications; acting on an external service without the owner's go. | Claude Code, Codex, Kiro; desktop apps by manual paste. Instruction only. |
-| **Paste cleaning: wrapper** (primary) | Terminal launcher for `claude`, `codex` and `kiro-cli` that redacts bracketed pastes before the command-line tool sees them; typing passes through unchanged. The installer adds an idempotent, opt-in shell start-up line. | Pasting a credential, personal data (e-mail, card, CPF/CNPJ) or a registered client or employer name. | Terminal sessions started through it. Out of reach: desktop apps, files read by path, images. |
-| **Paste cleaning: prompt hook** | Checks the prompt before it reaches the model; can only block and show a redacted copy (hooks cannot rewrite the prompt). | The same, for sessions not opened through the wrapper. | Claude Code and Codex (Codex after the owner trusts it). *Open decision* ([#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)): kept as the single justified hook, or replaced by the wrapper plus the brief's instruction ([4a](#4a-hook-budget)). |
+| **Paste cleaning: wrapper** (primary) | Terminal launcher for `claude`, `codex` and `kiro-cli` that redacts bracketed pastes before the agent harness sees them; typing passes through unchanged. It marks the session it cleans. The installer prints an opt-in shell start-up line, or appends it to a file the owner names. | Pasting a credential, personal data (e-mail, card, CPF/CNPJ) or a registered client or employer name. | Terminal sessions started through it, macOS and Linux. Out of reach: desktop apps, files read by path, images ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). |
+| **Paste cleaning: prompt hook** (safety net) | Checks the prompt before it reaches the model; can only block and show a redacted copy (hooks cannot rewrite the prompt). It passes silently in a session the wrapper marked. | The same, for sessions not opened through the wrapper. | Claude Code and Codex (Codex after the owner trusts it). The single justified hook, by the owner's decision on [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). |
 | **Client and employer terms** | The owner registers the names to catch; stored salted, never in plain text. | The mission's first rule. | Empty until terms are registered; status shows the count, including a visible "0 terms" notice. |
-| **Deny floor** | About 100 native deny rules: `sudo`, reading `~/.ssh` and `~/.aws`, GitHub and AWS secret writes, force-push, `rm -rf`, bypass flags; it also carries the irreversible-action rules that used to live in the plugin. | Irreversible damage and credential reads. | Claude Code and Codex. Prefix match: `git -C dir push --force` is not caught. ~~*Open decision* ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59)): whether it sits in the managed layer.~~ Decided on #59: rendered into the managed layer, user copy kept until that one is installed ([ADR-0016](adr/0016-user-level-deny-floor-rendered-per-harness.md), 2026-10-05 amendment). |
+| **Deny floor** | Native deny rules (counted per agent harness by the `FLOOR` lines of `install.sh --check`): `sudo`, reading `~/.ssh` and `~/.aws`, GitHub and AWS secret writes, force-push, `rm -rf`, bypass flags; it also carries the irreversible-action rules that used to live in the plugin. | Irreversible damage and credential reads. | Claude Code and Codex. Prefix match: `git -C dir push --force` is not caught. ~~*Open decision* ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59)): whether it sits in the managed layer.~~ Decided on #59: rendered into the managed layer, user copy kept until that one is installed ([ADR-0016](adr/0016-user-level-deny-floor-rendered-per-harness.md), 2026-10-05 amendment). |
 | **Connector access per agent** | Each agent declares its allowed tools (native per-agent tool list), so access to account connectors (mail, files, professional network) is granted per agent; a brief instruction says the same. No hook. | A subagent reading or sending through the owner's accounts. | Claude Code natively; other agent harnesses per the [enforcement matrix](#10-native-enforcement-matrix). |
 | **Breaking glass** | ~~A root-owned, expiring switch; the agent only prints the `sudo` line.~~ No switch and no expiry: the administrator edits or removes the managed documents with `sudo`, as with any OS-managed policy ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md), [runbook](runbooks/breaking-glass.md)). Exists only while a hook exists. | A protection misfiring with no way out. | macOS and Linux. Scope follows the paste prompt hook decision ([#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56), [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)). |
 | **Stale configuration** | Covered by the version key ([7](#7-version-key-per-project)) and the restart rule of ADR-0022 as an instruction; no restart-guard hook. | A session running on stale configuration. | All three agent harnesses, best effort. |
@@ -361,10 +402,10 @@ and instructions. A hook stays only if all three hold:
 
 | Behaviour | Carrier in the target |
 | --- | --- |
-| Paste cleaning outside the wrapper | *Open decision* ([#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)). The prompt hook is the only candidate that passes the test, because once a secret is sent the provider already has it. The alternative is the wrapper (a terminal launcher, not a hook) plus the brief's instruction not to use, repeat or store a pasted secret. |
+| Paste cleaning outside the wrapper | The prompt hook, which blocks only where the wrapper's marker is absent (decided on [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58), 2026-10-05). It is the only candidate that passes the test, because once a secret is sent the provider already has it. |
 | Stale configuration | Brief instruction (ADR-0022 rule) plus `./workstation status` |
 | One-question, short pickers | Owner overlay instruction, calibrated by the interaction interview ([5](#5-interaction-standards-user-layer)) |
-| Session-type intake | The workspace brief asks; native session-start context where the agent harness offers it without a hook |
+| ~~Session-type intake~~ | ~~The workspace brief asks; native session-start context where the agent harness offers it without a hook~~ Removed on the owner's interview (#60) |
 | Version-key check | Project brief instructs the agent to compare the key with the installed stamp at session start; `./workstation status` on demand |
 | Irreversible actions and secret writes | Native deny rules (deny floor) |
 | Connector access | Native per-agent tool lists |
@@ -374,20 +415,52 @@ and instructions. A hook stays only if all three hold:
 Consequence: ~~`/breaking-glass` and the admin-layer hook installation exist only if the paste prompt hook
 stays.~~ `/breaking-glass` is removed
 ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)). The admin-layer
-hook installation exists only while a hook stays: the paste prompt hook (#58) and the picker guard
-(until #60). The deny floor is native configuration, not a hook, and stays.
+hook installation exists only while a hook stays: the paste prompt hook (#58). ~~and the picker guard
+(until #60)~~ The picker guard is removed (#60). The deny floor is native configuration, not a hook, and stays.
+
+## 4b. Pre-authorisation for autonomy (user layer, behind the managed barrier)
+
+In the owner's words (translated, #83): this project "also organises the pre-authorisation of the tools
+and commands needed to reach the intended level of autonomy by design, relying on the protective
+barrier of the proposed managed workstation."
+
+- **One source, rendered natively.** `global/allow-list.conf`, plus the owner overlay's test suites,
+  becomes Claude Code `permissions.allow` and permission mode, a Codex rules file and `workstation`
+  profile, and a Kiro `workstation` agent. Deny always wins over allow.
+- **Two tiers.**
+
+| Tier | When it is rendered | What it pre-authorises |
+| --- | --- | --- |
+| **Narrow** | Always | Read and inspect only: `git status`, `git rev-parse`, reading Issues and pull requests, and similar. Nothing that writes or publishes. |
+| **Wide** | Only while the root-owned admin deny floor is complete for that agent harness | The full inner loop (owner, #83): git read routes, `git add --`, `git commit -m`, branch creation, fetch, the repository's own test suites by script, `acceptEdits` in Claude Code and `workspace-write` in Codex. A test runner executes repository code without a prompt; that is the owner's accepted trade-off. |
+
+- **Never pre-authorised, in any tier:** `git push`, publishing routes (`gh pr create`, comments, `gh
+  api`), `./workstation`, a shell or interpreter as a standalone entry, an option as the word right
+  after `git` or `gh` (`git -c`, `git -C`, `gh -R`), `-R` or `--repo` in any position and spelling
+  (`gh pr -R`, `--repo=`), a leading environment assignment (`GIT_CONFIG_PARAMETERS=… git log`), and
+  tool-wide `Edit`, `Write` or `Read`. The installer refuses such an entry before writing anything
+  (each case is in `global/allow-list.test.sh`, mutation-checked). Other spellings it does not list
+  are not claimed refused.
+- **Kiro** receives the narrow tier only, because it carries no deny floor.
+- **Where it lives:** the user layer, a convenience the owner can tune. The barrier it relies on is
+  the managed layer ([4](#4-protection-core-managed-layer)).
+- Decision record: [ADR-0031](adr/0031-pre-authorisation-allow-list-behind-the-admin-floor.md).
 
 ## 5. Interaction standards (user layer)
 
-> **To be calibrated in an owner interview before anything here is built**
-> ([#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60)).
-> The rows are a starting proposal, not decisions.
+> ~~**To be calibrated in an owner interview before anything here is built**~~
+> ~~([#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60)).~~
+> ~~The rows are a starting proposal, not decisions.~~
+> Calibrated in the owner interview of 2026-10-05, recorded on
+> [#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60).
 
 | Element | Target behaviour | Status |
 | --- | --- | --- |
 | Owner overlay (language, tone, escalation limits, pacing) | Rendered into each agent harness's user brief by the profile compiler; the single place for owner-specific text (no owner language hard-coded in generic code) | Agreed |
-| Picker behaviour | Instruction in the owner overlay only: one question per ask, short question, options that state their consequence; no hook | Interview owed |
-| Session-type intake | Workspace brief instruction only; `workspace/session-policy.json` is the single source; the global brief keeps one generic sentence | Interview owed |
+| Picker behaviour | Instruction in the owner overlay only: one question per message, a stem of at most 280 characters, reasoning in a linked artifact; a decision gets three options (one extreme, the opposite extreme, the middle ground); no hook | Decided 2026-10-05 (#60) |
+| Language | Portuguese with the owner; English for everything published | Decided 2026-10-05 (#60) |
+| Session-type intake | ~~Workspace brief instruction only; `workspace/session-policy.json` is the single source; the global brief keeps one generic sentence~~ Removed entirely: no hook, no command, no brief copy | Decided 2026-10-05 (#60) |
+| Merge authority | Agents merge slices into `rc/next` after the review gate; only the release-candidate PR to `main` waits for the owner | Decided 2026-10-05 (#60) |
 | MCP definition renderer | Not part of the main line; it returns as a standard if use asks for it | Agreed |
 
 ## 5a. Documentation standards (user layer, every repository)
@@ -450,8 +523,9 @@ project live in `tadeumendonca-io`'s workspace layer
 harness's own native mechanism:
 
 - Claude Code: `agents/`, `skills/` and `commands/`.
-- Codex: custom agents, skills and prompts.
-- Kiro: custom agents, steering and prompts.
+- Codex: custom agents and skills; a command is a skill with implicit invocation off.
+- Kiro: custom agents, steering and skills; a command is a skill, which is a slash command in both the
+  CLI and the IDE.
 
 Where an agent harness lacks the native component, the gap is measured and stated in the
 [enforcement matrix](#10-native-enforcement-matrix), never filled by a hook.
@@ -460,12 +534,12 @@ Where an agent harness lacks the native component, the gap is measured and state
 
 | Agent | Role | Preloaded skills | Layer |
 | --- | --- | --- | --- |
-| agents-lead | Pair on agent harness configuration; names uncovered scenarios before building | agents-configuration, engineering-standards, documentation-standard, definition-of-ready, shell, devops | user |
-| tech-lead | Architecture, cost of choices, decision-record author | documentation-standard, agents-configuration, engineering-standards, definition-of-ready, shell, devops | user |
-| developer | Builds a slice end to end with tests | definition-of-done, quality-gates, agents-configuration, engineering-standards, shell, devops | user |
-| quality-assurance | Single merge gate: definition of done plus production risk | agents-configuration, engineering-standards, definition-of-done, quality-gates, devops, shell | user |
+| agents-lead | Pair on agent harness configuration; names uncovered scenarios before building | agents-configuration, engineering-standards, documentation-standard, definition-of-ready, shell, scm, ci | user |
+| tech-lead | Architecture, cost of choices, decision-record author | documentation-standard, agents-configuration, engineering-standards, definition-of-ready, shell, scm, ci, provisioning | user |
+| developer | Builds a slice end to end with tests | definition-of-done, quality-gates, agents-configuration, engineering-standards, shell, scm, ci, provisioning | user |
+| quality-assurance | Single merge gate: definition of done plus production risk | agents-configuration, engineering-standards, definition-of-done, quality-gates, scm, ci, provisioning, shell | user |
 | scrum-master | Ranks the pool, names who acts next; no tools | agents-configuration, engineering-standards | user |
-| product-lead | Product and market side of the owner's public presence; uses the browser connector | agents-configuration, engineering-standards, definition-of-ready, shell | *Open decision* (#61): user or site |
+| product-lead | Product and market side of the owner's public presence; uses the browser connector | agents-configuration, engineering-standards, definition-of-ready, shell | user (decided on #61, ADR-0032) |
 | content-writer | Drafts what the owner publishes, in his voice, in every external channel | agents-configuration, engineering-standards, shell, published-voice | user |
 | content-reviewer | Repairs drafts against the voice skill before the owner reads them | same as content-writer | user |
 
@@ -473,6 +547,14 @@ Optional: a calibration interview for the content agents under the wider lens (p
 digital marketing across all external interaction). The owner is open to it.
 
 ### Skills, grouped by category
+
+**Capability skills carry a tool disclaimer.** The former `devops` skill is split by capability, not by
+vendor (owner, #97): `scm` (GitHub), `ci` (GitHub Actions), `quality-gates` (SonarCloud for static
+analysis) and `provisioning` (Terraform Cloud). In his words (translated): "naming by capability is
+right, with a disclaimer inside that it is written for the selected tool and can easily be reconfigured
+to other options." So each of the four opens with a disclaimer naming its current tool, and keeps
+everything tool-specific in one closing *Tool section*; switching tools replaces that section only. The
+renderer's suite fails on a capability skill without both.
 
 Categories: **General** applies to any way of working; **Agile (Scrum)** is the Scrum method the loop
 follows; **Public persona** is what the owner publishes; **Technical stack** holds reference patterns for
@@ -486,13 +568,15 @@ a technology stack; **Reference** holds unused patterns.
 | 4 | engineering-standards | A non-negotiable floor plus risk-calibrated judgement | General | all 8 agents | user | The owner's technical preferences behind every new solution, given to the agents that build and review it. Portable to any project. |
 | 5 | definition-of-ready | The bar an item clears before it is built | Agile (Scrum) | agents-lead, tech-lead, product-lead | user | Stops work from starting on undecided scope, so the owner is not pulled back in mid-build. |
 | 6 | definition-of-done | What "done" means and which criteria a gate proves; includes an author's self-check section (mutation-check new assertions, run the gates before submitting) | Agile (Scrum) | quality-assurance, developer | user | Keeps "the agent finished" and "the work is done" as two different claims: the gate proves each criterion with evidence. The author's self-check lives here, not in a separate skill. |
-| 7 | quality-gates | CI/CD gate policy and thresholds | Technical stack | developer, quality-assurance | user | One set of thresholds that every repository's CI applies, so a merge means the same thing everywhere; project-specific thresholds stay in that project's CI. |
-| 8 | devops | GitHub Actions, branching, SemVer, Terraform Cloud, SonarCloud | Technical stack | agents-lead, tech-lead, developer, quality-assurance | *Open decision* (#61) | Mixed: GitHub, branching and SemVer are generic; Terraform Cloud and SonarCloud belong to the site's stack. Split, or keep whole at user level. |
+| 7 | quality-gates | CI/CD gate policy and thresholds, with the static-analysis gate (SonarCloud) in its tool section (#97) | Technical stack | developer, quality-assurance | user | One set of thresholds that every repository's CI applies, so a merge means the same thing everywhere; project-specific thresholds stay in that project's CI. |
+| 8 | scm | Source control (GitHub): repositories, pull requests, merge commits only, the PR-only path to `main`, the integration branch `rc/next`, labels, the numeric SemVer release flow, the repository-settings standard, the Claude Code GitHub App | Technical stack | agents-lead, tech-lead, developer, quality-assurance | user | Split from the former `devops` by capability (#97). Named by capability; the GitHub specifics sit in one tool section behind a disclaimer, so a tool switch replaces that section only. |
+| 8a | ci | Continuous integration (GitHub Actions): workflows, required checks, runners, pinned actions, the release workflow | Technical stack | agents-lead, tech-lead, developer, quality-assurance | user | Split from the former `devops` (#97); same disclaimer and tool-section shape. |
+| 8b | provisioning | Provisioning (Terraform Cloud): remote state and runs, the pipeline-only IaC floor | Technical stack | tech-lead, developer, quality-assurance | user | Split from the former `devops` (#97); same disclaimer and tool-section shape. The SonarCloud part of `devops` went to `quality-gates` (row 7). |
 | 9 | published-voice | The owner's published voice and the lane from draft to published, in every channel | Public persona | content-writer, content-reviewer | user | The single skill that anchors both content agents: his voice in every external interaction, plus the drafting pair, the review bound and the social pair. Site release steps (preview, deploy) stay in the site project. |
 | 10 | backend | Reference pattern for a BFF on Lambda | Technical stack | none (on demand) | site | The site's stack. |
 | 11 | frontend | React + Vite SPA end to end | Technical stack | none | site | The site's stack. |
 | 12 | cloud-infrastructure | AWS in Terraform, per service | Technical stack | none | site | The site's stack. |
-| 13 | planning-poker | Estimation pattern; the loop runs no estimation ceremony | Reference | none | *Open decision* (#61) | Not used by the loop. Candidate to drop under "thin". |
+| 13 | planning-poker | How the agents estimate an item's `sp:N` weight: each estimator dispatched in isolation, the median recorded | Agile (Scrum) | none (on demand) | user | Kept by the owner on #61: *"planning-poker é usado pelos agentes"* (planning-poker is used by the agents). |
 
 ### Slash commands
 
@@ -514,28 +598,34 @@ Publication follows the workspace brief and the delivery gate; no command is nee
 ### Commands in each agent harness
 
 **Rule:** a command is something the owner invokes by hand, so it is rendered as each agent harness's
-**native command file** wherever one exists. It becomes a skill only where the agent harness has no
-command file. One source text per command is rendered into each format.
+**native command file** wherever one exists and works on every surface of that agent harness. Otherwise
+it is a skill. One source text per command is rendered into each format.
 
 | Agent harness | Native carrier (user level) | How the owner invokes `/handover` | Arguments |
 | --- | --- | --- | --- |
 | Claude Code | Command file `~/.claude/commands/handover.md` | `/handover fix the release script` | Yes (`$ARGUMENTS`) |
-| Kiro (CLI; IDE to be measured) | Prompt file `~/.kiro/prompts/handover.md` | `/handover fix the release script` (or `@handover`) | Yes (`$ARGUMENTS`, `${1}`…) |
+| Kiro (CLI and IDE) | Skill `~/.kiro/skills/handover/SKILL.md`, a slash command in both | `/handover fix the release script` | Free text after the name; placeholder substitution is documented for the CLI only |
 | Codex (CLI and IDE) | Skill `~/.agents/skills/handover/`, with implicit invocation switched off so it behaves like a command | `$handover fix the release script`, or pick it from `/skills` | No documented syntax: the rest of the message is read as context |
 
 - **Why Codex differs:** its native command file (custom prompts, `/prompts:name`) is deprecated by the
   vendor in favour of skills.
+- **Why Kiro uses a skill, not a prompt file:** the Kiro IDE slash menu lists skills, agents and
+  steering, not prompt files, and prompt-file arguments are documented for the CLI's V3 engine only. A
+  skill is a slash command in both ([enforcement matrix](native-enforcement-matrix.md), finding 3). A
+  Kiro skill cannot switch off implicit invocation, so its description tells the agent to run it only
+  when the owner types it.
 - **Claude Code note:** the vendor documents commands as merged into skills. The command file format
   still works and gives the same `/name`. If it is ever removed, the same text moves to
   `~/.claude/skills/` with no change in how the owner types it.
 - **Same pattern for every command:** Claude Code and Kiro use `/name`; Codex uses `$name`.
 - **Arguments:** commands work with free text after the name, so nothing depends on syntax that Codex
   lacks.
-- **Gaps:** Kiro IDE support for prompt files is not confirmed; the Codex desktop app's syntax is not
-  documented; Kiro Web has no user-level files.
-- **Evidence:** documented (vendor documentation read 2026-10-05), not yet measured on the installed
-  binaries; measured in the [enforcement matrix](#10-native-enforcement-matrix)
-  ([#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55)).
+- **Gaps:** the Codex desktop app's syntax is not documented; Kiro Web has no user-level files; Codex
+  `$name` invocation is not measured.
+- **Evidence:** Claude Code 2.1.289 lists the command files, and Codex 0.160.0 keeps the command skills
+  out of the model-visible list (measured in throwaway homes); every Kiro cell is documented, because
+  measuring it needs a login ([enforcement matrix](#10-native-enforcement-matrix),
+  [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55)).
   [Claude Code skills and commands](https://code.claude.com/docs/en/skills) ·
   [Kiro prompts](https://kiro.dev/docs/cli/chat/manage-prompts/) ·
   [Codex skills](https://learn.chatgpt.com/docs/build-skills) ·
@@ -545,7 +635,7 @@ command file. One source text per command is rendered into each format.
 
 The method carries no hooks. What the plugin's hooks enforced is carried by native configuration or by
 instructions, as listed in the [hook budget](#4a-hook-budget). The browser MCP server goes wherever
-product-lead lands (open decision, #61).
+product-lead lands: the user level (decided on #61).
 
 ## 7. Version key per project
 
@@ -559,6 +649,12 @@ product-lead lands (open decision, #61).
 - **Covers:** stale configuration and stale installs.
 - **Coverage:** the same instruction in all three agent harnesses; `./workstation status` is the
   deterministic check.
+
+- **As built (2026-10-05, [ADR-0030](adr/0030-version-key-and-one-entry-point.md)):** the file is
+  `.workstation-version` at the project root; comparators `>=`, `>`, `<=`, `<`, `=` separated by blanks.
+  The instruction sits in the **user** brief (one copy reaches every project), not in each project
+  brief. The installed release is the provenance stamp ([9a](#9a-provenance-stamp-in-every-installed-file));
+  `unreleased, after vX.Y.Z` compares as X.Y.Z. This repository carries `>=4.0 <5`: the release candidate cuts v4.0.0 (Issue #65).
 
 Slice: [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57).
 
@@ -614,6 +710,13 @@ agent harnesses, carries the commit SHA and the SemVer tag it came from, written
 - **Drift check:** `status` compares each file's stamp and content hash with the manifest and names any
   file that was edited by hand or left behind by an older version.
 - **Generated plugin:** every file in the `tadeumendonca-skills` mirror carries the same stamp.
+- **As built for the installers (2026-10-05, [ADR-0029](adr/0029-provenance-stamp-in-every-installed-file.md)):**
+  the JSON files carry the stamp in a field the agent harness ignores (Codex `hooks.json`
+  `description`; one top-level key in the Claude Code settings and admin drop-in), measured to load,
+  instead of an installed manifest. `install.sh --check` and `install-managed.sh --check` report the
+  stamp. `install.ps1` does the same (CI-verified on Windows). The MCP renderer stamps its launcher and
+  Codex block. For the entries it writes into the apps' JSON files, it records the stamp in its own
+  manifest.
 
 ## 9b. One install command, managed by the repository
 
@@ -636,8 +739,34 @@ Owner requirement: an easy install mechanism run from the git repository itself
   - Pasting the desktop-app instructions stays manual, but `status` flags when they are stale.
   - No automatic install on `git pull`: installing stays an explicit act.
 
+- **As built (2026-10-05, [ADR-0030](adr/0030-version-key-and-one-entry-point.md)):** `install`,
+  `install --admin`, `status [--verbose]`, `check`, `update [vX.Y.Z]` and `uninstall`. `install` works
+  from the current checkout, writes the user layer for all three agent harnesses and moves the hooks to
+  the admin layer when it detects one; `install --admin` prints the `sudo` line. `update` refuses a
+  modified tracked file, fetches tags, checks out the newest numeric release (or the one given) and
+  installs with that release's own code; selecting a version is `update vX.Y.Z`, not `install [version]`.
+  `uninstall` removes the user layer and prints the admin layer's `sudo` removal line. `status` does not
+  yet compare with the latest published release.
+
 Easier distribution beyond this command (for example a bootstrap line or a package-manager formula) is a
 later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68)).
+
+## 9c. Prerequisites: declared and checked, never applied
+
+Owner requirement (#89): the managed workstation manages every subscription and tool that working
+this way needs. By his decision of 2026-10-05, the release candidate carries it **check-only**.
+
+- **Declaration:** `global/prerequisites.json`, one versioned list of the tools and subscriptions
+  (GitHub, the agent harness subscriptions, SonarCloud, Terraform Cloud and others), with the preferred
+  settings for each, calibrated from the site project's current stack. Credentials are named by their
+  variable names only; values never enter the repository.
+- **Check:** `./workstation check` (and `check --prerequisites` alone) reports, per item: present or
+  missing, authenticated or not, and drift from the preferred settings (for example the GitHub merge
+  standard: merge commits on, squash off). A missing required item exits non-zero.
+- **Never applied by the check.** Applying settings to real accounts comes after the owner tests the
+  release candidate; the one existing apply route, `github-repo-settings.sh --apply`, is his act.
+- **GitHub only** for code hosting ([2](#2-goals-and-principles-from-the-owner), principle 10).
+- Details: [`docs/prerequisites.md`](prerequisites.md).
 
 ## 10. Native enforcement matrix
 
@@ -670,7 +799,7 @@ The matrix itself, with its findings against this document, is
 | [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55) | Native enforcement matrix | patch (docs) | none |
 | [#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56) | Stale configuration through the version key; breaking glass reduced to what remains | major | admin install, fresh session |
 | [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57) | Version key, warning mode | minor | none |
-| [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) | Paste cleaning: wrapper first; the prompt hook per the hook budget | minor or major | allow the shell start-up line |
+| [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) | Paste cleaning: wrapper first; the prompt hook per the hook budget | ~~minor or major~~ major (the hook stops judging wrapped sessions) | allow the shell start-up line |
 | [#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59) | Deny floor carries the irreversible-action rules | minor | install |
 | [#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60) | Interaction standards as instructions, after the interview | major | interview, install |
 | [#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61) | Working method at the user layer (one pull request per block) | minor each | install |
@@ -688,6 +817,14 @@ The matrix itself, with its findings against this document, is
 | [#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75) | `/blueprint` reshaped: export and import as a requirements document | minor | none |
 | [#76](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/76) | Per-Issue agent harness consumption record (worklog) | minor | none |
 | [#77](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/77) | Ten commandments in the user-level brief, after ratification | minor | ratify, install |
+| [#80](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/80) | Session-start runtime summary | minor | install |
+| [#83](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/83) | Pre-authorisation tiers ([4b](#4b-pre-authorisation-for-autonomy-user-layer-behind-the-managed-barrier)) | minor | admin install first |
+| [#89](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/89) | Prerequisites, check-only ([9c](#9c-prerequisites-declared-and-checked-never-applied)) | minor | none |
+| [#97](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/97) | Capability skills `scm`, `ci`, `quality-gates`, `provisioning` | minor | install |
+
+The release column is the part each slice would cut on its own. Since 2026-10-05 a slice cuts no
+release: it merges into `rc/next`, and the release-candidate pull request cuts one release for all of
+them, at the highest part any of them carries ([3b](#delivery-route-slices-into-rcnext-only-the-release-candidate-into-main)).
 
 
 Order rule: install the new protection before removing the old copy. Every installation on the machine
@@ -723,24 +860,34 @@ is the owner's act, in a fresh session.
 
 ## 14. Open decisions (one at a time)
 
-1. Paste prompt hook: the single justified hook, or removed ([4a](#4a-hook-budget),
-   [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58))?
+1. ~~Paste prompt hook: the single justified hook, or removed ([4a](#4a-hook-budget),
+   [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58))?~~
+   Decided: kept, as the safety net for sessions not opened through the wrapper (#58; ADR-0033).
 2. ~~Deny floor: in the managed layer
    ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59))?~~
    Decided: yes (#59; ADR-0016, 2026-10-05 amendment).
-3. product-lead: user layer or site
-   ([#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61))?
-4. Skill `devops`: split between user and site, or kept whole (#61)?
-5. Skill `planning-poker`: kept or dropped (#61)?
+3. ~~product-lead: user layer or site
+   ([#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61))?~~
+   Decided: user level (#61, ADR-0032).
+4. ~~Skill `devops`: split between user and site, or kept whole (#61)?~~
+   Decided: kept whole at user level (#61), then split by capability into `scm`, `ci`, `quality-gates`
+   and `provisioning`, all at user level (#97).
+5. ~~Skill `planning-poker`: kept or dropped (#61)?~~ Decided: kept at user level; the agents use it
+   to estimate (#61).
 
 ### Interviews owed
 
-- Interaction standards ([5](#5-interaction-standards-user-layer)), before anything there is built
-  ([#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60)).
+- ~~Interaction standards ([5](#5-interaction-standards-user-layer)), before anything there is built
+  ([#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60)).~~
+  Held on 2026-10-05 (#60).
+- The agent runtime: local containers, cloud-ready, a web console
+  ([#79](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/79)); a new
+  idea that goes through the requirements route first.
 - Content agents under the persona-wide lens: optional; the owner is open to it.
 - Business case ([1b](#1b-business-case)) and the ten commandments ([1c](#1c-ten-commandments-for-working-with-an-agent-harness-every-day)): to be completed and ratified with the owner.
 
 Decided: connector access is granted through native per-agent tool lists, not a hook.
 
-Separately pending in the decision-record library: 18 ratifications listed in the setup review. Each
-is raised only when a slice reaches it.
+Separately pending in the decision-record library: the ratification of every proposed record, listed
+with the other owner asks (the ten commandments, the plugin-mirror credential for #62, the runtime
+interview) in the [decision-record index](adr/README.md). Each is raised only when a slice reaches it.

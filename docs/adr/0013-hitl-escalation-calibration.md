@@ -1,7 +1,9 @@
 # 0013 — HITL escalation calibration: one generic policy, an owner overlay, and a user-level guard where a harness can carry one
 
 - **Status:** accepted for the decision (the owner's request, below). The concrete rules and limits
-  marked *proposed* go beyond his stated preferences and await his ratification.
+  marked *proposed* go beyond his stated preferences and await his ratification. ~~The user-level
+  guard~~ removed, and every limit ratified as an instruction, on the owner's interview of 2026-10-05
+  (amendment at the end).
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -131,8 +133,8 @@ overlay.
 | --- | --- | --- |
 | `global/AGENTS.md` | the generic rules | every harness's user-level brief (ADR-0010) |
 | `overlay/AGENTS.md` | his language rule and his limits, in words | appended to that brief |
-| `global/hitl.conf` | `max_questions=1`, `max_question_chars=0` (length off) | the guard's config |
-| `overlay/hitl.conf` | `max_question_chars=280` (*proposed* reading of "tweet"), and the owner notice in Portuguese (`notice_count`, `notice_length`) | appended; the last value wins |
+| ~~`global/hitl.conf`~~ | ~~`max_questions=1`, `max_question_chars=0` (length off)~~ | ~~the guard's config~~ |
+| ~~`overlay/hitl.conf`~~ | ~~`max_question_chars=280` (*proposed* reading of "tweet"), and the owner notice in Portuguese (`notice_count`, `notice_length`)~~ | ~~appended; the last value wins~~ |
 
 `max_questions=1` is generic rather than personal, because a second question can be lost on some
 surfaces without anything reporting the loss. How short an interruption must be is personal, so the
@@ -146,7 +148,9 @@ starts a comment, and a last line with no trailing newline is read. A numeric va
 non-negative integer is ignored, and the built-in default applies. Tests cover each of these cases,
 because a value the parser drops silently turns a check off.
 
-### The guard: `global/hooks/hitl-escalation-guard.sh`
+### ~~The guard: `global/hooks/hitl-escalation-guard.sh`~~
+
+*Removed 2026-10-05 (amendment at the end). The section below is the record of what was built.*
 
 - It refuses a structured picker whose question count exceeds `max_questions`, or whose question stem
   exceeds `max_question_chars` (counted in characters, not bytes).
@@ -190,15 +194,18 @@ there. On the reference Mac they run under its `sh`.
 | Claude desktop / Cowork, ChatGPT desktop | none | no local user-level brief (ADR-0010); outside reach (ADR-0004, dichotomy of control) |
 | Windows | brief and overlay only (`install.ps1`, ~~**untested**~~ tested on a Windows CI runner, ADR-0010's 2026-10-01 amendment on Windows, Linux and Kiro CLI) | the guard and ~~the settings merge~~ its settings hook entry are not ported (the deny-floor merge is, ADR-0016) |
 
-**Nothing here only warns.** Where a hook exists it refuses. Everywhere else the rules are
-instructions, and say so.
+~~**Nothing here only warns.** Where a hook exists it refuses. Everywhere else the rules are
+instructions, and say so.~~ Since 2026-10-05 no hook exists on any row: every rule is an instruction.
 
 ### Coexistence with the plugin's guard
 
-On the reference install, both guards fire on `AskUserQuestion` and both deny two or more questions.
-The duplication is deliberate for now. This repository's guard is the owned one, and it adds the
-length limit and the owner notice. Retiring the plugin's copy is a decision for the owner in that
-repository; it is named here, not filed. If either is removed, the other still holds the count.
+~~On the reference install, both guards fire on `AskUserQuestion` and both deny two or more questions.
+The duplication is deliberate for now.~~ Since 2026-10-05 this repository's guard is removed; the
+plugin's duplicate is the plugin's to remove, under #63. ~~This repository's guard is the owned one, and it adds the
+length limit and the owner notice.~~ Retiring the plugin's copy is a decision for the owner in that
+repository; it is named here, not filed. ~~If either is removed, the other still holds the count.~~
+*(Struck 2026-10-05, Issue #65: this repository's guard is removed, so it adds nothing and holds no
+count; only the plugin's copy, while that plugin is enabled, still checks the count.)*
 
 ## Consequences
 
@@ -251,3 +258,55 @@ The two-option session-intake exception was gated on the event `cwd` resolving t
 intake. `global/hitl.conf` now declares `intake_exception=Session type|Melhoria de harness|Bugfix`,
 exact on header, labels and order, single-select, valid in any directory. The guard reads its
 breaking-glass switch (ADR-0024) and, from v2, is registered in the admin layer (ADR-0025).
+
+## Amendment 2026-10-05: the picker guard is removed; every rule is an instruction ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+
+**The owner's interview of 2026-10-05**, recorded verbatim on [Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60):
+
+- decision format: *"eu quero 3 opcoes da seguinte forma: extremo 1, extremo 2, meio termo."* A decision always gets three options: one extreme, the opposite extreme,
+  and the middle ground.
+- the session-type intake: *"eu removeria. achei que traz mais problemas do que solucao."*
+- one question per message, a stem of at most 280 characters, reasoning in a linked artifact:
+  *"mantém como está"* (keep it). The interview record adds that it becomes an instruction in the owner overlay
+  and that no hook enforces it.
+- Portuguese with him, English for everything published: *"mantém como está"*
+
+**What changes.**
+
+- `global/hooks/hitl-escalation-guard.sh`, its suite, `global/hitl.conf` and the generated
+  `overlay/hitl.conf` are deleted. The profile compiler no longer generates `hitl.conf`.
+- `install.sh` no longer installs the guard or merges its `PreToolUse(AskUserQuestion)` entry. A run
+  deletes the managed guard script and limits an earlier version installed, and every settings entry
+  of its own; `--check` reports each of them as `STALE` and exits 1 until then.
+  `install-managed.sh` drops the entry from the Claude Code drop-in and treats the two files as
+  legacy: `--apply` and `--remove` delete them, `--check` reports them. `./workstation status`
+  names a still-registered entry as a leftover, never as a protection.
+- The rules stay, as instructions: the generic ones in the global brief's "Escalating to the owner"
+  (one question per message, the question first, reasoning in a linked artifact, decision or
+  action), and the owner's in the generated overlay (the 280-character stem, three options as above,
+  his language split). The superseded parts of this record are struck in place above: the two
+  `hitl.conf` rows, the guard section, "Nothing here only warns" and the coexistence paragraph.
+- The 2026-10-04 intake exception below no longer has a guard to exempt it from, and the intake
+  itself is removed (ADR-0021, 2026-10-05 amendment).
+- The plugin's duplicate one-question guard is out of scope for this repository. Its removal belongs
+  to the plugin and is tracked under #63.
+
+**Why.** The guard refused legitimate pickers (the PRD's problem statement names yes/no questions),
+and its intake exception needed two defect fixes in three days (ADR-0023, ADR-0025). The owner chose
+instructions over a hook for every interaction standard.
+
+**Consequences.**
+
+- Good: no false refusal reaches the agent or the owner, and no picker shape needs an exception.
+- Good: one hook, its `jq` dependency at run time and its notice localization leave the installers.
+- Bad: no layer now refuses a two-question picker or an over-length stem on Claude Code. A prose
+  second question was never caught by any layer; a structured one is not caught either now.
+- Bad: a machine whose user or admin layer predates this change keeps refusing until the owner
+  reinstalls both layers; `--check` names the leftovers in the meantime.
+- Evidence level: *written and tested* (`global/install.test.sh`, `global/install-managed.test.sh`,
+  `global/workstation_test.py`, `global/profile/profile_test.py`, `workspace/delivery_test.py`; each
+  regression assertion was mutation-checked against its source). Probed in a throwaway home and admin
+  root: a planted guard script, limits file and settings entry were reported `STALE` and then deleted
+  by one install, and the three rendered briefs carry the rules. **Not installed** on the reference
+  machine; whether a model follows the rules is not measured.
+- Version cut (ADR-0002): **major**, because it removes a control.

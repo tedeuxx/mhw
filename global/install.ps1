@@ -3,17 +3,19 @@
 #
 #   install.ps1            install or update every managed target
 #   install.ps1 -DryRun    print exactly what would be written where; write nothing
-#   install.ps1 -Check     exit non-zero if any target is missing, drifted or unmanaged
+#   install.ps1 -Check     exit non-zero if any target is missing, drifted, unmanaged, or carries a
+#                          provenance stamp other than the source's (Issue #66, ADR-0029)
 #   install.ps1 -Overlay D owner overlay directory (default: <repo>\overlay); -Overlay none for none
+#   install.ps1 -Method    opt-in (Issue #61): also render the working method; off until the plugin cutover
 #
-# Renders the brief and the deny floor. The deny floor is merged into %USERPROFILE%\.claude\settings.json
+# Renders the brief, the deny floor and the working method (global\method\method_render.py, ADR-0032). The deny floor is merged into %USERPROFILE%\.claude\settings.json
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
-# <CODEX_HOME>\rules\workstation-deny-floor.rules. The HITL escalation guard and its hook entry
-# (ADR-0013) are NOT ported to Windows: install.sh carries them, and on Windows the escalation rules are
-# instructions only. The paste filter at the harness-CLI prompt (ADR-0011) is not ported either: it runs
+# <CODEX_HOME>\rules\workstation-deny-floor.rules. The escalation rules (ADR-0013) are instructions
+# on every OS; the HITL picker guard hook was never ported here and is removed everywhere since Issue
+# #60. The paste filter at the harness-CLI prompt (ADR-0011) is not ported either: it runs
 # on the stock /usr/bin/python3, which Windows does not have.
 #
-# Exit codes: 0 ok, 1 drift or missing (-Check), 2 usage or invalid floor entry, 3 an UNMANAGED or
+# Exit codes: 0 ok, 1 drift, stamp or missing (-Check), 2 usage or invalid floor entry, 3 an UNMANAGED or
 # unreadable file is in the way.
 # Tested on a Windows CI runner under both Windows PowerShell 5.1 and PowerShell 7 by
 # global/install.test.ps1 (.github/workflows/tests.yml, job windows). The settings merge re-serializes
@@ -23,6 +25,7 @@
 param(
     [switch]$DryRun,
     [switch]$Check,
+    [switch]$Method,
     [string]$Overlay
 )
 $ErrorActionPreference = 'Stop'
@@ -42,6 +45,38 @@ $toml = Get-Content -LiteralPath (Join-Path $repoRoot '.bumpversion.toml') -Raw
 $m = [regex]::Match($toml, '(?m)^current_version\s*=\s*"([0-9][0-9.]*)"')
 if (-not $m.Success) { Stop-Usage 'cannot read current_version from .bumpversion.toml' }
 $version = $m.Groups[1].Value
+
+# The provenance stamp (Issue #66, ADR-0029), by the same rule as install.sh: release vX.Y.Z on a clean
+# checkout exactly at a numeric tag, otherwise "unreleased, after <nearest tag>" (or "no tag
+# reachable"); the full HEAD SHA, plus "-dirty" when a tracked file differs from HEAD.
+$StampKey = 'personal-multi-harness-workstation-configuration'
+function Invoke-Git([string[]]$a) {
+    # Continue, not Stop: Windows PowerShell 5.1 turns a native command's stderr into a terminating
+    # error under Stop, even when it is redirected.
+    $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    try {
+        $o = & git -C $repoRoot @a 2>$null
+        if ($LASTEXITCODE -ne 0) { return $null }
+        return (@($o) -join "`n").Trim()
+    } catch { return $null } finally { $ErrorActionPreference = $eap }
+}
+$commit = $null
+if ((Get-Command git -CommandType Application -ErrorAction SilentlyContinue) -and
+    (Invoke-Git @('rev-parse', '--is-inside-work-tree')) -ceq 'true') {
+    $commit = Invoke-Git @('rev-parse', '--verify', 'HEAD')
+}
+if ($commit) {
+    $dirty = if (Invoke-Git @('status', '--porcelain', '--untracked-files=no')) { '-dirty' } else { '' }
+    $glob = 'v[0-9]*.[0-9]*.[0-9]*'
+    $exact = if ($dirty) { $null } else { Invoke-Git @('describe', '--tags', '--exact-match', '--match', $glob, 'HEAD') }
+    $near = Invoke-Git @('describe', '--tags', '--abbrev=0', '--match', $glob, 'HEAD')
+    if ($exact -and $exact -cmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { $release = $exact }
+    elseif ($near -and $near -cmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { $release = "unreleased, after $near" }
+    else { $release = 'unreleased, no tag reachable' }
+    $stamp = "release: $release; commit: $commit$dirty"
+} else {
+    $stamp = "release: unknown, not a git checkout (.bumpversion.toml says $version); commit: unknown"
+}
 
 if (-not $Overlay) { $Overlay = Join-Path $repoRoot 'overlay' }
 # A structured profile must be compiled and current before writing any target (ADR-0018).
@@ -127,7 +162,7 @@ if ($floorBad) { exit 2 }
 if ($claudeRules.Count -eq 0) { Stop-Usage 'the deny floor has no entry' }
 
 function Get-CodexRules {
-    $s = "# $MarkerId; source: $floorFrom; version: $version; do not edit, re-run the installer`n"
+    $s = "# $MarkerId; source: $floorFrom; $stamp; do not edit, re-run the installer`n"
     $s += "# The workstation deny floor (ADR-0016). A prefix rule matches the command words from the`n"
     $s += "# program name on; another spelling, a wrapper or a script is not matched.`n"
     foreach ($words in $codexWords) {
@@ -142,7 +177,7 @@ function Get-Rendered([string]$kind) {
     if ($kind -eq 'codexrules') { return Get-CodexRules }
     $head = ''
     if ($kind -eq 'kiro') { $head = "---`ninclusion: always`n---`n" }
-    $head += "<!-- $MarkerId; source: $from; version: $version; sha256: $sha; do not edit, re-run the installer -->`n`n"
+    $head += "<!-- $MarkerId; source: $from; $stamp; sha256: $sha; do not edit, re-run the installer -->`n`n"
     return , ([byte[]]($utf8.GetBytes($head) + $srcBytes))
 }
 
@@ -152,9 +187,23 @@ function Test-Managed([string]$path) {
 }
 
 $script:status = 0
+# Content without the stamp fields of the managed-by line ("version" in files an earlier release wrote).
 function Remove-Stamp([byte[]]$b) {
-    $pattern = '(?m)^(.*' + [regex]::Escape($MarkerId) + '.*?; version: )[^;]*;'
-    return [regex]::Replace($utf8.GetString($b), $pattern, '${1}-;')
+    $lines = $utf8.GetString($b) -split "`n"
+    $lines = foreach ($l in $lines) {
+        if ($l.Contains($MarkerId)) { [regex]::Replace($l, '; (version|release|commit): [^;"]*', '') } else { $l }
+    }
+    return ($lines -join "`n")
+}
+# The release and commit fields of the first managed-by line in a text, or 'none'.
+function Get-StampOf([string]$text) {
+    foreach ($l in ($text -split "`n")) {
+        if ($l.Contains($MarkerId)) {
+            $mm = [regex]::Match($l, '; (release: [^;"]*; commit: [^;"]*);')
+            if ($mm.Success) { return $mm.Groups[1].Value } else { return 'none' }
+        }
+    }
+    return 'none'
 }
 
 function Set-Status([int]$code) { if ($code -gt $script:status) { $script:status = $code } }
@@ -169,14 +218,16 @@ function Invoke-Target([string]$kind, [string]$dest) {
     if (Test-Path -LiteralPath $dest) {
         # Compared as Base64 strings: no reliance on generic-method inference, which differs across versions.
         $current = [System.IO.File]::ReadAllBytes($dest)
-        if ([Convert]::ToBase64String($current) -ceq [Convert]::ToBase64String($bytes)) { Write-Output "OK      $dest"; return }
-        # The managed-by header stamps the release that rendered a file; a release that changes no
-        # installed content reads as OK, not DRIFT, and is not rewritten.
-        if ((Remove-Stamp $current) -ceq (Remove-Stamp $bytes)) { Write-Output "OK      $dest"; return }
+        if ([Convert]::ToBase64String($current) -ceq [Convert]::ToBase64String($bytes)) { Write-Output "OK      $dest ($stamp)"; return }
+        # Matching content under another stamp is STAMP, not DRIFT: -Check flags it, install rewrites it.
+        $restamp = ((Remove-Stamp $current) -ceq (Remove-Stamp $bytes))
+        $was = Get-StampOf $utf8.GetString($current)
     }
     switch ($mode) {
         'check' {
-            if (Test-Path -LiteralPath $dest) { Write-Output "DRIFT   $dest" } else { Write-Output "MISSING $dest" }
+            if (-not (Test-Path -LiteralPath $dest)) { Write-Output "MISSING $dest" }
+            elseif ($restamp) { Write-Output "STAMP   ${dest}: content matches, but it carries ($was) and the source is ($stamp)" }
+            else { Write-Output "DRIFT   $dest ($was)" }
             Set-Status 1
         }
         'dry-run' {
@@ -190,7 +241,7 @@ function Invoke-Target([string]$kind, [string]$dest) {
             $tmp = "$dest.new.$PID"
             [System.IO.File]::WriteAllBytes($tmp, $bytes)
             Move-Item -LiteralPath $tmp -Destination $dest -Force
-            Write-Output "WROTE   $dest"
+            Write-Output "WROTE   $dest ($stamp)"
         }
     }
 }
@@ -234,13 +285,21 @@ function Merge-DenyFloor([string]$settings) {
     }
     # -cnotcontains: case-sensitive, so "rm -Rf" and "rm -rf" stay two rules, as they are in install.sh
     $missing = @($claudeRules | Where-Object { $existing -cnotcontains $_ } | Select-Object -Unique)
-    if ((Test-Path -LiteralPath $settings) -and $missing.Count -eq 0) {
-        Write-Output "OK      $settings (all $($claudeRules.Count) deny-floor rules present)"
+    # The provenance stamp (ADR-0029): JSON has no comment, so one top-level key of ours carries it, as
+    # install.sh writes it (Claude Code ignores a key it does not know, measured on 2.1.289).
+    $want = "$MarkerId; source: global/install.ps1 (only the deny-floor rules merged into this file; every other key is yours); $stamp; do not edit, re-run the installer"
+    $keyProp = $obj.PSObject.Properties[$StampKey]
+    $was = if ($keyProp) { Get-StampOf ([string]$keyProp.Value) } else { 'none' }
+    $stampOk = $keyProp -and ([string]$keyProp.Value) -ceq $want
+    if ((Test-Path -LiteralPath $settings) -and $missing.Count -eq 0 -and $stampOk) {
+        Write-Output "OK      $settings (all $($claudeRules.Count) deny-floor rules present; $stamp)"
         return
     }
     switch ($mode) {
         'check' {
-            if (Test-Path -LiteralPath $settings) { Write-Output "DRIFT   $settings ($($missing.Count) deny-floor rule(s) missing)" } else { Write-Output "MISSING $settings" }
+            if (-not (Test-Path -LiteralPath $settings)) { Write-Output "MISSING $settings" }
+            elseif ($missing.Count -eq 0) { Write-Output "STAMP   ${settings}: the deny floor matches, but its ""$StampKey"" key carries ($was) and the source is ($stamp)" }
+            else { Write-Output "DRIFT   $settings ($($missing.Count) deny-floor rule(s) missing) ($was)" }
             Set-Status 1
         }
         'dry-run' {
@@ -250,6 +309,7 @@ function Merge-DenyFloor([string]$settings) {
         'install' {
             if (-not $perms) { $obj | Add-Member -NotePropertyName permissions -NotePropertyValue ([PSCustomObject]@{}) }
             $obj.permissions | Add-Member -NotePropertyName deny -NotePropertyValue ([object[]]($existing + $missing)) -Force
+            $obj | Add-Member -NotePropertyName $StampKey -NotePropertyValue $want -Force
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $settings) | Out-Null
             if (Test-Path -LiteralPath $settings) { Copy-Item -LiteralPath $settings -Destination "$settings.pmhwc-backup" -Force }
             $tmp = "$settings.new.$PID"
@@ -260,5 +320,28 @@ function Merge-DenyFloor([string]$settings) {
     }
 }
 Merge-DenyFloor (Join-Path $home_ '.claude\settings.json')
+
+# The working method (Issue #61, ADR-0032): agents, skills and commands from <repo>\method, rendered into
+# each agent harness's user-level carrier by global\method\method_render.py, the same step install.sh
+# runs. It gets this script's mode, its stamp and the profile directory, so it never reads HOME.
+function Invoke-Method {
+    $py = $null
+    foreach ($c in @('python3', 'python', 'py')) {
+        $cmd = Get-Command $c -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $cmd) { continue }
+        try { $v = & $cmd.Source --version } catch { continue }
+        if ($LASTEXITCODE -eq 0 -and "$v" -match 'Python 3\.(9|[1-9][0-9])') { $py = $cmd.Source; break }
+    }
+    if (-not $py) {
+        Write-Output 'SKIP    the working method (method\): Python 3.9 or later is required to render it'
+        Set-Status 2
+        return
+    }
+    $a = @("--mode=$mode", "--stamp=$stamp", "--home=$home_")
+    if ($Method) { $a += '--opt-in' }
+    & $py -B (Join-Path $scriptDir 'method\method_render.py') @a
+    Set-Status $LASTEXITCODE
+}
+Invoke-Method
 
 exit $script:status

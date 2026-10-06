@@ -44,7 +44,7 @@ sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check before apply repo
 
 # 2. the hash binds every staged file: a wrong hash or a changed file installs nothing
 sh "$inst" --apply="$stage" --sha256=0000 --root="$r" > /dev/null 2>&1; expect "apply refuses a wrong hash" 3 $?
-for f in bin/clipboard_guard.py bin/hitl.conf claude.json requirements.toml; do
+for f in bin/clipboard_guard.py bin/clipboard.conf claude.json requirements.toml; do
   cp "$stage/$f" "$base/keep"
   printf '\n' >> "$stage/$f"
   sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply refuses a changed $f" 3 $?
@@ -55,12 +55,20 @@ done
 # 3. apply installs the admin documents and the scripts
 sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply exits 0" 0 $?
 if jq -e --arg b "$bin" '
-    (.hooks | keys == ["PreToolUse", "UserPromptSubmit"])
-    and ([.hooks[][] .hooks[] .command | contains($b)] | all)
-    and ([.hooks.PreToolUse[] | select(.matcher == "AskUserQuestion")] | length == 1)' "$dropin" >/dev/null 2>&1; then
-  ok "the Claude Code drop-in registers the paste filter and HITL guard from the admin bin, no restart guard"
+    (.hooks | keys == ["UserPromptSubmit"])
+    and ([.hooks[][] .hooks[] .command | contains($b)] | all)' "$dropin" >/dev/null 2>&1; then
+  ok "the Claude Code drop-in registers the paste filter from the admin bin, and no other hook"
 else
-  ko "the Claude Code drop-in registers the paste filter and HITL guard from the admin bin, no restart guard"
+  ko "the Claude Code drop-in registers the paste filter from the admin bin, and no other hook"
+fi
+# Regression (Issue #60, ADR-0013 2026-10-05 amendment): the removed HITL picker guard stays removed
+# from the admin layer: no AskUserQuestion entry, no PreToolUse event, no guard script or limits.
+if ! jq -e '[.hooks.PreToolUse[]?] | length > 0' "$dropin" >/dev/null 2>&1 \
+   && ! grep -qs -e AskUserQuestion -e hitl-escalation-guard "$dropin" "$req" \
+   && [ ! -e "$bin/hitl-escalation-guard.sh" ] && [ ! -e "$bin/hitl.conf" ]; then
+  ok "no HITL picker guard is registered or installed in the admin layer"
+else
+  ko "a HITL picker guard artefact is in the admin layer"
 fi
 if head -n 1 "$req" | grep -q "managed-by: $NAME" && ! grep -qE '^[[:space:]]*(allow_managed_hooks_only|\[features\])' "$req" \
    && [ "$(grep -c '^\[\[hooks\.[A-Za-z]*\.hooks\]\]' "$req")" -eq 1 ] && grep -q '^\[\[hooks\.UserPromptSubmit\.hooks\]\]' "$req"; then
@@ -118,20 +126,38 @@ else
 fi
 
 modes_ok=1
-for f in hitl-escalation-guard.sh clipboard_guard.py; do
-  [ -x "$bin/$f" ] || modes_ok=0
+[ -x "$bin/clipboard_guard.py" ] || modes_ok=0
+[ -f "$bin/clipboard.conf" ] && [ ! -x "$bin/clipboard.conf" ] || modes_ok=0
+[ "$modes_ok" = 1 ] && ok "the script is executable, the conf is not" || ko "the script is executable, the conf is not"
+sh "$inst" --check --root="$r" > "$base/check-clean.out" 2>&1; expect "check after apply is clean" 0 $?
+# The provenance stamp (Issue #66, ADR-0029): every installed admin file carries the source's stamp,
+# the one --check prints on its SOURCE line, and that names this checkout's HEAD.
+src_stamp=$(sed -n 's/^SOURCE  //p' "$base/check-clean.out")
+head_sha=$(git -C "$here/.." rev-parse --verify HEAD 2>/dev/null || echo unknown)
+case $src_stamp in
+  "release: "*"; commit: $head_sha" | "release: "*"; commit: $head_sha-dirty") ok "the source stamp names HEAD" ;;
+  *) ko "the source stamp names HEAD" "'$src_stamp' vs $head_sha" ;;
+esac
+unstamped=""
+for f in "$dropin" "$req" "$bin/clipboard_guard.py" "$bin/clipboard.conf"; do
+  got=$(grep -m 1 -F "managed-by: $NAME" "$f" | sed -n 's/.*; \(release: [^;"]*; commit: [^;"]*\);.*/\1/p')
+  [ -n "$src_stamp" ] && [ "$got" = "$src_stamp" ] || unstamped="$unstamped $f"
 done
-for f in hitl.conf clipboard.conf; do
-  [ -f "$bin/$f" ] && [ ! -x "$bin/$f" ] || modes_ok=0
+if [ -z "$unstamped" ]; then ok "every installed admin file carries the source's stamp"; else ko "every installed admin file carries the source's stamp" "missing in:$unstamped"; fi
+if [ "$(grep -c '^OK .*(release: ' "$base/check-clean.out")" -eq 4 ]; then ok "check reports each admin file's stamp"; else ko "check reports each admin file's stamp"; fi
+other=0123456789abcdef0123456789abcdef01234567
+for f in "$req" "$dropin"; do
+  sed "s/; commit: [^;\"]*;/; commit: $other;/" "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
 done
-[ "$modes_ok" = 1 ] && ok "scripts are executable, confs are not" || ko "scripts are executable, confs are not"
-sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check after apply is clean" 0 $?
-for f in "$req" "$bin/hitl.conf"; do
-  sed 's/; version: [^;]*;/; version: 0.0.1;/' "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
-done
-if grep -q 'version: 0.0.1;' "$req"; then ok "the stamp was rewritten for the test"; else ko "the stamp was rewritten for the test"; fi
-sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check ignores an earlier release's stamp" 0 $?
-printf '\n' >> "$bin/hitl.conf"
+sh "$inst" --check --root="$r" > "$base/check-stamp.out" 2>&1; expect "check flags a stamp other than the source's" 1 $?
+if [ "$(grep -c "^STAMP .*commit: $other" "$base/check-stamp.out")" -eq 2 ] && ! grep -q '^DRIFT' "$base/check-stamp.out"; then
+  ok "both restamped admin documents are named STAMP, not DRIFT"
+else
+  ko "both restamped admin documents are named STAMP, not DRIFT" "$(cat "$base/check-stamp.out")"
+fi
+sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1
+sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "apply restores the source's stamp" 0 $?
+printf '\n' >> "$bin/clipboard.conf"
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check flags a drifted script or conf" 1 $?
 cp "$dropin" "$base/dropin.keep"
 jq '.permissions.deny |= map(select(. != "Bash(sudo:*)"))' "$base/dropin.keep" > "$dropin"
@@ -150,30 +176,28 @@ fi
 paste=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$dropin")
 out=$(printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"a clean prompt"}' | HOME="$h" sh -c "$paste")
 [ -z "$out" ] && ok "the managed paste filter passes a clean prompt" || ko "the managed paste filter passes a clean prompt" "$out"
-hitl=$(jq -r '.hooks.PreToolUse[] | select(.matcher == "AskUserQuestion") | .hooks[0].command' "$dropin")
-out=$(printf '%s' '{"tool_name":"AskUserQuestion","cwd":"/","tool_input":{"questions":[{"question":"q","header":"Session type","options":[{"label":"Melhoria de harness"},{"label":"Bugfix"}]}]}}' \
-  | HOME="$h" sh -c "$hitl")
-[ -z "$out" ] && ok "the managed HITL guard passes the intake picker from /" || ko "the managed HITL guard passes the intake picker from /" "$out"
 
-# 4b. what an earlier release installed for the restart guard and the switches (ADR-0028): --check
-# reports it, the next --apply deletes it, and only it. Start from a clean install, so the leftovers
+# 4b. what an earlier release installed for the restart guard and the switches (ADR-0028) and for the
+# HITL picker guard (ADR-0013, 2026-10-05): --check reports it, the next --apply deletes it, and only it. Start from a clean install, so the leftovers
 # are the only thing --check can report.
 sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check is clean before the leftovers are planted" 0 $?
-for f in restart_guard.py breaking_glass.py; do printf '# old\n' > "$bin/$f"; done
+for f in restart_guard.py breaking_glass.py hitl-escalation-guard.sh hitl.conf; do printf '# old\n' > "$bin/$f"; done
 mkdir -p "$switches"
 printf '{}' > "$switches/paste-filter.json"
 sh "$inst" --check --root="$r" > "$base/check-legacy.out" 2>&1; expect "check flags the removed guard's leftovers" 1 $?
-if [ "$(grep -c '^STALE' "$base/check-legacy.out")" -eq 3 ]; then ok "check names each leftover"; else ko "check names each leftover" "$(cat "$base/check-legacy.out")"; fi
+if [ "$(grep -c '^STALE' "$base/check-legacy.out")" -eq 5 ] && grep -q '^STALE .*hitl-escalation-guard.sh' "$base/check-legacy.out" \
+   && grep -q '^STALE .*hitl.conf' "$base/check-legacy.out"; then ok "check names each leftover"; else ko "check names each leftover" "$(cat "$base/check-legacy.out")"; fi
 sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply over an earlier release exits 0" 0 $?
 if [ ! -e "$bin/restart_guard.py" ] && [ ! -e "$bin/breaking_glass.py" ] && [ ! -e "$switches" ] \
+   && [ ! -e "$bin/hitl-escalation-guard.sh" ] && [ ! -e "$bin/hitl.conf" ] \
    && [ -x "$bin/clipboard_guard.py" ] && [ -f "$dropin" ]; then
-  ok "apply deletes the restart guard and the switches, keeps the current layers"
+  ok "apply deletes the restart guard, the switches and the picker guard, keeps the current layers"
 else
-  ko "apply deletes the restart guard and the switches, keeps the current layers"
+  ko "apply deletes the restart guard, the switches and the picker guard, keeps the current layers"
 fi
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check is clean after the cleanup" 0 $?
-for f in restart_guard.py breaking_glass.py; do printf '# old\n' > "$bin/$f"; done
+for f in restart_guard.py breaking_glass.py hitl-escalation-guard.sh hitl.conf; do printf '# old\n' > "$bin/$f"; done
 mkdir -p "$switches"; printf '{}' > "$switches/hitl-guard.json"
 
 # 5. a foreign requirements.toml is never overwritten or removed

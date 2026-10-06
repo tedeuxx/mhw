@@ -20,7 +20,7 @@ data() { echo "$1/.local/share/personal-multi-harness-workstation-configuration"
 targets() {
   targets_home=$1
   echo "$targets_home/.claude/CLAUDE.md $targets_home/.codex/AGENTS.md $targets_home/.kiro/steering/workstation-global-brief.md"
-  echo "$(data "$targets_home")/hitl-escalation-guard.sh $(data "$targets_home")/hitl.conf $targets_home/.claude/settings.json"
+  echo "$targets_home/.claude/settings.json"
   echo "$targets_home/.codex/rules/workstation-deny-floor.rules"
   echo "$(data "$targets_home")/clipboard_guard.py $(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
   echo "$(data "$targets_home")/paste_wrapper.py $(data "$targets_home")/paste-filter.sh"
@@ -29,7 +29,7 @@ plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
 wrap_src="$(cd "$(dirname "$0")" && pwd)/clipboard/paste_wrapper.py"
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
-ours() { # number of hook entries of ours in a settings file
+ours() { # number of entries of the removed HITL picker guard in a settings file (must stay 0)
   jq '[.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"))] | length' "$1"
 }
 pours() { # number of paste-filter entries of ours (UserPromptSubmit) in a settings file
@@ -60,7 +60,7 @@ HOME="$h" sh "$inst" --dry-run > "$base/dry.out"; expect "dry-run exits 0" 0 $?
 n=$(find "$h" -type f | wc -l | tr -d ' ')
 if [ "$n" -eq 0 ]; then ok "dry-run wrote no file"; else ko "dry-run wrote $n file(s)"; fi
 if grep -q '^WOULD WRITE' "$base/dry.out"; then ok "dry-run prints targets"; else ko "dry-run printed no target"; fi
-if grep -q '^WOULD MERGE' "$base/dry.out" && grep -q '^+.*AskUserQuestion' "$base/dry.out"; then
+if grep -q '^WOULD MERGE' "$base/dry.out" && grep -q '^+.*clipboard_guard.py' "$base/dry.out"; then
   ok "dry-run prints the settings diff"
 else
   ko "dry-run printed no settings diff"
@@ -88,19 +88,27 @@ if grep -q '^## Escalating to the owner' "$h/.claude/CLAUDE.md" && grep -q '^## 
 else
   ko "brief lacks the escalation section or the overlay"
 fi
-hook="$(data "$h")/hitl-escalation-guard.sh"
-if [ -x "$hook" ] && [ "$(head -n 1 "$hook")" = "#!/bin/sh" ]; then ok "hook installed executable with its shebang first"; else ko "hook not executable or shebang moved"; fi
-if [ "$(ours "$h/.claude/settings.json")" -eq 1 ]; then ok "settings carry exactly one entry of ours"; else ko "settings entry count wrong"; fi
-out=$(jq -cn '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:"a"},{question:"b"}]}}' | sh "$hook")
-if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
-  ok "the installed hook denies two questions"
+# Regression (Issue #60, ADR-0013 2026-10-05 amendment): the HITL picker guard is removed. A fresh
+# install writes no guard script or limits, and registers no PreToolUse hook at all.
+if [ ! -e "$(data "$h")/hitl-escalation-guard.sh" ] && [ ! -e "$(data "$h")/hitl.conf" ] \
+   && [ "$(ours "$h/.claude/settings.json")" -eq 0 ] \
+   && jq -e '(.hooks.PreToolUse // []) | length == 0' "$h/.claude/settings.json" >/dev/null \
+   && ! grep -qs AskUserQuestion "$h/.claude/settings.json" "$h/.codex/hooks.json"; then
+  ok "no HITL picker guard script, limits or hook entry is installed"
 else
-  ko "the installed hook did not deny two questions"
+  ko "a HITL picker guard artefact was installed"
 fi
-long=$(awk 'BEGIN { for (i = 0; i < 281; i++) printf "x" }')
-out=$(jq -cn --arg l "$long" '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:$l}]}}' | sh "$hook")
-if printf '%s' "$out" | grep -q 'limit is 280'; then ok "the installed hook reads the overlay's 280 limit"; else ko "overlay limit not applied"; fi
-if printf '%s' "$out" | jq -r .systemMessage | grep -q '^Guarda HITL (ADR-0013)'; then ok "the owner notice is in the overlay's language"; else ko "owner notice not from overlay"; fi
+# The interaction standards (Issue #60) reach the rendered brief of every harness as instructions.
+for b in "$h/.claude/CLAUDE.md" "$h/.codex/AGENTS.md" "$h/.kiro/steering/workstation-global-brief.md"; do
+  if grep -q 'one extreme, the opposite extreme, and the middle ground' "$b" \
+     && grep -q 'one question per message; a question stem is at most 280 characters; the reasoning goes in a linked artifact' "$b" \
+     && grep -q 'talk to the owner in Brazilian Portuguese. Anything published is in English' "$b" \
+     && ! grep -q 'session-policy.json' "$b" && ! grep -q 'Melhoria de harness' "$b"; then
+    ok "${b#"$h"/} carries the interaction standards and no session-type intake"
+  else
+    ko "${b#"$h"/} lacks an interaction standard or still carries the intake"
+  fi
+done
 HOME="$h" sh "$inst" --check; expect "check after install" 0 $?
 
 # The restart guard and /breaking-glass are removed (ADR-0028): nothing of theirs is rendered.
@@ -126,13 +134,20 @@ jq --arg c "$legacy_cmd" '.hooks.SessionStart = [{hooks: [{type: "command", comm
 jq --arg c "$legacy_cmd" '.hooks.SessionStart = [{hooks: [{type: "command", command: $c, timeout: 10}]}]
   | .hooks.PreToolUse = [{hooks: [{type: "command", command: $c, timeout: 10}]}]' \
   "$hl/.codex/hooks.json" > "$base/legacy.json" && cat "$base/legacy.json" > "$hl/.codex/hooks.json"
-for f in restart_guard.py breaking_glass.py; do
+for f in restart_guard.py breaking_glass.py hitl-escalation-guard.sh hitl.conf; do
   printf '#!/usr/bin/env python3\n# managed-by: personal-multi-harness-workstation-configuration; source: x\n' > "$(data "$hl")/$f"
 done
+# The removed HITL picker guard's entry, as an earlier release merged it (ADR-0013, 2026-10-05).
+jq --arg c "\"$(data "$hl")/hitl-escalation-guard.sh\"" \
+  '.hooks.PreToolUse += [{matcher: "AskUserQuestion", hooks: [{type: "command", command: $c, timeout: 5}]}]' \
+  "$hl/.claude/settings.json" > "$base/legacy.json" && cat "$base/legacy.json" > "$hl/.claude/settings.json"
 printf -- '---\n---\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: x -->\n' > "$hl/.claude/commands/breaking-glass.md"
 printf '{}' > "$(data "$hl")/restart-state/claude-code-0123.json"
 HOME="$hl" sh "$inst" --check > "$base/legacy-check.out" 2>&1; expect "check reports the removed guard's leftovers" 1 $?
-if [ "$(grep -c '^STALE' "$base/legacy-check.out")" -eq 4 ] && grep -q '^DRIFT .*settings.json' "$base/legacy-check.out" \
+if [ "$(grep -c '^STALE' "$base/legacy-check.out")" -eq 7 ] && grep -q '^DRIFT .*settings.json' "$base/legacy-check.out" \
+   && grep -q '^STALE .*hitl-escalation-guard.sh' "$base/legacy-check.out" && grep -q '^STALE .*hitl.conf' "$base/legacy-check.out" \
+   && grep -q '^STALE .*settings.json: the removed HITL picker guard' "$base/legacy-check.out" \
+   && [ -f "$(data "$hl")/hitl-escalation-guard.sh" ] && [ "$(ours "$hl/.claude/settings.json")" -eq 1 ] \
    && grep -q '^DRIFT .*hooks.json' "$base/legacy-check.out" && [ -f "$(data "$hl")/restart_guard.py" ]; then
   ok "check names every leftover and changes nothing"
 else
@@ -144,8 +159,10 @@ if ! grep -qs -e 'restart_guard' -e 'breaking_glass' "$hl/.claude/settings.json"
    && [ ! -e "$hl/.claude/commands/breaking-glass.md" ] && [ ! -e "$(data "$hl")/restart-state" ] \
    && jq -e '(.hooks.SessionStart // []) | length == 0' "$hl/.claude/settings.json" >/dev/null \
    && jq -e '[.hooks.PreToolUse[]?.hooks[]? | select(.command == "/foreign/pre.sh")] | length == 1' "$hl/.claude/settings.json" >/dev/null \
-   && [ "$(pours "$hl/.claude/settings.json")" -eq 1 ] && [ "$(ours "$hl/.claude/settings.json")" -eq 1 ]; then
-  ok "install removes the restart guard and breaking glass, keeps the paste filter, HITL guard and foreign hooks"
+   && [ ! -e "$(data "$hl")/hitl-escalation-guard.sh" ] && [ ! -e "$(data "$hl")/hitl.conf" ] \
+   && [ "$(pours "$hl/.claude/settings.json")" -eq 1 ] && [ "$(ours "$hl/.claude/settings.json")" -eq 0 ] \
+   && ! grep -qs AskUserQuestion "$hl/.claude/settings.json"; then
+  ok "install removes the restart guard, breaking glass and the HITL picker guard, keeps the paste filter and foreign hooks"
 else
   ko "install left a restart guard or breaking-glass artefact, or removed something else"
 fi
@@ -160,10 +177,10 @@ fi
 
 # 2b. the deny floor, rendered for Claude Code and Codex
 s="$h/.claude/settings.json"
-if [ "$(jq '.permissions.deny | length' "$s")" -eq "$floor_rules" ] && [ "$floor_rules" -gt 0 ]; then
-  ok "settings carry every deny-floor rule ($floor_rules), nothing else"
+if [ "$(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s")" -eq "$floor_rules" ] && [ "$floor_rules" -gt 0 ]; then
+  ok "settings carry every deny-floor rule ($floor_rules), nothing else beside the allow list's own Edit protections"
 else
-  ko "deny count $(jq '.permissions.deny | length' "$s"), expected $floor_rules"
+  ko "deny count $(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s"), expected $floor_rules"
 fi
 for r in 'Bash(rm -rf:*)' 'Bash(git push --force:*)' 'Bash(gh auth token:*)' 'Read(~/.ssh/id_*)' 'Edit(~/.aws/credentials)'; do
   if [ "$(has_rule "$s" "$r")" -eq 1 ]; then ok "deny holds $r once"; else ko "deny lacks $r"; fi
@@ -223,7 +240,6 @@ if jq -e --arg c "$want_codex" '(.description | startswith("managed-by: personal
 else
   ko "codex hooks.json wrong"
 fi
-if grep -q 'version' "$ch"; then ko "codex hooks.json carries a version (every release would ask for re-trust)"; else ok "codex hooks.json carries no version"; fi
 # The registered commands, run as a harness runs them: a hit blocks, a clean prompt prints nothing.
 cmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$s")
 out=$(run_paste "$h" "$cmd" "deploy with $synthetic_key please")
@@ -284,6 +300,57 @@ for shl in zsh bash; do
   fi
 done
 
+# 2c''. the opt-in shell start-up line (Issue #58), against THROWAWAY rc files only. It is written only
+# with --shell-rc=FILE, appended once, printed, and never duplicated or rewritten.
+h3="$base/home-rc"; mkdir -p "$h3"
+rc="$h3/zshrc-throwaway"
+printf 'export SYNTHETIC_OWNER_SETTING=1' > "$rc"          # no trailing newline, on purpose
+sn3="$(data "$h3")/paste-filter.sh"
+want_rc="[ -r \"$sn3\" ] && . \"$sn3\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)"
+rc_before=$(cksum < "$rc")
+HOME="$h3" sh "$inst" --dry-run --shell-rc="$rc" > "$base/rc-dry.out"; expect "dry-run with --shell-rc" 0 $?
+if [ "$(cksum < "$rc")" = "$rc_before" ] && grep -qxF "WOULD APPEND to $rc: $want_rc" "$base/rc-dry.out"; then
+  ok "dry-run prints the rc line and writes nothing"
+else
+  ko "dry-run with --shell-rc wrote the rc or printed the wrong line"
+fi
+HOME="$h3" sh "$inst" --shell-rc="$rc" > "$base/rc-1.out"; expect "install with --shell-rc" 0 $?
+if [ "$(grep -cxF "$want_rc" "$rc")" -eq 1 ] && [ "$(sed -n 1p "$rc")" = "export SYNTHETIC_OWNER_SETTING=1" ] \
+   && [ "$(wc -l < "$rc" | tr -d ' ')" -eq 2 ] && grep -qxF "APPENDED to $rc (opt-in, --shell-rc): $want_rc" "$base/rc-1.out"; then
+  ok "install appends the line once, on its own line, keeps the owner's content and prints what it wrote"
+else
+  ko "install --shell-rc produced the wrong rc: $(cat "$rc")"
+fi
+rc_once=$(cksum < "$rc")
+HOME="$h3" sh "$inst" --shell-rc="$rc" > "$base/rc-2.out"; expect "install with --shell-rc, again" 0 $?
+if [ "$(cksum < "$rc")" = "$rc_once" ] && grep -qxF "OK      $rc activates the paste wrapper" "$base/rc-2.out"; then
+  ok "a second install leaves the rc byte-identical (idempotent)"
+else
+  ko "a second install changed the rc"
+fi
+HOME="$h3" sh "$inst" --check --shell-rc="$rc" > "$base/rc-check.out"; expect "check with the rc line present" 0 $?
+for shl in zsh bash; do
+  if command -v "$shl" >/dev/null 2>&1; then
+    t=$(HOME="$h3" "$shl" -c ". \"$rc\"; type claude" 2>&1 | head -n 1)
+    case $t in
+      *function*) ok "$shl: sourcing the rc defines the wrapper functions" ;;
+      *) ko "$shl: the rc line did not define claude: $t" ;;
+    esac
+  fi
+done
+rc_new="$h3/never-created-rc"
+HOME="$h3" sh "$inst" --check --shell-rc="$rc_new" > "$base/rc-miss.out"; expect "check reports a missing rc line" 1 $?
+if grep -q "^MISSING $rc_new" "$base/rc-miss.out" && [ ! -e "$rc_new" ]; then ok "check names the missing line and creates nothing"; else ko "check on a missing rc line"; fi
+rc_stale="$h3/stale-rc"
+printf '. /old/place/paste-filter.sh  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n' > "$rc_stale"
+stale_before=$(cksum < "$rc_stale")
+HOME="$h3" sh "$inst" --shell-rc="$rc_stale" > "$base/rc-stale.out"; expect "install refuses to rewrite a different tagged line" 1 $?
+if [ "$(cksum < "$rc_stale")" = "$stale_before" ] && grep -q "^STALE   $rc_stale" "$base/rc-stale.out"; then ok "a differing tagged line is reported and left alone"; else ko "a differing tagged line was rewritten"; fi
+mkdir -p "$h3/rc-is-a-dir"
+HOME="$h3" sh "$inst" --shell-rc="$h3/rc-is-a-dir" > "$base/rc-dir.out"; expect "install refuses a non-regular rc" 3 $?
+HOME="$h3" sh "$inst" --shell-rc=relative-rc > /dev/null 2>&1; expect "a relative --shell-rc is a usage error" 2 $?
+if [ ! -e "$h3/relative-rc" ] && [ ! -e relative-rc ]; then ok "a relative --shell-rc writes nothing"; else ko "a relative --shell-rc wrote a file"; fi
+
 # 2d. a managed watcher plist left by an earlier version is removed on install; launchctl never runs
 h2="$base/home-oldplist"; mkdir -p "$h2/Library/LaunchAgents"
 printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
@@ -324,9 +391,13 @@ echo "local edit" >> "$h/.codex/AGENTS.md"
 HOME="$h" sh "$inst" --check; expect "check detects drift" 1 $?
 HOME="$h" sh "$inst"; expect "install repairs drift" 0 $?
 HOME="$h" sh "$inst" --check; expect "check clean after repair" 0 $?
-jq 'del(.hooks.PreToolUse)' "$h/.claude/settings.json" > "$base/s.json" && cp "$base/s.json" "$h/.claude/settings.json"
-HOME="$h" sh "$inst" --check; expect "check detects a removed hook entry" 1 $?
-HOME="$h" sh "$inst" > /dev/null; expect "install restores the hook entry" 0 $?
+jq --arg c "\"$(data "$h")/hitl-escalation-guard.sh\"" \
+  '.hooks.PreToolUse += [{matcher: "AskUserQuestion", hooks: [{type: "command", command: $c}]}]' \
+  "$h/.claude/settings.json" > "$base/s.json" && cp "$base/s.json" "$h/.claude/settings.json"
+HOME="$h" sh "$inst" --check > "$base/check-guard.out"; expect "check detects a re-registered picker guard entry" 1 $?
+if grep -q '^STALE .*settings.json: the removed HITL picker guard' "$base/check-guard.out"; then ok "check names the picker guard entry as STALE"; else ko "check did not name the picker guard entry"; fi
+HOME="$h" sh "$inst" > /dev/null; expect "install removes the picker guard entry" 0 $?
+if [ "$(ours "$h/.claude/settings.json")" -eq 0 ]; then ok "the picker guard entry is gone"; else ko "the picker guard entry survived install"; fi
 jq '.permissions.deny -= ["Bash(rm -rf:*)"]' "$h/.claude/settings.json" > "$base/s.json" && cp "$base/s.json" "$h/.claude/settings.json"
 HOME="$h" sh "$inst" --check > "$base/check-deny.out"; expect "check detects a removed deny-floor rule" 1 $?
 if grep -q '1 deny-floor rule(s) missing' "$base/check-deny.out"; then ok "check names how many floor rules are missing"; else ko "check did not count the missing rule"; fi
@@ -374,16 +445,16 @@ if [ "$(jq -S . "$h/.claude/settings.json")" = "$orig" ]; then ok "dry-run left 
 if grep -q 're-serialized' "$base/dry6.out"; then ok "dry-run warns that formatting changes"; else ko "dry-run did not warn about formatting"; fi
 HOME="$h" sh "$inst"; expect "merge into existing settings" 0 $?
 s="$h/.claude/settings.json"
-if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contains("personal-multi-harness-workstation-configuration/") | not)))) | del(.hooks.UserPromptSubmit, .hooks.SessionStart) | .permissions.deny |= .[0:2]' "$s")" = "$orig" ]; then
-  ok "every pre-existing key, hook and rule survives in place; only our entries were appended"
+if [ "$(jq -S '.hooks.PreToolUse |= map(select(all(.hooks[]; (.command | contains("personal-multi-harness-workstation-configuration/") | not)))) | del(.hooks.UserPromptSubmit, .hooks.SessionStart, .["personal-multi-harness-workstation-configuration"], .["personal-multi-harness-workstation-configuration-owned-deny"], .["personal-multi-harness-workstation-configuration-owned-allow"], .permissions.defaultMode) | .permissions.deny |= .[0:2] | .permissions.allow |= .[0:1]' "$s")" = "$orig" ]; then
+  ok "every pre-existing key, hook and rule survives in place; only our entries, stamp key and ownership keys were appended"
 else
   ko "pre-existing content changed"
 fi
-if [ "$(jq '.permissions.deny | length' "$s")" -eq $((floor_rules + 1)) ] \
+if [ "$(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s")" -eq $((floor_rules + 1)) ] \
    && [ "$(has_rule "$s" 'Bash(rm -rf:*)')" -eq 1 ] && [ "$(has_rule "$s" 'Bash(my-own-rule:*)')" -eq 1 ]; then
   ok "deny is a union: a floor rule already present is not duplicated, a foreign rule is kept"
 else
-  ko "deny union wrong: $(jq '.permissions.deny | length' "$s") entries, expected $((floor_rules + 1))"
+  ko "deny union wrong: $(jq '(.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])) | length' "$s") entries, expected $((floor_rules + 1))"
 fi
 if [ "$(jq -S . "$s.pmhwc-backup")" = "$orig" ]; then ok "backup holds the previous settings"; else ko "backup missing or wrong"; fi
 if [ "$(stat -c %a "$s" 2>/dev/null || stat -f %Lp "$s")" = 600 ]; then ok "file mode preserved (600)"; else ko "file mode changed"; fi
@@ -391,14 +462,14 @@ snap=$(cksum < "$s")
 HOME="$h" sh "$inst" > /dev/null; expect "re-merge" 0 $?
 if [ "$(cksum < "$s")" = "$snap" ]; then ok "re-merge left settings byte-identical"; else ko "re-merge rewrote settings"; fi
 
-# 7. stale and duplicate entries of ours collapse to one; foreign hooks in the same group survive
+# 7. stale and duplicate entries of the removed picker guard all go; foreign hooks in the same group survive
 jq '.hooks.PreToolUse += [
       {matcher: "AskUserQuestion", hooks: [{type: "command", command: "/old/path/personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"}]},
       {matcher: "AskUserQuestion", hooks: [
         {type: "command", command: "/old2/personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"},
         {type: "command", command: "/someone/else.sh"}]}]' "$s" > "$base/s.json" && cp "$base/s.json" "$s"
 HOME="$h" sh "$inst" > /dev/null; expect "merge with stale entries" 0 $?
-if [ "$(ours "$s")" -eq 1 ]; then ok "stale and duplicate entries collapsed to one"; else ko "entries of ours: $(ours "$s")"; fi
+if [ "$(ours "$s")" -eq 0 ]; then ok "stale and duplicate picker guard entries are all removed"; else ko "picker guard entries left: $(ours "$s")"; fi
 if jq -e '[.hooks.PreToolUse[].hooks[] | select(.command == "/someone/else.sh")] | length == 1' "$s" >/dev/null; then
   ok "a foreign hook sharing a group with a stale entry survives"
 else
@@ -437,16 +508,12 @@ if [ "$(cksum < "$h/.claude/settings.json")" = "$bad" ]; then ok "invalid settin
 h="$base/home-generic"; mkdir -p "$h"
 HOME="$h" sh "$inst" --overlay=none > /dev/null; expect "install without overlay" 0 $?
 if grep -q '^## Owner overlay' "$h/.claude/CLAUDE.md"; then ko "overlay leaked into generic brief"; else ok "generic brief has no owner overlay"; fi
-out=$(jq -cn --arg l "$long" '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:$l}]}}' | sh "$(data "$h")/hitl-escalation-guard.sh")
-if [ -z "$out" ]; then ok "generic install does not check question length"; else ko "generic install checked length"; fi
-out=$(jq -cn '{tool_name:"AskUserQuestion",tool_input:{questions:[{question:"a"},{question:"b"}]}}' | sh "$(data "$h")/hitl-escalation-guard.sh")
-if printf '%s' "$out" | jq -r .systemMessage | grep -q '^HITL guard (ADR-0013)'; then ok "generic install notifies in the default English"; else ko "generic notice wrong"; fi
 if grep -q '^notice_blocked=' "$(data "$h")/clipboard.conf"; then ko "overlay leaked into generic paste filter settings"; else ok "generic paste filter settings carry no owner overlay"; fi
 
 # 9b. A structured profile changed without regeneration is refused before writing any target.
 profile_dir="$base/profile-stale"
 mkdir -p "$profile_dir"
-for profile_file in profile.json AGENTS.md hitl.conf clipboard.conf desktop-instructions.md profile-plan.json; do
+for profile_file in profile.json AGENTS.md clipboard.conf desktop-instructions.md profile-plan.json; do
   cp "$(dirname "$inst")/../overlay/$profile_file" "$profile_dir/$profile_file"
 done
 jq '.session_start.priority = "speed"' "$profile_dir/profile.json" > "$base/profile-next.json"
@@ -489,19 +556,14 @@ for e in 'cmd rm "-rf"' 'cmd git push --force*' 'path ~/.ssh' 'file ~/a ~/b' 'cm
   if [ "$rc" -eq 2 ] && [ "$n" -eq 0 ]; then ok "invalid entry refused, nothing written: $e"; else ko "invalid entry '$e': exit $rc, $n file(s)"; fi
 done
 
-# 12. XDG_DATA_HOME is honoured: the hook and its data go there, and the settings entry points there
+# 12. XDG_DATA_HOME is honoured: the paste filter and its data go there, and the entries point there
 h="$base/home-xdg"; x="$base/xdg-data"; mkdir -p "$h" "$x"
 HOME="$h" XDG_DATA_HOME="$x" sh "$inst" > /dev/null; expect "install with XDG_DATA_HOME set" 0 $?
 xd="$x/personal-multi-harness-workstation-configuration"
-if [ -x "$xd/hitl-escalation-guard.sh" ] && [ -f "$xd/hitl.conf" ] && [ ! -e "$(data "$h")" ]; then
-  ok "the hook and its config are under XDG_DATA_HOME, nothing under ~/.local/share"
+if [ -f "$xd/clipboard_guard.py" ] && [ -f "$xd/clipboard.conf" ] && [ ! -e "$(data "$h")" ]; then
+  ok "the paste filter and its config are under XDG_DATA_HOME, nothing under ~/.local/share"
 else
   ko "XDG_DATA_HOME not honoured"
-fi
-if jq -e --arg c "\"$xd/hitl-escalation-guard.sh\"" '[.hooks.PreToolUse[].hooks[] | select(.command == $c)] | length == 1' "$h/.claude/settings.json" >/dev/null; then
-  ok "the settings entry runs the hook from XDG_DATA_HOME"
-else
-  ko "the settings entry does not point at XDG_DATA_HOME"
 fi
 if jq -e --arg d "$xd/clipboard_guard.py" '[.hooks.UserPromptSubmit[].hooks[] | select(.command | contains($d))] | length == 1' "$h/.claude/settings.json" >/dev/null \
    && grep -qF "$xd/clipboard_guard.py" "$h/.codex/hooks.json"; then
@@ -547,16 +609,73 @@ fi
 HOME="$h" sh "$inst" --check --hooks=managed > /dev/null 2>&1; expect "managed check is clean after a managed install" 0 $?
 HOME="$h" sh "$inst" --check > /dev/null 2>&1; expect "user check flags the missing user-level hooks" 1 $?
 
-# 15. a stamp from an earlier release with the same content is not drift; a content change still is
+# 15. the provenance stamp (Issue #66, ADR-0029): every rendered file names the release and commit it
+# came from, and that is the source's own stamp, the one install prints on its SOURCE line.
+STAMP_KEY=personal-multi-harness-workstation-configuration
+stamp_in() { # $1 file: the release and commit fields of its first managed-by line (settings: our key)
+  case $1 in
+    */settings.json) jq -r --arg k "$STAMP_KEY" '.[$k] // ""' "$1" ;;
+    *) grep -m 1 -F 'managed-by: personal-multi-harness-workstation-configuration' "$1" ;;
+  esac | sed -n 's/.*; \(release: [^;"]*; commit: [^;"]*\);.*/\1/p'
+}
 hs="$base/stamp"; mkdir -p "$hs"
-HOME="$hs" sh "$inst" > /dev/null 2>&1; expect "install for the stamp check exits 0" 0 $?
-for f in "$hs/.claude/CLAUDE.md" "$(data "$hs")/hitl.conf" "$hs/.codex/rules/workstation-deny-floor.rules"; do
-  sed 's/; version: [^;]*;/; version: 0.0.1;/' "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
+HOME="$hs" sh "$inst" > "$base/stamp-install.out" 2>&1; expect "install for the stamp check exits 0" 0 $?
+src_stamp=$(sed -n 's/^SOURCE  //p' "$base/stamp-install.out")
+repo_dir="$(cd "$(dirname "$inst")/.." && pwd)"
+head_sha=$(git -C "$repo_dir" rev-parse --verify HEAD 2>/dev/null || echo unknown)
+case $src_stamp in
+  "release: "*"; commit: $head_sha" | "release: "*"; commit: $head_sha-dirty") ok "the source stamp names HEAD ($src_stamp)" ;;
+  *) ko "the source stamp does not name HEAD $head_sha: '$src_stamp'" ;;
+esac
+unstamped=""
+for f in $(targets "$hs"); do
+  if [ -n "$src_stamp" ] && [ "$(stamp_in "$f")" = "$src_stamp" ]; then :; else unstamped="$unstamped ${f#"$hs"/}"; fi
 done
-if grep -q 'version: 0.0.1;' "$hs/.claude/CLAUDE.md"; then ok "the stamp was rewritten for the test"; else ko "the stamp was rewritten for the test"; fi
-HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check ignores an earlier release's stamp" 0 $?
-printf 'x\n' >> "$(data "$hs")/hitl.conf"
-HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check still flags a content change under an old stamp" 1 $?
+if [ -z "$unstamped" ]; then ok "every rendered file carries the source's stamp"; else ko "rendered file(s) without the source's stamp:$unstamped"; fi
+HOME="$hs" sh "$inst" --check > "$base/stamp-check0.out" 2>&1; expect "check is clean on a fresh install" 0 $?
+if [ "$(grep -c '^OK .*release: ' "$base/stamp-check0.out")" -ge "$(targets "$hs" | wc -w)" ]; then
+  ok "check reports the stamp of every installed file"
+else
+  ko "check did not report every file's stamp"
+fi
+# Another commit's stamp on unchanged content: STAMP (not DRIFT), named, and install rewrites it.
+other=0123456789abcdef0123456789abcdef01234567
+for f in "$hs/.claude/CLAUDE.md" "$hs/.codex/hooks.json" "$hs/.claude/settings.json"; do
+  sed "s/; commit: [^;\"]*;/; commit: $other;/" "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
+done
+HOME="$hs" sh "$inst" --check > "$base/stamp-check1.out" 2>&1; expect "check flags a stamp that differs from the source" 1 $?
+if [ "$(grep -c "^STAMP .*commit: $other" "$base/stamp-check1.out")" -eq 3 ] && ! grep -q '^DRIFT' "$base/stamp-check1.out"; then
+  ok "check names each of the three restamped files as STAMP, with the stamp it carries, and no DRIFT"
+else
+  ko "check did not name the three stamp differences"; cat "$base/stamp-check1.out"
+fi
+HOME="$hs" sh "$inst" > /dev/null 2>&1; expect "install restamps" 0 $?
+HOME="$hs" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the restamp" 0 $?
+printf 'x\n' >> "$(data "$hs")/clipboard.conf"
+HOME="$hs" sh "$inst" --check > "$base/stamp-check2.out" 2>&1; expect "check still flags a content change" 1 $?
+if grep -q '^DRIFT .*clipboard.conf' "$base/stamp-check2.out"; then ok "a content change is DRIFT, not STAMP"; else ko "a content change was not reported as DRIFT"; fi
+
+# 15b. which release a stamp names: the tag rule, in a throwaway git repository holding a copy of the
+# sources (never the real repository's tags).
+tr="$base/tagrepo"; mkdir -p "$tr"
+cp -R "$repo_dir/global" "$repo_dir/overlay" "$repo_dir/.bumpversion.toml" "$tr/"
+g() { git -C "$tr" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false -c tag.gpgSign=false "$@"; }
+source_stamp() { HOME="$base/tag-home" sh "$tr/global/install.sh" --dry-run 2>/dev/null | sed -n 's/^SOURCE  //p'; }
+mkdir -p "$base/tag-home"
+g -c init.defaultBranch=main init -q && g add -A && g commit -qm one
+c1=$(g rev-parse HEAD)
+s=$(source_stamp)
+if [ "$s" = "release: unreleased, no tag reachable; commit: $c1" ]; then ok "no tag: unreleased, no tag reachable"; else ko "no tag: '$s'"; fi
+g tag v9.8.7
+s=$(source_stamp)
+if [ "$s" = "release: v9.8.7; commit: $c1" ]; then ok "on a release tag: the tag"; else ko "on a tag: '$s'"; fi
+printf '# local edit\n' >> "$tr/global/clipboard.conf"
+s=$(source_stamp)
+if [ "$s" = "release: unreleased, after v9.8.7; commit: $c1-dirty" ]; then ok "tracked edit: unreleased, commit marked dirty"; else ko "dirty: '$s'"; fi
+g commit -qam two
+c2=$(g rev-parse HEAD)
+s=$(source_stamp)
+if [ "$s" = "release: unreleased, after v9.8.7; commit: $c2" ]; then ok "after the tag: nearest tag plus the SHA"; else ko "after a tag: '$s'"; fi
 
 # 16. --check reports which layer carries the deny floor (ADR-0016, 2026-10-05 amendment). The admin
 # layer is read under a throwaway --managed-root and installed there by install-managed.sh --root; no

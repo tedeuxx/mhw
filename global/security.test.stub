@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+# Stub `security` for the paste-filter and MCP suites (issue #58). It NEVER runs the real binary and
+# never reads or writes a real keychain or the keychain search list. A "keychain" here is a JSON file the
+# stub itself creates. It supports only the verbs the suites use, always against an explicit absolute
+# keychain path as the last argument; anything else exits 64, so code that drops its keychain argument
+# fails instead of silently meaning "the default keychain".
+#
+# Every invocation is appended to $SECURITY_STUB_LOG (when set) as one JSON line, with -w values redacted.
+import json
+import os
+import re
+import shlex
+import sys
+
+NOT_FOUND = 44
+
+
+def log(argv, stdin_text):
+    path = os.environ.get("SECURITY_STUB_LOG")
+    if not path:
+        return
+    red = lambda s: re.sub(r'(-w\s+)("[^"]*"|\S+)', r'\1<redacted>', s)
+    with open(path, "a") as fh:
+        fh.write(json.dumps({"argv": [red(a) for a in argv], "home": os.environ.get("HOME", ""),
+                             "stdin": red(stdin_text or "")}) + "\n")
+
+
+def load(kc):
+    with open(kc) as fh:
+        return json.load(fh)
+
+
+def save(kc, db):
+    with open(kc, "w") as fh:
+        json.dump(db, fh)
+
+
+def opts(args):
+    """Parse `-x value` pairs and bare flags; the last argument is the keychain path."""
+    if not args or not os.path.isabs(args[-1]):
+        raise SystemExit(64)
+    kc, args, out, i = args[-1], args[:-1], {}, 0
+    while i < len(args):
+        a = args[i]
+        if a in ("-s", "-a", "-w", "-X", "-p") and i + 1 < len(args):
+            out[a] = args[i + 1]
+            i += 2
+        elif a in ("-w", "-g", "-U"):
+            out[a] = True
+            i += 1
+        else:
+            raise SystemExit(64)
+    return kc, out
+
+
+def match(item, o):
+    return item["s"] == o.get("-s") and ("-a" not in o or item["a"] == o["-a"])
+
+
+def one(args):
+    if not args:
+        return 64
+    verb, rest = args[0], args[1:]
+    if verb == "create-keychain":
+        kc, _ = opts(rest)
+        if os.path.exists(kc):
+            return 48
+        save(kc, {"locked": False, "items": []})
+        return 0
+    if verb in ("delete-keychain", "lock-keychain"):
+        kc, _ = opts(rest)
+        if not os.path.exists(kc):
+            return 50
+        if verb == "delete-keychain":
+            os.remove(kc)
+        else:
+            db = load(kc)
+            db["locked"] = True
+            save(kc, db)
+        return 0
+    kc, o = opts(rest)
+    if not os.path.exists(kc):
+        sys.stderr.write("security: stub keychain %s does not exist\n" % kc)
+        return 50
+    db = load(kc)
+    if verb == "add-generic-password":
+        if any(match(it, o) for it in db["items"]):
+            return 45
+        if "-X" in o:
+            item = {"s": o["-s"], "a": o.get("-a", ""), "hex": o["-X"]}
+        elif isinstance(o.get("-w"), str):
+            item = {"s": o["-s"], "a": o.get("-a", ""), "text": o["-w"]}
+        else:
+            return 64
+        db["items"].append(item)
+        save(kc, db)
+        return 0
+    found = [it for it in db["items"] if match(it, o)]
+    if verb == "delete-generic-password":
+        if not found:
+            return NOT_FOUND
+        db["items"].remove(found[0])
+        save(kc, db)
+        return 0
+    if verb == "find-generic-password":
+        if not found or db["locked"]:
+            sys.stderr.write("security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain.\n")
+            return NOT_FOUND
+        it = found[0]
+        if o.get("-w") is True:
+            sys.stdout.write((it["text"] if "text" in it else it["hex"]) + "\n")
+        elif o.get("-g") is True:
+            sys.stderr.write('password: "%s"\n' % it["text"] if "text" in it else "password: 0x%s\n" % it["hex"].upper())
+        return 0
+    return 64
+
+
+def main(argv):
+    if argv == ["-i"]:
+        text = sys.stdin.read()
+        log(argv, text)
+        rc = 0
+        for line in text.splitlines():
+            if line.strip():
+                code = one(shlex.split(line))
+                rc = rc or code
+        return rc
+    log(argv, None)
+    return one(argv)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except SystemExit:
+        raise
+    except Exception as exc:          # a stub bug must fail loudly, never look like success
+        sys.stderr.write("security stub error: %r\n" % (exc,))
+        sys.exit(70)

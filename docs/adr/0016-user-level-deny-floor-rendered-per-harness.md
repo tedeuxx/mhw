@@ -197,7 +197,8 @@ execpolicy check`, these escape it:
 
 Claude Code's prefix has the same shape: a token-bounded prefix, so a flag later in the command and
 `git -C <dir>` are not covered. That is *documented* in the plugin's `devops` skill, measured there on
-2.1.261, and not re-measured here. Neither harness's rule sees inside a script, a `Makefile` or an
+2.1.261, and not re-measured here. (In this repository's method that text is in the `scm` skill since
+#97, which split `devops` by capability.) Neither harness's rule sees inside a script, a `Makefile` or an
 `npm run` target, or a command an MCP tool runs. In Claude Code, `Read`/`Edit` rules govern the
 built-in file tools, not `cat` in Bash.
 
@@ -409,9 +410,13 @@ out. The rows that need `agent_type` or a pull request's state are the method's,
 slices (#61) have to carry them. **No hook was added** (PRD section 4a, hook budget zero).
 
 **Counts after this amendment.** Generic floor: 101 `cmd` and 7 `file` entries, 115 Claude Code rules
-and 101 Codex rules (was 101 and 87). With the repository overlay: 126 Claude Code rules, 112 Codex
-rules. Computed by the test suites from the sources, not typed:
+and 101 Codex rules (was 101 and 87). With the repository overlay: ~~126 Claude Code rules, 112 Codex
+rules~~ 136 Claude Code rules, 122 Codex rules. Computed by the test suites from the sources, not typed:
 `awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' global/deny-floor.conf overlay/deny-floor.conf`.
+*(Corrected 2026-10-05, Issue #65: the overlay counts went stale at 30b39f3, which added the
+upstream-setting and refspec trunk-push forms to the overlay. Re-measured from `install.sh --check` in
+a throwaway HOME: `FLOOR Claude Code: user layer 136/136 rules` and `Codex: admin requirements 0/122
+prefix rules` with the overlay; `115/115` and `0/101` with `--overlay=none`.)*
 
 **New over-matches, accepted as the price of a prefix:** `gh workflow run` is denied for every
 repository, including one whose workflow only lints; `git worktree remove --force` is denied on a

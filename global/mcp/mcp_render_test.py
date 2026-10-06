@@ -2,11 +2,17 @@
 # Tests for mcp_render.py and mcp-launch.sh (ADR-0017). Everything runs under throwaway HOMEs:
 #   python3 -B global/mcp/mcp_render_test.py <empty-or-new base directory>
 # Every server, command and credential below is SYNTHETIC, and each credential value is generated at
-# run time. On macOS, one test creates a namespaced Keychain item with a random value and deletes it.
+# run time. Issue #58: by default the Keychain test runs against global/security.test.stub, which
+# never runs the real `security` binary. The real binary is used ONLY when PMHWC_REAL_KEYCHAIN_TESTS=1
+# on a GitHub Actions macOS runner (ephemeral; set in tests.yml). Without that opt-in, a guard installed
+# for the whole run refuses any attempt to execute the real binary, before anything runs. Either way,
+# each keychain is a THROWAWAY file under the base directory, named explicitly (--keychain), under a
+# throwaway HOME.
 # No test reads, prints or copies a real credential, and none touches the real HOME.
 import hashlib
 import json
 import os
+import re
 import secrets
 import shutil
 import stat
@@ -17,6 +23,8 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import mcp_render as r  # noqa: E402
+sys.path.insert(0, os.path.dirname(HERE))
+import keychain_test_guard as kg  # noqa: E402
 
 RENDER = os.path.join(HERE, "mcp_render.py")
 LAUNCH = os.path.join(HERE, "mcp-launch.sh")
@@ -24,7 +32,6 @@ EXAMPLE = os.path.join(HERE, "mcp-servers.example.json")
 SCHEMA = os.path.join(HERE, "mcp-servers.schema.json")
 DARWIN = sys.platform == "darwin"
 BASE = None
-REAL_HOME = os.path.expanduser("~")
 FAKE_SERVER = """import hashlib, os, sys
 with open(sys.argv[1], "w") as fh:
     fh.write(hashlib.sha256(os.environ.get(sys.argv[2], "").encode()).hexdigest())
@@ -132,6 +139,106 @@ def all_bytes(home):
             with open(os.path.join(root, f), "rb") as fh:
                 blob += fh.read()
     return blob
+
+
+# ------------------------------------------------------------------------- real-keychain guard (#58)
+# The shared guard (global/keychain_test_guard.py) holds the rules; this suite adds the launcher's.
+KEYCHAIN_ARG = '${keychain:+"$keychain"}'
+STUB_LAUNCHER = "mcp-launch.stub.sh"    # a test copy of the launcher whose `security` calls go to the stub
+GUARD = None                            # set in __main__, once BASE is known
+
+
+def _reads_keychain(rest):
+    return any(a.startswith("keychain:") or "=keychain:" in a for a in rest)
+
+
+def _launcher_ok(guard, rest):
+    """A launcher run that reads the Keychain must name a throwaway keychain first."""
+    if not _reads_keychain(rest):
+        return True
+    return rest[:1] == ["--keychain"] and len(rest) > 1 and guard.under_base(rest[1])
+
+
+def launcher_check(guard, argv, kw):
+    for i, a in enumerate(argv):
+        b = os.path.basename(a)
+        if b in ("mcp-launch.sh", STUB_LAUNCHER):
+            rest = argv[i + 1:]
+            if not (guard.home_ok(kw) and _launcher_ok(guard, rest)):
+                raise kg.RealKeychainRefused("a launcher run could reach the real keychain")
+            if b == "mcp-launch.sh" and _reads_keychain(rest):
+                guard.require_real("the real launcher reading the Keychain")
+            break
+
+
+def make_guard(base):
+    return kg.Guard(base, extra=launcher_check, watched=("mcp-launch.sh", STUB_LAUNCHER),
+                    words=("security", "mcp-launch"))
+
+
+def throwaway_keychain(home, name):
+    return GUARD.create_keychain(name, env=clean_env(home))
+
+
+def drop_keychain(home, path):
+    GUARD.delete_keychain(path, env=clean_env(home))
+
+
+def keychain_launcher(rendered, name):
+    """The launcher a Keychain test runs. With the CI opt-in, the rendered launcher itself. Otherwise a
+    copy whose /usr/bin/security calls go to the stub (the launcher names the binary by absolute path,
+    so a stub on PATH alone would never be reached)."""
+    if GUARD.real:
+        return rendered
+    d = os.path.join(BASE, "stub-launchers", name)
+    os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, STUB_LAUNCHER)
+    with open(path, "w") as fh:
+        fh.write(read(rendered).replace(kg.REAL_SECURITY, kg.SECURITY_STUB))
+    os.chmod(path, 0o700)
+    return path
+
+
+class KeychainIsolation(unittest.TestCase):
+    """The one guard against #58: without the CI opt-in no test may execute the real `security` binary,
+    and with it no test may reach the login or default keychain or the search list. Nothing in this test
+    executes a process; a broken guard makes it fail, never touch a keychain."""
+
+    def test_no_test_path_can_reach_the_real_keychain(self):
+        G = GUARD
+        G.assert_mode(self)
+        kc = os.path.join(BASE, "never-created.keychain-db")
+        env = {"env": clean_env(os.path.join(BASE, "never-created-home"))}
+        launcher = os.path.join(BASE, "x", "mcp-launch.sh")
+        stub_launcher = os.path.join(BASE, "x", STUB_LAUNCHER)
+        read_kc = ["--secret", "T=keychain:svc", "--", "true"]
+        refused_always = G.refused_cases(kc, env, {})
+        for lch in (launcher, stub_launcher):
+            refused_always += [([lch] + read_kc, env), (["sh", "-x", lch, "--keychain", kc] + read_kc, {}),
+                               ([lch, "--secret", "T=env:V", "--", "true"], {})]
+        real_only = G.real_only_cases(kc, env) + [([launcher, "--keychain", kc] + read_kc, env)]
+        allowed = [([kg.SECURITY_STUB, "find-generic-password", "-s", "svc", "-w", kc], env),
+                   ([stub_launcher, "--keychain", kc] + read_kc, env)]
+        calls = []
+        saved = (G.exec, G.real)
+        try:
+            G.exec = lambda *a, **k: self.fail("the guard let a real-keychain call through: %r" % (a[:1],))
+            G.assert_refused(self, refused_always + real_only, False)
+            G.assert_refused(self, refused_always, True)
+            G.exec = lambda argv, **kw: calls.append(argv) or subprocess.CompletedProcess(argv, 0, b"", b"")
+            for flag, cases in ((False, allowed), (True, real_only)):
+                G.real = flag
+                for argv, kw in cases:
+                    subprocess.run(argv, **kw)
+        finally:
+            G.exec, G.real = saved
+        self.assertEqual(len(calls), 6, "the guard refused a throwaway-keychain call it must allow")
+        # The production launcher must hand the --keychain path to EVERY `security` call it makes.
+        code = [ln for ln in read(LAUNCH).splitlines() if not ln.lstrip().startswith("#")]
+        reads = [ln for ln in code if re.search(r"/usr/bin/security\s+(-[A-Za-z]\b|[a-z]+-[a-z-]+)", ln)]
+        self.assertEqual(len(reads), 2, "the launcher's security calls changed; re-check this guard")
+        for ln in reads:
+            self.assertIn(KEYCHAIN_ARG, ln, "a launcher security call ignores --keychain")
 
 
 class Definition(unittest.TestCase):
@@ -298,6 +405,53 @@ class Render(unittest.TestCase):
         before = fingerprint(h)
         self.assertEqual(run(h).returncode, 0)
         self.assertEqual(fingerprint(h), before, "a re-run changed a file")
+
+    def test_every_rendered_file_carries_the_source_stamp(self):
+        # The provenance stamp (Issue #66, ADR-0029): the launcher and the Codex block carry it in a
+        # comment line; the JSON surfaces' entries are recorded with it in the manifest.
+        h = mk_home("home-stamp")
+        write_source(h, source_doc())
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        src = [l[len("SOURCE  "):] for l in p.stdout.splitlines() if l.startswith("SOURCE  ")]
+        self.assertEqual(len(src), 1, p.stdout)
+        src = src[0]
+        repo = os.path.dirname(os.path.dirname(HERE))
+        head = subprocess.run(["git", "-C", repo, "rev-parse", "--verify", "HEAD"], capture_output=True, text=True)
+        if head.returncode == 0:
+            self.assertRegex(src, r"^release: [^;]+; commit: %s(-dirty)?$" % head.stdout.strip())
+        # The same stamp global/install.sh derives for this checkout: the rule has one reference.
+        if shutil.which("sh") and shutil.which("jq"):
+            ih = os.path.join(BASE, "home-stamp-install")
+            os.makedirs(ih, exist_ok=True)
+            q = subprocess.run(["sh", os.path.join(repo, "global", "install.sh"), "--dry-run"],
+                               env=clean_env(ih), capture_output=True, text=True)
+            self.assertIn("SOURCE  %s\n" % src, q.stdout, q.stderr)
+        t = targets(h)
+        launcher = os.path.join(data(h), "mcp-launch.sh")
+        self.assertEqual(r.stamp_of(read(launcher)), src)
+        self.assertEqual(r.stamp_of(read(t["codex"])), src)
+        stamps = jload(os.path.join(data(h), "mcp-managed.json"))["stamps"]
+        json_surfaces = [s for s in t if s != "codex"]
+        self.assertEqual({s: stamps.get(s) for s in json_surfaces}, {s: src for s in json_surfaces})
+        self.assertEqual(run(h, "--check").returncode, 0)
+        # Another commit's stamp on unchanged content: STAMP (not DRIFT), and install rewrites it.
+        other = "release: v0.0.1; commit: 0123456789abcdef0123456789abcdef01234567"
+        for path in (launcher, t["codex"]):
+            text = read(path).replace(src, other)
+            with open(path, "w") as fh:
+                fh.write(text)
+        m = jload(os.path.join(data(h), "mcp-managed.json"))
+        m["stamps"]["kiro"] = other
+        with open(os.path.join(data(h), "mcp-managed.json"), "w") as fh:
+            json.dump(m, fh)
+        c = run(h, "--check")
+        self.assertEqual(c.returncode, 1, c.stdout)
+        self.assertEqual(sum(1 for l in c.stdout.splitlines() if l.startswith("STAMP") and other in l), 3, c.stdout)
+        self.assertNotIn("DRIFT", c.stdout)
+        self.assertEqual(run(h).returncode, 0)
+        self.assertEqual(r.stamp_of(read(launcher)), src)
+        self.assertEqual(run(h, "--check").returncode, 0)
 
     def test_codex_parses_the_rendered_config(self):
         codex = shutil.which("codex")
@@ -507,25 +661,28 @@ class Render(unittest.TestCase):
 
 
 class Secrets(unittest.TestCase):
-    def assert_value_reaches_server_only(self, h, value, server_env):
-        """The value is in no file under the throwaway HOME, and the launched server sees it."""
+    def assert_value_reaches_server_only(self, h, value, server_env, pre=(), command=None):
+        """The value is in no file under the throwaway HOME, and the launched server sees it. `pre` is put
+        before the rendered launcher arguments (the throwaway --keychain); `command` replaces the rendered
+        launcher (its stub copy)."""
         blob = all_bytes(h)
         self.assertNotIn(value.encode(), blob, "a secret value is in a rendered file")
         cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
+        launch = [command or cx["command"]] + list(pre) + cx["args"]
         out = os.path.join(BASE, "out-env.txt")
         if os.path.exists(out):
             os.remove(out)
         # Inherited tracing must not print the value: SHELLOPTS reaches /bin/sh where it is bash (macOS).
         env = dict(server_env, SHELLOPTS="xtrace")
-        p = subprocess.run([cx["command"]] + cx["args"], env=env, capture_output=True, text=True)
+        p = subprocess.run(launch, env=env, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(read(out), sha(value), "the server did not receive the secret")
         self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under SHELLOPTS=xtrace")
-        p = subprocess.run(["sh", "-x"] + [cx["command"]] + cx["args"], env=server_env, capture_output=True, text=True)
+        p = subprocess.run(["sh", "-x"] + launch, env=server_env, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under sh -x")
         if shutil.which("bash"):
-            p = subprocess.run(["bash", "-x"] + [cx["command"]] + cx["args"], env=env, capture_output=True, text=True)
+            p = subprocess.run(["bash", "-x"] + launch, env=env, capture_output=True, text=True)
             self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under bash -x")
 
     def test_env_indirection_renders_names_only_and_launches_with_the_value(self):
@@ -549,16 +706,18 @@ class Secrets(unittest.TestCase):
         self.assertEqual(run(h).returncode, 0)
         self.assertIn(value.encode(), all_bytes(h))
 
-    @unittest.skipUnless(DARWIN and os.path.exists("/usr/bin/security"), "macOS Keychain only")
+    @unittest.skipUnless(DARWIN, "keychain: sources are macOS only (the renderer refuses them elsewhere)")
     def test_keychain_secret_renders_names_only_and_launches_with_the_value(self):
         service = "%s.mcp-test-%d" % (r.PROJECT, os.getpid())
         value = "synthetic-" + secrets.token_hex(16)
         account = os.environ.get("USER") or str(os.getuid())
-        cmd = 'add-generic-password -s "%s" -a "%s" -w "%s"\n' % (service, account, value)
+        h = mk_home("home-keychain")
+        env = clean_env(h)      # every `security` call and every launch: throwaway HOME, throwaway keychain
+        kc = throwaway_keychain(h, "mcp-secret")
         try:
-            if subprocess.run(["/usr/bin/security", "-i"], input=cmd.encode(), capture_output=True).returncode:
-                self.skipTest("the login Keychain is not writable here (locked or absent)")
-            h = mk_home("home-keychain")
+            cmd = 'add-generic-password -s "%s" -a "%s" -w "%s" "%s"\n' % (service, account, value, kc)
+            self.assertEqual(subprocess.run([GUARD.security, "-i"], input=cmd.encode(), capture_output=True,
+                                            env=env).returncode, 0, "the throwaway keychain is not writable")
             doc = source_doc()
             doc["servers"]["fake-secret"]["secrets"] = {"FAKE_API_TOKEN": "keychain:" + service}
             write_source(h, doc)
@@ -566,27 +725,36 @@ class Secrets(unittest.TestCase):
             self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
             self.assertNotIn(value, p.stdout + p.stderr)
             self.assertIn(service, read(targets(h)["codex"]), "the Keychain service NAME is rendered")
-            # The launcher alone runs with the real HOME: `security` resolves the user's Keychain search
-            # list from HOME, so under a throwaway HOME it finds no login Keychain at all (measured).
-            self.assert_value_reaches_server_only(h, value, clean_env(REAL_HOME))
-        finally:
-            subprocess.run(["/usr/bin/security", "delete-generic-password", "-s", service, "-a", account],
-                           capture_output=True)
-        cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
-        p = subprocess.run([cx["command"]] + cx["args"], env=clean_env(REAL_HOME), capture_output=True, text=True)
-        self.assertEqual(p.returncode, 3, "the launcher started a server after its Keychain item was deleted")
-        # A non-printable value: `security -w` would hand it over hex-encoded, so the launcher refuses.
-        cmd = 'add-generic-password -s "%s" -a "%s" -X "0001ff41"\n' % (service, account)
-        try:
-            self.assertEqual(subprocess.run(["/usr/bin/security", "-i"], input=cmd.encode(), capture_output=True).returncode, 0)
-            q = subprocess.run([cx["command"]] + cx["args"], env=clean_env(REAL_HOME), capture_output=True, text=True)
+            self.assertNotIn(kc, read(targets(h)["codex"]), "the renderer must never write --keychain")
+            cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
+            launcher = keychain_launcher(cx["command"], "keychain-secret")
+            self.assert_value_reaches_server_only(h, value, env, pre=("--keychain", kc), command=launcher)
+            subprocess.run([GUARD.security, "delete-generic-password", "-s", service, "-a", account, kc],
+                           capture_output=True, env=env)
+            launch = [launcher, "--keychain", kc] + cx["args"]
+            p = subprocess.run(launch, env=env, capture_output=True, text=True)
+            self.assertEqual(p.returncode, 3, "the launcher started a server after its Keychain item was deleted")
+            self.assertIn("no readable Keychain item", p.stderr)
+            self.assertNotIn(value, p.stderr)
+            # A non-printable value: `security -w` would hand it over hex-encoded, so the launcher refuses.
+            cmd = 'add-generic-password -s "%s" -a "%s" -X "0001ff41" "%s"\n' % (service, account, kc)
+            self.assertEqual(subprocess.run([GUARD.security, "-i"], input=cmd.encode(), capture_output=True,
+                                            env=env).returncode, 0)
+            q = subprocess.run(launch, env=env, capture_output=True, text=True)
             self.assertEqual(q.returncode, 3, q.stderr)
             self.assertIn("not printable text", q.stderr)
         finally:
-            subprocess.run(["/usr/bin/security", "delete-generic-password", "-s", service, "-a", account],
-                           capture_output=True)
-        self.assertIn("no readable Keychain item", p.stderr)
-        self.assertNotIn(value, p.stderr)
+            drop_keychain(h, kc)
+        self.assertFalse(os.path.exists(kc), "the throwaway keychain was not deleted")
+
+    def test_launcher_refuses_a_misplaced_or_relative_keychain(self):
+        marker = os.path.join(BASE, "should-not-exist-kc")
+        for args in (["--keychain", "relative.keychain-db"], ["--keychain"],
+                     ["--secret", "OK=env:SET_ONE", "--keychain", os.path.join(BASE, "k.keychain-db")]):
+            p = subprocess.run(["sh", LAUNCH] + args + ["--", "touch", marker],
+                               env=clean_env(BASE, SET_ONE="x"), capture_output=True, text=True)
+            self.assertEqual(p.returncode, 2, args)
+            self.assertFalse(os.path.exists(marker), args)
 
     def test_launcher_refuses_bad_specs_without_running_anything(self):
         marker = os.path.join(BASE, "should-not-exist")
@@ -644,4 +812,6 @@ if __name__ == "__main__":
         sys.exit("usage: mcp_render_test.py <empty-or-new base directory>")
     BASE = os.path.abspath(sys.argv.pop(1))
     os.makedirs(BASE, exist_ok=True)
+    GUARD = make_guard(BASE)
+    GUARD.install()
     unittest.main(verbosity=2)

@@ -3,13 +3,15 @@
 # owner can switch them off. Only an administrator can change or remove them, with sudo, as with any
 # OS-managed policy; there is no per-request or expiring waiver (ADR-0028, which removed the restart
 # guard and the ADR-0024 breaking-glass switches; --apply and --remove delete what they left behind).
+# The HITL picker guard is removed too (ADR-0013, 2026-10-05 amendment, Issue #60): --apply and
+# --remove delete its script and limits, and --check reports them as STALE.
 # The same admin documents carry the deny floor (ADR-0016, 2026-10-05 amendment): the Claude Code
 # drop-in's permissions.deny and the Codex requirements' [rules] prefix_rules, both rendered from the
 # rules install.sh renders, so the floor has one source. No session flag drops the admin layer.
 #
 #   install-managed.sh                       render and validate into a fresh stage, print the ONE sudo
 #                                            line for the owner; writes nothing outside the stage
-#   install-managed.sh --check               exit 0 when the installed admin layer matches a fresh render
+#   install-managed.sh --check               exit 0 when the installed admin layer matches a fresh render (stamp too)
 #   install-managed.sh --uninstall           print the sudo line that removes what --apply installed
 #   install-managed.sh --apply=STAGE --sha256=HEX   (root) copy the stage, verify its hash, install it
 #   install-managed.sh --remove              (root) remove every file --apply installed
@@ -21,16 +23,17 @@
 #   /Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json
 #   /etc/codex/requirements.toml             refused when it exists and is not ours
 # Kiro has no admin layer for hooks; Windows is not supported (ADR-0025).
-# Exit codes: 0 ok · 1 drift or missing (--check) · 2 usage or missing dependency · 3 something
+# Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage or missing dependency · 3 something
 # unmanaged in the way, or a stage that fails validation or its hash.
 set -eu
 
 NAME="personal-multi-harness-workstation-configuration"
 MARKER_ID="managed-by: $NAME"
 DROPIN="50-$NAME.json"
-FILES="hitl-escalation-guard.sh hitl.conf clipboard_guard.py clipboard.conf"
-# Removed by ADR-0028; an earlier --apply installed them. Deleted by --apply and --remove, reported by --check.
-LEGACY="restart_guard.py breaking_glass.py"
+FILES="clipboard_guard.py clipboard.conf"
+# Removed by ADR-0028 (restart guard, switches) and by ADR-0013's 2026-10-05 amendment (HITL picker
+# guard); an earlier --apply installed them. Deleted by --apply and --remove, reported by --check.
+LEGACY="restart_guard.py breaking_glass.py hitl-escalation-guard.sh hitl.conf"
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 mode=render
@@ -47,7 +50,7 @@ for arg in "$@"; do
     --sha256=*) sha=${arg#--sha256=} ;;
     --root=*) root=${arg#--root=} ;;
     --overlay=*) overlay_arg=$arg ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -88,7 +91,8 @@ validate() { # $1 stage: both admin documents must parse, or the harness may ref
   /usr/bin/python3 -I -B -c '
 import json, sys
 d = json.load(open(sys.argv[1] + "/claude.json"))
-assert isinstance(d, dict) and set(d) == {"hooks", "permissions"}
+assert isinstance(d, dict) and set(d) == {"hooks", "permissions", sys.argv[2]}
+assert isinstance(d[sys.argv[2]], str) and "; release: " in d[sys.argv[2]] and "; commit: " in d[sys.argv[2]]
 assert set(d["permissions"]) == {"deny"}
 deny = d["permissions"]["deny"]
 assert isinstance(deny, list) and deny and all(isinstance(r, str) and r for r in deny)
@@ -99,7 +103,7 @@ except ImportError:
 t = tomllib.load(open(sys.argv[1] + "/requirements.toml", "rb"))
 rules = t["rules"]["prefix_rules"]
 assert rules and all(r["decision"] == "forbidden" and r["pattern"] for r in rules)
-assert len(rules) == sum(r.startswith("Bash(") for r in deny)' "$1" 2>/dev/null
+assert len(rules) == sum(r.startswith("Bash(") for r in deny)' "$1" "$NAME" 2>/dev/null
 }
 
 render() { # $1 empty stage directory
@@ -115,19 +119,25 @@ render() { # $1 empty stage directory
   py="/usr/bin/python3 -I -B"
   paste_claude="$py \"$bin/clipboard_guard.py\" prompt-hook --harness claude --config \"$bin/clipboard.conf\""
   paste_codex="$py \"$bin/clipboard_guard.py\" prompt-hook --harness codex --config \"$bin/clipboard.conf\""
-  hitl="/bin/sh \"$bin/hitl-escalation-guard.sh\""
   # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin
-  # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor.
-  jq -c '.permissions.deny' "$st/home/.claude/settings.json" > "$st/floor.json"
-  jq -n --arg ps "$paste_claude" --arg h "$hitl" --slurpfile f "$st/floor.json" '
+  # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor
+  # plus the allow list's own Edit protections (ADR-0031), which are user-level and named by their owner key.
+  jq -c '.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])' \
+    "$st/home/.claude/settings.json" > "$st/floor.json"
+  # The provenance stamp (Issue #66, ADR-0029) exactly as install.sh derived it for the same checkout,
+  # read back from a file it rendered, so the admin documents and the scripts cannot name two sources.
+  stamp=$(grep -m 1 -F "$MARKER_ID" "$st/bin/clipboard.conf" | sed -n 's/.*; \(release: [^;]*; commit: [^;]*\);.*/\1/p')
+  [ -n "$stamp" ] || { echo "REFUSE  install.sh rendered no provenance stamp" >&2; exit 2; }
+  # JSON has no comment: one top-level key of ours carries the stamp. Claude Code ignores a key it does
+  # not know (measured on 2.1.289 through --settings; see ADR-0029).
+  jq -n --arg ps "$paste_claude" --slurpfile f "$st/floor.json" --arg sk "$NAME" \
+      --arg sv "$MARKER_ID; source: global/install-managed.sh; $stamp; do not edit, re-run the installer" '
     def hook($c; $t): {type: "command", command: $c, timeout: $t};
-    {hooks: {
-      PreToolUse: [{matcher: "AskUserQuestion", hooks: [hook($h; 5)]}],
-      UserPromptSubmit: [{hooks: [hook($ps; 30)]}]},
+    {($sk): $sv,
+     hooks: {UserPromptSubmit: [{hooks: [hook($ps; 30)]}]},
      permissions: {deny: $f[0]}}' > "$st/claude.json"
-  version=$(sed -n 's/^current_version = "\(.*\)"/\1/p' "$script_dir/../.bumpversion.toml" | head -n 1)
   {
-    printf '# %s; source: global/install-managed.sh; version: %s; do not edit, re-run the installer\n' "$MARKER_ID" "$version"
+    printf '# %s; source: global/install-managed.sh; %s; do not edit, re-run the installer\n' "$MARKER_ID" "$stamp"
     printf '# ADR-0025. No allow_managed_hooks_only and no [features] pin: user and plugin hooks keep running.\n'
     printf '[hooks]\nmanaged_dir = %s\n' "$(jq -n --arg v "$bin" '$v')"
     # One hook since ADR-0028 removed the restart guard: the paste filter.
@@ -159,34 +169,47 @@ case $mode in
     fi
     echo "STAGED  $st (validated; nothing installed)"
     echo "RUN     sudo /bin/sh \"$script_dir/install-managed.sh\" --apply=\"$st\" --sha256=$(stage_hash "$st")${root:+ --root=\"$root\"}"
-    echo "THEN    sh \"$script_dir/install.sh\" --hooks=managed   (removes the user-level duplicates), then open fresh sessions"
+    echo "THEN    ./workstation install   (detects the admin layer and removes the user-level duplicates), then open fresh sessions"
     ;;
   uninstall)
     echo "RUN     sudo /bin/sh \"$script_dir/install-managed.sh\" --remove${root:+ --root=\"$root\"}"
-    echo "THEN    sh \"$script_dir/install.sh\"   (restores the user-level hooks), then open fresh sessions"
+    echo "THEN    ./workstation install   (restores the user-level hooks), then open fresh sessions"
     ;;
   check)
     st=$(mktemp -d "${TMPDIR:-/tmp}/pmhwc-managed.XXXXXX")
     render "$st"
     status=0
-    # The managed-by header stamps the release that rendered a file; a release that changes no
-    # installed content is not drift.
+    # The managed-by line carries the provenance stamp (Issue #66, ADR-0029; "version" in files an
+    # earlier release installed). Content is compared without it; a stamp other than the source's on
+    # matching content is STAMP, not DRIFT. Both fail the check, and --apply rewrites both.
     unstamp() {
       unstamp_file=$1
-      sed "/$MARKER_ID/s/; version: [^;]*;/; version: -;/" "$unstamp_file"
+      sed -E "/$MARKER_ID/s/; (version|release|commit): [^;\"]*//g" "$unstamp_file"
     }
+    stamp_of() {
+      stamp_line=$(grep -m 1 -F "$MARKER_ID" "$1" 2>/dev/null || true)
+      stamp_got=$(printf '%s' "$stamp_line" | sed -n 's/.*; \(release: [^;"]*; commit: [^;"]*\);.*/\1/p')
+      printf '%s' "${stamp_got:-none}"
+    }
+    echo "SOURCE  $(stamp_of "$st/bin/clipboard.conf")"
     compare() {
       rendered=$1
       installed=$2
       if [ ! -f "$installed" ]; then echo "MISSING $installed"; status=1
-      elif ! cmp -s "$rendered" "$installed" && {
+      elif cmp -s "$rendered" "$installed"; then echo "OK      $installed ($(stamp_of "$installed"))"
+      else
         unstamp "$rendered" > "$st/same.a"; unstamp "$installed" > "$st/same.b"
-        ! cmp -s "$st/same.a" "$st/same.b"; }; then echo "DRIFT   $installed"; status=1
-      else echo "OK      $installed"; fi
+        if cmp -s "$st/same.a" "$st/same.b"; then
+          echo "STAMP   $installed: content matches, but it carries ($(stamp_of "$installed")) and the source is ($(stamp_of "$rendered"))"
+        else
+          echo "DRIFT   $installed ($(stamp_of "$installed"))"
+        fi
+        status=1
+      fi
     }
     for f in $FILES; do compare "$st/bin/$f" "$bin/$f"; done
     for f in $LEGACY; do
-      if [ -e "$bin/$f" ]; then echo "STALE   $bin/$f: removed by ADR-0028; --apply deletes it"; status=1; fi
+      if [ -e "$bin/$f" ]; then echo "STALE   $bin/$f: a removed hook's file (ADR-0028, ADR-0013); --apply deletes it"; status=1; fi
     done
     if [ -e "$switches" ]; then echo "STALE   $switches: removed by ADR-0028; --apply deletes it"; status=1; fi
     compare "$st/claude.json" "$claude_file"
@@ -222,12 +245,13 @@ case $mode in
     done
     put "$work/claude.json" "$claude_file" 644
     put "$work/requirements.toml" "$codex_file" 644
-    # What an earlier release installed for the restart guard and the breaking-glass switches (ADR-0028).
+    # What an earlier release installed for the restart guard, the breaking-glass switches (ADR-0028)
+    # and the HITL picker guard (ADR-0013, 2026-10-05 amendment).
     for f in $LEGACY; do rm -f "$bin/$f"; done
     rm -f "$switches"/*.json
     rmdir "$switches" 2>/dev/null || true
     echo "INSTALLED $bin, $claude_file, $codex_file"
-    echo "THEN    as yourself: sh \"$script_dir/install.sh\" --hooks=managed; then open fresh Claude Code and Codex sessions"
+    echo "THEN    as yourself, in the checkout: ./workstation install; then open fresh Claude Code and Codex sessions"
     ;;
   remove)
     is_root_run || { echo "REFUSE  --remove needs administrator privilege (sudo)" >&2; exit 2; }

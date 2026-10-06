@@ -54,9 +54,13 @@ Return to the repository root after preparing an external profile. After reviewi
 macOS/Linux:
 
 ```sh
-sh global/install.sh --overlay=none
-sh global/install.sh --overlay=none --check
+./workstation install --overlay=none
+./workstation status --overlay=none
+./workstation check --overlay=none
 ```
+
+`./workstation install --admin --overlay=none` prints the one `sudo` line for the admin layer, which you
+run yourself.
 
 Windows PowerShell:
 
@@ -67,7 +71,9 @@ Windows PowerShell:
 
 Use the same overlay choice in preview, apply and check. The installer refuses unmanaged conflicts;
 resolve them deliberately instead of deleting existing configuration. A successful check establishes
-file/configuration agreement, not that every harness loaded or enforced the policy. Follow the
+file/configuration agreement, not that every harness loaded or enforced the policy. Its last section
+lists the prerequisite tools and subscriptions, with the manual step for each gap, and fails when a
+required one is missing ([prerequisites](prerequisites.md)). Follow the
 README's separate hook-trust and paste-wrapper activation instructions where applicable.
 
 ## Restart after installation
