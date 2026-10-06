@@ -175,7 +175,7 @@ class Launcher(Base):
             self.assertTrue(err.startswith("mhw: "), err)
         code, out, _ = run("update", "v4.2.0")
         self.assertEqual(code, 0)
-        self.assertIn("RUN     npm install -g github:%s#v4.2.0" % ws.REPO, out)
+        self.assertIn("RUN     npm install -g --foreground-scripts github:%s#v4.2.0" % ws.REPO, out)
 
     def test_update_text_is_the_same_in_node_and_python(self):
         for wanted in (None, "v4.2.0", "v10.0.3", "4.2.0", "v4.2", "main", "v4.2.0;x"):
@@ -188,7 +188,7 @@ class Launcher(Base):
         _, lines = ws.npm_update_lines(None)
         major = re.search(r'^current_version\s*=\s*"(\d+\.\d+\.\d+)"',
                           (ROOT / ".bumpversion.toml").read_text(encoding="utf-8"), re.M).group(1)
-        self.assertEqual(lines[-1], "RUN     npm install -g github:%s#semver:^%s" % (ws.REPO, major))
+        self.assertEqual(lines[-1], "RUN     npm install -g --foreground-scripts github:%s#semver:^%s" % (ws.REPO, major))
         self.assertEqual(ws.npm_update_lines("main")[0], 2)
 
     def test_package_json(self):
@@ -375,12 +375,15 @@ class PackAndInstall(Base):
         self.assertIn("  source           %s (this package)" % ws.short_stamp(stamp), p.stdout)
         self.assertNotIn(ws.NOT_RUN, p.stdout)
         self.assertNotIn("  npm  ", p.stdout)
+        # A missed postinstall output: status repeats the admin step.
+        self.assertIn("  admin layer      not installed; next: mhw install --admin, then run the one sudo line "
+                      "it prints", p.stdout)
         q = self.cmd(d, env, "workstation", "status", "--project=" + str(d / "proj"))
         self.assertEqual((q.returncode, q.stderr), (0, ALIAS + "\n"))
         self.assertIn("  source           %s (this package)" % ws.short_stamp(stamp), q.stdout)
         p = self.cmd(d, env, "mhw", "update")
         self.assertEqual(p.returncode, 0, p.stderr)
-        self.assertIn("RUN     npm install -g github:%s#semver:^" % ws.REPO, p.stdout)
+        self.assertIn("RUN     npm install -g --foreground-scripts github:%s#semver:^" % ws.REPO, p.stdout)
         p = self.cmd(d, env, "mhw", "update", "main")
         self.assertEqual(p.returncode, 2)
         # mhw uninstall first (npm runs no uninstall script), then npm uninstall -g mhw.

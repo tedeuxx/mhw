@@ -43,7 +43,7 @@ function updateLines(wanted, root) {
     code: 0,
     out: [
       'UPDATE  this is an npm install (no .git); update it with npm, whose postinstall installs:',
-      'RUN     npm install -g github:' + REPO + '#' + ref,
+      'RUN     npm install -g --foreground-scripts github:' + REPO + '#' + ref,
     ],
   };
 }

@@ -773,11 +773,12 @@ later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workst
   [ADR-0034](adr/0034-npm-distribution-from-github-by-tag.md) 2026-10-06 amendment):**
   - The package is `mhw` (multi-harness managed workstation), and so is its command. The install line keeps
     this repository's current name until the repository is renamed, a separate step.
-  - `npm install -g …#vX.Y.Z` installs and updates the user layer itself through a `postinstall`, with no
+  - `npm install -g --foreground-scripts …#vX.Y.Z` installs and updates the user layer itself through a `postinstall`, with no
     separate `mhw install`. It never prompts and never runs `sudo`. It skips a non-global install and
     says why. `MHW_METHOD=1` opts into the working method.
   - At the end it prints the admin layer's `sudo` line when that layer is absent or stale, a reminder to
-    open fresh sessions, and the runtime summary.
+    open fresh sessions, and the runtime summary. `--foreground-scripts` is part of every documented line,
+    because without a terminal npm hides that output; `mhw status` repeats the admin step if it was missed.
   - Stated limits, measured with npm 11.13.0: npm runs no uninstall script, so `mhw uninstall` comes
     before `npm uninstall -g mhw`; the admin layer stays the owner's separate `sudo` step, never
     `sudo npm`; with `ignore-scripts`, nothing runs. From a tarball, `status` then says

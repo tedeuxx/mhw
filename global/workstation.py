@@ -180,6 +180,9 @@ def render_status(f, verbose=False):
         check = "%d target(s) differ; run %s" % (fix, FIX)
     lines.append("  check            %s" % check)
     lines.extend(admin_report(f["admin_lines"], admin_code, prefix="  admin layer      "))
+    if not f["admin"] and f.get("admin_state", "absent") == "absent" and not f["admin_lines"]:
+        # Repeats the step a missed npm postinstall printed (Issue #68): absent is a next step, not silence.
+        lines.append("  admin layer      not installed; " + ADMIN_NEXT)
     harnesses = [h for h, v in f["harnesses"].items() if v is not None]
     lines.append("  agent harnesses  %s" % (", ".join(harnesses) if harnesses else "none detected on PATH"))
     ws = f["workspace"]
@@ -986,7 +989,7 @@ def npm_update_lines(wanted, root=ROOT):
             return 2, ["REFUSE  the tag must be a numeric release, vX.Y.Z"]
         ref = "v%s.%s.%s" % m.groups()
     return 0, ["UPDATE  this is an npm install (no .git); update it with npm, whose postinstall installs:",
-               "RUN     npm install -g github:%s#%s" % (REPO, ref)]
+               "RUN     npm install -g --foreground-scripts github:%s#%s" % (REPO, ref)]
 
 
 def cmd_update(wanted):

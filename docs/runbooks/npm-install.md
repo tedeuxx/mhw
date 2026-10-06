@@ -22,7 +22,7 @@ Pick the release and name it. The first installable tag is the first release tha
 `package.json`. Older tags fail with `Could not read package.json` (measured on `v4.0.0`).
 
 ```sh
-npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z
+npm install -g --foreground-scripts github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z
 ```
 
 That line is the install and the update. The package's `postinstall` (`bin/postinstall.js`) runs the same
@@ -42,9 +42,10 @@ the end it prints three things:
 **Where the output goes.** npm hides a successful lifecycle script's output (measured, npm 11.13.0). The
 postinstall therefore writes its report to the terminal (`/dev/tty`) when there is one; with no terminal
 (CI, a pipe) it goes to npm, which shows it only with `--foreground-scripts` or on failure. Not measured
-in an interactive terminal from here: `mhw status` shows the same state at any time.
+in an interactive terminal from here, so **every documented install and update line carries
+`--foreground-scripts`**, and `mhw update` prints it that way. If the output was missed, `mhw status` repeats the admin step: it prints the next step, `mhw install --admin` and its `sudo` line, while the admin layer is absent or stale.
 
-**The working method.** Opt-in, as with `mhw install --method`: `MHW_METHOD=1 npm install -g …`. Once
+**The working method.** Opt-in, as with `mhw install --method`: `MHW_METHOD=1 npm install -g --foreground-scripts …`. Once
 rendered, every later install keeps it current. (An `npm_config_*` variable or a `--workstation-method`
 flag would make npm warn about an unknown config, measured; `--workstation-method` also swallowed the
 next argument.)
@@ -112,7 +113,7 @@ and `status` shows it.
 An npm install cannot detect edits to the installed package. A git checkout can: its stamp reads
 `-dirty`. Here the stamp keeps reading the clean release and `check` passes, because it compares the
 installed files with the package itself (measured, ADR-0034). npm keeps no integrity record for a git
-dependency. If you suspect the package was changed, reinstall the tag with `npm install -g …#vX.Y.Z`.
+dependency. If you suspect the package was changed, reinstall the tag with `npm install -g --foreground-scripts …#vX.Y.Z`.
 
 ## Do not
 

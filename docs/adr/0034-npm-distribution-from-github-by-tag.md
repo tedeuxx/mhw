@@ -189,7 +189,9 @@ current repository name until then.
 - Bad: `--ignore-scripts` fails a GitHub install and leaves a dangling link (recovery: install again
   without it).
 - Bad: output is invisible without a terminal unless `--foreground-scripts` is given; `/dev/tty` was not
-  measured from an interactive terminal.
+  measured from an interactive terminal. So every documented install and update line, and the line
+  `mhw update` prints, carries `--foreground-scripts` (lens advisory on PR #106), and `mhw status`
+  repeats the admin step (`mhw install --admin`) while the admin layer is absent or stale.
 - Bad: after `npm uninstall -g mhw` alone the resources stay, and no command is left to say so.
 - Bad: after upgrading from v4.1.0, removing the old package also deletes the `workstation` link until
   the npm line runs once more.

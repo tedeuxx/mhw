@@ -126,16 +126,16 @@ or later and git; on macOS and Linux also Python 3.9+ and `jq`. The package and 
 (multi-harness managed workstation):
 
 ```sh
-npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z
+npm install -g --foreground-scripts github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z
 sudo /bin/sh ".../mhw/global/install-managed.sh" --apply="..." --sha256=...   # macOS and Linux: the line the install printed, only when it printed one
 ```
 
 The npm line installs and updates every user-level resource itself: its `postinstall` runs `mhw install`,
 then prints the admin layer's one `sudo` line when that layer is absent or stale, a reminder to open
 fresh agent harness sessions, and the runtime summary. Run the printed `sudo` line yourself, then
-`mhw install` once more (the line after it says so). npm shows a script's output only in a terminal
-(`/dev/tty`) or with `--foreground-scripts`; `mhw status` shows the same state at any time.
-`MHW_METHOD=1 npm install -g …` also renders the working method.
+`mhw install` once more (the line after it says so). Keep `--foreground-scripts`: without a terminal npm hides a
+script's output, and with it the `sudo` line and the restart notice. If the output was missed, `mhw status` repeats the admin step: it prints the next step, `mhw install --admin` and its `sudo` line, while the admin layer is absent or stale.
+`MHW_METHOD=1 npm install -g --foreground-scripts …` also renders the working method.
 
 - **Remove:** `mhw uninstall` **before** `npm uninstall -g mhw`. npm 11.13.0 runs no uninstall script
   (measured), so after `npm uninstall -g` alone every user-level resource stays and no `mhw` command is
