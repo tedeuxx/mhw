@@ -12,7 +12,8 @@
 //      puts an empty directory back where the link was and installs nothing.
 //   2. Not a global install (a local dependency, a CI checkout, npm ci): nothing to do; it says why.
 //   3. A global install, running from the installed copy: install, then print the admin sudo line when
-//      the admin layer is absent or stale, the fresh-session reminder and the runtime summary.
+//      the admin layer is absent or stale, the fresh-session reminder and the runtime summary. It exits
+//      0 even when the install refuses a target: npm would otherwise remove the package (Issue #110).
 // Opt-in: MHW_METHOD=1 in the environment also renders the working method (as `mhw install --method`).
 // npm shows a lifecycle script's output only when it fails or with --foreground-scripts (measured), so
 // the report goes to the terminal (/dev/tty) when there is one. Standard library only.
@@ -106,15 +107,30 @@ function run(env, platform) {
   const out = reportStream(platform, env);
   const stdio = ['ignore', out, out];
   if (out !== 'inherit') console.log('mhw postinstall: the report is written to the terminal');
+  let code;
   if (platform === 'win32') {
-    const code = mhw.main(['install'].concat(method ? ['--method'] : []), platform, env, { stdio });
+    code = mhw.main(['install'].concat(method ? ['--method'] : []), platform, env, { stdio });
     console.log('THEN    open fresh agent harness sessions; mhw status reports what is installed');
-    return code;
+  } else {
+    code = mhw.main(['postinstall'].concat(method ? ['--method'] : []), platform, env, { stdio });
   }
-  return mhw.main(['postinstall'].concat(method ? ['--method'] : []), platform, env, { stdio });
+  return keep(code, out);
 }
 
-module.exports = { decide, undoPrepareLink, globalModules };
+// Issue #110: npm rolls a global install back on any non-zero lifecycle exit, which deletes the package
+// whose mhw command and install-managed.sh path the report just printed. A refused or partial install is
+// a next step for the owner, so it is said in the report and the exit stays 0: the package is kept.
+function keep(code, out) {
+  if (code !== 0) {
+    const line = 'ACTION  the install exited ' + code + ' (see the REFUSE or SKIP lines above); the package is kept: ' +
+      'fix what they name, then run mhw install, and mhw check to confirm\n';
+    if (out === 'inherit') process.stdout.write(line);
+    else fs.writeSync(out, line);
+  }
+  return 0;
+}
+
+module.exports = { decide, undoPrepareLink, globalModules, keep };
 
 if (require.main === module) {
   process.exitCode = run(process.env, process.env.WORKSTATION_LAUNCHER_PLATFORM || process.platform);
