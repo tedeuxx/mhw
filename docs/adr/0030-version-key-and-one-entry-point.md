@@ -212,8 +212,8 @@ only, or `MANUAL`. Evidence: [prerequisites](../prerequisites.md).
 
 ## Links
 
-- Requirements document, [section 7](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#7-version-key-per-project)
-  and [section 9b](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#9b-one-install-command-managed-by-the-repository)
+- Requirements document, [section 7](../mhw-product-requirements-document-project.md#7-version-key-per-project)
+  and [section 9b](../mhw-product-requirements-document-project.md#9b-one-install-command-managed-by-the-repository)
 - [ADR-0029](0029-provenance-stamp-in-every-installed-file.md) (the stamp the key is compared with)
 - [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (why no hook)
 - [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md) (the admin layer `install --admin` renders)

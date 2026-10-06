@@ -2,7 +2,7 @@
 
 What each agent harness can carry with its own native components, and what stays instruction only.
 This is the deliverable of [#55](https://github.com/tedeuxx/mhw/issues/55)
-and section 10 of the [requirements document](personal-multi-harness-workstation-configuration-product-requirements-document-project.md#10-native-enforcement-matrix).
+and section 10 of the [requirements document](mhw-product-requirements-document-project.md#10-native-enforcement-matrix).
 It decides which mechanism each later slice uses. The decision it records is
 [ADR-0027](adr/0027-native-carrier-per-component-from-the-enforcement-matrix.md) (proposed).
 

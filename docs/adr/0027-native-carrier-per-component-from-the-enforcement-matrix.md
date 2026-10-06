@@ -77,5 +77,5 @@ proposed.)*
 ## Links
 
 - [`docs/native-enforcement-matrix.md`](../native-enforcement-matrix.md)
-- [Requirements document, section 10](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#10-native-enforcement-matrix)
+- [Requirements document, section 10](../mhw-product-requirements-document-project.md#10-native-enforcement-matrix)
 - Issues #56 to #78 in the matrix's "Consequences for later slices" table.

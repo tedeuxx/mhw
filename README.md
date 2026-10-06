@@ -5,7 +5,7 @@ Kiro) behaves on the owner's devices. One release installs the same protection, 
 method into every agent harness, on any of his machines.
 
 This page is the short version. The target behaviour and the reasons for it are in the
-[Product Requirements Document](docs/personal-multi-harness-workstation-configuration-product-requirements-document-project.md).
+[Product Requirements Document](docs/mhw-product-requirements-document-project.md).
 The mission, principles and hard rules for agents working here are in [`AGENTS.md`](AGENTS.md).
 
 ## Why it exists
@@ -256,6 +256,6 @@ Every installation on the owner's machine is his act, in a fresh session.
 
 ## Further reading
 
-- [Product Requirements Document](docs/personal-multi-harness-workstation-configuration-product-requirements-document-project.md)
+- [Product Requirements Document](docs/mhw-product-requirements-document-project.md)
 - [Agent harness baseline vocabulary](docs/harness-baseline.md)
 - [Local persistence inventory](docs/persistence-inventory.md)

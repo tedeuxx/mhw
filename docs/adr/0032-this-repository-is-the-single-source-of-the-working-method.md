@@ -223,7 +223,7 @@ mutations of the skill sources turned it red and the unmutated copy stayed green
 
 ## Links
 
-- [Requirements document, section 6](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#6-working-method-user-layer)
-  and [section 4a](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#4a-hook-budget)
+- [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)
+  and [section 4a](../mhw-product-requirements-document-project.md#4a-hook-budget)
 - [Native enforcement matrix](../native-enforcement-matrix.md)
 - [`method/README.md`](../../method/README.md)

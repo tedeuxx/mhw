@@ -120,7 +120,7 @@ Option 1.
 - [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md): `sudo` is in the deny floor, so an
   agent cannot run the line itself.
 - Requirements document, sections 4 and 4a:
-  [`docs/personal-multi-harness-workstation-configuration-product-requirements-document-project.md`](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md)
+  [`docs/mhw-product-requirements-document-project.md`](../mhw-product-requirements-document-project.md)
 
 ## Amendment 2026-10-05: the picker guard is removed too ([Issue #60](https://github.com/tedeuxx/mhw/issues/60))
 
