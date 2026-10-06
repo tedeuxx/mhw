@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The npm postinstall of mhw (Issue #68, ADR-0034): `npm install -g github:<repo>#vX.Y.Z` installs and
+// The npm postinstall of mhw (Issue #68, ADR-0034): `npm install -g --foreground-scripts github:<repo>#vX.Y.Z` installs and
 // updates every user-level resource, the same path as `mhw install`. Non-interactive (stdin is closed),
 // idempotent (install.sh is), never sudo and never an admin path: for the admin layer it prints the one
 // sudo line the owner runs himself.

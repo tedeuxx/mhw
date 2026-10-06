@@ -69,7 +69,9 @@ Option 1.
   ships the file).
 - **Version:** `.bumpversion.toml` rewrites `package.json`'s `version` in the bump commit, so a tag
   `vX.Y.Z` carries `X.Y.Z` (dry run of bump-my-version 1.5.1: `4.0.0` became `4.1.0` in both files).
-- **Install:** `npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`,
+- **Install:** ~~`npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`~~
+  `npm install -g --foreground-scripts github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`
+  (flag added 2026-10-06, so the postinstall's output is shown),
   or `#semver:^X.Y.Z` for the newest release in a major. Major means breaking (#52).
 - **Launcher:** ~~`bin/workstation.js`~~ `bin/mhw.js` (2026-10-06 amendment) resolves paths from its own file, which npm reaches through the
   link. On macOS and Linux it runs the package's ~~`./workstation`~~ `./mhw`. On Windows it maps `install
@@ -118,7 +120,7 @@ Option 1.
 
 **Owner, 2026-10-06, on #68:** *"a minha expectativa nao era que o npm apenas exportasse o script de
 instalacao e gerenciamento. a expectativa é que todos recursos de managed workstation instalados na
-maquina fossem gerenciados pelo npm diretamente."* Agreed design: `npm install -g …#vX.Y.Z` installs and
+maquina fossem gerenciados pelo npm diretamente."* Agreed design: `npm install -g --foreground-scripts …#vX.Y.Z` installs and
 updates every user-level resource through a `postinstall`, with no separate install step. The same day he
 renamed the package and the command `mhw` (multi-harness managed workstation), keeping `workstation` as a
 deprecated alias for one minor. The repository rename is a separate step; the install line keeps the
@@ -152,7 +154,7 @@ current repository name until then.
 1. **A `postinstall` that undoes the git preparation's link, then installs (chosen).** *Trade-off:* it
    rests on pacote internals (`_PACOTE_NO_PREPARE_`, the inner `--force` global run), which a new npm
    can change; `--ignore-scripts` turns a GitHub install into a failure rather than a no-op.
-2. **Install line on GitHub's tarball URL** (`npm install -g https://codeload.github.com/…/tar.gz/vX.Y.Z`).
+2. **Install line on GitHub's tarball URL** (`npm install -g --foreground-scripts https://codeload.github.com/…/tar.gz/vX.Y.Z`).
    A remote tarball is not a git dependency, so there is no preparation, no link to undo, and
    `--ignore-scripts` would install cleanly and let `status` report it. *Trade-off:* a longer line and no
    `#semver:` range; the owner kept the `github:` line, so it is not taken here. It is the fallback if a

@@ -755,7 +755,9 @@ later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workst
 - **Distribution through npm (owner, 2026-10-06, [#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68):
   *"siga com a adequacao da distribuicao com npm"*; [ADR-0034](adr/0034-npm-distribution-from-github-by-tag.md)):**
   - Install straight from this GitHub repository by tag:
-    `npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`, or
+    ~~`npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`~~
+    `npm install -g --foreground-scripts github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`
+    (flag added 2026-10-06), or
     `#semver:^X.Y.Z`. Nothing is published to the npm registry; `package.json` is `private`.
   - The package exposes ~~the `workstation` command~~ the `mhw` command (renamed 2026-10-06;
     `workstation` stays a deprecated alias for one minor). On macOS and Linux it runs ~~`./workstation`~~
