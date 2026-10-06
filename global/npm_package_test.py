@@ -173,6 +173,18 @@ class Stamp(unittest.TestCase):
         self.assertEqual(s, "release: unknown, npm package (.bumpversion.toml says %s); commit: unknown" % version)
         self.assertRegex(s, STAMP_SHAPE)
 
+    def test_second_prepare_keeps_the_first_known_commit(self):
+        # npm runs prepare twice for a hosted git dependency; only the first sees the resolved commit.
+        known = "release: unreleased, after v4.0.0; commit: " + SHA
+        unknown = "release: unknown, npm package (.bumpversion.toml says 4.0.0); commit: unknown"
+        decide = "require(%s).decide" % json.dumps(str(ROOT / "bin" / "stamp.js"))
+        for computed, existing, want in ((unknown, known + "\n", known), (unknown, None, unknown),
+                                         (unknown, "garbage; commit: zz\n", unknown),
+                                         ("release: v4.0.0; commit: " + "e" * 40, known, "release: v4.0.0; commit: " + "e" * 40)):
+            got = node_eval("process.stdout.write(JSON.stringify(%s(%s, %s)))"
+                            % (decide, json.dumps(computed), json.dumps(existing)))
+            self.assertEqual(got, want)
+
     def test_a_tarball_inside_another_repository_borrows_nothing(self):
         outer = self.base / "outer"
         outer.mkdir()

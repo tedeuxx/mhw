@@ -107,10 +107,26 @@ function stamp(root, env) {
   return 'release: unknown, npm package (.bumpversion.toml says ' + version + '); commit: unknown';
 }
 
-module.exports = { stamp, resolvedFromNpm, tagCommit, fromCheckout };
+const SHAPE = /^release: [A-Za-z0-9 .,()_-]+; commit: [0-9a-f]{40}(-dirty)?$/;
+
+// npm runs prepare twice for a hosted git dependency (measured, npm 11.13.0): first inside the
+// `npm install` it runs in the unpacked archive, where the resolved URL is in the environment, then
+// again while packing, where it is not. The second run must not overwrite a known commit with unknown.
+// Outside a checkout, a stamp file can only have been written by an earlier prepare in this same
+// directory (the file is never committed), so keeping it borrows nothing.
+function decide(computed, existing) {
+  if (/; commit: unknown$/.test(computed) && SHAPE.test(String(existing || '').split('\n')[0])) {
+    return String(existing).split('\n')[0];
+  }
+  return computed;
+}
+
+module.exports = { stamp, resolvedFromNpm, tagCommit, fromCheckout, decide };
 
 if (require.main === module) {
-  const s = stamp(ROOT, process.env);
+  let existing = null;
+  try { existing = fs.readFileSync(OUT, 'utf8'); } catch (e) { /* none yet */ }
+  const s = decide(stamp(ROOT, process.env), existing);
   fs.writeFileSync(OUT, s + '\n');
   console.log('workstation stamp: ' + s);
 }
