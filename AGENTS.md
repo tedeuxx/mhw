@@ -221,3 +221,7 @@ The short form, so an agent reading only this file does not over-claim: everythi
 *written and tested* (and probed in throwaway homes where the table says so); **none of it is
 installed on the owner's reference machine**. That machine runs an earlier release until the owner
 merges the release-candidate pull request, installs it and runs the canary, in a fresh session.
+
+The npm route ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md), Issue #68) is at the
+same level: *written and tested*, probed once from the branch into a throwaway npm prefix and HOME.
+Nothing is published to the npm registry, and no npm install exists on the reference machine.
