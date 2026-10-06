@@ -92,8 +92,12 @@ An operator identifying a running build, or a consumer adopting a published arti
 
 **The cut is declared on the pull request** as exactly one `semver:major|minor|patch` label; the merge
 to `main` bumps **that** part (resetting lower parts), tags it and publishes a release. A pull request
-without exactly one label fails a check. Where a repository records its own cut policy (this
-workstation's is its ADR-0002), that table decides which label applies.
+without exactly one label fails a check. The default is plain SemVer: **major** for a breaking
+change (something a consumer must change), **minor** for an incremental feature, **patch** for a bug
+fix or a change with no behaviour change (docs, tests, CI). Where a repository records its own cut policy (this workstation's is its ADR-0002, which since
+2026-10-06 is that plain rule, with adding or removing a control counted as minor when no consumer has
+to change anything), that table decides which label applies. A pull request that bundles several
+changes, such as a release candidate, carries the largest part among them.
 
 ### `.bumpversion.toml` (same in every repo)
 ```toml
