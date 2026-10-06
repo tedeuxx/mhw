@@ -1019,20 +1019,19 @@ def admin_apply(verbose):
 
 
 def ensure_sudo(asking):
-    """True when sudo can run without a prompt now. Only in a terminal (`asking`): without one, sudo never
-    runs, not even on cached credentials, so an agent's shell (no terminal) running `mhw install --yes`
-    cannot reach the admin layer through this command. Asks for the password once, explaining why.
-    Under WORKSTATION_MANAGED_ROOT (tests) no sudo is needed."""
+    """True once the owner typed his password for this step. The barrier is the password, asked every
+    time: `sudo -k -v` drops any cached credential first, so a process that only fakes a terminal (an
+    agent can, with `script`) still meets a password prompt it cannot answer (PR #114 lens). Without a
+    terminal (`asking` false) sudo is not run at all. Under WORKSTATION_MANAGED_ROOT (tests) no sudo
+    runs."""
     if managed_root():
         return True
     if not asking:
         return False
-    if subprocess.run([SUDO, "-n", "true"], capture_output=True).returncode == 0:
-        return True
     heading("Administrator access")
     print("The system-wide protections live in folders only an administrator can change, so that no agent")
     print("session can switch them off. sudo asks for your password once; mhw uses it for that step only.")
-    return subprocess.run([SUDO, "-v", "-p", "Password for %u: "]).returncode == 0
+    return subprocess.run([SUDO, "-k", "-v", "-p", "Password for %u: "]).returncode == 0
 
 
 def owner_steps(lines):
@@ -1081,7 +1080,7 @@ def cmd_install(admin_only=False, method=False, verbose=False, yes=False, no_adm
         if not confirm():
             print("Aborted; nothing was changed.")
             return 1
-    failed, steps, owner = [], [], []
+    failed, steps, owner, pending = [], [], [], False
     if plan["admin"] in ("absent", "differs"):
         if ensure_sudo(asking):
             heading("Installing the system-wide protections")
@@ -1089,6 +1088,7 @@ def cmd_install(admin_only=False, method=False, verbose=False, yes=False, no_adm
             if code != 0:
                 failed.append("System-wide protections (exit %d; `%s install --verbose` shows why)" % (code, CMD))
         else:
+            pending = True
             steps.append("Run `%s install` in a terminal to install the system-wide protections; it asks for "
                          "your administrator password." % CMD)
     if not admin_only:
@@ -1115,11 +1115,15 @@ def cmd_install(admin_only=False, method=False, verbose=False, yes=False, no_adm
         for f in failed:
             print("  - " + f)
         steps.insert(0, "Fix what is named above, then run `%s install` again." % CMD)
+    elif pending:
+        # The plan listed the system-wide protections and they were not installed: not a success.
+        print(_styled("33;1", "Partly installed:") + " your settings are in place; the system-wide "
+              "protections are not.")
     else:
         print(_styled("32;1", "Installation successful!"))
     steps += [FRESH] + owner + ["Run `%s status` to see what is installed." % CMD]
     next_steps(steps)
-    return 1 if failed else 0
+    return 1 if failed or pending else 0
 
 
 def cmd_postinstall(method=False):

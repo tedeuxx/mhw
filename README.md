@@ -136,8 +136,8 @@ change, waits for RETURN, asks for your administrator password once (only when t
 protections change, and it says why), installs them and then your settings, and ends with
 `Installation successful!` and numbered next steps. `--verbose` shows every file it writes; `--no-admin`
 installs your settings only, with no password. Without a terminal it only says what it would do;
-`--yes` skips the question, but the system-wide protections still need a terminal, because sudo never
-runs without one. `mhw update` runs the npm update itself, then the new package's install.
+`--yes` skips the question, but the system-wide protections still need your password, typed for that
+run (`mhw` never relies on a cached `sudo` credential). `mhw update` runs the npm update itself, then the new package's install.
 `mhw install --method` also renders the working method.
 
 - **Remove:** `mhw uninstall` **before** `npm uninstall -g mhw`. npm 11.13.0 runs no uninstall script

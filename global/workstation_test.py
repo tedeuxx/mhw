@@ -837,6 +837,40 @@ class InstallConversation(unittest.TestCase):
         self.assertLessEqual(len(out.strip().splitlines()), 20, out)
 
 
+@unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
+class AdminNotInstalled(unittest.TestCase):
+    """PR #114 lens: when the planned admin layer is not installed, the result is not a success."""
+
+    def test_skipped_admin_layer_is_partly_installed(self):
+        import contextlib
+        import io
+        temp = tempfile.TemporaryDirectory(prefix="workstation-partial-")
+        self.addCleanup(temp.cleanup)
+        base = Path(temp.name)
+        for d in ("home", "root", "tmp"):
+            (base / d).mkdir()
+        saved_env = dict(os.environ)
+        saved_sudo = ws.ensure_sudo
+        os.environ.update({"HOME": str(base / "home"), "TMPDIR": str(base / "tmp"),
+                           "WORKSTATION_MANAGED_ROOT": str(base / "root"), ws.OVERLAY_ENV: "none"})
+        ws.ensure_sudo = lambda asking: False
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                code = ws.cmd_install(yes=True)
+        finally:
+            ws.ensure_sudo = saved_sudo
+            os.environ.clear()
+            os.environ.update(saved_env)
+        text = out.getvalue()
+        self.assertEqual(code, 1, text)
+        self.assertIn("Partly installed: your settings are in place; the system-wide protections are not.", text)
+        self.assertNotIn("Installation successful!", text)
+        self.assertRegex(text, r"(?m)^1\. Run `\S+ install` in a terminal to install the system-wide protections")
+        self.assertTrue((base / "home" / ".claude" / "CLAUDE.md").exists())
+        self.assertEqual([p for p in (base / "root").rglob("*") if p.is_file()], [])
+
+
 class OwnerSteps(unittest.TestCase):
     def test_install_sh_acts_become_next_steps(self):
         steps = ws.owner_steps([
@@ -857,8 +891,10 @@ class OwnerSteps(unittest.TestCase):
         try:
             self.assertFalse(ws.ensure_sudo(False))
             self.assertEqual(calls, [])
+            # In a terminal the password is asked every time: the cached credential is dropped first.
             self.assertTrue(ws.ensure_sudo(True))
-            self.assertEqual(calls[0][0], [ws.SUDO, "-n", "true"])
+            self.assertEqual(len(calls), 1, calls)
+            self.assertEqual(calls[0][0][:3], [ws.SUDO, "-k", "-v"])
         finally:
             ws.subprocess.run = saved_run
             if saved_root is not None:

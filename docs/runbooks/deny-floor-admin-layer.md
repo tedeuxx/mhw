@@ -1,8 +1,9 @@
 # Runbook: install the deny floor in the admin layer
 
-The owner's act, in his own terminal. Agents never run `sudo` (it is in the deny floor), and `mhw`
-never runs `sudo` without a terminal, so an agent's shell cannot reach the admin layer through it
-([#113](https://github.com/tedeuxx/mhw/issues/113)).
+The owner's act, in his own terminal. Agents never run `sudo` (it is in the deny floor). `mhw` runs
+`sudo` itself only after dropping any cached credential, so the admin layer needs the owner's password
+typed for that run; an agent that fakes a terminal meets a prompt it cannot answer
+([#113](https://github.com/tedeuxx/mhw/issues/113)). A passwordless `sudo` rule would remove that barrier.
 Decision and evidence: [ADR-0016](../adr/0016-user-level-deny-floor-rendered-per-harness.md), amendment
 2026-10-05. Restart rule: [ADR-0022](../adr/0022-restart-after-active-customization-changes.md).
 

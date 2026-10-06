@@ -44,8 +44,9 @@ there is one: `mhw X.Y.Z is ready. Run `mhw install` to set up or update this wo
 
 `--verbose` shows every line the installers print. `--no-admin` installs your settings only, with no
 password. Without a terminal (CI, a pipe, an agent's shell) `mhw install` only says what it would do;
-`--yes` skips the question for your settings, but **`sudo` never runs without a terminal**, not even on
-cached credentials, so the system-wide protections then stay a next step. `mhw install --method` also
+`--yes` skips the question, but the system-wide protections need **your password, typed for that run**
+(`mhw` drops any cached `sudo` credential first). With no terminal they stay a next step and the result
+reads `Partly installed:` (exit 1), not `Installation successful!`. `mhw install --method` also
 renders the working method; once rendered, every later install keeps it current.
 
 ## Update

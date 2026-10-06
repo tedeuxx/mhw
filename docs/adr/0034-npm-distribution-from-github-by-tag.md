@@ -258,9 +258,15 @@ reader had to copy a `sudo /bin/sh … --apply=… --sha256=…` line by hand, t
   then both checks; the result and numbered next steps, including the acts `install.sh` names for the
   owner (the paste-wrapper shell line, Codex `/hooks`). `--verbose`, `--yes`, `--no-admin` and
   `--admin` (that layer only).
-- **`sudo` never runs without a terminal**, not even on cached credentials: an agent's shell has none,
-  so `mhw install --yes` from an agent installs the user layer and leaves the admin layer as a next step.
-  The deny floor's `sudo` rule still keeps agents from typing `sudo` themselves.
+- **The barrier is the password, asked every time.** `mhw` runs `sudo -k -v`, which drops any cached
+  credential, so the admin layer needs the password typed for that run. A terminal alone is not the
+  barrier: an agent can fake one (`script -q /dev/null mhw install --yes` reports a tty, measured by the
+  PR #114 lens), and then meets a password prompt it cannot answer. With no terminal at all, `sudo` is
+  not run. The deny floor's `sudo` rule still keeps agents from typing `sudo` themselves; it does not see
+  `sudo` started by `mhw`. Not measured: a passwordless `sudo` rule (NOPASSWD) for the owner would remove
+  this barrier.
+- When the plan listed the admin layer and it was not installed (no terminal, password refused), the
+  result is `Partly installed:` and exit 1, never `Installation successful!` (PR #114 lens).
 - `mhw update` in an npm install runs the npm update with the npm beside the `node` running `mhw` (by
   absolute path), then `mhw install` from the new package. `mhw uninstall` is the same conversation.
 - Messages are in English, like every published artifact of this repository.
@@ -272,8 +278,12 @@ reader had to copy a `sudo /bin/sh … --apply=… --sha256=…` line by hand, t
   `sudo` line. A default install prints about a dozen lines.
 - Good: tested in throwaway HOMEs and admin roots, through npm from a tarball and from `git+file://`, and
   in a pseudo-terminal (RETURN installs, another key aborts and writes nothing).
-- Bad: `mhw` now runs `sudo`. Bounded: only in a terminal, only for `install-managed.sh --apply` or
-  `--remove`, after RETURN; the stage is hashed before `sudo` runs it, as before.
+- Bad: `mhw` now runs `sudo`. Bounded: only for `install-managed.sh --apply` or `--remove`, after
+  RETURN (or `--yes`) and a freshly typed password; the stage is hashed before `sudo` runs it, as before.
+  The script `sudo` runs sits in the owner-writable npm prefix, as the printed line did before; the owner
+  no longer sees that command, only `--verbose` shows it.
+- Bad: the password is asked on every run that changes the admin layer, even seconds after another
+  `sudo`: the price of not trusting a cached credential.
 - Bad: the real `sudo` password prompt is exercised by no test (the tests use the admin-root override);
   it is unmeasured until the owner's install of the release.
 - Bad: two commands to install from npm (`npm install -g …`, `mhw install`), as with any tool whose setup
