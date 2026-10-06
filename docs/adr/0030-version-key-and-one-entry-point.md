@@ -3,9 +3,9 @@
 - **Status:** proposed
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead)
-- **Issues:** [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57),
-  [#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67) (part of
-  [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52);
+- **Issues:** [#57](https://github.com/tedeuxx/mhw/issues/57),
+  [#67](https://github.com/tedeuxx/mhw/issues/67) (part of
+  [#52](https://github.com/tedeuxx/mhw/issues/52);
   requirements document, sections 7 and 9b)
 
 ## Context and problem
@@ -212,8 +212,8 @@ only, or `MANUAL`. Evidence: [prerequisites](../prerequisites.md).
 
 ## Links
 
-- Requirements document, [section 7](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#7-version-key-per-project)
-  and [section 9b](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#9b-one-install-command-managed-by-the-repository)
+- Requirements document, [section 7](../mhw-product-requirements-document-project.md#7-version-key-per-project)
+  and [section 9b](../mhw-product-requirements-document-project.md#9b-one-install-command-managed-by-the-repository)
 - [ADR-0029](0029-provenance-stamp-in-every-installed-file.md) (the stamp the key is compared with)
 - [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (why no hook)
 - [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md) (the admin layer `install --admin` renders)

@@ -2,7 +2,7 @@
 
 This directory is the **only place the owner's working method is edited**: the agents, skills and
 commands every project uses. It was moved here from the `tadeumendonca-skills` plugin by
-[#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61). The
+[#61](https://github.com/tedeuxx/mhw/issues/61). The
 decision and the carrier map are in
 [ADR-0032](../docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md).
 

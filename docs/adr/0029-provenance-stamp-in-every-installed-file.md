@@ -3,8 +3,8 @@
 - **Status:** proposed
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead)
-- **Issue:** [#66](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/66)
-  (part of [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52);
+- **Issue:** [#66](https://github.com/tedeuxx/mhw/issues/66)
+  (part of [#52](https://github.com/tedeuxx/mhw/issues/52);
   requirements document, section 9a)
 
 ## Context and problem
@@ -128,7 +128,7 @@ Measured 2026-10-05 in throwaway homes and roots under the session scratch direc
 
 ## Links
 
-- Requirements document, [section 9a](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#9a-provenance-stamp-in-every-installed-file)
+- Requirements document, [section 9a](../mhw-product-requirements-document-project.md#9a-provenance-stamp-in-every-installed-file)
 - [ADR-0002](0002-automatic-semver-cut-policy.md) (numeric SemVer tags)
 - [ADR-0010](0010-global-brief-rendered-to-each-harness.md), [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md),
   [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md) (the files stamped here)

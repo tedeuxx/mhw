@@ -7,9 +7,9 @@
 - **Deciders:** the owner (written by agents-lead)
 - **Supersedes:** [ADR-0011](0011-clipboard-prompt-anonymisation.md), whose original decision (an
   always-on clipboard watcher) was withdrawn and whose current mechanism lived only in three amendments
-- **Issue:** [#65](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/65)
-  (consolidation); the decisions are on [#5](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5)
-  and [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)
+- **Issue:** [#65](https://github.com/tedeuxx/mhw/issues/65)
+  (consolidation); the decisions are on [#5](https://github.com/tedeuxx/mhw/issues/5)
+  and [#58](https://github.com/tedeuxx/mhw/issues/58)
 
 ## Context and problem
 

@@ -369,7 +369,7 @@ weakened, and the watcher runs only once they load it.
 
 ## Amendment 2026-10-01: mode `offer` ratified, and the watcher installed and loaded on the reference machine
 
-**Mode.** The owner ratified **`offer`**, as recorded on Issue #5 (<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5937237982>). After both options were
+**Mode.** The owner ratified **`offer`**, as recorded on Issue #5 (<https://github.com/tedeuxx/mhw/issues/5#issuecomment-5937237982>). After both options were
 explained to him (`offer`: a dialog with Keep / Clear / Clean, nothing changes without his click;
 `sanitise`: replace at once and notify afterwards, irreversible), he answered:
 
@@ -379,13 +379,13 @@ explained to him (`offer`: a dialog with Keep / Clear / Clean, nothing changes w
 struck "The owner ratifies one of the two" above is answered.
 
 **Installed.** `global/install.sh` ran on the reference machine from v0.7.0 on 2026-10-01, with the
-owner's go recorded on Issue #4 (<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/4#issuecomment-5937083996>). `--check` reported every target OK. That covers this record's
+owner's go recorded on Issue #4 (<https://github.com/tedeuxx/mhw/issues/4#issuecomment-5937083996>). `--check` reported every target OK. That covers this record's
 `clipboard_guard.py`, `clipboard.conf` and LaunchAgent plist. The comment records them as written and
 not loaded at that point.
 
 **Loaded.** After that the main session asked *"posso ligar o vigia agora, carregando o LaunchAgent?"*
 and the owner answered *"sim, pode ligar"*, as recorded on Issue #5
-(<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5937296055>). Then the main session ran `launchctl bootstrap gui/<uid> <plist>`, which
+(<https://github.com/tedeuxx/mhw/issues/5#issuecomment-5937296055>). Then the main session ran `launchctl bootstrap gui/<uid> <plist>`, which
 exited 0. Read independently afterwards with
 `launchctl print gui/<uid>/local.personal-multi-harness-workstation-configuration.clipboard-guard`:
 `state = running`, a running `pid`, `runs = 1`, `last exit code = (never exited)`.
@@ -411,7 +411,7 @@ in place and kept as the record of what was built and why it was removed.
 ### The owner's words, verbatim
 
 On Issue #5, after seeing the watcher's dialog live
-(<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5937927355>):
+(<https://github.com/tedeuxx/mhw/issues/5#issuecomment-5937927355>):
 
 > *"nao quero isso cara"* — *"voce inventou algo mto amplo"* — *"eu so quero filtrar o copy paste ao
 > interagir com clis de harness"*
@@ -659,7 +659,7 @@ net" below.)*
 ### The owner's words, verbatim
 
 On Issue #5, asked whether block-and-resubmit is enough or whether pasted text must arrive already
-clean (<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/5#issuecomment-5942908336>):
+clean (<https://github.com/tedeuxx/mhw/issues/5#issuecomment-5942908336>):
 
 > *"tem que ser limpo sozinho"* ("it has to be cleaned by itself")
 

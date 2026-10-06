@@ -113,7 +113,7 @@ Vendor references inspected 2026-10-02; no new minimum supported harness version
   user-authorized manual UI application, not a new account-sync adapter. The separate full-floor
   `desktop-instructions.md` handoff was not uploaded in its entirety.
 
-## Amendment 2026-10-05: three options are two extremes and the middle; no hook checks them ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+## Amendment 2026-10-05: three options are two extremes and the middle; no hook checks them ([Issue #60](https://github.com/tedeuxx/mhw/issues/60))
 
 **Owner, interview of 2026-10-05, verbatim:** *"eu quero 3 opcoes da seguinte forma: extremo 1, extremo 2, meio termo."*
 

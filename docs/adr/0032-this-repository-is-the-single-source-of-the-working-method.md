@@ -7,8 +7,8 @@
   [ADR-0026](0026-four-distribution-layers-rubric.md),
   [ADR-0027](0027-native-carrier-per-component-from-the-enforcement-matrix.md),
   [ADR-0029](0029-provenance-stamp-in-every-installed-file.md)
-- **Issue:** [#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61)
-  (part of [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52);
+- **Issue:** [#61](https://github.com/tedeuxx/mhw/issues/61)
+  (part of [#52](https://github.com/tedeuxx/mhw/issues/52);
   requirements document, sections 4a and 6)
 
 ## Context and problem
@@ -195,7 +195,7 @@ Measured 2026-10-05 on the reference machine, in throwaway homes under the sessi
 ## Amendment 2026-10-05: `devops` split by capability (#97)
 
 The ruling above moved `devops` **whole** to user level. It stays at user level; it is no longer whole.
-The owner, on [#97](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/97):
+The owner, on [#97](https://github.com/tedeuxx/mhw/issues/97):
 *"pois ficaria melhor ajustado a densidade de cada skill"*, *"eu acho valido nomear por capability"*,
 and *"talvez quality e quality-gates deveria virar 1 coisa so"*. The method's skill set is now **14**,
 not the 12 in *What moved* (that table records the plugin snapshot and is unchanged):
@@ -223,7 +223,7 @@ mutations of the skill sources turned it red and the unmutated copy stayed green
 
 ## Links
 
-- [Requirements document, section 6](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#6-working-method-user-layer)
-  and [section 4a](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md#4a-hook-budget)
+- [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)
+  and [section 4a](../mhw-product-requirements-document-project.md#4a-hook-budget)
 - [Native enforcement matrix](../native-enforcement-matrix.md)
 - [`method/README.md`](../../method/README.md)

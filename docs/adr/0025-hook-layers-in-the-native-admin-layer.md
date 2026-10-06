@@ -117,7 +117,7 @@ managed documents with `sudo`. "That is why read-only tools are never denied and
 under option 2 no longer applies: no remaining hook denies a tool on configuration state. `--apply`
 and `--remove` delete the restart guard and switch files an earlier release installed.
 
-## Amendment 2026-10-05: the HITL picker guard leaves the admin layer ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+## Amendment 2026-10-05: the HITL picker guard leaves the admin layer ([Issue #60](https://github.com/tedeuxx/mhw/issues/60))
 
 On the owner's interview of 2026-10-05 the picker guard is removed (ADR-0013, 2026-10-05 amendment)
 and the session-type intake with it (ADR-0021, 2026-10-05 amendment); the "HITL (defect 1)" bullet is

@@ -1,6 +1,6 @@
 # Prerequisites: tools and subscriptions, checked, never applied
 
-Issue [#89](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/89),
+Issue [#89](https://github.com/tedeuxx/mhw/issues/89),
 check-only scope (owner decision, 2026-10-05). The declaration is
 [`global/prerequisites.json`](../global/prerequisites.json); the checker is
 [`global/prerequisites.py`](../global/prerequisites.py), run as the last section of `./mhw check`.

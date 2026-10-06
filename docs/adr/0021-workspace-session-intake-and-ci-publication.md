@@ -116,7 +116,7 @@ the first prompt when declared there and asked with the two-choice picker otherw
   a mechanical check. The user-level briefs change on the reference machine only when the owner
   reinstalls; until then the installed global brief still carries the picker-first wording.
 
-## Amendment 2026-10-05: no intake; agents merge into rc/next, only the release candidate waits ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+## Amendment 2026-10-05: no intake; agents merge into rc/next, only the release candidate waits ([Issue #60](https://github.com/tedeuxx/mhw/issues/60))
 
 **Owner, interview of 2026-10-05, verbatim:**
 

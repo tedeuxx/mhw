@@ -4,8 +4,8 @@
 - **Date:** 2026-10-06
 - **Deciders:** the owner (decided on #68, 2026-10-06: *"siga com a adequacao da distribuicao com
   npm"*); written by agents-lead
-- **Issues:** [#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68)
-  (part of [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52);
+- **Issues:** [#68](https://github.com/tedeuxx/mhw/issues/68)
+  (part of [#52](https://github.com/tedeuxx/mhw/issues/52);
   requirements document, section 9b)
 
 ## Context and problem
@@ -69,8 +69,8 @@ Option 1.
   ships the file).
 - **Version:** `.bumpversion.toml` rewrites `package.json`'s `version` in the bump commit, so a tag
   `vX.Y.Z` carries `X.Y.Z` (dry run of bump-my-version 1.5.1: `4.0.0` became `4.1.0` in both files).
-- **Install:** ~~`npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`~~
-  `npm install -g --foreground-scripts github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`
+- **Install:** ~~`npm install -g github:tedeuxx/mhw#vX.Y.Z`~~
+  `npm install -g --foreground-scripts github:tedeuxx/mhw#vX.Y.Z`
   (flag added 2026-10-06, so the postinstall's output is shown),
   or `#semver:^X.Y.Z` for the newest release in a major. Major means breaking (#52).
 - **Launcher:** ~~`bin/workstation.js`~~ `bin/mhw.js` (2026-10-06 amendment) resolves paths from its own file, which npm reaches through the

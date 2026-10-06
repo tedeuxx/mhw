@@ -249,7 +249,7 @@ the Codex probe uses `npm publish`.
 
 **The status moves from proposed to accepted.** The source is the owner's ratification as recorded on
 Issue #4
-(<https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/4#issuecomment-5937083996>).
+(<https://github.com/tedeuxx/mhw/issues/4#issuecomment-5937083996>).
 The main session asked:
 
 > *"você ratifica as regras de bloqueio da ADR-0016 e me deixa rodar o instalador no seu ~?"*
