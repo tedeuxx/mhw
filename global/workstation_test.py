@@ -108,7 +108,7 @@ class StatusOutput(unittest.TestCase):
 
     def test_differences_admin_and_absent_key(self):
         out = ws.render_status(facts(admin=True, admin_stamp=STAMP, user_issues=1, admin_issues=2, key=None))
-        self.assertIn("  check            3 target(s) differ (admin layer: 2); run ./mhw install --admin first",
+        self.assertIn("  check            3 target(s) differ (admin layer: 2); run ./mhw install",
                       out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: v3.1.0 @ aaaaaaa", out)
         self.assertTrue(any("managed: installed" in line for line in out))
@@ -292,9 +292,10 @@ class EndToEnd(unittest.TestCase):
                     "TMPDIR": str(self.base / "tmp"), "WORKSTATION_MANAGED_ROOT": str(self.base / "root")}
 
     def test_install_then_status(self):
-        code, out = self.run_ws("install", "--overlay=none")
-        self.assertIn("CHECK   every user-level target matches this checkout", out)
-        self.assertIn("ADMIN   not installed", out)
+        code, out = self.run_ws("install", "--yes", "--no-admin", "--overlay=none")
+        self.assertEqual(code, 0, out)
+        self.assertIn("\nInstallation successful!\n", out)
+        self.assertNotIn("System-wide", out)
         project = "--project=" + str(self.base / "proj")
         code, out = self.run_ws("status", "--overlay=none", project)
         self.assertEqual(code, 0)
@@ -332,7 +333,7 @@ class EndToEnd(unittest.TestCase):
                        capture_output=True, check=False)
         code, out = self.run_ws("status", "--overlay=none", project)
         self.assertIn("hooks registered: admin: none · user: none\n", out)
-        code, out = self.run_ws("install", "--overlay=none")
+        code, out = self.run_ws("install", "--yes", "--no-admin", "--overlay=none")
         # A hand edit to one installed file is a difference status must count.
         brief = self.base / "home" / ".claude" / "CLAUDE.md"
         brief.write_text(brief.read_text(encoding="utf-8") + "edited\n", encoding="utf-8")
@@ -446,11 +447,14 @@ class StaleAdminLayer(unittest.TestCase):
         self.assertRegex(out, r"(?m)^%sDRIFT .*%s" % (re.escape(prefix), re.escape(ws.PASTE)))
         self.assertIn(prefix + ws.ADMIN_NEXT + "\n", out)
 
-    def test_plain_install_reports_stale_then_admin_install_clears_it(self):
+    def test_install_without_a_terminal_informs_then_yes_clears_it(self):
+        # No terminal and no --yes: it says what it would change, changes nothing and exits 0.
         code, out = self.run_ws("install")
-        self.assertNotEqual(code, 0, out)
-        self.assertNotIn("ADMIN   not installed", out)
-        self.assert_named(out, "ADMIN   ")
+        self.assertEqual(code, 0, out)
+        self.assertRegex(out, r"(?m)^  - System-wide protections: \d+ file\(s\) to update \(needs your "
+                              r"administrator password, once\)$")
+        self.assertIn("Nothing was changed: no terminal to confirm in.", out)
+        self.assertNotIn("Installation successful!", out)
         code, out = self.run_ws("check")
         self.assertNotEqual(code, 0, out)
         self.assert_named(out, "ADMIN   ")
@@ -458,20 +462,20 @@ class StaleAdminLayer(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertNotIn("matches this checkout", out)
         self.assertRegex(out, r"(?m)^  check            \d+ target\(s\) differ \(admin layer: \d+\); run "
-                              r"\./mhw install --admin first$")
+                              r"\./mhw install$")
         self.assert_named(out, "  admin layer      ")
         self.assertIn("removed restart guard still registered (Claude Code)", out)
         self.assertIn("removed restart guard still registered (Codex)", out)
 
-        # The documented order: install --admin, its one line (root override, no sudo), then install.
-        code, out = self.run_ws("install", "--admin")
+        # One install: the admin layer first (root override, so no sudo), then the user layer.
+        code, out = self.run_ws("install", "--yes")
         self.assertEqual(code, 0, out)
-        line = re.search(r"(?m)^RUN     sudo (.*)$", out).group(1)
-        p = subprocess.run(shlex.split(line), env=self.env, capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        code, out = self.run_ws("install")
+        self.assertIn("==> Installing the system-wide protections\n", out)
+        self.assertIn("\nInstallation successful!\n", out)
+        self.assertNotRegex(out, r"(?m)^(RUN|STAGED|FLOOR|ADMIN|THEN) ")
+        code, out = self.run_ws("install", "--yes")
         self.assertEqual(code, 0, out)
-        self.assertIn("ADMIN   installed and matching this checkout", out)
+        self.assertIn("==> This workstation already matches this checkout\n", out)
         code, out = self.run_ws("check")
         self.assertEqual(code, 0, out)
         self.assertNotIn("STALE", out)
@@ -711,11 +715,11 @@ class UpdateAndUninstall(unittest.TestCase):
         return ws.stamp_in(self.base / "home" / ".claude" / "CLAUDE.md")
 
     def test_update_latest_given_dirty_and_unknown(self):
-        code, out = self.ws("update")
+        code, out = self.ws("update", "--yes")
         self.assertEqual(code, 0, out)
         self.assertEqual(self.head(), "v9.1.0")
         self.assertTrue(self.stamp().startswith("release: v9.1.0; commit: "), self.stamp())
-        code, out = self.ws("update", "v9.0.0")
+        code, out = self.ws("update", "v9.0.0", "--yes")
         self.assertEqual(code, 0, out)
         self.assertEqual(self.head(), "v9.0.0")
         self.assertTrue(self.stamp().startswith("release: v9.0.0; commit: "), self.stamp())
@@ -746,7 +750,7 @@ class UpdateAndUninstall(unittest.TestCase):
         settings.parent.mkdir(parents=True)
         # A rule the owner wrote himself that equals a floor rule: ours to keep, never to remove.
         settings.write_text(json.dumps({"permissions": {"deny": ["Bash(sudo:*)"]}}), encoding="utf-8")
-        code, out = self.ws("install")
+        code, out = self.ws("install", "--yes", "--no-admin")
         self.assertEqual(code, 0, out)
         doc = json.loads(settings.read_text(encoding="utf-8"))
         doc["mine"] = 1
@@ -755,25 +759,110 @@ class UpdateAndUninstall(unittest.TestCase):
         (home / ".codex" / "notes.md").write_text("mine\n", encoding="utf-8")
         code, out = self.ws("uninstall")
         self.assertEqual(code, 0, out)
+        self.assertIn("Nothing was changed: no terminal to confirm in.", out)
+        code, out = self.ws("uninstall", "--yes")
+        self.assertEqual(code, 0, out)
         left = [p for p in home.rglob("*") if p.is_file() and not p.name.endswith("pmhwc-backup")
                 and ws.MARKER in p.read_text(encoding="utf-8", errors="replace")]
         self.assertEqual(left, [])
         self.assertEqual(json.loads(settings.read_text(encoding="utf-8")),
                          {"mine": 1, "permissions": {"deny": ["Bash(sudo:*)", "Bash(mytool:*)"]}})
         self.assertEqual((home / ".codex" / "notes.md").read_text(encoding="utf-8"), "mine\n")
-        self.assertIn("ADMIN   not installed", out)
+        self.assertNotIn("System-wide", out)
+        self.assertIn("\nUninstall complete.\n", out)
 
-    def test_uninstall_prints_the_admin_sudo_line(self):
-        self.ws("install")
-        _, out = self.ws("install", "--admin")
-        stage = re.search(r'--apply="([^"]+)"', out).group(1)
-        digest = re.search(r"--sha256=([0-9a-f]+)", out).group(1)
-        subprocess.run(["/bin/sh", str(self.clone / "global" / "install-managed.sh"), "--apply=" + stage,
-                        "--sha256=" + digest, "--root=" + str(self.base / "root")],
-                       check=True, capture_output=True)
-        code, out = self.ws("uninstall")
+    def test_uninstall_removes_the_admin_layer_too(self):
+        code, out = self.ws("install", "--yes")
         self.assertEqual(code, 0, out)
-        self.assertRegex(out, r"(?m)^RUN     sudo /bin/sh .*install-managed\.sh\" --remove")
+        root = self.base / "root"
+        self.assertTrue(any(p.is_file() for p in root.rglob("*")), out)
+        code, out = self.ws("uninstall", "--yes")
+        self.assertEqual(code, 0, out)
+        self.assertIn("==> Removing the system-wide protections\n", out)
+        self.assertNotIn("sudo", out)
+        self.assertEqual([p for p in root.rglob("*") if p.is_file()], [])
+
+
+@unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh, a pty and jq")
+class InstallConversation(unittest.TestCase):
+    """Issue #113: the install in a real terminal (a pty): RETURN installs, any other key aborts."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="workstation-pty-")
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name)
+        for d in ("home", "root", "tmp"):
+            (self.base / d).mkdir()
+        self.env = {"PATH": os.environ["PATH"], "HOME": str(self.base / "home"), "TERM": "dumb",
+                    "NO_COLOR": "1", "TMPDIR": str(self.base / "tmp"),
+                    "WORKSTATION_MANAGED_ROOT": str(self.base / "root")}
+
+    def in_terminal(self, key, *args):
+        import pty
+        import select
+        main_fd, sub_fd = pty.openpty()
+        p = subprocess.Popen([str(ws.ROOT / "mhw")] + list(args) + ["--overlay=none"], env=self.env,
+                             stdin=sub_fd, stdout=sub_fd, stderr=sub_fd, close_fds=True)
+        os.close(sub_fd)
+        out, sent = b"", False
+        while True:
+            ready, _, _ = select.select([main_fd], [], [], 60)
+            if not ready:
+                p.kill()
+                self.fail("no output within 60s: %r" % out)
+            try:
+                chunk = os.read(main_fd, 4096)
+            except OSError:
+                break
+            if not chunk:
+                break
+            out += chunk
+            if not sent and b"any other key to abort:" in out:
+                os.write(main_fd, key)
+                sent = True
+        os.close(main_fd)
+        return p.wait(), out.decode("utf-8", "replace").replace("\r\n", "\n")
+
+    def test_return_installs_and_another_key_aborts(self):
+        code, out = self.in_terminal(b"n", "install")
+        self.assertEqual(code, 1, out)
+        self.assertIn("Aborted; nothing was changed.", out)
+        self.assertFalse((self.base / "home" / ".claude" / "CLAUDE.md").exists())
+        code, out = self.in_terminal(b"\r", "install")
+        self.assertEqual(code, 0, out)
+        self.assertIn("Installation successful!", out)
+        self.assertRegex(out, r"(?m)^1\. Open new Claude Code, Codex and Kiro sessions")
+        self.assertTrue((self.base / "home" / ".claude" / "CLAUDE.md").exists())
+        # Short: the result and the next steps, not the installers' lines (about 40 in v4.2.1).
+        self.assertLessEqual(len(out.strip().splitlines()), 20, out)
+
+
+class OwnerSteps(unittest.TestCase):
+    def test_install_sh_acts_become_next_steps(self):
+        steps = ws.owner_steps([
+            "NOTE    automatic paste cleaning starts only once this line is in your shell rc; add it yourself:",
+            '        [ -r "/h/snippet.sh" ] && . "/h/snippet.sh"',
+            "RESTART REQUIRED: open fresh Claude Code and Codex sessions before further work; Codex hook "
+            "trust remains an owner action in /hooks."])
+        self.assertEqual(len(steps), 2, steps)
+        self.assertIn('[ -r "/h/snippet.sh" ] && . "/h/snippet.sh"', steps[0])
+        self.assertIn("/hooks", steps[1])
+        self.assertEqual(ws.owner_steps(["OK      something"]), [])
+
+    def test_sudo_never_runs_without_a_terminal(self):
+        # Issue #113: an agent's shell has no terminal; not even cached credentials are tried there.
+        calls = []
+        saved_run, saved_root = ws.subprocess.run, os.environ.pop("WORKSTATION_MANAGED_ROOT", None)
+        ws.subprocess.run = lambda *a, **k: calls.append(a) or subprocess.CompletedProcess(a, 0)
+        try:
+            self.assertFalse(ws.ensure_sudo(False))
+            self.assertEqual(calls, [])
+            self.assertTrue(ws.ensure_sudo(True))
+            self.assertEqual(calls[0][0], [ws.SUDO, "-n", "true"])
+        finally:
+            ws.subprocess.run = saved_run
+            if saved_root is not None:
+                os.environ["WORKSTATION_MANAGED_ROOT"] = saved_root
 
 
 if __name__ == "__main__":

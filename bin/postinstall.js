@@ -1,28 +1,22 @@
 #!/usr/bin/env node
-// The npm postinstall of mhw (Issue #68, ADR-0034): `npm install -g --foreground-scripts github:<repo>#vX.Y.Z` installs and
-// updates every user-level resource, the same path as `mhw install`. Non-interactive (stdin is closed),
-// idempotent (install.sh is), never sudo and never an admin path: for the admin layer it prints the one
-// sudo line the owner runs himself.
+// The npm postinstall of mhw (Issue #68, ADR-0034; Issue #113). Since #113 it installs nothing: npm
+// installs mhw silently, like any global package, and `mhw install` is the one door to the workstation.
 //
-// npm runs this script in three situations, and only the third installs anything:
+// npm runs this script in three situations:
 //   1. npm's own preparation of a git dependency (pacote): it runs `npm install` inside a temporary
 //      clone before packing it, with the outer --global inherited. That inner run links the temporary
 //      clone into the global prefix and the outer install then unpacks through the link into a
 //      directory npm deletes (measured with npm 11.13.0: a dangling install, Issue #68). This script
-//      puts an empty directory back where the link was and installs nothing.
-//   2. Not a global install (a local dependency, a CI checkout, npm ci): nothing to do; it says why.
-//   3. A global install, running from the installed copy: install, then print the admin sudo line when
-//      the admin layer is absent or stale, the fresh-session reminder and the runtime summary. It exits
-//      0 even when the install refuses a target: npm would otherwise remove the package (Issue #110).
-// Opt-in: MHW_METHOD=1 in the environment also renders the working method (as `mhw install --method`).
+//      puts an empty directory back where the link was. Silent.
+//   2. Not a global install (a local dependency, a CI checkout, npm ci): nothing to do. Silent.
+//   3. A global install, running from the installed copy: one line, on the terminal when there is one,
+//      naming the next step (`mhw install`). It always exits 0, so npm keeps the package (Issue #110).
 // npm shows a lifecycle script's output only when it fails or with --foreground-scripts (measured), so
-// the report goes to the terminal (/dev/tty) when there is one. Standard library only.
+// the line goes to the terminal (/dev/tty) when there is one. Standard library only.
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
-const mhw = require('./mhw.js');
-
-const ROOT = mhw.ROOT;
+const ROOT = path.resolve(__dirname, '..');
 
 function packageName(root) {
   return JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).name;
@@ -81,56 +75,37 @@ function undoPrepareLink(env, platform, root, name) {
   return 'replaced the link to the temporary clone at ' + link + ' with an empty directory';
 }
 
-// The report goes to the terminal when there is one, because npm hides a successful script's output.
+// The line goes to the terminal when there is one, because npm hides a successful script's output.
 // MHW_POSTINSTALL_TTY=0 keeps it on stdout (tests, and anyone capturing it with --foreground-scripts).
-function reportStream(platform, env) {
-  if (platform === 'win32' || process.stdout.isTTY || env.MHW_POSTINSTALL_TTY === '0') return 'inherit';
-  try {
-    return fs.openSync('/dev/tty', 'w');
-  } catch (e) {
-    return 'inherit';
+function say(line, platform, env) {
+  if (platform !== 'win32' && !process.stdout.isTTY && env.MHW_POSTINSTALL_TTY !== '0') {
+    try {
+      const fd = fs.openSync('/dev/tty', 'w');
+      fs.writeSync(fd, line + '\n');
+      fs.closeSync(fd);
+      return;
+    } catch (e) {
+      // no terminal: stdout, which npm shows only with --foreground-scripts
+    }
   }
+  process.stdout.write(line + '\n');
 }
 
 function run(env, platform) {
   const name = packageName(ROOT);
   const d = decide(env, platform, ROOT, name);
   if (d.action === 'prepare') {
-    console.log('mhw postinstall: SKIP ' + d.reason + '; ' + undoPrepareLink(env, platform, ROOT, name));
+    undoPrepareLink(env, platform, ROOT, name);
     return 0;
   }
-  if (d.action === 'skip') {
-    console.log('mhw postinstall: SKIP ' + d.reason);
-    return 0;
-  }
-  const method = env.MHW_METHOD === '1' || env.MHW_METHOD === 'true';
-  const out = reportStream(platform, env);
-  const stdio = ['ignore', out, out];
-  if (out !== 'inherit') console.log('mhw postinstall: the report is written to the terminal');
-  let code;
-  if (platform === 'win32') {
-    code = mhw.main(['install'].concat(method ? ['--method'] : []), platform, env, { stdio });
-    console.log('THEN    open fresh agent harness sessions; mhw status reports what is installed');
-  } else {
-    code = mhw.main(['postinstall'].concat(method ? ['--method'] : []), platform, env, { stdio });
-  }
-  return keep(code, out);
-}
-
-// Issue #110: npm rolls a global install back on any non-zero lifecycle exit, which deletes the package
-// whose mhw command and install-managed.sh path the report just printed. A refused or partial install is
-// a next step for the owner, so it is said in the report and the exit stays 0: the package is kept.
-function keep(code, out) {
-  if (code !== 0) {
-    const line = 'ACTION  the install exited ' + code + ' (see the REFUSE or SKIP lines above); the package is kept: ' +
-      'fix what they name, then run mhw install, and mhw check to confirm\n';
-    if (out === 'inherit') process.stdout.write(line);
-    else fs.writeSync(out, line);
+  if (d.action === 'install') {
+    const v = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+    say('mhw ' + v + ' is ready. Run `mhw install` to set up or update this workstation.', platform, env);
   }
   return 0;
 }
 
-module.exports = { decide, undoPrepareLink, globalModules, keep };
+module.exports = { decide, undoPrepareLink, globalModules };
 
 if (require.main === module) {
   process.exitCode = run(process.env, process.env.WORKSTATION_LAUNCHER_PLATFORM || process.platform);

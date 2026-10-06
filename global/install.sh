@@ -832,11 +832,11 @@ report_floor() {
   if [ "$n_admin" -eq "$n_want" ] && [ "$n_codex_admin" -eq "$n_codex" ]; then
     echo "FLOOR   carried by: the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
   elif [ "$n_user" -ne "$n_want" ] || [ "$codex_user" != present ]; then
-    echo "FLOOR   carried by: NO complete layer; run ${MHW_CMD:-./mhw} install, then ${MHW_CMD:-./mhw} install --admin"
+    echo "FLOOR   carried by: NO complete layer; run ${MHW_CMD:-./mhw} install"
   elif [ "$n_admin" -gt 0 ] || [ "$n_codex_admin" -gt 0 ]; then
-    echo "FLOOR   carried by: the user layer; the admin copy is INCOMPLETE (run ${MHW_CMD:-./mhw} install --admin)"
+    echo "FLOOR   carried by: the user layer; the admin copy is INCOMPLETE (run ${MHW_CMD:-./mhw} install)"
   else
-    echo "FLOOR   carried by: the user layer only; a session flag can drop it (--setting-sources project, measured); install the admin copy with ${MHW_CMD:-./mhw} install --admin"
+    echo "FLOOR   carried by: the user layer only; a session flag can drop it (--setting-sources project, measured); install the admin copy with ${MHW_CMD:-./mhw} install"
   fi
 }
 report_floor

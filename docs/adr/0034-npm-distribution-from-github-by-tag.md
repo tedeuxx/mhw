@@ -4,7 +4,7 @@
 - **Date:** 2026-10-06
 - **Deciders:** the owner (decided on #68, 2026-10-06: *"siga com a adequacao da distribuicao com
   npm"*); written by agents-lead
-- **Issues:** [#68](https://github.com/tedeuxx/mhw/issues/68)
+- **Issues:** [#68](https://github.com/tedeuxx/mhw/issues/68), [#113](https://github.com/tedeuxx/mhw/issues/113)
   (part of [#52](https://github.com/tedeuxx/mhw/issues/52);
   requirements document, section 9b)
 
@@ -170,7 +170,9 @@ current repository name until then.
 
 - `package.json`: `"name": "mhw"`, `"description": "multi-harness managed workstation"`, bins `mhw` and
   `workstation` (the alias), and `"scripts": {"postinstall": "node bin/postinstall.js"}`.
-- `bin/postinstall.js` installs only for a global install running from the installed copy; npm's git
+- *(Superseded by the amendment "the install conversation", Issue #113, below: the postinstall
+  installs nothing, and `mhw install` asks for the password itself.)*
+  `bin/postinstall.js` installs only for a global install running from the installed copy; npm's git
   preparation run puts the link back and installs nothing; any other run (local dependency, CI, `npm
   ci`) prints why it skipped. It runs `mhw postinstall`, the same path as `mhw install`, with stdin
   closed and never `sudo`. At the end: the admin `sudo` line when the admin layer is absent or stale
@@ -190,7 +192,8 @@ current repository name until then.
 
 ### Consequences
 
-- Good: one npm line installs and updates the user layer; the admin layer stays the owner's `sudo` line.
+- ~~Good: one npm line installs and updates the user layer; the admin layer stays the owner's `sudo` line.~~
+  *(Struck 2026-10-06, Issue #113: npm installs the command, `mhw install` installs both layers.)*
 - Good: the CI suites install through the git preparation route (`git+file://`), from a tarball, with
   `--ignore-scripts`, as a local dependency and over a v4.1.0-shaped package, and each property was
   mutation-checked (a mutant of the source turns its test red).
@@ -210,6 +213,71 @@ current repository name until then.
   `workstation install` would put the v4.1.0 user layer back over `mhw`'s: a silent downgrade, worse than a
   loud refusal. `--force` is not documented for the same reason (it overwrites without saying what).
 - Evidence: written and probed in throwaway prefixes and HOMEs; not installed on the reference machine.
+
+## Amendment 2026-10-06: the install conversation (`mhw` is the one door)
+
+- **Status:** proposed (the owner asked for the implementation on #113; the direction below was
+  written as "proposed, not ratified" there and is ratified only by his word on this record)
+- **Issue:** [#113](https://github.com/tedeuxx/mhw/issues/113), follow-up to
+  [#110](https://github.com/tedeuxx/mhw/issues/110)
+
+**Owner, 2026-10-06, on #113:** *"eu achei ruim como saiu o output para o usuario saber o que precisa
+fazer. a ux do processo de instalacao ainda esta ruim."* · *"eu nao deveria pedir diretamente o sudo
+comnado para o usuario"* · *"vc deveria iniciar pelo mhw toda interacao do usuario (UX) e pedir
+privilegio administrativo por tras se necessario para algum ponto"* · *"precisamos pensar em algo
+amigavel e auto-explicativo para usuario"*, with Homebrew and npm as references. Installing straight
+from GitHub stays as it is; the scope is the output shown and the extra actions asked of the user.
+
+### Context
+
+v4.2.1's npm install printed about 40 lines: seven action labels in no order, a final `ACTION` line that
+contradicted the `sudo` step, and internal terms (`STAGED`, `FLOOR`, "narrow tier", ADR numbers). The
+reader had to copy a `sudo /bin/sh … --apply=… --sha256=…` line by hand, then run `mhw install` again.
+
+### Considered options
+
+1. **npm installs silently; `mhw install` is the one door, Homebrew-style (chosen).** It lists what will
+   change, waits for RETURN, asks for the password once through `sudo` (explaining why), installs the
+   admin layer and then the user layer, and ends with `Installation successful!` and numbered next steps.
+   The installers' own lines move behind `--verbose`; a `REFUSE` line is always shown. *Trade-off:* two
+   commands instead of one npm line, and `mhw` now runs `sudo` itself, which reverses "never sudo".
+2. **Keep the postinstall installing, with a shorter report.** *Trade-off:* a lifecycle script has no
+   terminal on stdin, so it cannot ask for RETURN or a password, and the `sudo` line stays the reader's
+   chore; npm hides the output without `--foreground-scripts`.
+3. **The postinstall runs `sudo` from `/dev/tty`.** *Trade-off:* a password prompt in the middle of an npm
+   install, which npm users do not expect, and nothing to show when there is no terminal.
+
+### Decision
+
+- `bin/postinstall.js` installs nothing. On a global install it prints one line naming `mhw install`
+  (to `/dev/tty` when there is one) and exits 0; npm's git-preparation repair stays; the skip runs are
+  silent. `MHW_METHOD` is gone with it: `mhw install --method` is the opt-in.
+- `mhw install` (macOS and Linux) is a conversation: the plan, RETURN (any other key aborts, exit 1),
+  `sudo -v` once with a sentence saying why, only when the admin layer changes; the admin stage is
+  rendered as the owner and installed with `sudo -n … --apply=STAGE --sha256=HEX`, then the user layer,
+  then both checks; the result and numbered next steps, including the acts `install.sh` names for the
+  owner (the paste-wrapper shell line, Codex `/hooks`). `--verbose`, `--yes`, `--no-admin` and
+  `--admin` (that layer only).
+- **`sudo` never runs without a terminal**, not even on cached credentials: an agent's shell has none,
+  so `mhw install --yes` from an agent installs the user layer and leaves the admin layer as a next step.
+  The deny floor's `sudo` rule still keeps agents from typing `sudo` themselves.
+- `mhw update` in an npm install runs the npm update with the npm beside the `node` running `mhw` (by
+  absolute path), then `mhw install` from the new package. `mhw uninstall` is the same conversation.
+- Messages are in English, like every published artifact of this repository.
+- Windows keeps `install.ps1` with no conversation and no admin layer, as before.
+
+### Consequences
+
+- Good: the reader meets one command, a plan, one question and one password prompt, and never copies a
+  `sudo` line. A default install prints about a dozen lines.
+- Good: tested in throwaway HOMEs and admin roots, through npm from a tarball and from `git+file://`, and
+  in a pseudo-terminal (RETURN installs, another key aborts and writes nothing).
+- Bad: `mhw` now runs `sudo`. Bounded: only in a terminal, only for `install-managed.sh --apply` or
+  `--remove`, after RETURN; the stage is hashed before `sudo` runs it, as before.
+- Bad: the real `sudo` password prompt is exercised by no test (the tests use the admin-root override);
+  it is unmeasured until the owner's install of the release.
+- Bad: two commands to install from npm (`npm install -g …`, `mhw install`), as with any tool whose setup
+  needs the user's consent.
 
 ## Links
 

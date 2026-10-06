@@ -3,8 +3,12 @@
 checkout and as mhw after an npm install (Issue #68). ./workstation and the npm `workstation` command are
 its deprecated alias, until the next major.
 
-    ./mhw install                       user layer, every agent harness, hooks mode detected
-    ./mhw install --admin               render and validate the admin layer; print its one sudo line
+    ./mhw install [--yes] [--verbose]   say what will change, wait for RETURN, ask for the administrator
+                                          password once (only when the admin layer changes), install the
+                                          admin layer and then the user layer, end with the next steps
+                                          (Issue #113); without a terminal it only informs, unless --yes
+    ./mhw install --no-admin            the user layer only, no password asked
+    ./mhw install --admin               the admin layer only
     ./mhw install --method              also render the working method (method/); off by default until
                                           the plugin cutover (#63, #64), kept current once installed
     ./mhw status [--verbose]            what is installed, which layers and protections, the version key
@@ -13,13 +17,14 @@ its deprecated alias, until the next major.
                                           (the admin layer included, stamped or from an earlier release),
                                           or a required prerequisite is missing (global/prerequisites.json)
     ./mhw check --prerequisites         the prerequisites section only (Issue #89); never applies anything
-    ./mhw update [vX.Y.Z]               fetch tags, check out the newest release (or the one given), install;
-                                          in an npm install (no .git, Issue #68) print the npm command instead
-    ./mhw uninstall                     remove the user layer; print the sudo line for the admin layer;
+    ./mhw update [vX.Y.Z] [--yes]       fetch tags, check out the newest release (or the one given), install;
+                                          in an npm install (no .git, Issue #68) run the npm update, then
+                                          the new package's install (Issue #113)
+    ./mhw uninstall [--yes]             remove the admin layer (password asked once) and the user layer;
                                           in an npm install, run it before npm uninstall -g mhw (npm runs
                                           no uninstall script, measured with npm 11.13.0)
-    ./mhw postinstall [--method]        what npm's postinstall runs (bin/postinstall.js): install, then the
-                                          admin sudo line when needed, the fresh-session reminder, the summary
+    ./mhw postinstall                   what npm's postinstall runs (bin/postinstall.js): one line naming
+                                          `mhw install`; it installs nothing (Issue #113)
 
 Options for every subcommand: --overlay=DIR|none (default: the repository's overlay/), and
 --project=DIR for status (default: the git root of the current directory).
@@ -30,7 +35,9 @@ workstation release range it needs in a .workstation-version file, for example "
 compares it with the installed provenance stamp (ADR-0029) and never fails on a mismatch.
 
 Environment, tests and probes only: WORKSTATION_MANAGED_ROOT prefixes every admin-layer path.
-Standard library only, Python 3.9+. Never writes outside what install.sh writes, never runs sudo.
+Standard library only, Python 3.9+. Never writes outside what install.sh writes. sudo runs only for
+install-managed.sh --apply or --remove, after the owner confirmed in a terminal (or passed --yes) and
+sudo itself asked for the password (Issue #113).
 """
 import json
 import os
@@ -177,7 +184,7 @@ def render_status(f, verbose=False):
     if fix == 0:
         check = "matches " + SOURCE_NAME
     elif admin_fix:
-        check = "%d target(s) differ (admin layer: %d); run %s --admin first" % (fix, admin_fix, FIX)
+        check = "%d target(s) differ (admin layer: %d); run %s" % (fix, admin_fix, FIX)
     else:
         check = "%d target(s) differ; run %s" % (fix, FIX)
     lines.append("  check            %s" % check)
@@ -411,7 +418,7 @@ def admin_findings(lines):
     return entries, sorted(removed, key=order.index)
 
 
-ADMIN_NEXT = "next: %s install --admin, then run the one sudo line it prints" % CMD
+ADMIN_NEXT = "next: %s install (it asks for your administrator password once)" % CMD
 
 
 def admin_report(lines, code, prefix="ADMIN   "):
@@ -651,7 +658,7 @@ GUARD = "hitl-escalation-guard.sh"
 LEFTOVER = "removed picker guard still registered (Claude Code)"
 PASTE = "clipboard_guard.py"
 # The restart guard was removed (ADR-0028). An admin layer from v2 still registers it on SessionStart and
-# PreToolUse; status names that entry until install --admin and its sudo line remove it (Issue #52).
+# PreToolUse; status names that entry until install removes it (Issue #52).
 RESTART = "restart_guard.py"
 
 
@@ -868,12 +875,12 @@ def source_stamp():
     return "none"
 
 
-NOT_RUN = "installed by npm but postinstall did not run"
+NOT_RUN = "installed by npm; the workstation is not set up from it yet"
 
 
 def npm_notes(source, user_stamps, root=ROOT):
-    """Lines about the npm install itself; none for a checkout (Issue #68). The postinstall that did not
-    run (npm --ignore-scripts, or a failed run): the user layer does not carry this package's stamp. And
+    """Lines about the npm install itself; none for a checkout (Issue #68). A package `mhw install` has not
+    set up yet (Issue #113: npm installs nothing more): the user layer does not carry its stamp. And
     the v4.1.0 package, under its old name, still installed beside mhw."""
     if not npm_package(root):
         return []
@@ -889,8 +896,8 @@ def npm_notes(source, user_stamps, root=ROOT):
         # mhw's workstation bin while the old package owns it (EEXIST, measured with npm 11.13.0 from a
         # tag or branch ref and from a tarball; a pinned commit happened to pass). The documented order is
         # the same either way, so the line names it.
-        out.append("the %s package (the name before mhw) is still installed beside mhw; %s, then run the "
-                   "npm line mhw update prints (the user layer stays)" % (version, UPGRADE_FIRST))
+        out.append("the %s package (the name before mhw) is still installed beside mhw; %s, then run mhw update "
+                   "(the user layer stays)" % (version, UPGRADE_FIRST))
     return out
 
 
@@ -901,59 +908,226 @@ def package_version(root):
         return "(version not read)"
 
 
-def cmd_postinstall(method=False):
-    """What npm's postinstall runs (bin/postinstall.js, Issue #68): the user-layer install, then the admin
-    sudo line when the admin layer is absent or stale, the fresh-session reminder and the runtime summary.
-    The exit code is the user-layer install's only: a missing or stale admin layer never fails npm. Never
-    sudo: the admin layer is rendered into a stage and the owner runs the printed line himself."""
-    print("MHW     npm postinstall: %s%s" % (FIX, " --method" if method else ""), flush=True)
-    hooks_mode = "managed" if admin_installed() else "user"
-    code, _ = run(install_args(["--hooks=" + hooks_mode] + (["--method"] if method else [])), capture=False)
-    acode = None
-    if admin_present():
-        acode, alines = run(managed_args(["--check"]))
-    if acode == 0:
-        print("ADMIN   installed and matching " + SOURCE_NAME)
-    else:
-        if acode is None:
-            print("ADMIN   not installed; the one sudo line below installs it")
-        else:
-            print("\n".join(admin_report(alines, acode)))
-        scode, slines = run(managed_args([]))
-        for line in slines:
-            if line.startswith(("STAGED", "RUN ", "THEN")):
-                print(line)
-        if scode != 0:
-            print("ADMIN   the admin stage did not render (exit %d); run %s install --admin" % (scode, CMD))
-    print("THEN    open fresh agent harness sessions (Claude Code, Codex, Kiro): a running session keeps "
-          "the configuration it started with", flush=True)
-    print("\n".join(render_summary(gather(None))), flush=True)
-    return code
+# ---------------------------------------------------------------------------------------------------
+# The install conversation (Issue #113): mhw is the one door, Homebrew-style. It says what will change,
+# waits for RETURN, asks for the administrator password once and only when the admin layer changes,
+# shows a few ==> headings, and ends with the result and numbered next steps. The installers' own
+# lines are shown with --verbose; a problem line (REFUSE) is always shown. Without a terminal it only
+# says what it would do, unless --yes.
+
+SUDO = "/usr/bin/sudo"
+_PROBLEM = re.compile(r"(REFUSE|STALE|DRIFT|MISSING)\s")
 
 
-def cmd_install(admin_flag, method=False):
-    if admin_flag:
-        # Renders into a stage and prints the one sudo line; the owner runs it. Never sudo here.
-        code, _ = run(managed_args([]), capture=False)
-        return code
-    hooks_mode = "managed" if admin_installed() else "user"
-    code, _ = run(install_args(["--hooks=" + hooks_mode] + (["--method"] if method else [])), capture=False)
-    acode = 0
-    if admin_present():
-        acode, alines = run(managed_args(["--check"]))
-        if acode == 0:
-            print("ADMIN   installed and matching " + SOURCE_NAME)
+def _styled(code, text):
+    if sys.stdout.isatty() and not os.environ.get("NO_COLOR"):
+        return "\033[%sm%s\033[0m" % (code, text)
+    return text
+
+
+def heading(text):
+    print("%s %s" % (_styled("34", "==>"), _styled("1", text)), flush=True)
+
+
+def interactive():
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def confirm():
+    """True on RETURN. One key, no echo; any other key aborts. The terminal leaves line mode before the
+    prompt is shown, so a key typed right after it is never held back waiting for a newline."""
+    prompt = "Press %s to continue or any other key to abort:" % _styled("1", "RETURN")
+    try:
+        import termios
+        import tty
+        fd = sys.stdin.fileno()
+        saved = termios.tcgetattr(fd)
+        try:
+            tty.setcbreak(fd)
+            print(prompt, end=" ", flush=True)
+            key = os.read(fd, 1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+    except (ImportError, OSError, ValueError):
+        print(prompt, end=" ", flush=True)
+        key = (sys.stdin.readline() or "x")[:1].encode() or b"\n"
+    print()
+    return key in (b"\r", b"\n")
+
+
+def admin_supported():
+    return platform.system() in ("Darwin", "Linux")
+
+
+def install_plan(admin_wanted, user_wanted=True):
+    """What `mhw install` would change, read-only: the user-layer targets that differ, and the admin
+    layer's state ('current', 'absent', 'differs' or 'skipped')."""
+    plan = {"user": 0, "admin": "skipped", "admin_count": 0}
+    if user_wanted:
+        code, lines = run(install_args(["--check", "--hooks=" + ("managed" if admin_installed() else "user")]))
+        plan["user"] = issues(lines) or (1 if code else 0)
+    if admin_wanted and admin_supported():
+        if not admin_present():
+            plan["admin"] = "absent"
         else:
-            print("\n".join(admin_report(alines, acode)))
+            acode, alines = run(managed_args(["--check"]))
+            plan["admin"] = "current" if acode == 0 else "differs"
+            plan["admin_count"] = max(issues(alines), 1) if acode else 0
+    return plan
+
+
+def plan_lines(plan):
+    out = []
+    if plan["user"]:
+        out.append("Your settings in Claude Code, Codex and Kiro: %d file(s) to write (no password needed)"
+                   % plan["user"])
+    if plan["admin"] == "absent":
+        out.append("System-wide protections that no session can switch off: install them "
+                   "(needs your administrator password, once)")
+    elif plan["admin"] == "differs":
+        out.append("System-wide protections: %d file(s) to update (needs your administrator password, once)"
+                   % plan["admin_count"])
+    return out
+
+
+def show(lines, verbose):
+    """The installers' lines: all of them with --verbose; otherwise only the problems."""
+    for line in lines:
+        if verbose or _PROBLEM.match(line):
+            print("    " + line, flush=True)
+
+
+def admin_apply(verbose):
+    """Render the admin stage as the owner, then apply it with sudo (asked for once, before, by
+    ensure_sudo). Under WORKSTATION_MANAGED_ROOT (tests) no sudo runs. -> (code, lines)."""
+    code, lines = run(managed_args([]))
+    show([l for l in lines if not l.startswith(("RUN ", "THEN"))], verbose)
+    if code != 0:
+        return code, lines
+    run_line = next((l for l in lines if l.startswith("RUN ")), "")
+    m = re.search(r'--apply="([^"]+)" --sha256=([0-9a-f]+)', run_line)
+    if not m:
+        return 3, ["REFUSE  the admin stage did not render"]
+    args = ["/bin/sh", str(INSTALL_MANAGED), "--apply=" + m.group(1), "--sha256=" + m.group(2)]
+    if managed_root():
+        args.append("--root=" + managed_root())
     else:
-        print("ADMIN   not installed; %s install --admin prints its one sudo line" % CMD)
+        args = [SUDO, "-n"] + args
+    acode, alines = run(args)
+    show([l for l in alines if not l.startswith("THEN")], verbose)
+    return acode, alines
+
+
+def ensure_sudo(asking):
+    """True when sudo can run without a prompt now. Only in a terminal (`asking`): without one, sudo never
+    runs, not even on cached credentials, so an agent's shell (no terminal) running `mhw install --yes`
+    cannot reach the admin layer through this command. Asks for the password once, explaining why.
+    Under WORKSTATION_MANAGED_ROOT (tests) no sudo is needed."""
+    if managed_root():
+        return True
+    if not asking:
+        return False
+    if subprocess.run([SUDO, "-n", "true"], capture_output=True).returncode == 0:
+        return True
+    heading("Administrator access")
+    print("The system-wide protections live in folders only an administrator can change, so that no agent")
+    print("session can switch them off. sudo asks for your password once; mhw uses it for that step only.")
+    return subprocess.run([SUDO, "-v", "-p", "Password for %u: "]).returncode == 0
+
+
+def owner_steps(lines):
+    """The owner's own acts that install.sh names in its output, as plain next steps (Issue #113)."""
+    steps = []
+    for i, line in enumerate(lines):
+        if line.startswith("NOTE    automatic paste cleaning") and i + 1 < len(lines):
+            steps.append("To clean pasted text automatically, add this line to your shell startup file "
+                         "(~/.zshrc or ~/.bashrc):\n       " + lines[i + 1].strip())
+        if line.startswith("RESTART REQUIRED") and "/hooks" in line:
+            steps.append("In Codex, approve the mhw hooks once: type /hooks in a new session.")
+    return steps
+
+
+def next_steps(steps):
+    print()
+    heading("Next steps")
+    for i, step in enumerate(steps, 1):
+        print("%d. %s" % (i, step))
+
+
+FRESH = "Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings."
+
+
+def cmd_install(admin_only=False, method=False, verbose=False, yes=False, no_admin=False):
+    version = package_version(ROOT) if npm_package() else "this checkout"
+    asking = interactive()
+    plan = install_plan(admin_wanted=not no_admin, user_wanted=not admin_only)
+    changes = plan_lines(plan)
+    if not changes and not method:
+        heading("mhw %s is already installed and up to date" % version.lstrip("v")
+                if npm_package() else "This workstation already matches this checkout")
+        next_steps(["Run `%s status` to see what is installed." % CMD])
+        return 0
+    heading("mhw %s will change this workstation:" % version.lstrip("v")
+            if npm_package() else "mhw will change this workstation from this checkout:")
+    for line in changes or ["Your settings: render the working method"]:
+        print("  - " + line)
+    if not asking and not yes:
+        print()
+        print("Nothing was changed: no terminal to confirm in.")
+        next_steps(["Run `%s install` in a terminal (or `%s install --yes` to skip the question)." % (CMD, CMD)])
+        return 0
+    if asking and not yes:
+        print()
+        if not confirm():
+            print("Aborted; nothing was changed.")
+            return 1
+    failed, steps, owner = [], [], []
+    if plan["admin"] in ("absent", "differs"):
+        if ensure_sudo(asking):
+            heading("Installing the system-wide protections")
+            code, lines = admin_apply(verbose)
+            if code != 0:
+                failed.append("System-wide protections (exit %d; `%s install --verbose` shows why)" % (code, CMD))
+        else:
+            steps.append("Run `%s install` in a terminal to install the system-wide protections; it asks for "
+                         "your administrator password." % CMD)
+    if not admin_only:
+        heading("Installing your settings")
+        hooks_mode = "managed" if admin_installed() else "user"
+        code, lines = run(install_args(["--hooks=" + hooks_mode] + (["--method"] if method else [])))
+        show(lines, verbose)
+        if code != 0:
+            failed.append("Your settings (exit %d; `%s install --verbose` shows why)" % (code, CMD))
+        owner = owner_steps(lines)
+    heading("Checking")
+    hooks_mode = "managed" if admin_installed() else "user"
     ccode, clines = run(install_args(["--check", "--hooks=" + hooks_mode]))
-    if ccode == 0:
-        print("CHECK   every user-level target matches " + SOURCE_NAME)
+    if not admin_only and ccode != 0:
+        show([l for l in clines if _PROBLEM.match(l)], verbose)
+        failed.append("Your settings still differ in %d file(s)" % max(issues(clines), 1))
+    if admin_present() and not no_admin:
+        acode, alines = run(managed_args(["--check"]))
+        if acode != 0 and plan["admin"] in ("absent", "differs") and not steps:
+            failed.append("System-wide protections still differ in %d file(s)" % max(issues(alines), 1))
+    print()
+    if failed:
+        print(_styled("31;1", "Installation incomplete:"))
+        for f in failed:
+            print("  - " + f)
+        steps.insert(0, "Fix what is named above, then run `%s install` again." % CMD)
     else:
-        print("CHECK   the user-level check exits %d with %d target(s) differing; see %s check"
-              % (ccode, issues(clines), CMD))
-    return max(code, ccode, acode)
+        print(_styled("32;1", "Installation successful!"))
+    steps += [FRESH] + owner + ["Run `%s status` to see what is installed." % CMD]
+    next_steps(steps)
+    return 1 if failed else 0
+
+
+def cmd_postinstall(method=False):
+    """What npm's postinstall runs since Issue #113: nothing is installed. One line says where to go next;
+    `mhw install` is the one door. Kept so a script calling it does not break; --method is ignored."""
+    print("mhw %s is ready. Run `mhw install` to set up or update this workstation."
+          % package_version(ROOT).lstrip("v"), flush=True)
+    return 0
 
 
 def latest_release(tags):
@@ -992,18 +1166,60 @@ def npm_update_lines(wanted, root=ROOT):
         if not m:
             return 2, ["REFUSE  the tag must be a numeric release, vX.Y.Z"]
         ref = "v%s.%s.%s" % m.groups()
-    return 0, ["UPDATE  this is an npm install (no .git); update it with npm, whose postinstall installs:",
-               "RUN     npm install -g --foreground-scripts github:%s#%s" % (REPO, ref)]
+    return 0, ["UPDATE  run this npm line, then mhw install:",
+               "RUN     npm install -g github:%s#%s" % (REPO, ref)]
 
 
-def cmd_update(wanted):
+def npm_binary():
+    """npm beside the node that runs mhw (bin/mhw.js passes its own path in MHW_NODE), by absolute path,
+    never looked up on PATH. None when there is none."""
+    # MHW_NPM: tests only, an absolute path to a stand-in npm.
+    if os.path.isabs(os.environ.get("MHW_NPM", "")):
+        return os.environ["MHW_NPM"]
+    node = os.environ.get("MHW_NODE", "")
+    if not os.path.isabs(node):
+        return None
+    npm = Path(node).parent / "npm"
+    return str(npm) if npm.is_file() and os.access(str(npm), os.X_OK) else None
+
+
+def ux_flags(verbose, yes):
+    return (["--verbose"] if verbose else []) + (["--yes"] if yes else [])
+
+
+def cmd_update_npm(wanted, verbose, yes):
+    """Issue #113: mhw runs the npm update itself, then `mhw install` from the new package, so the owner
+    meets one conversation. Without npm beside node, it says the one npm line to run instead."""
+    code, lines = npm_update_lines(wanted)
+    if code != 0:
+        print("\n".join(lines), file=sys.stderr)
+        return code
+    npm = npm_binary()
+    if npm is None:
+        print("\n".join(lines))
+        return 0
+    spec = lines[-1].split()[-1]
+    heading("Updating mhw (%s)" % ("to " + wanted if wanted else "to the newest release of this major version"))
+    args = [npm, "install", "-g", "--no-fund", "--no-audit", "--loglevel=error", spec]
+    if verbose:
+        print("    " + " ".join(args[1:]), flush=True)
+    ncode, nlines = run(args)
+    show(nlines, True)
+    if ncode != 0:
+        print()
+        print(_styled("31;1", "Update failed:") + " npm exited %d." % ncode)
+        next_steps(["Check your network and run `mhw update` again."])
+        return ncode
+    # The package on disk is the new one now: its own mhw runs the install conversation.
+    return run(["/bin/sh", str(ROOT / "mhw"), "install"] + ux_flags(verbose, yes), capture=False)[0]
+
+
+def cmd_update(wanted, verbose=False, yes=False):
     """Fetch tags, check out the newest release (or the one asked for), then install from it. Refuses on a
     working tree with a tracked change, so nothing uncommitted is carried into or lost by the checkout.
-    An npm install has no checkout: it prints the npm command instead and changes nothing."""
+    An npm install has no checkout: it runs the npm update, then the new package's install."""
     if npm_package():
-        code, lines = npm_update_lines(wanted)
-        print("\n".join(lines), file=sys.stderr if code else sys.stdout)
-        return code
+        return cmd_update_npm(wanted, verbose, yes)
     code, dirty = git("status", "--porcelain", "--untracked-files=no")
     if code != 0:
         print("REFUSE  %s is not a git checkout; update needs one" % ROOT, file=sys.stderr)
@@ -1046,25 +1262,63 @@ def cmd_update(wanted):
     # Install with the code of the release just checked out, not with this process's copy.
     new = ROOT / "global" / "workstation.py"
     if new.is_file():
-        return run([sys.executable, "-B", str(new), "install"], capture=False)[0]
+        # A release from before Issue #113 knows neither --yes nor --verbose for install.
+        flags = ux_flags(verbose, yes) if "def install_plan(" in new.read_text(encoding="utf-8") else []
+        return run([sys.executable, "-B", str(new), "install"] + flags, capture=False)[0]
     hooks_mode = "managed" if admin_installed() else "user"
     return run(install_args(["--hooks=" + hooks_mode]), capture=False)[0]
 
 
-def cmd_uninstall():
-    code, _ = run(install_args(["--uninstall"]), capture=False)
-    if admin_present():
-        _, lines = run(managed_args(["--uninstall"]))
-        for line in lines:
-            if line.startswith("RUN "):
-                print(line)
-        print("ADMIN   the admin layer stays until you run the sudo line above yourself")
+def cmd_uninstall(verbose=False, yes=False):
+    """Issue #113: the same conversation as install. It says what goes, waits for RETURN, asks for the
+    administrator password once when the system-wide protections are installed, removes them, then the
+    user layer. Without a terminal it only says what it would do, unless --yes."""
+    asking = interactive()
+    admin = admin_present() and admin_supported()
+    heading("mhw will remove from this workstation:")
+    print("  - Your settings in Claude Code, Codex and Kiro that mhw wrote (your own entries stay)")
+    if admin:
+        print("  - The system-wide protections (needs your administrator password, once)")
+    if not asking and not yes:
+        print()
+        print("Nothing was changed: no terminal to confirm in.")
+        next_steps(["Run `%s uninstall` in a terminal (or `%s uninstall --yes`)." % (CMD, CMD)])
+        return 0
+    if asking and not yes:
+        print()
+        if not confirm():
+            print("Aborted; nothing was changed.")
+            return 1
+    failed, steps = [], []
+    if admin:
+        if ensure_sudo(asking):
+            heading("Removing the system-wide protections")
+            args = ["/bin/sh", str(INSTALL_MANAGED), "--remove"]
+            args = args + ["--root=" + managed_root()] if managed_root() else [SUDO, "-n"] + args
+            acode, alines = run(args)
+            show(alines, verbose)
+            if acode != 0:
+                failed.append("System-wide protections (exit %d; `%s uninstall --verbose` shows why)" % (acode, CMD))
+        else:
+            steps.append("Run `%s uninstall` in a terminal to remove the system-wide protections; it asks for "
+                         "your administrator password." % CMD)
+    heading("Removing your settings")
+    code, lines = run(install_args(["--uninstall"]))
+    show(lines, verbose)
+    if code != 0:
+        failed.append("Your settings (exit %d; `%s uninstall --verbose` shows why)" % (code, CMD))
+    print()
+    if failed:
+        print(_styled("31;1", "Uninstall incomplete:"))
+        for f in failed:
+            print("  - " + f)
     else:
-        print("ADMIN   not installed; nothing to remove there")
-    print("THEN    open fresh Claude Code and Codex sessions")
+        print(_styled("32;1", "Uninstall complete."))
+    steps.append(FRESH)
     if npm_package():
-        print("THEN    npm uninstall -g %s  (npm runs no uninstall script, so this step came first)" % package_name())
-    return code
+        steps.append("Run `npm uninstall -g %s` to remove the mhw command itself." % package_name())
+    next_steps(steps)
+    return 1 if failed else 0
 
 
 def cmd_check(prerequisites_only=False):
@@ -1107,13 +1361,13 @@ def main(argv):
         return 0 if argv else 2
     command, rest = argv[0], argv[1:]
     overlay, project, verbose, admin, wanted, summary, method = None, None, False, False, None, False, False
-    prereq_only = False
+    prereq_only, yes, no_admin = False, False, False
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
         elif arg.startswith("--project=") and command == "status":
             project = arg[len("--project="):]
-        elif arg in ("-v", "--verbose") and command == "status":
+        elif arg in ("-v", "--verbose") and command in ("status", "install", "update", "uninstall"):
             verbose = True
         elif arg == "--summary" and command == "status":
             summary = True
@@ -1121,6 +1375,10 @@ def main(argv):
             prereq_only = True
         elif arg == "--admin" and command == "install":
             admin = True
+        elif arg in ("-y", "--yes") and command in ("install", "update", "uninstall"):
+            yes = True
+        elif arg == "--no-admin" and command == "install":
+            no_admin = True
         elif arg == "--method" and command in ("install", "postinstall"):
             method = True
         elif command == "update" and wanted is None and not arg.startswith("-"):
@@ -1135,15 +1393,18 @@ def main(argv):
             return 2
         os.environ[OVERLAY_ENV] = overlay
     if command == "install":
-        return cmd_install(admin, method)
+        if admin and no_admin:
+            print("mhw: --admin and --no-admin exclude each other", file=sys.stderr)
+            return 2
+        return cmd_install(admin, method, verbose, yes, no_admin)
     if command == "postinstall":
         return cmd_postinstall(method)
     if command == "check":
         return cmd_check(prereq_only)
     if command == "update":
-        return cmd_update(wanted)
+        return cmd_update(wanted, verbose, yes)
     if command == "uninstall":
-        return cmd_uninstall()
+        return cmd_uninstall(verbose, yes)
     if command == "status":
         facts = gather(project)
         for line in render_summary(facts) if summary and not verbose else render_status(facts, verbose):
