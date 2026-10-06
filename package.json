@@ -1,6 +1,6 @@
 {
   "name": "personal-multi-harness-workstation-configuration",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "private": true,
   "description": "The owner's LLM firewall: one managed workstation configuration for every agent harness. Installed from GitHub by tag, never published to a registry (ADR-0034).",
   "repository": {
