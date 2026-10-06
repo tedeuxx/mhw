@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression tests for ./workstation (Issues #57 and #67): the version-key comparison and the status
+"""Regression tests for ./mhw, formerly ./workstation (Issues #57 and #67): the version-key comparison and the status
 output. Throwaway HOME and admin root only; never a real configuration, never sudo.
 
     python3 -B global/workstation_test.py
@@ -21,7 +21,7 @@ import workstation as ws  # noqa: E402
 STAMP = "release: v3.1.0; commit: " + "a" * 40
 # The installer's own FLOOR line for a user-only floor, word for word (global/install.sh).
 USER_FLOOR = ("the user layer only; a session flag can drop it (--setting-sources project, measured); install the "
-              "admin copy with ./workstation install --admin")
+              "admin copy with ./mhw install --admin")
 
 
 class VersionKey(unittest.TestCase):
@@ -108,7 +108,7 @@ class StatusOutput(unittest.TestCase):
 
     def test_differences_admin_and_absent_key(self):
         out = ws.render_status(facts(admin=True, admin_stamp=STAMP, user_issues=1, admin_issues=2, key=None))
-        self.assertIn("  check            3 target(s) differ (admin layer: 2); run ./workstation install --admin first",
+        self.assertIn("  check            3 target(s) differ (admin layer: 2); run ./mhw install --admin first",
                       out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: v3.1.0 @ aaaaaaa", out)
         self.assertTrue(any("managed: installed" in line for line in out))
@@ -191,7 +191,7 @@ class RuntimeSummary(unittest.TestCase):
         admin_floor = "the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
         out = ws.render_summary(facts(admin=True, admin_state="installed", floor=admin_floor))
         self.assertEqual(self.row(out, "cannot override"), "managed layer (admin-owned) · deny floor: " + admin_floor)
-        none = "NO complete layer; run ./workstation install, then ./workstation install --admin"
+        none = "NO complete layer; run ./mhw install, then ./mhw install --admin"
         out = ws.render_summary(facts(floor=none))
         self.assertEqual(self.row(out, "cannot override"), "nothing (no admin layer) · deny floor NOT locked: " + none)
 
@@ -223,7 +223,7 @@ class RuntimeSummary(unittest.TestCase):
         brief = (ws.HERE / "AGENTS.md").read_text(encoding="utf-8")
         section = brief.split("## Session-start runtime summary", 1)[1].split("\n## ", 1)[0]
         section = " ".join(section.split())
-        for needle in ("./workstation status --summary", "./workstation status --verbose", "Claude Code `/status`",
+        for needle in ("mhw status --summary", "mhw status --verbose", "Claude Code `/status`",
                        "Codex `/status`", "Kiro `/context show` and `/tools`", "agent harness"):
             with self.subTest(needle=needle):
                 self.assertIn(needle, section)
@@ -337,7 +337,7 @@ class EndToEnd(unittest.TestCase):
         brief = self.base / "home" / ".claude" / "CLAUDE.md"
         brief.write_text(brief.read_text(encoding="utf-8") + "edited\n", encoding="utf-8")
         code, out = self.run_ws("status", "--overlay=none", project)
-        self.assertIn("  check            1 target(s) differ; run ./workstation install\n", out)
+        self.assertIn("  check            1 target(s) differ; run ./mhw install\n", out)
         code, _ = self.run_ws("check", "--overlay=none")
         self.assertNotEqual(code, 0)
 
@@ -458,7 +458,7 @@ class StaleAdminLayer(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertNotIn("matches this checkout", out)
         self.assertRegex(out, r"(?m)^  check            \d+ target\(s\) differ \(admin layer: \d+\); run "
-                              r"\./workstation install --admin first$")
+                              r"\./mhw install --admin first$")
         self.assert_named(out, "  admin layer      ")
         self.assertIn("removed restart guard still registered (Claude Code)", out)
         self.assertIn("removed restart guard still registered (Codex)", out)
@@ -639,7 +639,7 @@ class MethodStatus(unittest.TestCase):
     def test_not_installed_by_default(self):
         m = ws.method_state(["METHOD  not installed (opt-in: ...)"], ["tadeumendonca-skills@tadeumendonca"])
         self.assertEqual(m, {"installed": False, "duplicate": []})
-        self.assertIn("opt-in: ./workstation install --method", ws.method_text(m))
+        self.assertIn("opt-in: ./mhw install --method", ws.method_text(m))
 
     def test_duplicate_named_per_agent_harness(self):
         (self.tmp / "config.toml").write_text('[plugins."tadeumendonca-skills@tadeumendonca"]\nenabled = true\n')
@@ -726,7 +726,7 @@ class UpdateAndUninstall(unittest.TestCase):
         self.git(origin, "tag", "v1.0.0")
         code, out = self.ws("update", "v1.0.0")
         self.assertEqual(code, 2, out)
-        self.assertIn("predates ./workstation", out)
+        self.assertIn("predates ./mhw (then ./workstation)", out)
         self.assertEqual(self.head(), "v9.0.0")
         with open(self.clone / "README.md", "a", encoding="utf-8") as fh:
             fh.write("local edit\n")

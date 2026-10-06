@@ -9,7 +9,7 @@ of the method present, it writes nothing and prints one METHOD line saying so. W
 rendered file is present, it renders and checks every target.
 
 install.sh runs this as its own rendering step and passes the provenance stamp it derived (ADR-0029), so
-the stamp is derived once. ./workstation install, check, status and uninstall reach it through install.sh.
+the stamp is derived once. ./mhw install, check, status and uninstall reach it through install.sh.
 
 Carriers (ADR-0027 matrix, ADR-0032):
     Claude Code  ~/.claude/agents/<n>.md (tools, disallowedTools, skills), ~/.claude/skills/<n>/SKILL.md,
@@ -466,8 +466,8 @@ def main(argv):
         # Off by default until the plugin cutover (#63, #64): with the plugin enabled, every agent, skill
         # and command would appear twice, and the plugin's still-running hooks refuse the bare-named
         # agents. Once installed by opt-in, later runs keep the files current; uninstall removes them.
-        print("METHOD  not installed (opt-in: ./workstation install --method, or install.sh --method; "
-              "off by default until the plugin cutover, #63 #64)")
+        print("METHOD  not installed (opt-in: %s install --method, or install.sh --method; "
+              "off by default until the plugin cutover, #63 #64)" % os.environ.get("MHW_CMD", "./mhw"))
         return 0
     if not stamp or not re.fullmatch(r"release: [^;\"\\]+; commit: [^;\"\\\s]+", stamp):
         print("method_render: --stamp must be 'release: R; commit: C' as install.sh derives it", file=sys.stderr)

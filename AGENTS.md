@@ -228,3 +228,7 @@ merges the release-candidate pull request, installs it and runs the canary, in a
 The npm route ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md), Issue #68) is at the
 same level: *written and tested*, probed once from the branch into a throwaway npm prefix and HOME.
 Nothing is published to the npm registry, and no npm install exists on the reference machine.
+Since 2026-10-06 (ADR-0034 amendment) the package and command are `mhw` (`workstation` is a deprecated
+alias), and the npm line installs the user layer through a `postinstall`: *written and tested*, probed
+from GitHub at the branch head into throwaway prefixes and HOMEs with npm 11.13.0 (fresh, upgrade from
+v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on the reference machine.

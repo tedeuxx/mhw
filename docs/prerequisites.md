@@ -3,11 +3,11 @@
 Issue [#89](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/89),
 check-only scope (owner decision, 2026-10-05). The declaration is
 [`global/prerequisites.json`](../global/prerequisites.json); the checker is
-[`global/prerequisites.py`](../global/prerequisites.py), run as the last section of `./workstation check`.
+[`global/prerequisites.py`](../global/prerequisites.py), run as the last section of `./mhw check`.
 
 ```sh
-./workstation check                  # installed targets, then prerequisites
-./workstation check --prerequisites  # the prerequisites section only
+./mhw check                  # installed targets, then prerequisites
+./mhw check --prerequisites  # the prerequisites section only
 ```
 
 ## What the declaration holds
@@ -75,7 +75,7 @@ ignored and named in a `PREREQ` line.
 
 ## Evidence level
 
-*Written and tested.* The suite `global/prerequisites_test.py` runs `./workstation check
+*Written and tested.* The suite `global/prerequisites_test.py` runs `./mhw check
 --prerequisites` with fake tool shims on a `PATH` holding nothing else, a throwaway `HOME`, a stub `gh`
 that never contacts GitHub, and a loopback HTTP server standing in for SonarCloud and HCP Terraform:
 present, missing (required, optional, lane-activated), version drift, unauthenticated, settings drift,

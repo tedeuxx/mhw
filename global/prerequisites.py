@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The prerequisites section of ./workstation check (Issue #89): check-only, never applies anything.
+"""The prerequisites section of ./mhw check (Issue #89): check-only, never applies anything.
 
 Reads the versioned declaration global/prerequisites.json and reports, per item: present or missing,
 authenticated or not, and drift from the preferred settings, with the manual step for each gap. A

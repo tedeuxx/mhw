@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
-"""The one entry point of the managed workstation (Issue #67), run through ./workstation.
+"""mhw, the one entry point of the multi-harness managed workstation (Issue #67), run through ./mhw in a
+checkout and as mhw after an npm install (Issue #68). ./workstation and the npm `workstation` command are
+its deprecated alias, until the next major.
 
-    ./workstation install                 user layer, every agent harness, hooks mode detected
-    ./workstation install --admin         render and validate the admin layer; print its one sudo line
-    ./workstation install --method        also render the working method (method/); off by default until
+    ./mhw install                       user layer, every agent harness, hooks mode detected
+    ./mhw install --admin               render and validate the admin layer; print its one sudo line
+    ./mhw install --method              also render the working method (method/); off by default until
                                           the plugin cutover (#63, #64), kept current once installed
-    ./workstation status [--verbose]      what is installed, which layers and protections, the version key
-    ./workstation status --summary        the session-start runtime summary an agent harness relays (#80)
-    ./workstation check                   exit non-zero when an installed target differs from this checkout
+    ./mhw status [--verbose]            what is installed, which layers and protections, the version key
+    ./mhw status --summary              the session-start runtime summary an agent harness relays (#80)
+    ./mhw check                         exit non-zero when an installed target differs from this checkout
                                           (the admin layer included, stamped or from an earlier release),
                                           or a required prerequisite is missing (global/prerequisites.json)
-    ./workstation check --prerequisites   the prerequisites section only (Issue #89); never applies anything
-    ./workstation update [vX.Y.Z]         fetch tags, check out the newest release (or the one given), install;
+    ./mhw check --prerequisites         the prerequisites section only (Issue #89); never applies anything
+    ./mhw update [vX.Y.Z]               fetch tags, check out the newest release (or the one given), install;
                                           in an npm install (no .git, Issue #68) print the npm command instead
-    ./workstation uninstall               remove the user layer; print the sudo line for the admin layer
+    ./mhw uninstall                     remove the user layer; print the sudo line for the admin layer;
+                                          in an npm install, run it before npm uninstall -g mhw (npm runs
+                                          no uninstall script, measured with npm 11.13.0)
+    ./mhw postinstall [--method]        what npm's postinstall runs (bin/postinstall.js): install, then the
+                                          admin sudo line when needed, the fresh-session reminder, the summary
 
 Options for every subcommand: --overlay=DIR|none (default: the repository's overlay/), and
 --project=DIR for status (default: the git root of the current directory).
@@ -42,7 +48,20 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 INSTALL = HERE / "install.sh"
 INSTALL_MANAGED = HERE / "install-managed.sh"
-FIX = "./workstation install"
+
+
+def npm_package(root=ROOT):
+    """True for an npm install of this repository (Issue #68, ADR-0034): package.json present, no .git."""
+    return (root / "package.json").is_file() and not (root / ".git").exists()
+
+
+# The command an instruction names: mhw on PATH after an npm install, ./mhw in a checkout (Issue #68).
+CMD = "mhw" if npm_package() else "./mhw"
+FIX = CMD + " install"
+# What the installed targets are compared with: this package (npm) or this checkout.
+SOURCE_NAME = "this package" if CMD == "mhw" else "this checkout"
+# The npm package name v4.1.0 shipped, before the rename to mhw (Issue #68).
+LEGACY_PACKAGE = NAME
 
 # ---------------------------------------------------------------------------------------------------
 # Version key (Issue #57): pure functions, no I/O.
@@ -104,8 +123,8 @@ def read_key(text):
 
 
 def mismatch_line(required, installed):
-    return ("Workstation version key: required %s, installed %s. Run %s in the managed-workstation "
-            "checkout." % (required, installed or "none", FIX))
+    return ("Workstation version key: required %s, installed %s. Run mhw install (./mhw install in a "
+            "checkout)." % (required, installed or "none"))
 
 
 def key_verdict(required, release):
@@ -144,7 +163,7 @@ def release_of(stamp):
 def render_status(f, verbose=False):
     """The status view. Short by default; verbose adds the per-target lines and versions."""
     lines = ["Workstation status"]
-    lines.append("  source           %s (this checkout)" % short_stamp(f["source"]))
+    lines.append("  source           %s (%s)" % (short_stamp(f["source"]), SOURCE_NAME))
     user = sorted(set(f["user_stamps"].values()))
     user_text = " / ".join(short_stamp(s) for s in user) if user else "none"
     admin_text = short_stamp(f["admin_stamp"]) if f["admin"] else (
@@ -154,13 +173,16 @@ def render_status(f, verbose=False):
     admin_fix = max(f["admin_issues"], 1 if admin_code else 0)
     fix = f["user_issues"] + admin_fix
     if fix == 0:
-        check = "matches this checkout"
+        check = "matches " + SOURCE_NAME
     elif admin_fix:
         check = "%d target(s) differ (admin layer: %d); run %s --admin first" % (fix, admin_fix, FIX)
     else:
         check = "%d target(s) differ; run %s" % (fix, FIX)
     lines.append("  check            %s" % check)
     lines.extend(admin_report(f["admin_lines"], admin_code, prefix="  admin layer      "))
+    if not f["admin"] and f.get("admin_state", "absent") == "absent" and not f["admin_lines"]:
+        # Repeats the step a missed npm postinstall printed (Issue #68): absent is a next step, not silence.
+        lines.append("  admin layer      not installed; " + ADMIN_NEXT)
     harnesses = [h for h, v in f["harnesses"].items() if v is not None]
     lines.append("  agent harnesses  %s" % (", ".join(harnesses) if harnesses else "none detected on PATH"))
     ws = f["workspace"]
@@ -183,6 +205,8 @@ def render_status(f, verbose=False):
         if key["line"]:
             lines.append("                   " + key["line"])
     lines.append("  runtime          %s" % f["runtime"])
+    for note in f.get("npm", []):
+        lines.append("  npm              " + note)
     lines.append("  evidence         installed is the most this view observes; loaded and enforced need a "
                  "session canary")
     if verbose:
@@ -265,7 +289,7 @@ def render_summary(f):
     present = [h for h, v in f["harnesses"].items() if v is not None]
     shown = present or list(f["harnesses"])
     settings = f.get("settings", [])
-    lines = ["Runtime summary (./workstation status --summary; detail: ./workstation status --verbose)"]
+    lines = ["Runtime summary (%s status --summary; detail: %s status --verbose)" % (CMD, CMD)]
     lines.append("  agent harness    %s" % (" · ".join("%s %s" % (h, f["harnesses"][h]) for h in present)
                                             if present else "none detected on PATH"))
     lines.append("  model, effort    %s; the session's own values: %s" % (
@@ -295,6 +319,8 @@ def render_summary(f):
     lines.append("  runtime          %s" % f["runtime"])
     if key is not None and key["line"]:
         lines.append("  " + key["line"])
+    for note in f.get("npm", []):
+        lines.append("  npm              " + note)
     return lines
 
 
@@ -383,7 +409,7 @@ def admin_findings(lines):
     return entries, sorted(removed, key=order.index)
 
 
-ADMIN_NEXT = "next: ./workstation install --admin, then run the one sudo line it prints"
+ADMIN_NEXT = "next: %s install --admin, then run the one sudo line it prints" % CMD
 
 
 def admin_report(lines, code, prefix="ADMIN   "):
@@ -393,7 +419,7 @@ def admin_report(lines, code, prefix="ADMIN   "):
         return []
     entries, removed = admin_findings(lines)
     count = max(issues(lines), 1)
-    out = ["%sthe admin layer differs from this checkout: %d target(s)" % (prefix, count)]
+    out = ["%sthe admin layer differs from %s: %d target(s)" % (prefix, SOURCE_NAME, count)]
     for kind in ("STALE", "DRIFT", "MISSING", "STAMP", "REFUSE"):
         if entries.get(kind):
             out.append("%s%s %s" % (prefix, kind, ", ".join(entries[kind])))
@@ -523,7 +549,7 @@ def method_text(m):
     if not m or m["installed"] is None:
         return "not reported"
     if not m["installed"]:
-        return "not installed (opt-in: ./workstation install --method, until the plugin cutover #63 #64)"
+        return "not installed (opt-in: %s install --method, until the plugin cutover #63 #64)" % CMD
     text = "installed in the user layer"
     if m["duplicate"]:
         text += ("; DUPLICATE: the %s plugin is also enabled in %s, so every agent, skill and command appears "
@@ -816,11 +842,91 @@ def gather(project):
             "hooks": hooks, "key": key, "runtime": runtime(), "admin_state": managed_state,
             "admin_code": admin_code,
             "settings": read_settings(ws["root"]), "permissions": permissions_text(ws["root"]),
-            "method": method_state(user_lines, enabled_plugins(ws["root"]))}
+            "method": method_state(user_lines, enabled_plugins(ws["root"])),
+            "npm": npm_notes(source, user_stamps)}
 
 
 # ---------------------------------------------------------------------------------------------------
 # Subcommands.
+
+def package_name(root=ROOT):
+    """The npm package name of this install: mhw, or the name an earlier release shipped."""
+    try:
+        return json.loads((root / "package.json").read_text(encoding="utf-8")).get("name") or "mhw"
+    except (OSError, ValueError):
+        return "mhw"
+
+
+def source_stamp():
+    """This copy's provenance stamp, as install.sh --check computes it (its SOURCE line)."""
+    _, lines = run(install_args(["--check", "--hooks=" + ("managed" if admin_installed() else "user")]))
+    for line in lines:
+        if line.startswith("SOURCE  "):
+            return line[len("SOURCE  "):]
+    return "none"
+
+
+NOT_RUN = "installed by npm but postinstall did not run"
+
+
+def npm_notes(source, user_stamps, root=ROOT):
+    """Lines about the npm install itself; none for a checkout (Issue #68). The postinstall that did not
+    run (npm --ignore-scripts, or a failed run): the user layer does not carry this package's stamp. And
+    the v4.1.0 package, under its old name, still installed beside mhw."""
+    if not npm_package(root):
+        return []
+    out = []
+    stamps = sorted(set(user_stamps.values()))
+    if source not in stamps:
+        out.append("%s: this package is %s, the user layer carries %s; run mhw install" % (
+            NOT_RUN, short_stamp(source), " / ".join(short_stamp(s) for s in stamps) if stamps else "nothing"))
+    old = root.parent / LEGACY_PACKAGE
+    if root.parent.name == "node_modules" and root.name != LEGACY_PACKAGE and (old / "package.json").is_file():
+        version = package_version(old)
+        # From GitHub, npm's git preparation (install --force) hands the workstation command to mhw and
+        # keeps the old package (measured, npm 11.13.0); removing the old package deletes that link too.
+        out.append("a second global package, %s %s (the name before mhw), is installed beside this one; "
+                   "remove it with: npm uninstall -g %s, then run the npm line mhw update prints to restore "
+                   "the workstation alias (the user layer stays)" % (LEGACY_PACKAGE, version, LEGACY_PACKAGE))
+    return out
+
+
+def package_version(root):
+    try:
+        return "v" + json.loads((root / "package.json").read_text(encoding="utf-8")).get("version", "?")
+    except (OSError, ValueError):
+        return "(version not read)"
+
+
+def cmd_postinstall(method=False):
+    """What npm's postinstall runs (bin/postinstall.js, Issue #68): the user-layer install, then the admin
+    sudo line when the admin layer is absent or stale, the fresh-session reminder and the runtime summary.
+    The exit code is the user-layer install's only: a missing or stale admin layer never fails npm. Never
+    sudo: the admin layer is rendered into a stage and the owner runs the printed line himself."""
+    print("MHW     npm postinstall: %s%s" % (FIX, " --method" if method else ""), flush=True)
+    hooks_mode = "managed" if admin_installed() else "user"
+    code, _ = run(install_args(["--hooks=" + hooks_mode] + (["--method"] if method else [])), capture=False)
+    acode = None
+    if admin_present():
+        acode, alines = run(managed_args(["--check"]))
+    if acode == 0:
+        print("ADMIN   installed and matching " + SOURCE_NAME)
+    else:
+        if acode is None:
+            print("ADMIN   not installed; the one sudo line below installs it")
+        else:
+            print("\n".join(admin_report(alines, acode)))
+        scode, slines = run(managed_args([]))
+        for line in slines:
+            if line.startswith(("STAGED", "RUN ", "THEN")):
+                print(line)
+        if scode != 0:
+            print("ADMIN   the admin stage did not render (exit %d); run %s install --admin" % (scode, CMD))
+    print("THEN    open fresh agent harness sessions (Claude Code, Codex, Kiro): a running session keeps "
+          "the configuration it started with", flush=True)
+    print("\n".join(render_summary(gather(None))), flush=True)
+    return code
+
 
 def cmd_install(admin_flag, method=False):
     if admin_flag:
@@ -833,17 +939,17 @@ def cmd_install(admin_flag, method=False):
     if admin_present():
         acode, alines = run(managed_args(["--check"]))
         if acode == 0:
-            print("ADMIN   installed and matching this checkout")
+            print("ADMIN   installed and matching " + SOURCE_NAME)
         else:
             print("\n".join(admin_report(alines, acode)))
     else:
-        print("ADMIN   not installed; ./workstation install --admin prints its one sudo line")
+        print("ADMIN   not installed; %s install --admin prints its one sudo line" % CMD)
     ccode, clines = run(install_args(["--check", "--hooks=" + hooks_mode]))
     if ccode == 0:
-        print("CHECK   every user-level target matches this checkout")
+        print("CHECK   every user-level target matches " + SOURCE_NAME)
     else:
-        print("CHECK   the user-level check exits %d with %d target(s) differing; see ./workstation check"
-              % (ccode, issues(clines)))
+        print("CHECK   the user-level check exits %d with %d target(s) differing; see %s check"
+              % (ccode, issues(clines), CMD))
     return max(code, ccode, acode)
 
 
@@ -866,15 +972,10 @@ def git(*args):
 REPO = "tedeuxx/" + NAME
 
 
-def npm_package(root=ROOT):
-    """True for an npm install of this repository (Issue #68, ADR-0034): package.json present, no .git."""
-    return (root / "package.json").is_file() and not (root / ".git").exists()
-
-
 def npm_update_lines(wanted, root=ROOT):
     """-> (code, lines): the npm command that updates an npm install, never run here. The tag asked for,
     or the newest release in the installed major (major = breaking, Issue #52), which npm resolves from
-    the repository's tags. Same text as bin/workstation.js's updateLines() (global/npm_package_test.py)."""
+    the repository's tags. Same text as bin/mhw.js's updateLines() (global/npm_package_test.py)."""
     if wanted is None:
         try:
             m = re.search(r'^current_version\s*=\s*"(\d+)\.(\d+)\.(\d+)"',
@@ -887,9 +988,8 @@ def npm_update_lines(wanted, root=ROOT):
         if not m:
             return 2, ["REFUSE  the tag must be a numeric release, vX.Y.Z"]
         ref = "v%s.%s.%s" % m.groups()
-    return 0, ["UPDATE  this is an npm install (no .git); update it with npm, then install:",
-               "RUN     npm install -g github:%s#%s" % (REPO, ref),
-               "RUN     workstation install"]
+    return 0, ["UPDATE  this is an npm install (no .git); update it with npm, whose postinstall installs:",
+               "RUN     npm install -g --foreground-scripts github:%s#%s" % (REPO, ref)]
 
 
 def cmd_update(wanted):
@@ -928,7 +1028,7 @@ def cmd_update(wanted):
             return 2
     new_entry = git("cat-file", "-e", target + ":global/workstation.py")[0] == 0
     if not new_entry and os.environ.get(OVERLAY_ENV) is not None:
-        print("REFUSE  %s predates ./workstation and cannot receive --overlay; nothing checked out" % target,
+        print("REFUSE  %s predates ./mhw (then ./workstation) and cannot receive --overlay; nothing checked out" % target,
               file=sys.stderr)
         return 2
     _, before = git("rev-parse", "--abbrev-ref", "HEAD")
@@ -958,6 +1058,8 @@ def cmd_uninstall():
     else:
         print("ADMIN   not installed; nothing to remove there")
     print("THEN    open fresh Claude Code and Codex sessions")
+    if npm_package():
+        print("THEN    npm uninstall -g %s  (npm runs no uninstall script, so this step came first)" % package_name())
     return code
 
 
@@ -971,6 +1073,10 @@ def cmd_check(prerequisites_only=False):
             acode, alines = run(managed_args(["--check"]))
             print("\n".join(alines + admin_report(alines, acode)), flush=True)
             code = max(code, acode)
+        if npm_package():
+            notes = npm_notes(source_stamp(), {h: s for h, p in brief_paths().items() if (s := stamp_in(p)) != "none"})
+            for note in notes:
+                print("NPM     " + note, flush=True)
     # Issue #89: present or missing, authenticated or not, drift from the preferred settings. Read-only.
     import prerequisites
     pcode, lines = prerequisites.report()
@@ -990,6 +1096,8 @@ def valid_overlay(value):
 
 
 def main(argv):
+    # The installers' messages name the same command this process was reached by (Issue #68).
+    os.environ["MHW_CMD"] = CMD
     if not argv or argv[0] in ("-h", "--help", "help"):
         print(__doc__.split("\n\n")[1] if argv else __doc__)
         return 0 if argv else 2
@@ -1009,21 +1117,23 @@ def main(argv):
             prereq_only = True
         elif arg == "--admin" and command == "install":
             admin = True
-        elif arg == "--method" and command == "install":
+        elif arg == "--method" and command in ("install", "postinstall"):
             method = True
         elif command == "update" and wanted is None and not arg.startswith("-"):
             wanted = arg
         else:
-            print("workstation: unknown argument for %s: %s" % (command, arg), file=sys.stderr)
+            print("mhw: unknown argument for %s: %s" % (command, arg), file=sys.stderr)
             return 2
     if overlay is not None:
         overlay = valid_overlay(overlay)
         if overlay is None:
-            print("workstation: --overlay takes 'none' or an existing directory", file=sys.stderr)
+            print("mhw: --overlay takes 'none' or an existing directory", file=sys.stderr)
             return 2
         os.environ[OVERLAY_ENV] = overlay
     if command == "install":
         return cmd_install(admin, method)
+    if command == "postinstall":
+        return cmd_postinstall(method)
     if command == "check":
         return cmd_check(prereq_only)
     if command == "update":
@@ -1035,7 +1145,7 @@ def main(argv):
         for line in render_summary(facts) if summary and not verbose else render_status(facts, verbose):
             print(line)
         return 0
-    print("workstation: unknown subcommand %s (install, install --admin, status, check, update, uninstall)" % command,
+    print("mhw: unknown subcommand %s (install, install --admin, status, check, update, uninstall)" % command,
           file=sys.stderr)
     return 2
 

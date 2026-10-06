@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression tests for the prerequisites section of ./workstation check (Issue #89).
+"""Regression tests for the prerequisites section of ./mhw check (Issue #89).
 
 Throwaway HOME, fake tool shims on a PATH that holds nothing else, a stub gh that never contacts GitHub,
 and a loopback HTTP server standing in for SonarCloud and HCP Terraform. Never a real account, never a
