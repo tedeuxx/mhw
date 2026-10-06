@@ -57,6 +57,14 @@ If that file still shows `$Format:` placeholders, the package came from a clone 
 archive (a `git+file:` or mirror URL). The installers then stamp `release: unknown, not a git checkout`,
 and `status` shows it.
 
+## Local edits are not detected
+
+An npm install cannot detect edits to the installed package. A git checkout can: its stamp reads
+`-dirty`. Here the stamp keeps reading the clean release and `check` passes, because it compares the
+installed files with the package itself (measured, ADR-0034). npm keeps no integrity record for a git
+dependency. If you suspect the package was changed, reinstall the tag with `npm install -g …#vX.Y.Z`,
+then run `workstation install`.
+
 ## Do not
 
 - Do not add a `prepare`, `install` or `postinstall` script. With any of them, npm 11.13.0 left a global
@@ -66,7 +74,13 @@ and `status` shows it.
 
 ## Remove
 
+In this order. The admin layer's `sudo` line runs a script inside the package, so run it before
+`npm uninstall -g` deletes the package:
+
 ```sh
-workstation uninstall         # macOS and Linux: the user layer; prints the admin layer's sudo line
-npm uninstall -g personal-multi-harness-workstation-configuration
+workstation uninstall         # 1. macOS and Linux: removes the user layer; prints the admin layer's RUN sudo line
+sudo /bin/sh "…/global/install-managed.sh" --remove   # 2. that printed line, exactly as printed, run yourself
+npm uninstall -g personal-multi-harness-workstation-configuration   # 3. only then remove the package
 ```
+
+If the package is already gone, reinstall the same tag and run the `sudo` line again.

@@ -761,7 +761,8 @@ later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workst
     Windows a small Node launcher runs `install.ps1`.
   - The npm version follows `.bumpversion.toml`, so the git tag stays the one release source.
   - The provenance stamp holds without `.git`: GitHub's archive fills in `.workstation-archive`
-    (`export-subst`) with the commit and its `git describe`.
+    (`export-subst`) with the commit and its `git describe`. Unlike a checkout, it carries no
+    `-dirty`, so a locally edited package still stamps as its release (measured).
   - In an npm install, `update` prints the npm command rather than using git.
   - The admin layer still needs the owner's `sudo` line, by design.
   - The first installable tag is the first release that carries `package.json`.

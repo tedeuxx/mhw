@@ -77,7 +77,8 @@ Option 1.
   $Format:%(describe:tags=true,match=v[0-9]*.[0-9]*.[0-9]*)$`. `install.sh` and `install.ps1` map an
   exact tag to `vX.Y.Z`, `vX.Y.Z-N-gSHA` to `unreleased, after vX.Y.Z`, and an empty describe to
   `unreleased, no tag reachable`. They take the file only in exactly that shape; anything else
-  (placeholders still present, a stray character) stays `unknown`. An archive is never dirty.
+  (placeholders still present, a stray character) stays `unknown`. The stamp never carries `-dirty`,
+  so it says nothing about edits made after install (see Consequences).
 - **Inside another work tree:** both installers use git only when the work-tree top is the
   repository itself. A package under a home directory kept in git no longer borrows that tree's HEAD.
 - **Update:** in an npm install (`package.json` present, no `.git`), `workstation update [vX.Y.Z]`
@@ -86,7 +87,19 @@ Option 1.
 
 ## Consequences
 
-- Good: one command on a new machine, no clone, and the same stamp and version key as a checkout.
+- Good: one command on a new machine and no clone. For an unmodified package, the stamp and version
+  key are the same as a checkout at the same commit (measured: all 13 rendered stamps were identical).
+- Bad: an npm install cannot detect local edits to the installed package; a git checkout can.
+  Measured by removing a deny-floor rule from `global/deny-floor.conf`, then reinstalling:
+  - in a checkout, the stamp reads `commit: …-dirty`;
+  - in the npm package, the stamp still reads the clean release, with no `-dirty`.
+  `check` exits 0 in both cases, because it compares the installed files with the edited source. npm
+  keeps no integrity record for a git dependency (it warns `skipping integrity check for git
+  dependency`). `.workstation-archive` does not change when other files are edited. The admin layer's
+  `sudo` line runs `install-managed.sh` from the same, user-writable package path. To recover,
+  reinstall the tag. A possible follow-up, not built: `check` downloads GitHub's archive for the
+  stamped commit and compares the package against it. That adds a network dependency to `check`. A
+  manifest kept inside the package would not help, because it can be edited with the package.
 - Good: nothing is published; `private` makes a publish fail.
 - Good: the CI suites cover it on Ubuntu, macOS and Windows. They pack a git archive of the head,
   install it globally into a throwaway prefix, and run the installed command.
