@@ -395,6 +395,22 @@ class PackAndInstall(Base):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertFalse(pkg.exists())
 
+    def test_refused_install_keeps_the_package(self):
+        # Issue #110: a refusal made the postinstall exit 3, npm rolled the install back and deleted the
+        # package whose install-managed.sh path the report had just printed.
+        tgz = self.pack(source_tree(self.base / "src", archive_text()))
+        d, env = self.env("refuse")
+        foreign = d / "home" / ".claude" / "CLAUDE.md"
+        foreign.parent.mkdir(parents=True, exist_ok=True)
+        foreign.write_text("the owner's own brief, not managed by this project\n", encoding="utf-8")
+        p = self.npm(d, env, "install", "-g", "--offline", "--foreground-scripts", str(tgz))
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertRegex(p.stderr, r"(?m)^REFUSE  .*CLAUDE\.md: exists and is NOT managed")
+        self.assertRegex(p.stdout, r"(?m)^ACTION  the install exited 3 .*the package is kept")
+        pkg = d / "prefix" / "lib" / "node_modules" / "mhw"
+        self.assertTrue((pkg / "global" / "install-managed.sh").is_file())
+        self.assertEqual(foreign.read_text(encoding="utf-8"), "the owner's own brief, not managed by this project\n")
+
     def test_npm_uninstall_runs_no_script(self):
         # Measured npm behaviour this design rests on: npm uninstall -g runs no lifecycle script, so the
         # user layer stays until `mhw uninstall` removes it (the documented order).
