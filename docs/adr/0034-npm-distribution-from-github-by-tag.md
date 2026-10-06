@@ -175,7 +175,12 @@ current repository name until then.
   ci`) prints why it skipped. It runs `mhw postinstall`, the same path as `mhw install`, with stdin
   closed and never `sudo`. At the end: the admin `sudo` line when the admin layer is absent or stale
   (the #102 detection), the fresh-session reminder and the runtime summary, written to `/dev/tty` when
-  there is one. Its exit code is the user-layer install's only.
+  there is one. ~~Its exit code is the user-layer install's only.~~ *(Struck 2026-10-06, Issue #110: npm
+  rolls a global install back on any non-zero lifecycle exit, which deleted the package whose `sudo` path
+  the report had printed. The postinstall now always exits 0 on a global install, and a non-zero
+  user-layer install is reported as an `ACTION` line naming its code. Exit status no longer signals a
+  refused or partial install: `mhw check` does. The prepare and skip runs already exited 0 and are
+  unchanged.)*
 - `MHW_METHOD=1` in the environment is the `--method` opt-in for the npm route.
 - `mhw status` and `mhw check` report `installed by npm but postinstall did not run` when the user layer
   does not carry the package's stamp, and name a v4.1.0 package left beside `mhw`.
