@@ -230,7 +230,8 @@ jobs:
           if ($LASTEXITCODE) { Fail 'npm pack' }
           Pop-Location
           $tgz = (Get-ChildItem -LiteralPath $t -Filter '*.tgz' | Select-Object -First 1).FullName
-          # The postinstall writes the user layer: point every user-level path at the throwaway profile first.
+          # mhw install writes the user layer (the postinstall installs nothing, #113): point every
+          # user-level path at the throwaway profile first.
           $env:USERPROFILE = $prof; $env:HOME = $prof; $env:CODEX_HOME = Join-Path $prof '.codex'
           $env:WORKSTATION_POWERSHELL = (Get-Command $env:PS_EXE -CommandType Application | Select-Object -First 1).Source
           $env:MHW_POSTINSTALL_TTY = '0'
@@ -242,9 +243,12 @@ jobs:
           $archive = (Get-Content -LiteralPath (Join-Path $pkg '.workstation-archive')) -join ' | '
           if (-not $archive.Contains("commit: $sha")) { Fail "the archive stamp is not filled in: $archive" }
           $stamp = "commit: $sha"
-          $brief = Get-Content -LiteralPath (Join-Path $prof '.claude\CLAUDE.md') -TotalCount 1
-          if (-not $brief.Contains("; release: ") -or -not $brief.Contains("; $stamp;")) { Fail "the postinstall did not install the stamped brief: $brief" }
+          if (Test-Path -LiteralPath (Join-Path $prof '.claude\CLAUDE.md')) { Fail 'the postinstall installed the brief (#113: it installs nothing)' }
           $mhw = Join-Path $prefix 'mhw.cmd'
+          & $mhw install
+          if ($LASTEXITCODE) { Fail "mhw install exited $LASTEXITCODE" }
+          $brief = Get-Content -LiteralPath (Join-Path $prof '.claude\CLAUDE.md') -TotalCount 1
+          if (-not $brief.Contains("; release: ") -or -not $brief.Contains("; $stamp;")) { Fail "mhw install did not install the stamped brief: $brief" }
           & $mhw check
           if ($LASTEXITCODE) { Fail "mhw check exited $LASTEXITCODE" }
           $alias = Join-Path $prefix 'workstation.cmd'
@@ -254,7 +258,7 @@ jobs:
           $err = Get-Content -LiteralPath $notice -Raw
           if (-not $err.Contains('is renamed')) { Fail "the alias printed no rename notice: $err" }
           $out = (& $mhw update v4.2.0) -join ' | '
-          if ($LASTEXITCODE -or -not $out.Contains('npm install -g --foreground-scripts github:tedeuxx/mhw#v4.2.0')) { Fail "update: $out" }
+          if ($LASTEXITCODE -or -not $out.Contains('npm install -g github:tedeuxx/mhw#v4.2.0')) { Fail "update: $out" }
           & $mhw uninstall 2>$null
           if ($LASTEXITCODE -ne 2) { Fail "uninstall should be refused on Windows, exited $LASTEXITCODE" }
           Pop-Location

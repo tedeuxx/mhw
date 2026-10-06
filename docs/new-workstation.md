@@ -59,8 +59,8 @@ macOS/Linux:
 ./mhw check --overlay=none
 ```
 
-`./mhw install --admin --overlay=none` prints the one `sudo` line for the admin layer, which you
-run yourself.
+`./mhw install --overlay=none` in your own terminal also installs the admin layer: it asks for your
+administrator password once, after RETURN. `--no-admin` leaves it out.
 
 Windows PowerShell:
 
