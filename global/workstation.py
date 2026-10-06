@@ -58,6 +58,8 @@ def npm_package(root=ROOT):
 # The command an instruction names: mhw on PATH after an npm install, ./mhw in a checkout (Issue #68).
 CMD = "mhw" if npm_package() else "./mhw"
 FIX = CMD + " install"
+# What the installed targets are compared with: this package (npm) or this checkout.
+SOURCE_NAME = "this package" if CMD == "mhw" else "this checkout"
 # The npm package name v4.1.0 shipped, before the rename to mhw (Issue #68).
 LEGACY_PACKAGE = NAME
 
@@ -161,7 +163,7 @@ def release_of(stamp):
 def render_status(f, verbose=False):
     """The status view. Short by default; verbose adds the per-target lines and versions."""
     lines = ["Workstation status"]
-    lines.append("  source           %s (this checkout)" % short_stamp(f["source"]))
+    lines.append("  source           %s (%s)" % (short_stamp(f["source"]), SOURCE_NAME))
     user = sorted(set(f["user_stamps"].values()))
     user_text = " / ".join(short_stamp(s) for s in user) if user else "none"
     admin_text = short_stamp(f["admin_stamp"]) if f["admin"] else (
@@ -171,7 +173,7 @@ def render_status(f, verbose=False):
     admin_fix = max(f["admin_issues"], 1 if admin_code else 0)
     fix = f["user_issues"] + admin_fix
     if fix == 0:
-        check = "matches this checkout"
+        check = "matches " + SOURCE_NAME
     elif admin_fix:
         check = "%d target(s) differ (admin layer: %d); run %s --admin first" % (fix, admin_fix, FIX)
     else:
@@ -414,7 +416,7 @@ def admin_report(lines, code, prefix="ADMIN   "):
         return []
     entries, removed = admin_findings(lines)
     count = max(issues(lines), 1)
-    out = ["%sthe admin layer differs from this checkout: %d target(s)" % (prefix, count)]
+    out = ["%sthe admin layer differs from %s: %d target(s)" % (prefix, SOURCE_NAME, count)]
     for kind in ("STALE", "DRIFT", "MISSING", "STAMP", "REFUSE"):
         if entries.get(kind):
             out.append("%s%s %s" % (prefix, kind, ", ".join(entries[kind])))
@@ -878,8 +880,11 @@ def npm_notes(source, user_stamps, root=ROOT):
     old = root.parent / LEGACY_PACKAGE
     if root.parent.name == "node_modules" and root.name != LEGACY_PACKAGE and (old / "package.json").is_file():
         version = package_version(old)
+        # From GitHub, npm's git preparation (install --force) hands the workstation command to mhw and
+        # keeps the old package (measured, npm 11.13.0); removing the old package deletes that link too.
         out.append("a second global package, %s %s (the name before mhw), is installed beside this one; "
-                   "remove it with: npm uninstall -g %s (the user layer stays)" % (LEGACY_PACKAGE, version, LEGACY_PACKAGE))
+                   "remove it with: npm uninstall -g %s, then run the npm line mhw update prints to restore "
+                   "the workstation alias (the user layer stays)" % (LEGACY_PACKAGE, version, LEGACY_PACKAGE))
     return out
 
 
@@ -902,7 +907,7 @@ def cmd_postinstall(method=False):
     if admin_present():
         acode, alines = run(managed_args(["--check"]))
     if acode == 0:
-        print("ADMIN   installed and matching this package")
+        print("ADMIN   installed and matching " + SOURCE_NAME)
     else:
         if acode is None:
             print("ADMIN   not installed; the one sudo line below installs it")
@@ -931,14 +936,14 @@ def cmd_install(admin_flag, method=False):
     if admin_present():
         acode, alines = run(managed_args(["--check"]))
         if acode == 0:
-            print("ADMIN   installed and matching this checkout")
+            print("ADMIN   installed and matching " + SOURCE_NAME)
         else:
             print("\n".join(admin_report(alines, acode)))
     else:
         print("ADMIN   not installed; %s install --admin prints its one sudo line" % CMD)
     ccode, clines = run(install_args(["--check", "--hooks=" + hooks_mode]))
     if ccode == 0:
-        print("CHECK   every user-level target matches this checkout")
+        print("CHECK   every user-level target matches " + SOURCE_NAME)
     else:
         print("CHECK   the user-level check exits %d with %d target(s) differing; see %s check"
               % (ccode, issues(clines), CMD))

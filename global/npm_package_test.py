@@ -372,12 +372,12 @@ class PackAndInstall(Base):
         self.assertEqual((d / "home" / ".claude" / "CLAUDE.md").read_bytes(), before)
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
         self.assertEqual(p.returncode, 0, p.stderr)
-        self.assertIn("  source           %s (this checkout)" % ws.short_stamp(stamp), p.stdout)
+        self.assertIn("  source           %s (this package)" % ws.short_stamp(stamp), p.stdout)
         self.assertNotIn(ws.NOT_RUN, p.stdout)
         self.assertNotIn("  npm  ", p.stdout)
         q = self.cmd(d, env, "workstation", "status", "--project=" + str(d / "proj"))
         self.assertEqual((q.returncode, q.stderr), (0, ALIAS + "\n"))
-        self.assertIn("  source           %s (this checkout)" % ws.short_stamp(stamp), q.stdout)
+        self.assertIn("  source           %s (this package)" % ws.short_stamp(stamp), q.stdout)
         p = self.cmd(d, env, "mhw", "update")
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertIn("RUN     npm install -g github:%s#semver:^" % ws.REPO, p.stdout)
@@ -467,7 +467,9 @@ class PackAndInstall(Base):
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("up")
         self.assertEqual(self.npm(d, env, "install", "-g", "--offline", str(old_tgz)).returncode, 0)
-        # One step fails loudly and changes nothing: npm refuses to take over another package's bin.
+        # From a tarball, one step fails loudly and changes nothing: npm refuses to take over another
+        # package's bin. (From GitHub it succeeds: the git preparation's inner install --force takes the
+        # bin over and keeps the old package, measured with npm 11.13.0; the --force case below is that state.)
         p = self.npm(d, env, "install", "-g", "--offline", str(tgz))
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("EEXIST", p.stdout + p.stderr)
@@ -478,7 +480,8 @@ class PackAndInstall(Base):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
         self.assertIn("  npm              a second global package, %s v4.1.0 (the name before mhw), is "
-                      "installed beside this one; remove it with: npm uninstall -g %s" % (LEGACY, LEGACY), p.stdout)
+                      "installed beside this one; remove it with: npm uninstall -g %s, then run the npm line "
+                      "mhw update prints to restore the workstation alias" % (LEGACY, LEGACY), p.stdout)
         # The documented route: remove the old package, then install. The user layer is the new one's.
         d, env = self.env("up2")
         self.assertEqual(self.npm(d, env, "install", "-g", "--offline", str(old_tgz)).returncode, 0)

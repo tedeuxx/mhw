@@ -12,9 +12,9 @@ decision and the carrier map are in
 | `skills/<name>/SKILL.md` | one skill: `name`, `description`, `purpose`, then its body | `~/.claude/skills/`, `~/.agents/skills/` (Codex), `~/.kiro/skills/` |
 | `commands/<name>.md` | one owner-typed command: `name`, `description`, `purpose`, `argument-hint`, then its body | `~/.claude/commands/`; a Codex skill with implicit invocation off; a Kiro skill |
 
-**Installing it is opt-in until the plugin cutover (#63, #64):** `./workstation install --method`
+**Installing it is opt-in until the plugin cutover (#63, #64):** `./mhw install --method`
 renders it through `global/install.sh` (on Windows, `global/install.ps1 -Method`), which runs
-`global/method/method_render.py` as its own step. `./workstation check`, `status` and `uninstall` cover
+`global/method/method_render.py` as its own step. `./mhw check`, `status` and `uninstall` cover
 it the same way. Every rendered file carries the provenance stamp (ADR-0029).
 
 The method carries **no hooks**. Edit the source here, never a rendered file; the next install

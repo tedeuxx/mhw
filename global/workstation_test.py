@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression tests for ./workstation (Issues #57 and #67): the version-key comparison and the status
+"""Regression tests for ./mhw, formerly ./workstation (Issues #57 and #67): the version-key comparison and the status
 output. Throwaway HOME and admin root only; never a real configuration, never sudo.
 
     python3 -B global/workstation_test.py

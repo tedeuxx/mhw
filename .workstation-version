@@ -1,6 +1,6 @@
 # The managed-workstation release range this repository expects (Issue #57). One range, comparators
 # separated by blanks, all of which must hold. Compared with the installed provenance stamp at session
-# start (an instruction in the user brief) and by ./workstation status. A mismatch prints one line and
+# start (an instruction in the user brief) and by ./mhw status. A mismatch prints one line and
 # never blocks. The release candidate that carries rc/next to main cuts v4.0.0 (Issue #65), so this
 # repository expects a 4.x install.
 >=4.0 <5

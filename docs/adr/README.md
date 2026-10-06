@@ -62,4 +62,4 @@ Each is raised one at a time, when a slice reaches it.
 | [0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md) | Inner-loop pre-authorisation behind the admin floor | proposed |
 | [0032](0032-this-repository-is-the-single-source-of-the-working-method.md) | This repository is the single source of the working method | proposed |
 | [0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md) | Paste cleaning: wrapper first, prompt hook as safety net | proposed; supersedes 0011 |
-| [0034](0034-npm-distribution-from-github-by-tag.md) | npm distribution from GitHub by tag, with an archive stamp | proposed |
+| [0034](0034-npm-distribution-from-github-by-tag.md) | npm distribution from GitHub by tag, with an archive stamp; the `mhw` command and its postinstall (2026-10-06) | proposed |

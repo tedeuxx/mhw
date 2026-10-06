@@ -403,10 +403,10 @@ and instructions. A hook stays only if all three hold:
 | Behaviour | Carrier in the target |
 | --- | --- |
 | Paste cleaning outside the wrapper | The prompt hook, which blocks only where the wrapper's marker is absent (decided on [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58), 2026-10-05). It is the only candidate that passes the test, because once a secret is sent the provider already has it. |
-| Stale configuration | Brief instruction (ADR-0022 rule) plus `./workstation status` |
+| Stale configuration | Brief instruction (ADR-0022 rule) plus `./mhw status` |
 | One-question, short pickers | Owner overlay instruction, calibrated by the interaction interview ([5](#5-interaction-standards-user-layer)) |
 | ~~Session-type intake~~ | ~~The workspace brief asks; native session-start context where the agent harness offers it without a hook~~ Removed on the owner's interview (#60) |
-| Version-key check | Project brief instructs the agent to compare the key with the installed stamp at session start; `./workstation status` on demand |
+| Version-key check | Project brief instructs the agent to compare the key with the installed stamp at session start; `./mhw status` on demand |
 | Irreversible actions and secret writes | Native deny rules (deny floor) |
 | Connector access | Native per-agent tool lists |
 | Session-start checks (open pull requests, rite cadence, stale worktrees) | The method skill `agents-configuration` tells the agent to check them at session start |
@@ -435,7 +435,7 @@ barrier of the proposed managed workstation."
 | **Wide** | Only while the root-owned admin deny floor is complete for that agent harness | The full inner loop (owner, #83): git read routes, `git add --`, `git commit -m`, branch creation, fetch, the repository's own test suites by script, `acceptEdits` in Claude Code and `workspace-write` in Codex. A test runner executes repository code without a prompt; that is the owner's accepted trade-off. |
 
 - **Never pre-authorised, in any tier:** `git push`, publishing routes (`gh pr create`, comments, `gh
-  api`), `./workstation`, a shell or interpreter as a standalone entry, an option as the word right
+  api`), `./mhw` (and the `mhw`/`workstation` commands), a shell or interpreter as a standalone entry, an option as the word right
   after `git` or `gh` (`git -c`, `git -C`, `gh -R`), `-R` or `--repo` in any position and spelling
   (`gh pr -R`, `--repo=`), a leading environment assignment (`GIT_CONFIG_PARAMETERS=… git log`), and
   tool-wide `Edit`, `Write` or `Read`. The installer refuses such an entry before writing anything
@@ -643,11 +643,11 @@ product-lead lands: the user level (decided on #61).
   `>=3.1 <4`. It is a range, not an exact pin, because a device has one user-level version and several
   projects.
 - **Check:** no hook. The project brief tells the agent to compare the range with the installed version
-  stamp at session start, and `./workstation status` does the same on demand. Best effort by design.
+  stamp at session start, and `./mhw status` does the same on demand. Best effort by design.
 - **On mismatch:** one line naming the required version, the installed version and the command to run.
   **It never blocks** (owner choice). It is made stricter only if use shows the warning is not enough.
 - **Covers:** stale configuration and stale installs.
-- **Coverage:** the same instruction in all three agent harnesses; `./workstation status` is the
+- **Coverage:** the same instruction in all three agent harnesses; `./mhw status` is the
   deterministic check.
 
 - **As built (2026-10-05, [ADR-0030](adr/0030-version-key-and-one-entry-point.md)):** the file is
@@ -723,7 +723,7 @@ agent harnesses, carries the commit SHA and the SemVer tag it came from, written
 Owner requirement: an easy install mechanism run from the git repository itself
 ([#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67)).
 
-- **One entry point, `./workstation`:**
+- **One entry point, `./workstation`** (renamed `./mhw` on 2026-10-06, #68)**:**
   - `install [version]`: checks out the release tag (latest by default), renders the user layer for
     every agent harness found, detects the admin layer and prints its single `sudo` line only when admin
     content changed, then verifies.
@@ -757,8 +757,9 @@ later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workst
   - Install straight from this GitHub repository by tag:
     `npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`, or
     `#semver:^X.Y.Z`. Nothing is published to the npm registry; `package.json` is `private`.
-  - The package exposes the `workstation` command. On macOS and Linux it runs `./workstation`; on
-    Windows a small Node launcher runs `install.ps1`.
+  - The package exposes ~~the `workstation` command~~ the `mhw` command (renamed 2026-10-06;
+    `workstation` stays a deprecated alias for one minor). On macOS and Linux it runs ~~`./workstation`~~
+    `./mhw`; on Windows a small Node launcher runs `install.ps1`.
   - The npm version follows `.bumpversion.toml`, so the git tag stays the one release source.
   - The provenance stamp holds without `.git`: GitHub's archive fills in `.workstation-archive`
     (`export-subst`) with the commit and its `git describe`. Unlike a checkout, it carries no
@@ -767,6 +768,23 @@ later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workst
   - The admin layer still needs the owner's `sudo` line, by design.
   - The first installable tag is the first release that carries `package.json`.
   - Git clone stays the alternative.
+- **npm manages every user-level resource (owner, 2026-10-06, #68:** *"a expectativa é que todos recursos
+  de managed workstation instalados na maquina fossem gerenciados pelo npm diretamente."* **Agreed design,
+  [ADR-0034](adr/0034-npm-distribution-from-github-by-tag.md) 2026-10-06 amendment):**
+  - The package is `mhw` (multi-harness managed workstation), and so is its command. The install line keeps
+    this repository's current name until the repository is renamed, a separate step.
+  - `npm install -g …#vX.Y.Z` installs and updates the user layer itself through a `postinstall`, with no
+    separate `mhw install`. It never prompts and never runs `sudo`. It skips a non-global install and
+    says why. `MHW_METHOD=1` opts into the working method.
+  - At the end it prints the admin layer's `sudo` line when that layer is absent or stale, a reminder to
+    open fresh sessions, and the runtime summary.
+  - Stated limits, measured with npm 11.13.0: npm runs no uninstall script, so `mhw uninstall` comes
+    before `npm uninstall -g mhw`; the admin layer stays the owner's separate `sudo` step, never
+    `sudo npm`; with `ignore-scripts`, nothing runs. From a tarball, `status` then says
+    `installed by npm but postinstall did not run`; from GitHub the install fails and is repeated without
+    it.
+  - Upgrading from v4.1.0 (package `personal-multi-harness-workstation-configuration`) works with the same
+    line; `status` names the old package left beside `mhw` and how to remove it.
 
 ## 9c. Prerequisites: declared and checked, never applied
 
@@ -777,7 +795,7 @@ this way needs. By his decision of 2026-10-05, the release candidate carries it 
   (GitHub, the agent harness subscriptions, SonarCloud, Terraform Cloud and others), with the preferred
   settings for each, calibrated from the site project's current stack. Credentials are named by their
   variable names only; values never enter the repository.
-- **Check:** `./workstation check` (and `check --prerequisites` alone) reports, per item: present or
+- **Check:** `./mhw check` (and `check --prerequisites` alone) reports, per item: present or
   missing, authenticated or not, and drift from the preferred settings (for example the GitHub merge
   standard: merge commits on, squash off). A missing required item exits non-zero.
 - **Never applied by the check.** Applying settings to real accounts comes after the owner tests the
@@ -826,7 +844,7 @@ The matrix itself, with its findings against this document, is
 | [#65](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/65) | Current-state table, decision-record index | patch | none |
 | [#66](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/66) | Provenance stamp and installed manifest ([9a](#9a-provenance-stamp-in-every-installed-file)) | minor | install |
 | [#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67) | `./workstation` install, update, status, uninstall ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first run |
-| [#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68) | npm distribution from GitHub by tag, `workstation` command ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first npm install |
+| [#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68) | npm distribution from GitHub by tag, ~~`workstation` command~~ `mhw` command and postinstall ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first npm install |
 | [#69](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/69) | Documentation standard, workstation-wide ([5a](#5a-documentation-standards-user-layer-every-repository)) | minor | install |
 | [#71](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/71) | Command `/new-idea` | minor | none |
 | [#72](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/72) | Command `/idea-to-issues` | minor | none |
