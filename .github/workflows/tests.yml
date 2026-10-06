@@ -50,7 +50,13 @@ jobs:
             global/workstation.py global/workstation_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
-            global/prerequisites.py global/prerequisites_test.py
+            global/prerequisites.py global/prerequisites_test.py \
+            global/npm_package_test.py
+      - name: node syntax check of the npm launcher and stamp writer (Issue #68)
+        run: |
+          node --version
+          node --check bin/workstation.js
+          node --check bin/stamp.js
 
   # Pure preference compilation: no harness installation, account calls or credential reads.
   profiles:
@@ -125,6 +131,16 @@ jobs:
         run: python3 -B global/method/method_commands_test.py "$RUNNER_TEMP/method-commands"
       # Issue #89: the prerequisites section of ./workstation check. Fake tool shims on a PATH holding
       # nothing else, a stub gh, a loopback server for SonarCloud and HCP Terraform; no network, no account.
+      # Issue #68, ADR-0034: the npm package. npm pack from this checkout (the prepare script writes the
+      # provenance stamp), npm install -g into a throwaway prefix and cache, then the installed workstation
+      # command in a throwaway HOME and admin root; the launcher's Windows mapping with a stub PowerShell.
+      # The runner's preinstalled node and npm; nothing is fetched from or published to a registry.
+      - name: npm package suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          node --version; npm --version
+          python3 -B global/npm_package_test.py
       - name: prerequisites suite
         env:
           TMPDIR: ${{ runner.temp }}
@@ -185,3 +201,42 @@ jobs:
           & $env:PS_EXE -NoProfile -Command '$PSVersionTable | Format-Table -AutoSize | Out-String'
           & $env:PS_EXE -NoProfile -NonInteractive -ExecutionPolicy Bypass -File global\install.test.ps1 "$env:RUNNER_TEMP\install-$env:PS_EXE"
           exit $LASTEXITCODE
+      # Issue #68, ADR-0034: the npm launcher on Windows. npm pack (the prepare script writes the stamp),
+      # npm install -g into a throwaway prefix and cache, then the installed workstation.cmd runs
+      # install.ps1 under ${{ matrix.ps }} against a throwaway USERPROFILE. No registry is contacted.
+      - name: npm launcher (npm install -g into a throwaway prefix, then workstation under ${{ matrix.ps }})
+        shell: pwsh
+        env:
+          PS_EXE: ${{ matrix.ps }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function Fail([string]$m) { Write-Output "FAIL  $m"; exit 1 }
+          node --version; npm --version
+          $t = Join-Path $env:RUNNER_TEMP "npm-$env:PS_EXE"
+          $prefix = Join-Path $t 'prefix'; $cache = Join-Path $t 'cache'; $prof = Join-Path $t 'profile'
+          New-Item -ItemType Directory -Force -Path $t, $prefix, $prof | Out-Null
+          npm pack --pack-destination $t --cache $cache
+          if ($LASTEXITCODE) { Fail 'npm pack' }
+          $tgz = (Get-ChildItem -LiteralPath $t -Filter '*.tgz' | Select-Object -First 1).FullName
+          npm install -g --offline --prefix $prefix --cache $cache $tgz
+          if ($LASTEXITCODE) { Fail 'npm install -g' }
+          $pkg = Join-Path $prefix 'node_modules\personal-multi-harness-workstation-configuration'
+          if (Test-Path -LiteralPath (Join-Path $pkg '.git')) { Fail 'the installed package carries .git' }
+          $stamp = (Get-Content -LiteralPath (Join-Path $pkg '.workstation-stamp') -TotalCount 1).Trim()
+          if ($stamp -notmatch '^release: [A-Za-z0-9 .,()_-]+; commit: ([0-9a-f]{40}(-dirty)?|unknown)$') { Fail "stamp shape: $stamp" }
+          $ws = Join-Path $prefix 'workstation.cmd'
+          $env:USERPROFILE = $prof; $env:CODEX_HOME = Join-Path $prof '.codex'; $env:WORKSTATION_POWERSHELL = $env:PS_EXE
+          Push-Location $env:RUNNER_TEMP
+          & $ws install --overlay=none
+          if ($LASTEXITCODE) { Fail "workstation install exited $LASTEXITCODE" }
+          & $ws check --overlay=none
+          if ($LASTEXITCODE) { Fail "workstation check exited $LASTEXITCODE" }
+          $brief = Get-Content -LiteralPath (Join-Path $prof '.claude\CLAUDE.md') -TotalCount 1
+          if (-not $brief.Contains("; $stamp;")) { Fail "the brief does not carry the package stamp: $brief" }
+          $out = (& $ws update v4.2.0) -join "`n"
+          if ($LASTEXITCODE -or -not $out.Contains('npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#v4.2.0')) { Fail "update: $out" }
+          & $ws uninstall 2>$null
+          if ($LASTEXITCODE -ne 2) { Fail "uninstall should be refused on Windows, exited $LASTEXITCODE" }
+          Pop-Location
+          Write-Output "PASS  npm launcher under $env:PS_EXE (stamp: $stamp)"
+          exit 0

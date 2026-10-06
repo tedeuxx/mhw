@@ -11,7 +11,8 @@
                                           (the admin layer included, stamped or from an earlier release),
                                           or a required prerequisite is missing (global/prerequisites.json)
     ./workstation check --prerequisites   the prerequisites section only (Issue #89); never applies anything
-    ./workstation update [vX.Y.Z]         fetch tags, check out the newest release (or the one given), install
+    ./workstation update [vX.Y.Z]         fetch tags, check out the newest release (or the one given), install;
+                                          in an npm install (no .git, Issue #68) print the npm command instead
     ./workstation uninstall               remove the user layer; print the sudo line for the admin layer
 
 Options for every subcommand: --overlay=DIR|none (default: the repository's overlay/), and
@@ -862,9 +863,43 @@ def git(*args):
     return run(["git", "-C", str(ROOT)] + list(args))
 
 
+REPO = "tedeuxx/" + NAME
+
+
+def npm_package(root=ROOT):
+    """True for an npm install of this repository (Issue #68, ADR-0034): package.json present, no .git."""
+    return (root / "package.json").is_file() and not (root / ".git").exists()
+
+
+def npm_update_lines(wanted, root=ROOT):
+    """-> (code, lines): the npm command that updates an npm install, never run here. The tag asked for,
+    or the newest release in the installed major (major = breaking, Issue #52), which npm resolves from
+    the repository's tags. Same text as bin/workstation.js's updateLines() (global/npm_package_test.py)."""
+    if wanted is None:
+        try:
+            m = re.search(r'^current_version\s*=\s*"(\d+)\.(\d+)\.(\d+)"',
+                          (root / ".bumpversion.toml").read_text(encoding="utf-8"), re.M)
+        except OSError:
+            m = None
+        ref = "semver:^%s.%s.%s" % m.groups() if m else "semver:*"
+    else:
+        m = _RELEASE.fullmatch(wanted)
+        if not m:
+            return 2, ["REFUSE  the tag must be a numeric release, vX.Y.Z"]
+        ref = "v%s.%s.%s" % m.groups()
+    return 0, ["UPDATE  this is an npm install (no .git); update it with npm, then install:",
+               "RUN     npm install -g github:%s#%s" % (REPO, ref),
+               "RUN     workstation install"]
+
+
 def cmd_update(wanted):
     """Fetch tags, check out the newest release (or the one asked for), then install from it. Refuses on a
-    working tree with a tracked change, so nothing uncommitted is carried into or lost by the checkout."""
+    working tree with a tracked change, so nothing uncommitted is carried into or lost by the checkout.
+    An npm install has no checkout: it prints the npm command instead and changes nothing."""
+    if npm_package():
+        code, lines = npm_update_lines(wanted)
+        print("\n".join(lines), file=sys.stderr if code else sys.stdout)
+        return code
     code, dirty = git("status", "--porcelain", "--untracked-files=no")
     if code != 0:
         print("REFUSE  %s is not a git checkout; update needs one" % ROOT, file=sys.stderr)

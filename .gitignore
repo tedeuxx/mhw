@@ -14,3 +14,8 @@ __pycache__/
 
 # Agent worktrees — they appear untracked in the main checkout.
 .claude/worktrees/
+
+# The npm package's provenance stamp, written by its prepare script (Issue #68); never committed.
+.workstation-stamp
+*.tgz
+node_modules/

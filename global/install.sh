@@ -151,11 +151,16 @@ version=$(sed -n 's/^current_version[[:space:]]*=[[:space:]]*"\([0-9][0-9.]*\)".
 #   release: unreleased, after vX.Y.Z     any other commit (rc/next, a branch, between releases): the nearest tag
 #   release: unreleased, no tag reachable a checkout without tags (a shallow CI clone)
 #   commit:  the full HEAD SHA, with "-dirty" appended when a tracked file differs from HEAD
-# Outside a git checkout both fields say unknown and name the .bumpversion.toml version instead.
+# Outside a git checkout the stamp is the first line of .workstation-stamp when it has exactly that
+# shape (an npm package, written by bin/stamp.js at package time; Issue #68, ADR-0034); otherwise both
+# fields say unknown and name the .bumpversion.toml version instead.
 # Only a strictly numeric tag is a release (ADR-0002), and only such a string ever enters a stamp.
 tag_glob='v[0-9]*.[0-9]*.[0-9]*'
 numeric_tag() { printf '%s\n' "$1" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'; }
+# The checkout must be this repository itself: an npm package unpacked under some other git work tree
+# (a home directory kept in git, say) must not borrow that tree's HEAD (Issue #68).
 if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+   && [ "$(git -C "$repo_root" rev-parse --show-toplevel 2>/dev/null)" = "$(cd "$repo_root" && pwd -P)" ] \
    && commit=$(git -C "$repo_root" rev-parse --verify HEAD 2>/dev/null); then
   dirty=
   [ -n "$(git -C "$repo_root" status --porcelain --untracked-files=no 2>/dev/null)" ] && dirty=-dirty
@@ -169,11 +174,16 @@ if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
     release="unreleased, no tag reachable"
   fi
   commit="$commit$dirty"
+  stamp="release: $release; commit: $commit"
+elif [ -f "$repo_root/.workstation-stamp" ] \
+   && stamp=$(sed -n 1p "$repo_root/.workstation-stamp") \
+   && printf '%s\n' "$stamp" | grep -Eqx 'release: [A-Za-z0-9 .,()_-]+; commit: ([0-9a-f]{40}(-dirty)?|unknown)'; then
+  # An npm package (Issue #68, ADR-0034) has no .git: bin/stamp.js wrote the stamp at package time.
+  # Taken only in that exact shape, so nothing else in the file can reach a rendered managed-by line.
+  :
 else
-  release="unknown, not a git checkout (.bumpversion.toml says $version)"
-  commit=unknown
+  stamp="release: unknown, not a git checkout (.bumpversion.toml says $version); commit: unknown"
 fi
-stamp="release: $release; commit: $commit"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
