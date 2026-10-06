@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Regression tests for the npm package (Issue #68, ADR-0034): the `workstation` launcher, the
-package-time provenance stamp, the no-.git install path and npm-mode update. Throwaway HOMEs, npm
-prefixes, caches and admin roots only; never a registry, never a real configuration, never sudo.
+"""Regression tests for the npm package (Issue #68, ADR-0034): the `workstation` launcher, the archive
+provenance stamp read when there is no .git, and npm-mode update. Throwaway HOMEs, npm prefixes, caches
+and admin roots only; never a registry, never a real configuration, never sudo.
 
     python3 -B global/npm_package_test.py
 
-Needs node; the pack-and-install class also needs npm, a POSIX sh and jq (skipped without them).
+An npm install from GitHub downloads the source archive GitHub builds with git archive. These tests
+build the same thing locally: this working tree's files, with .workstation-archive as `git archive
+HEAD` fills it in, then npm pack and npm install -g of that directory into a throwaway prefix.
+Needs node and git; the install class also needs npm, jq and a POSIX sh (skipped without them).
 """
+import io
 import json
 import os
 from pathlib import Path
@@ -24,15 +28,54 @@ import workstation as ws  # noqa: E402
 ROOT = ws.ROOT
 NODE = shutil.which("node")
 NPM = shutil.which("npm")
-SHA = "0123456789abcdef0123456789abcdef01234567"
-STAMP_SHAPE = re.compile(r"release: [A-Za-z0-9 .,()_-]+; commit: ([0-9a-f]{40}(-dirty)?|unknown)")
+GIT = shutil.which("git")
+POSIX_JQ = os.name == "posix" and bool(shutil.which("jq"))
+GLOB = "v[0-9]*.[0-9]*.[0-9]*"
 
 
-def node_eval(script, env=None, cwd=None):
-    p = subprocess.run([NODE, "-e", script], capture_output=True, text=True, env=env, cwd=cwd)
-    if p.returncode != 0:
-        raise AssertionError(p.stderr)
-    return json.loads(p.stdout)
+def git(*args):
+    return subprocess.run(["git", "-C", str(ROOT)] + list(args), capture_output=True, text=True)
+
+
+def expected_stamp():
+    """install.sh's rule for HEAD, as an archive of HEAD (never dirty) must reproduce it."""
+    commit = git("rev-parse", "HEAD").stdout.strip()
+    exact = git("describe", "--tags", "--exact-match", "--match", GLOB, "HEAD")
+    near = git("describe", "--tags", "--abbrev=0", "--match", GLOB, "HEAD")
+    if exact.returncode == 0:
+        release = exact.stdout.strip()
+    elif near.returncode == 0:
+        release = "unreleased, after " + near.stdout.strip()
+    else:
+        release = "unreleased, no tag reachable"
+    return "release: %s; commit: %s" % (release, commit)
+
+
+def archive_text():
+    """.workstation-archive exactly as git archive (and so GitHub) writes it for HEAD."""
+    raw = subprocess.run(["git", "-C", str(ROOT), "archive", "--format=tar", "HEAD", ".workstation-archive"],
+                         capture_output=True, check=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(raw)) as t:
+        return t.extractfile(".workstation-archive").read().decode()
+
+
+def source_tree(dest, archive=None):
+    """This working tree's tracked and new files (what GitHub would archive once committed)."""
+    listed = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+                            capture_output=True, check=True).stdout.decode().split("\0")
+    for rel in filter(None, listed):
+        if (ROOT / rel).is_file():
+            (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / rel, dest / rel)
+    if archive is not None:
+        (dest / ".workstation-archive").write_text(archive, encoding="utf-8")
+    return dest
+
+
+def source_line(root, env):
+    p = subprocess.run(["sh", str(root / "global" / "install.sh"), "--check", "--overlay=none"], env=env,
+                       capture_output=True, text=True)
+    return re.search(r"(?m)^SOURCE  (.*)$", p.stdout).group(1)
 
 
 def write_exe(path, text):
@@ -40,13 +83,25 @@ def write_exe(path, text):
     path.chmod(0o755)
 
 
-@unittest.skipUnless(NODE, "needs node")
-class Launcher(unittest.TestCase):
+class Base(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="npm-launcher-")
+        self.temp = tempfile.TemporaryDirectory(prefix="npm-package-")
         self.addCleanup(self.temp.cleanup)
         self.base = Path(os.path.realpath(self.temp.name))
 
+    def env(self, name):
+        d = self.base / name
+        for sub in ("home", "root", "tmp", "proj"):
+            (d / sub).mkdir(parents=True)
+        return d, {"PATH": str(d / "prefix" / "bin") + os.pathsep + os.environ["PATH"], "HOME": str(d / "home"),
+                   "TMPDIR": str(d / "tmp"), "WORKSTATION_MANAGED_ROOT": str(d / "root"),
+                   "npm_config_cache": str(self.base / "cache"), "npm_config_prefix": str(d / "prefix"),
+                   "npm_config_userconfig": str(d / "npmrc"), "npm_config_update_notifier": "false",
+                   "npm_config_audit": "false", "npm_config_fund": "false"}
+
+
+@unittest.skipUnless(NODE, "needs node")
+class Launcher(Base):
     @unittest.skipUnless(os.name == "posix", "needs a POSIX sh")
     def test_posix_resolves_the_package_not_the_cwd(self):
         # npm puts a symlink on PATH; the launcher must find ./workstation beside its real file even
@@ -91,19 +146,20 @@ class Launcher(unittest.TestCase):
 
     def test_update_text_is_the_same_in_node_and_python(self):
         for wanted in (None, "v4.2.0", "v10.0.3", "4.2.0", "v4.2", "main", "v4.2.0;x"):
-            js = node_eval("const l=require(%s); const r=l.updateLines(%s, l.ROOT); "
-                           "process.stdout.write(JSON.stringify([r.code, r.out || [r.err]]))"
-                           % (json.dumps(str(ROOT / "bin" / "workstation.js")),
-                              "undefined" if wanted is None else json.dumps(wanted)))
+            p = subprocess.run([NODE, "-e", "const l=require(%s); const r=l.updateLines(%s, l.ROOT); "
+                                "process.stdout.write(JSON.stringify([r.code, r.out || [r.err]]))"
+                                % (json.dumps(str(ROOT / "bin" / "workstation.js")),
+                                   "undefined" if wanted is None else json.dumps(wanted))],
+                               capture_output=True, text=True, check=True)
             code, lines = ws.npm_update_lines(wanted)
-            self.assertEqual(js, [code, lines], wanted)
+            self.assertEqual(json.loads(p.stdout), [code, lines], wanted)
         _, lines = ws.npm_update_lines(None)
         major = re.search(r'^current_version\s*=\s*"(\d+\.\d+\.\d+)"',
                           (ROOT / ".bumpversion.toml").read_text(encoding="utf-8"), re.M).group(1)
         self.assertEqual(lines[1], "RUN     npm install -g github:%s#semver:^%s" % (ws.REPO, major))
         self.assertEqual(ws.npm_update_lines("main")[0], 2)
 
-    def test_package_version_follows_bumpversion(self):
+    def test_package_json(self):
         # bump-my-version rewrites package.json in the same commit (.bumpversion.toml files entry).
         toml = (ROOT / ".bumpversion.toml").read_text(encoding="utf-8")
         version = re.search(r'^current_version\s*=\s*"([^"]+)"', toml, re.M).group(1)
@@ -113,204 +169,100 @@ class Launcher(unittest.TestCase):
         self.assertIs(package["private"], True)
         self.assertEqual(package["bin"], {"workstation": "bin/workstation.js"})
         self.assertNotIn("dependencies", package)
+        # Any lifecycle script makes npm 11 run an inner install that leaves a global git install as a
+        # dangling link into its cache (measured); the package must carry none.
+        self.assertNotIn("scripts", package)
 
 
-@unittest.skipUnless(NODE and shutil.which("git"), "needs node and git")
-class Stamp(unittest.TestCase):
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="npm-stamp-")
-        self.addCleanup(self.temp.cleanup)
-        self.base = Path(os.path.realpath(self.temp.name))
+@unittest.skipUnless(GIT and POSIX_JQ, "needs git, jq and a POSIX sh")
+class ArchiveStamp(Base):
+    def test_archive_is_substituted_and_matches_install_sh(self):
+        text = archive_text()
+        self.assertNotIn("$Format", text)
+        tree = source_tree(self.base / "src", text)
+        _, env = self.env("e")
+        self.assertEqual(source_line(tree, env), expected_stamp())
 
-    def stamp(self, root, env):
-        return node_eval("process.stdout.write(JSON.stringify(require(%s).stamp(%s, process.env)))"
-                         % (json.dumps(str(ROOT / "bin" / "stamp.js")), json.dumps(str(root))), env=env)
+    def test_describe_forms(self):
+        tree = source_tree(self.base / "src")
+        _, env = self.env("e")
+        sha = "0123456789abcdef0123456789abcdef01234567"
+        cases = [("v4.1.0", "release: v4.1.0"), ("v4.1.0-12-g0123456", "release: unreleased, after v4.1.0"),
+                 ("", "release: unreleased, no tag reachable")]
+        for describe, release in cases:
+            (tree / ".workstation-archive").write_text("commit: %s\ndescribe: %s\n" % (sha, describe))
+            self.assertEqual(source_line(tree, env), "%s; commit: %s" % (release, sha), describe)
+        unknown = "release: unknown, not a git checkout (.bumpversion.toml says "
+        for bad in ("commit: $Format:%H$\ndescribe: $Format:%(describe)$\n",
+                    "commit: %s\ndescribe: v4.1.0-rc1\n" % sha,
+                    "commit: %s\ndescribe: v4.1.0; commit: x\n" % sha,
+                    "commit: %s\ndescribe: v4.1.0\n" % sha[:39]):
+            (tree / ".workstation-archive").write_text(bad)
+            self.assertTrue(source_line(tree, env).startswith(unknown), bad)
 
-    @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
-    def test_checkout_stamp_is_install_sh_stamp(self):
-        # In a git checkout the package-time stamp follows install.sh's rule exactly.
-        home = self.base / "home"
-        home.mkdir()
-        p = subprocess.run(["sh", str(ROOT / "global" / "install.sh"), "--check", "--overlay=none"],
-                           env={"PATH": os.environ["PATH"], "HOME": str(home), "TMPDIR": str(self.base)},
-                           capture_output=True, text=True)
-        source = re.search(r"(?m)^SOURCE  (.*)$", p.stdout).group(1)
-        self.assertEqual(self.stamp(ROOT, dict(os.environ)), source)
-        self.assertRegex(source, STAMP_SHAPE)
-
-    def tarball_dir(self):
-        pkg = self.base / "pkg"
-        pkg.mkdir()
-        shutil.copy(ROOT / ".bumpversion.toml", pkg / ".bumpversion.toml")
-        return pkg
-
-    @unittest.skipUnless(os.name == "posix", "the fake git is a POSIX script")
-    def test_hosted_tarball_stamp_from_npm_resolution(self):
-        pkg = self.tarball_dir()
-        version = re.search(r'^current_version\s*=\s*"([^"]+)"',
-                            (pkg / ".bumpversion.toml").read_text(encoding="utf-8"), re.M).group(1)
-        fake = self.base / "fakebin"
-        fake.mkdir()
-        listing = self.base / "ls-remote.txt"
-        write_exe(fake / "git", "#!/bin/sh\ncase \"$1\" in ls-remote) cat \"%s\" || exit 128;; "
-                                "*) exit 128;; esac\n" % listing)
-        env = dict(os.environ, PATH=str(fake) + os.pathsep + os.environ["PATH"],
-                   _PACOTE_NO_PREPARE_="git+ssh://git@github.com/o/r.git#" + SHA)
-        tag = "v" + version
-        other = "f" * 40
-        listing.write_text("%s\trefs/tags/%s\n%s\trefs/tags/%s^{}\n" % (other, tag, SHA, tag), encoding="utf-8")
-        self.assertEqual(self.stamp(pkg, env), "release: %s; commit: %s" % (tag, SHA))
-        listing.write_text("%s\trefs/tags/%s\n%s\trefs/tags/%s^{}\n" % (SHA, tag, other, tag), encoding="utf-8")
-        self.assertEqual(self.stamp(pkg, env), "release: unreleased, after %s; commit: %s" % (tag, SHA))
-        listing.unlink()
-        s = self.stamp(pkg, env)
-        self.assertEqual(s, "release: unverified, %s or later (tags unreadable at package time); commit: %s"
-                         % (tag, SHA))
-        self.assertRegex(s, STAMP_SHAPE)
-        # No resolution from npm and no checkout: unknown, never a borrowed commit.
-        env.pop("_PACOTE_NO_PREPARE_")
-        s = self.stamp(pkg, env)
-        self.assertEqual(s, "release: unknown, npm package (.bumpversion.toml says %s); commit: unknown" % version)
-        self.assertRegex(s, STAMP_SHAPE)
-
-    def test_second_prepare_keeps_the_first_known_commit(self):
-        # npm runs prepare twice for a hosted git dependency; only the first sees the resolved commit.
-        known = "release: unreleased, after v4.0.0; commit: " + SHA
-        unknown = "release: unknown, npm package (.bumpversion.toml says 4.0.0); commit: unknown"
-        decide = "require(%s).decide" % json.dumps(str(ROOT / "bin" / "stamp.js"))
-        for computed, existing, want in ((unknown, known + "\n", known), (unknown, None, unknown),
-                                         (unknown, "garbage; commit: zz\n", unknown),
-                                         ("release: v4.0.0; commit: " + "e" * 40, known, "release: v4.0.0; commit: " + "e" * 40)):
-            got = node_eval("process.stdout.write(JSON.stringify(%s(%s, %s)))"
-                            % (decide, json.dumps(computed), json.dumps(existing)))
-            self.assertEqual(got, want)
-
-    def test_a_tarball_inside_another_repository_borrows_nothing(self):
+    def test_inside_another_repository_keeps_its_own_stamp(self):
         outer = self.base / "outer"
         outer.mkdir()
         subprocess.run(["git", "init", "-q", str(outer)], check=True)
         subprocess.run(["git", "-C", str(outer), "-c", "user.name=t", "-c", "user.email=t@example.invalid",
                         "commit", "-q", "--allow-empty", "-m", "outer"], check=True)
-        pkg = outer / "pkg"
-        pkg.mkdir()
-        shutil.copy(ROOT / ".bumpversion.toml", pkg / ".bumpversion.toml")
-        env = {k: v for k, v in os.environ.items() if k != "_PACOTE_NO_PREPARE_"}
-        self.assertTrue(self.stamp(pkg, env).endswith("; commit: unknown"))
+        tree = source_tree(outer / "pkg", archive_text())
+        _, env = self.env("e")
+        self.assertEqual(source_line(tree, env), expected_stamp())
 
 
-@unittest.skipUnless(NODE and NPM and os.name == "posix" and shutil.which("jq") and shutil.which("git"),
-                     "needs node, npm, git, jq and a POSIX sh")
-class PackAndInstall(unittest.TestCase):
-    """npm pack from this checkout, npm install -g into a throwaway prefix, then the installed command."""
+@unittest.skipUnless(NODE and NPM and GIT and POSIX_JQ, "needs node, npm, git, jq and a POSIX sh")
+class PackAndInstall(Base):
+    """npm pack of a source archive, npm install -g into a throwaway prefix, then the installed command."""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.temp = tempfile.TemporaryDirectory(prefix="npm-package-")
-        cls.base = Path(os.path.realpath(cls.temp.name))
-        cls.cache = cls.base / "cache"
-        p = subprocess.run([NPM, "pack", "--pack-destination", str(cls.base), "--cache", str(cls.cache)],
-                           cwd=ROOT, capture_output=True, text=True)
-        if p.returncode != 0:
-            raise AssertionError(p.stdout + p.stderr)
-        cls.tgz = next(cls.base.glob("*.tgz"))
-        with tarfile.open(cls.tgz) as t:
-            cls.names = t.getnames()
-            cls.stamp = t.extractfile("package/.workstation-stamp").read().decode().strip()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.temp.cleanup()
-
-    def env(self, name):
-        d = self.base / name
-        for sub in ("home", "root", "tmp", "proj"):
-            (d / sub).mkdir(parents=True)
-        return d, {"PATH": str(d / "prefix" / "bin") + os.pathsep + os.environ["PATH"], "HOME": str(d / "home"),
-                   "TMPDIR": str(d / "tmp"), "WORKSTATION_MANAGED_ROOT": str(d / "root"),
-                   "npm_config_cache": str(self.cache), "npm_config_prefix": str(d / "prefix"),
-                   "npm_config_update_notifier": "false", "npm_config_audit": "false", "npm_config_fund": "false"}
+    def pack(self, tree):
+        p = subprocess.run([NPM, "pack", "--pack-destination", str(self.base), "--cache", str(self.base / "cache")],
+                           cwd=tree, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        return self.base / p.stdout.strip().splitlines()[-1]
 
     def test_files_allow_list(self):
-        names = {n[len("package/"):] for n in self.names}
-        for needed in ("workstation", ".bumpversion.toml", ".workstation-stamp", "bin/workstation.js",
+        tree = source_tree(self.base / "src", archive_text())
+        (tree / "overlay" / "mcp-servers.json").write_text("{}", encoding="utf-8")
+        (tree / "overlay" / "x.local.json").write_text("{}", encoding="utf-8")
+        with tarfile.open(self.pack(tree)) as t:
+            names = {n[len("package/"):] for n in t.getnames()}
+        for needed in ("workstation", ".bumpversion.toml", ".workstation-archive", "bin/workstation.js",
                        "global/workstation.py", "global/install.sh", "global/install-managed.sh",
-                       "global/install.ps1", "global/AGENTS.md", "global/deny-floor.conf", "package.json"):
+                       "global/install.ps1", "global/AGENTS.md", "global/deny-floor.conf", "overlay/profile.json",
+                       "package.json"):
             self.assertIn(needed, names)
         self.assertFalse([n for n in names if n.endswith(("_test.py", ".test.sh", ".test.ps1", ".test.stub"))])
         self.assertFalse([n for n in names if n.startswith(("docs/", "workspace/", ".github/", ".git/"))])
-        self.assertNotIn("overlay/mcp-servers.json", names)
-        self.assertRegex(self.stamp, STAMP_SHAPE)
-
-    def test_files_allow_list_drops_private_overlay_files(self):
         # A local overlay MCP definition (untracked, ADR-0017) must never ride into a package.
-        copy = self.base / "copy"
-        tracked = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-z", "--cached", "--others", "--exclude-standard"], capture_output=True,
-                                 check=True).stdout.decode().split("\0")
-        for rel in filter(None, tracked):
-            if (ROOT / rel).is_file():
-                (copy / rel).parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(ROOT / rel, copy / rel)
-        (copy / "overlay" / "mcp-servers.json").write_text("{}", encoding="utf-8")
-        (copy / "overlay" / "x.local.json").write_text("{}", encoding="utf-8")
-        p = subprocess.run([NPM, "pack", "--dry-run", "--json", "--ignore-scripts", "--cache", str(self.cache)],
-                           cwd=copy, capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        files = {f["path"] for f in json.loads(p.stdout)[0]["files"]}
-        self.assertIn("overlay/profile.json", files)
-        self.assertNotIn("overlay/mcp-servers.json", files)
-        self.assertNotIn("overlay/x.local.json", files)
+        self.assertNotIn("overlay/mcp-servers.json", names)
+        self.assertNotIn("overlay/x.local.json", names)
 
     def test_global_install_then_workstation(self):
+        tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("e2e")
-        p = subprocess.run([NPM, "install", "-g", "--offline", str(self.tgz)], env=env, cwd=d,
-                           capture_output=True, text=True)
+        p = subprocess.run([NPM, "install", "-g", "--offline", str(tgz)], env=env, cwd=d, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         pkg = d / "prefix" / "lib" / "node_modules" / ws.NAME
+        self.assertFalse(pkg.is_symlink())
         self.assertFalse((pkg / ".git").exists())
-        self.assertEqual((pkg / ".workstation-stamp").read_text(encoding="utf-8").strip(), self.stamp)
+        stamp = expected_stamp()
         p = subprocess.run(["workstation", "install", "--overlay=none"], env=env, cwd=d / "proj",
                            capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn("CHECK   every user-level target matches this checkout", p.stdout)
         marker = (d / "home" / ".claude" / "CLAUDE.md").read_text(encoding="utf-8").splitlines()[0]
-        self.assertIn("; %s;" % self.stamp, marker)
+        self.assertIn("; %s;" % stamp, marker)
         p = subprocess.run(["workstation", "status", "--overlay=none", "--project=" + str(d / "proj")],
                            env=env, cwd=d / "proj", capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stderr)
-        self.assertIn("  source           %s (this checkout)" % ws.short_stamp(self.stamp), p.stdout)
+        self.assertIn("  source           %s (this checkout)" % ws.short_stamp(stamp), p.stdout)
         p = subprocess.run(["workstation", "update"], env=env, cwd=d / "proj", capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertIn("RUN     npm install -g github:%s#semver:^" % ws.REPO, p.stdout)
+        p = subprocess.run(["workstation", "update", "main"], env=env, cwd=d / "proj", capture_output=True, text=True)
+        self.assertEqual(p.returncode, 2)
         self.assertFalse((pkg / ".git").exists())
-
-    def test_installed_package_with_a_bad_stamp_says_unknown(self):
-        d, env = self.env("bad")
-        pkg = d / "unpacked"
-        with tarfile.open(self.tgz) as t:
-            t.extractall(pkg)
-        root = pkg / "package"
-        (root / ".workstation-stamp").write_text('release: v1.0.0"; x; commit: zz\n', encoding="utf-8")
-        p = subprocess.run(["sh", str(root / "global" / "install.sh"), "--check", "--overlay=none"],
-                           env=env, capture_output=True, text=True)
-        source = re.search(r"(?m)^SOURCE  (.*)$", p.stdout).group(1)
-        self.assertTrue(source.startswith("release: unknown, not a git checkout"), source)
-        (root / ".workstation-stamp").write_text(self.stamp + "\n", encoding="utf-8")
-        p = subprocess.run(["sh", str(root / "global" / "install.sh"), "--check", "--overlay=none"],
-                           env=env, capture_output=True, text=True)
-        self.assertEqual(re.search(r"(?m)^SOURCE  (.*)$", p.stdout).group(1), self.stamp)
-
-    def test_package_inside_another_repository_keeps_its_own_stamp(self):
-        d, env = self.env("nested")
-        outer = d / "outer"
-        outer.mkdir()
-        subprocess.run(["git", "init", "-q", str(outer)], check=True)
-        subprocess.run(["git", "-C", str(outer), "-c", "user.name=t", "-c", "user.email=t@example.invalid",
-                        "commit", "-q", "--allow-empty", "-m", "outer"], check=True)
-        with tarfile.open(self.tgz) as t:
-            t.extractall(outer)
-        p = subprocess.run(["sh", str(outer / "package" / "global" / "install.sh"), "--check", "--overlay=none"],
-                           env=env, capture_output=True, text=True)
-        self.assertEqual(re.search(r"(?m)^SOURCE  (.*)$", p.stdout).group(1), self.stamp)
 
 
 if __name__ == "__main__":

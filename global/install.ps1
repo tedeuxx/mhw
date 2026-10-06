@@ -71,7 +71,6 @@ if ((Get-Command git -CommandType Application -ErrorAction SilentlyContinue) -an
         $commit = Invoke-Git @('rev-parse', '--verify', 'HEAD')
     }
 }
-$npmStamp = Join-Path $repoRoot '.workstation-stamp'
 if ($commit) {
     $dirty = if (Invoke-Git @('status', '--porcelain', '--untracked-files=no')) { '-dirty' } else { '' }
     $glob = 'v[0-9]*.[0-9]*.[0-9]*'
@@ -81,13 +80,26 @@ if ($commit) {
     elseif ($near -and $near -cmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { $release = "unreleased, after $near" }
     else { $release = 'unreleased, no tag reachable' }
     $stamp = "release: $release; commit: $commit$dirty"
-} elseif ((Test-Path -LiteralPath $npmStamp -PathType Leaf) -and
-          ((@(Get-Content -LiteralPath $npmStamp -TotalCount 1) -join '') -cmatch '^release: [A-Za-z0-9 .,()_-]+; commit: ([0-9a-f]{40}(-dirty)?|unknown)$')) {
-    # An npm package (Issue #68, ADR-0034) has no .git: bin/stamp.js wrote the stamp at package time,
-    # taken only in that exact shape (the same rule as install.sh).
-    $stamp = $Matches[0]
 } else {
     $stamp = "release: unknown, not a git checkout (.bumpversion.toml says $version); commit: unknown"
+    # A source archive has no .git: an npm install from GitHub (Issue #68, ADR-0034). git archive
+    # filled .workstation-archive in (export-subst, .gitattributes) with the commit and its git
+    # describe; the same three release forms as install.sh, taken only in exactly that shape.
+    $archive = Join-Path $repoRoot '.workstation-archive'
+    if (Test-Path -LiteralPath $archive -PathType Leaf) {
+        $lines = @(Get-Content -LiteralPath $archive)
+        $c = @($lines | Where-Object { $_ -cmatch '^commit: [0-9a-f]{40}$' } | Select-Object -First 1)
+        $d = @($lines | Where-Object { $_ -cmatch '^describe: ' } | Select-Object -First 1)
+        if ($c.Count -eq 1 -and $d.Count -eq 1) {
+            $sha = $c[0].Substring(8)
+            $desc = $d[0].Substring(10)
+            $rel = $null
+            if ($desc -cmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { $rel = $desc }
+            elseif ($desc -cmatch '^(v[0-9]+\.[0-9]+\.[0-9]+)-[0-9]+-g[0-9a-f]+$') { $rel = "unreleased, after $($Matches[1])" }
+            elseif ($desc -ceq '') { $rel = 'unreleased, no tag reachable' }
+            if ($rel) { $stamp = "release: $rel; commit: $sha" }
+        }
+    }
 }
 
 if (-not $Overlay) { $Overlay = Join-Path $repoRoot 'overlay' }

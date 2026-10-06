@@ -13,8 +13,8 @@
   "files": [
     "workstation",
     ".bumpversion.toml",
+    ".workstation-archive",
     "bin/workstation.js",
-    "bin/stamp.js",
     "global/",
     "!global/**/*_test.py",
     "!global/**/*.test.sh",
