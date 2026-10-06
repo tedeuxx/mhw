@@ -124,6 +124,9 @@ sets the release-candidate label: each pull request carries exactly one `semver:
 label, and the release-candidate pull request `rc/next` → `main` carries the **largest** part among
 the changes it contains.
 
+**Forward only.** The new table applies from the next release candidate on. Tags already cut are not
+re-classified or re-cut.
+
 **What did not change.** Numeric-only versions, bump-my-version, the mandatory single label, the
 `semver-label` check on pull requests into `main`, and the cut on merge to `main`.
 

@@ -797,11 +797,11 @@ The matrix itself, with its findings against this document, is
 | Issue | Slice | Release | Owner act |
 | --- | --- | --- | --- |
 | [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55) | Native enforcement matrix | patch (docs) | none |
-| [#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56) | Stale configuration through the version key; breaking glass reduced to what remains | ~~major~~ minor; major only if `/breaking-glass` is removed outright | admin install, fresh session |
+| [#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56) | Stale configuration through the version key; breaking glass reduced to what remains | major | admin install, fresh session |
 | [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57) | Version key, warning mode | minor | none |
-| [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) | Paste cleaning: wrapper first; the prompt hook per the hook budget | ~~minor or major~~ ~~major (the hook stops judging wrapped sessions)~~ minor (a control changed, nothing a consumer must change) | allow the shell start-up line |
+| [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) | Paste cleaning: wrapper first; the prompt hook per the hook budget | ~~minor or major~~ major (the hook stops judging wrapped sessions) | allow the shell start-up line |
 | [#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59) | Deny floor carries the irreversible-action rules | minor | install |
-| [#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60) | Interaction standards as instructions, after the interview | ~~major~~ minor (a control removed, nothing a consumer must change) | interview, install |
+| [#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60) | Interaction standards as instructions, after the interview | major | interview, install |
 | [#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61) | Working method at the user layer (one pull request per block) | minor each | install |
 | [#62](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/62) | CI mirror into `tadeumendonca-skills` | minor | create the credential |
 | [#63](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/63) | `tadeumendonca-skills` marked as generated | in that repository | none |
@@ -828,7 +828,9 @@ them, at the highest part any of them carries ([3b](#delivery-route-slices-into-
 Since 2026-10-06 the parts follow plain SemVer ([ADR-0002](adr/0002-automatic-semver-cut-policy.md),
 2026-10-06 amendment): major only for a breaking change a consumer must act on, minor for a feature,
 including adding or removing a control when no consumer has to change anything, patch for a bug fix or a change with no behaviour change (docs, tests, CI).
-The three rows struck to minor were major under the former rule only because they remove a control.
+The new rule applies **forward only**, from the next release candidate on. The parts above for slices
+that already shipped are not re-cut; #56 (`/breaking-glass` removed, v3.0.0) and #60 (`/session-start`
+removed, v4.0.0) are breaking under the new rule as well.
 
 
 Order rule: install the new protection before removing the old copy. Every installation on the machine
