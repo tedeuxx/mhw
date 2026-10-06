@@ -748,8 +748,25 @@ Owner requirement: an easy install mechanism run from the git repository itself
   `uninstall` removes the user layer and prints the admin layer's `sudo` removal line. `status` does not
   yet compare with the latest published release.
 
-Easier distribution beyond this command (for example a bootstrap line or a package-manager formula) is a
-later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68)).
+~~Easier distribution beyond this command (for example a bootstrap line or a package-manager formula) is a
+later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68)).~~
+*(Struck 2026-10-06: decided on #68; see the distribution bullet below.)*
+
+- **Distribution through npm (owner, 2026-10-06, [#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68):
+  *"siga com a adequacao da distribuicao com npm"*; [ADR-0034](adr/0034-npm-distribution-from-github-by-tag.md)):**
+  - Install straight from this GitHub repository by tag:
+    `npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`, or
+    `#semver:^X.Y.Z`. Nothing is published to the npm registry; `package.json` is `private`.
+  - The package exposes the `workstation` command. On macOS and Linux it runs `./workstation`; on
+    Windows a small Node launcher runs `install.ps1`.
+  - The npm version follows `.bumpversion.toml`, so the git tag stays the one release source.
+  - The provenance stamp holds without `.git`: GitHub's archive fills in `.workstation-archive`
+    (`export-subst`) with the commit and its `git describe`. Unlike a checkout, it carries no
+    `-dirty`, so a locally edited package still stamps as its release (measured).
+  - In an npm install, `update` prints the npm command rather than using git.
+  - The admin layer still needs the owner's `sudo` line, by design.
+  - The first installable tag is the first release that carries `package.json`.
+  - Git clone stays the alternative.
 
 ## 9c. Prerequisites: declared and checked, never applied
 
@@ -809,6 +826,7 @@ The matrix itself, with its findings against this document, is
 | [#65](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/65) | Current-state table, decision-record index | patch | none |
 | [#66](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/66) | Provenance stamp and installed manifest ([9a](#9a-provenance-stamp-in-every-installed-file)) | minor | install |
 | [#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67) | `./workstation` install, update, status, uninstall ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first run |
+| [#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68) | npm distribution from GitHub by tag, `workstation` command ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first npm install |
 | [#69](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/69) | Documentation standard, workstation-wide ([5a](#5a-documentation-standards-user-layer-every-repository)) | minor | install |
 | [#71](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/71) | Command `/new-idea` | minor | none |
 | [#72](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/72) | Command `/idea-to-issues` | minor | none |

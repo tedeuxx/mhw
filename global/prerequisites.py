@@ -252,6 +252,13 @@ def parse_version(text):
 
 def origin_repo():
     code, line = probe(["git", "-C", str(ROOT), "remote", "get-url", "origin"])
+    if code != 0 and not (ROOT / ".git").exists():
+        # An npm install has no .git (Issue #68): its package.json names the repository instead.
+        try:
+            line = str(json.loads((ROOT / "package.json").read_text(encoding="utf-8"))["repository"]["url"])
+            code = 0
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
     m = re.search(r"github\.com[:/]([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?/?$", line) if code == 0 else None
     return m.group(1) if m else None
 

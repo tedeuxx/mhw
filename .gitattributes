@@ -1,0 +1,4 @@
+# The archive stamp (Issue #68, ADR-0034): git archive, which GitHub uses for every source tarball and
+# npm downloads for a github: install, replaces the $Format:...$ placeholders in this one file with the
+# commit and its nearest release tag. A checkout keeps the placeholders and reads git itself.
+.workstation-archive export-subst

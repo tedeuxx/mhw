@@ -104,6 +104,7 @@ owner's act, in a fresh session, after the release-candidate pull request reache
 | Working method: 8 agents, 14 skills, 7 commands ([ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md)) | written; loaded, probed (2.1.289), each agent's tool list applied | written; skills loaded, probed (0.160.0), commands kept out of implicit use; agents documented, with no tool list | written; documented (agents and skills; commands as skills) | Claude Code tab documented; otherwise none | macOS, Linux, Windows (`install.ps1 -Method`, CI) | not installed: the plugin is still the running copy (#62, #63) |
 | Provenance stamp ([ADR-0029](docs/adr/0029-provenance-stamp-in-every-installed-file.md)) | written; stamped files loaded, probed | written; loaded, probed | written; documented | none | macOS, Linux, Windows (CI) | not installed. A record, not a protection |
 | `./workstation`, version key, `status` and `check` ([ADR-0030](docs/adr/0030-version-key-and-one-entry-point.md)) | written; the version-key instruction in the loaded brief, probed | written; in the model-visible prompt, probed | written; documented | none | macOS, Linux | not run. A report, never a block |
+| npm install from GitHub by tag, `workstation` command ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md)) | not an agent harness control | | | | macOS, Linux, Windows (CI) | not run. Probed in a throwaway prefix and HOME from the branch (npm 11.13.0, macOS): the archive stamp arrived filled in and `install`, `status` and `update` ran |
 | Prerequisites check, check-only ([#89](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/89)) | not an agent harness control | | | | macOS, Linux | written and tested with fake tools; one read-only run of `gh auth status` and the merge-settings check. Applies nothing |
 | GitHub repository standard: merge commits only, no squash ([#82](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/82)) | not an agent harness control | | | | any | written and tested against a stub; `--apply` is the owner's act |
 | MCP definition ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) | written | written | written | written (Claude desktop) | macOS | not run. Not part of the main line |
@@ -119,8 +120,23 @@ measured.
 New machine: start with [Install on another workstation](docs/new-workstation.md), which previews the
 controls without inheriting the reference owner's overlay.
 
-macOS and Linux, from the repository root (Python 3.9+ and `jq` required). **Admin layer first, then
-the user layer**, on a new machine and on every upgrade
+**With npm, from GitHub by tag** ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md),
+[runbook](docs/runbooks/npm-install.md)). Nothing is published to the npm registry. You need Node.js 18
+or later and git; on macOS and Linux also Python 3.9+ and `jq`:
+
+```sh
+npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z
+workstation install --admin    # macOS and Linux: prints the one sudo line to run yourself
+workstation install
+workstation update             # prints the npm command for the newest release in this major
+```
+
+The first installable tag is the first release that carries `package.json`; older tags fail in npm.
+The `workstation` command takes the same subcommands as `./workstation` below. On Windows it runs
+`install.ps1`.
+
+**Or from a git clone**, the alternative. macOS and Linux, from the repository root (Python 3.9+ and
+`jq` required). **Admin layer first, then the user layer**, on a new machine and on every upgrade
 ([runbook](docs/runbooks/deny-floor-admin-layer.md)):
 
 ```sh
@@ -135,6 +151,7 @@ the user layer**, on a new machine and on every upgrade
 ```
 
 `update` refuses while a tracked file is modified and leaves the checkout detached at the release tag.
+In an npm install (no `.git`) it prints the npm command instead and changes nothing.
 `uninstall` removes only files carrying this repository's marker and, in `~/.claude/settings.json`, only
 its hook entries, the deny-floor rules the installer itself added (recorded in an ownership key, so a
 rule you wrote yourself stays even when it equals a floor rule), and its two keys. A single backup
@@ -180,7 +197,7 @@ An install from an untagged checkout of `rc/next` stamps `unreleased, after v3.0
 3.0.0 and is a mismatch here until v4.0.0 is tagged.
 
 Windows (PowerShell 5.1 and 7, tested in CI) renders the brief and the deny floor, and the working
-method with `-Method`:
+method with `-Method`. From a clone, or through the npm `workstation` command, which runs the same script:
 
 ```powershell
 .\global\install.ps1
