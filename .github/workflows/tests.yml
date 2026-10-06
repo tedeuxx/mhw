@@ -34,7 +34,7 @@ jobs:
       - name: shellcheck (preinstalled on the runner image)
         run: |
           shellcheck --version
-          shellcheck -s sh workstation global/install.sh global/install.test.sh \
+          shellcheck -s sh mhw workstation global/install.sh global/install.test.sh \
             global/allow-list.sh global/allow-list.test.sh global/mcp/mcp-launch.sh
       - name: python compile check, warnings as errors (the runner's python3; no third-party linter)
         run: |
@@ -52,10 +52,12 @@ jobs:
             global/method/method_commands_test.py \
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py
-      - name: node syntax check of the npm launcher (Issue #68)
+      - name: node syntax check of the npm launcher, alias and postinstall (Issue #68)
         run: |
           node --version
+          node --check bin/mhw.js
           node --check bin/workstation.js
+          node --check bin/postinstall.js
 
   # Pure preference compilation: no harness installation, account calls or credential reads.
   profiles:
@@ -110,8 +112,8 @@ jobs:
       - name: admin-layer installer suite (throwaway --root; never a system path, never root, ADR-0025)
         run: sh global/install-managed.test.sh "$RUNNER_TEMP/managed"
       # Issues #57 and #67: the version-key comparison and the status view, plus one end-to-end run of
-      # ./workstation install and status in a throwaway HOME and admin root (TMPDIR under RUNNER_TEMP).
-      - name: ./workstation suite
+      # ./mhw install and status in a throwaway HOME and admin root (TMPDIR under RUNNER_TEMP).
+      - name: ./mhw suite
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
@@ -130,16 +132,17 @@ jobs:
         run: python3 -B global/method/method_commands_test.py "$RUNNER_TEMP/method-commands"
       # Issue #68, ADR-0034: the npm package. What GitHub serves (this tree, with .workstation-archive as
       # git archive fills it in) is npm-packed and installed with npm install -g into a throwaway prefix
-      # and cache, then the installed workstation command runs in a throwaway HOME and admin root; plus
-      # the launcher's Windows mapping with a stub PowerShell. The runner's preinstalled node and npm;
-      # nothing is fetched from or published to a registry.
+      # and cache; its postinstall installs the user layer in a throwaway HOME and admin root, also through
+      # npm's git-dependency preparation (git+file://), with --ignore-scripts and as a local dependency;
+      # plus the launcher's Windows mapping with a stub PowerShell and the deprecated workstation alias.
+      # The runner's preinstalled node and npm; nothing is fetched from or published to a registry.
       - name: npm package suite
         env:
           TMPDIR: ${{ runner.temp }}
         run: |
           node --version; npm --version
           python3 -B global/npm_package_test.py
-      # Issue #89: the prerequisites section of ./workstation check. Fake tool shims on a PATH holding
+      # Issue #89: the prerequisites section of ./mhw check. Fake tool shims on a PATH holding
       # nothing else, a stub gh, a loopback server for SonarCloud and HCP Terraform; no network, no account.
       - name: prerequisites suite
         env:
@@ -201,11 +204,11 @@ jobs:
           & $env:PS_EXE -NoProfile -Command '$PSVersionTable | Format-Table -AutoSize | Out-String'
           & $env:PS_EXE -NoProfile -NonInteractive -ExecutionPolicy Bypass -File global\install.test.ps1 "$env:RUNNER_TEMP\install-$env:PS_EXE"
           exit $LASTEXITCODE
-      # Issue #68, ADR-0034: the npm launcher on Windows. git archive of HEAD (what GitHub serves, with
-      # .workstation-archive filled in), npm pack, npm install -g into a throwaway prefix and cache, then
-      # the installed workstation.cmd runs install.ps1 under ${{ matrix.ps }} against a throwaway
-      # USERPROFILE. No registry is contacted.
-      - name: npm launcher (npm install -g into a throwaway prefix, then workstation under ${{ matrix.ps }})
+      # Issue #68, ADR-0034: the npm package on Windows. git archive of HEAD (what GitHub serves, with
+      # .workstation-archive filled in), npm pack, npm install -g into a throwaway prefix and cache; its
+      # postinstall runs install.ps1 under ${{ matrix.ps }} against a throwaway USERPROFILE (set BEFORE
+      # npm runs), then mhw.cmd and the deprecated workstation.cmd alias. No registry is contacted.
+      - name: npm package (npm install -g into a throwaway prefix; postinstall, then mhw under ${{ matrix.ps }})
         shell: pwsh
         env:
           PS_EXE: ${{ matrix.ps }}
@@ -227,26 +230,33 @@ jobs:
           if ($LASTEXITCODE) { Fail 'npm pack' }
           Pop-Location
           $tgz = (Get-ChildItem -LiteralPath $t -Filter '*.tgz' | Select-Object -First 1).FullName
-          npm install -g --offline --prefix $prefix --cache $cache $tgz
+          # The postinstall writes the user layer: point every user-level path at the throwaway profile first.
+          $env:USERPROFILE = $prof; $env:HOME = $prof; $env:CODEX_HOME = Join-Path $prof '.codex'
+          $env:WORKSTATION_POWERSHELL = (Get-Command $env:PS_EXE -CommandType Application | Select-Object -First 1).Source
+          $env:MHW_POSTINSTALL_TTY = '0'
+          Push-Location $env:RUNNER_TEMP
+          npm install -g --offline --foreground-scripts --prefix $prefix --cache $cache $tgz
           if ($LASTEXITCODE) { Fail 'npm install -g' }
-          $pkg = Join-Path $prefix 'node_modules\personal-multi-harness-workstation-configuration'
+          $pkg = Join-Path $prefix 'node_modules\mhw'
           if (Test-Path -LiteralPath (Join-Path $pkg '.git')) { Fail 'the installed package carries .git' }
           $archive = (Get-Content -LiteralPath (Join-Path $pkg '.workstation-archive')) -join ' | '
           if (-not $archive.Contains("commit: $sha")) { Fail "the archive stamp is not filled in: $archive" }
           $stamp = "commit: $sha"
-          $ws = Join-Path $prefix 'workstation.cmd'
-          $env:USERPROFILE = $prof; $env:CODEX_HOME = Join-Path $prof '.codex'; $env:WORKSTATION_POWERSHELL = (Get-Command $env:PS_EXE -CommandType Application | Select-Object -First 1).Source
-          Push-Location $env:RUNNER_TEMP
-          & $ws install --overlay=none
-          if ($LASTEXITCODE) { Fail "workstation install exited $LASTEXITCODE" }
-          & $ws check --overlay=none
-          if ($LASTEXITCODE) { Fail "workstation check exited $LASTEXITCODE" }
           $brief = Get-Content -LiteralPath (Join-Path $prof '.claude\CLAUDE.md') -TotalCount 1
-          if (-not $brief.Contains("; release: ") -or -not $brief.Contains("; $stamp;")) { Fail "the brief does not carry the archive stamp: $brief" }
-          $out = (& $ws update v4.2.0) -join "`n"
-          if ($LASTEXITCODE -or -not $out.Contains('npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#v4.2.0')) { Fail "update: $out" }
-          & $ws uninstall 2>$null
+          if (-not $brief.Contains("; release: ") -or -not $brief.Contains("; $stamp;")) { Fail "the postinstall did not install the stamped brief: $brief" }
+          $mhw = Join-Path $prefix 'mhw.cmd'
+          & $mhw check
+          if ($LASTEXITCODE) { Fail "mhw check exited $LASTEXITCODE" }
+          $alias = Join-Path $prefix 'workstation.cmd'
+          $notice = Join-Path $t 'alias.err'
+          & $alias check 2> $notice
+          if ($LASTEXITCODE) { Fail "workstation check (alias) exited $LASTEXITCODE" }
+          $err = Get-Content -LiteralPath $notice -Raw
+          if (-not $err.Contains('is renamed')) { Fail "the alias printed no rename notice: $err" }
+          $out = (& $mhw update v4.2.0) -join ' | '
+          if ($LASTEXITCODE -or -not $out.Contains('npm install -g --foreground-scripts github:tedeuxx/mhw#v4.2.0')) { Fail "update: $out" }
+          & $mhw uninstall 2>$null
           if ($LASTEXITCODE -ne 2) { Fail "uninstall should be refused on Windows, exited $LASTEXITCODE" }
           Pop-Location
-          Write-Output "PASS  npm launcher under $env:PS_EXE ($brief)"
+          Write-Output "PASS  npm package under $env:PS_EXE ($brief)"
           exit 0

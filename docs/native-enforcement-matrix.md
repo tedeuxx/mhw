@@ -1,8 +1,8 @@
 # Native enforcement matrix
 
 What each agent harness can carry with its own native components, and what stays instruction only.
-This is the deliverable of [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55)
-and section 10 of the [requirements document](personal-multi-harness-workstation-configuration-product-requirements-document-project.md#10-native-enforcement-matrix).
+This is the deliverable of [#55](https://github.com/tedeuxx/mhw/issues/55)
+and section 10 of the [requirements document](mhw-product-requirements-document-project.md#10-native-enforcement-matrix).
 It decides which mechanism each later slice uses. The decision it records is
 [ADR-0027](adr/0027-native-carrier-per-component-from-the-enforcement-matrix.md) (proposed).
 
@@ -52,7 +52,7 @@ measured: the throwaway home has no Kiro login, and copying the owner's login wa
 
 ## Also measured, because later slices depend on it
 
-### Per-session token counts (worklog, [#76](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/76))
+### Per-session token counts (worklog, [#76](https://github.com/tedeuxx/mhw/issues/76))
 
 - **Claude Code:** yes. Headless runs return token and cost fields per session (shape measured on
   2.1.289); `/usage` in a session; OpenTelemetry for export.
@@ -60,7 +60,7 @@ measured: the throwaway home has no Kiro login, and copying the owner's login wa
 - **Kiro:** **credits only** in the published documentation. No per-session token count is
   documented. The worklog for Kiro can record credits, or must leave tokens empty.
 
-### Native `/goal` (session goal anchor, `/what-else` [#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74), [#11](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/11))
+### Native `/goal` (session goal anchor, `/what-else` [#74](https://github.com/tedeuxx/mhw/issues/74), [#11](https://github.com/tedeuxx/mhw/issues/11))
 
 All three command-line agent harnesses have one: Claude Code (listed in 2.1.289), Codex (feature flag
 on in 0.160.0, documented on CLI, IDE extension and desktop app), Kiro CLI (documented; string in the
@@ -90,7 +90,7 @@ on in 0.160.0, documented on CLI, IDE extension and desktop app), Kiro CLI (docu
   but not every carrier: the IDE does not offer CLI prompt files, and the CLI's default `v2` engine does
   not use the IDE's `permissions.yaml` and hooks format.
 
-### Sandbox and container support, for [#78](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/78)
+### Sandbox and container support, for [#78](https://github.com/tedeuxx/mhw/issues/78)
 
 - **Claude Code:** native OS-level sandbox (documented) and a vendor reference dev container
   (documented). Nothing native runs a session in Podman or Docker.
@@ -136,28 +136,28 @@ owner; the requirements document gained only a link to this page.
 
 | Issue | Native mechanism the matrix supports | Gap stated |
 | --- | --- | --- |
-| [#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56) Remove the restart guard | Brief instruction plus version key; nothing native replaces a `SessionStart` check | Claude Code `--bare` already skips the managed `SessionStart` hook (measured), so the guard was bypassable by a flag |
-| [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57) Version key | User brief instruction in all three; `./workstation status` the deterministic check (2026-10-05: instruction present in the model-visible Codex prompt with the stamp line, `codex debug prompt-input`; brief loaded as `User` memory in headless Claude Code) | Whether a model obeys it is not measured (needs a login); whether Claude Code shows the HTML `managed-by` comment to the model is not measured, so the instruction falls back to reading the brief file; Kiro documented |
-| [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) Paste cleaning | Claude Code prompt hook (measured: the managed `UserPromptSubmit` hook fired); Codex prompt hook (measured: fired in a throwaway `CODEX_HOME`, 0.160.0); the wrapper is not a native component. Since 2026-10-05 the wrapper is primary and the hook blocks only without its environment marker; the marker was measured reaching the hook process on Claude Code 2.1.289 and Codex 0.160.0 (ADR-0033; measurements in ADR-0011, 2026-10-05 amendment) | Kiro: a `userPromptSubmit` hook is documented, but in CLI 2.x it lives inside each agent file, so it covers only sessions run with that agent; V3 and IDE use standalone hook files. Not measured |
-| [#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59) Deny floor | Claude Code: user deny (measured); managed deny (documented). Codex: user `rules/` prefix rules (measured, prefix limit measured); admin `requirements.toml` rules (documented). Kiro `managed-settings.json` (documented) | User deny (measured); managed deny (documented). At user level a session flag drops the floor in Claude Code (measured) and Codex (help text); only the admin layer is outside its reach. Kiro CLI needs the V3 engine. Prefix rules miss a word inserted before the matched words |
-| [#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60) Interaction standards | Owner overlay in each brief | Instruction only everywhere, as decided |
-| [#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61) Method at user layer | Claude Code agents, skills, commands (measured); Codex custom agents (documented) and skills (measured); Kiro agents and skills (documented) | Codex agents carry no tool list; Kiro agent format differs between CLI 2.x and V3 |
-| [#62](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/62) CI mirror | Claude Code plugin format | Not a matrix question |
-| [#63](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/63) Deprecate the plugin as a source | none needed | Not a matrix question |
-| [#64](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/64) Site project on user level | Same carriers as #61 | Same gaps |
-| [#65](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/65) Current-state table | This matrix's labels | Not a matrix question |
-| [#66](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/66) Provenance stamp | Markdown comments and `SKILL.md` front matter in all three; Codex agent TOML takes `#` comments | Kiro agent JSON cannot carry a comment: needs the installed manifest |
-| [#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67) `./workstation` | Built 2026-10-05 over `install.sh` and `install-managed.sh`: writes the user carriers, prints the admin `sudo` line; probed in throwaway homes and a throwaway admin root | Kiro admin layer only matters once the CLI runs V3; Windows keeps `install.ps1` |
-| [#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68) Easier distribution | none | Not a matrix question |
-| [#69](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/69) Documentation standard | A skill in all three (skills measured in Claude Code and Codex) | Kiro skills documented only |
-| [#71](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/71)–[#73](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/73) `/new-idea`, `/idea-to-issues`, `/handover` | Claude Code command file (measured: listed); Codex implicit-off skill (measured: left out of the model-visible list); Kiro **skill**, which works in CLI and IDE (documented) | Codex has no documented argument syntax; Kiro prompt-file arguments are V3 only |
-| [#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74) `/what-else` | Native `/goal`: Claude Code (measured: listed), Codex (measured: feature flag on), Kiro CLI (documented) | Whether each native goal shows progress was not exercised; Kiro IDE has no documented `/goal` |
-| [#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75) `/blueprint` | Same carriers as #71–#73 | Same gaps |
-| [#76](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/76) Worklog | Claude Code headless result fields and `/usage` (measured, shape only); Codex `/status` (documented); OpenTelemetry in both (documented) | Kiro: credits only |
-| [#77](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/77) Ten commandments | User brief in all three | Instruction only, as intended |
-| [#78](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/78) Container mode | Claude Code native OS sandbox (documented); Codex native OS sandbox (measured); Claude Code reference dev container (documented) | No native Podman or Docker session mode in any of the three; the admin layer must be rendered into the image or stated as absent |
-| [#79](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/79) Agent runtime: local containers, cloud-ready, web console | Native OS sandboxes in Claude Code (documented) and Codex (measured); Kiro cloud sessions (documented). Cloud sessions for Claude Code and Codex are not covered by this matrix | No native local container mode in any of the three; the admin layer must be rendered into an image or stated as absent |
-| [#80](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/80) Session-start runtime summary | Claude Code headless `init` lists tools, agents, skills, commands and hook events (measured); Codex `/status` (documented); Kiro `/context show` and `/tools` (documented, [Slash commands](https://kiro.dev/docs/reference/slash-commands.md); see the Kiro usage cell) | No agent harness reports overrides per layer natively; session flags that drop a layer (measured in Claude Code, help text in Codex) must be named in the summary. *Chosen carrier (2026-10-05, ADR-0030 amendment):* the user-brief section *Session-start runtime summary* in all three, relaying `./workstation status --summary`; the Claude Code status line was rejected (it runs a command per refresh and the 2.1.289 bundle couples it to `disableAllHooks`). Claude Code headless `init` reports `permissionMode` and `model` (measured); `/status` is not in the headless command list, so that pointer is documented only |
+| [#56](https://github.com/tedeuxx/mhw/issues/56) Remove the restart guard | Brief instruction plus version key; nothing native replaces a `SessionStart` check | Claude Code `--bare` already skips the managed `SessionStart` hook (measured), so the guard was bypassable by a flag |
+| [#57](https://github.com/tedeuxx/mhw/issues/57) Version key | User brief instruction in all three; `./mhw status` the deterministic check (2026-10-05: instruction present in the model-visible Codex prompt with the stamp line, `codex debug prompt-input`; brief loaded as `User` memory in headless Claude Code) | Whether a model obeys it is not measured (needs a login); whether Claude Code shows the HTML `managed-by` comment to the model is not measured, so the instruction falls back to reading the brief file; Kiro documented |
+| [#58](https://github.com/tedeuxx/mhw/issues/58) Paste cleaning | Claude Code prompt hook (measured: the managed `UserPromptSubmit` hook fired); Codex prompt hook (measured: fired in a throwaway `CODEX_HOME`, 0.160.0); the wrapper is not a native component. Since 2026-10-05 the wrapper is primary and the hook blocks only without its environment marker; the marker was measured reaching the hook process on Claude Code 2.1.289 and Codex 0.160.0 (ADR-0033; measurements in ADR-0011, 2026-10-05 amendment) | Kiro: a `userPromptSubmit` hook is documented, but in CLI 2.x it lives inside each agent file, so it covers only sessions run with that agent; V3 and IDE use standalone hook files. Not measured |
+| [#59](https://github.com/tedeuxx/mhw/issues/59) Deny floor | Claude Code: user deny (measured); managed deny (documented). Codex: user `rules/` prefix rules (measured, prefix limit measured); admin `requirements.toml` rules (documented). Kiro `managed-settings.json` (documented) | User deny (measured); managed deny (documented). At user level a session flag drops the floor in Claude Code (measured) and Codex (help text); only the admin layer is outside its reach. Kiro CLI needs the V3 engine. Prefix rules miss a word inserted before the matched words |
+| [#60](https://github.com/tedeuxx/mhw/issues/60) Interaction standards | Owner overlay in each brief | Instruction only everywhere, as decided |
+| [#61](https://github.com/tedeuxx/mhw/issues/61) Method at user layer | Claude Code agents, skills, commands (measured); Codex custom agents (documented) and skills (measured); Kiro agents and skills (documented) | Codex agents carry no tool list; Kiro agent format differs between CLI 2.x and V3 |
+| [#62](https://github.com/tedeuxx/mhw/issues/62) CI mirror | Claude Code plugin format | Not a matrix question |
+| [#63](https://github.com/tedeuxx/mhw/issues/63) Deprecate the plugin as a source | none needed | Not a matrix question |
+| [#64](https://github.com/tedeuxx/mhw/issues/64) Site project on user level | Same carriers as #61 | Same gaps |
+| [#65](https://github.com/tedeuxx/mhw/issues/65) Current-state table | This matrix's labels | Not a matrix question |
+| [#66](https://github.com/tedeuxx/mhw/issues/66) Provenance stamp | Markdown comments and `SKILL.md` front matter in all three; Codex agent TOML takes `#` comments | Kiro agent JSON cannot carry a comment: needs the installed manifest |
+| [#67](https://github.com/tedeuxx/mhw/issues/67) `./mhw` | Built 2026-10-05 over `install.sh` and `install-managed.sh`: writes the user carriers, prints the admin `sudo` line; probed in throwaway homes and a throwaway admin root | Kiro admin layer only matters once the CLI runs V3; Windows keeps `install.ps1` |
+| [#68](https://github.com/tedeuxx/mhw/issues/68) Easier distribution | none | Not a matrix question |
+| [#69](https://github.com/tedeuxx/mhw/issues/69) Documentation standard | A skill in all three (skills measured in Claude Code and Codex) | Kiro skills documented only |
+| [#71](https://github.com/tedeuxx/mhw/issues/71)–[#73](https://github.com/tedeuxx/mhw/issues/73) `/new-idea`, `/idea-to-issues`, `/handover` | Claude Code command file (measured: listed); Codex implicit-off skill (measured: left out of the model-visible list); Kiro **skill**, which works in CLI and IDE (documented) | Codex has no documented argument syntax; Kiro prompt-file arguments are V3 only |
+| [#74](https://github.com/tedeuxx/mhw/issues/74) `/what-else` | Native `/goal`: Claude Code (measured: listed), Codex (measured: feature flag on), Kiro CLI (documented) | Whether each native goal shows progress was not exercised; Kiro IDE has no documented `/goal` |
+| [#75](https://github.com/tedeuxx/mhw/issues/75) `/blueprint` | Same carriers as #71–#73 | Same gaps |
+| [#76](https://github.com/tedeuxx/mhw/issues/76) Worklog | Claude Code headless result fields and `/usage` (measured, shape only); Codex `/status` (documented); OpenTelemetry in both (documented) | Kiro: credits only |
+| [#77](https://github.com/tedeuxx/mhw/issues/77) Ten commandments | User brief in all three | Instruction only, as intended |
+| [#78](https://github.com/tedeuxx/mhw/issues/78) Container mode | Claude Code native OS sandbox (documented); Codex native OS sandbox (measured); Claude Code reference dev container (documented) | No native Podman or Docker session mode in any of the three; the admin layer must be rendered into the image or stated as absent |
+| [#79](https://github.com/tedeuxx/mhw/issues/79) Agent runtime: local containers, cloud-ready, web console | Native OS sandboxes in Claude Code (documented) and Codex (measured); Kiro cloud sessions (documented). Cloud sessions for Claude Code and Codex are not covered by this matrix | No native local container mode in any of the three; the admin layer must be rendered into an image or stated as absent |
+| [#80](https://github.com/tedeuxx/mhw/issues/80) Session-start runtime summary | Claude Code headless `init` lists tools, agents, skills, commands and hook events (measured); Codex `/status` (documented); Kiro `/context show` and `/tools` (documented, [Slash commands](https://kiro.dev/docs/reference/slash-commands.md); see the Kiro usage cell) | No agent harness reports overrides per layer natively; session flags that drop a layer (measured in Claude Code, help text in Codex) must be named in the summary. *Chosen carrier (2026-10-05, ADR-0030 amendment):* the user-brief section *Session-start runtime summary* in all three, relaying `./mhw status --summary`; the Claude Code status line was rejected (it runs a command per refresh and the 2.1.289 bundle couples it to `disableAllHooks`). Claude Code headless `init` reports `permissionMode` and `model` (measured); `/status` is not in the headless command list, so that pointer is documented only |
 
 ## How each cell was measured
 

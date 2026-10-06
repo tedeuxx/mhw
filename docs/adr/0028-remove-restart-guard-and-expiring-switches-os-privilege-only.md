@@ -8,8 +8,8 @@
   (its restart-guard and switch parts; the admin layer itself stays)
 - **Amends:** [ADR-0022](0022-restart-after-active-customization-changes.md) (the restart requirement stays,
   as an instruction; its hook enforcement is removed)
-- **Issue:** [#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56)
-  (part of [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52))
+- **Issue:** [#56](https://github.com/tedeuxx/mhw/issues/56)
+  (part of [#52](https://github.com/tedeuxx/mhw/issues/52))
 
 ## Context and problem
 
@@ -120,9 +120,9 @@ Option 1.
 - [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md): `sudo` is in the deny floor, so an
   agent cannot run the line itself.
 - Requirements document, sections 4 and 4a:
-  [`docs/personal-multi-harness-workstation-configuration-product-requirements-document-project.md`](../personal-multi-harness-workstation-configuration-product-requirements-document-project.md)
+  [`docs/mhw-product-requirements-document-project.md`](../mhw-product-requirements-document-project.md)
 
-## Amendment 2026-10-05: the picker guard is removed too ([Issue #60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60))
+## Amendment 2026-10-05: the picker guard is removed too ([Issue #60](https://github.com/tedeuxx/mhw/issues/60))
 
 "The HITL picker guard (until #60)" above has reached its end: the guard is removed on the owner's
 interview of 2026-10-05 (ADR-0013, 2026-10-05 amendment). It is removed the same way as the restart

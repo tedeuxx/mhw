@@ -15,13 +15,13 @@ Each is raised one at a time, when a slice reaches it.
 
 1. **Ratify the proposed records** below, or the proposed parts of the partly accepted ones. The
    release candidate rests on proposed records: ADR-0026 to ADR-0034 are all proposed.
-2. **The ten commandments** ([#77](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/77)):
+2. **The ten commandments** ([#77](https://github.com/tedeuxx/mhw/issues/77)):
    edit and ratify the draft in the requirements document, section 1c. Nothing is installed before that.
 3. **The cross-repository write credential** for the plugin mirror
-   ([#62](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/62)):
+   ([#62](https://github.com/tedeuxx/mhw/issues/62)):
    create it, scoped to the plugin repository only, and store it as a secret here. The agent names it
    and never sees the value.
-4. **The agent runtime interview** ([#79](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/79)):
+4. **The agent runtime interview** ([#79](https://github.com/tedeuxx/mhw/issues/79)):
    local containers, cloud-ready, a web console. A new idea, not yet a slice; it goes through the
    requirements route first.
 
@@ -62,4 +62,4 @@ Each is raised one at a time, when a slice reaches it.
 | [0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md) | Inner-loop pre-authorisation behind the admin floor | proposed |
 | [0032](0032-this-repository-is-the-single-source-of-the-working-method.md) | This repository is the single source of the working method | proposed |
 | [0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md) | Paste cleaning: wrapper first, prompt hook as safety net | proposed; supersedes 0011 |
-| [0034](0034-npm-distribution-from-github-by-tag.md) | npm distribution from GitHub by tag, with an archive stamp | proposed |
+| [0034](0034-npm-distribution-from-github-by-tag.md) | npm distribution from GitHub by tag, with an archive stamp; the `mhw` command and its postinstall (2026-10-06) | proposed |

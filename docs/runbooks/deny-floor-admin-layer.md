@@ -9,35 +9,35 @@ Decision and evidence: [ADR-0016](../adr/0016-user-level-deny-floor-rendered-per
 **Order: the admin layer first, then the user layer.** This holds for a new machine and for every
 upgrade. An admin layer an earlier release installed (v2.x: the restart guard, the picker guard with its
 session-intake exception, timed breaking-glass) stays registered until step 1 and its `sudo` line
-replace it. A plain `./workstation install` does not touch the admin layer.
+replace it. A plain `./mhw install` does not touch the admin layer.
 
-1. `./workstation install --admin`, then the one `RUN     sudo` line it prints.
-2. `./workstation install`, as yourself.
+1. `./mhw install --admin`, then the one `RUN     sudo` line it prints.
+2. `./mhw install`, as yourself.
 3. Close every Claude Code and Codex session and open fresh ones.
 
-If step 1 was skipped, `./workstation install`, `./workstation check` and `./workstation status` name
+If step 1 was skipped, `./mhw install`, `./mhw check` and `./mhw status` name
 every `STALE` and `DRIFT` admin target and every removed control still installed, print
-`next: ./workstation install --admin, then run the one sudo line it prints`, and `install` and `check`
-exit non-zero ([#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52)).
+`next: ./mhw install --admin, then run the one sudo line it prints`, and `install` and `check`
+exit non-zero ([#52](https://github.com/tedeuxx/mhw/issues/52)).
 
 From a checkout of `main` at the merged, released commit, in your own terminal:
 
 ```sh
-./workstation install --admin
+./mhw install --admin
 ```
 
 It renders and validates a stage, installs nothing, and prints one line starting `RUN     sudo`. Run
 that one line as printed. It carries the stage's SHA-256, so a changed stage installs nothing. The same
-line also refreshes the admin-layer hooks (ADR-0025). Then run `./workstation install` as yourself: it
+line also refreshes the admin-layer hooks (ADR-0025). Then run `./mhw install` as yourself: it
 detects the admin layer and removes the user-level hook duplicates.
 
 Then close every Claude Code and Codex session and open fresh ones.
 
 ## Verify (canary)
 
-1. `./workstation check` exits 0, every installed-target line `OK`, and no `ADMIN` line (the `PREREQ`
+1. `./mhw check` exits 0, every installed-target line `OK`, and no `ADMIN` line (the `PREREQ`
    section that follows reports tools and subscriptions; see [prerequisites](../prerequisites.md)).
-2. `./workstation status` shows `managed: installed` and `deny floor: the admin layer`.
+2. `./mhw status` shows `managed: installed` and `deny floor: the admin layer`.
 3. **Block, Claude Code**, in an empty scratch folder: start `claude --setting-sources project` (the
    flag that dropped the user floor) and ask it to run `npm publish --dry-run`. Expected: the command
    is denied by a permission rule. Harmless if it were not: there is no `package.json`, and

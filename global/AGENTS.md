@@ -86,9 +86,9 @@ brief. When that line is not in your context, read the first lines of the brief 
 `~/.kiro/steering/workstation-global-brief.md`. Compare `vX.Y.Z` as X.Y.Z, and `unreleased, after
 vX.Y.Z` as X.Y.Z. Any other value is a mismatch. On a mismatch, print exactly one line and carry on:
 
-`Workstation version key: required <range>, installed <release>. Run ./workstation install in the managed-workstation checkout.`
+`Workstation version key: required <range>, installed <release>. Run mhw install (./mhw install in a checkout).`
 
-Never block, stop or ask because of it. This is an instruction, not a check: `./workstation status`
+Never block, stop or ask because of it. This is an instruction, not a check: `mhw status`
 is the deterministic comparison.
 
 ## Session-start runtime summary
@@ -102,15 +102,15 @@ protections at their real evidence level; the permission mode; host or container
 for anything you cannot read. Never guess and never state a stronger evidence level than you have.
 
 Source, in this order:
-- When the managed-workstation checkout is reachable (it is the workspace, or its path is known),
-  run `./workstation status --summary` there, with `--project=<workspace root>` when the workspace
-  is another repository, and relay its lines. Add only what the agent harness itself shows.
+- When the `mhw` command is on PATH (an npm install), or the managed-workstation checkout is
+  reachable (run `./mhw` there), run `mhw status --summary`, with `--project=<workspace root>` when
+  the workspace is another repository, and relay its lines. Add only what the agent harness itself shows.
 - Otherwise compose it from what is in your context: this brief's `managed-by` line, the workspace
-  files and the agent harness's own report. Say that `./workstation status` was not run.
+  files and the agent harness's own report. Say that `mhw status` was not run.
 
 What only the agent harness shows (the session's model, effort and command-line flags) comes from its
 native view; name it in the summary so he can open it: Claude Code `/status`; Codex `/status`; Kiro
-`/context show` and `/tools`. Detail is `./workstation status --verbose`, on request only.
+`/context show` and `/tools`. Detail is `mhw status --verbose`, on request only.
 Do not repeat the summary on resume or compaction. This is an instruction, not a check: no hook
 produces it, and whether a model follows it is not measured.
 

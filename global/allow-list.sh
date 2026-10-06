@@ -74,6 +74,10 @@ allow_parse() {
           # allow on everything, and an agent able to edit this list would grant itself the world.
           if ($3 ~ /^(bash|sh|dash|zsh|ksh|mksh|fish|csh|tcsh|busybox|env|xargs|eval|exec|source|command|builtin|nohup|time|nice|timeout|watch|script|sudo|doas|su|python[0-9.]*|pypy[0-9.]*|node|nodejs|deno|bun|perl[0-9.]*|ruby|irb|php|lua|tclsh|osascript|awk|gawk|nawk|find|make|npm|npx|pnpm|yarn|pytest|cargo|go)$/)
             why = "the program \"" $3 "\" runs whatever it is given (a shell, an interpreter, a dispatcher or a project-code runner)"
+          # The workstation command itself, on PATH after an npm install (Issue #68): it installs and removes
+          # the configuration this list is part of (ADR-0031: never pre-authorised, like ./mhw).
+          else if ($3 ~ /^(mhw|workstation)$/)
+            why = "the program \"" $3 "\" installs or removes this configuration; it is never pre-authorised"
           # An option before the subcommand reaches every subcommand, and "git -c" sets core.pager,
           # core.sshCommand or an alias that runs any program: the second word must be a subcommand
           # (Issue #65; "git -C" and "gh -R" widen the prefix past every per-subcommand pin).
@@ -216,7 +220,7 @@ allow_claude() {
   case $mode in
     check)
       if [ "$allow_tier_claude" = wide ] && jq -e --slurpfile a "$work/allow.settings.narrow.json" '. == $a[0]' "$cur" >/dev/null 2>&1; then
-        echo "NOTE    $settings: the narrow allow list is installed; the admin floor is complete, so ./workstation install widens it"
+        echo "NOTE    $settings: the narrow allow list is installed; the admin floor is complete, so ${MHW_CMD:-./mhw} install widens it"
       elif [ -e "$settings" ]; then
         echo "DRIFT   $settings (allow list or permission mode differs from the $allow_tier_claude tier)"
         raise 1
@@ -256,7 +260,7 @@ allow_place() { # $1 rendered file, $2 destination, $3 narrow rendering (for the
       if [ -e "$2" ] && same "$1" "$2"; then
         echo "STAMP   $2: content matches, but it carries ($(stamp_of "$2")) and the source is ($stamp)"; raise 1
       elif [ -e "$2" ] && [ -n "$3" ] && same "$3" "$2"; then
-        echo "NOTE    $2: the narrow allow list is installed; the admin floor is complete, so ./workstation install widens it"
+        echo "NOTE    $2: the narrow allow list is installed; the admin floor is complete, so ${MHW_CMD:-./mhw} install widens it"
       elif [ -e "$2" ]; then
         echo "DRIFT   $2 ($(stamp_of "$2"))"; raise 1
       else
@@ -314,7 +318,7 @@ allow_step() {
   command -v jq >/dev/null 2>&1 || { echo "REFUSE  allow list: jq is required" >&2; raise 2; return 0; }
   allow_admin_state
   if [ "$allow_tier_claude" = narrow ] || [ "$allow_tier_codex" = narrow ]; then
-    echo "RISK    admin deny floor incomplete (Claude Code: $allow_tier_claude, Codex: $allow_tier_codex tier): an allow list without the admin barrier is limited to reading; ./workstation install --admin, then install again, widens it"
+    echo "RISK    admin deny floor incomplete (Claude Code: $allow_tier_claude, Codex: $allow_tier_codex tier): an allow list without the admin barrier is limited to reading; ${MHW_CMD:-./mhw} install --admin, then install again, widens it"
   fi
   allow_claude
   allow_codex_rules_render "$allow_tier_codex" "$work/allow.rules"

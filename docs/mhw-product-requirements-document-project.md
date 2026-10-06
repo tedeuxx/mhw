@@ -7,10 +7,10 @@ One versioned source for how every agent harness behaves on the owner's devices.
   standards, paste cleaning, the capability skills, the pre-authorisation tiers, prerequisites as
   check-only, GitHub as the only code host, no per-request waivers, and perimeter defence. Items marked
   *open decision* or *draft* are not yet decided.
-- **Source:** the setup review on [#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52),
-  the owner interview on [#54](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/54),
-  and the slices [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55)
-  to [#69](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/69).
+- **Source:** the setup review on [#52](https://github.com/tedeuxx/mhw/issues/52),
+  the owner interview on [#54](https://github.com/tedeuxx/mhw/issues/54),
+  and the slices [#55](https://github.com/tedeuxx/mhw/issues/55)
+  to [#69](https://github.com/tedeuxx/mhw/issues/69).
 - **How to read it:** this document describes the target behaviour and why. The decisions taken to get
   there, and the order of the work, live in the Issues and in the decision records
   ([`docs/adr/`](adr/)).
@@ -112,7 +112,7 @@ agent harness costs one command, not a migration.
 > to edit and ratify. Once ratified, they are the behavioural anchor of every agent harness on the
 > workstation: they are written at the top of the user-level brief rendered to Claude Code, Codex and
 > Kiro, so every session and every agent starts from them. Until then they are not installed anywhere
-> ([#77](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/77)).
+> ([#77](https://github.com/tedeuxx/mhw/issues/77)).
 
 1. **Native first, thin on top, one source for all.** Use each agent harness's own mechanisms before
    building anything custom, and render one versioned source into every agent harness, so switching
@@ -346,7 +346,7 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
   default model and effort per agent harness (ADR-0007).
 - **Version 1 has no default on entry:** the orchestrating session can start in any of the three agent
   harnesses, with any model and any effort. The worklog shows what each choice costs, and defaults are
-  set later from that evidence. Slice: [#76](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/76).
+  set later from that evidence. Slice: [#76](https://github.com/tedeuxx/mhw/issues/76).
 
 ### Session goal anchor
 
@@ -362,16 +362,16 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
   2.1.289 and enabled as a feature in Codex 0.160.0 (measured), documented for the Kiro CLI; none was
   exercised ([enforcement matrix](#10-native-enforcement-matrix)). The instruction is the user brief's
   section *Session goal anchor*; `/handover` tells a child session to anchor its objective the same way.
-  `/what-else` is [#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74). This continues
-  [#11](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/11).
+  `/what-else` is [#74](https://github.com/tedeuxx/mhw/issues/74). This continues
+  [#11](https://github.com/tedeuxx/mhw/issues/11).
 
 ### Around the main flow
 
 - `/handover`: branches a focused child session, which anchors its objective with the native `/goal`
   where it exists, and brings its result back through a return prompt
-  ([#73](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/73)).
+  ([#73](https://github.com/tedeuxx/mhw/issues/73)).
 - `/blueprint`: exports a project's effective agent harness setup as a requirements document, or imports
-  one after an alignment interview ([#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75)).
+  one after an alignment interview ([#75](https://github.com/tedeuxx/mhw/issues/75)).
 - `agents-configuration` is the rulebook behind every step: which agent acts, with which skills and
   which components.
 
@@ -381,11 +381,11 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
 | --- | --- | --- | --- |
 | **Global brief** | Policy instructions loaded by every agent harness in every session: no third-party material, sanitise what is sent, clean proactively, report every intervention. | Employer or client material entering prompts, commits or publications; acting on an external service without the owner's go. | Claude Code, Codex, Kiro; desktop apps by manual paste. Instruction only. |
 | **Paste cleaning: wrapper** (primary) | Terminal launcher for `claude`, `codex` and `kiro-cli` that redacts bracketed pastes before the agent harness sees them; typing passes through unchanged. It marks the session it cleans. The installer prints an opt-in shell start-up line, or appends it to a file the owner names. | Pasting a credential, personal data (e-mail, card, CPF/CNPJ) or a registered client or employer name. | Terminal sessions started through it, macOS and Linux. Out of reach: desktop apps, files read by path, images ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). |
-| **Paste cleaning: prompt hook** (safety net) | Checks the prompt before it reaches the model; can only block and show a redacted copy (hooks cannot rewrite the prompt). It passes silently in a session the wrapper marked. | The same, for sessions not opened through the wrapper. | Claude Code and Codex (Codex after the owner trusts it). The single justified hook, by the owner's decision on [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). |
+| **Paste cleaning: prompt hook** (safety net) | Checks the prompt before it reaches the model; can only block and show a redacted copy (hooks cannot rewrite the prompt). It passes silently in a session the wrapper marked. | The same, for sessions not opened through the wrapper. | Claude Code and Codex (Codex after the owner trusts it). The single justified hook, by the owner's decision on [#58](https://github.com/tedeuxx/mhw/issues/58) ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). |
 | **Client and employer terms** | The owner registers the names to catch; stored salted, never in plain text. | The mission's first rule. | Empty until terms are registered; status shows the count, including a visible "0 terms" notice. |
-| **Deny floor** | Native deny rules (counted per agent harness by the `FLOOR` lines of `install.sh --check`): `sudo`, reading `~/.ssh` and `~/.aws`, GitHub and AWS secret writes, force-push, `rm -rf`, bypass flags; it also carries the irreversible-action rules that used to live in the plugin. | Irreversible damage and credential reads. | Claude Code and Codex. Prefix match: `git -C dir push --force` is not caught. ~~*Open decision* ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59)): whether it sits in the managed layer.~~ Decided on #59: rendered into the managed layer, user copy kept until that one is installed ([ADR-0016](adr/0016-user-level-deny-floor-rendered-per-harness.md), 2026-10-05 amendment). |
+| **Deny floor** | Native deny rules (counted per agent harness by the `FLOOR` lines of `install.sh --check`): `sudo`, reading `~/.ssh` and `~/.aws`, GitHub and AWS secret writes, force-push, `rm -rf`, bypass flags; it also carries the irreversible-action rules that used to live in the plugin. | Irreversible damage and credential reads. | Claude Code and Codex. Prefix match: `git -C dir push --force` is not caught. ~~*Open decision* ([#59](https://github.com/tedeuxx/mhw/issues/59)): whether it sits in the managed layer.~~ Decided on #59: rendered into the managed layer, user copy kept until that one is installed ([ADR-0016](adr/0016-user-level-deny-floor-rendered-per-harness.md), 2026-10-05 amendment). |
 | **Connector access per agent** | Each agent declares its allowed tools (native per-agent tool list), so access to account connectors (mail, files, professional network) is granted per agent; a brief instruction says the same. No hook. | A subagent reading or sending through the owner's accounts. | Claude Code natively; other agent harnesses per the [enforcement matrix](#10-native-enforcement-matrix). |
-| **Breaking glass** | ~~A root-owned, expiring switch; the agent only prints the `sudo` line.~~ No switch and no expiry: the administrator edits or removes the managed documents with `sudo`, as with any OS-managed policy ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md), [runbook](runbooks/breaking-glass.md)). Exists only while a hook exists. | A protection misfiring with no way out. | macOS and Linux. Scope follows the paste prompt hook decision ([#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56), [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58)). |
+| **Breaking glass** | ~~A root-owned, expiring switch; the agent only prints the `sudo` line.~~ No switch and no expiry: the administrator edits or removes the managed documents with `sudo`, as with any OS-managed policy ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md), [runbook](runbooks/breaking-glass.md)). Exists only while a hook exists. | A protection misfiring with no way out. | macOS and Linux. Scope follows the paste prompt hook decision ([#56](https://github.com/tedeuxx/mhw/issues/56), [#58](https://github.com/tedeuxx/mhw/issues/58)). |
 | **Stale configuration** | Covered by the version key ([7](#7-version-key-per-project)) and the restart rule of ADR-0022 as an instruction; no restart-guard hook. | A session running on stale configuration. | All three agent harnesses, best effort. |
 
 The protection core carries nothing that protects against no harm: code and names left from withdrawn
@@ -402,11 +402,11 @@ and instructions. A hook stays only if all three hold:
 
 | Behaviour | Carrier in the target |
 | --- | --- |
-| Paste cleaning outside the wrapper | The prompt hook, which blocks only where the wrapper's marker is absent (decided on [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58), 2026-10-05). It is the only candidate that passes the test, because once a secret is sent the provider already has it. |
-| Stale configuration | Brief instruction (ADR-0022 rule) plus `./workstation status` |
+| Paste cleaning outside the wrapper | The prompt hook, which blocks only where the wrapper's marker is absent (decided on [#58](https://github.com/tedeuxx/mhw/issues/58), 2026-10-05). It is the only candidate that passes the test, because once a secret is sent the provider already has it. |
+| Stale configuration | Brief instruction (ADR-0022 rule) plus `./mhw status` |
 | One-question, short pickers | Owner overlay instruction, calibrated by the interaction interview ([5](#5-interaction-standards-user-layer)) |
 | ~~Session-type intake~~ | ~~The workspace brief asks; native session-start context where the agent harness offers it without a hook~~ Removed on the owner's interview (#60) |
-| Version-key check | Project brief instructs the agent to compare the key with the installed stamp at session start; `./workstation status` on demand |
+| Version-key check | Project brief instructs the agent to compare the key with the installed stamp at session start; `./mhw status` on demand |
 | Irreversible actions and secret writes | Native deny rules (deny floor) |
 | Connector access | Native per-agent tool lists |
 | Session-start checks (open pull requests, rite cadence, stale worktrees) | The method skill `agents-configuration` tells the agent to check them at session start |
@@ -435,7 +435,7 @@ barrier of the proposed managed workstation."
 | **Wide** | Only while the root-owned admin deny floor is complete for that agent harness | The full inner loop (owner, #83): git read routes, `git add --`, `git commit -m`, branch creation, fetch, the repository's own test suites by script, `acceptEdits` in Claude Code and `workspace-write` in Codex. A test runner executes repository code without a prompt; that is the owner's accepted trade-off. |
 
 - **Never pre-authorised, in any tier:** `git push`, publishing routes (`gh pr create`, comments, `gh
-  api`), `./workstation`, a shell or interpreter as a standalone entry, an option as the word right
+  api`), `./mhw` (and the `mhw`/`workstation` commands), a shell or interpreter as a standalone entry, an option as the word right
   after `git` or `gh` (`git -c`, `git -C`, `gh -R`), `-R` or `--repo` in any position and spelling
   (`gh pr -R`, `--repo=`), a leading environment assignment (`GIT_CONFIG_PARAMETERS=… git log`), and
   tool-wide `Edit`, `Write` or `Read`. The installer refuses such an entry before writing anything
@@ -449,10 +449,10 @@ barrier of the proposed managed workstation."
 ## 5. Interaction standards (user layer)
 
 > ~~**To be calibrated in an owner interview before anything here is built**~~
-> ~~([#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60)).~~
+> ~~([#60](https://github.com/tedeuxx/mhw/issues/60)).~~
 > ~~The rows are a starting proposal, not decisions.~~
 > Calibrated in the owner interview of 2026-10-05, recorded on
-> [#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60).
+> [#60](https://github.com/tedeuxx/mhw/issues/60).
 
 | Element | Target behaviour | Status |
 | --- | --- | --- |
@@ -466,7 +466,7 @@ barrier of the proposed managed workstation."
 ## 5a. Documentation standards (user layer, every repository)
 
 Distributed as part of the `documentation-standard` skill at user level, so every repository on the
-workstation follows them ([#69](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/69)).
+workstation follows them ([#69](https://github.com/tedeuxx/mhw/issues/69)).
 
 ### Diagrams
 
@@ -517,7 +517,7 @@ workstation follows them ([#69](https://github.com/tedeuxx/personal-multi-harnes
 
 The method used by every project lives in this repository's user layer. Parts used only by the site
 project live in `tadeumendonca-io`'s workspace layer
-([#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61)).
+([#61](https://github.com/tedeuxx/mhw/issues/61)).
 
 **Every agent, skill and command works in all three agent harnesses.** Each is rendered into the agent
 harness's own native mechanism:
@@ -583,12 +583,12 @@ a technology stack; **Reference** holds unused patterns.
 | # | Command | What it does | Layer | Why |
 | --- | --- | --- | --- | --- |
 | 1 | `/autonomy` | `on` drains the ready pool end to end; `off` finishes the slice in flight and hands control back | user | The owner hands the backlog to the loop and takes it back with one word, instead of approving each in-pattern step. |
-| 2 | `/new-idea` ([#71](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/71)) | Turns a new idea, or a plan to refine, into an agreed requirements document. Interviews the owner in rounds until every decision is settled: each round asks every question that is now answerable, each with a recommended answer; facts are looked up by the agent, decisions are his. Ends by writing the requirements document ([5a](#5a-documentation-standards-user-layer-every-repository)). | user | A plan reaches building only after shared understanding, and that understanding lands in the versioned document instead of staying in the chat. Concept from Matt Pocock's MIT-licensed skills (grilling and to-spec), adapted. |
-| 3 | `/idea-to-issues` ([#72](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/72)) | Breaks a requirements document into vertical slices, each a complete path through every layer, small enough for one fresh session and demonstrable alone; asks the owner about granularity and blocking order; opens one Issue per slice with acceptance criteria and blocked-by links. | user | Turns an agreed document into tracked scope he can sequence, so work never starts untracked. Concept from Matt Pocock's MIT-licensed to-tickets skill, adapted to GitHub Issues. |
+| 2 | `/new-idea` ([#71](https://github.com/tedeuxx/mhw/issues/71)) | Turns a new idea, or a plan to refine, into an agreed requirements document. Interviews the owner in rounds until every decision is settled: each round asks every question that is now answerable, each with a recommended answer; facts are looked up by the agent, decisions are his. Ends by writing the requirements document ([5a](#5a-documentation-standards-user-layer-every-repository)). | user | A plan reaches building only after shared understanding, and that understanding lands in the versioned document instead of staying in the chat. Concept from Matt Pocock's MIT-licensed skills (grilling and to-spec), adapted. |
+| 3 | `/idea-to-issues` ([#72](https://github.com/tedeuxx/mhw/issues/72)) | Breaks a requirements document into vertical slices, each a complete path through every layer, small enough for one fresh session and demonstrable alone; asks the owner about granularity and blocking order; opens one Issue per slice with acceptance criteria and blocked-by links. | user | Turns an agreed document into tracked scope he can sequence, so work never starts untracked. Concept from Matt Pocock's MIT-licensed to-tickets skill, adapted to GitHub Issues. |
 | 4 | `/new-issue` | Captures a request as an Issue after searching for an existing decision | user | Every request becomes tracked scope before work starts, in every repository. |
-| 5 | `/handover` ([#73](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/73)) | Writes a handover prompt the owner pastes to open a new session derived from the current one. That prompt instructs the new session to write a **return prompt** for the parent session when its objective is done. | user | Work branches into focused child sessions and comes back without losing context. Both prompts carry only the minimum context and are sanitised under the firewall rules. |
-| 6 | `/what-else` ([#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74)) | Restates the session's objective and answers what is still missing: what is done (with its evidence), what is left, what is blocked on the owner (that ask first) and the next step. | user | The owner can check at any moment how far the session is from its goal. |
-| 7 | `/blueprint` ([#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75)) | `export` writes the project's effective agent harness configuration as a requirements document; `import` brings one into another project. | user | Carries a project's setup to other projects. The text it exports, and the text it accepts, is a requirements document in the [5a](#5a-documentation-standards-user-layer-every-repository) format: target behaviour and why, in English, with Mermaid diagrams, named `<repo>-product-requirements-document-*`. Import applies nothing before an expectation-alignment interview with the person running the session. |
+| 5 | `/handover` ([#73](https://github.com/tedeuxx/mhw/issues/73)) | Writes a handover prompt the owner pastes to open a new session derived from the current one. That prompt instructs the new session to write a **return prompt** for the parent session when its objective is done. | user | Work branches into focused child sessions and comes back without losing context. Both prompts carry only the minimum context and are sanitised under the firewall rules. |
+| 6 | `/what-else` ([#74](https://github.com/tedeuxx/mhw/issues/74)) | Restates the session's objective and answers what is still missing: what is done (with its evidence), what is left, what is blocked on the owner (that ask first) and the next step. | user | The owner can check at any moment how far the session is from its goal. |
+| 7 | `/blueprint` ([#75](https://github.com/tedeuxx/mhw/issues/75)) | `export` writes the project's effective agent harness configuration as a requirements document; `import` brings one into another project. | user | Carries a project's setup to other projects. The text it exports, and the text it accepts, is a requirements document in the [5a](#5a-documentation-standards-user-layer-every-repository) format: target behaviour and why, in English, with Mermaid diagrams, named `<repo>-product-requirements-document-*`. Import applies nothing before an expectation-alignment interview with the person running the session. |
 | 8 | ~~`/breaking-glass`~~ | ~~Prints the `sudo` line that switches a hook layer off, with expiry~~ Removed ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)): the [runbook](runbooks/breaking-glass.md) gives the `sudo` route | user | ~~Exists only if the paste prompt hook stays ([4a](#4a-hook-budget), #58).~~ No expiring waiver is allowed; `install-managed.sh --uninstall` already prints the removal line. |
 
 Not in the command set, because they were never designed for the owner's use of the loop: sprint
@@ -625,7 +625,7 @@ it is a skill. One source text per command is rendered into each format.
 - **Evidence:** Claude Code 2.1.289 lists the command files, and Codex 0.160.0 keeps the command skills
   out of the model-visible list (measured in throwaway homes); every Kiro cell is documented, because
   measuring it needs a login ([enforcement matrix](#10-native-enforcement-matrix),
-  [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55)).
+  [#55](https://github.com/tedeuxx/mhw/issues/55)).
   [Claude Code skills and commands](https://code.claude.com/docs/en/skills) ·
   [Kiro prompts](https://kiro.dev/docs/cli/chat/manage-prompts/) ·
   [Codex skills](https://learn.chatgpt.com/docs/build-skills) ·
@@ -643,11 +643,11 @@ product-lead lands: the user level (decided on #61).
   `>=3.1 <4`. It is a range, not an exact pin, because a device has one user-level version and several
   projects.
 - **Check:** no hook. The project brief tells the agent to compare the range with the installed version
-  stamp at session start, and `./workstation status` does the same on demand. Best effort by design.
+  stamp at session start, and `./mhw status` does the same on demand. Best effort by design.
 - **On mismatch:** one line naming the required version, the installed version and the command to run.
   **It never blocks** (owner choice). It is made stricter only if use shows the warning is not enough.
 - **Covers:** stale configuration and stale installs.
-- **Coverage:** the same instruction in all three agent harnesses; `./workstation status` is the
+- **Coverage:** the same instruction in all three agent harnesses; `./mhw status` is the
   deterministic check.
 
 - **As built (2026-10-05, [ADR-0030](adr/0030-version-key-and-one-entry-point.md)):** the file is
@@ -656,7 +656,7 @@ product-lead lands: the user level (decided on #61).
   brief. The installed release is the provenance stamp ([9a](#9a-provenance-stamp-in-every-installed-file));
   `unreleased, after vX.Y.Z` compares as X.Y.Z. This repository carries `>=4.0 <5`: the release candidate cuts v4.0.0 (Issue #65).
 
-Slice: [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57).
+Slice: [#57](https://github.com/tedeuxx/mhw/issues/57).
 
 ## 8. Plugin as a generated artifact
 
@@ -671,8 +671,8 @@ Slice: [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-confi
 - **Owner act:** create the credential and store it as a repository secret. The agent names it and its
   scope and never sees the value.
 
-Slices: [#62](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/62),
-[#63](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/63).
+Slices: [#62](https://github.com/tedeuxx/mhw/issues/62),
+[#63](https://github.com/tedeuxx/mhw/issues/63).
 
 ## 9. Site project (`tadeumendonca-io`)
 
@@ -686,13 +686,13 @@ Slices: [#62](https://github.com/tedeuxx/personal-multi-harness-workstation-conf
   managed workstation at a declared version range, why that is, and that the plugin is not used.
 - It is changed through that repository's own delivery flow.
 
-Slice: [#64](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/64).
+Slice: [#64](https://github.com/tedeuxx/mhw/issues/64).
 
 ## 9a. Provenance stamp in every installed file
 
 Owner requirement: every agent harness customisation file the repository installs, for any of the three
 agent harnesses, carries the commit SHA and the SemVer tag it came from, written automatically
-([#66](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/66)).
+([#66](https://github.com/tedeuxx/mhw/issues/66)).
 
 - **Where it is written:** the installer and the plugin packager write the stamp at install or package
   time. Nothing is edited by hand, and the source files hold only a placeholder.
@@ -721,9 +721,9 @@ agent harnesses, carries the commit SHA and the SemVer tag it came from, written
 ## 9b. One install command, managed by the repository
 
 Owner requirement: an easy install mechanism run from the git repository itself
-([#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67)).
+([#67](https://github.com/tedeuxx/mhw/issues/67)).
 
-- **One entry point, `./workstation`:**
+- **One entry point, `./workstation`** (renamed `./mhw` on 2026-10-06, #68)**:**
   - `install [version]`: checks out the release tag (latest by default), renders the user layer for
     every agent harness found, detects the admin layer and prints its single `sudo` line only when admin
     content changed, then verifies.
@@ -749,16 +749,19 @@ Owner requirement: an easy install mechanism run from the git repository itself
   yet compare with the latest published release.
 
 ~~Easier distribution beyond this command (for example a bootstrap line or a package-manager formula) is a
-later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68)).~~
+later discussion ([#68](https://github.com/tedeuxx/mhw/issues/68)).~~
 *(Struck 2026-10-06: decided on #68; see the distribution bullet below.)*
 
-- **Distribution through npm (owner, 2026-10-06, [#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68):
+- **Distribution through npm (owner, 2026-10-06, [#68](https://github.com/tedeuxx/mhw/issues/68):
   *"siga com a adequacao da distribuicao com npm"*; [ADR-0034](adr/0034-npm-distribution-from-github-by-tag.md)):**
   - Install straight from this GitHub repository by tag:
-    `npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z`, or
+    ~~`npm install -g github:tedeuxx/mhw#vX.Y.Z`~~
+    `npm install -g --foreground-scripts github:tedeuxx/mhw#vX.Y.Z`
+    (flag added 2026-10-06), or
     `#semver:^X.Y.Z`. Nothing is published to the npm registry; `package.json` is `private`.
-  - The package exposes the `workstation` command. On macOS and Linux it runs `./workstation`; on
-    Windows a small Node launcher runs `install.ps1`.
+  - The package exposes ~~the `workstation` command~~ the `mhw` command (renamed 2026-10-06;
+    `workstation` stays a deprecated alias for one minor). On macOS and Linux it runs ~~`./workstation`~~
+    `./mhw`; on Windows a small Node launcher runs `install.ps1`.
   - The npm version follows `.bumpversion.toml`, so the git tag stays the one release source.
   - The provenance stamp holds without `.git`: GitHub's archive fills in `.workstation-archive`
     (`export-subst`) with the commit and its `git describe`. Unlike a checkout, it carries no
@@ -767,6 +770,25 @@ later discussion ([#68](https://github.com/tedeuxx/personal-multi-harness-workst
   - The admin layer still needs the owner's `sudo` line, by design.
   - The first installable tag is the first release that carries `package.json`.
   - Git clone stays the alternative.
+- **npm manages every user-level resource (owner, 2026-10-06, #68:** *"a expectativa é que todos recursos
+  de managed workstation instalados na maquina fossem gerenciados pelo npm diretamente."* **Agreed design,
+  [ADR-0034](adr/0034-npm-distribution-from-github-by-tag.md) 2026-10-06 amendment):**
+  - The package is `mhw` (multi-harness managed workstation), and so is its command. The install line keeps
+    this repository's current name until the repository is renamed, a separate step.
+  - `npm install -g --foreground-scripts …#vX.Y.Z` installs and updates the user layer itself through a `postinstall`, with no
+    separate `mhw install`. It never prompts and never runs `sudo`. It skips a non-global install and
+    says why. `MHW_METHOD=1` opts into the working method.
+  - At the end it prints the admin layer's `sudo` line when that layer is absent or stale, a reminder to
+    open fresh sessions, and the runtime summary. `--foreground-scripts` is part of every documented line,
+    because without a terminal npm hides that output; `mhw status` repeats the admin step if it was missed.
+  - Stated limits, measured with npm 11.13.0: npm runs no uninstall script, so `mhw uninstall` comes
+    before `npm uninstall -g mhw`; the admin layer stays the owner's separate `sudo` step, never
+    `sudo npm`; with `ignore-scripts`, nothing runs. From a tarball, `status` then says
+    `installed by npm but postinstall did not run`; from GitHub the install fails and is repeated without
+    it.
+  - ~~Upgrading from v4.1.0 (package `personal-multi-harness-workstation-configuration`) works with the same
+    line~~ *(struck 2026-10-06: npm refuses it with `EEXIST`, measured)*. Upgrading from v4.1.0: remove the v4.1.0 package first: `npm uninstall -g personal-multi-harness-workstation-configuration`, then
+    install `mhw`. `status` repeats that instruction if both packages are installed.
 
 ## 9c. Prerequisites: declared and checked, never applied
 
@@ -777,7 +799,7 @@ this way needs. By his decision of 2026-10-05, the release candidate carries it 
   (GitHub, the agent harness subscriptions, SonarCloud, Terraform Cloud and others), with the preferred
   settings for each, calibrated from the site project's current stack. Credentials are named by their
   variable names only; values never enter the repository.
-- **Check:** `./workstation check` (and `check --prerequisites` alone) reports, per item: present or
+- **Check:** `./mhw check` (and `check --prerequisites` alone) reports, per item: present or
   missing, authenticated or not, and drift from the preferred settings (for example the GitHub merge
   standard: merge commits on, squash off). A missing required item exits non-zero.
 - **Never applied by the check.** Applying settings to real accounts comes after the owner tests the
@@ -788,7 +810,7 @@ this way needs. By his decision of 2026-10-05, the release candidate carries it 
 ## 10. Native enforcement matrix
 
 The first deliverable, and the basis of the behavioural baseline shared by every agent harness
-([#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55)). For each
+([#55](https://github.com/tedeuxx/mhw/issues/55)). For each
 agent harness it lists the **native components** available and what each can carry: agents, per-agent
 tool lists, skills, commands or prompts, steering or briefs, permission rules and admin-managed
 settings. It also records what each component can impose, and what stays instruction only:
@@ -813,32 +835,32 @@ The matrix itself, with its findings against this document, is
 
 | Issue | Slice | Release | Owner act |
 | --- | --- | --- | --- |
-| [#55](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/55) | Native enforcement matrix | patch (docs) | none |
-| [#56](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/56) | Stale configuration through the version key; breaking glass reduced to what remains | major | admin install, fresh session |
-| [#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57) | Version key, warning mode | minor | none |
-| [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58) | Paste cleaning: wrapper first; the prompt hook per the hook budget | ~~minor or major~~ major (the hook stops judging wrapped sessions) | allow the shell start-up line |
-| [#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59) | Deny floor carries the irreversible-action rules | minor | install |
-| [#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60) | Interaction standards as instructions, after the interview | major | interview, install |
-| [#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61) | Working method at the user layer (one pull request per block) | minor each | install |
-| [#62](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/62) | CI mirror into `tadeumendonca-skills` | minor | create the credential |
-| [#63](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/63) | `tadeumendonca-skills` marked as generated | in that repository | none |
-| [#64](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/64) | `tadeumendonca-io` on the workstation user level | in that repository | none |
-| [#65](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/65) | Current-state table, decision-record index | patch | none |
-| [#66](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/66) | Provenance stamp and installed manifest ([9a](#9a-provenance-stamp-in-every-installed-file)) | minor | install |
-| [#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67) | `./workstation` install, update, status, uninstall ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first run |
-| [#68](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/68) | npm distribution from GitHub by tag, `workstation` command ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first npm install |
-| [#69](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/69) | Documentation standard, workstation-wide ([5a](#5a-documentation-standards-user-layer-every-repository)) | minor | install |
-| [#71](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/71) | Command `/new-idea` | minor | none |
-| [#72](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/72) | Command `/idea-to-issues` | minor | none |
-| [#73](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/73) | Command `/handover` | minor | none |
-| [#74](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/74) | Command `/what-else` | minor | none |
-| [#75](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/75) | `/blueprint` reshaped: export and import as a requirements document | minor | none |
-| [#76](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/76) | Per-Issue agent harness consumption record (worklog) | minor | none |
-| [#77](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/77) | Ten commandments in the user-level brief, after ratification | minor | ratify, install |
-| [#80](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/80) | Session-start runtime summary | minor | install |
-| [#83](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/83) | Pre-authorisation tiers ([4b](#4b-pre-authorisation-for-autonomy-user-layer-behind-the-managed-barrier)) | minor | admin install first |
-| [#89](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/89) | Prerequisites, check-only ([9c](#9c-prerequisites-declared-and-checked-never-applied)) | minor | none |
-| [#97](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/97) | Capability skills `scm`, `ci`, `quality-gates`, `provisioning` | minor | install |
+| [#55](https://github.com/tedeuxx/mhw/issues/55) | Native enforcement matrix | patch (docs) | none |
+| [#56](https://github.com/tedeuxx/mhw/issues/56) | Stale configuration through the version key; breaking glass reduced to what remains | major | admin install, fresh session |
+| [#57](https://github.com/tedeuxx/mhw/issues/57) | Version key, warning mode | minor | none |
+| [#58](https://github.com/tedeuxx/mhw/issues/58) | Paste cleaning: wrapper first; the prompt hook per the hook budget | ~~minor or major~~ major (the hook stops judging wrapped sessions) | allow the shell start-up line |
+| [#59](https://github.com/tedeuxx/mhw/issues/59) | Deny floor carries the irreversible-action rules | minor | install |
+| [#60](https://github.com/tedeuxx/mhw/issues/60) | Interaction standards as instructions, after the interview | major | interview, install |
+| [#61](https://github.com/tedeuxx/mhw/issues/61) | Working method at the user layer (one pull request per block) | minor each | install |
+| [#62](https://github.com/tedeuxx/mhw/issues/62) | CI mirror into `tadeumendonca-skills` | minor | create the credential |
+| [#63](https://github.com/tedeuxx/mhw/issues/63) | `tadeumendonca-skills` marked as generated | in that repository | none |
+| [#64](https://github.com/tedeuxx/mhw/issues/64) | `tadeumendonca-io` on the workstation user level | in that repository | none |
+| [#65](https://github.com/tedeuxx/mhw/issues/65) | Current-state table, decision-record index | patch | none |
+| [#66](https://github.com/tedeuxx/mhw/issues/66) | Provenance stamp and installed manifest ([9a](#9a-provenance-stamp-in-every-installed-file)) | minor | install |
+| [#67](https://github.com/tedeuxx/mhw/issues/67) | `./workstation` install, update, status, uninstall ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first run |
+| [#68](https://github.com/tedeuxx/mhw/issues/68) | npm distribution from GitHub by tag, ~~`workstation` command~~ `mhw` command and postinstall ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first npm install |
+| [#69](https://github.com/tedeuxx/mhw/issues/69) | Documentation standard, workstation-wide ([5a](#5a-documentation-standards-user-layer-every-repository)) | minor | install |
+| [#71](https://github.com/tedeuxx/mhw/issues/71) | Command `/new-idea` | minor | none |
+| [#72](https://github.com/tedeuxx/mhw/issues/72) | Command `/idea-to-issues` | minor | none |
+| [#73](https://github.com/tedeuxx/mhw/issues/73) | Command `/handover` | minor | none |
+| [#74](https://github.com/tedeuxx/mhw/issues/74) | Command `/what-else` | minor | none |
+| [#75](https://github.com/tedeuxx/mhw/issues/75) | `/blueprint` reshaped: export and import as a requirements document | minor | none |
+| [#76](https://github.com/tedeuxx/mhw/issues/76) | Per-Issue agent harness consumption record (worklog) | minor | none |
+| [#77](https://github.com/tedeuxx/mhw/issues/77) | Ten commandments in the user-level brief, after ratification | minor | ratify, install |
+| [#80](https://github.com/tedeuxx/mhw/issues/80) | Session-start runtime summary | minor | install |
+| [#83](https://github.com/tedeuxx/mhw/issues/83) | Pre-authorisation tiers ([4b](#4b-pre-authorisation-for-autonomy-user-layer-behind-the-managed-barrier)) | minor | admin install first |
+| [#89](https://github.com/tedeuxx/mhw/issues/89) | Prerequisites, check-only ([9c](#9c-prerequisites-declared-and-checked-never-applied)) | minor | none |
+| [#97](https://github.com/tedeuxx/mhw/issues/97) | Capability skills `scm`, `ci`, `quality-gates`, `provisioning` | minor | install |
 
 The release column is the part each slice would cut on its own. Since 2026-10-05 a slice cuts no
 release: it merges into `rc/next`, and the release-candidate pull request cuts one release for all of
@@ -885,13 +907,13 @@ is the owner's act, in a fresh session.
 ## 14. Open decisions (one at a time)
 
 1. ~~Paste prompt hook: the single justified hook, or removed ([4a](#4a-hook-budget),
-   [#58](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/58))?~~
+   [#58](https://github.com/tedeuxx/mhw/issues/58))?~~
    Decided: kept, as the safety net for sessions not opened through the wrapper (#58; ADR-0033).
 2. ~~Deny floor: in the managed layer
-   ([#59](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/59))?~~
+   ([#59](https://github.com/tedeuxx/mhw/issues/59))?~~
    Decided: yes (#59; ADR-0016, 2026-10-05 amendment).
 3. ~~product-lead: user layer or site
-   ([#61](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/61))?~~
+   ([#61](https://github.com/tedeuxx/mhw/issues/61))?~~
    Decided: user level (#61, ADR-0032).
 4. ~~Skill `devops`: split between user and site, or kept whole (#61)?~~
    Decided: kept whole at user level (#61), then split by capability into `scm`, `ci`, `quality-gates`
@@ -902,10 +924,10 @@ is the owner's act, in a fresh session.
 ### Interviews owed
 
 - ~~Interaction standards ([5](#5-interaction-standards-user-layer)), before anything there is built
-  ([#60](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/60)).~~
+  ([#60](https://github.com/tedeuxx/mhw/issues/60)).~~
   Held on 2026-10-05 (#60).
 - The agent runtime: local containers, cloud-ready, a web console
-  ([#79](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/79)); a new
+  ([#79](https://github.com/tedeuxx/mhw/issues/79)); a new
   idea that goes through the requirements route first.
 - Content agents under the persona-wide lens: optional; the owner is open to it.
 - Business case ([1b](#1b-business-case)) and the ten commandments ([1c](#1c-ten-commandments-for-working-with-an-agent-harness-every-day)): to be completed and ratified with the owner.

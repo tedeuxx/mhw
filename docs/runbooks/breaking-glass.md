@@ -29,7 +29,7 @@ Kiro has no admin layer for hooks and runs none of these. Windows installs no ho
 2. This also removes the **admin copy of the deny floor**, which lives in the same documents. The
    user-level copy stays when `install.sh` installed it; check with `sh global/install.sh --check
    --hooks=managed` (its `FLOOR` lines name the layer that carries it).
-3. Do **not** run plain `sh global/install.sh` or `./workstation install` afterwards: with no admin
+3. Do **not** run plain `sh global/install.sh` or `./mhw install` afterwards: with no admin
    layer, both register the hooks again at user level. Keep `sh global/install.sh --hooks=managed`
    for as long as every hook should stay off.
 4. Open fresh sessions (ADR-0022).
@@ -55,11 +55,11 @@ Then, as yourself:
 
 ## Turn hooks back on
 
-`./workstation install --admin` renders a fresh stage and prints one line:
+`./mhw install --admin` renders a fresh stage and prints one line:
 `sudo /bin/sh "<checkout>/global/install-managed.sh" --apply="<stage>" --sha256=<hash>`. Run it in your
-own terminal, then `./workstation install` as yourself (it detects the admin layer and keeps the hooks
+own terminal, then `./mhw install` as yourself (it detects the admin layer and keeps the hooks
 there), then open fresh sessions. Use a merged, released commit: the line runs the checked-out
-installer as root. `./workstation status` then shows `managed: installed`.
+installer as root. `./mhw status` then shows `managed: installed`.
 
 ## Owner install act for the release that removes the restart guard (ADR-0028)
 

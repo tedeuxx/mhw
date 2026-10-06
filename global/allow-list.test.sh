@@ -182,7 +182,7 @@ fi
 for bad in "wide cmd git push" "narrow cmd sudo -n" "narrow cmd git *" "loose cmd git status" "wide tool Edit" \
            "wide cmd python3" "wide cmd python3.12 -m pytest" "narrow cmd bash" "narrow cmd sh -c" "wide cmd env" \
            "wide cmd xargs" "wide cmd node" "wide cmd perl" "wide cmd ruby" "wide cmd zsh" "wide runner npm test" \
-           "wide runner make test" "narrow cmd ./workstation status" "wide cmd /bin/sh" \
+           "wide runner make test" "narrow cmd ./workstation status" "narrow cmd mhw status" "wide cmd workstation" "wide cmd /bin/sh" \
            "narrow cmd git diff" "narrow cmd git log --oneline" "narrow cmd git show" "narrow cmd git grep" \
            "narrow cmd git blame" "narrow cmd git ls-files" "narrow cmd git branch --list" "narrow cmd git fetch" \
            "wide cmd git add" "wide cmd git commit" "wide cmd git commit -F" "wide cmd git worktree add" \

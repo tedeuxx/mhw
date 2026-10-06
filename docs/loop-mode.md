@@ -3,7 +3,7 @@
 loop-mode: kanban
 loop-mode-since: 2026-10-01
 loop-mode-enum: scrum kanban
-loop-mode-repos: tedeuxx/personal-multi-harness-workstation-configuration
+loop-mode-repos: tedeuxx/mhw
 wip: 1
 
 This repository is a **consumer** of the `tadeumendonca-skills` plugin's loop: the five lines above

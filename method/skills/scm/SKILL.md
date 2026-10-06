@@ -246,7 +246,7 @@ Everything below is specific to GitHub and its CLI, `gh`. A tool switch replaces
   `global/github-repo-settings.json`: `allow_merge_commit: true`, `allow_squash_merge: false`,
   `allow_rebase_merge: false` (ADR-0016, 2026-10-05 amendment).
   - Check: `global/github-repo-settings.sh --check OWNER/REPO` (read-only; a token without admin rights
-    reads none of them and exits 1). `./workstation check` covers it the same way.
+    reads none of them and exits 1). `./mhw check` covers it the same way.
   - Apply: `global/github-repo-settings.sh --apply OWNER/REPO` — **the owner's act**, one PATCH of the
     repository, then a check.
 

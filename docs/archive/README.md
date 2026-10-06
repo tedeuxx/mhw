@@ -2,7 +2,7 @@
 
 Documents kept as the record of what was measured, for a mechanism that no longer exists in the source.
 Nothing here describes the current behaviour; read them as history, never as instructions. Archived on
-2026-10-05 ([#65](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/65)).
+2026-10-05 ([#65](https://github.com/tedeuxx/mhw/issues/65)).
 
 - [Restart handoff](restart-handoff.md): the 2026-10-04 canary of the v2 restart guard and
   `/breaking-glass`, removed by [ADR-0028](../adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md).

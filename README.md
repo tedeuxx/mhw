@@ -5,7 +5,7 @@ Kiro) behaves on the owner's devices. One release installs the same protection, 
 method into every agent harness, on any of his machines.
 
 This page is the short version. The target behaviour and the reasons for it are in the
-[Product Requirements Document](docs/personal-multi-harness-workstation-configuration-product-requirements-document-project.md).
+[Product Requirements Document](docs/mhw-product-requirements-document-project.md).
 The mission, principles and hard rules for agents working here are in [`AGENTS.md`](AGENTS.md).
 
 ## Why it exists
@@ -75,7 +75,7 @@ flowchart LR
 
 The single record of what each control reaches, per agent harness surface and operating system, at
 its real evidence level. It replaces the amendment log that `AGENTS.md` used to carry (Issue
-[#65](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/65)); that log
+[#65](https://github.com/tedeuxx/mhw/issues/65)); that log
 stays in the git history.
 
 **Two claims per row, never mixed.** The agent harness columns describe **this source** (the
@@ -103,10 +103,10 @@ owner's act, in a fresh session, after the release-candidate pull request reache
 | Pre-authorisation allow list ([ADR-0031](docs/adr/0031-pre-authorisation-allow-list-behind-the-admin-floor.md)) | written; the permission mode loaded, probed. Wide tier only behind the admin floor. Its `Edit` deny covers only the checkout that ran the installer | written; rules loaded, probed; decisions measured with `execpolicy check` | written, narrow tier; documented | none | macOS, Linux | not installed |
 | Working method: 8 agents, 14 skills, 7 commands ([ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md)) | written; loaded, probed (2.1.289), each agent's tool list applied | written; skills loaded, probed (0.160.0), commands kept out of implicit use; agents documented, with no tool list | written; documented (agents and skills; commands as skills) | Claude Code tab documented; otherwise none | macOS, Linux, Windows (`install.ps1 -Method`, CI) | not installed: the plugin is still the running copy (#62, #63) |
 | Provenance stamp ([ADR-0029](docs/adr/0029-provenance-stamp-in-every-installed-file.md)) | written; stamped files loaded, probed | written; loaded, probed | written; documented | none | macOS, Linux, Windows (CI) | not installed. A record, not a protection |
-| `./workstation`, version key, `status` and `check` ([ADR-0030](docs/adr/0030-version-key-and-one-entry-point.md)) | written; the version-key instruction in the loaded brief, probed | written; in the model-visible prompt, probed | written; documented | none | macOS, Linux | not run. A report, never a block |
-| npm install from GitHub by tag, `workstation` command ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md)) | not an agent harness control | | | | macOS, Linux, Windows (CI) | not run. Probed in a throwaway prefix and HOME from the branch (npm 11.13.0, macOS): the archive stamp arrived filled in and `install`, `status` and `update` ran |
-| Prerequisites check, check-only ([#89](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/89)) | not an agent harness control | | | | macOS, Linux | written and tested with fake tools; one read-only run of `gh auth status` and the merge-settings check. Applies nothing |
-| GitHub repository standard: merge commits only, no squash ([#82](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/82)) | not an agent harness control | | | | any | written and tested against a stub; `--apply` is the owner's act |
+| `./mhw` (formerly `./mhw`), version key, `status` and `check` ([ADR-0030](docs/adr/0030-version-key-and-one-entry-point.md)) | written; the version-key instruction in the loaded brief, probed | written; in the model-visible prompt, probed | written; documented | none | macOS, Linux | not run. A report, never a block |
+| npm install from GitHub by tag, `mhw` command and its `postinstall` ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md)) | not an agent harness control | | | | macOS, Linux, Windows (CI) | written. Probed in throwaway prefixes and HOMEs from GitHub at the branch head (npm 11.13.0, macOS): the postinstall installed the stamped user layer and printed the sudo line; upgrade from v4.1.0, a local install and `npm uninstall -g` measured; not installed on the reference machine |
+| Prerequisites check, check-only ([#89](https://github.com/tedeuxx/mhw/issues/89)) | not an agent harness control | | | | macOS, Linux | written and tested with fake tools; one read-only run of `gh auth status` and the merge-settings check. Applies nothing |
+| GitHub repository standard: merge commits only, no squash ([#82](https://github.com/tedeuxx/mhw/issues/82)) | not an agent harness control | | | | any | written and tested against a stub; `--apply` is the owner's act |
 | MCP definition ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) | written | written | written | written (Claude desktop) | macOS | not run. Not part of the main line |
 | Removed from the source: restart guard, expiring switches, `/breaking-glass`, picker guard, session-type intake ([ADR-0028](docs/adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)) | written: the installers delete what an earlier version wrote; `--check` reports it as `STALE` | same | none was installed | none | macOS, Linux | still *installed* until the owner reinstalls both layers in a fresh session |
 
@@ -122,32 +122,50 @@ controls without inheriting the reference owner's overlay.
 
 **With npm, from GitHub by tag** ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md),
 [runbook](docs/runbooks/npm-install.md)). Nothing is published to the npm registry. You need Node.js 18
-or later and git; on macOS and Linux also Python 3.9+ and `jq`:
+or later and git; on macOS and Linux also Python 3.9+ and `jq`. The package and its command are `mhw`
+(multi-harness managed workstation):
 
 ```sh
-npm install -g github:tedeuxx/personal-multi-harness-workstation-configuration#vX.Y.Z
-workstation install --admin    # macOS and Linux: prints the one sudo line to run yourself
-workstation install
-workstation update             # prints the npm command for the newest release in this major
+npm install -g --foreground-scripts github:tedeuxx/mhw#vX.Y.Z
+sudo /bin/sh ".../mhw/global/install-managed.sh" --apply="..." --sha256=...   # macOS and Linux: the line the install printed, only when it printed one
 ```
 
+The npm line installs and updates every user-level resource itself: its `postinstall` runs `mhw install`,
+then prints the admin layer's one `sudo` line when that layer is absent or stale, a reminder to open
+fresh agent harness sessions, and the runtime summary. Run the printed `sudo` line yourself, then
+`mhw install` once more (the line after it says so). Keep `--foreground-scripts`: without a terminal npm hides a
+script's output, and with it the `sudo` line and the restart notice. If the output was missed, `mhw status` repeats the admin step: it prints the next step, `mhw install --admin` and its `sudo` line, while the admin layer is absent or stale.
+`MHW_METHOD=1 npm install -g --foreground-scripts …` also renders the working method.
+
+- **Remove:** `mhw uninstall` **before** `npm uninstall -g mhw`. npm 11.13.0 runs no uninstall script
+  (measured), so after `npm uninstall -g` alone every user-level resource stays and no `mhw` command is
+  left to remove it.
+- **`--ignore-scripts`** (or `ignore-scripts=true` in an npmrc): from GitHub the install **fails** and
+  leaves a dangling `mhw` link, because npm's git preparation links a temporary clone that only the
+  postinstall puts right (measured, npm 11.13.0). Install again without it. From a packed tarball the
+  install succeeds and `mhw status` reports `installed by npm but postinstall did not run`.
+- **From v4.1.0**, whose package was named `personal-multi-harness-workstation-configuration`:
+  remove the v4.1.0 package first: `npm uninstall -g personal-multi-harness-workstation-configuration`, then run the npm line. Otherwise npm refuses with `EEXIST`, because the old package owns the
+  `workstation` alias name (measured). Do not use `--force`.
+- `workstation` is a deprecated alias of `mhw` until the next major; it prints one notice.
+- The install line names this repository. It changes when the repository is renamed (a separate step).
+
 The first installable tag is the first release that carries `package.json`; older tags fail in npm.
-The `workstation` command takes the same subcommands as `./workstation` below. On Windows it runs
-`install.ps1`.
+`mhw` takes the same subcommands as `./mhw` below. On Windows it runs `install.ps1`.
 
 **Or from a git clone**, the alternative. macOS and Linux, from the repository root (Python 3.9+ and
 `jq` required). **Admin layer first, then the user layer**, on a new machine and on every upgrade
 ([runbook](docs/runbooks/deny-floor-admin-layer.md)):
 
 ```sh
-./workstation install --admin  # 1. render and validate the admin layer; prints the one sudo line to run yourself
-./workstation install          # 2. user layer, every agent harness; hooks move to the admin layer if it is there
-./workstation status           # installed release per layer, protections, the version key, the runtime
-./workstation status --verbose # the same, plus every target and each agent harness's version
-./workstation check            # run every installer's --check, then the prerequisites; exit non-zero on any finding
-./workstation check --prerequisites  # tools and subscriptions only: present, authenticated, drift (docs/prerequisites.md)
-./workstation update [vX.Y.Z]  # fetch tags, check out the newest release (or the one given), install it
-./workstation uninstall        # remove the user layer; prints the sudo line that removes the admin layer
+./mhw install --admin  # 1. render and validate the admin layer; prints the one sudo line to run yourself
+./mhw install          # 2. user layer, every agent harness; hooks move to the admin layer if it is there
+./mhw status           # installed release per layer, protections, the version key, the runtime
+./mhw status --verbose # the same, plus every target and each agent harness's version
+./mhw check            # run every installer's --check, then the prerequisites; exit non-zero on any finding
+./mhw check --prerequisites  # tools and subscriptions only: present, authenticated, drift (docs/prerequisites.md)
+./mhw update [vX.Y.Z]  # fetch tags, check out the newest release (or the one given), install it
+./mhw uninstall        # remove the user layer; prints the sudo line that removes the admin layer
 ```
 
 `update` refuses while a tracked file is modified and leaves the checkout detached at the release tag.
@@ -158,17 +176,17 @@ rule you wrote yourself stays even when it equals a floor rule), and its two key
 stays beside the file and is overwritten by the next install or uninstall.
 
 `--overlay=DIR|none` selects a profile other than the repository's `overlay/`. `global/install.sh` and
-`global/install-managed.sh` stay as the internals ([#67](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/67)).
+`global/install-managed.sh` stay as the internals ([#67](https://github.com/tedeuxx/mhw/issues/67)).
 The `sudo` route to turn a hook off is in the [breaking-glass runbook](docs/runbooks/breaking-glass.md).
 
-**What `check` reports.** `./workstation check` runs `install.sh --check` (with the hooks mode it
+**What `check` reports.** `./mhw check` runs `install.sh --check` (with the hooks mode it
 detects), `install-managed.sh --check` whenever any admin layer of this repository is on disk (stamped,
 or installed by an earlier release without the #66 stamp), and the prerequisites section. When the
 admin layer differs, `check`, `install` and `status` name each `STALE` and `DRIFT` target, each removed
 control still installed (restart guard, picker guard, session intake, timed breaking-glass) and the
-next step, `./workstation install --admin` and its sudo line; `status` says "matches this checkout"
+next step, `./mhw install --admin` and its sudo line; `status` says "matches this checkout" ("this package" in an npm install)
 only when the user layer and any admin layer both match
-([#52](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/52)). The installers' check exits non-zero when a target is missing, differs from this checkout,
+([#52](https://github.com/tedeuxx/mhw/issues/52)). The installers' check exits non-zero when a target is missing, differs from this checkout,
 is not managed by this repository, carries another release's provenance stamp, or is left over from a
 removed control (`STALE`). The prerequisites section exits non-zero when a required item is missing.
 It changes nothing.
@@ -179,9 +197,9 @@ It changes nothing.
   merges the floor as a union and never removes a deny entry, so after an update the old rule is still
   in `permissions.deny` and in the ownership key, and `check` exits 0. `uninstall` removes it, because
   it is in the ownership key.
-- **An exported `WORKSTATION_OVERLAY` changes the default.** `./workstation` passes `--overlay` to the
+- **An exported `WORKSTATION_OVERLAY` changes the default.** `./mhw` passes `--overlay` to the
   installers through that variable, and `install.sh` and the prerequisites check read it when no
-  `--overlay` is given. If it is exported in your shell, a plain `install.sh` or `./workstation
+  `--overlay` is given. If it is exported in your shell, a plain `install.sh` or `./mhw
   install` uses that profile instead of the repository's `overlay/`, and no output line says so. With
   `WORKSTATION_OVERLAY=none` exported, `install.sh` dropped the overlay's deny rules and still exited 0:
   `jq '.permissions.deny | length' ~/.claude/settings.json` in the throwaway HOME read 145 for a
@@ -189,15 +207,15 @@ It changes nothing.
   own denies). Unset it, or pass `--overlay=` explicitly.
 
 **Version key.** A project names the workstation release range it expects in `.workstation-version`
-(for example `>=4.0 <5`, what this repository expects from the release candidate on). `./workstation
+(for example `>=4.0 <5`, what this repository expects from the release candidate on). `./mhw
 status` compares it with the installed release, and the user brief tells the agent to do the same at
 session start. On a mismatch both print one line, required and installed, and the command to run;
-nothing blocks ([#57](https://github.com/tedeuxx/personal-multi-harness-workstation-configuration/issues/57)).
+nothing blocks ([#57](https://github.com/tedeuxx/mhw/issues/57)).
 An install from an untagged checkout of `rc/next` stamps `unreleased, after v3.0.0`, which compares as
 3.0.0 and is a mismatch here until v4.0.0 is tagged.
 
 Windows (PowerShell 5.1 and 7, tested in CI) renders the brief and the deny floor, and the working
-method with `-Method`. From a clone, or through the npm `workstation` command, which runs the same script:
+method with `-Method`. From a clone, or through the npm `mhw` command, which runs the same script:
 
 ```powershell
 .\global\install.ps1
@@ -237,6 +255,6 @@ Every installation on the owner's machine is his act, in a fresh session.
 
 ## Further reading
 
-- [Product Requirements Document](docs/personal-multi-harness-workstation-configuration-product-requirements-document-project.md)
+- [Product Requirements Document](docs/mhw-product-requirements-document-project.md)
 - [Agent harness baseline vocabulary](docs/harness-baseline.md)
 - [Local persistence inventory](docs/persistence-inventory.md)
