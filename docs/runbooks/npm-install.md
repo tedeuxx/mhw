@@ -74,18 +74,29 @@ With `--ignore-scripts` (or `ignore-scripts=true` in an npmrc) nothing runs:
 
 ## Upgrade from v4.1.0
 
-v4.1.0's package was named `personal-multi-harness-workstation-configuration` with the bin `workstation`.
-From GitHub the same npm line upgrades: the git preparation's `install --force` hands the `workstation`
-link to `mhw`, and the old package stays installed beside it (measured). `mhw status` then says:
+v4.1.0's package was named `personal-multi-harness-workstation-configuration` with the bin `workstation`,
+and `mhw` keeps `workstation` as its alias, so npm refuses `mhw` while the old package owns that name.
+**remove the v4.1.0 package first: `npm uninstall -g personal-multi-harness-workstation-configuration`**, then install `mhw`:
+
+```sh
+npm uninstall -g personal-multi-harness-workstation-configuration
+npm install -g --foreground-scripts github:tedeuxx/mhw#vX.Y.Z
+```
+
+The user layer stays in place throughout and the postinstall then updates it (measured, npm 11.13.0).
+Do not use `--force`. v4.1.0's own `workstation update` prints an install line without this step; it fails
+the same way.
+
+~~From GitHub the same npm line upgrades: the git preparation's `install --force` hands the `workstation`
+link to `mhw`, and the old package stays installed beside it (measured).~~ *(Struck 2026-10-06: measured
+true only for a pinned commit. From a tag or branch ref, `npm install -g` fails with `EEXIST` on
+`bin/workstation` before any script runs, and changes nothing; reproduced on `#rc/next`.)*
+
+If both packages end up installed anyway, `mhw status` and `mhw check` say so with the same instruction:
 
 ```
-  npm              a second global package, personal-multi-harness-workstation-configuration v4.1.0 (the name before mhw), …
+  npm              the v4.1.0 package (the name before mhw) is still installed beside mhw; remove the v4.1.0 package first: …
 ```
-
-Remove it with `npm uninstall -g personal-multi-harness-workstation-configuration`. That also deletes the
-`workstation` link, so run the npm line once more to restore the alias. The user layer stays throughout.
-From a packed tarball instead, npm refuses the second package's `workstation` bin with `EEXIST` and
-changes nothing; remove the old package first.
 
 ## Windows
 

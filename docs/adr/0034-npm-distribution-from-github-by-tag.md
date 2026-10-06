@@ -144,8 +144,10 @@ current repository name until then.
   it, and the install fails with `ENOTDIR`, leaving a dangling link. From a tarball it installs and runs
   nothing.
 - **A renamed package collides on its alias bin.** From a tarball, npm refuses the second package's
-  `workstation` bin with `EEXIST`. From GitHub, the git preparation's `--force` takes the bin over and the
-  v4.1.0 package stays installed beside `mhw`.
+  `workstation` bin with `EEXIST`. ~~From GitHub, the git preparation's `--force` takes the bin over and the
+  v4.1.0 package stays installed beside `mhw`.~~ *(Struck 2026-10-06, lens on RC #108: true only for a
+  pinned commit. From a tag or branch ref, npm fails with `EEXIST` before any script runs; reproduced.)*
+  The upgrade is therefore: remove the v4.1.0 package first: `npm uninstall -g personal-multi-harness-workstation-configuration`, then install `mhw`.
 - **A config of npm's own namespace warns.** `npm_config_workstation_method` and `--workstation-method`
   print `Unknown … config`, and the flag swallowed the next argument.
 
@@ -195,8 +197,13 @@ current repository name until then.
   `mhw update` prints, carries `--foreground-scripts` (lens advisory on PR #106), and `mhw status`
   repeats the admin step (`mhw install --admin`) while the admin layer is absent or stale.
 - Bad: after `npm uninstall -g mhw` alone the resources stay, and no command is left to say so.
-- Bad: after upgrading from v4.1.0, removing the old package also deletes the `workstation` link until
-  the npm line runs once more.
+- ~~Bad: after upgrading from v4.1.0, removing the old package also deletes the `workstation` link until
+  the npm line runs once more.~~ *(Struck 2026-10-06: superseded by the order below.)*
+- Bad: the upgrade from v4.1.0 is two commands, and npm's `EEXIST` is the first thing a reader who skips
+  the instruction sees. Rejected alternative: drop the `workstation` bin from `mhw`, so nothing collides.
+  Then `workstation` would keep running v4.1.0's code until the old package is removed, and a habitual
+  `workstation install` would put the v4.1.0 user layer back over `mhw`'s: a silent downgrade, worse than a
+  loud refusal. `--force` is not documented for the same reason (it overwrites without saying what).
 - Evidence: written and probed in throwaway prefixes and HOMEs; not installed on the reference machine.
 
 ## Links
