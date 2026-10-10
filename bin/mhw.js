@@ -42,8 +42,8 @@ function updateLines(wanted, root) {
   return {
     code: 0,
     out: [
-      'UPDATE  this is an npm install (no .git); update it with npm, whose postinstall installs:',
-      'RUN     npm install -g --foreground-scripts github:' + REPO + '#' + ref,
+      'UPDATE  run this npm line, then mhw install:',
+      'RUN     npm install -g github:' + REPO + '#' + ref,
     ],
   };
 }
@@ -101,7 +101,9 @@ function exitWith(p) {
 
 function main(argv, platform, env, opts = {}) {
   if (platform !== 'win32') {
-    return exitWith(spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), ...argv], { stdio: opts.stdio || 'inherit' }));
+    // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.
+    const childEnv = Object.assign({}, env, { MHW_NODE: process.execPath });
+    return exitWith(spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), ...argv], { stdio: opts.stdio || 'inherit', env: childEnv }));
   }
   const plan = windowsPlan(argv);
   if (plan.err) {

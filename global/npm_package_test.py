@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Regression tests for the npm package mhw (Issue #68, ADR-0034): the mhw launcher and its deprecated
-workstation alias, the postinstall that installs the user layer, the archive provenance stamp read when
+workstation alias, the postinstall that installs nothing (Issue #113), the archive provenance stamp read when
 there is no .git, npm-mode status and update. Throwaway HOMEs, npm prefixes, caches and admin roots
 only; never a registry, never a real configuration, never sudo.
 
@@ -17,6 +17,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -175,7 +176,7 @@ class Launcher(Base):
             self.assertTrue(err.startswith("mhw: "), err)
         code, out, _ = run("update", "v4.2.0")
         self.assertEqual(code, 0)
-        self.assertIn("RUN     npm install -g --foreground-scripts github:%s#v4.2.0" % ws.REPO, out)
+        self.assertIn("RUN     npm install -g github:%s#v4.2.0" % ws.REPO, out)
 
     def test_update_text_is_the_same_in_node_and_python(self):
         for wanted in (None, "v4.2.0", "v10.0.3", "4.2.0", "v4.2", "main", "v4.2.0;x"):
@@ -188,7 +189,7 @@ class Launcher(Base):
         _, lines = ws.npm_update_lines(None)
         major = re.search(r'^current_version\s*=\s*"(\d+\.\d+\.\d+)"',
                           (ROOT / ".bumpversion.toml").read_text(encoding="utf-8"), re.M).group(1)
-        self.assertEqual(lines[-1], "RUN     npm install -g --foreground-scripts github:%s#semver:^%s" % (ws.REPO, major))
+        self.assertEqual(lines[-1], "RUN     npm install -g github:%s#semver:^%s" % (ws.REPO, major))
         self.assertEqual(ws.npm_update_lines("main")[0], 2)
 
     def test_package_json(self):
@@ -346,7 +347,7 @@ class PackAndInstall(Base):
         self.assertNotIn("overlay/mcp-servers.json", names)
         self.assertNotIn("overlay/x.local.json", names)
 
-    def test_global_install_runs_the_postinstall(self):
+    def test_npm_installs_nothing_then_mhw_install_sets_up(self):
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("e2e")
         p = self.npm(d, env, "install", "-g", "--offline", "--foreground-scripts", str(tgz))
@@ -354,18 +355,29 @@ class PackAndInstall(Base):
         pkg = d / "prefix" / "lib" / "node_modules" / "mhw"
         self.assertFalse(pkg.is_symlink())
         self.assertFalse((pkg / ".git").exists())
+        # Issue #113: npm installs mhw like any global package; the postinstall names the next step only.
+        version = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))["version"]
+        self.assertIn("mhw %s is ready. Run `mhw install` to set up or update this workstation.\n" % version,
+                      p.stdout)
+        self.assertNotIn("sudo", p.stdout + p.stderr)
+        self.assertIsNone(self.brief(d))
+        self.assertEqual(list((d / "root").iterdir()), [])
+        p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
+        self.assertIn(ws.NOT_RUN, p.stdout)
+        # No terminal: mhw install says what it would do and changes nothing.
+        p = self.cmd(d, env, "mhw", "install")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("Nothing was changed: no terminal to confirm in.", p.stdout)
+        self.assertIsNone(self.brief(d))
+        p = self.cmd(d, env, "mhw", "install", "--yes")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("==> mhw %s will change this workstation:\n" % version, p.stdout)
+        self.assertIn("\nInstallation successful!\n", p.stdout)
+        self.assertNotRegex(p.stdout, r"(?m)^(RUN|STAGED|FLOOR|ADMIN|THEN|ACTION) ")
         stamp = expected_stamp()
-        # No `mhw install`: the postinstall rendered the user layer, then printed the three things.
         self.assertIn("; %s;" % stamp, self.brief(d))
-        out = p.stdout
-        self.assertIn("MHW     npm postinstall: mhw install\n", out)
-        self.assertRegex(out, r"(?m)^ADMIN   not installed; the one sudo line below installs it$")
-        self.assertRegex(out, r'(?m)^RUN     sudo /bin/sh ".*/lib/node_modules/mhw/global/install-managed.sh" --apply=')
-        self.assertRegex(out, r"(?m)^THEN    open fresh agent harness sessions")
-        self.assertRegex(out, r"(?m)^Runtime summary \(mhw status --summary; detail: mhw status --verbose\)$")
-        self.assertNotIn("sudo -", out)
-        self.assertEqual(list((d / "root").iterdir()), [])  # the admin root: nothing written there
-        # Idempotent: a second run of the same package changes nothing and still exits 0.
+        self.assertTrue(any(f.is_file() for f in (d / "root").rglob("*")))
+        # Reinstalling the same package leaves the setup untouched.
         before = (d / "home" / ".claude" / "CLAUDE.md").read_bytes()
         p = self.npm(d, env, "install", "-g", "--offline", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
@@ -375,29 +387,33 @@ class PackAndInstall(Base):
         self.assertIn("  source           %s (this package)" % ws.short_stamp(stamp), p.stdout)
         self.assertNotIn(ws.NOT_RUN, p.stdout)
         self.assertNotIn("  npm  ", p.stdout)
-        # A missed postinstall output: status repeats the admin step.
-        self.assertIn("  admin layer      not installed; next: mhw install --admin, then run the one sudo line "
-                      "it prints", p.stdout)
         q = self.cmd(d, env, "workstation", "status", "--project=" + str(d / "proj"))
         self.assertEqual((q.returncode, q.stderr), (0, ALIAS + "\n"))
         self.assertIn("  source           %s (this package)" % ws.short_stamp(stamp), q.stdout)
-        p = self.cmd(d, env, "mhw", "update")
-        self.assertEqual(p.returncode, 0, p.stderr)
-        self.assertIn("RUN     npm install -g --foreground-scripts github:%s#semver:^" % ws.REPO, p.stdout)
+        # mhw update runs npm itself (a stand-in here: no network), then the new package's install.
+        log = d / "npm-args"
+        fake = d / "fake-npm"
+        write_exe(fake, "#!/bin/sh\nprintf '%%s\\n' \"$@\" > %s\n" % shlex.quote(str(log)))
+        p = self.cmd(d, dict(env, MHW_NPM=str(fake)), "mhw", "update", "--yes")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("github:%s#semver:^%s" % (ws.REPO, version), log.read_text(encoding="utf-8").split())
+        self.assertIn("==> Updating mhw (to the newest release of this major version)\n", p.stdout)
+        self.assertIn("==> mhw %s is already installed and up to date\n" % version, p.stdout)
         p = self.cmd(d, env, "mhw", "update", "main")
         self.assertEqual(p.returncode, 2)
         # mhw uninstall first (npm runs no uninstall script), then npm uninstall -g mhw.
-        p = self.cmd(d, env, "mhw", "uninstall")
+        p = self.cmd(d, env, "mhw", "uninstall", "--yes")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertIn("THEN    npm uninstall -g mhw", p.stdout)
+        self.assertIn("Run `npm uninstall -g mhw` to remove the mhw command itself.", p.stdout)
         self.assertIsNone(self.brief(d))
+        self.assertEqual([f for f in (d / "root").rglob("*") if f.is_file()], [])
         p = self.npm(d, env, "uninstall", "-g", "mhw")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertFalse(pkg.exists())
 
-    def test_refused_install_keeps_the_package(self):
-        # Issue #110: a refusal made the postinstall exit 3, npm rolled the install back and deleted the
-        # package whose install-managed.sh path the report had just printed.
+    def test_refused_install_says_what_to_fix(self):
+        # Issue #110 rolled the package back on a refusal; since #113 the refusal comes from mhw install,
+        # after npm finished, and is said in plain words with the next step.
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("refuse")
         foreign = d / "home" / ".claude" / "CLAUDE.md"
@@ -405,10 +421,13 @@ class PackAndInstall(Base):
         foreign.write_text("the owner's own brief, not managed by this project\n", encoding="utf-8")
         p = self.npm(d, env, "install", "-g", "--offline", "--foreground-scripts", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertRegex(p.stderr, r"(?m)^REFUSE  .*CLAUDE\.md: exists and is NOT managed")
-        self.assertRegex(p.stdout, r"(?m)^ACTION  the install exited 3 .*the package is kept")
         pkg = d / "prefix" / "lib" / "node_modules" / "mhw"
         self.assertTrue((pkg / "global" / "install-managed.sh").is_file())
+        p = self.cmd(d, env, "mhw", "install", "--yes", "--no-admin")
+        self.assertEqual(p.returncode, 1, p.stdout + p.stderr)
+        self.assertRegex(p.stdout, r"(?m)^    REFUSE  .*CLAUDE\.md: exists and is NOT managed")
+        self.assertIn("Installation incomplete:", p.stdout)
+        self.assertRegex(p.stdout, r"(?m)^1\. Fix what is named above, then run `mhw install` again\.$")
         self.assertEqual(foreign.read_text(encoding="utf-8"), "the owner's own brief, not managed by this project\n")
 
     def test_npm_uninstall_runs_no_script(self):
@@ -417,6 +436,7 @@ class PackAndInstall(Base):
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("un")
         self.assertEqual(self.npm(d, env, "install", "-g", "--offline", str(tgz)).returncode, 0)
+        self.assertEqual(self.cmd(d, env, "mhw", "install", "--yes").returncode, 0)
         self.assertIsNotNone(self.brief(d))
         p = self.npm(d, env, "uninstall", "-g", "mhw")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
@@ -431,12 +451,12 @@ class PackAndInstall(Base):
         self.assertIsNone(self.brief(d))
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
         self.assertEqual(p.returncode, 0, p.stderr)
-        self.assertRegex(p.stdout, r"(?m)^  npm              installed by npm but postinstall did not run: .*"
-                                   r"the user layer carries nothing; run mhw install$")
+        self.assertRegex(p.stdout, r"(?m)^  npm              installed by npm; the workstation is not set up from "
+                                   r"it yet: .*the user layer carries nothing; run mhw install$")
         p = self.cmd(d, env, "mhw", "check")
         self.assertNotEqual(p.returncode, 0)
-        self.assertRegex(p.stdout, r"(?m)^NPM     installed by npm but postinstall did not run")
-        p = self.cmd(d, env, "mhw", "install")
+        self.assertRegex(p.stdout, r"(?m)^NPM     installed by npm; the workstation is not set up from it yet")
+        p = self.cmd(d, env, "mhw", "install", "--yes")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
         self.assertNotIn(ws.NOT_RUN, p.stdout)
@@ -448,7 +468,7 @@ class PackAndInstall(Base):
         p = subprocess.run([NPM, "install", "--offline", "--foreground-scripts", str(tgz)], env=env,
                            cwd=d / "proj", capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertIn("mhw postinstall: SKIP not a global install", p.stdout)
+        self.assertNotIn("mhw install", p.stdout)
         self.assertFalse((d / "home" / ".claude").exists())
         self.assertFalse((d / "home" / ".codex").exists())
 
@@ -468,6 +488,8 @@ class PackAndInstall(Base):
         pkg = d / "prefix" / "lib" / "node_modules" / "mhw"
         self.assertTrue(pkg.is_dir() and not pkg.is_symlink())
         self.assertTrue((pkg / "global" / "workstation.py").is_file())
+        self.assertIsNone(self.brief(d))
+        self.assertEqual(self.cmd(d, env, "mhw", "install", "--yes").returncode, 0)
         self.assertIn("; %s;" % expected_stamp(), self.brief(d))
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
         self.assertEqual(p.returncode, 0, p.stderr)
@@ -499,8 +521,7 @@ class PackAndInstall(Base):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
         self.assertIn("  npm              the v4.1.0 package (the name before mhw) is still installed beside mhw; "
-                      "remove the v4.1.0 package first: `npm uninstall -g %s`, then run the npm line mhw update "
-                      "prints" % LEGACY, p.stdout)
+                      "remove the v4.1.0 package first: `npm uninstall -g %s`, then run mhw update" % LEGACY, p.stdout)
         # The docs carry the same instruction, word for word.
         for doc in ("README.md", "docs/runbooks/npm-install.md"):
             self.assertIn(ws.UPGRADE_FIRST, (ROOT / doc).read_text(encoding="utf-8"), doc)
@@ -510,6 +531,7 @@ class PackAndInstall(Base):
         self.assertEqual(self.npm(d, env, "uninstall", "-g", LEGACY).returncode, 0)
         p = self.npm(d, env, "install", "-g", "--offline", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.cmd(d, env, "mhw", "install", "--yes").returncode, 0)
         self.assertIn("; %s;" % expected_stamp(), self.brief(d))
         p = self.cmd(d, env, "workstation", "status", "--project=" + str(d / "proj"))
         self.assertEqual((p.returncode, p.stderr), (0, ALIAS + "\n"))

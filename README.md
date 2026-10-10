@@ -104,7 +104,7 @@ owner's act, in a fresh session, after the release-candidate pull request reache
 | Working method: 8 agents, 14 skills, 7 commands ([ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md)) | written; loaded, probed (2.1.289), each agent's tool list applied | written; skills loaded, probed (0.160.0), commands kept out of implicit use; agents documented, with no tool list | written; documented (agents and skills; commands as skills) | Claude Code tab documented; otherwise none | macOS, Linux, Windows (`install.ps1 -Method`, CI) | not installed: the plugin is still the running copy (#62, #63) |
 | Provenance stamp ([ADR-0029](docs/adr/0029-provenance-stamp-in-every-installed-file.md)) | written; stamped files loaded, probed | written; loaded, probed | written; documented | none | macOS, Linux, Windows (CI) | not installed. A record, not a protection |
 | `./mhw` (formerly `./mhw`), version key, `status` and `check` ([ADR-0030](docs/adr/0030-version-key-and-one-entry-point.md)) | written; the version-key instruction in the loaded brief, probed | written; in the model-visible prompt, probed | written; documented | none | macOS, Linux | not run. A report, never a block |
-| npm install from GitHub by tag, `mhw` command and its `postinstall` ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md)) | not an agent harness control | | | | macOS, Linux, Windows (CI) | written. Probed in throwaway prefixes and HOMEs from GitHub at the branch head (npm 11.13.0, macOS): the postinstall installed the stamped user layer and printed the sudo line; upgrade from v4.1.0, a local install and `npm uninstall -g` measured; not installed on the reference machine |
+| npm install from GitHub by tag, `mhw` command and its `postinstall` ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md)) | not an agent harness control | | | | macOS, Linux, Windows (CI) | written. Probed in throwaway prefixes and HOMEs from GitHub at the branch head (npm 11.13.0, macOS): the postinstall installed the stamped user layer and printed the sudo line; upgrade from v4.1.0, a local install and `npm uninstall -g` measured; not installed on the reference machine. Since [#113](https://github.com/tedeuxx/mhw/issues/113) the postinstall installs nothing and `mhw install` is the one door (RETURN, the password once, next steps): tested in throwaway prefixes, HOMEs and admin roots, and in a pty; the real `sudo` prompt is not exercised by any test |
 | Prerequisites check, check-only ([#89](https://github.com/tedeuxx/mhw/issues/89)) | not an agent harness control | | | | macOS, Linux | written and tested with fake tools; one read-only run of `gh auth status` and the merge-settings check. Applies nothing |
 | GitHub repository standard: merge commits only, no squash ([#82](https://github.com/tedeuxx/mhw/issues/82)) | not an agent harness control | | | | any | written and tested against a stub; `--apply` is the owner's act |
 | MCP definition ([ADR-0017](docs/adr/0017-single-source-mcp-with-secret-indirection.md)) | written | written | written | written (Claude desktop) | macOS | not run. Not part of the main line |
@@ -126,16 +126,19 @@ or later and git; on macOS and Linux also Python 3.9+ and `jq`. The package and 
 (multi-harness managed workstation):
 
 ```sh
-npm install -g --foreground-scripts github:tedeuxx/mhw#vX.Y.Z
-sudo /bin/sh ".../mhw/global/install-managed.sh" --apply="..." --sha256=...   # macOS and Linux: the line the install printed, only when it printed one
+npm install -g github:tedeuxx/mhw#vX.Y.Z   # puts the mhw command on PATH; installs nothing else
+mhw install                                # sets up this workstation
 ```
 
-The npm line installs and updates every user-level resource itself: its `postinstall` runs `mhw install`,
-then prints the admin layer's one `sudo` line when that layer is absent or stale, a reminder to open
-fresh agent harness sessions, and the runtime summary. Run the printed `sudo` line yourself, then
-`mhw install` once more (the line after it says so). Keep `--foreground-scripts`: without a terminal npm hides a
-script's output, and with it the `sudo` line and the restart notice. If the output was missed, `mhw status` repeats the admin step: it prints the next step, `mhw install --admin` and its `sudo` line, while the admin layer is absent or stale.
-`MHW_METHOD=1 npm install -g --foreground-scripts …` also renders the working method.
+npm installs `mhw` like any global package and says one thing: run `mhw install`
+([#113](https://github.com/tedeuxx/mhw/issues/113)). `mhw install` is the one door. It lists what will
+change, waits for RETURN, asks for your administrator password once (only when the system-wide
+protections change, and it says why), installs them and then your settings, and ends with
+`Installation successful!` and numbered next steps. `--verbose` shows every file it writes; `--no-admin`
+installs your settings only, with no password. Without a terminal it only says what it would do;
+`--yes` skips the question, but the system-wide protections still need your password, typed for that
+run (`mhw` never relies on a cached `sudo` credential). `mhw update` runs the npm update itself, then the new package's install.
+`mhw install --method` also renders the working method.
 
 - **Remove:** `mhw uninstall` **before** `npm uninstall -g mhw`. npm 11.13.0 runs no uninstall script
   (measured), so after `npm uninstall -g` alone every user-level resource stays and no `mhw` command is
@@ -143,9 +146,9 @@ script's output, and with it the `sudo` line and the restart notice. If the outp
 - **`--ignore-scripts`** (or `ignore-scripts=true` in an npmrc): from GitHub the install **fails** and
   leaves a dangling `mhw` link, because npm's git preparation links a temporary clone that only the
   postinstall puts right (measured, npm 11.13.0). Install again without it. From a packed tarball the
-  install succeeds and `mhw status` reports `installed by npm but postinstall did not run`.
+  install succeeds, and `mhw install` sets up the workstation as usual.
 - **From v4.1.0**, whose package was named `personal-multi-harness-workstation-configuration`:
-  remove the v4.1.0 package first: `npm uninstall -g personal-multi-harness-workstation-configuration`, then run the npm line. Otherwise npm refuses with `EEXIST`, because the old package owns the
+  remove the v4.1.0 package first: `npm uninstall -g personal-multi-harness-workstation-configuration`, then run the npm line and `mhw install`. Otherwise npm refuses with `EEXIST`, because the old package owns the
   `workstation` alias name (measured). Do not use `--force`.
 - `workstation` is a deprecated alias of `mhw` until the next major; it prints one notice.
 - The install line names this repository. It changes when the repository is renamed (a separate step).
@@ -154,22 +157,21 @@ The first installable tag is the first release that carries `package.json`; olde
 `mhw` takes the same subcommands as `./mhw` below. On Windows it runs `install.ps1`.
 
 **Or from a git clone**, the alternative. macOS and Linux, from the repository root (Python 3.9+ and
-`jq` required). **Admin layer first, then the user layer**, on a new machine and on every upgrade
+`jq` required). The same conversation as above, from the checkout
 ([runbook](docs/runbooks/deny-floor-admin-layer.md)):
 
 ```sh
-./mhw install --admin  # 1. render and validate the admin layer; prints the one sudo line to run yourself
-./mhw install          # 2. user layer, every agent harness; hooks move to the admin layer if it is there
+./mhw install          # what will change, RETURN, the password once, admin layer then user layer, next steps
 ./mhw status           # installed release per layer, protections, the version key, the runtime
 ./mhw status --verbose # the same, plus every target and each agent harness's version
 ./mhw check            # run every installer's --check, then the prerequisites; exit non-zero on any finding
 ./mhw check --prerequisites  # tools and subscriptions only: present, authenticated, drift (docs/prerequisites.md)
 ./mhw update [vX.Y.Z]  # fetch tags, check out the newest release (or the one given), install it
-./mhw uninstall        # remove the user layer; prints the sudo line that removes the admin layer
+./mhw uninstall        # the same conversation: removes the admin layer (password once) and the user layer
 ```
 
 `update` refuses while a tracked file is modified and leaves the checkout detached at the release tag.
-In an npm install (no `.git`) it prints the npm command instead and changes nothing.
+In an npm install (no `.git`) it runs the npm update, then `mhw install` from the new package.
 `uninstall` removes only files carrying this repository's marker and, in `~/.claude/settings.json`, only
 its hook entries, the deny-floor rules the installer itself added (recorded in an ownership key, so a
 rule you wrote yourself stays even when it equals a floor rule), and its two keys. A single backup
@@ -184,7 +186,7 @@ detects), `install-managed.sh --check` whenever any admin layer of this reposito
 or installed by an earlier release without the #66 stamp), and the prerequisites section. When the
 admin layer differs, `check`, `install` and `status` name each `STALE` and `DRIFT` target, each removed
 control still installed (restart guard, picker guard, session intake, timed breaking-glass) and the
-next step, `./mhw install --admin` and its sudo line; `status` says "matches this checkout" ("this package" in an npm install)
+next step, `./mhw install`; `status` says "matches this checkout" ("this package" in an npm install)
 only when the user layer and any admin layer both match
 ([#52](https://github.com/tedeuxx/mhw/issues/52)). The installers' check exits non-zero when a target is missing, differs from this checkout,
 is not managed by this repository, carries another release's provenance stamp, or is left over from a

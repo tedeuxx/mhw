@@ -1,37 +1,34 @@
 # Runbook: install the deny floor in the admin layer
 
-The owner's act. Agents never run `sudo` (it is in the deny floor) and never run these steps.
+The owner's act, in his own terminal. The deny floor refuses agent commands that start with `sudo`; it
+does not see `sudo` started by another program. `mhw` runs
+`sudo` itself with an option that ignores any cached credential, so the admin layer needs the owner's password
+typed for that run; an agent that fakes a terminal meets a prompt it cannot answer
+([#113](https://github.com/tedeuxx/mhw/issues/113)). A passwordless `sudo` rule would remove that barrier.
 Decision and evidence: [ADR-0016](../adr/0016-user-level-deny-floor-rendered-per-harness.md), amendment
 2026-10-05. Restart rule: [ADR-0022](../adr/0022-restart-after-active-customization-changes.md).
 
-## Install (one `sudo` line, in a fresh session)
+## Install (one command, in your own terminal)
 
-**Order: the admin layer first, then the user layer.** This holds for a new machine and for every
-upgrade. An admin layer an earlier release installed (v2.x: the restart guard, the picker guard with its
-session-intake exception, timed breaking-glass) stays registered until step 1 and its `sudo` line
-replace it. A plain `./mhw install` does not touch the admin layer.
-
-1. `./mhw install --admin`, then the one `RUN     sudo` line it prints.
-2. `./mhw install`, as yourself.
-3. Close every Claude Code and Codex session and open fresh ones.
-
-If step 1 was skipped, `./mhw install`, `./mhw check` and `./mhw status` name
-every `STALE` and `DRIFT` admin target and every removed control still installed, print
-`next: ./mhw install --admin, then run the one sudo line it prints`, and `install` and `check`
-exit non-zero ([#52](https://github.com/tedeuxx/mhw/issues/52)).
-
-From a checkout of `main` at the merged, released commit, in your own terminal:
+From a checkout of `main` at the merged, released commit (or with `mhw` after the npm install):
 
 ```sh
-./mhw install --admin
+./mhw install
 ```
 
-It renders and validates a stage, installs nothing, and prints one line starting `RUN     sudo`. Run
-that one line as printed. It carries the stage's SHA-256, so a changed stage installs nothing. The same
-line also refreshes the admin-layer hooks (ADR-0025). Then run `./mhw install` as yourself: it
-detects the admin layer and removes the user-level hook duplicates.
+It lists what will change, waits for RETURN, says why it needs administrator access and lets `sudo` ask
+for your password once. It installs the admin layer first and then the user layer, which detects the
+admin layer and removes the user-level hook duplicates. The admin stage is rendered and validated as
+you, and installed only with its SHA-256, so a changed stage installs nothing (ADR-0025). An admin
+layer an earlier release installed (v2.x: the restart guard, the picker guard with its session-intake
+exception, timed breaking-glass) is replaced in the same step.
 
-Then close every Claude Code and Codex session and open fresh ones.
+Then close every Claude Code and Codex session and open fresh ones (the first next step says so).
+
+If the admin layer was not installed (`--no-admin`, no terminal, or the password refused),
+`./mhw install`, `./mhw check` and `./mhw status` name every `STALE` and `DRIFT` admin target and every
+removed control still installed, and print `next: ./mhw install (it asks for your administrator
+password once)`; `check` exits non-zero ([#52](https://github.com/tedeuxx/mhw/issues/52)).
 
 ## Verify (canary)
 
@@ -52,6 +49,6 @@ Record the result on Issue #59. Until steps 3 and 5 are seen, the admin floor is
 
 ## Undo
 
-`sh global/install-managed.sh --uninstall` prints the `sudo` line that removes the admin documents
-(hooks and floor together). The user-level floor stays in place throughout: it is retired only after
+`./mhw uninstall` removes the admin documents (hooks and floor together) after RETURN and your
+password, then the user layer. The user-level floor stays in place throughout: it is retired only after
 this canary passes, as a separate step.

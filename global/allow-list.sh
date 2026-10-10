@@ -318,7 +318,7 @@ allow_step() {
   command -v jq >/dev/null 2>&1 || { echo "REFUSE  allow list: jq is required" >&2; raise 2; return 0; }
   allow_admin_state
   if [ "$allow_tier_claude" = narrow ] || [ "$allow_tier_codex" = narrow ]; then
-    echo "RISK    admin deny floor incomplete (Claude Code: $allow_tier_claude, Codex: $allow_tier_codex tier): an allow list without the admin barrier is limited to reading; ${MHW_CMD:-./mhw} install --admin, then install again, widens it"
+    echo "RISK    admin deny floor incomplete (Claude Code: $allow_tier_claude, Codex: $allow_tier_codex tier): an allow list without the admin barrier is limited to reading; ${MHW_CMD:-./mhw} install (it asks for your administrator password once) widens it"
   fi
   allow_claude
   allow_codex_rules_render "$allow_tier_codex" "$work/allow.rules"

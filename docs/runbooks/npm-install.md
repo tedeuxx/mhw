@@ -16,49 +16,62 @@ which is a separate step.
 - macOS and Linux: Python 3.9 or later, and `jq`, as for a checkout.
 - Windows: Windows PowerShell 5.1 or PowerShell 7.
 
-## Install and update: one npm line
+## Install: npm puts `mhw` on PATH, `mhw install` sets up the workstation
 
 Pick the release and name it. The first installable tag is the first release that carries
 `package.json`. Older tags fail with `Could not read package.json` (measured on `v4.0.0`).
 
 ```sh
-npm install -g --foreground-scripts github:tedeuxx/mhw#vX.Y.Z
+npm install -g github:tedeuxx/mhw#vX.Y.Z
+mhw install
 ```
 
-That line is the install and the update. The package's `postinstall` (`bin/postinstall.js`) runs the same
-path as `mhw install`: non-interactive (stdin closed), idempotent, never `sudo`, never an admin path. At
-the end it prints three things:
+Since [#113](https://github.com/tedeuxx/mhw/issues/113) npm installs `mhw` like any global package and
+installs nothing else. Its `postinstall` (`bin/postinstall.js`) prints one line, on the terminal when
+there is one: `mhw X.Y.Z is ready. Run `mhw install` to set up or update this workstation.`
 
-1. the admin layer's one `sudo` line, when that layer is absent or differs from the package (the same
-   detection as `mhw check`, Issue #102). Run it yourself, then `mhw install` once more, as the line
-   after it says;
-2. a reminder to open fresh agent harness sessions: a running session keeps the configuration it
-   started with;
-3. the runtime summary (`mhw status --summary`).
+`mhw install` is the one door, in the style of Homebrew's installer:
 
-`#semver:^X.Y.Z` instead of `#vX.Y.Z` takes the newest release in that major (major means breaking).
-`mhw update` prints that line for the installed major, or for a tag you name.
+1. it lists what will change: your settings in Claude Code, Codex and Kiro, and the system-wide
+   protections no session can switch off (the admin layer);
+2. it waits for RETURN (any other key aborts and changes nothing);
+3. when the system-wide protections change, it says why it needs administrator access and lets `sudo`
+   ask for your password, once. You never type a `sudo` line yourself;
+4. it installs the system-wide protections, then your settings, and checks both;
+5. it ends with `Installation successful!` (or `Installation incomplete:` and what to fix) and numbered
+   next steps: open new sessions, the paste-cleaning line for your shell startup file when it is not
+   there yet, approving the hooks in Codex's `/hooks`, `mhw status`.
 
-**Where the output goes.** npm hides a successful lifecycle script's output (measured, npm 11.13.0). The
-postinstall therefore writes its report to the terminal (`/dev/tty`) when there is one; with no terminal
-(CI, a pipe) it goes to npm, which shows it only with `--foreground-scripts` or on failure. Not measured
-in an interactive terminal from here, so **every documented install and update line carries
-`--foreground-scripts`**, and `mhw update` prints it that way. A refused or partial install is not a failure to npm (the postinstall exits 0 so the package is kept, Issue #110), so with no terminal, no `/dev/tty` and no `--foreground-scripts`, npm hides the `REFUSE` and `ACTION` lines and exits 0: run `mhw check` or `mhw status` to find a refused install. If the output was missed, `mhw status` repeats the admin step: it prints the next step, `mhw install --admin` and its `sudo` line, while the admin layer is absent or stale.
+`--verbose` shows every line the installers print. `--no-admin` installs your settings only, with no
+password. Without a terminal (CI, a pipe, an agent's shell) `mhw install` only says what it would do;
+`--yes` skips the question, but the system-wide protections need **your password, typed for that run**
+(`mhw` makes `sudo` ignore any cached credential). With no terminal they stay a next step and the result
+reads `Partly installed:` (exit 1), not `Installation successful!`. `mhw install --method` also
+renders the working method; once rendered, every later install keeps it current.
 
-**The working method.** Opt-in, as with `mhw install --method`: `MHW_METHOD=1 npm install -g --foreground-scripts …`. Once
-rendered, every later install keeps it current. (An `npm_config_*` variable or a `--workstation-method`
-flag would make npm warn about an unknown config, measured; `--workstation-method` also swallowed the
-next argument.)
+## Update
 
-**When it installs nothing.** The postinstall installs only for a global install, from the installed
-copy. A local dependency, a CI checkout or `npm ci` (`npm_config_global` not `true`) prints
-`mhw postinstall: SKIP not a global install …` and changes nothing.
+```sh
+mhw update            # the newest release in the installed major (major means breaking)
+mhw update vX.Y.Z     # a release you name
+```
+
+`mhw update` runs the npm update itself (`npm install -g github:tedeuxx/mhw#semver:^X.Y.Z`, with the npm
+that sits beside the `node` running `mhw`), then `mhw install` from the new package: the same
+conversation as above. When it finds no npm beside `node`, it prints the npm line to run, then
+`mhw install`.
+
+**When the postinstall says nothing.** A local dependency, a CI checkout or `npm ci`
+(`npm_config_global` not `true`) prints nothing and changes nothing. npm hides a successful lifecycle
+script's output (measured, npm 11.13.0); the one line goes to `/dev/tty` when there is one, so it is
+seen without `--foreground-scripts`. If it is missed, nothing is lost: `mhw status` says
+`installed by npm; the workstation is not set up from it yet … run mhw install`.
 
 **npm's git preparation.** With any lifecycle script, npm 11.13.0 prepares a git dependency by running
 `npm install --force` inside a temporary clone with the outer `--global` inherited. That inner run links
 the clone into the global prefix, and the outer install then unpacks through the link into a directory
 npm deletes: a dangling install (measured). The postinstall recognises that inner run (`_PACOTE_NO_PREPARE_`
-in its environment), installs nothing, and puts an empty directory back where the link was, touching only
+in its environment) and puts an empty directory back where the link was, touching only
 a link that resolves to its own clone. This rests on npm internals: re-measure on a new npm major.
 
 ## Ignore-scripts
@@ -68,9 +81,8 @@ With `--ignore-scripts` (or `ignore-scripts=true` in an npmrc) nothing runs:
 - **From GitHub the install fails** (`git dep preparation failed`, `ENOTDIR`) and leaves a dangling `mhw`
   link, because only the postinstall undoes the git preparation's link (measured, npm 11.13.0). Install
   again without it; that replaces the link.
-- **From a packed tarball** the install succeeds and installs no resource. `mhw status` then reports
-  `installed by npm but postinstall did not run`, and `mhw check` prints the same line and exits non-zero.
-  Run `mhw install`.
+- **From a packed tarball** the install succeeds; only the one postinstall line is missing. Run
+  `mhw install` as usual.
 
 ## Upgrade from v4.1.0
 
@@ -80,10 +92,11 @@ and `mhw` keeps `workstation` as its alias, so npm refuses `mhw` while the old p
 
 ```sh
 npm uninstall -g personal-multi-harness-workstation-configuration
-npm install -g --foreground-scripts github:tedeuxx/mhw#vX.Y.Z
+npm install -g github:tedeuxx/mhw#vX.Y.Z
+mhw install
 ```
 
-The user layer stays in place throughout and the postinstall then updates it (measured, npm 11.13.0).
+The user layer stays in place throughout and `mhw install` then updates it.
 Do not use `--force`. v4.1.0's own `workstation update` prints an install line without this step; it fails
 the same way.
 
@@ -102,9 +115,10 @@ If both packages end up installed anyway, `mhw status` and `mhw check` say so wi
 
 `mhw` runs `global\install.ps1`. `install`, `install --method` and `--overlay=DIR|none` map onto
 `install.ps1`, `-Method` and `-Overlay`. `check` and `status` both run `install.ps1 -Check`. `update`
-prints the npm command. `install --admin` and `uninstall` do not exist on Windows and are refused with
-exit 2. The postinstall runs `install.ps1` and prints the fresh-session reminder; there is no admin layer
-and no runtime summary on Windows. Exercised in CI only.
+prints the npm command, then `mhw install`. `install --admin` and `uninstall` do not exist on Windows and
+are refused with exit 2. As on macOS and Linux, the postinstall installs nothing and names `mhw install`;
+there is no admin layer, no install conversation and no runtime summary on Windows yet. Exercised in CI
+only.
 
 ## Check what was installed
 
@@ -124,26 +138,26 @@ and `status` shows it.
 An npm install cannot detect edits to the installed package. A git checkout can: its stamp reads
 `-dirty`. Here the stamp keeps reading the clean release and `check` passes, because it compares the
 installed files with the package itself (measured, ADR-0034). npm keeps no integrity record for a git
-dependency. If you suspect the package was changed, reinstall the tag with `npm install -g --foreground-scripts …#vX.Y.Z`.
+dependency. If you suspect the package was changed, reinstall the tag with `npm install -g …#vX.Y.Z`, then `mhw install`.
 
 ## Do not
 
 - Do not add a lifecycle script other than `postinstall`, and do not remove the postinstall's handling of
-  npm's git preparation: without it a global git install is a dangling link (measured; ADR-0034).
+  npm's git preparation: without it a global git install is a dangling link (measured; ADR-0034). Do not
+  make it install anything again: `mhw install` is the one door (#113).
 - Do not run `npm publish` or `npm login`. The registry is not a distribution route here.
-- Do not run `npm install -g` as root, or `sudo npm`. The admin layer has its own `sudo` line.
+- Do not run `npm install -g` as root, or `sudo npm`. `mhw install` asks for administrator access
+  itself, only for the admin layer.
 
 ## Remove
 
 npm runs no uninstall script on `npm uninstall -g` (measured with npm 11.13.0: `preuninstall`,
-`uninstall` and `postuninstall` all stayed silent). So remove the resources first, in this order. The
-admin layer's `sudo` line runs a script inside the package, so run it before `npm uninstall -g` deletes
-the package:
+`uninstall` and `postuninstall` all stayed silent). So remove the resources first. `mhw uninstall` runs a
+script inside the package, so run it before `npm uninstall -g` deletes the package:
 
 ```sh
-mhw uninstall                 # 1. macOS and Linux: removes the user layer; prints the admin layer's RUN sudo line
-sudo /bin/sh "…/global/install-managed.sh" --remove   # 2. that printed line, exactly as printed, run yourself
-npm uninstall -g mhw          # 3. only then remove the package
+mhw uninstall                 # 1. the same conversation as install: RETURN, the password once, both layers
+npm uninstall -g mhw          # 2. only then remove the package (its last next step says so)
 ```
 
 **Not detected:** after `npm uninstall -g mhw` alone, every user-level resource stays installed and keeps
