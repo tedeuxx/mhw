@@ -535,7 +535,7 @@ pull request in its own repository; implementation-plan item 8 is complete only 
 
 - Issues: none (owner request in session, 2026-10-10)
 - Pull requests: #118 (slice A), #119 (slice B), #120 (slice F), #121 (decision 9, owner-action queue),
-  #126 (decisions 6 and 10), #PRNUM (decision 1, mhw sphere line)
+  #126 (decisions 6 and 10), #132 (decision 1, mhw sphere line)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),
   [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md),
   [ADR-0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md)
