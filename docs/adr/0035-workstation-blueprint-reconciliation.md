@@ -383,6 +383,14 @@ resolve to a commit also exits 2. The ref is verified with `git rev-parse --veri
 and only the verified id reaches `git merge-base`, after `--end-of-options`. A path that resolves outside
 the current directory (explicit paths) or outside the repository (git mode, for example a tracked
 symlink) is not opened: it is reported as `SKIPPED` with the reason, and the exit code stays 0.*
+*Appended 2026-10-10 (#120, SonarCloud S8707 resolved by construction rather than accepted): an
+explicit `PATH` no longer reaches `open()`. `mhw scan` lists the files with
+`git ls-files -z --cached --others --exclude-standard` in the current directory; each `PATH` is
+normalised only to look a file up in that list, and the file opened is git's own entry joined to the
+current directory. A `PATH` git does not list (missing or ignored) is `SKIPPED` as `not a file git
+lists`; a directory is `SKIPPED` as `a directory, name its files`, not expanded. Explicit paths
+therefore need a git repository now: outside one the scan exits 2. The containment check before
+`open()` stays, because a listed symlink can still point out of the directory or the repository.*
 
 **5. CI.** `.github/workflows/outbound-scan.yml` runs `mhw scan --base=origin/<PR base>` on every pull
 request. ~~It is not among the needs of the `delivery-ci` gate, so it never blocks a merge.~~

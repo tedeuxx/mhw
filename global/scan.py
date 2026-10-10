@@ -10,8 +10,11 @@ There is no second detector: find_spans() is called as it is, with the same cate
                                 and HEAD, AND each of those commits' messages. Content added in one
                                 commit and removed in a later one is therefore still reported.
     mhw scan --base=REF         the same, against REF instead of @{upstream} (CI passes the PR's base)
-    mhw scan PATH...            exactly these files, whatever git says. Only files under the current
-                                directory: a path resolving outside it is SKIPPED, with the reason.
+    mhw scan PATH...            exactly these files, provided git lists them under the current directory
+                                (tracked, or untracked and not ignored). A PATH is only used to look a
+                                file up in that list; the file opened is always git's own entry. A PATH
+                                outside the current directory, a directory, or a file git does not list
+                                (missing, ignored) is SKIPPED, with the reason. Needs a git repository.
 
 One line per finding, never the text:
     path:line: category, N chars                    in the working tree
@@ -26,7 +29,8 @@ reported: it is mandated, not a finding to clean. The name is scanned; only the 
 in that trailer is exempt. That address anywhere else is reported.
 
 It informs and never blocks: the exit code is 0 with or without findings. Exit 2 means the scan itself
-could not run (no git, no upstream and no --base, a --base that is not a commit, an unknown argument),
+could not run (not in a git repository, no upstream and no --base, a --base that is not a commit, an
+unknown argument),
 which is not a finding.
 
 Every category is reported, whatever block_categories says: that setting decides what blocks a prompt,
@@ -171,43 +175,96 @@ def term_detector(conf, out, salts=None):
     return terms, salt
 
 
-def scan(paths, conf, out=None, salts=None, root=None, commits=None):
-    """Print the findings for paths (and, when given, commits) and a summary. Returns the number of
-    findings. Every path must resolve under root (default: the current directory)."""
+def listed_files():
+    """(files, error). files: every path git lists under the current directory, tracked or untracked and
+    not ignored, relative to it, exactly as git printed it."""
+    code, out = _git(["ls-files", "-z", "--cached", "--others", "--exclude-standard"])
+    if code:
+        return None, "not inside a git repository; mhw scan PATH needs git to list the files"
+    return sorted(set(p for p in out.split("\0") if p)), None
+
+
+def _lookup_key(arg, cwd):
+    """The normalised path, relative to the current directory, that arg names, or None when it names
+    something outside it. The last component is not resolved, so a symlink is looked up as itself, as git
+    lists it. Only ever compared with git's entries; never opened."""
+    full = os.path.normpath(os.path.join(cwd, arg))
+    parent, name = os.path.split(full)
+    try:
+        rel = os.path.relpath(os.path.join(os.path.realpath(parent), name), os.path.realpath(cwd))
+    except ValueError:                # Windows: a different drive is never under the current directory
+        return None
+    if rel == os.pardir or rel.startswith(os.pardir + os.sep) or os.path.isabs(rel):
+        return None
+    return rel
+
+
+def explicit_targets(args, files):
+    """[(label, path or None, skip reason or None)] for the PATH arguments, in order. path is always an
+    entry of files (git's output), never a string built from an argument (SonarCloud S8707)."""
+    cwd = os.getcwd()
+    by_key = {os.path.normpath(f): f for f in files}
+    dirs = set()
+    for key in by_key:
+        parent = os.path.dirname(key)
+        while parent and parent not in dirs:
+            dirs.add(parent)
+            parent = os.path.dirname(parent)
+    targets = []
+    for arg in args:
+        key = _lookup_key(arg, cwd)
+        if key is None:
+            targets.append((arg, None, "outside the working directory, not scanned"))
+        elif key in by_key:
+            targets.append((arg, by_key[key], None))
+        elif key == os.curdir or key in dirs:
+            targets.append((arg, None, "a directory, name its files; not scanned"))
+        else:
+            targets.append((arg, None, "not a file git lists (missing or ignored), not scanned"))
+    return targets
+
+
+def scan(targets, conf, out=None, salts=None, root=None, commits=None):
+    """Print the findings for targets (and, when given, commits) and a summary. Returns the number of
+    findings. targets: [(label, path or None, skip reason or None)]; every path comes from git's own
+    output and is relative to the current directory. A path must still resolve under root (default: the
+    current directory), so a listed symlink pointing elsewhere is not followed."""
     out = out or sys.stdout
     terms, salt = term_detector(conf, out, salts)
     limit = int(conf["max_bytes"])
     cwd = os.getcwd()
     root = os.path.realpath(root or cwd)
     total, files_with, scanned = 0, 0, 0
-    for path in paths:
-        # Resolve against the working directory (an absolute path stays itself), then open only a
-        # path whose common prefix with root is root itself (SonarCloud S8707).
+    for label, path, reason in targets:
+        if reason:
+            out.write("SKIPPED %s: %s\n" % (label, reason))
+            continue
+        # path is git's entry, so this guard only catches a listed symlink resolving out of root.
         real = os.path.realpath(os.path.join(cwd, path))
         try:
             contained = os.path.commonpath([root, real]) == root
         except ValueError:            # Windows: a different drive is never inside root
             contained = False
         if not contained:
-            out.write("SKIPPED %s: outside %s, not scanned\n" % (path, "the repository" if commits is not None
-                                                                   else "the working directory"))
+            out.write("SKIPPED %s: outside %s, not scanned\n" % (label, "the repository" if commits is not None
+                                                                    else "the working directory"))
             continue
         try:
             if os.path.getsize(real) > limit:
-                out.write("SKIPPED %s: over %d bytes, not scanned\n" % (path, limit))
+                out.write("SKIPPED %s: over %d bytes, not scanned\n" % (label, limit))
                 continue
             with open(real, "rb") as fh:
                 raw = fh.read()
         except OSError as exc:
-            out.write("SKIPPED %s: unreadable (%s)\n" % (path, type(exc).__name__))
+            out.write("SKIPPED %s: unreadable (%s)\n" % (label, type(exc).__name__))
             continue
         if b"\0" in raw:
-            out.write("SKIPPED %s: binary, not scanned\n" % path)
+            out.write("SKIPPED %s: binary, not scanned\n" % label)
             continue
         scanned += 1
         findings = scan_text(raw.decode("utf-8", errors="replace"), terms, salt)
         for line, cat, length in findings:
-            out.write("%s:%d: %s, %d chars\n" % (path, line, cat, length))
+            out.write("%s:%d: %s, %d chars\n" % (label, line, cat, length))
         total += len(findings)
         files_with += bool(findings)
     summary = "%d of %d scanned file(s)" % (files_with, scanned)
@@ -279,18 +336,22 @@ def main(argv, out=None):
         sys.stderr.write("mhw scan: name files or pass --base, not both\n")
         return 2
     root, commits = None, None
-    if not paths:
-        root, paths, commits, error = outbound(base)
-        if error:
-            sys.stderr.write("mhw scan: %s\n" % error)
-            return 2
+    if paths:
+        files, error = listed_files()
+        targets = [] if error else explicit_targets(paths, files)
+    else:
+        root, changed, commits, error = outbound(base)
+        targets = [(p, p, None) for p in changed or ()]
+    if error:
+        sys.stderr.write("mhw scan: %s\n" % error)
+        return 2
     try:
         conf = core.load_config(installed_config())
     except Exception as exc:      # an unreadable settings file: the built-in defaults, said visibly
         out.write("NOTE    the paste filter settings could not be read (%s); built-in defaults used\n"
                   % type(exc).__name__)
         conf = core.load_config(None)
-    scan(paths, conf, out, root=root, commits=commits)
+    scan(targets, conf, out, root=root, commits=commits)
     return 0
 
 

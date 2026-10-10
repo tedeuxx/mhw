@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 MHW = HERE.parent / "mhw"
@@ -69,6 +70,14 @@ class Sandbox:
 
     def cleanup(self):
         shutil.rmtree(self.root, ignore_errors=True)
+
+
+class Sink:
+    def write(self, _text):
+        pass
+
+    def flush(self):
+        pass
 
 
 class OutboundScan(unittest.TestCase):
@@ -152,7 +161,12 @@ class OutboundScan(unittest.TestCase):
     def test_missing_file_is_named_not_skipped_silently(self):
         r = self.box.mhw("absent.txt")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("SKIPPED absent.txt: unreadable", r.stdout)
+        self.assertIn("SKIPPED absent.txt: not a file git lists (missing or ignored), not scanned", r.stdout)
+        # A tracked file deleted from the working tree is listed by git, so it reaches open() and fails.
+        os.remove(str(self.box.repo / "clean.txt"))
+        r = self.box.mhw("clean.txt")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("SKIPPED clean.txt: unreadable (FileNotFoundError)", r.stdout)
 
     # History (agents-lead finding 1): what a push sends is every unpushed commit, not only the final tree.
     def test_added_in_one_commit_and_removed_in_a_later_one_is_reported(self):
@@ -276,6 +290,69 @@ class OutboundScan(unittest.TestCase):
             self.assertIn("SKIPPED %s: outside the working directory, not scanned" % arg, r.stdout)
             self.assertNotIn("credential", r.stdout)
             self.assertNoLeak(r)
+
+    # SonarCloud S8707, by construction: an argument only looks a file up in git's own list; the file
+    # opened is git's entry. A path git does not list is never opened, whatever is on disk.
+    def test_explicit_path_git_does_not_list_is_skipped_and_never_opened(self):
+        b = self.box
+        b.write(".gitignore", "ignored.txt\n")
+        b.write("ignored.txt", "key " + AWS_EXAMPLE + "\n")
+        r = b.mhw("ignored.txt")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("SKIPPED ignored.txt: not a file git lists (missing or ignored), not scanned", r.stdout)
+        self.assertNotIn("credential", r.stdout)
+        self.assertNoLeak(r)
+        # In process: open() is never called on it, and is called on git's entry for a listed file.
+        opened = []
+        real_open = open
+
+        def spy(path, *args, **kwargs):
+            opened.append(os.path.basename(str(path)))
+            return real_open(path, *args, **kwargs)
+        cwd = os.getcwd()
+        os.chdir(str(b.repo))
+        try:
+            with mock.patch.dict(os.environ, b.env, clear=True), mock.patch("builtins.open", spy), \
+                    mock.patch.object(sys, "stdout", new=Sink()):
+                self.assertEqual(scan.main(["ignored.txt", "./old.txt"]), 0)
+        finally:
+            os.chdir(cwd)
+        self.assertNotIn("ignored.txt", opened)
+        self.assertIn("old.txt", opened)
+
+    def test_explicit_path_spellings_and_directories(self):
+        b = self.box
+        (b.repo / "sub").mkdir()
+        b.write("sub/inner.txt", "x " + EMAIL + "\n")
+        b.git("add", "-A")
+        b.git("commit", "-q", "-m", "sub")
+        for arg in ("./old.txt", str(b.repo / "old.txt"), "sub/../old.txt"):
+            r = b.mhw(arg)
+            self.assertIn("%s:2: credential, %d chars" % (arg, len(AWS_EXAMPLE)), r.stdout)
+        for arg in ("sub", "sub/", "."):
+            r = b.mhw(arg)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("SKIPPED %s: a directory, name its files; not scanned" % arg, r.stdout)
+            self.assertNotIn("email", r.stdout)
+        self.assertIn("sub/inner.txt:1: email", b.mhw("sub/inner.txt").stdout)
+
+    def test_explicit_symlink_to_outside_is_skipped(self):
+        outside = self.box.root / "outside.txt"
+        outside.write_text("key " + AWS_EXAMPLE + "\n", encoding="utf-8")
+        os.symlink(str(outside), str(self.box.repo / "link.txt"))
+        r = self.box.mhw("link.txt")                      # untracked, not ignored: git lists it
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("SKIPPED link.txt: outside the working directory, not scanned", r.stdout)
+        self.assertNoLeak(r)
+
+    def test_explicit_paths_need_a_git_repository(self):
+        plain = self.box.root / "plain"
+        plain.mkdir()
+        (plain / "f.txt").write_text("x\n", encoding="utf-8")
+        r = subprocess.run(["/bin/sh", str(MHW), "scan", "f.txt"], cwd=str(plain), capture_output=True,
+                           text=True, env=dict(self.box.env, GIT_CEILING_DIRECTORIES=str(self.box.root)))
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("not inside a git repository", r.stderr)
 
     def test_tracked_symlink_to_outside_the_repository_is_skipped(self):
         outside = self.box.root / "outside.txt"
