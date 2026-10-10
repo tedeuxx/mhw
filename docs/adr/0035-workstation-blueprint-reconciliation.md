@@ -357,7 +357,7 @@ and installs again.
 
 ## Amendment 2026-10-10: implementing decisions 6 and 10 (brief text)
 
-Its evidence level is: *written and tested*. The tests assert the text is in the brief. Nothing is
+Pull request #126, into `rc/next`. Its evidence level is: *written and tested*. The tests assert the text is in the brief. Nothing is
 installed on the reference machine, and both rules are instructions that no hook enforces.
 
 **1. Where the text lives.** Item 5 of the implementation plan named `global/AGENTS.md` and
@@ -385,7 +385,7 @@ it, the close line would read as the only way to end a session.
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10)
-- Pull requests: #118 (slice A), #119 (slice B)
+- Pull requests: #118 (slice A), #119 (slice B), #126 (decisions 6 and 10)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),
   [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md),
   [ADR-0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md)
