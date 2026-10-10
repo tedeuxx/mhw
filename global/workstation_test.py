@@ -253,10 +253,14 @@ class RuntimeSummary(unittest.TestCase):
                 self.assertIn(needle, section)
 
     def test_brief_keeps_hooks_for_existential_risk(self):
-        # ADR-0035 decision 6: the principle, cc-status as the one exception, at instruction level.
+        # ADR-0035 decision 6: the principle as a rule, cc-status as the one exception with its measured
+        # context cost, leftovers named as leftovers, all at instruction level.
         section = self.brief_section("Hooks only for existential risk")
-        for needle in ("only to mitigate existential risk", "The one declared exception",
-                       "`cc-status`", "assessed, not verified", "not enforcement"):
+        for needle in ("Use hooks on this workstation only to mitigate existential risk",
+                       "The one declared exception", "`cc-status`", "make no permission decision",
+                       "one-line output is added to the model's context on",
+                       "each prompt submit and at session start (measured 2026-10-10)",
+                       "leftover to remove, not an exception; `mhw status` lists it", "not enforcement"):
             with self.subTest(needle=needle):
                 self.assertIn(needle, section)
 

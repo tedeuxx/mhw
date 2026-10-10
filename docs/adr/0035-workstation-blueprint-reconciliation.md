@@ -156,8 +156,11 @@ Owner principle: *"hooks somente devem ser utilizados para mitigacao de riscos e
 should only be used to mitigate existential risks).
 
 - **The paste filter stays.** Third-party confidentiality is the mission's core risk.
-- **The iTerm `cc-status` status hooks are a declared exception**, chosen by the owner. In the agent's
-  assessment (not verified), they are visual only and spend no model tokens.
+- **The iTerm `cc-status` status hooks are a declared exception**, chosen by the owner. ~~In the agent's
+  assessment (not verified), they are visual only and spend no model tokens.~~ *Struck 2026-10-10
+  (#126):* measured, see the decisions 6 and 10 amendment below. They make no permission decision,
+  and their one-line output is added to the model's context on each prompt submit and at session
+  start. The owner kept the exception with that cost declared.
 - **The four removed controls still registered in the legacy admin layer** are cleared by installing
   v5.0.0.
 
@@ -376,11 +379,30 @@ it, the close line would read as the only way to end a session.
 - **Nothing enforces either rule.** For decision 6 that is the decision itself: a hook enforcing the
   hook principle would break it.
 - **mhw neither installs nor checks the `cc-status` hooks.** `git grep cc-status` finds them only in
-  this record, the brief, its test and the regenerated desktop text. The exception is stated, not
+  this record, the brief, its test and the regenerated desktop text. ~~The exception is stated, not
   measured: that they are visual only and spend no model tokens is still the agent's unverified
-  assessment.
+  assessment.~~ *Struck 2026-10-10 (review of #126):* the token premise is measured false, see item 4.
 - **The brief takes effect only after `mhw install` and a fresh session**, under the brief's own
   configuration-change rule.
+- **Legacy admin-layer hooks stay registered on the reference machine until the admin layer is
+  reinstalled.** The managed drop-in still registers the removed restart guard and picker guard.
+  `install-managed.sh` retires them, but `mhw install` runs that step only with a terminal and the
+  administrator password. Until then the brief's rule and the machine disagree; `mhw status` lists
+  them as removed controls still installed.
+
+**4. Review of #126, 2026-10-10.** Two wording fixes from the agents-lead lens and the gate:
+
+- **The opening is a rule, not a description.** *"Hooks on this workstation exist only to mitigate
+  existential risk"* was false on the reference machine (the leftovers above). It now reads *"Use
+  hooks on this workstation only to mitigate existential risk"*, and the brief adds: *"A hook still
+  registered from an earlier install is a leftover to remove, not an exception; `mhw status` lists
+  it."* That `mhw status` lists them was read from `global/workstation.py` (`admin_report`) and its
+  test, not re-run against the reference machine.
+- **The `cc-status` cost is declared.** Measured by the orchestrating Claude Code session on
+  2026-10-10: the line it prints appears in the model's context on each prompt submit and at session
+  start. The owner kept the exception with that cost declared
+  ([decision](https://github.com/tedeuxx/mhw/pull/126#issuecomment-6100239143)). The brief now says
+  so and that it makes no permission decision, in place of *"spending no model tokens"*.
 
 ## Amendment 2026-10-10: implementing decision 7 (slice F)
 

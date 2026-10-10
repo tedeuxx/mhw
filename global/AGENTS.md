@@ -139,11 +139,13 @@ objective is not reached, say what is left instead. This is an instruction, not 
 
 ## Hooks only for existential risk
 
-Hooks on this workstation exist only to mitigate existential risk, such as a breach of third-party
+Use hooks on this workstation only to mitigate existential risk, such as a breach of third-party
 confidentiality. Do not add or propose a hook for anything else; use an instruction, a native setting
 or a check you run. The one declared exception, chosen by the owner, is the iTerm `cc-status` status
-hooks: assessed, not verified, as visual only and spending no model tokens. This is an instruction,
-not enforcement: nothing stops a hook being registered (ADR-0035).
+hooks: they make no permission decision, and their one-line output is added to the model's context on
+each prompt submit and at session start (measured 2026-10-10). A hook still registered from an
+earlier install is a leftover to remove, not an exception; `mhw status` lists it. This is an
+instruction, not enforcement: nothing stops a hook being registered (ADR-0035).
 
 ## Ethical foundation: Stoic ethics, the good life (ratified by the owner)
 
