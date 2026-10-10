@@ -1,5 +1,12 @@
 # personal-multi-harness-workstation-configuration — the harness-neutral brief
 
+sphere: personal
+
+This line only declares the sphere
+([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md), decision 1); the blueprint's
+stop-on-undeclared default is not adopted, so a workspace without the line is not treated as client
+work on that ground.
+
 **This file is the brief for any agent harness that reads `AGENTS.md`** (Claude Code, Codex, Kiro and
 whatever comes next). It is authored, not generated.
 

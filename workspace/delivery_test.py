@@ -4,6 +4,7 @@ import contextlib
 import io
 import unittest
 import json
+import re
 from unittest import mock
 import delivery as d
 
@@ -364,6 +365,14 @@ class DeliveryTests(unittest.TestCase):
             with self.subTest(carrier=carrier):
                 for phrase in ("Melhoria de harness", "Session type", "improvement session"):
                     self.assertNotIn(phrase, text)
+
+    def test_brief_declares_the_personal_sphere(self):
+        # ADR-0035 decision 1: one sphere line above the first section, declaration only.
+        brief = (d.ROOT / "AGENTS.md").read_text()
+        head = brief.split("\n## ", 1)[0]
+        self.assertEqual(re.findall(r"(?m)^sphere: .*$", brief), ["sphere: personal"])
+        self.assertRegex(head, r"(?m)^sphere: personal$")
+        self.assertIn("stop-on-undeclared default is not adopted", " ".join(head.split()))
 
     def test_carriers_state_who_merges(self):
         # Issue #60: agents merge slices into rc/next; only the release candidate waits for the owner.
