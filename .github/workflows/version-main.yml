@@ -45,8 +45,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Wheels only (SonarCloud S8541): no package or dependency may run a setup script while this job
+      # holds a contents: write token. Every dependency of 1.5.1 resolves as a wheel for CPython 3.12 on
+      # manylinux x86_64 (pip download --only-binary :all:, 2026-10-10); one that ever ships only an
+      # sdist fails this step loudly instead of executing code.
       - name: Install bump-my-version
-        run: python -m pip install "bump-my-version==1.5.1"
+        # A block scalar, not a plain one: ":all: " contains ": ", which ends a plain scalar and makes
+        # the whole file invalid YAML (the workflow would not load). tests.yml parses every workflow.
+        run: |
+          python -m pip install --only-binary :all: "bump-my-version==1.5.1"
 
       - name: Bump, commit and tag
         id: version

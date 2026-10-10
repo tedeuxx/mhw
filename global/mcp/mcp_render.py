@@ -23,6 +23,7 @@ missing dependency · 3 something unmanaged, conflicting or unreadable is in the
 Requires Python 3.11+ for the Codex surface (tomllib, to verify the rendered TOML before writing).
 """
 import copy
+import errno
 import json
 import os
 import re
@@ -77,6 +78,9 @@ def looks_like_credential_value(s):
 
 
 AGENT_ENV = ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CODEX_SANDBOX", "CODEX_SANDBOX_NETWORK_DISABLED")
+
+
+UNREADABLE = "cannot read the MCP definition %s: %s"
 
 
 class Refuse(Exception):
@@ -285,32 +289,73 @@ def validate(doc, platform=sys.platform):
     return errs
 
 
+def _anchors():
+    """The filesystem roots an absolute path may start from: fixed strings, never derived from input."""
+    if os.name == "nt":
+        return tuple("%s:%s" % (c, os.sep) for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    return (os.sep,)
+
+
+def _listed_entry(directory, name, want):
+    """The entry of os.listdir(directory) that is the object want (an lstat result) names: the same name
+    first, otherwise the same device and inode (a case- or normalisation-insensitive filesystem lists a
+    name spelled differently from the argument). Returns the LISTED string, never name."""
+    entries = os.listdir(directory)
+    for entry in entries:
+        if entry == name and os.path.samestat(os.lstat(os.path.join(directory, entry)), want):
+            return entry
+    for entry in entries:
+        try:
+            if os.path.samestat(os.lstat(os.path.join(directory, entry)), want):
+                return entry
+        except OSError:
+            continue
+    raise FileNotFoundError(errno.ENOENT, "not listed in its directory", os.path.join(directory, name))
+
+
+def trusted_path(real):
+    """The absolute, symlink-free path real, rebuilt from a fixed root and the names the filesystem itself
+    lists, one directory at a time (SonarCloud S8707, S8705). The argument only selects among listed
+    entries, compared by name and inode; no character of it reaches the returned string. Raises OSError
+    when a component is missing or a directory on the way cannot be listed."""
+    drive, rest = os.path.splitdrive(real)
+    want_anchor = (drive + os.sep).casefold()
+    path = next((a for a in _anchors() if a.casefold() == want_anchor), None)
+    if path is None or not rest.startswith(os.sep):
+        raise FileNotFoundError(errno.ENOENT, "not an absolute local path", real)
+    prefix = drive + os.sep
+    for name in (c for c in rest.split(os.sep) if c):
+        prefix = os.path.join(prefix, name)
+        path = os.path.join(path, _listed_entry(path, name, os.lstat(prefix)))
+    return path
+
+
 def resolve_source(path):
-    """The definition's real path, once it is shown to be a regular file owned by the caller."""
-    real = os.path.realpath(path)
+    """The definition's path, rebuilt by trusted_path from what the filesystem lists, once it is shown to be
+    a regular file owned by the caller."""
     try:
-        st = os.stat(real)
+        trusted = trusted_path(os.path.realpath(path))
+        st = os.stat(trusted)
     except FileNotFoundError:
         raise Refuse(2, "no MCP definition at %s. Copy global/mcp/mcp-servers.example.json there and edit it "
                         "(the directory is outside every repository)" % path)
     except OSError as e:
-        raise Refuse(2, "cannot read the MCP definition %s: %s" % (path, e))
+        raise Refuse(2, UNREADABLE % (path, e))
     if not stat.S_ISREG(st.st_mode):
         raise Refuse(2, "the MCP definition %s is not a regular file" % path)
     if hasattr(os, "getuid") and st.st_uid != os.getuid():
         raise Refuse(2, "the MCP definition %s is not owned by the user running the renderer" % path)
-    return real
+    return trusted
 
 
 def load_source(path):
-    real = resolve_source(path)
+    trusted = resolve_source(path)
     try:
-        # NOSONAR pythonsecurity:S8707 — the path is the caller's own CLI argument, resolved and checked
-        # above to be a regular file it owns; only parsed JSON keys and values reach any output.
-        with open(real, encoding="utf-8") as fh:  # NOSONAR
+        # trusted is built from a fixed root and listed entry names only, never from the argument.
+        with open(trusted, encoding="utf-8") as fh:
             doc = json.load(fh)
     except (OSError, ValueError) as e:
-        raise Refuse(2, "cannot read the MCP definition %s: %s" % (path, e))
+        raise Refuse(2, UNREADABLE % (path, e))
     errs = validate(doc)
     if errs:
         raise Refuse(2, "invalid MCP definition %s:\n  - %s" % (path, "\n  - ".join(errs)))
@@ -323,14 +368,23 @@ def committable(path):
     if not git:
         return False
     git = os.path.abspath(git)
-    d = os.path.dirname(os.path.abspath(path))
-    # NOSONAR pythonsecurity:S8705 — list-form argv with no shell, an absolute git binary, and absolute
-    # path operands (the second after "--"), so no value can be read as an option or a command.
-    r = subprocess.run([git, "-C", d, "rev-parse", "--is-inside-work-tree"],  # NOSONAR
+    # The directory operand is rebuilt from listed names (trusted_path). A missing directory is not a
+    # work tree, as before when git -C failed on it. Any other error (an ancestor that can be traversed
+    # but not listed, where git -C would still succeed) cannot be answered here, so it refuses: a
+    # symlinked source there would otherwise be read through its listable target and never checked.
+    try:
+        d = trusted_path(os.path.realpath(os.path.dirname(os.path.abspath(path))))
+    except FileNotFoundError:
+        return False
+    except OSError as e:
+        raise Refuse(2, UNREADABLE % (path, e))
+    r = subprocess.run([git, "-C", d, "rev-parse", "--is-inside-work-tree"],
                        capture_output=True, text=True)
     if r.returncode != 0 or r.stdout.strip() != "true":
         return False
-    return subprocess.run([git, "-C", d, "check-ignore", "-q", "--", os.path.abspath(path)],  # NOSONAR
+    # The file is named on stdin, NUL-terminated, never in argv: it is data to git, never an option.
+    return subprocess.run([git, "-C", d, "check-ignore", "--stdin", "-z", "-q"],
+                          input=(os.path.abspath(path) + "\0").encode("utf-8", "surrogateescape"),
                           capture_output=True).returncode != 0
 
 

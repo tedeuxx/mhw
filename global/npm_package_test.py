@@ -337,9 +337,9 @@ class PackAndInstall(Base):
             names = {n[len("package/"):] for n in t.getnames()}
         for needed in ("mhw", "workstation", ".bumpversion.toml", ".workstation-archive", "bin/mhw.js",
                        "bin/workstation.js", "bin/postinstall.js",
-                       "global/workstation.py", "global/install.sh", "global/install-managed.sh",
-                       "global/install.ps1", "global/AGENTS.md", "global/deny-floor.conf", "overlay/profile.json",
-                       "package.json"):
+                       "global/workstation.py", "global/owner_actions.py", "global/install.sh",
+                       "global/install-managed.sh", "global/install.ps1", "global/AGENTS.md",
+                       "global/deny-floor.conf", "overlay/profile.json", "package.json"):
             self.assertIn(needed, names)
         self.assertFalse([n for n in names if n.endswith(("_test.py", ".test.sh", ".test.ps1", ".test.stub"))])
         self.assertFalse([n for n in names if n.startswith(("docs/", "workspace/", ".github/", ".git/"))])

@@ -1,7 +1,9 @@
 #!/bin/sh
 # Render the global brief to each harness, install the user-level deny floor, and install the paste
 # filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0011), and render the inner-loop allow
-# list (allow-list.conf; ADR-0031: wide only while the admin deny floor is complete). The stale-session restart guard
+# list (allow-list.conf; ADR-0031: wide only while the admin deny floor is complete), and set each harness's
+# session-start default model and effort from overlay/model-defaults.json (ADR-0007, ADR-0035;
+# global/models/model_defaults.py). The stale-session restart guard
 # (ADR-0022) and the /breaking-glass switches (ADR-0024) were removed (ADR-0028), and so was the HITL
 # picker guard (ADR-0013, 2026-10-05 amendment, Issue #60): a run of this installer deletes what an
 # earlier version wrote for them, and --check reports it as STALE.
@@ -91,7 +93,7 @@ for arg in "$@"; do
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
     --shell-rc=?*) shell_rc=${arg#--shell-rc=} ;;
-    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,35p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -220,18 +222,30 @@ if ! awk -v claude="$floor_claude" -v codex="$floor_codex" '
     /^[ \t]*(#|$)/ { next }
     {
       why = ""
-      if ($1 != "cmd" && $1 != "file") why = "kind must be cmd or file"
+      if ($1 != "cmd" && $1 != "file" && $1 != "glob") why = "kind must be cmd, file or glob"
       else if (NF < 2) why = "no words"
       else if ($1 == "file" && NF != 2) why = "a file entry takes one path"
+      else if ($1 == "glob" && NF < 3) why = "a glob entry takes a program and at least one word"
       for (i = 2; i <= NF && why == ""; i++) {
         if ($i !~ /^[A-Za-z0-9._\/~=:@+*-]+$/) why = "word outside the allowed set"
         else if ($1 == "cmd" && $i ~ /\*/) why = "a cmd word may not hold *"
+      }
+      # A glob is Claude Code only (no Codex form): exactly one "*", the last character of the last
+      # word, after at least one other character.
+      if (why == "" && $1 == "glob") {
+        for (i = 2; i < NF; i++) if ($i ~ /\*/) why = "a glob holds * only at the end of its last word"
+        if (why == "" && $NF !~ /^[^*]+\*$/) why = "a glob holds * only at the end of its last word"
+        # "Bash(<words>:*)" is the shape of a prefix rule: install-managed.sh would render it for Codex.
+        if (why == "" && $NF ~ /:\*$/) why = "a glob may not end in :* (that is a cmd entry)"
       }
       if (why != "") { printf "invalid deny-floor entry (%s): %s\n", why, $0 > "/dev/stderr"; err = 1; next }
       if ($1 == "cmd") {
         w = $2; for (i = 3; i <= NF; i++) w = w " " $i
         print "Bash(" w ":*)" > claude
         print w > codex
+      } else if ($1 == "glob") {
+        w = $2; for (i = 3; i <= NF; i++) w = w " " $i
+        print "Bash(" w ")" > claude
       } else {
         print "Read(" $2 ")" > claude
         print "Edit(" $2 ")" > claude
@@ -717,8 +731,24 @@ method_step() {
   # shellcheck disable=SC2086 # $method_optin is empty or the single word --opt-in
   python3 -B "$script_dir/method/method_render.py" "--mode=$mode" "--stamp=$stamp" $method_optin || raise $?
 }
+# The session-start default model and reasoning effort per agent harness (ADR-0007, ADR-0035), from
+# the overlay's model-defaults.json, written into each harness's own user-level key by
+# global/models/model_defaults.py. The keys it sets are recorded, so an owner's own value is never
+# overwritten (KEPT, which changes no exit code) and uninstall removes only what it set. With no overlay file the policy is
+# empty: keys it set earlier are removed while they still hold its value.
+models_step() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP    the session-start model defaults: python3 3.9 or later is required"
+    raise 2
+    return 0
+  fi
+  models_policy=none
+  if [ -n "$overlay" ] && [ -f "$overlay/model-defaults.json" ]; then models_policy="$overlay/model-defaults.json"; fi
+  python3 -B "$script_dir/models/model_defaults.py" "--mode=$mode" "--stamp=$stamp" "--policy=$models_policy" || raise $?
+}
 if [ "$mode" = uninstall ]; then
   allow_uninstall
+  models_step
   uninstall_user
   method_step
   if [ -n "$shell_rc" ] && [ -f "$shell_rc" ] && grep -qF "$rc_tag" "$shell_rc"; then
@@ -797,6 +827,7 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
   fi
 fi
 merge_settings
+models_step
 allow_step
 method_step
 

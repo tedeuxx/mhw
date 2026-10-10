@@ -36,6 +36,25 @@ jobs:
           shellcheck --version
           shellcheck -s sh mhw workstation global/install.sh global/install.test.sh \
             global/allow-list.sh global/allow-list.test.sh global/mcp/mcp-launch.sh
+      # A workflow that is not valid YAML never loads: GitHub reports a "workflow file issue" on push
+      # and no job runs, so nothing else in this file would notice (PR #141). Ruby and its bundled
+      # YAML parser (Psych) are preinstalled on the runner image; nothing is fetched.
+      - name: every workflow file parses as YAML (the runner's ruby; no third-party linter)
+        run: |
+          ruby --version
+          ruby -ryaml -e 'files = Dir.glob(".github/workflows/*.{yml,yaml}").sort
+          abort("no workflow files found") if files.empty?
+          bad = 0
+          files.each do |f|
+            begin
+              YAML.parse(File.read(f), filename: f)
+              puts "ok    #{f}"
+            rescue Psych::SyntaxError => e
+              bad += 1
+              puts "FAIL  #{e.message}"
+            end
+          end
+          exit(bad.zero? ? 0 : 1)'
       - name: python compile check, warnings as errors (the runner's python3; no third-party linter)
         run: |
           python3 --version
@@ -48,8 +67,10 @@ jobs:
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/profile/profile.py global/profile/profile_test.py \
             global/workstation.py global/workstation_test.py \
+            global/scan.py global/scan_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
+            global/models/model_defaults.py global/models/model_defaults_test.py \
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py
       - name: node syntax check of the npm launcher, alias and postinstall (Issue #68)
@@ -117,6 +138,12 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
+      # ADR-0035 decision 7: mhw scan, the outbound scan, in throwaway git repositories and HOMEs, on
+      # synthetic fixtures. Findings are reported by file:line, category and length, never the text.
+      - name: outbound scan suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/scan_test.py
       # Issue #61, ADR-0032: the working method rendered into the three agent harnesses' user-level
       # carriers, in throwaway HOMEs only. Asserts every rendered agent keeps its tool list and every
       # rendered file its provenance stamp.
@@ -124,6 +151,12 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/method/method_render_test.py "$RUNNER_TEMP/method"
+      # ADR-0035: the session-start model and effort defaults, per agent harness, in throwaway HOMEs:
+      # render, check, drift (an owner's value is never overwritten) and uninstall of only what mhw set.
+      - name: model-defaults suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/models/model_defaults_test.py "$RUNNER_TEMP/model-defaults"
       # Issues #71-#75: the five workflow commands render on all three agent harnesses with their required
       # sections, Codex implicit invocation off; the handover sanitisation check on a synthetic fixture.
       - name: workflow-commands suite

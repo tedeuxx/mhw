@@ -1,5 +1,12 @@
 # personal-multi-harness-workstation-configuration — the harness-neutral brief
 
+sphere: personal
+
+This line only declares the sphere
+([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md), decision 1); the blueprint's
+stop-on-undeclared default is not adopted, so a workspace without the line is not treated as client
+work on that ground.
+
 **This file is the brief for any agent harness that reads `AGENTS.md`** (Claude Code, Codex, Kiro and
 whatever comes next). It is authored, not generated.
 
@@ -128,9 +135,12 @@ Concretely, it must keep three things true on this machine:
 3. **Automatic versioning.** Every merge to `main` cuts a **purely numeric SemVer** tag
    (`vMAJOR.MINOR.PATCH`, no pre-release suffix) with **bump-my-version**, configured in
    [`.bumpversion.toml`](.bumpversion.toml). The part bumped is chosen by a **predefined cut policy**
-   ~~suited to a policy-set artifact~~ — plain SemVer since 2026-10-06: **major** for a breaking change
+   ~~suited to a policy-set artifact~~ — ~~plain SemVer since 2026-10-06: **major** for a breaking change
    (something a consumer must change), **minor** for an incremental feature (including adding or
-   removing a control when no consumer has to change anything), **patch** for a bug fix or a change with no behaviour change (docs, tests, CI) — declared on the pull request as exactly one
+   removing a control when no consumer has to change anything), **patch** for a bug fix or a change with no behaviour change (docs, tests, CI)~~
+   since 2026-10-10: **major** for a breaking change (something that worked stops working the same way
+   for an existing user), **minor** for a new functionality, **patch** for a bug fix or an incremental
+   change to something that already exists, docs, tests and CI included — declared on the pull request as exactly one
    `semver:major|minor|patch` label; a pull request without exactly one fails a check. The cut policy
    and the mechanism are in [ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md), which is
    **proposed** until the owner ratifies the cut table. Since 2026-10-05 the only pull request into
@@ -232,3 +242,20 @@ Since 2026-10-06 (ADR-0034 amendment) the package and command are `mhw` (`workst
 alias), and the npm line installs the user layer through a `postinstall`: *written and tested*, probed
 from GitHub at the branch head into throwaway prefixes and HOMEs with npm 11.13.0 (fresh, upgrade from
 v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on the reference machine.
+
+- **Session-start model and effort defaults** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md)
+  slice B, amending [ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md)): each
+  harness's model pinned by ID, at medium effort (no effort on Kiro), from `overlay/model-defaults.json`
+  through `global/models/model_defaults.py`. *Written and tested* in throwaway homes; **not installed**
+  on the reference machine, and no default checked in a new session. macOS and Linux only. On that
+  machine the owner holds his own Claude Code `model` and Codex `model_reasoning_effort`; install keeps
+  them, so those two pins take effect only after he deletes the keys.
+- **Outbound scan** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 7,
+  slice F): `mhw scan` checks the files and commits a branch changed and prints `file:line`, the
+  category and the length, never the text; the `outbound-scan` CI check runs it on every pull request.
+  *Written and tested*; **not installed** on the reference machine. Findings never block; employer and
+  client terms are not checked on the CI runner. macOS and Linux only.
+- **Owner-action queue** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 9):
+  actions only the owner can take are Issues in mhw labelled `owner-action`, and `mhw status` shows
+  their open count, or `not read` with a reason, never a false 0. *Written and tested*; **not
+  installed** on the reference machine. Not shown on Windows.

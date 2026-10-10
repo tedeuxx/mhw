@@ -45,6 +45,12 @@ is his own. Help him respect that line.
    A silent intervention is a defect.
 7. **Report at the real evidence level.** "Written", "installed", "loaded" and "enforced" are different
    claims. Never claim coverage you do not have; name what is outside your reach.
+8. **Before every push and pull request, run `mhw scan`** (`./mhw scan` in a checkout) and clean what
+   it reports; it informs and never blocks. It also reads every unpushed commit and its message: fix a
+   finding there by rewriting the unpushed commit that introduced it, not with a follow-up commit. In
+   the `Co-Authored-By` attribution trailer your instructions require, the name is scanned; only the
+   vendor no-reply address in that trailer is exempt, so never rewrite a commit to remove that
+   trailer. This is an instruction; no hook runs it. macOS and Linux only.
 
 ## Escalating to the owner
 
@@ -126,6 +132,22 @@ first prompt already states the objective, restate it in one line; do not ask ag
 "what is left" against that objective. Do not repeat this on resume or compaction. This is an
 instruction, not a hook: nothing can make him type a command, and whether a model follows it is not
 measured.
+
+## Session close
+
+End the session with one line, `Objective reached: <objective>`, followed by its evidence: the merged
+pull request, the release, the check output or the measurement. Never ask him whether to close. If the
+objective is not reached, say what is left instead. This is an instruction, not a hook (ADR-0035).
+
+## Hooks only for existential risk
+
+Use hooks on this workstation only to mitigate existential risk, such as a breach of third-party
+confidentiality. Do not add or propose a hook for anything else; use an instruction, a native setting
+or a check you run. The one declared exception, chosen by the owner, is the iTerm `cc-status` status
+hooks: they make no permission decision, and their one-line output is added to the model's context on
+each prompt submit and at session start (measured 2026-10-10). A hook still registered from an
+earlier install is a leftover to remove, not an exception; `mhw status` lists it. This is an
+instruction, not enforcement: nothing stops a hook being registered (ADR-0035).
 
 ## Ethical foundation: Stoic ethics, the good life (ratified by the owner)
 

@@ -89,7 +89,7 @@ def facts(**over):
 class StatusOutput(unittest.TestCase):
     def test_short_view(self):
         out = ws.render_status(facts())
-        self.assertLessEqual(len(out), 12)
+        self.assertLessEqual(len(out), 13)  # 13 since the models line (ADR-0035)
         self.assertIn("  source           v3.1.0 @ aaaaaaa (this checkout)", out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: not installed", out)
         self.assertIn("  check            matches this checkout", out)
@@ -216,7 +216,7 @@ class RuntimeSummary(unittest.TestCase):
         self.assertEqual(out[-1], "  " + line)
         self.assertLessEqual(len(out), 11)
         self.assertEqual(self.row(out, "agent harness"), "none detected on PATH")
-        self.assertIn("Kiro: not read by this view", self.row(out, "model, effort"))
+        self.assertIn("Kiro: default", self.row(out, "model, effort"))
         self.assertIn("Kiro /context show, /tools", self.row(out, "model, effort"))
 
     def test_brief_names_the_summary_command(self):
@@ -236,6 +236,31 @@ class RuntimeSummary(unittest.TestCase):
         section = " ".join(section.split())
         for needle in ("objective with the owner in one line", "Claude Code `/goal`", "Codex `/goal`",
                        "Kiro CLI `/goal`", "first reply", "not a hook"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, section)
+
+    def brief_section(self, heading):
+        brief = (ws.HERE / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("\n## " + heading + "\n", brief)
+        return " ".join(brief.split("\n## " + heading + "\n", 1)[1].split("\n## ", 1)[0].split())
+
+    def test_brief_defines_the_session_close(self):
+        # ADR-0035 decision 10: the close line plus evidence; never ask whether to close.
+        section = self.brief_section("Session close")
+        for needle in ("`Objective reached: <objective>`", "evidence", "Never ask him whether to close",
+                       "what is left", "not a hook"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, section)
+
+    def test_brief_keeps_hooks_for_existential_risk(self):
+        # ADR-0035 decision 6: the principle as a rule, cc-status as the one exception with its measured
+        # context cost, leftovers named as leftovers, all at instruction level.
+        section = self.brief_section("Hooks only for existential risk")
+        for needle in ("Use hooks on this workstation only to mitigate existential risk",
+                       "The one declared exception", "`cc-status`", "make no permission decision",
+                       "one-line output is added to the model's context on",
+                       "each prompt submit and at session start (measured 2026-10-10)",
+                       "leftover to remove, not an exception; `mhw status` lists it", "not enforcement"):
             with self.subTest(needle=needle):
                 self.assertIn(needle, section)
 
@@ -270,6 +295,71 @@ class Settings(unittest.TestCase):
                                ("Claude Code", "workspace", "disableAllHooks", "true"),
                                ("Codex", "user", "approval_policy", "never"),
                                ("Codex", "user", "model", "gpt-x")])
+
+    def test_reads_the_kiro_default_model(self):
+        with tempfile.TemporaryDirectory(prefix="workstation-settings-") as d:
+            base = Path(d)
+            saved = os.environ.get("HOME")
+            os.environ["HOME"] = str(base / "home")
+            try:
+                (base / "home" / ".kiro" / "settings").mkdir(parents=True)
+                (base / "home" / ".kiro" / "settings" / "cli.json").write_text(json.dumps(
+                    {"chat.defaultModel": "claude-sonnet-4.5", "chat.enableThinking": True}), encoding="utf-8")
+                got = ws.read_settings(None)
+            finally:
+                os.environ["HOME"] = saved
+        self.assertIn(("Kiro", "user", "chat.defaultModel", "claude-sonnet-4.5"), got)
+
+
+class ModelsLine(unittest.TestCase):
+    """ADR-0035: status shows each harness's session-start model and effort against the policy."""
+
+    SETTINGS = [("Claude Code", "user", "model", "claude-opus-5-5[1m]"),
+                ("Claude Code", "user", "effortLevel", "medium"),
+                ("Codex", "user", "model", "gpt-5.6-sol"), ("Codex", "user", "model_reasoning_effort", "high"),
+                ("Kiro", "user", "chat.defaultModel", "claude-sonnet-4.5")]
+
+    def models(self, lines):
+        out = ws.render_status(facts(settings=self.SETTINGS, user_lines=lines))
+        hits = [line for line in out if line.startswith("  models           ")]
+        self.assertEqual(len(hits), 1, out)
+        return hits[0][19:]
+
+    def test_values_and_policy_state(self):
+        values = ("Claude Code: model claude-opus-5-5[1m] (user), effortLevel medium (user) · Codex: model "
+                  "gpt-5.6-sol (user), model_reasoning_effort high (user) · Kiro: chat.defaultModel "
+                  "claude-sonnet-4.5 (user)")
+        self.assertEqual(self.models([]), values + "; policy: none (no model-defaults.json in the overlay)")
+        ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
+        self.assertEqual(self.models(ok), values + "; policy: matches")
+        refused = ok + ["KEPT    /h/.codex/config.toml: model_reasoning_effort is \"high\" (model defaults codex)",
+                        "MISSING /h/.kiro/settings/cli.json: install would set (model defaults kiro-cli)"]
+        self.assertEqual(self.models(refused), values + "; policy: 2 harness(es) differ; 1 hold a value of "
+                                                        "yours that install leaves alone")
+
+    def test_workspace_override_is_never_reported_as_matching(self):
+        """PR #119 lens: a workspace key beats the user layer, the only layer mhw writes. The line shows
+        the value in effect and names the override instead of claiming "policy: matches"."""
+        ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
+        settings = self.SETTINGS + [("Claude Code", "workspace", "model", "claude-haiku-x")]
+        out = ws.render_status(facts(settings=settings, user_lines=ok))
+        line = [l for l in out if l.startswith("  models           ")][0]
+        self.assertIn("Claude Code: model claude-haiku-x (workspace)", line)
+        self.assertNotIn("policy: matches", line)
+        self.assertIn("policy: user layer matches; overridden by the workspace: Claude Code model", line)
+        # Without the workspace key the same lines do match.
+        self.assertTrue(self.models(ok).endswith("; policy: matches"))
+
+    def test_an_owner_value_is_no_pending_write(self):
+        """PR #119 lens: a KEPT owner value is reported, but install has nothing to write for it."""
+        kept = ["KEPT    /h/.claude/settings.json: model is \"opus[1m]\" (model defaults claude-code); your value",
+                "OK      /h/.codex/config.toml: x (model defaults codex)"]
+        self.assertEqual(ws.issues(kept), 0)
+        self.assertEqual(ws.issues(kept + ["DRIFT   /h/.kiro/settings/cli.json: x (model defaults kiro-cli)"]), 1)
+        steps = ws.owner_steps(kept)
+        self.assertEqual(len(steps), 1, steps)
+        self.assertIn("delete the key and run install again", steps[0])
+        self.assertIn("/h/.claude/settings.json: model is \"opus[1m]\"", steps[0])
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
@@ -321,7 +411,9 @@ class EndToEnd(unittest.TestCase):
         code, out = self.run_ws("status", "--summary", "--overlay=none", project)
         self.assertEqual(code, 0)
         self.assertLessEqual(len(out.splitlines()), 11, out)
-        self.assertIn("  workstation      %s · version key: >=999 <1000 mismatch\n" % source.split(" (")[0], out)
+        # The real gh (if any) in a throwaway HOME with no token: the owner-action count is not read, never 0.
+        self.assertIn("  workstation      %s · version key: >=999 <1000 mismatch · owner actions: not read ("
+                      % source.split(" (")[0], out)
         self.assertIn("· hooks admin: none · user: paste filter (Claude Code)", out)
         self.assertRegex(out, r"(?m)^  Workstation version key: required >=999 <1000, installed ")
         # No admin layer: the floor is never listed as locked, and the installer's words arrive whole.
@@ -853,6 +945,10 @@ class AdminNotInstalled(unittest.TestCase):
         saved_sudo = ws.admin_access
         os.environ.update({"HOME": str(base / "home"), "TMPDIR": str(base / "tmp"),
                            "WORKSTATION_MANAGED_ROOT": str(base / "root"), ws.OVERLAY_ENV: "none"})
+        # Both win over HOME in the installers (the model-defaults record and Codex's config): a leaked
+        # value would let this test edit the real files (PR #119 review).
+        os.environ.pop("XDG_DATA_HOME", None)
+        os.environ.pop("CODEX_HOME", None)
         ws.admin_access = lambda asking: False
         out = io.StringIO()
         try:
@@ -888,6 +984,8 @@ class AdminNotRemoved(unittest.TestCase):
                "WORKSTATION_MANAGED_ROOT": str(base / "root"), ws.OVERLAY_ENV: "none"}
         saved_env, saved_access, saved_npm = dict(os.environ), ws.admin_access, ws.npm_package
         os.environ.update(env)
+        os.environ.pop("XDG_DATA_HOME", None)  # see AdminNotInstalled: never the real record or Codex home
+        os.environ.pop("CODEX_HOME", None)
         out = io.StringIO()
         try:
             with contextlib.redirect_stdout(out):
@@ -945,6 +1043,189 @@ class OwnerSteps(unittest.TestCase):
             ws.subprocess.run = saved_run
             if saved_root is not None:
                 os.environ["WORKSTATION_MANAGED_ROOT"] = saved_root
+
+
+import owner_actions as oa  # noqa: E402
+
+# A stand-in gh (ADR-0035, decision 9). It logs its arguments and answers per STUB_* variables; never the
+# real gh, never the network. `exec sleep` so a timeout kills the process holding the pipes.
+STUB_GH = """#!/bin/sh
+printf '%s\\n' "$*" >> "$STUB_LOG"
+case "$1" in
+  issue) [ -n "$STUB_SLEEP" ] && exec sleep "$STUB_SLEEP"
+         [ -n "$STUB_ERR" ] && printf '%s\\n' "$STUB_ERR" >&2
+         [ -n "$STUB_DEPTH" ] && { head -c "$STUB_DEPTH" /dev/zero | tr '\\0' '['; exit 0; }
+         printf '%s' "$STUB_ISSUES"; exit "${STUB_CODE:-0}" ;;
+  label) printf '%s' "${STUB_LABELS:-[]}"; exit "${STUB_LABEL_CODE:-0}" ;;
+esac
+exit 99
+"""
+
+
+@unittest.skipUnless(os.name == "posix", "the stand-in gh is a POSIX sh script")
+class OwnerActions(unittest.TestCase):
+    """The open owner-action count: read with gh, read-only; 'not read (<reason>)' and never a false 0."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="workstation-owner-")
+        self.addCleanup(self.temp.cleanup)
+        b = Path(self.temp.name)
+        self.bin, self.log, self.home = b / "bin", b / "gh.log", b / "home"
+        self.bin.mkdir()
+        self.home.mkdir()
+        self.gh = self.bin / "gh"
+        self.gh.write_text(STUB_GH, encoding="utf-8")
+        self.gh.chmod(0o755)
+        keys = ("STUB_LOG", "STUB_SLEEP", "STUB_ERR", "STUB_ISSUES", "STUB_CODE", "STUB_LABELS",
+                "STUB_LABEL_CODE", "STUB_DEPTH")
+        saved = {k: os.environ.get(k) for k in keys}
+
+        def restore():
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        self.addCleanup(restore)
+        for k in keys:
+            os.environ.pop(k, None)
+        os.environ["STUB_LOG"] = str(self.log)
+
+    def read(self, timeout=oa.TIMEOUT, **stub):
+        os.environ.update(stub)
+        return oa.read(gh=str(self.gh), timeout=timeout)
+
+    def calls(self):
+        return self.log.read_text(encoding="utf-8").splitlines() if self.log.exists() else []
+
+    def test_count_above_zero_reads_open_issues_with_the_label_only(self):
+        result = self.read(STUB_ISSUES='[{"number":1},{"number":7},{"number":9}]')
+        self.assertEqual(result, (3, ""))
+        self.assertEqual(oa.text(result), "3 open")
+        # One call, read-only, the label and state and a limit above gh's default page of 30.
+        self.assertEqual(self.calls(), ["issue list --repo tedeuxx/mhw --label owner-action --state open "
+                                        "--limit 1000 --json number"])
+
+    def test_zero_only_after_the_label_is_confirmed(self):
+        result = self.read(STUB_ISSUES="[]", STUB_LABELS='[{"name":"loop"},{"name":"owner-action"}]')
+        self.assertEqual(result, (0, ""))
+        self.assertEqual(oa.text(result), "0 open")
+        self.assertEqual(self.calls()[1], "label list --repo tedeuxx/mhw --limit 1000 --json name")
+
+    def test_absent_label_is_not_a_zero(self):
+        # gh lists nothing, exit 0, for a label that does not exist (measured): that must not read as 0.
+        result = self.read(STUB_ISSUES="[]", STUB_LABELS='[{"name":"owner-actions"},{"name":"loop"}]')
+        self.assertEqual(oa.text(result), "not read (label owner-action absent in tedeuxx/mhw)")
+
+    def test_gh_missing(self):
+        saved = os.environ["PATH"]
+        os.environ["PATH"] = str(self.home)  # a directory with no gh in it
+        try:
+            result = oa.read()
+        finally:
+            os.environ["PATH"] = saved
+        self.assertEqual(oa.text(result), "not read (gh not found)")
+        self.assertEqual(self.calls(), [])
+
+    def test_gh_errors_are_classified_never_printed(self):
+        cases = [
+            ({"STUB_CODE": "4", "STUB_ERR": "To get started with GitHub CLI, please run: gh auth login"},
+             "gh not authenticated"),
+            ({"STUB_CODE": "1", "STUB_ERR": "HTTP 401: Bad credentials (https://api.github.com/graphql)"},
+             "gh not authenticated"),
+            ({"STUB_CODE": "1", "STUB_ERR": "error connecting to api.github.com"},
+             "offline, GitHub unreachable"),
+            ({"STUB_CODE": "1", "STUB_ERR": "secret-ish detail"}, "gh exited 1"),
+            ({"STUB_ISSUES": "not json"}, "gh output not understood"),
+            ({"STUB_ISSUES": '{"number": 1}'}, "gh output not understood"),
+            ({"STUB_ISSUES": "[]", "STUB_LABEL_CODE": "1"}, "gh exited 1"),
+        ]
+        for stub, reason in cases:
+            with self.subTest(reason=reason, stub=stub):
+                for k in ("STUB_CODE", "STUB_ERR", "STUB_ISSUES", "STUB_LABEL_CODE"):
+                    os.environ.pop(k, None)
+                stub.setdefault("STUB_ISSUES", "")
+                result = self.read(**stub)
+                self.assertIsNone(result[0])
+                self.assertEqual(oa.text(result), "not read (%s)" % reason)
+                self.assertNotIn("secret-ish", oa.text(result))
+
+    # Output that raised inside read() before the fix (QA verdict B1 on PR #121). Non-UTF-8 bytes reach
+    # the stub through os.environ as surrogate escapes. The stub prints the nesting itself (an env var
+    # that large exceeds Linux's per-string exec limit); a million '[' raise RecursionError in json on
+    # every supported Python (100000 gave a ValueError on 3.14, so the depth is not arbitrary).
+    UNREADABLE = [
+        ("non-UTF-8 stdout", {"STUB_ISSUES": "\udcff\udcfe[]"}, "gh output not understood"),
+        ("non-UTF-8 stderr, non-zero exit", {"STUB_CODE": "1", "STUB_ERR": "\udcff\udcfe secret-ish"},
+         "gh exited 1"),
+        ("deeply nested JSON", {"STUB_DEPTH": "1000000"}, "gh output not understood"),
+    ]
+
+    def test_unreadable_gh_output_never_raises(self):
+        for name, stub, reason in self.UNREADABLE:
+            with self.subTest(name):
+                for k in ("STUB_CODE", "STUB_ERR", "STUB_ISSUES", "STUB_DEPTH"):
+                    os.environ.pop(k, None)
+                stub = dict(stub)
+                stub.setdefault("STUB_ISSUES", "")
+                result = self.read(**stub)
+                self.assertIsNone(result[0])
+                self.assertEqual(oa.text(result), "not read (%s)" % reason)
+                self.assertNotIn("secret-ish", oa.text(result))
+
+    def test_status_summary_exits_0_on_unreadable_gh_output(self):
+        for name, stub, reason in self.UNREADABLE:
+            with self.subTest(name):
+                env = {"PATH": "%s:%s" % (self.bin, os.environ["PATH"]), "HOME": str(self.home),
+                       "TMPDIR": self.temp.name, "WORKSTATION_MANAGED_ROOT": str(Path(self.temp.name) / "root"),
+                       "STUB_LOG": str(self.log), "STUB_ISSUES": ""}
+                env.update(stub)
+                p = subprocess.run([str(ws.ROOT / "mhw"), "status", "--summary", "--overlay=none"], env=env,
+                                   cwd=self.temp.name, capture_output=True, text=True, errors="replace")
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertIn(" · owner actions: not read (%s)\n" % reason, p.stdout)
+                self.assertNotIn("Traceback", p.stderr)
+
+    def test_timeout_is_bounded(self):
+        result = self.read(timeout=0.5, STUB_SLEEP="5")
+        self.assertEqual(oa.text(result), "not read (gh timed out after 0.5s)")
+
+    def test_unrunnable_gh(self):
+        self.gh.chmod(0o644)
+        self.assertEqual(oa.text(self.read(STUB_ISSUES="[]")), "not read (gh could not run)")
+
+    def test_at_the_limit_says_or_more(self):
+        self.assertEqual(oa.text((oa.LIMIT, "")), "1000 or more open")
+
+    def test_both_views_show_it_and_a_not_read_never_shows_a_zero(self):
+        for value in ("3 open", "not read (gh not found)"):
+            status = ws.render_status(facts(owner_actions=value))
+            self.assertIn("  owner actions    %s · label owner-action in tedeuxx/mhw" % value, status)
+            summary = ws.render_summary(facts(owner_actions=value))
+            self.assertLessEqual(len(summary), 10)
+            self.assertTrue(any(line.startswith("  workstation      ") and line.endswith(
+                " · owner actions: " + value) for line in summary), summary)
+        for out in (ws.render_status(facts(owner_actions="not read (gh not found)")),
+                    ws.render_summary(facts(owner_actions="not read (gh not found)"))):
+            self.assertFalse([line for line in out if re.search(r"owner actions.*\b0 open", line)], out)
+
+    def test_status_end_to_end_through_the_stub_on_path(self):
+        env = {"PATH": "%s:%s" % (self.bin, os.environ["PATH"]), "HOME": str(self.home),
+               "TMPDIR": self.temp.name, "WORKSTATION_MANAGED_ROOT": str(Path(self.temp.name) / "root"),
+               "STUB_LOG": str(self.log), "STUB_ISSUES": '[{"number":4},{"number":5}]'}
+        for args, needle in ((["status"], "\n  owner actions    2 open · label owner-action in "
+                                          "tedeuxx/mhw\n"),
+                             (["status", "--summary"], " · owner actions: 2 open\n")):
+            p = subprocess.run([str(ws.ROOT / "mhw")] + args + ["--overlay=none"], env=env, cwd=self.temp.name,
+                               capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn(needle, p.stdout)
+        # gh failing never fails status.
+        env["STUB_CODE"], env["STUB_ISSUES"] = "4", ""
+        p = subprocess.run([str(ws.ROOT / "mhw"), "status", "--overlay=none"], env=env, cwd=self.temp.name,
+                           capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("\n  owner actions    not read (gh not authenticated) · label", p.stdout)
 
 
 if __name__ == "__main__":
