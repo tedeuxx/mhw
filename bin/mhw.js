@@ -16,8 +16,8 @@ const ROOT = path.resolve(__dirname, '..');
 const REPO = 'tedeuxx/mhw';
 const RELEASE = /^v(\d+)\.(\d+)\.(\d+)$/;
 const USAGE = [
-  'mhw install [--method] [--overlay=DIR|none] | check | status | update [vX.Y.Z]',
-  '(Windows: install.ps1; install --admin and uninstall are macOS and Linux only)',
+  'mhw install [--method] [--overlay=DIR|none] | check | status | update [vX.Y.Z] | scan [--base=REF | PATH...]',
+  '(Windows: install.ps1; install --admin, scan and uninstall are macOS and Linux only)',
 ];
 
 function version(root) {

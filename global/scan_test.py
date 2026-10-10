@@ -26,6 +26,8 @@ AWS_EXAMPLE = "AKIA" + "IOSFODNN7" + "EXAMPLE"                 # AWS documentati
 EMAIL = "synthetic.person" + "@" + "fixture-mail.dev"           # invented domain
 CPF = "123.456" + ".789-09"                                     # the common test CPF, valid check digits
 SECRETS = (AWS_EXAMPLE, EMAIL, CPF)
+TERM = "Quillmoor" + "vex"                                      # invented; matched only through its hash
+SALT = "5a" * 32                                                # a fixed test salt, never a real one
 
 
 class Sandbox:
@@ -60,6 +62,10 @@ class Sandbox:
     def mhw(self, *args):
         return subprocess.run(["/bin/sh", str(MHW), "scan"] + list(args), cwd=str(self.repo), env=self.env,
                               capture_output=True, text=True)
+
+    def short(self, rev):
+        return subprocess.run(["git", "-C", str(self.repo), "rev-parse", "--short", rev], env=self.env,
+                              check=True, capture_output=True, text=True).stdout.strip()
 
     def cleanup(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -104,7 +110,11 @@ class OutboundScan(unittest.TestCase):
         self.assertIn("new.txt:5: cpf, %d chars" % len(CPF), r.stdout)
         self.assertIn("SKIPPED blob.bin: binary, not scanned", r.stdout)
         self.assertNotIn("old.txt", r.stdout)        # unchanged on this branch: not outbound
-        self.assertIn("mhw scan: 3 finding(s) in 2 of 3 file(s) scanned", r.stdout)
+        sha = self.box.short("HEAD")
+        self.assertIn("%s:touched.md:3: credential, %d chars" % (sha, len(AWS_EXAMPLE)), r.stdout)
+        self.assertIn("%s:new.txt:5: cpf, %d chars" % (sha, len(CPF)), r.stdout)
+        self.assertIn("SKIPPED %s:blob.bin: binary, not scanned" % sha, r.stdout)
+        self.assertIn("mhw scan: 6 finding(s); 2 of 3 scanned file(s) and 1 of 1 commit(s) had one", r.stdout)
         self.assertNoLeak(r)
 
     def test_uncommitted_changes_to_tracked_files_are_included(self):
@@ -118,17 +128,17 @@ class OutboundScan(unittest.TestCase):
         r = self.box.mhw("old.txt")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("old.txt:2: credential, %d chars" % len(AWS_EXAMPLE), r.stdout)
-        self.assertIn("mhw scan: 1 finding(s) in 1 of 1 file(s) scanned", r.stdout)
+        self.assertIn("mhw scan: 1 finding(s); 1 of 1 scanned file(s) had one;", r.stdout)
         self.assertNoLeak(r)
         r = self.box.mhw("--base=base")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("mhw scan: 3 finding(s)", r.stdout)
+        self.assertIn("mhw scan: 6 finding(s)", r.stdout)
         self.assertNoLeak(r)
 
     def test_no_findings_is_also_exit_zero(self):
         r = self.box.mhw("clean.txt")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("mhw scan: 0 finding(s) in 0 of 1 file(s) scanned", r.stdout)
+        self.assertIn("mhw scan: 0 finding(s); 0 of 1 scanned file(s) had one;", r.stdout)
 
     def test_cannot_run_is_exit_two_not_a_finding(self):
         self.box.git("checkout", "-q", "-b", "orphanish")      # no upstream
@@ -143,6 +153,120 @@ class OutboundScan(unittest.TestCase):
         r = self.box.mhw("absent.txt")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("SKIPPED absent.txt: unreadable", r.stdout)
+
+    # History (agents-lead finding 1): what a push sends is every unpushed commit, not only the final tree.
+    def test_added_in_one_commit_and_removed_in_a_later_one_is_reported(self):
+        b = self.box
+        b.write("extra.txt", "first\nreach " + EMAIL + "\n")
+        b.git("add", "extra.txt")
+        b.git("commit", "-q", "-m", "add notes")
+        added = b.short("HEAD")
+        b.git("rm", "-q", "extra.txt")
+        b.git("commit", "-q", "-m", "remove notes")
+        r = b.mhw()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("%s:extra.txt:2: email, %d chars" % (added, len(EMAIL)), r.stdout)
+        self.assertNotIn("\nextra.txt:", "\n" + r.stdout)     # gone from the working tree, still outbound
+        self.assertIn("and 2 of 3 commit(s) had one", r.stdout)
+        self.assertNoLeak(r)
+
+    def test_commit_message_finding_is_reported(self):
+        b = self.box
+        b.git("commit", "-q", "--allow-empty", "-m", "subject\n\nbody with " + AWS_EXAMPLE)
+        sha = b.short("HEAD")
+        r = b.mhw()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("%s:message: credential, %d chars" % (sha, len(AWS_EXAMPLE)), r.stdout)
+        self.assertNoLeak(r)
+
+    def test_a_multi_line_secret_added_by_a_commit_is_one_finding(self):
+        b = self.box
+        pem = ("-----BEGIN " + "RSA PRIVATE KEY-----\n" + "QUJD" * 16 + "\n" + "REVG" * 16 + "\n"
+               "-----END " + "RSA PRIVATE KEY-----\n")
+        b.write("key name.txt", "x\n" + pem)
+        b.git("add", "-A")
+        b.git("commit", "-q", "-m", "key")
+        sha = b.short("HEAD")
+        r = b.mhw()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        tree = [l for l in r.stdout.splitlines() if l.startswith("key name.txt:")]
+        hist = [l for l in r.stdout.splitlines() if l.startswith(sha + ":key name.txt:")]
+        self.assertEqual(len(tree), 1, r.stdout)
+        self.assertEqual([l.replace(sha + ":", "", 1) for l in hist], tree)   # same line, same length
+        self.assertNotIn("QUJD", r.stdout)
+
+    # SonarCloud S8705: a --base value is a ref, never an option.
+    def test_base_starting_with_a_dash_is_refused(self):
+        for value in ("--help", "-x", "--is-ancestor"):
+            r = self.box.mhw("--base=" + value)
+            self.assertEqual(r.returncode, 2, value)
+            self.assertIn("--base takes a git ref", r.stderr)
+            self.assertNotIn("usage: git", r.stdout + r.stderr)
+
+    def test_base_that_is_not_a_commit_is_refused(self):
+        r = self.box.mhw("--base=HEAD:touched.md")           # a blob, not a commit
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("is not a commit", r.stderr)
+
+    # SonarCloud S8707: an explicit path resolving outside the current directory is not opened.
+    def test_explicit_paths_outside_the_directory_are_skipped(self):
+        outside = self.box.root / "outside.txt"
+        outside.write_text("key " + AWS_EXAMPLE + "\n", encoding="utf-8")
+        for arg in ("../outside.txt", str(outside)):
+            r = self.box.mhw(arg)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("SKIPPED %s: outside the working directory, not scanned" % arg, r.stdout)
+            self.assertNotIn("credential", r.stdout)
+            self.assertNoLeak(r)
+
+    def test_tracked_symlink_to_outside_the_repository_is_skipped(self):
+        outside = self.box.root / "outside.txt"
+        outside.write_text("key " + AWS_EXAMPLE + "\n", encoding="utf-8")
+        os.symlink(str(outside), str(self.box.repo / "link.txt"))
+        self.box.git("add", "link.txt")
+        self.box.git("commit", "-q", "-m", "link")
+        r = self.box.mhw()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("SKIPPED link.txt: outside the repository, not scanned", r.stdout)
+        self.assertNoLeak(r)
+
+    # agents-lead finding 2: employer-client-term is never skipped without a word.
+    def _configure_terms(self, terms, salt):
+        data = self.box.home / "data" / scan.core.PROJECT
+        overlay = data / "local-overlay"
+        overlay.mkdir(parents=True)
+        (data / "clipboard.conf").write_text("salt_store=file\n", encoding="utf-8")
+        if salt:
+            (overlay / "clipboard-salt").write_text(salt + "\n", encoding="ascii")
+        hashes = [scan.core.term_hash(SALT, f) for t in terms for f in scan.core.term_forms(t)]
+        (overlay / "clipboard-terms").write_text(scan.core.TERMS_HEADER + "".join(h + "\n" for h in hashes),
+                                                 encoding="ascii")
+
+    def test_note_when_no_term_list(self):
+        r = self.box.mhw("clean.txt")
+        self.assertIn("NOTE    no employer and client term list could be read", r.stdout)
+        self.assertIn("employer-client-term was NOT checked", r.stdout)
+
+    def test_note_when_term_list_is_empty(self):
+        self._configure_terms([], SALT)
+        r = self.box.mhw("clean.txt")
+        self.assertIn("NOTE    no employer and client term list could be read", r.stdout)
+
+    def test_note_when_the_salt_cannot_be_read(self):
+        self._configure_terms([TERM], None)
+        r = self.box.mhw("clean.txt")
+        self.assertIn("NOTE    the term list's salt could not be read without a prompt", r.stdout)
+        self.assertNotIn("no employer and client term list", r.stdout)
+
+    def test_synthetic_term_is_found_without_a_note(self):
+        self._configure_terms([TERM], SALT)
+        self.box.write("memo.txt", "one\nmet the " + TERM + " people\n")
+        r = self.box.mhw("memo.txt")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("memo.txt:2: employer-client-term, %d chars" % len(TERM), r.stdout)
+        self.assertNotIn("NOTE", r.stdout)
+        for i in range(len(TERM) - 4):
+            self.assertNotIn(TERM[i:i + 5], r.stdout + r.stderr)
 
 
 class ScanText(unittest.TestCase):

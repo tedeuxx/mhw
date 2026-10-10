@@ -362,7 +362,8 @@ and installs again.
 filter's `find_spans` from `global/clipboard/clipboard_guard.py` as it is. There is no second detector.
 
 **2. What it scans.** By default, the files this branch changed since it left its upstream: the merge
-base of `HEAD` and `@{upstream}`, compared with the working tree. That covers committed and uncommitted
+base of `HEAD` and `@{upstream}`, compared with the working tree (*and, appended 2026-10-10, every
+commit after that merge base: see item 7*). That covers committed and uncommitted
 changes to tracked files. Deleted and untracked files are not scanned. `--base=REF` replaces
 `@{upstream}`, and explicit paths replace the git selection. Whole files are scanned, not only the
 changed lines, so a finding that predates the branch is reported again in a file the branch touches.
@@ -372,19 +373,41 @@ changed lines, so a finding that predates the branch is reported again in a file
 are reported, whatever `block_categories` says, because that setting decides what blocks a prompt.
 Employer and client terms are matched only when the term list and its salt are readable without a
 prompt. On a CI runner there is no term list, so that category is never checked there.
+*Appended 2026-10-10 (#120 review, lens finding 2): whenever that category is not checked (no term list,
+an empty or unreadable one, or no salt), a NOTE line says so. Its absence is never silent.*
 
 **4. Exit codes.** 0 with or without findings. 2 when the scan cannot run: not a git repository, no
-upstream and no `--base`, or an unknown argument. No opt-in blocking flag exists.
+upstream and no `--base`, or an unknown argument. No opt-in blocking flag exists. *Appended
+2026-10-10 (#120 review, SonarCloud S8705 and S8707): a `--base` value that starts with `-` or does not
+resolve to a commit also exits 2. The ref is verified with `git rev-parse --verify --end-of-options`,
+and only the verified id reaches `git merge-base`, after `--end-of-options`. A path that resolves outside
+the current directory (explicit paths) or outside the repository (git mode, for example a tracked
+symlink) is not opened: it is reported as `SKIPPED` with the reason, and the exit code stays 0.*
 
 **5. CI.** `.github/workflows/outbound-scan.yml` runs `mhw scan --base=origin/<PR base>` on every pull
-request. It is not among the needs of the `delivery-ci` gate, so it never blocks a merge.
+request. ~~It is not among the needs of the `delivery-ci` gate, so it never blocks a merge.~~
+*Corrected 2026-10-10 (#120 review, lens finding 3): findings never block, because the scan exits 0 with
+findings. A scan that cannot run, or crashes, turns the `scan` check red. `workspace/delivery.py`
+refuses any head check that is not green, so that red check then holds the checked merge. Failing
+closed there is intended. The job is still not among the needs of `delivery-ci`.*
 
 **6. The rule.** `global/AGENTS.md` item 8 tells the agent to run `mhw scan` before every push and pull
-request. It is an instruction. No hook runs the scan.
+request. It is an instruction. No hook runs the scan. *Appended 2026-10-10 (#120 review): findings
+never block a push or a merge, but a scan that cannot run holds the checked merge (item 5). Item 8 now
+says that it is an instruction, that no hook runs it, and that it is macOS and Linux only. It also tells
+the agent to fix a finding in an unpushed commit by rewriting that commit, not with a follow-up commit.*
 
 **7. Declared gaps.** On Windows, `bin/mhw.js` does not route `scan`, so the command exists on macOS and
-Linux only. The scan reads the working tree, not the commits, so with uncommitted edits it does not
-scan exactly what a push sends.
+Linux only. ~~The scan reads the working tree, not the commits, so with uncommitted edits it does not
+scan exactly what a push sends.~~ *Corrected 2026-10-10 (#120 review, lens finding 1): that sentence
+understated the gap. Scanning only the final tree missed content added in one unpushed commit and
+removed in a later one, and it missed commit messages. The default mode now also scans the added lines
+and the message of every commit between the merge base and `HEAD`. It reports them as
+`<short-sha>:path:line: category, N chars` and `<short-sha>:message: category, N chars`. What remains
+outside: a merge commit's own diff (its message is scanned, and the commits it brings in are scanned one
+by one), file and path names, and untracked files. With uncommitted edits, the working-tree half scans
+what is on disk, not what a push sends. A finding in an unpushed commit is fixed by rewriting the commit
+that introduced it. A follow-up commit would leave it in the push.*
 
 ## Links
 

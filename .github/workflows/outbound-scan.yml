@@ -1,9 +1,11 @@
 # The outbound scan (ADR-0035, decision 7) on every pull request: `mhw scan` over the files the PR
-# changes, with the paste filter's detectors (ADR-0011). It informs and never blocks: findings are
-# printed as file:line, category and match length, never the matched text (ADR-0005), and the scan exits
-# 0 with findings. The job goes red only when the scan itself cannot run, which is not a finding. It is
-# deliberately not among delivery-ci's needs in tests.yml. No term list exists on the runner, so
-# employer and client terms are not checked here.
+# changes and over every PR commit's added lines and message, with the paste filter's detectors
+# (ADR-0011). Findings never block: they are printed as file:line, category and match length, never the
+# matched text (ADR-0005), and the scan exits 0 with findings. The job goes red only when the scan itself
+# cannot run or crashes. It is not among delivery-ci's needs in tests.yml, but workspace/delivery.py
+# refuses any head check that is not green, so a red or pending scan DOES hold the checked merge: a scan
+# that cannot run fails closed, visibly. No term list exists on the runner, so employer and client terms
+# are not checked here, and the scan prints a NOTE saying so.
 name: outbound-scan
 
 on:

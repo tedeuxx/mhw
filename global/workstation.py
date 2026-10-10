@@ -25,8 +25,9 @@ its deprecated alias, until the next major.
                                           no uninstall script, measured with npm 11.13.0)
     ./mhw scan [--base=REF | PATH...]   the outbound scan (ADR-0035, decision 7): the paste filter's
                                           detectors over the files this branch changed since its upstream
-                                          (or REF, or the paths given); prints file:line, category and
-                                          match length, never the matched text; exit 0 with findings
+                                          (or REF, or the paths given) and over every unpushed commit's
+                                          added lines and message; prints file:line, category and match
+                                          length, never the matched text; exit 0 with findings
     ./mhw postinstall                   what npm's postinstall runs (bin/postinstall.js): one line naming
                                           `mhw install`; it installs nothing (Issue #113)
 

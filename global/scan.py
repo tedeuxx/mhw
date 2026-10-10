@@ -3,34 +3,49 @@
 checked with the paste filter's own detection engine (global/clipboard/clipboard_guard.py, ADR-0011).
 There is no second detector: find_spans() is called as it is, with the same categories.
 
-    mhw scan                    the files changed on this branch since it left its upstream: the merge
-                                base of HEAD and @{upstream}, compared with the working tree (committed
-                                and uncommitted changes to tracked files; deleted files are skipped)
+    mhw scan                    what this branch would send beyond its upstream: the files changed
+                                since the merge base of HEAD and @{upstream}, as they are in the working
+                                tree (committed and uncommitted changes to tracked files; deleted files
+                                are skipped), AND the lines added by every commit between that merge base
+                                and HEAD, AND each of those commits' messages. Content added in one
+                                commit and removed in a later one is therefore still reported.
     mhw scan --base=REF         the same, against REF instead of @{upstream} (CI passes the PR's base)
-    mhw scan PATH...            exactly these files, whatever git says
+    mhw scan PATH...            exactly these files, whatever git says. Only files under the current
+                                directory: a path resolving outside it is SKIPPED, with the reason.
 
-One line per finding: `path:line: category, N chars`. The matched text, an excerpt or a hash of it is
-NEVER printed, on stdout or stderr (ADR-0005). A file that is not scanned (binary, too large, unreadable)
-is named with the reason, so nothing is skipped silently.
+One line per finding, never the text:
+    path:line: category, N chars                    in the working tree
+    <short-sha>:path:line: category, N chars        in a line that commit added
+    <short-sha>:message: category, N chars          in that commit's message
+The matched text, an excerpt or a hash of it is NEVER printed, on stdout or stderr (ADR-0005). A file
+that is not scanned (binary, too large, unreadable, outside the directory) is named with the reason, so
+nothing is skipped silently. A merge commit's message is scanned but not its own diff; the commits it
+brings in are scanned one by one.
 
 It informs and never blocks: the exit code is 0 with or without findings. Exit 2 means the scan itself
-could not run (no git, no upstream and no --base, an unknown argument), which is not a finding.
+could not run (no git, no upstream and no --base, a --base that is not a commit, an unknown argument),
+which is not a finding.
 
 Every category is reported, whatever block_categories says: that setting decides what blocks a prompt,
 and this command blocks nothing. Employer and client terms are matched only where the owner's hashed
-term list and its salt are readable without a prompt (SaltStore(interactive=False)); otherwise a NOTE
-line says that category was not checked. In CI there is no term list, so that category is never checked.
+term list and its salt are readable without a prompt (SaltStore(interactive=False)). Whenever they are
+not (no term list, an empty or unreadable one, or no salt), a NOTE line says that category was NOT
+checked. In CI there is no term list, so the NOTE is printed there every time.
 
-Standard library only, Python 3.9+. Reads files; writes nothing.
+Standard library only, Python 3.9+. Reads files and git objects; writes nothing.
 """
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "clipboard"))
 import clipboard_guard as core  # noqa: E402
+
+OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
+HUNK = re.compile(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 
 
 def installed_config():
@@ -40,27 +55,89 @@ def installed_config():
 
 
 def _git(args):
-    r = subprocess.run(["git"] + args, capture_output=True, text=True)
-    return r.returncode, r.stdout
+    r = subprocess.run(["git"] + args, capture_output=True)
+    return r.returncode, r.stdout.decode("utf-8", errors="replace")
 
 
-def changed_files(base=None):
-    """(paths, error). Paths relative to the repository root, made relative to the current directory."""
-    ref = base or "@{upstream}"
+def valid_base(base):
+    """A --base value is a ref name, never an option: refused when empty or starting with '-'."""
+    return bool(base) and not base.startswith("-")
+
+
+def outbound(base=None):
+    """(root, paths, commits, error). paths: the changed files, relative to the current directory.
+    commits: [(short sha, full sha, is_merge)] after the merge base up to HEAD, oldest first."""
     code, top = _git(["rev-parse", "--show-toplevel"])
     if code:
-        return None, "not inside a git repository; name the files to scan"
-    code, mb = _git(["merge-base", "HEAD", ref])
-    if code:
+        return None, None, None, "not inside a git repository; name the files to scan"
+    if base is not None and not valid_base(base):
+        return None, None, None, "--base takes a git ref"
+    # Resolve the ref to a commit id first, after --end-of-options, so nothing the caller passes can
+    # reach git as an option. Only the verified id goes on to merge-base, again after --end-of-options.
+    code, ref = _git(["rev-parse", "--verify", "--quiet", "--end-of-options",
+                      (base or "@{upstream}") + "^{commit}"])
+    ref = ref.strip()
+    if code or not OBJECT_ID.fullmatch(ref):
         if base:
-            return None, "cannot find a merge base of HEAD and %s" % base
-        return None, "this branch has no upstream; pass --base=REF (for example --base=origin/main)"
-    code, out = _git(["diff", "--name-only", "-z", "--diff-filter=d", mb.strip()])
+            return None, None, None, "--base=%s is not a commit" % base
+        return None, None, None, "this branch has no upstream; pass --base=REF (for example --base=origin/main)"
+    code, mb = _git(["merge-base", "--end-of-options", "HEAD", ref])
+    mb = mb.strip()
+    if code or not OBJECT_ID.fullmatch(mb):
+        return None, None, None, "cannot find a merge base of HEAD and %s" % (base or "its upstream")
+    code, out = _git(["diff", "--name-only", "-z", "--diff-filter=d", mb])
     if code:
-        return None, "git diff failed"
+        return None, None, None, "git diff failed"
     root = top.strip()
     paths = [os.path.relpath(os.path.join(root, p)) for p in out.split("\0") if p]
-    return paths, None
+    code, log = _git(["log", "--reverse", "--format=%H %h %P", mb + "..HEAD"])
+    if code:
+        return None, None, None, "git log failed"
+    commits = []
+    for line in log.splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and OBJECT_ID.fullmatch(parts[0]):
+            commits.append((parts[1], parts[0], len(parts) > 3))
+    return root, paths, commits, None
+
+
+def _patch_path(name):
+    """The path from a '+++ b/<path>' line; git ends a name holding a space with a tab, and quotes an
+    unusual name in double quotes. None for /dev/null."""
+    name = name.rstrip("\t")
+    if len(name) > 1 and name.startswith('"') and name.endswith('"'):
+        name = name[1:-1]
+    return name[2:] if name.startswith("b/") else None
+
+
+def _header_path(line):
+    """The new-side path from a 'diff --git a/<path> b/<path>' line (a binary file has no '+++' line)."""
+    head = line[len("diff --git "):]
+    if head.endswith('"') and ' "b/' in head:
+        return head.rsplit(' "b/', 1)[1][:-1]
+    return head.rsplit(" b/", 1)[1] if " b/" in head else None
+
+
+def added_blocks(patch):
+    """[(path, first line, text or None)] from a -U0 patch: each hunk's added lines as one block, so a
+    finding that spans lines (a PEM block) is still one finding. A binary file is one entry, text None."""
+    blocks, path, current = [], None, None
+    for line in patch.split("\n"):
+        if line.startswith("diff --git "):
+            current = None
+            path = _header_path(line)
+        elif current is None and line.startswith("+++ "):
+            path = _patch_path(line[4:])          # None for /dev/null (a deleted file)
+        elif current is None and line.startswith("Binary files ") and path:
+            blocks.append((path, 0, None))
+        elif line.startswith("@@"):
+            m = HUNK.match(line)
+            current = [path, int(m.group(1)), []] if (m and path) else None
+            if current:
+                blocks.append(current)
+        elif current is not None and line.startswith("+"):
+            current[2].append(line[1:])
+    return [b if isinstance(b, tuple) else (b[0], b[1], "\n".join(b[2]) + "\n") for b in blocks]
 
 
 def scan_text(text, terms=frozenset(), salt=None):
@@ -71,24 +148,43 @@ def scan_text(text, terms=frozenset(), salt=None):
     return sorted(found, key=lambda f: (f[0], core.CATEGORY_ORDER.index(f[1]), f[2]))
 
 
-def scan(paths, conf, out=None, salts=None):
-    """Print the findings for paths and a summary. Returns the number of findings."""
-    out = out or sys.stdout
+def term_detector(conf, out, salts=None):
+    """(terms, salt), with a NOTE whenever employer-client-term cannot be checked. Never silent."""
     terms = core.read_terms(conf["terms_file"])
-    salt = None
-    if terms:
-        salt = (salts or core.SaltStore(conf, interactive=False)).get()
-        if not salt:
-            out.write("NOTE    the term list's salt could not be read without a prompt; employer-client-term "
-                      "was NOT checked\n")
+    if not terms:
+        out.write("NOTE    no employer and client term list could be read (absent, empty or unreadable); "
+                  "employer-client-term was NOT checked\n")
+        return terms, None
+    salt = (salts or core.SaltStore(conf, interactive=False)).get()
+    if not salt:
+        out.write("NOTE    the term list's salt could not be read without a prompt; employer-client-term "
+                  "was NOT checked\n")
+    return terms, salt
+
+
+def inside(real, root):
+    return real == root or real.startswith(root.rstrip(os.sep) + os.sep)
+
+
+def scan(paths, conf, out=None, salts=None, root=None, commits=None):
+    """Print the findings for paths (and, when given, commits) and a summary. Returns the number of
+    findings. Every path must resolve under root (default: the current directory)."""
+    out = out or sys.stdout
+    terms, salt = term_detector(conf, out, salts)
     limit = int(conf["max_bytes"])
+    root = os.path.realpath(root or os.getcwd())
     total, files_with, scanned = 0, 0, 0
     for path in paths:
+        real = os.path.realpath(path)
+        if not inside(real, root):
+            out.write("SKIPPED %s: outside %s, not scanned\n" % (path, "the repository" if commits is not None
+                                                                   else "the working directory"))
+            continue
         try:
-            if os.path.getsize(path) > limit:
+            if os.path.getsize(real) > limit:
                 out.write("SKIPPED %s: over %d bytes, not scanned\n" % (path, limit))
                 continue
-            with open(path, "rb") as fh:
+            with open(real, "rb") as fh:
                 raw = fh.read()
         except OSError as exc:
             out.write("SKIPPED %s: unreadable (%s)\n" % (path, type(exc).__name__))
@@ -102,9 +198,47 @@ def scan(paths, conf, out=None, salts=None):
             out.write("%s:%d: %s, %d chars\n" % (path, line, cat, length))
         total += len(findings)
         files_with += bool(findings)
-    out.write("mhw scan: %d finding(s) in %d of %d file(s) scanned; informs only, never blocks; the matched "
-              "text is never shown (ADR-0005)\n" % (total, files_with, scanned))
+    summary = "%d of %d scanned file(s)" % (files_with, scanned)
+    if commits is not None:
+        commits_with = 0
+        for short, full, is_merge in commits:
+            found = scan_commit(short, full, is_merge, terms, salt, limit, out)
+            total += found
+            commits_with += bool(found)
+        summary += " and %d of %d commit(s)" % (commits_with, len(commits))
+    out.write("mhw scan: %d finding(s); %s had one; informs only, never blocks; the matched text is never "
+              "shown (ADR-0005)\n" % (total, summary))
     return total
+
+
+def scan_commit(short, full, is_merge, terms, salt, limit, out):
+    """Findings in one commit's message and, unless it is a merge, in the lines it added."""
+    found = 0
+    code, message = _git(["log", "-1", "--format=%B", full])
+    if code:
+        out.write("SKIPPED %s:message: unreadable, not scanned\n" % short)
+    else:
+        for _line, cat, length in scan_text(message, terms, salt):
+            out.write("%s:message: %s, %d chars\n" % (short, cat, length))
+            found += 1
+    if is_merge:
+        return found
+    code, patch = _git(["diff-tree", "-p", "-r", "-U0", "--root", "--no-commit-id", "--no-color",
+                        "--no-ext-diff", "--no-textconv", "--no-renames", full])
+    if code:
+        out.write("SKIPPED %s: diff unreadable, not scanned\n" % short)
+        return found
+    for path, first, text in added_blocks(patch):
+        if text is None:
+            out.write("SKIPPED %s:%s: binary, not scanned\n" % (short, path))
+            continue
+        if len(text.encode("utf-8")) > limit:
+            out.write("SKIPPED %s:%s: added lines over %d bytes, not scanned\n" % (short, path, limit))
+            continue
+        for line, cat, length in scan_text(text, terms, salt):
+            out.write("%s:%s:%d: %s, %d chars\n" % (short, path, first + line - 1, cat, length))
+            found += 1
+    return found
 
 
 def main(argv, out=None):
@@ -113,7 +247,7 @@ def main(argv, out=None):
     for arg in argv:
         if arg.startswith("--base="):
             base = arg[len("--base="):]
-            if not base:
+            if not valid_base(base):
                 sys.stderr.write("mhw scan: --base takes a git ref\n")
                 return 2
         elif arg.startswith("-"):
@@ -124,8 +258,9 @@ def main(argv, out=None):
     if paths and base:
         sys.stderr.write("mhw scan: name files or pass --base, not both\n")
         return 2
+    root, commits = None, None
     if not paths:
-        paths, error = changed_files(base)
+        root, paths, commits, error = outbound(base)
         if error:
             sys.stderr.write("mhw scan: %s\n" % error)
             return 2
@@ -135,7 +270,7 @@ def main(argv, out=None):
         out.write("NOTE    the paste filter settings could not be read (%s); built-in defaults used\n"
                   % type(exc).__name__)
         conf = core.load_config(None)
-    scan(paths, conf, out)
+    scan(paths, conf, out, root=root, commits=commits)
     return 0
 
 
