@@ -382,10 +382,121 @@ it, the close line would read as the only way to end a session.
 - **The brief takes effect only after `mhw install` and a fresh session**, under the brief's own
   configuration-change rule.
 
+## Amendment 2026-10-10: implementing decision 7 (slice F)
+
+**1. Where it lives.** `mhw scan` is dispatched by `main` in `global/workstation.py`. The logic is in
+`global/scan.py`, imported on demand as `mhw check` imports `global/prerequisites.py`. It calls the paste
+filter's `find_spans` from `global/clipboard/clipboard_guard.py` as it is. There is no second detector.
+
+**2. What it scans.** By default, the files this branch changed since it left its upstream: the merge
+base of `HEAD` and `@{upstream}`, compared with the working tree (*and, appended 2026-10-10, every
+commit after that merge base: see item 7*). That covers committed and uncommitted
+changes to tracked files. Deleted and untracked files are not scanned. `--base=REF` replaces
+`@{upstream}`, and explicit paths replace the git selection. Whole files are scanned, not only the
+changed lines, so a finding that predates the branch is reported again in a file the branch touches.
+
+**3. What it prints.** One line per finding: `path:line: category, N chars`. A file it does not scan
+(binary, over the paste filter's `max_bytes`, unreadable) is named with the reason. All six categories
+are reported, whatever `block_categories` says, because that setting decides what blocks a prompt.
+Employer and client terms are matched only when the term list and its salt are readable without a
+prompt. On a CI runner there is no term list, so that category is never checked there.
+*Appended 2026-10-10 (#120 review, lens finding 2): whenever that category is not checked (no term list,
+an empty or unreadable one, or no salt), a NOTE line says so. Its absence is never silent.*
+
+**4. Exit codes.** 0 with or without findings. 2 when the scan cannot run: not a git repository, no
+upstream and no `--base`, or an unknown argument. No opt-in blocking flag exists. *Appended
+2026-10-10 (#120 review, SonarCloud S8705 and S8707): a `--base` value that starts with `-` or does not
+resolve to a commit also exits 2. The ref is verified with `git rev-parse --verify --end-of-options`,
+and only the verified id reaches `git merge-base`, after `--end-of-options`. A path that resolves outside
+the current directory (explicit paths) or outside the repository (git mode, for example a tracked
+symlink) is not opened: it is reported as `SKIPPED` with the reason, and the exit code stays 0.*
+*Appended 2026-10-10 (#120, SonarCloud S8707 resolved by construction rather than accepted): an
+explicit `PATH` no longer reaches `open()`. `mhw scan` lists the files with
+`git ls-files -z --cached --others --exclude-standard` in the current directory; each `PATH` is
+normalised only to look a file up in that list, and the file opened is git's own entry joined to the
+current directory. A `PATH` git does not list (missing or ignored) is `SKIPPED` as `not a file git
+lists`; a directory is `SKIPPED` as `a directory, name its files`, not expanded. Explicit paths
+therefore need a git repository now: outside one the scan exits 2. The containment check before
+`open()` stays, because a listed symlink can still point out of the directory or the repository.*
+
+**5. CI.** `.github/workflows/outbound-scan.yml` runs `mhw scan --base=origin/<PR base>` on every pull
+request. ~~It is not among the needs of the `delivery-ci` gate, so it never blocks a merge.~~
+*Corrected 2026-10-10 (#120 review, lens finding 3): findings never block, because the scan exits 0 with
+findings. A scan that cannot run, or crashes, turns the `scan` check red. `workspace/delivery.py`
+refuses any head check that is not green, so that red check then holds the checked merge. Failing
+closed there is intended. The job is still not among the needs of `delivery-ci`.*
+
+**6. The rule.** `global/AGENTS.md` item 8 tells the agent to run `mhw scan` before every push and pull
+request. It is an instruction. No hook runs the scan. *Appended 2026-10-10 (#120 review): findings
+never block a push or a merge, but a scan that cannot run holds the checked merge (item 5). Item 8 now
+says that it is an instruction, that no hook runs it, and that it is macOS and Linux only. It also tells
+the agent to fix a finding in an unpushed commit by rewriting that commit, not with a follow-up commit.*
+
+**7. Declared gaps.** On Windows, `bin/mhw.js` does not route `scan`, so the command exists on macOS and
+Linux only. ~~The scan reads the working tree, not the commits, so with uncommitted edits it does not
+scan exactly what a push sends.~~ *Corrected 2026-10-10 (#120 review, lens finding 1): that sentence
+understated the gap. Scanning only the final tree missed content added in one unpushed commit and
+removed in a later one, and it missed commit messages. The default mode now also scans the added lines
+and the message of every commit between the merge base and `HEAD`. It reports them as
+`<short-sha>:path:line: category, N chars` and `<short-sha>:message: category, N chars`. What remains
+outside: a merge commit's own diff (its message is scanned, and the commits it brings in are scanned one
+by one), file and path names, and untracked files. With uncommitted edits, the working-tree half scans
+what is on disk, not what a push sends. A finding in an unpushed commit is fixed by rewriting the commit
+that introduced it. A follow-up commit would leave it in the push.*
+*Appended 2026-10-10 (#120 review round 2, finding B2): the agent's own attribution instruction puts a
+`Co-Authored-By` trailer with the vendor's no-reply address in every commit, and the message scan
+reported that address on each one, so item 8 told the agent to strip a trailer it is required to add.
+~~In the commit-message path only, a line whose whole form is `Co-Authored-By: <name> <that exact
+address>` (the key in any case) is no longer reported.~~ The shared detection engine is unchanged, so
+the paste filter still treats the address as it did. The same address elsewhere in a message, in
+another trailer, or in a file or a commit's added lines is still reported, and so is a
+`Co-Authored-By` line with a different or lookalike address.*
+*Corrected 2026-10-10 (#120 review round 3): the struck sentence exempted the whole line, so the name
+field was never scanned, and a credential, an email or a CPF placed there was not reported. In the
+commit-message path only, the name is scanned; only the vendor no-reply address in that trailer is
+exempt. The key and the name stay in the scanned text, the line count is kept, and the exact trailer
+still gives no finding.*
+
+## Amendment 2026-10-10: implementing decision 9 (owner-action queue)
+
+**1. The label.** `owner-action` exists in `tedeuxx/mhw`, described *"An action only the owner can
+take"*. It was created once with `gh label create`; `gh label create` exits 1 on an existing label, so
+re-running it is safe but not silent. No owner-action Issue was opened by this slice.
+
+**2. Where the count shows.** `mhw status` gains one line, `owner actions`, naming the label and the
+repository. `mhw status --summary` appends `· owner actions: <count>` to its `workstation` line instead
+of adding a line, so the summary keeps its ten-line bound. The logic is its own module,
+`global/owner_actions.py`; `global/workstation.py` only imports it, stores the text in the gathered
+facts and prints it.
+
+**3. How it is read.** Read-only: `gh issue list --repo tedeuxx/mhw --label owner-action --state open
+--limit 1000 --json number`, counted in Python. `--limit` is set because gh pages at 30 by default; a
+count at 1000 shows as "1000 or more". Each gh call is bounded by a 5-second timeout. The repository and
+label are constants, not an overlay value.
+
+**4. Never a false 0.** When the count cannot be read the view says `not read (<reason>)`, and status
+still exits 0. The reasons: gh not found, gh could not run, gh timed out, gh not authenticated (exit 4,
+measured with gh 2.93.0; or an HTTP 401 in gh's error text, not measured), offline, gh exited N, output not understood. gh's own error
+text is classified and never printed. **An absent label is also "not read":** `gh issue list` with a
+label that does not exist prints `[]` and exits 0 (measured), which would read as 0. So a 0 is shown
+only after a second read-only call, `gh label list --limit 1000 --json name`, finds the label by exact
+name. `gh label list --search` was not used: right after creation it did not find the new label
+(measured).
+
+**5. Declared limits.**
+
+- The count is of open Issues carrying the label. It says nothing about whether each one is still an
+  action only the owner can take.
+- `mhw status` now makes one or two network calls, so it can wait up to 10 seconds when GitHub is slow
+  to answer. A machine with no gh, or with gh not logged in, answers at once.
+- Pull requests carrying the label are not counted: `gh issue list` lists Issues only.
+- On Windows, `mhw status` runs `install.ps1`'s check, which does not show the count.
+
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10)
-- Pull requests: #118 (slice A), #119 (slice B), #126 (decisions 6 and 10)
+- Pull requests: #118 (slice A), #119 (slice B), #120 (slice F), #121 (decision 9, owner-action queue),
+  #126 (decisions 6 and 10)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),
   [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md),
   [ADR-0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md)

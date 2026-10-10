@@ -23,6 +23,12 @@ its deprecated alias, until the next major.
     ./mhw uninstall [--yes]             remove the admin layer (password asked once) and the user layer;
                                           in an npm install, run it before npm uninstall -g mhw (npm runs
                                           no uninstall script, measured with npm 11.13.0)
+    ./mhw scan [--base=REF | PATH...]   the outbound scan (ADR-0035, decision 7): the paste filter's
+                                          detectors over the files this branch changed since its upstream
+                                          (or REF, or the paths given) and over every unpushed commit's
+                                          added lines and message; prints file:line, category and match
+                                          length, never the matched text; exit 0 with findings;
+                                          needs a git repository in every mode (exit 2 outside one)
     ./mhw postinstall                   what npm's postinstall runs (bin/postinstall.js): one line naming
                                           `mhw install`; it installs nothing (Issue #113)
 
@@ -47,6 +53,8 @@ import re
 import shutil
 import subprocess
 import sys
+
+import owner_actions  # global/, beside this file (ADR-0035, decision 9)
 
 NAME = "personal-multi-harness-workstation-configuration"
 MARKER = "managed-by: " + NAME
@@ -215,6 +223,9 @@ def render_status(f, verbose=False):
         if key["line"]:
             lines.append("                   " + key["line"])
     lines.append("  runtime          %s" % f["runtime"])
+    if f.get("owner_actions"):
+        lines.append("  owner actions    %s · label %s in %s" % (
+            f["owner_actions"], owner_actions.LABEL, owner_actions.REPO))
     for note in f.get("npm", []):
         lines.append("  npm              " + note)
     lines.append("  evidence         installed is the most this view observes; loaded and enforced need a "
@@ -333,7 +344,8 @@ def render_summary(f):
     stamp = " / ".join(short_stamp(s) for s in user) if user else "none"
     key = f["key"]
     key_text = "no %s in the workspace" % KEY_FILE if key is None else "%s %s" % (key["required"], key["state"])
-    lines.append("  workstation      %s · version key: %s" % (stamp, key_text))
+    owner = " · owner actions: " + f["owner_actions"] if f.get("owner_actions") else ""
+    lines.append("  workstation      %s · version key: %s%s" % (stamp, key_text, owner))
     ws = f["workspace"]
     plugins = f["plugins"]
     lines.append("  layers           managed: %s · user: %s · workspace: %s · plugin: %s" % (
@@ -885,7 +897,8 @@ def gather(project):
             "admin_code": admin_code,
             "settings": read_settings(ws["root"]), "permissions": permissions_text(ws["root"]),
             "method": method_state(user_lines, enabled_plugins(ws["root"])),
-            "npm": npm_notes(source, user_stamps)}
+            "npm": npm_notes(source, user_stamps),
+            "owner_actions": owner_actions.text(owner_actions.read())}
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -1410,6 +1423,10 @@ def main(argv):
         print(__doc__.split("\n\n")[1] if argv else __doc__)
         return 0 if argv else 2
     command, rest = argv[0], argv[1:]
+    if command == "scan":
+        # Its own arguments (paths, --base=REF); it reads files and installs nothing (ADR-0035).
+        import scan
+        return scan.main(rest)
     overlay, project, verbose, admin, wanted, summary, method = None, None, False, False, None, False, False
     prereq_only, yes, no_admin = False, False, False
     for arg in rest:
@@ -1460,8 +1477,8 @@ def main(argv):
         for line in render_summary(facts) if summary and not verbose else render_status(facts, verbose):
             print(line)
         return 0
-    print("mhw: unknown subcommand %s (install, install --admin, status, check, update, uninstall)" % command,
-          file=sys.stderr)
+    print("mhw: unknown subcommand %s (install, install --admin, status, check, scan, update, uninstall)"
+          % command, file=sys.stderr)
     return 2
 
 
