@@ -358,6 +358,73 @@ class Definition(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
 
 
+class TrustedPath(unittest.TestCase):
+    """The path that is opened (and given to git) is rebuilt from a fixed root and listed entry names
+    (SonarCloud S8707, S8705), never taken from the argument."""
+
+    def fresh_dir(self, name):
+        d = os.path.join(BASE, name)
+        shutil.rmtree(d, ignore_errors=True)
+        os.makedirs(d)
+        return os.path.realpath(d)
+
+    def test_an_ordinary_path_is_rebuilt_unchanged(self):
+        d = self.fresh_dir("trusted-plain")
+        f = os.path.join(d, "def.json")
+        open(f, "w").close()
+        self.assertEqual(r.trusted_path(f), f)
+
+    def test_the_result_is_the_listed_name_not_the_argument(self):
+        # The argument's own last name is hidden from the listing; a hard link to the same inode is
+        # listed. The result must be that listed name: a renderer that echoed the argument would not be.
+        d = self.fresh_dir("trusted-listed")
+        named, listed = os.path.join(d, "named.json"), os.path.join(d, "listed.json")
+        open(named, "w").close()
+        os.link(named, listed)
+        real_listdir = os.listdir
+
+        def hiding(p):
+            return [e for e in real_listdir(p) if not (os.path.realpath(p) == d and e == "named.json")]
+        r.os.listdir = hiding
+        try:
+            self.assertEqual(r.trusted_path(named), listed)
+        finally:
+            r.os.listdir = real_listdir
+
+    def test_a_differently_spelled_name_resolves_to_the_listed_spelling(self):
+        d = self.fresh_dir("trusted-case")
+        f = os.path.join(d, "Def.json")
+        open(f, "w").close()
+        other = os.path.join(d, "dEF.JSON")
+        if not os.path.exists(other):
+            self.skipTest("case-sensitive filesystem")
+        self.assertEqual(r.trusted_path(other), f)
+
+    def test_a_missing_component_raises_not_found(self):
+        d = self.fresh_dir("trusted-missing")
+        with self.assertRaises(FileNotFoundError):
+            r.trusted_path(os.path.join(d, "absent", "def.json"))
+        with self.assertRaises(FileNotFoundError):
+            r.trusted_path("relative/def.json")
+
+    @unittest.skipUnless(hasattr(os, "geteuid") and os.geteuid() != 0, "root lists any directory")
+    def test_a_directory_that_cannot_be_listed_is_refused_not_bypassed(self):
+        h = mk_home("home-unlistable")
+        d = self.fresh_dir("trusted-unlistable")
+        inner = os.path.join(d, "inner")
+        os.makedirs(inner)
+        src = os.path.join(inner, "mcp-servers.json")
+        with open(src, "w") as fh:
+            json.dump(source_doc(), fh)
+        os.chmod(d, 0o311)  # traversable, not listable
+        try:
+            p = run(h, "--source=" + src, "--dry-run")
+        finally:
+            os.chmod(d, 0o755)
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertIn("cannot read the MCP definition", p.stderr)
+
+
 class Render(unittest.TestCase):
     def test_dry_run_writes_nothing_and_prints_no_current_value(self):
         h = mk_home("home-dry")
