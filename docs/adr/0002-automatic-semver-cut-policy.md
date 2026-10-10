@@ -120,6 +120,7 @@ categories, but every pull request still needs exactly one label, and a docs-, t
 fits none of them. Patch is the lowest part, and that change alters no behaviour, so it goes there.
 The coordinator decided this on review of the pull request that introduced this amendment and reports
 it to the owner. It stands until he ratifies or changes it.
+*(Historical since 2026-10-10: the row it describes is struck; see the 2026-10-10 amendment.)*
 
 When a change fits more than one row, the highest row wins. That rule is unchanged, and it is also what
 sets the release-candidate label: each pull request carries exactly one `semver:major|minor|patch`
