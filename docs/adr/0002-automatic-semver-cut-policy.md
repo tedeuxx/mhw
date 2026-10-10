@@ -109,9 +109,11 @@ the one thing it was meant to: whether he has to act.
 
 | Part | Cut when |
 | --- | --- |
-| **major** | A **breaking change**: a consumer of the workstation must change something on his side. Examples: the install or update interface (commands, arguments, layout an adopter relies on), or the version-key contract that projects declare. |
-| **minor** | An **incremental feature**, with nothing a consumer must change. This includes **adding or removing a control** when no consumer has to change anything. |
-| **patch** | A **bug fix**: something that did not do what it declared now does. Also any change with **no behaviour change**, such as docs, tests and CI. |
+| ~~**major**~~ | ~~A **breaking change**: a consumer of the workstation must change something on his side. Examples: the install or update interface (commands, arguments, layout an adopter relies on), or the version-key contract that projects declare.~~ |
+| ~~**minor**~~ | ~~An **incremental feature**, with nothing a consumer must change. This includes **adding or removing a control** when no consumer has to change anything.~~ |
+| ~~**patch**~~ | ~~A **bug fix**: something that did not do what it declared now does. Also any change with **no behaviour change**, such as docs, tests and CI.~~ |
+
+*(Rows struck 2026-10-10: replaced by the table in the 2026-10-10 amendment below.)*
 
 **The patch row's second sentence extends the owner's rule; it is not his wording.** He named three
 categories, but every pull request still needs exactly one label, and a docs-, test- or CI-only change
@@ -147,3 +149,68 @@ re-classified or re-cut.
   must say so in its notes; nothing checks that it does.
 - Bad: the line between "a consumer must change" and "a consumer may want to change" is a judgement.
   The label check still proves only that one label is present.
+
+## Amendment — 2026-10-10: incremental changes are patch
+
+**Status unchanged: proposed.**
+
+The owner, 2026-10-10, verbatim. The context: release-candidate pull request #115 carried
+`semver:major` and would have cut v5.0.0.
+
+> "mal comecamos a trabalhar nele ja ta em 5.0.0"
+> "eu normalmente estabeleco regras objetivas de major minor e patch"
+> "breaking changes (major), minor (novas funcionalides), patch (bugfixes/versoes intermediarias)"
+
+Asked what "versoes intermediarias" means:
+
+> "mudanças incremetnais"
+
+On the resulting table:
+
+> "de acordo"
+
+In English: we have barely started working on it and it is already at 5.0.0; he normally sets
+objective rules for major, minor and patch: breaking changes (major), minor (new functionality),
+patch (bug fixes and intermediate versions). Intermediate versions means incremental changes. He
+agreed with the table below.
+
+### Cut policy (replaces the 2026-10-06 table)
+
+| Part | Cut when |
+| --- | --- |
+| **major** | A **breaking change**: something that worked stops working the same way for an existing user. |
+| **minor** | A **new functionality**. |
+| **patch** | A **bug fix**, or an **incremental change** to something that already exists. Docs, tests and CI are included here. |
+
+**What changed from the 2026-10-06 table.** An improvement to existing functionality (UX, messages, a
+behaviour adjustment) is now **patch**; under the 2026-10-06 table it was minor. **Minor** is reserved
+for something new.
+
+**Adding or removing a control** is classified by the same three tests: a new functionality is
+minor; if an existing user's setup stops working the same way, it is major; otherwise it is patch.
+**This classification is the agent's reading of the owner's table, not his words.** It stands until
+he ratifies or changes it.
+
+**Unchanged:** when a change fits more than one row, the highest row wins, and the release-candidate
+pull request carries the largest part among the changes it contains. Everything listed under "What
+did not change" in the 2026-10-06 amendment still holds, and the rule still applies forward only.
+
+### Considered options
+
+1. **The plain three-line rule above** (chosen). Trade-off: "new functionality" versus "incremental
+   change" is a judgement, so two people can label the same change differently, and the label check
+   still proves only that one label is present.
+2. **An objective rule keyed on paths and a list of contracts** (rejected). The agent proposed
+   classifying a change by which files it touches and whether it alters a listed contract. It would be
+   more mechanical, but it needs a list kept current as the repository changes, and the owner set it
+   aside in favour of the plain three-line rule he already uses.
+
+### Consequences
+
+- Good: improvements to what already exists no longer raise the minor part, so the version grows more
+  slowly while the workstation is young.
+- Good: minor now means *something new is available*, which an adopter can read from the number.
+- Bad: removing a control that leaves an existing setup working the same way is a patch, so the number
+  says even less than before about being less protected. The release notes have to say it; nothing
+  checks that they do.
+- Bad: the boundary between new functionality and incremental change has no objective test.
