@@ -1,0 +1,29 @@
+# The outbound scan (ADR-0035, decision 7) on every pull request: `mhw scan` over the files the PR
+# changes, with the paste filter's detectors (ADR-0011). It informs and never blocks: findings are
+# printed as file:line, category and match length, never the matched text (ADR-0005), and the scan exits
+# 0 with findings. The job goes red only when the scan itself cannot run, which is not a finding. It is
+# deliberately not among delivery-ci's needs in tests.yml. No term list exists on the runner, so
+# employer and client terms are not checked here.
+name: outbound-scan
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # actions/checkout v6.1.0 (same pin as tests.yml and version-main.yml). Full history, so the merge
+      # base with the PR's base branch exists.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: mhw scan of this pull request's changes (informs only)
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: sh mhw scan "--base=origin/$BASE_REF"

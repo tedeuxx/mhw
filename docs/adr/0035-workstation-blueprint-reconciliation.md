@@ -281,6 +281,37 @@ list mirrors Terraform's. A subcommand that exists only in OpenTofu is not cover
 - **Claude Code `**/` file denies apply only inside the working directory.** A secret file outside it
   is not covered. And `**/.env.*` also blocks `.env.example`, a file that holds no secret.
 
+## Amendment 2026-10-10: implementing decision 7 (slice F)
+
+**1. Where it lives.** `mhw scan` is dispatched by `main` in `global/workstation.py`. The logic is in
+`global/scan.py`, imported on demand as `mhw check` imports `global/prerequisites.py`. It calls the paste
+filter's `find_spans` from `global/clipboard/clipboard_guard.py` as it is. There is no second detector.
+
+**2. What it scans.** By default, the files this branch changed since it left its upstream: the merge
+base of `HEAD` and `@{upstream}`, compared with the working tree. That covers committed and uncommitted
+changes to tracked files. Deleted and untracked files are not scanned. `--base=REF` replaces
+`@{upstream}`, and explicit paths replace the git selection. Whole files are scanned, not only the
+changed lines, so a finding that predates the branch is reported again in a file the branch touches.
+
+**3. What it prints.** One line per finding: `path:line: category, N chars`. A file it does not scan
+(binary, over the paste filter's `max_bytes`, unreadable) is named with the reason. All six categories
+are reported, whatever `block_categories` says, because that setting decides what blocks a prompt.
+Employer and client terms are matched only when the term list and its salt are readable without a
+prompt. On a CI runner there is no term list, so that category is never checked there.
+
+**4. Exit codes.** 0 with or without findings. 2 when the scan cannot run: not a git repository, no
+upstream and no `--base`, or an unknown argument. No opt-in blocking flag exists.
+
+**5. CI.** `.github/workflows/outbound-scan.yml` runs `mhw scan --base=origin/<PR base>` on every pull
+request. It is not among the needs of the `delivery-ci` gate, so it never blocks a merge.
+
+**6. The rule.** `global/AGENTS.md` item 8 tells the agent to run `mhw scan` before every push and pull
+request. It is an instruction. No hook runs the scan.
+
+**7. Declared gaps.** On Windows, `bin/mhw.js` does not route `scan`, so the command exists on macOS and
+Linux only. The scan reads the working tree, not the commits, so with uncommitted edits it does not
+scan exactly what a push sends.
+
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10)

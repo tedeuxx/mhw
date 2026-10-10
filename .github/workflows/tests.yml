@@ -48,6 +48,7 @@ jobs:
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/profile/profile.py global/profile/profile_test.py \
             global/workstation.py global/workstation_test.py \
+            global/scan.py global/scan_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
             global/prerequisites.py global/prerequisites_test.py \
@@ -117,6 +118,12 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
+      # ADR-0035 decision 7: mhw scan, the outbound scan, in throwaway git repositories and HOMEs, on
+      # synthetic fixtures. Findings are reported by file:line, category and length, never the text.
+      - name: outbound scan suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/scan_test.py
       # Issue #61, ADR-0032: the working method rendered into the three agent harnesses' user-level
       # carriers, in throwaway HOMEs only. Asserts every rendered agent keeps its tool list and every
       # rendered file its provenance stamp.

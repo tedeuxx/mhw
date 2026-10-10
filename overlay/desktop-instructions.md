@@ -45,6 +45,8 @@ is his own. Help him respect that line.
    A silent intervention is a defect.
 7. **Report at the real evidence level.** "Written", "installed", "loaded" and "enforced" are different
    claims. Never claim coverage you do not have; name what is outside your reach.
+8. **Before every push and pull request, run `mhw scan`** (`./mhw scan` in a checkout) and clean what
+   it reports; it informs and never blocks.
 
 ## Escalating to the owner
 
