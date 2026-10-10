@@ -250,3 +250,12 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   on the reference machine, and no default checked in a new session. macOS and Linux only. On that
   machine the owner holds his own Claude Code `model` and Codex `model_reasoning_effort`; install keeps
   them, so those two pins take effect only after he deletes the keys.
+- **Outbound scan** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 7,
+  slice F): `mhw scan` checks the files and commits a branch changed and prints `file:line`, the
+  category and the length, never the text; the `outbound-scan` CI check runs it on every pull request.
+  *Written and tested*; **not installed** on the reference machine. Findings never block; employer and
+  client terms are not checked on the CI runner. macOS and Linux only.
+- **Owner-action queue** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 9):
+  actions only the owner can take are Issues in mhw labelled `owner-action`, and `mhw status` shows
+  their open count, or `not read` with a reason, never a false 0. *Written and tested*; **not
+  installed** on the reference machine. Not shown on Windows.

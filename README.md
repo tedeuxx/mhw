@@ -79,7 +79,7 @@ its real evidence level. It replaces the amendment log that `AGENTS.md` used to 
 stays in the git history.
 
 **Two claims per row, never mixed.** The agent harness columns describe **this source** (the
-`rc/next` release candidate, before its v4.0.0 tag). The last column describes **the owner's reference
+`rc/next` release candidate, before its next release tag). The last column describes **the owner's reference
 machine** (macOS), from the last recorded install, and is not re-measured unless it says so.
 **Nothing from the release candidate is installed on the reference machine**: installing it is the
 owner's act, in a fresh session, after the release-candidate pull request reaches `main`.
@@ -103,6 +103,7 @@ owner's act, in a fresh session, after the release-candidate pull request reache
 | Pre-authorisation allow list ([ADR-0031](docs/adr/0031-pre-authorisation-allow-list-behind-the-admin-floor.md)) | written; the permission mode loaded, probed. Wide tier only behind the admin floor. Its `Edit` deny covers only the checkout that ran the installer | written; rules loaded, probed; decisions measured with `execpolicy check` | written, narrow tier; documented | none | macOS, Linux | not installed |
 | Working method: 8 agents, 14 skills, 7 commands ([ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md)) | written; loaded, probed (2.1.289), each agent's tool list applied | written; skills loaded, probed (0.160.0), commands kept out of implicit use; agents documented, with no tool list | written; documented (agents and skills; commands as skills) | Claude Code tab documented; otherwise none | macOS, Linux, Windows (`install.ps1 -Method`, CI) | not installed: the plugin is still the running copy (#62, #63) |
 | Session-start model and effort, pinned by ID ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) slice B, [ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md)) | written: `model`, `effortLevel` in the user settings; not checked in a new session. A workspace or environment value wins | written: `model`, `model_reasoning_effort`; not checked in a new session. A profile or `-m` wins | Kiro CLI written: `chat.defaultModel`, no effort; the model list measured (2.29.0). IDE: none | the Claude Code tab shares the user settings (documented); otherwise none | macOS, Linux | not installed. The owner's own Claude Code `model` and Codex `model_reasoning_effort` are kept until he deletes them |
+| Outbound scan, `mhw scan` and the `outbound-scan` CI check ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 7) | not an agent harness control | | | | macOS, Linux | not installed. Written and tested; the CI job runs on every pull request; findings never block; employer and client terms are not checked on the runner; no install-time component |
 | Provenance stamp ([ADR-0029](docs/adr/0029-provenance-stamp-in-every-installed-file.md)) | written; stamped files loaded, probed | written; loaded, probed | written; documented | none | macOS, Linux, Windows (CI) | not installed. A record, not a protection |
 | `./mhw` (formerly `./mhw`), version key, `status` and `check` ([ADR-0030](docs/adr/0030-version-key-and-one-entry-point.md)) | written; the version-key instruction in the loaded brief, probed | written; in the model-visible prompt, probed | written; documented | none | macOS, Linux | not run. A report, never a block |
 | npm install from GitHub by tag, `mhw` command and its `postinstall` ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md)) | not an agent harness control | | | | macOS, Linux, Windows (CI) | written. Probed in throwaway prefixes and HOMEs from GitHub at the branch head (npm 11.13.0, macOS): the postinstall installed the stamped user layer and printed the sudo line; upgrade from v4.1.0, a local install and `npm uninstall -g` measured; not installed on the reference machine. Since [#113](https://github.com/tedeuxx/mhw/issues/113) the postinstall installs nothing and `mhw install` is the one door (RETURN, the password once, next steps): tested in throwaway prefixes, HOMEs and admin roots, and in a pty; the real `sudo` prompt is not exercised by any test |
@@ -163,10 +164,11 @@ The first installable tag is the first release that carries `package.json`; olde
 
 ```sh
 ./mhw install          # what will change, RETURN, the password once, admin layer then user layer, next steps
-./mhw status           # installed release per layer, protections, the version key, the runtime
+./mhw status           # installed release per layer, protections, the version key, the runtime, and the open owner-action count (label owner-action in mhw)
 ./mhw status --verbose # the same, plus every target and each agent harness's version
 ./mhw check            # run every installer's --check, then the prerequisites; exit non-zero on any finding
 ./mhw check --prerequisites  # tools and subscriptions only: present, authenticated, drift (docs/prerequisites.md)
+./mhw scan [--base=REF | PATH...]  # outbound check of changed files and commits: file:line, category, length; never the text; informs, never blocks (macOS, Linux)
 ./mhw update [vX.Y.Z]  # fetch tags, check out the newest release (or the one given), install it
 ./mhw uninstall        # the same conversation: removes the admin layer (password once) and the user layer
 ```
