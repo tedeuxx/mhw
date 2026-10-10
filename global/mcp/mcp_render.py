@@ -365,12 +365,16 @@ def committable(path):
     if not git:
         return False
     git = os.path.abspath(git)
-    # The directory operand is rebuilt from listed names (trusted_path); a directory that is missing or
-    # cannot be listed is not a work tree git could commit from here, as before when git -C failed on it.
+    # The directory operand is rebuilt from listed names (trusted_path). A missing directory is not a
+    # work tree, as before when git -C failed on it. Any other error (an ancestor that can be traversed
+    # but not listed, where git -C would still succeed) cannot be answered here, so it refuses: a
+    # symlinked source there would otherwise be read through its listable target and never checked.
     try:
         d = trusted_path(os.path.realpath(os.path.dirname(os.path.abspath(path))))
-    except OSError:
+    except FileNotFoundError:
         return False
+    except OSError as e:
+        raise Refuse(2, "cannot read the MCP definition %s: %s" % (path, e))
     r = subprocess.run([git, "-C", d, "rev-parse", "--is-inside-work-tree"],
                        capture_output=True, text=True)
     if r.returncode != 0 or r.stdout.strip() != "true":

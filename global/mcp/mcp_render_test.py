@@ -424,6 +424,33 @@ class TrustedPath(unittest.TestCase):
         self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
         self.assertIn("cannot read the MCP definition", p.stderr)
 
+    @unittest.skipUnless(hasattr(os, "geteuid") and os.geteuid() != 0, "root lists any directory")
+    def test_a_symlink_under_an_unlistable_ancestor_in_a_work_tree_is_refused(self):
+        # git -C only traverses, so this symlink could be committed; its target is listable and readable,
+        # so nothing after the commit check would refuse. The check must fail closed, not report False.
+        if not shutil.which("git"):
+            self.skipTest("git not available")
+        h = mk_home("home-unlistable-link")
+        d = self.fresh_dir("trusted-unlistable-link")
+        target = os.path.join(d, "outside", "mcp-servers.json")
+        os.makedirs(os.path.dirname(target))
+        with open(target, "w") as fh:
+            json.dump(source_doc(), fh)
+        repo = os.path.join(d, "repo")
+        os.makedirs(repo)
+        subprocess.run(["git", "init", "-q", repo], check=True)
+        locked = os.path.join(repo, "locked")
+        os.makedirs(os.path.join(locked, "sub"))
+        link = os.path.join(locked, "sub", "mcp-servers.json")
+        os.symlink(target, link)
+        os.chmod(locked, 0o311)  # traversable, not listable
+        try:
+            p = run(h, "--source=" + link, "--dry-run")
+        finally:
+            os.chmod(locked, 0o755)
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertIn("cannot read the MCP definition", p.stderr)
+
 
 class Render(unittest.TestCase):
     def test_dry_run_writes_nothing_and_prints_no_current_value(self):
