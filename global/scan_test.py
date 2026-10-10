@@ -179,26 +179,32 @@ class OutboundScan(unittest.TestCase):
         self.assertIn("%s:message: credential, %d chars" % (sha, len(AWS_EXAMPLE)), r.stdout)
         self.assertNoLeak(r)
 
-    # The required attribution trailer (#120 review, B2): exempt in a commit message, as a whole line,
-    # with the exact vendor address only. Each row: (message, email lengths the scan must report).
+    # The required attribution trailer (#120 review, B2 and round 3): in a commit message, only the exact
+    # vendor address in that trailer is exempt; the name is scanned. Each row: (message, the
+    # (category, length) findings the scan must report, in order).
     def test_attribution_trailer_exemption_is_exact(self):
         b = self.box
         vendor = "noreply" + "@" + "anthropic.com"
+        e = lambda n: [("email", n)]  # noqa: E731
         rows = [
             ("exact trailer", "s\n\nb\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <%s>" % vendor, []),
             ("key in any case", "s\n\nco-authored-by: Claude <%s>\nCO-AUTHORED-BY: Claude <%s>  "
              % (vendor, vendor), []),
-            ("address in the body", "s\n\nwrite to %s for help" % vendor, [len(vendor)]),
-            ("address in the subject", "mail %s" % vendor, [len(vendor)]),
-            ("address in another trailer", "s\n\nSigned-off-by: Claude <%s>" % vendor, [len(vendor)]),
-            ("trailer with no name", "s\n\nCo-Authored-By: <%s>" % vendor, [len(vendor)]),
+            ("address in the body", "s\n\nwrite to %s for help" % vendor, e(len(vendor))),
+            ("address in the subject", "mail %s" % vendor, e(len(vendor))),
+            ("address in another trailer", "s\n\nSigned-off-by: Claude <%s>" % vendor, e(len(vendor))),
+            ("trailer with no name", "s\n\nCo-Authored-By: <%s>" % vendor, e(len(vendor))),
             ("trailer with more after it", "s\n\nCo-Authored-By: Claude <%s> and more" % vendor,
-             [len(vendor)]),
-            ("different address", "s\n\nCo-Authored-By: Person <%s>" % EMAIL, [len(EMAIL)]),
+             e(len(vendor))),
+            ("different address", "s\n\nCo-Authored-By: Person <%s>" % EMAIL, e(len(EMAIL))),
             ("lookalike domain", "s\n\nCo-Authored-By: Claude <%s>" % (vendor + ".fixture-mail.dev"),
-             [len(vendor) + len(".fixture-mail.dev")]),
+             e(len(vendor) + len(".fixture-mail.dev"))),
             ("lookalike spelling", "s\n\nCo-Authored-By: Claude <%s>" % vendor.replace("anthropic", "anthrop1c"),
-             [len(vendor)]),
+             e(len(vendor))),
+            ("credential in the name", "s\n\nCo-Authored-By: %s <%s>" % (AWS_EXAMPLE, vendor),
+             [("credential", len(AWS_EXAMPLE))]),
+            ("email in the name", "s\n\nCo-Authored-By: Person %s <%s>" % (EMAIL, vendor), e(len(EMAIL))),
+            ("cpf in the name", "s\n\nCo-Authored-By: Person %s <%s>" % (CPF, vendor), [("cpf", len(CPF))]),
         ]
         shas = []
         for _name, message, _want in rows:
@@ -208,11 +214,13 @@ class OutboundScan(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         for (name, message, want), sha in zip(rows, shas):
             got = [l for l in r.stdout.splitlines() if l.startswith(sha + ":message: ")]
-            self.assertEqual(got, ["%s:message: email, %d chars" % (sha, n) for n in want], name)
-            # No leak, the addresses included: no 5-character window of any line of the message.
+            self.assertEqual(got, ["%s:message: %s, %d chars" % (sha, c, n) for c, n in want], name)
+            # No leak, the addresses and name fixtures included: no 5-character window of a matched
+            # span of the message appears in the output.
             for line in message.splitlines():
                 for i in range(len(line) - 4):
-                    if "@" in line[i:i + 5] or "." in line[i:i + 5]:
+                    w = line[i:i + 5]
+                    if "@" in w or "." in w or any(w in s for s in SECRETS):
                         self.assertNotIn(line[i:i + 5], r.stdout + r.stderr, name)
         self.assertNoLeak(r)
 

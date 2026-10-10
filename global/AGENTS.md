@@ -45,9 +45,9 @@ is his own. Help him respect that line.
    claims. Never claim coverage you do not have; name what is outside your reach.
 8. **Before every push and pull request, run `mhw scan`** (`./mhw scan` in a checkout) and clean what
    it reports; it informs and never blocks. It also reads every unpushed commit and its message: fix a
-   finding there by rewriting the unpushed commit that introduced it, not with a follow-up commit. It
-   does not report a commit message line that is exactly the `Co-Authored-By` attribution trailer with
-   the vendor's no-reply address your instructions require, so never rewrite a commit to remove that
+   finding there by rewriting the unpushed commit that introduced it, not with a follow-up commit. In
+   the `Co-Authored-By` attribution trailer your instructions require, the name is scanned; only the
+   vendor no-reply address in that trailer is exempt, so never rewrite a commit to remove that
    trailer. This is an instruction; no hook runs it. macOS and Linux only.
 
 ## Escalating to the owner

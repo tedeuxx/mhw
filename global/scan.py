@@ -20,9 +20,10 @@ One line per finding, never the text:
 The matched text, an excerpt or a hash of it is NEVER printed, on stdout or stderr (ADR-0005). A file
 that is not scanned (binary, too large, unreadable, outside the directory) is named with the reason, so
 nothing is skipped silently. A merge commit's message is scanned but not its own diff; the commits it
-brings in are scanned one by one. In a commit message only, a line that is exactly the required
-attribution trailer ("Co-Authored-By: <name> <the vendor's no-reply address>", the key in any case) is
-not reported: it is mandated, not a finding to clean. That address anywhere else is reported.
+brings in are scanned one by one. In a commit message only, the vendor's no-reply address inside the
+required attribution trailer ("Co-Authored-By: <name> <that address>", the key in any case) is not
+reported: it is mandated, not a finding to clean. The name is scanned; only the vendor no-reply address
+in that trailer is exempt. That address anywhere else is reported.
 
 It informs and never blocks: the exit code is 0 with or without findings. Exit 2 means the scan itself
 could not run (no git, no upstream and no --base, a --base that is not a commit, an unknown argument),
@@ -48,8 +49,9 @@ import clipboard_guard as core  # noqa: E402
 
 OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 HUNK = re.compile(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
-# The attribution trailer the agent's own instructions require on every commit. Exempt in a commit
-# message only, only as a whole line, and only with this exact address (ADR-0035, slice F).
+# The attribution trailer the agent's own instructions require on every commit. In a commit message
+# only, this exact address in it is exempt; the key and the name stay in the scanned text (ADR-0035,
+# slice F).
 ATTRIBUTION_ADDRESS = "noreply" + "@" + "anthropic.com"
 ATTRIBUTION_TRAILER = re.compile(r"^(?i:co-authored-by):([^<>\n]*)<%s>[ \t]*$"
                                  % re.escape(ATTRIBUTION_ADDRESS), re.MULTILINE)
@@ -222,9 +224,11 @@ def scan(paths, conf, out=None, salts=None, root=None, commits=None):
 
 
 def without_attribution_trailer(message):
-    """The message with every line that is exactly the required attribution trailer emptied (the line
-    count is kept). Only a commit message goes through this; the detection engine is unchanged."""
-    return ATTRIBUTION_TRAILER.sub(lambda m: "" if m.group(1).strip() else m.group(0), message)
+    """The message with only the vendor address cut from each required attribution trailer line. The key
+    and the name are kept, so the name is scanned, and the line count is kept. Only a commit message
+    goes through this; the detection engine is unchanged."""
+    return ATTRIBUTION_TRAILER.sub(lambda m: m.group(0)[:m.end(1) - m.start(0)] if m.group(1).strip()
+                                   else m.group(0), message)
 
 
 def scan_commit(short, full, is_merge, terms, salt, limit, out):
