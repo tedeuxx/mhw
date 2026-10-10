@@ -23,6 +23,12 @@ its deprecated alias, until the next major.
     ./mhw uninstall [--yes]             remove the admin layer (password asked once) and the user layer;
                                           in an npm install, run it before npm uninstall -g mhw (npm runs
                                           no uninstall script, measured with npm 11.13.0)
+    ./mhw scan [--base=REF | PATH...]   the outbound scan (ADR-0035, decision 7): the paste filter's
+                                          detectors over the files this branch changed since its upstream
+                                          (or REF, or the paths given) and over every unpushed commit's
+                                          added lines and message; prints file:line, category and match
+                                          length, never the matched text; exit 0 with findings;
+                                          needs a git repository in every mode (exit 2 outside one)
     ./mhw postinstall                   what npm's postinstall runs (bin/postinstall.js): one line naming
                                           `mhw install`; it installs nothing (Issue #113)
 
@@ -1417,6 +1423,10 @@ def main(argv):
         print(__doc__.split("\n\n")[1] if argv else __doc__)
         return 0 if argv else 2
     command, rest = argv[0], argv[1:]
+    if command == "scan":
+        # Its own arguments (paths, --base=REF); it reads files and installs nothing (ADR-0035).
+        import scan
+        return scan.main(rest)
     overlay, project, verbose, admin, wanted, summary, method = None, None, False, False, None, False, False
     prereq_only, yes, no_admin = False, False, False
     for arg in rest:
@@ -1467,8 +1477,8 @@ def main(argv):
         for line in render_summary(facts) if summary and not verbose else render_status(facts, verbose):
             print(line)
         return 0
-    print("mhw: unknown subcommand %s (install, install --admin, status, check, update, uninstall)" % command,
-          file=sys.stderr)
+    print("mhw: unknown subcommand %s (install, install --admin, status, check, scan, update, uninstall)"
+          % command, file=sys.stderr)
     return 2
 
 

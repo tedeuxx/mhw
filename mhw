@@ -1,6 +1,6 @@
 #!/bin/sh
 # mhw, the one entry point of the multi-harness managed workstation (Issue #67), macOS and Linux:
-#   ./mhw install | install --admin | status [--verbose] | check | update [vX.Y.Z] | uninstall
+#   ./mhw install | install --admin | status [--verbose] | check | scan | update [vX.Y.Z] | uninstall
 # An npm install puts the same command on PATH as mhw (Issue #68, ADR-0034). The logic is
 # global/workstation.py; global/install.sh and global/install-managed.sh stay the internals.
 # Windows keeps global/install.ps1. ./workstation is the deprecated alias of this file.
