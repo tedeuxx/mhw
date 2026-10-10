@@ -281,6 +281,41 @@ list mirrors Terraform's. A subcommand that exists only in OpenTofu is not cover
 - **Claude Code `**/` file denies apply only inside the working directory.** A secret file outside it
   is not covered. And `**/.env.*` also blocks `.env.example`, a file that holds no secret.
 
+## Amendment 2026-10-10: implementing decision 9 (owner-action queue)
+
+**1. The label.** `owner-action` exists in `tedeuxx/mhw`, described *"An action only the owner can
+take"*. It was created once with `gh label create`; `gh label create` exits 1 on an existing label, so
+re-running it is safe but not silent. No owner-action Issue was opened by this slice.
+
+**2. Where the count shows.** `mhw status` gains one line, `owner actions`, naming the label and the
+repository. `mhw status --summary` appends `· owner actions: <count>` to its `workstation` line instead
+of adding a line, so the summary keeps its ten-line bound. The logic is its own module,
+`global/owner_actions.py`; `global/workstation.py` only imports it, stores the text in the gathered
+facts and prints it.
+
+**3. How it is read.** Read-only: `gh issue list --repo tedeuxx/mhw --label owner-action --state open
+--limit 1000 --json number`, counted in Python. `--limit` is set because gh pages at 30 by default; a
+count at 1000 shows as "1000 or more". Each gh call is bounded by a 5-second timeout. The repository and
+label are constants, not an overlay value.
+
+**4. Never a false 0.** When the count cannot be read the view says `not read (<reason>)`, and status
+still exits 0. The reasons: gh not found, gh could not run, gh timed out, gh not authenticated (exit 4,
+measured with gh 2.93.0; or an HTTP 401 in gh's error text, not measured), offline, gh exited N, output not understood. gh's own error
+text is classified and never printed. **An absent label is also "not read":** `gh issue list` with a
+label that does not exist prints `[]` and exits 0 (measured), which would read as 0. So a 0 is shown
+only after a second read-only call, `gh label list --limit 1000 --json name`, finds the label by exact
+name. `gh label list --search` was not used: right after creation it did not find the new label
+(measured).
+
+**5. Declared limits.**
+
+- The count is of open Issues carrying the label. It says nothing about whether each one is still an
+  action only the owner can take.
+- `mhw status` now makes one or two network calls, so it can wait up to 10 seconds when GitHub is slow
+  to answer. A machine with no gh, or with gh not logged in, answers at once.
+- Pull requests carrying the label are not counted: `gh issue list` lists Issues only.
+- On Windows, `mhw status` runs `install.ps1`'s check, which does not show the count.
+
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10)
