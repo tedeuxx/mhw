@@ -204,6 +204,7 @@ def render_status(f, verbose=False):
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
     lines.append("  method           %s" % method_text(f.get("method")))
+    lines.append("  models           %s" % models_text(f))
     if f.get("permissions"):
         lines.append("  permissions      %s" % f["permissions"])
     key = f["key"]
@@ -239,7 +240,31 @@ NATIVE_VIEW = {"Claude Code": "/status", "Codex": "/status", "Kiro": "/context s
 # Settings that set a session default. A workspace value overrides the user one; a session flag
 # overrides both and is visible only inside the agent harness.
 MODE_KEYS = {"Claude Code": ("permissions.defaultMode",), "Codex": ("approval_policy", "sandbox_mode")}
-MODEL_KEYS = {"Claude Code": ("model", "effortLevel"), "Codex": ("model", "model_reasoning_effort")}
+MODEL_KEYS = {"Claude Code": ("model", "effortLevel"), "Codex": ("model", "model_reasoning_effort"),
+              "Kiro": ("chat.defaultModel",)}
+# install.sh --check lines of the model-defaults step (ADR-0035) carry this tag.
+MODELS_TAG = "(model defaults "
+
+
+def models_text(f):
+    """The session-start model and effort in effect per agent harness (a workspace value beats the user
+    one), and whether the user layer matches the versioned policy (overlay/model-defaults.json), as
+    install.sh --check reported it. mhw writes only the user layer, so a workspace key that overrides it
+    is named: "policy: matches" alone would claim a pin that is not in effect (PR #119 lens)."""
+    settings = f.get("settings", [])
+    values = _settings_text(settings, MODEL_KEYS, list(MODEL_KEYS))
+    overridden = ["%s %s" % (h, k) for h, layer, k, _ in settings
+                  if layer == "workspace" and k in MODEL_KEYS.get(h, ())]
+    override = "; overridden by the workspace: %s" % ", ".join(overridden) if overridden else ""
+    lines = [line for line in f.get("user_lines", []) if MODELS_TAG in line]
+    if not lines:
+        return "%s; policy: none (no model-defaults.json in the overlay)%s" % (values, override)
+    differ = [line for line in lines if not line.startswith("OK")]
+    if not differ:
+        return "%s; policy: %s%s" % (values, "user layer matches" if overridden else "matches", override)
+    owner = sum(1 for line in differ if line.startswith("KEPT"))
+    note = "; %d hold a value of yours that install leaves alone" % owner if owner else ""
+    return "%s; policy: %d harness(es) differ%s%s" % (values, len(differ), note, override)
 
 
 def _setting(settings, harness, key):
@@ -608,7 +633,8 @@ def _toml_top(path, keys):
 
 def read_settings(ws_root):
     """Session-default settings each layer sets, as (agent harness, layer, key, value) tuples.
-    Claude Code: user and workspace settings.json (+ settings.local.json); Codex: user and workspace
+    Claude Code: user and workspace settings.json (+ settings.local.json); Kiro: user and workspace
+    .kiro/settings/cli.json (chat.defaultModel); Codex: user and workspace
     config.toml. The admin layer is reported as a layer, not read here."""
     out = []
     claude = [("user", Path.home() / ".claude" / "settings.json")]
@@ -631,6 +657,13 @@ def read_settings(ws_root):
         found = _toml_top(path, ("model", "model_reasoning_effort", "approval_policy", "sandbox_mode"))
         for key in sorted(found):
             out.append(("Codex", layer, key, found[key]))
+    kiro = [("user", Path.home() / ".kiro" / "settings" / "cli.json")]
+    if ws_root:
+        kiro.append(("workspace", ws_root / ".kiro" / "settings" / "cli.json"))
+    for layer, path in kiro:
+        doc, _ = _json(path)
+        if isinstance(doc, dict) and isinstance(doc.get("chat.defaultModel"), str):
+            out.append(("Kiro", layer, "chat.defaultModel", doc["chat.defaultModel"]))
     return out
 
 
@@ -1049,6 +1082,9 @@ def owner_steps(lines):
                          "(~/.zshrc or ~/.bashrc):\n       " + lines[i + 1].strip())
         if line.startswith("RESTART REQUIRED") and "/hooks" in line:
             steps.append("In Codex, approve the mhw hooks once: type /hooks in a new session.")
+        if line.startswith("KEPT") and MODELS_TAG in line:
+            steps.append("A session-start model default holds your own value, so the pinned one is not in "
+                         "effect; to hand it to mhw, delete the key and run install again:\n       " + line[8:])
     return steps
 
 

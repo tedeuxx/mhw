@@ -235,3 +235,11 @@ Since 2026-10-06 (ADR-0034 amendment) the package and command are `mhw` (`workst
 alias), and the npm line installs the user layer through a `postinstall`: *written and tested*, probed
 from GitHub at the branch head into throwaway prefixes and HOMEs with npm 11.13.0 (fresh, upgrade from
 v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on the reference machine.
+
+- **Session-start model and effort defaults** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md)
+  slice B, amending [ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md)): each
+  harness's model pinned by ID, at medium effort (no effort on Kiro), from `overlay/model-defaults.json`
+  through `global/models/model_defaults.py`. *Written and tested* in throwaway homes; **not installed**
+  on the reference machine, and no default checked in a new session. macOS and Linux only. On that
+  machine the owner holds his own Claude Code `model` and Codex `model_reasoning_effort`; install keeps
+  them, so those two pins take effect only after he deletes the keys.

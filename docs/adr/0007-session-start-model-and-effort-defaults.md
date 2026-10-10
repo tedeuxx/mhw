@@ -22,7 +22,7 @@ dropped from the table.
 
 | Harness / surface | Honours a configurable default? | Default model | Default effort |
 | --- | --- | --- | --- |
-| Claude Code | yes (user-level settings) | `opus[1m]` | `effortLevel` = `medium` |
+| Claude Code | yes (user-level settings) | ~~`opus[1m]`~~ `claude-opus-5-5[1m]`, pinned by ID (see the 2026-10-10 amendment below; the reference install still holds `opus[1m]`) | `effortLevel` = `medium` |
 | Codex | yes (user-level config) | a top-tier GPT model (`model`) | `model_reasoning_effort` = ~~`medium`~~ `high` (re-read 2026-10-01, see the amendment below) |
 | Kiro IDE | ~~to be measured~~ see the amendment below (no active subscription, ADR-0003) | ~~to be measured~~ see below | ~~to be measured~~ see below |
 | Kiro CLI | ~~to be measured~~ see the amendment below (no active subscription, ADR-0003) | ~~to be measured~~ see below | ~~to be measured~~ see below |
@@ -110,6 +110,8 @@ Status stays **proposed**.
 
 - `AGENTS.md`, "Principles", item 1. ADR-0002 (cut policy). ADR-0003 (access modes). ADR-0006 (surfaces).
 - ADR-0003's 2026-10-01 amendment (h4: which surfaces load user-level configuration). Issue #7.
+- Amended by [ADR-0035](0035-workstation-blueprint-reconciliation.md) (decisions 5 and 8; slice B,
+  pull request #119).
 
 ## Amendment 2026-10-02: owner selects balanced intent
 
@@ -121,3 +123,24 @@ intent. No default was changed in a real harness.
 The preference is versioned in `overlay/profile.json`, under `session_start.priority`, and compiled
 into instruction text by `global/profile/profile.py` (ADR-0018). That text records intent and grants
 no extra spending or paid API use. Native configuration and fresh-session verification remain pending.
+
+## Amendment 2026-10-10: pinned IDs, implemented (ADR-0035 slice B)
+
+[ADR-0035](0035-workstation-blueprint-reconciliation.md) decisions 5 and 8 amend this record, and its
+"Amendment 2026-10-10: implementing decisions 5 and 8 (slice B)" implements them (pull request #119).
+
+- **The rendering is now a concrete ID, never an alias.** The alias `opus[1m]`, shown above as the
+  Claude Code default, is replaced by the pinned ID `claude-opus-5-5[1m]`. The baseline table is
+  struck in place. Codex is pinned to `gpt-5.6-sol` and Kiro CLI to `claude-sonnet-4.5`.
+- **Effort is medium** on Claude Code and Codex. Kiro gets no effort, a declared gap.
+- **Option 1's class survives as the selection rule, not as the rendered value.** The judgement "top
+  model available on the subscription" is still made at each vendor release. Its result is versioned
+  as an ID in `overlay/model-defaults.json`, so a new model is a reviewed change. This accepts option
+  2's cost: the pin goes stale after a release until that change lands.
+- **The rendering is now installed by code**, not only recorded: `global/models/model_defaults.py`,
+  run by `global/install.sh`. It is *written and tested* in throwaway homes and **not installed** on
+  the reference machine. The 2026-10-01 amendment's *"no installer renders these keys yet"* no longer
+  holds for the source.
+
+The 2026-10-01 rows that read `opus[1m]` and `high` remain true as dated readings of the reference
+install. Status stays **proposed**.
