@@ -162,21 +162,24 @@ def term_detector(conf, out, salts=None):
     return terms, salt
 
 
-def inside(real, root):
-    return real == root or real.startswith(root.rstrip(os.sep) + os.sep)
-
-
 def scan(paths, conf, out=None, salts=None, root=None, commits=None):
     """Print the findings for paths (and, when given, commits) and a summary. Returns the number of
     findings. Every path must resolve under root (default: the current directory)."""
     out = out or sys.stdout
     terms, salt = term_detector(conf, out, salts)
     limit = int(conf["max_bytes"])
-    root = os.path.realpath(root or os.getcwd())
+    cwd = os.getcwd()
+    root = os.path.realpath(root or cwd)
     total, files_with, scanned = 0, 0, 0
     for path in paths:
-        real = os.path.realpath(path)
-        if not inside(real, root):
+        # Resolve against the working directory (an absolute path stays itself), then open only a
+        # path whose common prefix with root is root itself (SonarCloud S8707).
+        real = os.path.realpath(os.path.join(cwd, path))
+        try:
+            contained = os.path.commonpath([root, real]) == root
+        except ValueError:            # Windows: a different drive is never inside root
+            contained = False
+        if not contained:
             out.write("SKIPPED %s: outside %s, not scanned\n" % (path, "the repository" if commits is not None
                                                                    else "the working directory"))
             continue
