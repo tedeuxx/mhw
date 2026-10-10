@@ -734,7 +734,7 @@ method_step() {
 # The session-start default model and reasoning effort per agent harness (ADR-0007, ADR-0035), from
 # the overlay's model-defaults.json, written into each harness's own user-level key by
 # global/models/model_defaults.py. The keys it sets are recorded, so an owner's own value is never
-# overwritten (REFUSE, exit 3) and uninstall removes only what it set. With no overlay file the policy is
+# overwritten (KEPT, which changes no exit code) and uninstall removes only what it set. With no overlay file the policy is
 # empty: keys it set earlier are removed while they still hold its value.
 models_step() {
   if ! command -v python3 >/dev/null 2>&1; then

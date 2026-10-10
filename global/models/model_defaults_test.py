@@ -131,19 +131,109 @@ class ModelDefaults(unittest.TestCase):
                     doc = json.loads(text)
                     doc[key] = value
                     path.write_text(json.dumps(doc), encoding="utf-8")
+                # KEPT (PR #119): the owner's value is a settled state, not a failure. The one pending write
+                # is the record, which stops claiming the key; after that install, check settles at 0.
                 code, out = self.run_mode("check")
-                self.assertEqual(code, 3, out)
-                self.assertIn("REFUSE  %s: %s is \"%s\"" % (path, key, value), out)
+                self.assertEqual(code, 1, out)
+                self.assertIn("KEPT    %s: %s is \"%s\"" % (path, key, value), out)
+                self.assertNotIn("REFUSE", out)
                 code, out = self.run_mode("install")
-                self.assertEqual(code, 3, out)
+                self.assertEqual(code, 0, out)
                 self.assertEqual(read_keys(self.home, harness)[key], value, "the owner's value was overwritten")
+                code, out = self.run_mode("check")
+                self.assertEqual(code, 0, out)
+                self.assertIn("KEPT    %s: %s is \"%s\"" % (path, key, value), out)
 
-    def test_owner_value_present_before_install_is_refused(self):
+    def test_owner_value_present_before_install_is_kept_and_settles(self):
         self.seed(".codex/config.toml", 'model = "gpt-5.6-sol"\nmodel_reasoning_effort = "high"\n')
         code, out = self.run_mode("install")
-        self.assertEqual(code, 3, out)
+        self.assertEqual(code, 0, out)
         self.assertEqual(toml_top(self.home / ".codex/config.toml")["model_reasoning_effort"], "high")
         self.assertIn("Delete the key and re-run install", out)
+        # A repeated install settles: nothing more to write, check passes, the owner's line stays KEPT.
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("SET", out)
+        code, out = self.run_mode("check")
+        self.assertEqual(code, 0, out)
+        self.assertIn("KEPT    %s: model_reasoning_effort is \"high\"" % (self.home / ".codex/config.toml"), out)
+
+    def test_unreadable_owner_value_is_still_a_refusal(self):
+        # A value mhw cannot read is not a settled owner state: it stays REFUSE, exit 3.
+        self.seed(".codex/config.toml", 'model_reasoning_effort = ["high"]\n')
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 3, out)
+        self.assertIn("REFUSE  %s: model_reasoning_effort holds a value mhw cannot read"
+                      % (self.home / ".codex/config.toml"), out)
+
+    # --- the TOML editor ------------------------------------------------------------------------
+
+    def test_quoted_key_spellings_are_found_never_duplicated(self):
+        path = self.home / ".codex/config.toml"
+        for spelling in ('"model"', "'model'", "model"):
+            with self.subTest(spelling=spelling):
+                for p in (path, self.home / RECORD):
+                    if p.exists():
+                        p.unlink()
+                # The owner's quoted key: KEPT, the file untouched, no second model line.
+                self.seed(".codex/config.toml", '%s = "gpt-owner"\n' % spelling)
+                code, out = self.run_mode("install")
+                self.assertEqual(code, 0, out)
+                self.assertIn('KEPT    %s: model is "gpt-owner"' % path, out)
+                self.assertEqual(self.model_lines(path), ['%s = "gpt-owner"' % spelling])
+                # mhw's own value, respelt with a quoted key, is still recognised as mhw's: a policy change
+                # replaces that line instead of inserting a duplicate.
+                for p in (path, self.home / RECORD):
+                    p.unlink()
+                self.assertEqual(self.run_mode("install")[0], 0)
+                path.write_text(path.read_text(encoding="utf-8").replace('model = "gpt', '%s = "gpt' % spelling),
+                                encoding="utf-8")
+                changed = json.loads(json.dumps(POLICY))
+                changed["codex"]["model"] = "gpt-5.7"
+                self.write_policy(changed)
+                code, out = self.run_mode("install")
+                self.write_policy(POLICY)
+                self.assertEqual(code, 0, out)
+                self.assertEqual(self.model_lines(path), ['model = "gpt-5.7"'])
+
+    @staticmethod
+    def model_lines(path):
+        return [line for line in path.read_text(encoding="utf-8").splitlines()
+                if line.split("=")[0].strip().strip("\"'") == "model"]
+
+    @unittest.skipUnless(sys.version_info >= (3, 11), "the parse guard needs tomllib (Python 3.11+)")
+    def test_an_edit_that_would_not_parse_is_refused_and_nothing_is_written(self):
+        # A top-level multi-line array with a line starting with "[" ends the line editor's top level
+        # early, so the owner's model below it reads as absent and a second model line would be added.
+        # The parse guard catches that duplicate before anything is written.
+        original = 'arr = [\n  "x",\n["nested"]\n]\nmodel = "gpt-owner"\n'
+        path = self.seed(".codex/config.toml", original)
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 3, out)
+        self.assertIn("REFUSE  %s: setting the model defaults would make it unparseable" % path, out)
+        self.assertEqual(path.read_text(encoding="utf-8"), original)
+        self.assertFalse(Path(str(path) + ".pmhwc-models-backup").exists())
+        record = json.loads((self.home / RECORD).read_text(encoding="utf-8"))
+        self.assertNotIn(str(path), record["set"], "a refused edit must not be recorded as mhw's")
+        code, out = self.run_mode("check")
+        self.assertEqual(code, 3, out)
+        self.assertIn("REFUSE  %s: setting the model defaults would make it unparseable" % path, out)
+
+    def test_a_recorded_file_outside_home_is_never_edited(self):
+        outside = BASE / ("outside-%d" % ModelDefaults.n) / "settings.json"
+        outside.parent.mkdir(parents=True)
+        outside.write_text(json.dumps({"model": "claude-opus-5-5[1m]", "theme": "dark"}), encoding="utf-8")
+        record = self.home / RECORD
+        record.parent.mkdir(parents=True)
+        record.write_text(json.dumps({
+            "managed-by": "managed-by: personal-multi-harness-workstation-configuration; source: x; %s; x" % STAMP,
+            "set": {str(outside): {"harness": "claude-code", "keys": {"model": "claude-opus-5-5[1m]"}}}}),
+            encoding="utf-8")
+        code, out = self.run_mode("uninstall")
+        self.assertEqual(code, 0, out)
+        self.assertIn("NOTE    %s: recorded, but outside" % outside, out)
+        self.assertEqual(json.loads(outside.read_text(encoding="utf-8"))["model"], "claude-opus-5-5[1m]")
+        self.assertFalse(Path(str(outside) + ".pmhwc-models-backup").exists())
 
     def test_policy_change_rolls_forward_a_value_mhw_set(self):
         self.run_mode("install")

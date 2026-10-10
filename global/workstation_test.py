@@ -307,10 +307,34 @@ class ModelsLine(unittest.TestCase):
         self.assertEqual(self.models([]), values + "; policy: none (no model-defaults.json in the overlay)")
         ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
         self.assertEqual(self.models(ok), values + "; policy: matches")
-        refused = ok + ["REFUSE  /h/.codex/config.toml: model_reasoning_effort is \"high\" (model defaults codex)",
+        refused = ok + ["KEPT    /h/.codex/config.toml: model_reasoning_effort is \"high\" (model defaults codex)",
                         "MISSING /h/.kiro/settings/cli.json: install would set (model defaults kiro-cli)"]
         self.assertEqual(self.models(refused), values + "; policy: 2 harness(es) differ; 1 hold a value of "
                                                         "yours that install leaves alone")
+
+    def test_workspace_override_is_never_reported_as_matching(self):
+        """PR #119 lens: a workspace key beats the user layer, the only layer mhw writes. The line shows
+        the value in effect and names the override instead of claiming "policy: matches"."""
+        ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
+        settings = self.SETTINGS + [("Claude Code", "workspace", "model", "claude-haiku-x")]
+        out = ws.render_status(facts(settings=settings, user_lines=ok))
+        line = [l for l in out if l.startswith("  models           ")][0]
+        self.assertIn("Claude Code: model claude-haiku-x (workspace)", line)
+        self.assertNotIn("policy: matches", line)
+        self.assertIn("policy: user layer matches; overridden by the workspace: Claude Code model", line)
+        # Without the workspace key the same lines do match.
+        self.assertTrue(self.models(ok).endswith("; policy: matches"))
+
+    def test_an_owner_value_is_no_pending_write(self):
+        """PR #119 lens: a KEPT owner value is reported, but install has nothing to write for it."""
+        kept = ["KEPT    /h/.claude/settings.json: model is \"opus[1m]\" (model defaults claude-code); your value",
+                "OK      /h/.codex/config.toml: x (model defaults codex)"]
+        self.assertEqual(ws.issues(kept), 0)
+        self.assertEqual(ws.issues(kept + ["DRIFT   /h/.kiro/settings/cli.json: x (model defaults kiro-cli)"]), 1)
+        steps = ws.owner_steps(kept)
+        self.assertEqual(len(steps), 1, steps)
+        self.assertIn("delete the key and run install again", steps[0])
+        self.assertIn("/h/.claude/settings.json: model is \"opus[1m]\"", steps[0])
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
@@ -894,6 +918,10 @@ class AdminNotInstalled(unittest.TestCase):
         saved_sudo = ws.admin_access
         os.environ.update({"HOME": str(base / "home"), "TMPDIR": str(base / "tmp"),
                            "WORKSTATION_MANAGED_ROOT": str(base / "root"), ws.OVERLAY_ENV: "none"})
+        # Both win over HOME in the installers (the model-defaults record and Codex's config): a leaked
+        # value would let this test edit the real files (PR #119 review).
+        os.environ.pop("XDG_DATA_HOME", None)
+        os.environ.pop("CODEX_HOME", None)
         ws.admin_access = lambda asking: False
         out = io.StringIO()
         try:
@@ -929,6 +957,8 @@ class AdminNotRemoved(unittest.TestCase):
                "WORKSTATION_MANAGED_ROOT": str(base / "root"), ws.OVERLAY_ENV: "none"}
         saved_env, saved_access, saved_npm = dict(os.environ), ws.admin_access, ws.npm_package
         os.environ.update(env)
+        os.environ.pop("XDG_DATA_HOME", None)  # see AdminNotInstalled: never the real record or Codex home
+        os.environ.pop("CODEX_HOME", None)
         out = io.StringIO()
         try:
             with contextlib.redirect_stdout(out):

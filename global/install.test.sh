@@ -793,18 +793,22 @@ expect "check after install with model defaults" 0 $?
 # Drift as /model would leave it: another value replaces ours. --check names it; install never overwrites it.
 jq '.model = "opus[1m]"' "$hm/.claude/settings.json" > "$base/models.t" && cat "$base/models.t" > "$hm/.claude/settings.json"
 HOME="$hm" sh "$inst" --check --overlay="$repo_overlay" > "$base/models3.out" 2>&1
-expect "check reports a drifted model default" 3 $?
-if grep -q '^REFUSE  .*/.claude/settings.json: model is "opus\[1m\]"' "$base/models3.out"; then
-  ok "check names the drifted Claude Code model"
+expect "check reports a drifted model default (the record still claims the key)" 1 $?
+if grep -q '^KEPT    .*/.claude/settings.json: model is "opus\[1m\]"' "$base/models3.out"; then
+  ok "check names the drifted Claude Code model as the owner's (KEPT)"
 else
   ko "check did not name the drifted model"
 fi
-HOME="$hm" sh "$inst" --overlay="$repo_overlay" > /dev/null 2>&1
+# PR #119: an owner's value is KEPT, not a failure. It adds no exit code, so a non-zero install exit
+# always means another step failed, and a repeated install settles (check 0, nothing more to write).
+HOME="$hm" sh "$inst" --overlay="$repo_overlay" > "$base/models3b.out" 2>&1; expect "install with an owner's model value" 0 $?
 if [ "$(jq -r .model "$hm/.claude/settings.json")" = "opus[1m]" ]; then
   ok "install leaves the owner's model value alone"
 else
   ko "install overwrote the owner's model value"
 fi
+HOME="$hm" sh "$inst" --check --overlay="$repo_overlay" > "$base/models3c.out" 2>&1
+expect "check settles after install with an owner's model value" 0 $?
 HOME="$hm" sh "$inst" --uninstall > "$base/models4.out" 2>&1
 if [ "$(jq -c '{model, effortLevel, theme}' "$hm/.claude/settings.json")" = '{"model":"opus[1m]","effortLevel":null,"theme":"dark"}' ] \
    && ! grep -q '^model' "$hm/.codex/config.toml" \

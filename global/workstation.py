@@ -247,19 +247,24 @@ MODELS_TAG = "(model defaults "
 
 
 def models_text(f):
-    """The session-start model and effort each agent harness's user layer sets, and whether they match
-    the versioned policy (overlay/model-defaults.json), as install.sh --check reported it."""
-    user = [s for s in f.get("settings", []) if s[1] == "user"]
-    values = _settings_text(user, MODEL_KEYS, list(MODEL_KEYS))
+    """The session-start model and effort in effect per agent harness (a workspace value beats the user
+    one), and whether the user layer matches the versioned policy (overlay/model-defaults.json), as
+    install.sh --check reported it. mhw writes only the user layer, so a workspace key that overrides it
+    is named: "policy: matches" alone would claim a pin that is not in effect (PR #119 lens)."""
+    settings = f.get("settings", [])
+    values = _settings_text(settings, MODEL_KEYS, list(MODEL_KEYS))
+    overridden = ["%s %s" % (h, k) for h, layer, k, _ in settings
+                  if layer == "workspace" and k in MODEL_KEYS.get(h, ())]
+    override = "; overridden by the workspace: %s" % ", ".join(overridden) if overridden else ""
     lines = [line for line in f.get("user_lines", []) if MODELS_TAG in line]
     if not lines:
-        return "%s; policy: none (no model-defaults.json in the overlay)" % values
+        return "%s; policy: none (no model-defaults.json in the overlay)%s" % (values, override)
     differ = [line for line in lines if not line.startswith("OK")]
     if not differ:
-        return "%s; policy: matches" % values
-    owner = sum(1 for line in differ if line.startswith("REFUSE"))
+        return "%s; policy: %s%s" % (values, "user layer matches" if overridden else "matches", override)
+    owner = sum(1 for line in differ if line.startswith("KEPT"))
     note = "; %d hold a value of yours that install leaves alone" % owner if owner else ""
-    return "%s; policy: %d harness(es) differ%s" % (values, len(differ), note)
+    return "%s; policy: %d harness(es) differ%s%s" % (values, len(differ), note, override)
 
 
 def _setting(settings, harness, key):
@@ -1077,6 +1082,9 @@ def owner_steps(lines):
                          "(~/.zshrc or ~/.bashrc):\n       " + lines[i + 1].strip())
         if line.startswith("RESTART REQUIRED") and "/hooks" in line:
             steps.append("In Codex, approve the mhw hooks once: type /hooks in a new session.")
+        if line.startswith("KEPT") and MODELS_TAG in line:
+            steps.append("A session-start model default holds your own value, so the pinned one is not in "
+                         "effect; to hand it to mhw, delete the key and run install again:\n       " + line[8:])
     return steps
 
 
