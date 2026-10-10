@@ -215,3 +215,24 @@ did not change" in the 2026-10-06 amendment still holds, and the rule still appl
   says even less than before about being less protected. The release notes have to say it; nothing
   checks that they do.
 - Bad: the boundary between new functionality and incremental change has no objective test.
+
+### Clarification — 2026-10-10: tightening a control is patch
+
+**The owner's ruling.** Review of PR #118 argued that tightening the deny floor was major, because
+agents could run `terraform plan` and read `.env` before and now cannot. The owner was asked whether
+"something that worked stops working the same way for an existing user" covers restricting what the
+agent may do, with three options:
+
+- minor: the user is the human, and a new rule kind is new functionality;
+- major: the agent counts as a user;
+- patch: tightening a control is always incremental, even with a new mechanism.
+
+He picked **"Patch"** over minor and major.
+
+**The rule.** Tightening a control, which restricts what an agent may do, is **patch**, even when it
+introduces a new rule mechanism. "Existing user" in the major test means the **human**. The agent's
+capabilities are not part of the breaking test. Where this narrows the agent's reading of controls
+above ("a new functionality is minor"), this clarification governs for a tightening.
+
+**Consequence.** The version number does not signal that agents lost capabilities. Only the release
+notes do, and nothing checks that they say it.
