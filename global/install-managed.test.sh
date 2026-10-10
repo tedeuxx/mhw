@@ -84,7 +84,7 @@ fi
 # renders at user level, global entries plus the repository overlay's.
 here="$(cd "$(dirname "$0")" && pwd)"
 ofloor="$here/../overlay/deny-floor.conf"; [ -f "$ofloor" ] || ofloor=/dev/null
-want_rules=$(awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' "$here/deny-floor.conf" "$ofloor")
+want_rules=$(awk '$1 == "cmd" || $1 == "glob" { n++ } $1 == "file" { n += 2 } END { print n }' "$here/deny-floor.conf" "$ofloor")
 want_cmds=$(awk '$1 == "cmd" { n++ } END { print n }' "$here/deny-floor.conf" "$ofloor")
 if jq -e --argjson n "$want_rules" '(.permissions | keys == ["deny"]) and (.permissions.deny | length == $n)
     and (.permissions.deny | index("Bash(sudo:*)") != null)
@@ -99,6 +99,36 @@ if [ "$ofloor" = /dev/null ] || jq -e '.permissions.deny | index("Bash(git push 
   ok "the overlay's floor entries reach the admin drop-in"
 else
   ko "the overlay's floor entries reach the admin drop-in"
+fi
+# The 2026-10-10 classes (ADR-0035) reach the admin drop-in; the glob is Claude Code only, so it reaches
+# the drop-in and never the Codex requirements.
+if jq -e '.permissions.deny as $d | ["Bash(terraform plan:*)", "Bash(terraform -chdir=*)", "Bash(git commit --no-verify:*)",
+      "Bash(aws ssm get-parameter --with-decryption:*)", "Bash(aws sso login:*)", "Read(**/.env)", "Edit(**/credentials*)"]
+      | all(. as $r | $d | index($r) != null)' "$dropin" >/dev/null 2>&1 \
+   && grep -qF '{ pattern = [{ token = "terraform" }, { token = "plan" }], decision = "forbidden"' "$req" \
+   && ! grep -q -e '-chdir' -e 'token = "[^"]*\*' "$req"; then
+  ok "the 2026-10-10 floor classes reach the admin drop-in, and the glob stays out of the Codex requirements"
+else
+  ko "the 2026-10-10 floor classes reach the admin drop-in, and the glob stays out of the Codex requirements"
+fi
+# The installer's own validate() program, run under a python that has tomllib (3.11+). The installer
+# runs it under /usr/bin/python3, which on macOS is 3.9 and skips the TOML half, so a count mismatch
+# between the two admin documents passed there and broke the render on Ubuntu (PR #118, round 1).
+# The program is read from install-managed.sh itself, so this tests the source, not a copy of it.
+if python3 -c 'import tomllib' 2>/dev/null; then
+  vs="$base/validate-stage"; mkdir -p "$vs"
+  cp "$dropin" "$vs/claude.json"; cp "$req" "$vs/requirements.toml"
+  awk '/^validate\(\) \{/ { inf = 1; next }
+       inf && /-c .$/ { body = 1; next }
+       body && /^assert .*. "\$1" "\$NAME"/ { sub(/. "\$1" "\$NAME".*$/, ""); print; exit }
+       body { print }' "$here/install-managed.sh" > "$base/validate.py"
+  if grep -q "import tomllib" "$base/validate.py" && grep -q "^assert len(rules) == " "$base/validate.py" && python3 -I -B "$base/validate.py" "$vs" "$NAME"; then
+    ok "the installer's validate() accepts the rendered admin documents under python $(python3 -c 'import sys; print(sys.version.split()[0])')"
+  else
+    ko "the installer's validate() refuses the rendered admin documents under a tomllib python"
+  fi
+else
+  echo "SKIP  no python3 with tomllib on PATH: validate()'s TOML half was not exercised here"
 fi
 nrules=$(grep -c '^  { pattern = \[.*\], decision = "forbidden", justification = ' "$req")
 if [ "$nrules" -eq "$want_cmds" ] && grep -q '^\[rules\]$' "$req" \

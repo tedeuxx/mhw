@@ -222,18 +222,30 @@ if ! awk -v claude="$floor_claude" -v codex="$floor_codex" '
     /^[ \t]*(#|$)/ { next }
     {
       why = ""
-      if ($1 != "cmd" && $1 != "file") why = "kind must be cmd or file"
+      if ($1 != "cmd" && $1 != "file" && $1 != "glob") why = "kind must be cmd, file or glob"
       else if (NF < 2) why = "no words"
       else if ($1 == "file" && NF != 2) why = "a file entry takes one path"
+      else if ($1 == "glob" && NF < 3) why = "a glob entry takes a program and at least one word"
       for (i = 2; i <= NF && why == ""; i++) {
         if ($i !~ /^[A-Za-z0-9._\/~=:@+*-]+$/) why = "word outside the allowed set"
         else if ($1 == "cmd" && $i ~ /\*/) why = "a cmd word may not hold *"
+      }
+      # A glob is Claude Code only (no Codex form): exactly one "*", the last character of the last
+      # word, after at least one other character.
+      if (why == "" && $1 == "glob") {
+        for (i = 2; i < NF; i++) if ($i ~ /\*/) why = "a glob holds * only at the end of its last word"
+        if (why == "" && $NF !~ /^[^*]+\*$/) why = "a glob holds * only at the end of its last word"
+        # "Bash(<words>:*)" is the shape of a prefix rule: install-managed.sh would render it for Codex.
+        if (why == "" && $NF ~ /:\*$/) why = "a glob may not end in :* (that is a cmd entry)"
       }
       if (why != "") { printf "invalid deny-floor entry (%s): %s\n", why, $0 > "/dev/stderr"; err = 1; next }
       if ($1 == "cmd") {
         w = $2; for (i = 3; i <= NF; i++) w = w " " $i
         print "Bash(" w ":*)" > claude
         print w > codex
+      } else if ($1 == "glob") {
+        w = $2; for (i = 3; i <= NF; i++) w = w " " $i
+        print "Bash(" w ")" > claude
       } else {
         print "Read(" $2 ")" > claude
         print "Edit(" $2 ")" > claude

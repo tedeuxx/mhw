@@ -103,7 +103,9 @@ except ImportError:
 t = tomllib.load(open(sys.argv[1] + "/requirements.toml", "rb"))
 rules = t["rules"]["prefix_rules"]
 assert rules and all(r["decision"] == "forbidden" and r["pattern"] for r in rules)
-assert len(rules) == sum(r.startswith("Bash(") for r in deny)' "$1" "$NAME" 2>/dev/null
+# One Codex rule per Claude PREFIX rule: a glob entry is Claude Code only (ADR-0035), the same
+# selector the requirements renderer uses.
+assert len(rules) == sum(r.startswith("Bash(") and r.endswith(":*)") for r in deny)' "$1" "$NAME" 2>/dev/null
 }
 
 render() { # $1 empty stage directory
@@ -145,7 +147,7 @@ render() { # $1 empty stage directory
       "$(jq -n --arg v "$paste_codex" '$v')"
     # The deny floor's command entries as admin prefix rules (ADR-0016, 2026-10-05 amendment). They
     # merge with every .rules file and the most restrictive decision wins, so "codex exec
-    # --ignore-rules" cannot skip them. A file entry has no Codex form (ADR-0016).
+    # --ignore-rules" cannot skip them. A file or glob entry has no Codex form (ADR-0016).
     printf '\n# The workstation deny floor (ADR-0016). One rule per line; a prefix matches the command words\n'
     printf '# from the program name on, so another spelling, a wrapper or a script is not matched.\n'
     printf '[rules]\nprefix_rules = [\n'
