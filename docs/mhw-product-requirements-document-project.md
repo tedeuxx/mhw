@@ -865,9 +865,13 @@ The matrix itself, with its findings against this document, is
 The release column is the part each slice would cut on its own. Since 2026-10-05 a slice cuts no
 release: it merges into `rc/next`, and the release-candidate pull request cuts one release for all of
 them, at the highest part any of them carries ([3b](#delivery-route-slices-into-rcnext-only-the-release-candidate-into-main)).
-Since 2026-10-06 the parts follow plain SemVer ([ADR-0002](adr/0002-automatic-semver-cut-policy.md),
+~~Since 2026-10-06 the parts follow plain SemVer ([ADR-0002](adr/0002-automatic-semver-cut-policy.md),
 2026-10-06 amendment): major only for a breaking change a consumer must act on, minor for a feature,
-including adding or removing a control when no consumer has to change anything, patch for a bug fix or a change with no behaviour change (docs, tests, CI).
+including adding or removing a control when no consumer has to change anything, patch for a bug fix or a change with no behaviour change (docs, tests, CI).~~
+Since 2026-10-10 ([ADR-0002](adr/0002-automatic-semver-cut-policy.md), 2026-10-10 amendment): major
+for a breaking change (something that worked stops working the same way for an existing user), minor
+for a new functionality, patch for a bug fix or an incremental change to something that already
+exists, docs, tests and CI included.
 The new rule applies **forward only**, from the next release candidate on. The parts above for slices
 that already shipped are not re-cut; #56 (`/breaking-glass` removed, v3.0.0) and #60 (`/session-start`
 removed, v4.0.0) are breaking under the new rule as well.
