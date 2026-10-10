@@ -131,6 +131,12 @@ no 3?"* (could you remove only those extreme loopholes you mentioned in 3?).
 
 A prefix floor cannot block only `find -delete`, so the whole command now asks.
 
+*Added 2026-10-10 (slice A):* `find:*` and `awk:*` are not owned by mhw. They are in neither
+`global/allow-list.conf` nor `overlay/allow-list.conf`, nowhere in mhw's git history as an allow entry,
+and not under mhw's ownership key in `~/.claude/settings.json`. They are present in the
+tadeumendonca-skills plugin's project settings. Their removal is therefore an owner action, not code
+in this repository.
+
 ### 5. Model and effort
 
 Amends [ADR-0007](0007-session-start-model-and-effort-defaults.md). Every harness starts on its top
@@ -251,6 +257,29 @@ same pull request. One line per slice, with the files it touches:
 
 Decisions 11 and 12 change nothing. They keep [ADR-0002](0002-automatic-semver-cut-policy.md) and
 [ADR-0021](0021-workspace-session-intake-and-ci-publication.md) as they are.
+
+## Amendment 2026-10-10: implementing decision 3 (slice A)
+
+**1. A new floor entry kind, `glob`.** `global/deny-floor.conf` gains the kind `glob`, rendered for
+Claude Code only, as `Bash(<words>)` ending in a trailing `*`. It exists because a prefix rule cannot
+catch `terraform -chdir=DIR`: the option and its value are one token. Measured on Claude Code 2.1.296,
+`Bash(terraform -chdir:*)` let `terraform -chdir=. version` run, while `Bash(terraform -chdir=*)`
+blocked it. The entry blocks every `-chdir` form, `fmt` and `validate` included. Codex has no
+equivalent, so on Codex `-chdir` is a declared gap.
+
+**2. Where the Terraform and OpenTofu list comes from.** It was taken from `terraform -help` on
+Terraform 1.12.1: 22 subcommands per binary. OpenTofu is not installed on the reference machine, so its
+list mirrors Terraform's. A subcommand that exists only in OpenTofu is not covered.
+
+**3. Further declared gaps.** Slice A closes none of these:
+
+- **Flags placed mid-command are not caught.** A prefix entry matches from the program name, so
+  `aws ssm get-parameter --name X --with-decryption`, `git commit -m msg --no-verify`, combined short
+  flags, `git -C <dir> …` and `aws --profile <p> …` all pass the floor entries written for them.
+- **Terraform global options, `TF_CLI_ARGS` and wrappers.** An option before the subcommand, a
+  subcommand injected through the environment, or a wrapper script that calls the binary is not seen.
+- **Claude Code `**/` file denies apply only inside the working directory.** A secret file outside it
+  is not covered. And `**/.env.*` also blocks `.env.example`, a file that holds no secret.
 
 ## Links
 
