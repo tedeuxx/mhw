@@ -27,7 +27,8 @@ its deprecated alias, until the next major.
                                           detectors over the files this branch changed since its upstream
                                           (or REF, or the paths given) and over every unpushed commit's
                                           added lines and message; prints file:line, category and match
-                                          length, never the matched text; exit 0 with findings
+                                          length, never the matched text; exit 0 with findings;
+                                          needs a git repository in every mode (exit 2 outside one)
     ./mhw postinstall                   what npm's postinstall runs (bin/postinstall.js): one line naming
                                           `mhw install`; it installs nothing (Issue #113)
 

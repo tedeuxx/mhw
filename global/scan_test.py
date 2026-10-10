@@ -349,10 +349,25 @@ class OutboundScan(unittest.TestCase):
         plain = self.box.root / "plain"
         plain.mkdir()
         (plain / "f.txt").write_text("x\n", encoding="utf-8")
-        r = subprocess.run(["/bin/sh", str(MHW), "scan", "f.txt"], cwd=str(plain), capture_output=True,
-                           text=True, env=dict(self.box.env, GIT_CEILING_DIRECTORIES=str(self.box.root)))
-        self.assertEqual(r.returncode, 2)
-        self.assertIn("not inside a git repository", r.stderr)
+        env = dict(self.box.env, GIT_CEILING_DIRECTORIES=str(self.box.root))
+        # agents-lead round 5: the message names no remedy the tool then refuses (both modes exit 2).
+        for args in (["f.txt"], []):
+            r = subprocess.run(["/bin/sh", str(MHW), "scan"] + args, cwd=str(plain), capture_output=True,
+                               text=True, env=env)
+            self.assertEqual(r.returncode, 2, args)
+            self.assertEqual(r.stderr, "mhw scan: not inside a git repository; mhw scan needs one, "
+                                       "in every mode\n", args)
+            self.assertEqual(r.stdout, "", args)
+
+    def test_explicit_path_in_another_case_says_so(self):
+        (self.box.repo / "sub").mkdir()
+        (self.box.repo / "sub" / "inner.txt").write_text("x\n", encoding="utf-8")
+        self.box.git("add", "sub/inner.txt")
+        self.box.git("commit", "-q", "-m", "inner")
+        r = self.box.mhw("SUB/Inner.TXT")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("SKIPPED SUB/Inner.TXT: differs only in case from sub/inner.txt, which git lists; "
+                      "name it as git does, not scanned", r.stdout)
 
     def test_tracked_symlink_to_outside_the_repository_is_skipped(self):
         outside = self.box.root / "outside.txt"

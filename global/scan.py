@@ -13,8 +13,9 @@ There is no second detector: find_spans() is called as it is, with the same cate
     mhw scan PATH...            exactly these files, provided git lists them under the current directory
                                 (tracked, or untracked and not ignored). A PATH is only used to look a
                                 file up in that list; the file opened is always git's own entry. A PATH
-                                outside the current directory, a directory, or a file git does not list
-                                (missing, ignored) is SKIPPED, with the reason. Needs a git repository.
+                                outside the current directory, a directory, a name that differs only in
+                                case from a listed file, or a file git does not list (missing, ignored)
+                                is SKIPPED, with the reason. Every mode needs a git repository.
 
 One line per finding, never the text:
     path:line: category, N chars                    in the working tree
@@ -51,6 +52,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "clipboard"))
 import clipboard_guard as core  # noqa: E402
 
+NO_REPOSITORY = "not inside a git repository; mhw scan needs one, in every mode"
+
 OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 HUNK = re.compile(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 # The attribution trailer the agent's own instructions require on every commit. In a commit message
@@ -82,7 +85,7 @@ def outbound(base=None):
     commits: [(short sha, full sha, is_merge)] after the merge base up to HEAD, oldest first."""
     code, top = _git(["rev-parse", "--show-toplevel"])
     if code:
-        return None, None, None, "not inside a git repository; name the files to scan"
+        return None, None, None, NO_REPOSITORY
     if base is not None and not valid_base(base):
         return None, None, None, "--base takes a git ref"
     # Resolve the ref to a commit id first, after --end-of-options, so nothing the caller passes can
@@ -180,7 +183,7 @@ def listed_files():
     not ignored, relative to it, exactly as git printed it."""
     code, out = _git(["ls-files", "-z", "--cached", "--others", "--exclude-standard"])
     if code:
-        return None, "not inside a git repository; mhw scan PATH needs git to list the files"
+        return None, NO_REPOSITORY
     return sorted(set(p for p in out.split("\0") if p)), None
 
 
@@ -210,6 +213,9 @@ def explicit_targets(args, files):
         while parent and parent not in dirs:
             dirs.add(parent)
             parent = os.path.dirname(parent)
+    by_case = {}
+    for key in by_key:
+        by_case.setdefault(key.casefold(), key)
     targets = []
     for arg in args:
         key = _lookup_key(arg, cwd)
@@ -219,6 +225,9 @@ def explicit_targets(args, files):
             targets.append((arg, by_key[key], None))
         elif key == os.curdir or key in dirs:
             targets.append((arg, None, "a directory, name its files; not scanned"))
+        elif key.casefold() in by_case:
+            targets.append((arg, None, "differs only in case from %s, which git lists; name it as git does, "
+                                       "not scanned" % by_case[key.casefold()]))
         else:
             targets.append((arg, None, "not a file git lists (missing or ignored), not scanned"))
     return targets
