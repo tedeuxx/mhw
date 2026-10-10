@@ -48,6 +48,8 @@ import shutil
 import subprocess
 import sys
 
+import owner_actions  # global/, beside this file (ADR-0035, decision 9)
+
 NAME = "personal-multi-harness-workstation-configuration"
 MARKER = "managed-by: " + NAME
 KEY_FILE = ".workstation-version"
@@ -215,6 +217,9 @@ def render_status(f, verbose=False):
         if key["line"]:
             lines.append("                   " + key["line"])
     lines.append("  runtime          %s" % f["runtime"])
+    if f.get("owner_actions"):
+        lines.append("  owner actions    %s · label %s in %s" % (
+            f["owner_actions"], owner_actions.LABEL, owner_actions.REPO))
     for note in f.get("npm", []):
         lines.append("  npm              " + note)
     lines.append("  evidence         installed is the most this view observes; loaded and enforced need a "
@@ -333,7 +338,8 @@ def render_summary(f):
     stamp = " / ".join(short_stamp(s) for s in user) if user else "none"
     key = f["key"]
     key_text = "no %s in the workspace" % KEY_FILE if key is None else "%s %s" % (key["required"], key["state"])
-    lines.append("  workstation      %s · version key: %s" % (stamp, key_text))
+    owner = " · owner actions: " + f["owner_actions"] if f.get("owner_actions") else ""
+    lines.append("  workstation      %s · version key: %s%s" % (stamp, key_text, owner))
     ws = f["workspace"]
     plugins = f["plugins"]
     lines.append("  layers           managed: %s · user: %s · workspace: %s · plugin: %s" % (
@@ -885,7 +891,8 @@ def gather(project):
             "admin_code": admin_code,
             "settings": read_settings(ws["root"]), "permissions": permissions_text(ws["root"]),
             "method": method_state(user_lines, enabled_plugins(ws["root"])),
-            "npm": npm_notes(source, user_stamps)}
+            "npm": npm_notes(source, user_stamps),
+            "owner_actions": owner_actions.text(owner_actions.read())}
 
 
 # ---------------------------------------------------------------------------------------------------

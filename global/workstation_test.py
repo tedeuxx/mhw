@@ -386,7 +386,9 @@ class EndToEnd(unittest.TestCase):
         code, out = self.run_ws("status", "--summary", "--overlay=none", project)
         self.assertEqual(code, 0)
         self.assertLessEqual(len(out.splitlines()), 11, out)
-        self.assertIn("  workstation      %s · version key: >=999 <1000 mismatch\n" % source.split(" (")[0], out)
+        # The real gh (if any) in a throwaway HOME with no token: the owner-action count is not read, never 0.
+        self.assertIn("  workstation      %s · version key: >=999 <1000 mismatch · owner actions: not read ("
+                      % source.split(" (")[0], out)
         self.assertIn("· hooks admin: none · user: paste filter (Claude Code)", out)
         self.assertRegex(out, r"(?m)^  Workstation version key: required >=999 <1000, installed ")
         # No admin layer: the floor is never listed as locked, and the installer's words arrive whole.
@@ -1016,6 +1018,189 @@ class OwnerSteps(unittest.TestCase):
             ws.subprocess.run = saved_run
             if saved_root is not None:
                 os.environ["WORKSTATION_MANAGED_ROOT"] = saved_root
+
+
+import owner_actions as oa  # noqa: E402
+
+# A stand-in gh (ADR-0035, decision 9). It logs its arguments and answers per STUB_* variables; never the
+# real gh, never the network. `exec sleep` so a timeout kills the process holding the pipes.
+STUB_GH = """#!/bin/sh
+printf '%s\\n' "$*" >> "$STUB_LOG"
+case "$1" in
+  issue) [ -n "$STUB_SLEEP" ] && exec sleep "$STUB_SLEEP"
+         [ -n "$STUB_ERR" ] && printf '%s\\n' "$STUB_ERR" >&2
+         [ -n "$STUB_DEPTH" ] && { head -c "$STUB_DEPTH" /dev/zero | tr '\\0' '['; exit 0; }
+         printf '%s' "$STUB_ISSUES"; exit "${STUB_CODE:-0}" ;;
+  label) printf '%s' "${STUB_LABELS:-[]}"; exit "${STUB_LABEL_CODE:-0}" ;;
+esac
+exit 99
+"""
+
+
+@unittest.skipUnless(os.name == "posix", "the stand-in gh is a POSIX sh script")
+class OwnerActions(unittest.TestCase):
+    """The open owner-action count: read with gh, read-only; 'not read (<reason>)' and never a false 0."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="workstation-owner-")
+        self.addCleanup(self.temp.cleanup)
+        b = Path(self.temp.name)
+        self.bin, self.log, self.home = b / "bin", b / "gh.log", b / "home"
+        self.bin.mkdir()
+        self.home.mkdir()
+        self.gh = self.bin / "gh"
+        self.gh.write_text(STUB_GH, encoding="utf-8")
+        self.gh.chmod(0o755)
+        keys = ("STUB_LOG", "STUB_SLEEP", "STUB_ERR", "STUB_ISSUES", "STUB_CODE", "STUB_LABELS",
+                "STUB_LABEL_CODE", "STUB_DEPTH")
+        saved = {k: os.environ.get(k) for k in keys}
+
+        def restore():
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        self.addCleanup(restore)
+        for k in keys:
+            os.environ.pop(k, None)
+        os.environ["STUB_LOG"] = str(self.log)
+
+    def read(self, timeout=oa.TIMEOUT, **stub):
+        os.environ.update(stub)
+        return oa.read(gh=str(self.gh), timeout=timeout)
+
+    def calls(self):
+        return self.log.read_text(encoding="utf-8").splitlines() if self.log.exists() else []
+
+    def test_count_above_zero_reads_open_issues_with_the_label_only(self):
+        result = self.read(STUB_ISSUES='[{"number":1},{"number":7},{"number":9}]')
+        self.assertEqual(result, (3, ""))
+        self.assertEqual(oa.text(result), "3 open")
+        # One call, read-only, the label and state and a limit above gh's default page of 30.
+        self.assertEqual(self.calls(), ["issue list --repo tedeuxx/mhw --label owner-action --state open "
+                                        "--limit 1000 --json number"])
+
+    def test_zero_only_after_the_label_is_confirmed(self):
+        result = self.read(STUB_ISSUES="[]", STUB_LABELS='[{"name":"loop"},{"name":"owner-action"}]')
+        self.assertEqual(result, (0, ""))
+        self.assertEqual(oa.text(result), "0 open")
+        self.assertEqual(self.calls()[1], "label list --repo tedeuxx/mhw --limit 1000 --json name")
+
+    def test_absent_label_is_not_a_zero(self):
+        # gh lists nothing, exit 0, for a label that does not exist (measured): that must not read as 0.
+        result = self.read(STUB_ISSUES="[]", STUB_LABELS='[{"name":"owner-actions"},{"name":"loop"}]')
+        self.assertEqual(oa.text(result), "not read (label owner-action absent in tedeuxx/mhw)")
+
+    def test_gh_missing(self):
+        saved = os.environ["PATH"]
+        os.environ["PATH"] = str(self.home)  # a directory with no gh in it
+        try:
+            result = oa.read()
+        finally:
+            os.environ["PATH"] = saved
+        self.assertEqual(oa.text(result), "not read (gh not found)")
+        self.assertEqual(self.calls(), [])
+
+    def test_gh_errors_are_classified_never_printed(self):
+        cases = [
+            ({"STUB_CODE": "4", "STUB_ERR": "To get started with GitHub CLI, please run: gh auth login"},
+             "gh not authenticated"),
+            ({"STUB_CODE": "1", "STUB_ERR": "HTTP 401: Bad credentials (https://api.github.com/graphql)"},
+             "gh not authenticated"),
+            ({"STUB_CODE": "1", "STUB_ERR": "error connecting to api.github.com"},
+             "offline, GitHub unreachable"),
+            ({"STUB_CODE": "1", "STUB_ERR": "secret-ish detail"}, "gh exited 1"),
+            ({"STUB_ISSUES": "not json"}, "gh output not understood"),
+            ({"STUB_ISSUES": '{"number": 1}'}, "gh output not understood"),
+            ({"STUB_ISSUES": "[]", "STUB_LABEL_CODE": "1"}, "gh exited 1"),
+        ]
+        for stub, reason in cases:
+            with self.subTest(reason=reason, stub=stub):
+                for k in ("STUB_CODE", "STUB_ERR", "STUB_ISSUES", "STUB_LABEL_CODE"):
+                    os.environ.pop(k, None)
+                stub.setdefault("STUB_ISSUES", "")
+                result = self.read(**stub)
+                self.assertIsNone(result[0])
+                self.assertEqual(oa.text(result), "not read (%s)" % reason)
+                self.assertNotIn("secret-ish", oa.text(result))
+
+    # Output that raised inside read() before the fix (QA verdict B1 on PR #121). Non-UTF-8 bytes reach
+    # the stub through os.environ as surrogate escapes. The stub prints the nesting itself (an env var
+    # that large exceeds Linux's per-string exec limit); a million '[' raise RecursionError in json on
+    # every supported Python (100000 gave a ValueError on 3.14, so the depth is not arbitrary).
+    UNREADABLE = [
+        ("non-UTF-8 stdout", {"STUB_ISSUES": "\udcff\udcfe[]"}, "gh output not understood"),
+        ("non-UTF-8 stderr, non-zero exit", {"STUB_CODE": "1", "STUB_ERR": "\udcff\udcfe secret-ish"},
+         "gh exited 1"),
+        ("deeply nested JSON", {"STUB_DEPTH": "1000000"}, "gh output not understood"),
+    ]
+
+    def test_unreadable_gh_output_never_raises(self):
+        for name, stub, reason in self.UNREADABLE:
+            with self.subTest(name):
+                for k in ("STUB_CODE", "STUB_ERR", "STUB_ISSUES", "STUB_DEPTH"):
+                    os.environ.pop(k, None)
+                stub = dict(stub)
+                stub.setdefault("STUB_ISSUES", "")
+                result = self.read(**stub)
+                self.assertIsNone(result[0])
+                self.assertEqual(oa.text(result), "not read (%s)" % reason)
+                self.assertNotIn("secret-ish", oa.text(result))
+
+    def test_status_summary_exits_0_on_unreadable_gh_output(self):
+        for name, stub, reason in self.UNREADABLE:
+            with self.subTest(name):
+                env = {"PATH": "%s:%s" % (self.bin, os.environ["PATH"]), "HOME": str(self.home),
+                       "TMPDIR": self.temp.name, "WORKSTATION_MANAGED_ROOT": str(Path(self.temp.name) / "root"),
+                       "STUB_LOG": str(self.log), "STUB_ISSUES": ""}
+                env.update(stub)
+                p = subprocess.run([str(ws.ROOT / "mhw"), "status", "--summary", "--overlay=none"], env=env,
+                                   cwd=self.temp.name, capture_output=True, text=True, errors="replace")
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertIn(" · owner actions: not read (%s)\n" % reason, p.stdout)
+                self.assertNotIn("Traceback", p.stderr)
+
+    def test_timeout_is_bounded(self):
+        result = self.read(timeout=0.5, STUB_SLEEP="5")
+        self.assertEqual(oa.text(result), "not read (gh timed out after 0.5s)")
+
+    def test_unrunnable_gh(self):
+        self.gh.chmod(0o644)
+        self.assertEqual(oa.text(self.read(STUB_ISSUES="[]")), "not read (gh could not run)")
+
+    def test_at_the_limit_says_or_more(self):
+        self.assertEqual(oa.text((oa.LIMIT, "")), "1000 or more open")
+
+    def test_both_views_show_it_and_a_not_read_never_shows_a_zero(self):
+        for value in ("3 open", "not read (gh not found)"):
+            status = ws.render_status(facts(owner_actions=value))
+            self.assertIn("  owner actions    %s · label owner-action in tedeuxx/mhw" % value, status)
+            summary = ws.render_summary(facts(owner_actions=value))
+            self.assertLessEqual(len(summary), 10)
+            self.assertTrue(any(line.startswith("  workstation      ") and line.endswith(
+                " · owner actions: " + value) for line in summary), summary)
+        for out in (ws.render_status(facts(owner_actions="not read (gh not found)")),
+                    ws.render_summary(facts(owner_actions="not read (gh not found)"))):
+            self.assertFalse([line for line in out if re.search(r"owner actions.*\b0 open", line)], out)
+
+    def test_status_end_to_end_through_the_stub_on_path(self):
+        env = {"PATH": "%s:%s" % (self.bin, os.environ["PATH"]), "HOME": str(self.home),
+               "TMPDIR": self.temp.name, "WORKSTATION_MANAGED_ROOT": str(Path(self.temp.name) / "root"),
+               "STUB_LOG": str(self.log), "STUB_ISSUES": '[{"number":4},{"number":5}]'}
+        for args, needle in ((["status"], "\n  owner actions    2 open · label owner-action in "
+                                          "tedeuxx/mhw\n"),
+                             (["status", "--summary"], " · owner actions: 2 open\n")):
+            p = subprocess.run([str(ws.ROOT / "mhw")] + args + ["--overlay=none"], env=env, cwd=self.temp.name,
+                               capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn(needle, p.stdout)
+        # gh failing never fails status.
+        env["STUB_CODE"], env["STUB_ISSUES"] = "4", ""
+        p = subprocess.run([str(ws.ROOT / "mhw"), "status", "--overlay=none"], env=env, cwd=self.temp.name,
+                           capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("\n  owner actions    not read (gh not authenticated) · label", p.stdout)
 
 
 if __name__ == "__main__":
