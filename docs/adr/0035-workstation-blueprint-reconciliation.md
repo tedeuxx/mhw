@@ -355,6 +355,33 @@ recorded writing.
 `model_reasoning_effort`. Those are KEPT, so those two pins take effect only after he deletes the keys
 and installs again.
 
+## Amendment 2026-10-10: implementing decisions 6 and 10 (brief text)
+
+Its evidence level is: *written and tested*. The tests assert the text is in the brief. Nothing is
+installed on the reference machine, and both rules are instructions that no hook enforces.
+
+**1. Where the text lives.** Item 5 of the implementation plan named `global/AGENTS.md` and
+`overlay/AGENTS.md`. Both rules are new sections of `global/AGENTS.md` only: *Session close*, after
+*Session goal anchor*, and *Hooks only for existential risk*. `overlay/AGENTS.md` is not edited. It is
+generated from `overlay/profile.json`, which holds preferences and has no field for a rule. The global
+brief already reaches every harness brief, and the profile renderer copies it into
+`overlay/desktop-instructions.md`, which this slice regenerates.
+
+**2. One clause is the agent's wording, not the owner's.** Decision 10 states only the close line and
+its evidence. The brief adds: *"If the objective is not reached, say what is left instead."* Without
+it, the close line would read as the only way to end a session.
+
+**3. Declared gaps.**
+
+- **Nothing enforces either rule.** For decision 6 that is the decision itself: a hook enforcing the
+  hook principle would break it.
+- **mhw neither installs nor checks the `cc-status` hooks.** `git grep cc-status` finds them only in
+  this record, the brief, its test and the regenerated desktop text. The exception is stated, not
+  measured: that they are visual only and spend no model tokens is still the agent's unverified
+  assessment.
+- **The brief takes effect only after `mhw install` and a fresh session**, under the brief's own
+  configuration-change rule.
+
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10)

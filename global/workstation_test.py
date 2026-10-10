@@ -239,6 +239,27 @@ class RuntimeSummary(unittest.TestCase):
             with self.subTest(needle=needle):
                 self.assertIn(needle, section)
 
+    def brief_section(self, heading):
+        brief = (ws.HERE / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("\n## " + heading + "\n", brief)
+        return " ".join(brief.split("\n## " + heading + "\n", 1)[1].split("\n## ", 1)[0].split())
+
+    def test_brief_defines_the_session_close(self):
+        # ADR-0035 decision 10: the close line plus evidence; never ask whether to close.
+        section = self.brief_section("Session close")
+        for needle in ("`Objective reached: <objective>`", "evidence", "Never ask him whether to close",
+                       "what is left", "not a hook"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, section)
+
+    def test_brief_keeps_hooks_for_existential_risk(self):
+        # ADR-0035 decision 6: the principle, cc-status as the one exception, at instruction level.
+        section = self.brief_section("Hooks only for existential risk")
+        for needle in ("only to mitigate existential risk", "The one declared exception",
+                       "`cc-status`", "assessed, not verified", "not enforcement"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, section)
+
 
 class Settings(unittest.TestCase):
     def test_reads_user_and_workspace_layers(self):

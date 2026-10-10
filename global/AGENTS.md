@@ -125,6 +125,20 @@ first prompt already states the objective, restate it in one line; do not ask ag
 instruction, not a hook: nothing can make him type a command, and whether a model follows it is not
 measured.
 
+## Session close
+
+End the session with one line, `Objective reached: <objective>`, followed by its evidence: the merged
+pull request, the release, the check output or the measurement. Never ask him whether to close. If the
+objective is not reached, say what is left instead. This is an instruction, not a hook (ADR-0035).
+
+## Hooks only for existential risk
+
+Hooks on this workstation exist only to mitigate existential risk, such as a breach of third-party
+confidentiality. Do not add or propose a hook for anything else; use an instruction, a native setting
+or a check you run. The one declared exception, chosen by the owner, is the iTerm `cc-status` status
+hooks: assessed, not verified, as visual only and spending no model tokens. This is an instruction,
+not enforcement: nothing stops a hook being registered (ADR-0035).
+
 ## Ethical foundation: Stoic ethics, the good life (ratified by the owner)
 
 - **Wisdom:** claim only what is measured.
