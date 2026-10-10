@@ -80,6 +80,9 @@ def looks_like_credential_value(s):
 AGENT_ENV = ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CODEX_SANDBOX", "CODEX_SANDBOX_NETWORK_DISABLED")
 
 
+UNREADABLE = "cannot read the MCP definition %s: %s"
+
+
 class Refuse(Exception):
     def __init__(self, code, msg):
         super().__init__(msg)
@@ -337,7 +340,7 @@ def resolve_source(path):
         raise Refuse(2, "no MCP definition at %s. Copy global/mcp/mcp-servers.example.json there and edit it "
                         "(the directory is outside every repository)" % path)
     except OSError as e:
-        raise Refuse(2, "cannot read the MCP definition %s: %s" % (path, e))
+        raise Refuse(2, UNREADABLE % (path, e))
     if not stat.S_ISREG(st.st_mode):
         raise Refuse(2, "the MCP definition %s is not a regular file" % path)
     if hasattr(os, "getuid") and st.st_uid != os.getuid():
@@ -352,7 +355,7 @@ def load_source(path):
         with open(trusted, encoding="utf-8") as fh:
             doc = json.load(fh)
     except (OSError, ValueError) as e:
-        raise Refuse(2, "cannot read the MCP definition %s: %s" % (path, e))
+        raise Refuse(2, UNREADABLE % (path, e))
     errs = validate(doc)
     if errs:
         raise Refuse(2, "invalid MCP definition %s:\n  - %s" % (path, "\n  - ".join(errs)))
@@ -374,7 +377,7 @@ def committable(path):
     except FileNotFoundError:
         return False
     except OSError as e:
-        raise Refuse(2, "cannot read the MCP definition %s: %s" % (path, e))
+        raise Refuse(2, UNREADABLE % (path, e))
     r = subprocess.run([git, "-C", d, "rev-parse", "--is-inside-work-tree"],
                        capture_output=True, text=True)
     if r.returncode != 0 or r.stdout.strip() != "true":
