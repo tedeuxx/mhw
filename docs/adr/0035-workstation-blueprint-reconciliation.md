@@ -254,7 +254,9 @@ same pull request. One line per slice, with the files it touches:
    B amendment below for why the carrier changed.
 4. **Codex MCP removal** (decision 2): the `aws-api` entry in the Codex user configuration, and in the
    untracked local MCP overlay ([ADR-0017](0017-single-source-mcp-with-secret-indirection.md)) if it
-   is there.
+   is there. *Appended 2026-10-10 (RC review, advisory A1): the entry lives in the owner's own
+   configuration, so this item is an owner action, not code in this repository. It became
+   owner-action Issue [#124](https://github.com/tedeuxx/mhw/issues/124).*
 5. **Hook principle and session close** (decisions 6 and 10): the brief and overlay text,
    `global/AGENTS.md` and `overlay/AGENTS.md`.
 6. **Outbound scan** (decision 7): the new `mhw scan` in `global/workstation.py`, reusing the paste
