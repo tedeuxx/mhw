@@ -157,7 +157,9 @@ if awk 'NR == FNR { f[++n] = $0; next }
 else
   ko "an allow rule overlaps the floor"
 fi
-if [ "$(jq '[.permissions.deny[]? | select(startswith("Bash("))] | length' "$s")" -eq $(($(wc -l < "$base/floor.words" | tr -d ' ') + $(owned_deny "$s"))) ]; then
+# A glob floor entry (ADR-0035) is one more Claude Code Bash rule with no prefix word list.
+n_glob=$(awk '$1 == "glob" { n++ } END { print n + 0 }' "$floor_src" "$overlay_floor")
+if [ "$(jq '[.permissions.deny[]? | select(startswith("Bash("))] | length' "$s")" -eq $(($(wc -l < "$base/floor.words" | tr -d ' ') + n_glob + $(owned_deny "$s"))) ]; then
   ok "the deny floor is still merged beside the allow list"
 else
   ko "the deny floor is missing beside the allow list"

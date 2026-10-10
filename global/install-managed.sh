@@ -145,7 +145,7 @@ render() { # $1 empty stage directory
       "$(jq -n --arg v "$paste_codex" '$v')"
     # The deny floor's command entries as admin prefix rules (ADR-0016, 2026-10-05 amendment). They
     # merge with every .rules file and the most restrictive decision wins, so "codex exec
-    # --ignore-rules" cannot skip them. A file entry has no Codex form (ADR-0016).
+    # --ignore-rules" cannot skip them. A file or glob entry has no Codex form (ADR-0016).
     printf '\n# The workstation deny floor (ADR-0016). One rule per line; a prefix matches the command words\n'
     printf '# from the program name on, so another spelling, a wrapper or a script is not matched.\n'
     printf '[rules]\nprefix_rules = [\n'

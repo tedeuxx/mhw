@@ -163,20 +163,31 @@ foreach ($line in $floorLines) {
     if ($line -match '^\s*(#|$)') { continue }
     $w = @($line.Trim() -split '\s+')
     $why = ''
-    if ($w[0] -ne 'cmd' -and $w[0] -ne 'file') { $why = 'kind must be cmd or file' }
+    if ($w[0] -ne 'cmd' -and $w[0] -ne 'file' -and $w[0] -ne 'glob') { $why = 'kind must be cmd, file or glob' }
     elseif ($w.Count -lt 2) { $why = 'no words' }
     elseif ($w[0] -eq 'file' -and $w.Count -ne 2) { $why = 'a file entry takes one path' }
+    elseif ($w[0] -eq 'glob' -and $w.Count -lt 3) { $why = 'a glob entry takes a program and at least one word' }
     else {
         foreach ($x in $w[1..($w.Count - 1)]) {
             if ($x -cnotmatch '^[A-Za-z0-9._/~=:@+*-]+$') { $why = 'word outside the allowed set'; break }
             if ($w[0] -eq 'cmd' -and $x.Contains('*')) { $why = 'a cmd word may not hold *'; break }
         }
     }
+    # A glob is Claude Code only (no Codex form): exactly one "*", the last character of the last word,
+    # after at least one other character. Same rule as install.sh.
+    if (-not $why -and $w[0] -eq 'glob') {
+        foreach ($x in $w[1..($w.Count - 2)]) {
+            if ($x.Contains('*')) { $why = 'a glob holds * only at the end of its last word'; break }
+        }
+        if (-not $why -and $w[$w.Count - 1] -cnotmatch '^[^*]+\*$') { $why = 'a glob holds * only at the end of its last word' }
+    }
     if ($why) { [Console]::Error.WriteLine("invalid deny-floor entry (${why}): $line"); $floorBad = $true; continue }
     $words = @($w[1..($w.Count - 1)])   # @(): a one-element range is otherwise a scalar string
     if ($w[0] -eq 'cmd') {
         $claudeRules.Add("Bash($($words -join ' '):*)")
         $codexWords.Add($words)
+    } elseif ($w[0] -eq 'glob') {
+        $claudeRules.Add("Bash($($words -join ' '))")
     } else {
         $claudeRules.Add("Read($($words[0]))")
         $claudeRules.Add("Edit($($words[0]))")

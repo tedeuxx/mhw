@@ -84,7 +84,7 @@ fi
 # renders at user level, global entries plus the repository overlay's.
 here="$(cd "$(dirname "$0")" && pwd)"
 ofloor="$here/../overlay/deny-floor.conf"; [ -f "$ofloor" ] || ofloor=/dev/null
-want_rules=$(awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' "$here/deny-floor.conf" "$ofloor")
+want_rules=$(awk '$1 == "cmd" || $1 == "glob" { n++ } $1 == "file" { n += 2 } END { print n }' "$here/deny-floor.conf" "$ofloor")
 want_cmds=$(awk '$1 == "cmd" { n++ } END { print n }' "$here/deny-floor.conf" "$ofloor")
 if jq -e --argjson n "$want_rules" '(.permissions | keys == ["deny"]) and (.permissions.deny | length == $n)
     and (.permissions.deny | index("Bash(sudo:*)") != null)
@@ -99,6 +99,17 @@ if [ "$ofloor" = /dev/null ] || jq -e '.permissions.deny | index("Bash(git push 
   ok "the overlay's floor entries reach the admin drop-in"
 else
   ko "the overlay's floor entries reach the admin drop-in"
+fi
+# The 2026-10-10 classes (ADR-0035) reach the admin drop-in; the glob is Claude Code only, so it reaches
+# the drop-in and never the Codex requirements.
+if jq -e '.permissions.deny as $d | ["Bash(terraform plan:*)", "Bash(terraform -chdir=*)", "Bash(git commit --no-verify:*)",
+      "Bash(aws ssm get-parameter --with-decryption:*)", "Bash(aws sso login:*)", "Read(**/.env)", "Edit(**/credentials*)"]
+      | all(. as $r | $d | index($r) != null)' "$dropin" >/dev/null 2>&1 \
+   && grep -qF '{ pattern = [{ token = "terraform" }, { token = "plan" }], decision = "forbidden"' "$req" \
+   && ! grep -q -e '-chdir' -e 'token = "[^"]*\*' "$req"; then
+  ok "the 2026-10-10 floor classes reach the admin drop-in, and the glob stays out of the Codex requirements"
+else
+  ko "the 2026-10-10 floor classes reach the admin drop-in, and the glob stays out of the Codex requirements"
 fi
 nrules=$(grep -c '^  { pattern = \[.*\], decision = "forbidden", justification = ' "$req")
 if [ "$nrules" -eq "$want_cmds" ] && grep -q '^\[rules\]$' "$req" \

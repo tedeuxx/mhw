@@ -47,8 +47,8 @@ floor_src="$(cd "$(dirname "$0")" && pwd)/deny-floor.conf"
 overlay_floor="$(cd "$(dirname "$0")/.." && pwd)/overlay/deny-floor.conf"
 [ -f "$overlay_floor" ] || overlay_floor=/dev/null
 # Expected Claude rules, derived from the source independently of the installer's awk: a cmd line is
-# one rule, a file line is two (Read and Edit).
-floor_rules=$(awk '$1 == "cmd" { n++ } $1 == "file" { n += 2 } END { print n }' "$floor_src" "$overlay_floor")
+# one rule, a glob line one (Claude Code only), a file line two (Read and Edit).
+floor_rules=$(awk '$1 == "cmd" || $1 == "glob" { n++ } $1 == "file" { n += 2 } END { print n }' "$floor_src" "$overlay_floor")
 floor_cmds=$(awk '$1 == "cmd" { n++ } END { print n }' "$floor_src" "$overlay_floor")
 has_rule() { # $1 settings file, $2 rule; prints how many times the rule is in permissions.deny
   jq --arg r "$2" '[.permissions.deny[]? | select(. == $r)] | length' "$1"
@@ -196,6 +196,34 @@ if [ "$(grep -c '^prefix_rule(' "$rules")" -eq "$floor_cmds" ] && ! grep -q 'dec
 else
   ko "codex rule count $(grep -c '^prefix_rule(' "$rules"), expected $floor_cmds"
 fi
+# 2b'. one named rule per class the owner added on 2026-10-10 (ADR-0035), so removing any class from the
+# source turns this red (the counts above are derived from the source and would follow it down).
+for r in 'Bash(terraform plan:*)' 'Bash(terraform state:*)' 'Bash(terraform init:*)' 'Bash(terraform force-unlock:*)' \
+         'Bash(tofu output:*)' 'Bash(tofu apply:*)' 'Bash(terraform -chdir=*)' 'Bash(tofu -chdir=*)' \
+         'Bash(aws ssm get-parameter --with-decryption:*)' 'Bash(aws ssm get-parameters-by-path --with-decryption:*)' \
+         'Bash(git commit --no-verify:*)' 'Bash(git commit -n:*)' 'Bash(git push --no-verify:*)' 'Bash(aws sso login:*)' \
+         'Read(**/.env)' 'Edit(**/.env)' 'Read(**/.env.*)' 'Read(**/*.pem)' 'Edit(**/*.pem)' 'Read(**/credentials*)' 'Edit(**/credentials*)'; do
+  if [ "$(has_rule "$s" "$r")" -eq 1 ]; then ok "deny holds $r once"; else ko "deny lacks $r"; fi
+done
+for p in 'terraform plan' 'tofu state' 'aws ssm get-parameter --with-decryption' 'git commit --no-verify' 'git push --no-verify' 'aws sso login'; do
+  pat=$(printf '%s' "$p" | awk '{ for (i = 1; i <= NF; i++) printf "%s\"%s\"", (i > 1 ? ", " : ""), $i }')
+  if grep -qxF "prefix_rule(pattern=[$pat], decision=\"forbidden\")" "$rules"; then ok "codex forbids $p"; else ko "codex lacks $p"; fi
+done
+# A glob and a file entry have no Codex form: nothing with "*" or "-chdir" reaches the Codex rules.
+if ! grep "^prefix_rule(" "$rules" | grep -q -e "\\*" -e "-chdir"; then ok "codex rules carry no glob or file entry"; else ko "a glob or file entry leaked into the codex rules"; fi
+# The subcommands the owner left open stay open: no rendered rule covers fmt, validate or version, for
+# either binary. A Bash(<p>:*) rule covers a command when <p> is a word prefix of it; a glob
+# Bash(<p>*) when the command starts with <p>.
+open_hit=""
+for c in 'terraform fmt -recursive' 'terraform validate' 'terraform version' 'tofu fmt' 'tofu validate' 'tofu version'; do
+  hit=$(jq -r --arg c "$c" '.permissions.deny[] | select(startswith("Bash("))
+          | .[5:-1] as $b
+          | if ($b | endswith(":*")) then ($b[:-2]) as $p | select($c == $p or ($c | startswith($p + " ")))
+            elif ($b | endswith("*")) then ($b[:-1]) as $p | select($c | startswith($p))
+            else empty end' "$s")
+  [ -n "$hit" ] && open_hit="$open_hit $c<-$hit"
+done
+if [ -z "$open_hit" ]; then ok "terraform/tofu fmt, validate and version stay open"; else ko "an open subcommand is denied:$open_hit"; fi
 if command -v codex >/dev/null 2>&1; then
   # Credential-free: execpolicy only evaluates the rules file against argv; nothing is run.
   d1=$(codex execpolicy check --rules "$rules" git push --force origin x | jq -r '.decision // "none"')
@@ -547,7 +575,7 @@ else
   ko "the overlay's entry is missing"
 fi
 i=0
-for e in 'cmd rm "-rf"' 'cmd git push --force*' 'path ~/.ssh' 'file ~/a ~/b' 'cmd'; do
+for e in 'cmd rm "-rf"' 'cmd git push --force*' 'path ~/.ssh' 'file ~/a ~/b' 'cmd' 'glob terraform*' 'glob terraform -chdir=*x' 'glob terraform -c*hdir=*' 'glob terraform -chdir=**' 'glob terraform *'; do
   i=$((i + 1))
   printf '%s\n' "$e" > "$ov/deny-floor.conf"
   h="$base/home-badfloor-$i"; mkdir -p "$h"

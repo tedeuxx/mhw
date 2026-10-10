@@ -96,7 +96,7 @@ if (Test-Path -LiteralPath $overlayFloor -PathType Leaf) { $floorLines += @(Get-
 $floorRules = 0; $floorCmds = 0
 foreach ($l in $floorLines) {
     $k = ($l.Trim() -split '\s+')[0]
-    if ($k -ceq 'cmd') { $floorRules++; $floorCmds++ } elseif ($k -ceq 'file') { $floorRules += 2 }
+    if ($k -ceq 'cmd') { $floorRules++; $floorCmds++ } elseif ($k -ceq 'glob') { $floorRules++ } elseif ($k -ceq 'file') { $floorRules += 2 }
 }
 
 # Expected brief sha256: the LF form of global/AGENTS.md + overlay/AGENTS.md, which is what install.sh
@@ -159,9 +159,15 @@ Check "settings carry every deny-floor rule ($floorRules), nothing else" ($deny.
 foreach ($r in @('Bash(rm -rf:*)', 'Bash(git push --force:*)', 'Bash(gh auth token:*)', 'Read(~/.ssh/id_*)', 'Edit(~/.aws/credentials)')) {
     Check "deny holds $r once" ((Count-Rule $h $r) -eq 1)
 }
+# One named rule per class the owner added on 2026-10-10 (ADR-0035), the glob kind included.
+foreach ($r in @('Bash(terraform plan:*)', 'Bash(tofu init:*)', 'Bash(terraform -chdir=*)', 'Bash(aws ssm get-parameter --with-decryption:*)',
+                 'Bash(git commit --no-verify:*)', 'Bash(git push --no-verify:*)', 'Bash(aws sso login:*)', 'Read(**/.env)', 'Edit(**/*.pem)')) {
+    Check "deny holds $r once" ((Count-Rule $h $r) -eq 1)
+}
 $rules = Join-Path $h '.codex\rules\workstation-deny-floor.rules'
 $rl = @(Get-Content -LiteralPath $rules)
 Check 'codex rules carry a forbidden prefix_rule' ([bool]($rl | Where-Object { $_ -ceq 'prefix_rule(pattern=["git", "push", "--force"], decision="forbidden")' }))
+Check 'codex rules carry no glob or file entry' (-not ($rl | Where-Object { $_ -clike 'prefix_rule(*' -and ($_.Contains('*') -or $_.Contains('-chdir')) }))
 Check "codex rules: one forbidden rule per cmd entry ($floorCmds), no allow" (
     @($rl | Where-Object { $_ -clike 'prefix_rule(*' }).Count -eq $floorCmds -and -not ($rl | Where-Object { $_ -like '*decision="allow"*' }))
 
@@ -295,7 +301,7 @@ Check "the overlay's entry reaches both harnesses" (
     (Count-Rule $h 'Bash(terraform destroy:*)') -eq 1 -and
     [bool](Get-Content -LiteralPath (Join-Path $h '.codex\rules\workstation-deny-floor.rules') | Where-Object { $_ -ceq 'prefix_rule(pattern=["terraform", "destroy"], decision="forbidden")' }))
 $i = 0
-foreach ($e in @('cmd rm "-rf"', 'cmd git push --force*', 'path ~/.ssh', 'file ~/a ~/b', 'cmd')) {
+foreach ($e in @('cmd rm "-rf"', 'cmd git push --force*', 'path ~/.ssh', 'file ~/a ~/b', 'cmd', 'glob terraform*', 'glob terraform -chdir=*x', 'glob terraform -c*hdir=*', 'glob terraform -chdir=**', 'glob terraform *')) {
     $i++
     [System.IO.File]::WriteAllText((Join-Path $ov 'deny-floor.conf'), "$e`n")
     $h = Join-Path $Base "home-badfloor-$i"; New-Item -ItemType Directory -Force -Path $h | Out-Null
