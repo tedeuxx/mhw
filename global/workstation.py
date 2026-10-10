@@ -204,6 +204,7 @@ def render_status(f, verbose=False):
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
     lines.append("  method           %s" % method_text(f.get("method")))
+    lines.append("  models           %s" % models_text(f))
     if f.get("permissions"):
         lines.append("  permissions      %s" % f["permissions"])
     key = f["key"]
@@ -239,7 +240,26 @@ NATIVE_VIEW = {"Claude Code": "/status", "Codex": "/status", "Kiro": "/context s
 # Settings that set a session default. A workspace value overrides the user one; a session flag
 # overrides both and is visible only inside the agent harness.
 MODE_KEYS = {"Claude Code": ("permissions.defaultMode",), "Codex": ("approval_policy", "sandbox_mode")}
-MODEL_KEYS = {"Claude Code": ("model", "effortLevel"), "Codex": ("model", "model_reasoning_effort")}
+MODEL_KEYS = {"Claude Code": ("model", "effortLevel"), "Codex": ("model", "model_reasoning_effort"),
+              "Kiro": ("chat.defaultModel",)}
+# install.sh --check lines of the model-defaults step (ADR-0035) carry this tag.
+MODELS_TAG = "(model defaults "
+
+
+def models_text(f):
+    """The session-start model and effort each agent harness's user layer sets, and whether they match
+    the versioned policy (overlay/model-defaults.json), as install.sh --check reported it."""
+    user = [s for s in f.get("settings", []) if s[1] == "user"]
+    values = _settings_text(user, MODEL_KEYS, list(MODEL_KEYS))
+    lines = [line for line in f.get("user_lines", []) if MODELS_TAG in line]
+    if not lines:
+        return "%s; policy: none (no model-defaults.json in the overlay)" % values
+    differ = [line for line in lines if not line.startswith("OK")]
+    if not differ:
+        return "%s; policy: matches" % values
+    owner = sum(1 for line in differ if line.startswith("REFUSE"))
+    note = "; %d hold a value of yours that install leaves alone" % owner if owner else ""
+    return "%s; policy: %d harness(es) differ%s" % (values, len(differ), note)
 
 
 def _setting(settings, harness, key):
@@ -608,7 +628,8 @@ def _toml_top(path, keys):
 
 def read_settings(ws_root):
     """Session-default settings each layer sets, as (agent harness, layer, key, value) tuples.
-    Claude Code: user and workspace settings.json (+ settings.local.json); Codex: user and workspace
+    Claude Code: user and workspace settings.json (+ settings.local.json); Kiro: user and workspace
+    .kiro/settings/cli.json (chat.defaultModel); Codex: user and workspace
     config.toml. The admin layer is reported as a layer, not read here."""
     out = []
     claude = [("user", Path.home() / ".claude" / "settings.json")]
@@ -631,6 +652,13 @@ def read_settings(ws_root):
         found = _toml_top(path, ("model", "model_reasoning_effort", "approval_policy", "sandbox_mode"))
         for key in sorted(found):
             out.append(("Codex", layer, key, found[key]))
+    kiro = [("user", Path.home() / ".kiro" / "settings" / "cli.json")]
+    if ws_root:
+        kiro.append(("workspace", ws_root / ".kiro" / "settings" / "cli.json"))
+    for layer, path in kiro:
+        doc, _ = _json(path)
+        if isinstance(doc, dict) and isinstance(doc.get("chat.defaultModel"), str):
+            out.append(("Kiro", layer, "chat.defaultModel", doc["chat.defaultModel"]))
     return out
 
 

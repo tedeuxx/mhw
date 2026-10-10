@@ -7,6 +7,15 @@ base=${1:?usage: install.test.sh <base dir>}
 mkdir -p "$base"
 inst="$(cd "$(dirname "$0")" && pwd)/install.sh"
 unset CODEX_HOME XDG_DATA_HOME
+# Sections 1-16 seed settings files with values of their own (a "model" among them), which the model
+# defaults would rightly refuse to overwrite. They run with a copy of the repository overlay minus
+# model-defaults.json; section 17 runs the real overlay and asserts the model defaults (ADR-0035).
+models_off="$base/overlay-without-model-defaults"
+mkdir -p "$models_off"
+cp -R "$(cd "$(dirname "$0")/.." && pwd)/overlay/." "$models_off/"
+rm -f "$models_off/model-defaults.json"
+WORKSTATION_OVERLAY=$models_off
+export WORKSTATION_OVERLAY
 pass=0
 fail=0
 
@@ -723,6 +732,58 @@ if grep -q "admin requirements $((floor_cmds - 1))/$floor_cmds prefix rules" "$b
   ok "check counts the Codex admin prefix rules one by one"
 else
   ko "check did not notice a Codex admin prefix rule removed"
+fi
+
+# 17. the session-start model defaults (ADR-0007, ADR-0035), through install.sh with the repository
+# overlay: written into each harness's native user key, --check reports drift, install never overwrites
+# an owner's value, uninstall removes only what mhw set. Per-case semantics: global/models/model_defaults_test.py.
+repo_overlay="$(cd "$(dirname "$0")/.." && pwd)/overlay"
+models_policy="$repo_overlay/model-defaults.json"
+hm="$base/home-models"; mkdir -p "$hm/.claude"
+echo '{"theme": "dark"}' > "$hm/.claude/settings.json"
+HOME="$hm" sh "$inst" --overlay="$repo_overlay" > "$base/models1.out" 2>&1; expect "install with model defaults" 0 $?
+if [ "$(jq -r .model "$hm/.claude/settings.json")" = "$(jq -r '."claude-code".model' "$models_policy")" ] \
+   && [ "$(jq -r .effortLevel "$hm/.claude/settings.json")" = "$(jq -r '."claude-code".effort' "$models_policy")" ] \
+   && [ "$(jq -r .theme "$hm/.claude/settings.json")" = dark ]; then
+  ok "Claude Code: model and effortLevel set from the policy, the owner's other keys kept"
+else
+  ko "Claude Code model defaults: $(jq -c '{model, effortLevel, theme}' "$hm/.claude/settings.json")"
+fi
+if grep -qxF "model = \"$(jq -r .codex.model "$models_policy")\"" "$hm/.codex/config.toml" \
+   && grep -qxF "model_reasoning_effort = \"$(jq -r .codex.effort "$models_policy")\"" "$hm/.codex/config.toml"; then
+  ok "Codex: model and model_reasoning_effort set in config.toml"
+else
+  ko "Codex model defaults missing from config.toml"
+fi
+if [ "$(jq -r '."chat.defaultModel"' "$hm/.kiro/settings/cli.json")" = "$(jq -r '."kiro-cli".model' "$models_policy")" ]; then
+  ok "Kiro CLI: chat.defaultModel set in cli.json"
+else
+  ko "Kiro CLI chat.defaultModel not set"
+fi
+HOME="$hm" sh "$inst" --check --overlay="$repo_overlay" > "$base/models2.out" 2>&1
+expect "check after install with model defaults" 0 $?
+# Drift as /model would leave it: another value replaces ours. --check names it; install never overwrites it.
+jq '.model = "opus[1m]"' "$hm/.claude/settings.json" > "$base/models.t" && cat "$base/models.t" > "$hm/.claude/settings.json"
+HOME="$hm" sh "$inst" --check --overlay="$repo_overlay" > "$base/models3.out" 2>&1
+expect "check reports a drifted model default" 3 $?
+if grep -q '^REFUSE  .*/.claude/settings.json: model is "opus\[1m\]"' "$base/models3.out"; then
+  ok "check names the drifted Claude Code model"
+else
+  ko "check did not name the drifted model"
+fi
+HOME="$hm" sh "$inst" --overlay="$repo_overlay" > /dev/null 2>&1
+if [ "$(jq -r .model "$hm/.claude/settings.json")" = "opus[1m]" ]; then
+  ok "install leaves the owner's model value alone"
+else
+  ko "install overwrote the owner's model value"
+fi
+HOME="$hm" sh "$inst" --uninstall > "$base/models4.out" 2>&1
+if [ "$(jq -c '{model, effortLevel, theme}' "$hm/.claude/settings.json")" = '{"model":"opus[1m]","effortLevel":null,"theme":"dark"}' ] \
+   && ! grep -q '^model' "$hm/.codex/config.toml" \
+   && [ "$(jq -r '."chat.defaultModel" // "absent"' "$hm/.kiro/settings/cli.json")" = absent ]; then
+  ok "uninstall removes only the model-default keys mhw set"
+else
+  ko "uninstall model defaults: $(jq -c . "$hm/.claude/settings.json")"
 fi
 
 echo "$pass passed, $fail failed"

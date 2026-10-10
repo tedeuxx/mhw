@@ -89,7 +89,7 @@ def facts(**over):
 class StatusOutput(unittest.TestCase):
     def test_short_view(self):
         out = ws.render_status(facts())
-        self.assertLessEqual(len(out), 12)
+        self.assertLessEqual(len(out), 13)  # 13 since the models line (ADR-0035)
         self.assertIn("  source           v3.1.0 @ aaaaaaa (this checkout)", out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: not installed", out)
         self.assertIn("  check            matches this checkout", out)
@@ -216,7 +216,7 @@ class RuntimeSummary(unittest.TestCase):
         self.assertEqual(out[-1], "  " + line)
         self.assertLessEqual(len(out), 11)
         self.assertEqual(self.row(out, "agent harness"), "none detected on PATH")
-        self.assertIn("Kiro: not read by this view", self.row(out, "model, effort"))
+        self.assertIn("Kiro: default", self.row(out, "model, effort"))
         self.assertIn("Kiro /context show, /tools", self.row(out, "model, effort"))
 
     def test_brief_names_the_summary_command(self):
@@ -270,6 +270,47 @@ class Settings(unittest.TestCase):
                                ("Claude Code", "workspace", "disableAllHooks", "true"),
                                ("Codex", "user", "approval_policy", "never"),
                                ("Codex", "user", "model", "gpt-x")])
+
+    def test_reads_the_kiro_default_model(self):
+        with tempfile.TemporaryDirectory(prefix="workstation-settings-") as d:
+            base = Path(d)
+            saved = os.environ.get("HOME")
+            os.environ["HOME"] = str(base / "home")
+            try:
+                (base / "home" / ".kiro" / "settings").mkdir(parents=True)
+                (base / "home" / ".kiro" / "settings" / "cli.json").write_text(json.dumps(
+                    {"chat.defaultModel": "claude-sonnet-4.5", "chat.enableThinking": True}), encoding="utf-8")
+                got = ws.read_settings(None)
+            finally:
+                os.environ["HOME"] = saved
+        self.assertIn(("Kiro", "user", "chat.defaultModel", "claude-sonnet-4.5"), got)
+
+
+class ModelsLine(unittest.TestCase):
+    """ADR-0035: status shows each harness's session-start model and effort against the policy."""
+
+    SETTINGS = [("Claude Code", "user", "model", "claude-opus-5-5[1m]"),
+                ("Claude Code", "user", "effortLevel", "medium"),
+                ("Codex", "user", "model", "gpt-5.6-sol"), ("Codex", "user", "model_reasoning_effort", "high"),
+                ("Kiro", "user", "chat.defaultModel", "claude-sonnet-4.5")]
+
+    def models(self, lines):
+        out = ws.render_status(facts(settings=self.SETTINGS, user_lines=lines))
+        hits = [line for line in out if line.startswith("  models           ")]
+        self.assertEqual(len(hits), 1, out)
+        return hits[0][19:]
+
+    def test_values_and_policy_state(self):
+        values = ("Claude Code: model claude-opus-5-5[1m] (user), effortLevel medium (user) · Codex: model "
+                  "gpt-5.6-sol (user), model_reasoning_effort high (user) · Kiro: chat.defaultModel "
+                  "claude-sonnet-4.5 (user)")
+        self.assertEqual(self.models([]), values + "; policy: none (no model-defaults.json in the overlay)")
+        ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
+        self.assertEqual(self.models(ok), values + "; policy: matches")
+        refused = ok + ["REFUSE  /h/.codex/config.toml: model_reasoning_effort is \"high\" (model defaults codex)",
+                        "MISSING /h/.kiro/settings/cli.json: install would set (model defaults kiro-cli)"]
+        self.assertEqual(self.models(refused), values + "; policy: 2 harness(es) differ; 1 hold a value of "
+                                                        "yours that install leaves alone")
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
