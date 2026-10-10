@@ -89,7 +89,7 @@ def facts(**over):
 class StatusOutput(unittest.TestCase):
     def test_short_view(self):
         out = ws.render_status(facts())
-        self.assertLessEqual(len(out), 12)
+        self.assertLessEqual(len(out), 13)  # 13 since the models line (ADR-0035)
         self.assertIn("  source           v3.1.0 @ aaaaaaa (this checkout)", out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: not installed", out)
         self.assertIn("  check            matches this checkout", out)
@@ -216,7 +216,7 @@ class RuntimeSummary(unittest.TestCase):
         self.assertEqual(out[-1], "  " + line)
         self.assertLessEqual(len(out), 11)
         self.assertEqual(self.row(out, "agent harness"), "none detected on PATH")
-        self.assertIn("Kiro: not read by this view", self.row(out, "model, effort"))
+        self.assertIn("Kiro: default", self.row(out, "model, effort"))
         self.assertIn("Kiro /context show, /tools", self.row(out, "model, effort"))
 
     def test_brief_names_the_summary_command(self):
@@ -270,6 +270,71 @@ class Settings(unittest.TestCase):
                                ("Claude Code", "workspace", "disableAllHooks", "true"),
                                ("Codex", "user", "approval_policy", "never"),
                                ("Codex", "user", "model", "gpt-x")])
+
+    def test_reads_the_kiro_default_model(self):
+        with tempfile.TemporaryDirectory(prefix="workstation-settings-") as d:
+            base = Path(d)
+            saved = os.environ.get("HOME")
+            os.environ["HOME"] = str(base / "home")
+            try:
+                (base / "home" / ".kiro" / "settings").mkdir(parents=True)
+                (base / "home" / ".kiro" / "settings" / "cli.json").write_text(json.dumps(
+                    {"chat.defaultModel": "claude-sonnet-4.5", "chat.enableThinking": True}), encoding="utf-8")
+                got = ws.read_settings(None)
+            finally:
+                os.environ["HOME"] = saved
+        self.assertIn(("Kiro", "user", "chat.defaultModel", "claude-sonnet-4.5"), got)
+
+
+class ModelsLine(unittest.TestCase):
+    """ADR-0035: status shows each harness's session-start model and effort against the policy."""
+
+    SETTINGS = [("Claude Code", "user", "model", "claude-opus-5-5[1m]"),
+                ("Claude Code", "user", "effortLevel", "medium"),
+                ("Codex", "user", "model", "gpt-5.6-sol"), ("Codex", "user", "model_reasoning_effort", "high"),
+                ("Kiro", "user", "chat.defaultModel", "claude-sonnet-4.5")]
+
+    def models(self, lines):
+        out = ws.render_status(facts(settings=self.SETTINGS, user_lines=lines))
+        hits = [line for line in out if line.startswith("  models           ")]
+        self.assertEqual(len(hits), 1, out)
+        return hits[0][19:]
+
+    def test_values_and_policy_state(self):
+        values = ("Claude Code: model claude-opus-5-5[1m] (user), effortLevel medium (user) · Codex: model "
+                  "gpt-5.6-sol (user), model_reasoning_effort high (user) · Kiro: chat.defaultModel "
+                  "claude-sonnet-4.5 (user)")
+        self.assertEqual(self.models([]), values + "; policy: none (no model-defaults.json in the overlay)")
+        ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
+        self.assertEqual(self.models(ok), values + "; policy: matches")
+        refused = ok + ["KEPT    /h/.codex/config.toml: model_reasoning_effort is \"high\" (model defaults codex)",
+                        "MISSING /h/.kiro/settings/cli.json: install would set (model defaults kiro-cli)"]
+        self.assertEqual(self.models(refused), values + "; policy: 2 harness(es) differ; 1 hold a value of "
+                                                        "yours that install leaves alone")
+
+    def test_workspace_override_is_never_reported_as_matching(self):
+        """PR #119 lens: a workspace key beats the user layer, the only layer mhw writes. The line shows
+        the value in effect and names the override instead of claiming "policy: matches"."""
+        ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
+        settings = self.SETTINGS + [("Claude Code", "workspace", "model", "claude-haiku-x")]
+        out = ws.render_status(facts(settings=settings, user_lines=ok))
+        line = [l for l in out if l.startswith("  models           ")][0]
+        self.assertIn("Claude Code: model claude-haiku-x (workspace)", line)
+        self.assertNotIn("policy: matches", line)
+        self.assertIn("policy: user layer matches; overridden by the workspace: Claude Code model", line)
+        # Without the workspace key the same lines do match.
+        self.assertTrue(self.models(ok).endswith("; policy: matches"))
+
+    def test_an_owner_value_is_no_pending_write(self):
+        """PR #119 lens: a KEPT owner value is reported, but install has nothing to write for it."""
+        kept = ["KEPT    /h/.claude/settings.json: model is \"opus[1m]\" (model defaults claude-code); your value",
+                "OK      /h/.codex/config.toml: x (model defaults codex)"]
+        self.assertEqual(ws.issues(kept), 0)
+        self.assertEqual(ws.issues(kept + ["DRIFT   /h/.kiro/settings/cli.json: x (model defaults kiro-cli)"]), 1)
+        steps = ws.owner_steps(kept)
+        self.assertEqual(len(steps), 1, steps)
+        self.assertIn("delete the key and run install again", steps[0])
+        self.assertIn("/h/.claude/settings.json: model is \"opus[1m]\"", steps[0])
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
@@ -855,6 +920,10 @@ class AdminNotInstalled(unittest.TestCase):
         saved_sudo = ws.admin_access
         os.environ.update({"HOME": str(base / "home"), "TMPDIR": str(base / "tmp"),
                            "WORKSTATION_MANAGED_ROOT": str(base / "root"), ws.OVERLAY_ENV: "none"})
+        # Both win over HOME in the installers (the model-defaults record and Codex's config): a leaked
+        # value would let this test edit the real files (PR #119 review).
+        os.environ.pop("XDG_DATA_HOME", None)
+        os.environ.pop("CODEX_HOME", None)
         ws.admin_access = lambda asking: False
         out = io.StringIO()
         try:
@@ -890,6 +959,8 @@ class AdminNotRemoved(unittest.TestCase):
                "WORKSTATION_MANAGED_ROOT": str(base / "root"), ws.OVERLAY_ENV: "none"}
         saved_env, saved_access, saved_npm = dict(os.environ), ws.admin_access, ws.npm_package
         os.environ.update(env)
+        os.environ.pop("XDG_DATA_HOME", None)  # see AdminNotInstalled: never the real record or Codex home
+        os.environ.pop("CODEX_HOME", None)
         out = io.StringIO()
         try:
             with contextlib.redirect_stdout(out):

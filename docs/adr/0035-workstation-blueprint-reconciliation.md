@@ -145,7 +145,9 @@ por padrao. ex opus 5.5 medium"* (I wanted a top model at medium effort in every
 e.g. Opus 5.5 medium).
 
 - Codex drops from high to medium.
-- Kiro gets a pinned model. Which models Kiro offers is **not verified yet**.
+- Kiro gets a pinned model. ~~Which models Kiro offers is **not verified yet**.~~ *Struck 2026-10-10
+  (slice B):* measured, see the slice B amendment below. Kiro CLI 2.29.0 lists `claude-sonnet-4.5` as
+  its top model, and Kiro takes no effort here.
 - Not adopted: the blueprint's "high" effort.
 
 ### 6. Hooks
@@ -227,7 +229,8 @@ A read-only inventory could not verify these items. They stay open:
   or CI validates.
 - `find` and `awk` now ask every time, including for harmless reads.
 - The outbound scan informs and never blocks, so a finding the agent ignores still ships.
-- The Kiro model choice rests on an unverified list of Kiro's models.
+- ~~The Kiro model choice rests on an unverified list of Kiro's models.~~ *Struck 2026-10-10 (slice
+  B):* the list was measured. The residual gaps of decisions 5 and 8 are in the slice B amendment.
 - The four items not covered by the interview stay open, Kiro's missing floor among them.
 - The configuration diverges from the source station on purpose (decisions 1, 5, 11 and 12), so the
   next blueprint refresh needs its own reconciliation.
@@ -242,8 +245,10 @@ same pull request. One line per slice, with the files it touches:
 2. **Allow list** (decision 4): `global/allow-list.conf`. Neither `global/allow-list.conf` nor
    `overlay/allow-list.conf` carries a `find` or `awk` entry at this base (`af15e02`), so the slice
    first finds where the rendered entries come from.
-3. **Model and effort, pinned by ID** (decisions 5 and 8): the overlay profile (`overlay/profile.json`,
-   `overlay/profile-plan.json`) and its renderer under `global/profile/`.
+3. **Model and effort, pinned by ID** (decisions 5 and 8): ~~the overlay profile (`overlay/profile.json`,
+   `overlay/profile-plan.json`) and its renderer under `global/profile/`.~~ *Struck 2026-10-10 (slice
+   B):* `overlay/model-defaults.json` and its renderer `global/models/model_defaults.py`; see the slice
+   B amendment below for why the carrier changed.
 4. **Codex MCP removal** (decision 2): the `aws-api` entry in the Codex user configuration, and in the
    untracked local MCP overlay ([ADR-0017](0017-single-source-mcp-with-secret-indirection.md)) if it
    is there.
@@ -280,6 +285,75 @@ list mirrors Terraform's. A subcommand that exists only in OpenTofu is not cover
   subcommand injected through the environment, or a wrapper script that calls the binary is not seen.
 - **Claude Code `**/` file denies apply only inside the working directory.** A secret file outside it
   is not covered. And `**/.env.*` also blocks `.env.example`, a file that holds no secret.
+
+## Amendment 2026-10-10: implementing decisions 5 and 8 (slice B)
+
+Pull request #119, into `rc/next`. Its evidence level is: *written and tested* in throwaway homes;
+**not installed** on the reference machine; no default checked in a new session of any harness.
+
+**1. The carrier changed from the plan.** Item 3 of the implementation plan named the overlay profile
+and `global/profile/`. That renderer compiles instruction text into the overlay and, by its own
+contract, *"Never install[s] into a harness"*. Decisions 5 and 8 need the opposite: a value written
+into each harness's own native user-level key, without disturbing the rest of the file. So the slice
+ships its own carrier, run as one step of `global/install.sh`:
+
+- **Policy:** `overlay/model-defaults.json`, owner-specific because the IDs depend on his
+  subscriptions. The generic layer pins nothing: with no overlay file the policy is empty.
+- **Renderer:** `global/models/model_defaults.py`, standard library only, Python 3.9 or later. It
+  writes only `model` and `effortLevel` (Claude Code, `~/.claude/settings.json`), `model` and
+  `model_reasoning_effort` (Codex, top-level keys of `${CODEX_HOME:-~/.codex}/config.toml`) and
+  `chat.defaultModel` (Kiro CLI, `~/.kiro/settings/cli.json`). The policy loader refuses any other
+  field, and refuses an alias (decision 8).
+- **Ownership record:** the keys mhw set, with the provenance stamp, in
+  `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/model-defaults.json`.
+
+| Harness | Pinned model | Effort | Evidence |
+| --- | --- | --- | --- |
+| Claude Code | `claude-opus-5-5[1m]` | `medium` | the keys documented and read from the bundle; not checked in a new session |
+| Codex | `gpt-5.6-sol` | `medium` | the keys read from the binary; not checked in a new session |
+| Kiro CLI | `claude-sonnet-4.5` | not set | the model list measured (`kiro-cli chat --list-models`, 2.29.0): it is the top model offered; not checked in a new session |
+
+**2. Ownership semantics.** A key is written only when it is absent, or still holds the value mhw
+recorded writing.
+
+- **KEPT.** A key holding any other value is the owner's. It is kept, never overwritten. It changes no
+  exit code, it is not a pending write (so a repeated install settles, and `mhw status` does not count
+  it), and `mhw install` lists it as an owner next step: delete the key and run install again to hand
+  it to mhw. A value the owner set that already equals the policy also stays his.
+- **REFUSE, exit 3**, only for: a file or value mhw cannot read; an ownership record mhw does not own;
+  an edit that would not parse.
+- **The TOML parse guard needs Python 3.11 or later** (`tomllib`). Every Codex edit is parsed before
+  the atomic replace; below 3.11 the check is skipped and the line editor stands alone. The editor
+  finds the bare, `"basic"` and `'literal'` spellings of a key.
+- **A recorded file outside `--home` (and `CODEX_HOME`) is never edited.** It is noted and left alone.
+- **Backup and format.** Every write leaves the previous file as `<file>.pmhwc-models-backup`, then
+  replaces the file atomically with its mode kept. The backup is overwritten on each write, so after a
+  second write it no longer holds the pre-mhw original. JSON files are re-serialised whole: the same
+  keys and order, but re-indented.
+- **Uninstall** removes a key only while it still holds the value mhw recorded.
+
+**3. Declared gaps.**
+
+- **Kiro has no effort setting here.** Its effort is a per-model entry, and whether the pinned model
+  accepts one was not verified, so the policy refuses a Kiro effort.
+- **Windows:** `install.ps1` does not render these values. The control is macOS and Linux only.
+- **A vendor-retired pinned ID passes `--check` and breaks the session, with no fallback.** `--check`
+  compares strings only. Measured on Claude Code by the agents-lead review of #119: a retired ID makes
+  the session exit with a model error rather than fall back to a default. For Codex and Kiro the
+  behaviour is a hypothesis. Kiro already marks retiring models `[EOL]` in its list.
+- **A pinned ID implies a minimum harness version, and none is declared yet** (AGENTS.md principle 1).
+  The same Claude Code probe reported that an ID outside its model catalog needs an update.
+- **Layers above the user file win.** Workspace or project settings, the environment variables
+  `ANTHROPIC_MODEL` and `CLAUDE_CODE_EFFORT_LEVEL`, and Codex profiles and `-m` all override the pin.
+  The project layer winning was measured on Claude Code; the rest is read or documented. `mhw status`
+  now reports a workspace override instead of saying the policy matches.
+- **Kiro's native writer is not used.** `kiro-cli settings chat.defaultModel <id>` exists. The slice
+  writes the flat key into `cli.json` itself, and the on-disk shape the native writer produces was
+  not measured.
+
+**4. On the reference machine.** The owner's user layer holds his own Claude Code `model` and Codex
+`model_reasoning_effort`. Those are KEPT, so those two pins take effect only after he deletes the keys
+and installs again.
 
 ## Amendment 2026-10-10: implementing decision 9 (owner-action queue)
 
@@ -319,6 +393,7 @@ name. `gh label list --search` was not used: right after creation it did not fin
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10)
+- Pull requests: #118 (slice A), #119 (slice B), #121 (decision 9, owner-action queue)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),
   [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md),
   [ADR-0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md)
