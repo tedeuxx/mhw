@@ -401,9 +401,9 @@ class TrustedPath(unittest.TestCase):
         self.assertEqual(r.trusted_path(other), f)
 
     def test_a_missing_component_raises_not_found(self):
-        d = self.fresh_dir("trusted-missing")
+        absent = os.path.join(self.fresh_dir("trusted-missing"), "absent", "def.json")
         with self.assertRaises(FileNotFoundError):
-            r.trusted_path(os.path.join(d, "absent", "def.json"))
+            r.trusted_path(absent)
         with self.assertRaises(FileNotFoundError):
             r.trusted_path("relative/def.json")
 
