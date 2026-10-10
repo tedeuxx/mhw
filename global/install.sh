@@ -233,6 +233,8 @@ if ! awk -v claude="$floor_claude" -v codex="$floor_codex" '
       if (why == "" && $1 == "glob") {
         for (i = 2; i < NF; i++) if ($i ~ /\*/) why = "a glob holds * only at the end of its last word"
         if (why == "" && $NF !~ /^[^*]+\*$/) why = "a glob holds * only at the end of its last word"
+        # "Bash(<words>:*)" is the shape of a prefix rule: install-managed.sh would render it for Codex.
+        if (why == "" && $NF ~ /:\*$/) why = "a glob may not end in :* (that is a cmd entry)"
       }
       if (why != "") { printf "invalid deny-floor entry (%s): %s\n", why, $0 > "/dev/stderr"; err = 1; next }
       if ($1 == "cmd") {

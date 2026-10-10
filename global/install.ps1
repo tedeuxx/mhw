@@ -180,6 +180,8 @@ foreach ($line in $floorLines) {
             if ($x.Contains('*')) { $why = 'a glob holds * only at the end of its last word'; break }
         }
         if (-not $why -and $w[$w.Count - 1] -cnotmatch '^[^*]+\*$') { $why = 'a glob holds * only at the end of its last word' }
+        # "Bash(<words>:*)" is the shape of a prefix rule: install-managed.sh would render it for Codex.
+        if (-not $why -and $w[$w.Count - 1].EndsWith(':*')) { $why = 'a glob may not end in :* (that is a cmd entry)' }
     }
     if ($why) { [Console]::Error.WriteLine("invalid deny-floor entry (${why}): $line"); $floorBad = $true; continue }
     $words = @($w[1..($w.Count - 1)])   # @(): a one-element range is otherwise a scalar string

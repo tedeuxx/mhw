@@ -160,7 +160,7 @@ foreach ($r in @('Bash(rm -rf:*)', 'Bash(git push --force:*)', 'Bash(gh auth tok
     Check "deny holds $r once" ((Count-Rule $h $r) -eq 1)
 }
 # One named rule per class the owner added on 2026-10-10 (ADR-0035), the glob kind included.
-foreach ($r in @('Bash(terraform plan:*)', 'Bash(tofu init:*)', 'Bash(terraform -chdir=*)', 'Bash(aws ssm get-parameter --with-decryption:*)',
+foreach ($r in @('Bash(terraform plan:*)', 'Bash(terraform env:*)', 'Bash(tofu init:*)', 'Bash(terraform -chdir=*)', 'Bash(aws ssm get-parameter --with-decryption:*)',
                  'Bash(git commit --no-verify:*)', 'Bash(git push --no-verify:*)', 'Bash(aws sso login:*)', 'Read(**/.env)', 'Edit(**/*.pem)')) {
     Check "deny holds $r once" ((Count-Rule $h $r) -eq 1)
 }
@@ -301,7 +301,7 @@ Check "the overlay's entry reaches both harnesses" (
     (Count-Rule $h 'Bash(terraform destroy:*)') -eq 1 -and
     [bool](Get-Content -LiteralPath (Join-Path $h '.codex\rules\workstation-deny-floor.rules') | Where-Object { $_ -ceq 'prefix_rule(pattern=["terraform", "destroy"], decision="forbidden")' }))
 $i = 0
-foreach ($e in @('cmd rm "-rf"', 'cmd git push --force*', 'path ~/.ssh', 'file ~/a ~/b', 'cmd', 'glob terraform*', 'glob terraform -chdir=*x', 'glob terraform -c*hdir=*', 'glob terraform -chdir=**', 'glob terraform *')) {
+foreach ($e in @('cmd rm "-rf"', 'cmd git push --force*', 'path ~/.ssh', 'file ~/a ~/b', 'cmd', 'glob terraform*', 'glob terraform -chdir=*x', 'glob terraform -c*hdir=*', 'glob terraform -chdir=**', 'glob terraform *', 'glob terraform plan:*')) {
     $i++
     [System.IO.File]::WriteAllText((Join-Path $ov 'deny-floor.conf'), "$e`n")
     $h = Join-Path $Base "home-badfloor-$i"; New-Item -ItemType Directory -Force -Path $h | Out-Null

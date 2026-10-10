@@ -198,14 +198,14 @@ else
 fi
 # 2b'. one named rule per class the owner added on 2026-10-10 (ADR-0035), so removing any class from the
 # source turns this red (the counts above are derived from the source and would follow it down).
-for r in 'Bash(terraform plan:*)' 'Bash(terraform state:*)' 'Bash(terraform init:*)' 'Bash(terraform force-unlock:*)' \
+for r in 'Bash(terraform plan:*)' 'Bash(terraform env:*)' 'Bash(tofu env:*)' 'Bash(terraform state:*)' 'Bash(terraform init:*)' 'Bash(terraform force-unlock:*)' \
          'Bash(tofu output:*)' 'Bash(tofu apply:*)' 'Bash(terraform -chdir=*)' 'Bash(tofu -chdir=*)' \
          'Bash(aws ssm get-parameter --with-decryption:*)' 'Bash(aws ssm get-parameters-by-path --with-decryption:*)' \
          'Bash(git commit --no-verify:*)' 'Bash(git commit -n:*)' 'Bash(git push --no-verify:*)' 'Bash(aws sso login:*)' \
          'Read(**/.env)' 'Edit(**/.env)' 'Read(**/.env.*)' 'Read(**/*.pem)' 'Edit(**/*.pem)' 'Read(**/credentials*)' 'Edit(**/credentials*)'; do
   if [ "$(has_rule "$s" "$r")" -eq 1 ]; then ok "deny holds $r once"; else ko "deny lacks $r"; fi
 done
-for p in 'terraform plan' 'tofu state' 'aws ssm get-parameter --with-decryption' 'git commit --no-verify' 'git push --no-verify' 'aws sso login'; do
+for p in 'terraform plan' 'tofu state' 'terraform env' 'aws ssm get-parameter --with-decryption' 'git commit --no-verify' 'git push --no-verify' 'aws sso login'; do
   pat=$(printf '%s' "$p" | awk '{ for (i = 1; i <= NF; i++) printf "%s\"%s\"", (i > 1 ? ", " : ""), $i }')
   if grep -qxF "prefix_rule(pattern=[$pat], decision=\"forbidden\")" "$rules"; then ok "codex forbids $p"; else ko "codex lacks $p"; fi
 done
@@ -575,7 +575,7 @@ else
   ko "the overlay's entry is missing"
 fi
 i=0
-for e in 'cmd rm "-rf"' 'cmd git push --force*' 'path ~/.ssh' 'file ~/a ~/b' 'cmd' 'glob terraform*' 'glob terraform -chdir=*x' 'glob terraform -c*hdir=*' 'glob terraform -chdir=**' 'glob terraform *'; do
+for e in 'cmd rm "-rf"' 'cmd git push --force*' 'path ~/.ssh' 'file ~/a ~/b' 'cmd' 'glob terraform*' 'glob terraform -chdir=*x' 'glob terraform -c*hdir=*' 'glob terraform -chdir=**' 'glob terraform *' 'glob terraform plan:*'; do
   i=$((i + 1))
   printf '%s\n' "$e" > "$ov/deny-floor.conf"
   h="$base/home-badfloor-$i"; mkdir -p "$h"

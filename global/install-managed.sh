@@ -103,7 +103,9 @@ except ImportError:
 t = tomllib.load(open(sys.argv[1] + "/requirements.toml", "rb"))
 rules = t["rules"]["prefix_rules"]
 assert rules and all(r["decision"] == "forbidden" and r["pattern"] for r in rules)
-assert len(rules) == sum(r.startswith("Bash(") for r in deny)' "$1" "$NAME" 2>/dev/null
+# One Codex rule per Claude PREFIX rule: a glob entry is Claude Code only (ADR-0035), the same
+# selector the requirements renderer uses.
+assert len(rules) == sum(r.startswith("Bash(") and r.endswith(":*)") for r in deny)' "$1" "$NAME" 2>/dev/null
 }
 
 render() { # $1 empty stage directory
