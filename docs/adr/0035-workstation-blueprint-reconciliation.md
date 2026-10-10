@@ -514,11 +514,28 @@ name. `gh label list --search` was not used: right after creation it did not fin
 - Pull requests carrying the label are not counted: `gh issue list` lists Issues only.
 - On Windows, `mhw status` runs `install.ps1`'s check, which does not show the count.
 
+## Amendment 2026-10-10: implementing decision 1 in mhw (sphere line)
+
+**1. The line.** The root `AGENTS.md` of mhw carries `sphere: personal` on a line of its own, directly
+under the title and above the first section, so an agent reading the brief meets it first. One
+sentence after it says the line is a declaration only.
+
+**2. What is not adopted.** As decided, the blueprint's stop-on-undeclared default is not adopted. No
+hook, check or instruction makes an agent stop in a workspace that carries no sphere line.
+
+**3. Test.** `workspace/delivery_test.py` asserts that the root brief carries exactly one
+`sphere:` line, that its value is `personal`, that it sits above the first section, and that the
+declaration-only sentence is present. Each of those was broken in the source and the test went red.
+It asserts the line is written, not that any agent reads it.
+
+**4. Pending.** tadeumendonca-io and tadeumendonca-skills do not carry the line yet. Each gets its own
+pull request in its own repository; implementation-plan item 8 is complete only when both land.
+
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10)
 - Pull requests: #118 (slice A), #119 (slice B), #120 (slice F), #121 (decision 9, owner-action queue),
-  #126 (decisions 6 and 10)
+  #126 (decisions 6 and 10), #132 (decision 1, mhw sphere line)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),
   [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md),
   [ADR-0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md)
