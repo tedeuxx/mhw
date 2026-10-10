@@ -51,6 +51,7 @@ jobs:
             global/scan.py global/scan_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
+            global/models/model_defaults.py global/models/model_defaults_test.py \
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py
       - name: node syntax check of the npm launcher, alias and postinstall (Issue #68)
@@ -131,6 +132,12 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/method/method_render_test.py "$RUNNER_TEMP/method"
+      # ADR-0035: the session-start model and effort defaults, per agent harness, in throwaway HOMEs:
+      # render, check, drift (an owner's value is never overwritten) and uninstall of only what mhw set.
+      - name: model-defaults suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/models/model_defaults_test.py "$RUNNER_TEMP/model-defaults"
       # Issues #71-#75: the five workflow commands render on all three agent harnesses with their required
       # sections, Codex implicit invocation off; the handover sanitisation check on a synthetic fixture.
       - name: workflow-commands suite
