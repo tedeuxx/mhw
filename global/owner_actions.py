@@ -26,10 +26,13 @@ def gh_binary():
 
 
 def _gh(gh, args, timeout):
-    """-> (exit code, stdout, stderr). Raises OSError or subprocess.TimeoutExpired."""
+    """-> (exit code, stdout, stderr). Raises OSError or subprocess.TimeoutExpired.
+
+    errors="replace": bytes gh prints that are not UTF-8 become U+FFFD instead of raising, so they are
+    classified like any other unexpected output."""
     env = dict(os.environ, GH_PROMPT_DISABLED="1", NO_COLOR="1")
     p = subprocess.run([gh] + args, stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                       timeout=timeout, env=env)
+                       errors="replace", timeout=timeout, env=env)
     return p.returncode, p.stdout, p.stderr
 
 
@@ -54,7 +57,18 @@ def _names(out):
 
 
 def read(gh=None, timeout=TIMEOUT):
-    """-> (count, reason). count is an int when read, else None and reason says why."""
+    """-> (count, reason). count is an int when read, else None and reason says why.
+
+    Never raises: `mhw status` must exit 0 whatever gh does. Anything not classified below (for
+    example JSON nested deep enough to hit RecursionError) reads as "gh output not understood"; the
+    exception text is never shown, since it can carry gh's own output."""
+    try:
+        return _read(gh, timeout)
+    except Exception:  # noqa: BLE001 - deliberate catch-all, see the docstring
+        return None, "gh output not understood"
+
+
+def _read(gh, timeout):
     gh = gh or gh_binary()
     if not gh:
         return None, "gh not found"

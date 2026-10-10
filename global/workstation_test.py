@@ -1029,6 +1029,7 @@ printf '%s\\n' "$*" >> "$STUB_LOG"
 case "$1" in
   issue) [ -n "$STUB_SLEEP" ] && exec sleep "$STUB_SLEEP"
          [ -n "$STUB_ERR" ] && printf '%s\\n' "$STUB_ERR" >&2
+         [ -n "$STUB_DEPTH" ] && { head -c "$STUB_DEPTH" /dev/zero | tr '\\0' '['; exit 0; }
          printf '%s' "$STUB_ISSUES"; exit "${STUB_CODE:-0}" ;;
   label) printf '%s' "${STUB_LABELS:-[]}"; exit "${STUB_LABEL_CODE:-0}" ;;
 esac
@@ -1051,7 +1052,7 @@ class OwnerActions(unittest.TestCase):
         self.gh.write_text(STUB_GH, encoding="utf-8")
         self.gh.chmod(0o755)
         keys = ("STUB_LOG", "STUB_SLEEP", "STUB_ERR", "STUB_ISSUES", "STUB_CODE", "STUB_LABELS",
-                "STUB_LABEL_CODE")
+                "STUB_LABEL_CODE", "STUB_DEPTH")
         saved = {k: os.environ.get(k) for k in keys}
 
         def restore():
@@ -1123,6 +1124,42 @@ class OwnerActions(unittest.TestCase):
                 self.assertIsNone(result[0])
                 self.assertEqual(oa.text(result), "not read (%s)" % reason)
                 self.assertNotIn("secret-ish", oa.text(result))
+
+    # Output that raised inside read() before the fix (QA verdict B1 on PR #121). Non-UTF-8 bytes reach
+    # the stub through os.environ as surrogate escapes. The stub prints the nesting itself (an env var
+    # that large exceeds Linux's per-string exec limit); a million '[' raise RecursionError in json on
+    # every supported Python (100000 gave a ValueError on 3.14, so the depth is not arbitrary).
+    UNREADABLE = [
+        ("non-UTF-8 stdout", {"STUB_ISSUES": "\udcff\udcfe[]"}, "gh output not understood"),
+        ("non-UTF-8 stderr, non-zero exit", {"STUB_CODE": "1", "STUB_ERR": "\udcff\udcfe secret-ish"},
+         "gh exited 1"),
+        ("deeply nested JSON", {"STUB_DEPTH": "1000000"}, "gh output not understood"),
+    ]
+
+    def test_unreadable_gh_output_never_raises(self):
+        for name, stub, reason in self.UNREADABLE:
+            with self.subTest(name):
+                for k in ("STUB_CODE", "STUB_ERR", "STUB_ISSUES", "STUB_DEPTH"):
+                    os.environ.pop(k, None)
+                stub = dict(stub)
+                stub.setdefault("STUB_ISSUES", "")
+                result = self.read(**stub)
+                self.assertIsNone(result[0])
+                self.assertEqual(oa.text(result), "not read (%s)" % reason)
+                self.assertNotIn("secret-ish", oa.text(result))
+
+    def test_status_summary_exits_0_on_unreadable_gh_output(self):
+        for name, stub, reason in self.UNREADABLE:
+            with self.subTest(name):
+                env = {"PATH": "%s:%s" % (self.bin, os.environ["PATH"]), "HOME": str(self.home),
+                       "TMPDIR": self.temp.name, "WORKSTATION_MANAGED_ROOT": str(Path(self.temp.name) / "root"),
+                       "STUB_LOG": str(self.log), "STUB_ISSUES": ""}
+                env.update(stub)
+                p = subprocess.run([str(ws.ROOT / "mhw"), "status", "--summary", "--overlay=none"], env=env,
+                                   cwd=self.temp.name, capture_output=True, text=True, errors="replace")
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertIn(" · owner actions: not read (%s)\n" % reason, p.stdout)
+                self.assertNotIn("Traceback", p.stderr)
 
     def test_timeout_is_bounded(self):
         result = self.read(timeout=0.5, STUB_SLEEP="5")
