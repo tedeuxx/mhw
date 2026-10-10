@@ -4,17 +4,18 @@
 - **Date:** 2026-10-10
 - **Deciders:** the owner (each decision below, 2026-10-10, in the reconciliation interview); written
   by tech-lead
-- **Issues:** [#113](https://github.com/tedeuxx/mhw/issues/113)
+- **Issues:** none (owner request in session, 2026-10-10)
 
 ## Context and problem
 
 On 2026-10-10 the owner pasted a zero-identity "workstation harness blueprint" into a session in this
-repository. It carries a target configuration and a reconciliation-interview procedure. He received it
-from his own method layer, on another workstation of his. It names no person, employer or client.
+repository. It carries a target configuration and a reconciliation-interview procedure. By its own account (the
+pasted blueprint's text, not verified here), it comes from his own method layer on another workstation
+of his. It names no person, employer or client.
 
 The agent ran the interview in three phases:
 
-1. **Sphere.** The owner confirmed this workstation is "only personal".
+1. **Sphere.** The owner answered the phase-1 picker *"Só pessoal"* (only personal).
 2. **Inventory and matrix.** A read-only inventory of the installed configuration, then a
    reconciliation matrix of each blueprint item against it: already in place, divergent, or absent.
 3. **Decisions.** One decision per pending item, each through a three-option picker
@@ -43,11 +44,12 @@ Install the blueprint's target configuration as written.
 
 - Good: one step, and this workstation would match the source station exactly.
 - Bad: several items conflict with accepted records here. Examples: the PR-label SemVer cut
-  ([ADR-0002](0002-automatic-semver-cut-policy.md)), the improvement-session publication authorisation
-  ([ADR-0021](0021-workspace-session-intake-and-ci-publication.md)), and the paste filter
-  ([ADR-0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). Others conflict with
-  preferences the owner stated in the interview: medium effort rather than high, and the personal sphere
-  declared rather than inferred. Wholesale adoption would overwrite those records without amending them.
+  ([ADR-0002](0002-automatic-semver-cut-policy.md)), the paste filter
+  ([ADR-0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md)), and the standing publication
+  route, which stays (ADR-0021, 2026-10-05 amendment): agents merge slices into `rc/next` after review;
+  `main` waits for the owner ([ADR-0021](0021-workspace-session-intake-and-ci-publication.md)). Others
+  conflict with preferences the owner stated in the interview: medium effort rather than high, and the
+  blueprint's stop-on-undeclared rule, which he declined (he accepted the sphere declaration itself). Wholesale adoption would overwrite those records without amending them.
 
 ### Option B: reconcile item by item (chosen)
 
@@ -96,28 +98,36 @@ CLI only. Owner: *"pode remover, não uso"* (you may remove it, I don't use it).
 
 Amends [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md). Added to the floor:
 
-- **Terraform and OpenTofu**, beyond `fmt`, `validate`, `init -backend=false` and `version`: `plan`,
-  `state`, `import`, `refresh`, `output`, `show`, `console`, `workspace`, `login`, `force-unlock`, and
-  `-chdir`.
+- **Terraform and OpenTofu:** everything beyond `fmt`, `validate` and `version`. That is `init`,
+  `plan`, `state`, `import`, `refresh`, `output`, `show`, `console`, `workspace`, `login`, `logout`,
+  `force-unlock`, `taint`, `untaint`, `test`, `get`, `providers`, `graph`, `metadata`, and the global
+  option `-chdir`.
 - **Project secrets:** `--with-decryption`, and the files `**/.env`, `**/.env.*`, `**/*.pem` and
   `**/credentials*`.
 - **Hook bypass:** `--no-verify`.
 - **Interactive login:** `aws sso login`.
 
-Not adopted: blocking inline interpreters (`bash -c`, `sh -c`, `eval`, `python -c`, `node -e`). Two
+**Every `init` is blocked (owner, 2026-10-10).** The prefix floor cannot tell `init` apart from
+`init -backend=false`, so the choice was to allow both or block both. The owner picked *"Bloquear todo
+init"* (block every init). Consequence: the agent cannot run `validate` on a fresh project, which needs
+an initialised working directory. The owner runs `init` once, or leaves validation to CI.
+
+Not adopted: blocking inline interpreters (`bash -c`, `sh -c`, `eval`, `python -c`, `node -e`). Three
 gaps are declared instead:
 
 - **A prefix floor cannot see a command wrapped in an interpreter.** A blocked command passed to
   `bash -c` or `python -c` arrives as an argument string, which no prefix entry matches.
 - **Codex has no file deny inside the workspace.** The secret-file patterns hold on Claude Code. On
   Codex they do not stop a read inside the working tree.
+- **A prefix floor cannot allow `init -backend=false` alone.** An allow for it would also allow plain
+  `init`, so every `init` is denied.
 
 ### 4. Allow list
 
 Amends [ADR-0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md). Only `find:*` and
 `awk:*` are removed. They can delete or execute: `find -delete` or `-exec`, and `awk`'s `system()`.
-Everything else stays. Owner: *"voce conseguiria somente tirar essas brechas extremas"* (could you
-remove just those extreme loopholes).
+Everything else stays. Owner: *"voce conseguiria somente tirar essas brechas extremas que mencionou
+no 3?"* (could you remove only those extreme loopholes you mentioned in 3?).
 
 A prefix floor cannot block only `find -delete`, so the whole command now asks.
 
@@ -138,8 +148,8 @@ Owner principle: *"hooks somente devem ser utilizados para mitigacao de riscos e
 should only be used to mitigate existential risks).
 
 - **The paste filter stays.** Third-party confidentiality is the mission's core risk.
-- **The iTerm `cc-status` status hooks are a declared exception**, chosen by the owner. They are visual
-  only and spend no model tokens.
+- **The iTerm `cc-status` status hooks are a declared exception**, chosen by the owner. In the agent's
+  assessment (not verified), they are visual only and spend no model tokens.
 - **The four removed controls still registered in the legacy admin layer** are cleared by installing
   v5.0.0.
 
@@ -148,8 +158,8 @@ should only be used to mitigate existential risks).
 A new `mhw scan` command. The agent runs it by rule before every push and PR, and a CI check runs it
 on every PR.
 
-- It reuses the paste filter's detection engine.
-- It reports `file:line`, the rule and the match length. It never prints the matched text
+- Design proposed by the agent, not the owner's words: it reuses the paste filter's detection engine,
+  and it reports `file:line`, the rule and the match length. It never prints the matched text
   ([ADR-0005](0005-detection-response-hitl-without-log.md)).
 - **It informs. It never blocks.**
 
@@ -167,7 +177,7 @@ shows the open count.
 ### 10. Session close
 
 A session ends with *"Objective reached: <objective>"* and the evidence. The agent never asks whether
-to close. In-scope follow-ups stay in the same session.
+to close.
 
 ### 11. Version bump
 
@@ -178,9 +188,9 @@ Conventional-Commits bump. Under the owner's 2026-10-10 rule an incremental chan
 
 ### 12. Commit and push
 
-This repository's standing authorisation for improvement sessions stays
-([ADR-0021](0021-workspace-session-intake-and-ci-publication.md)). Agents publish into `rc/next` after
-review. `main` waits for the owner. This is a declared divergence from the blueprint's "commit only
+The standing publication route stays (ADR-0021, 2026-10-05 amendment): agents merge slices into
+`rc/next` after review; `main` waits for the owner
+([ADR-0021](0021-workspace-session-intake-and-ci-publication.md)). This is a declared divergence from the blueprint's "commit only
 when asked".
 
 ### Not covered by the interview
@@ -206,7 +216,9 @@ A read-only inventory could not verify these items. They stay open:
 ### Bad
 
 - **Declared gaps** (decision 3): the floor does not see a command wrapped in an inline interpreter,
-  and Codex has no file deny inside the workspace.
+  Codex has no file deny inside the workspace, and the floor cannot allow `init -backend=false` alone.
+- The agent cannot run `validate` on a fresh Terraform or OpenTofu project. The owner runs `init` once,
+  or CI validates.
 - `find` and `awk` now ask every time, including for harmless reads.
 - The outbound scan informs and never blocks, so a finding the agent ignores still ships.
 - The Kiro model choice rests on an unverified list of Kiro's models.
@@ -242,7 +254,7 @@ Decisions 11 and 12 change nothing. They keep [ADR-0002](0002-automatic-semver-c
 
 ## Links
 
-- Issue [#113](https://github.com/tedeuxx/mhw/issues/113)
+- Issues: none (owner request in session, 2026-10-10)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),
   [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md),
   [ADR-0031](0031-pre-authorisation-allow-list-behind-the-admin-floor.md)
