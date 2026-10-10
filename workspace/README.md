@@ -25,10 +25,10 @@ pending; a pause for questions publishes nothing.
 1. Run the relevant local checks, inspect the diff, and commit all intended non-secret changes on a
    feature branch cut from a fresh `origin/rc/next`. Do not sweep unrelated work into the commit.
 2. Push normally, open the PR with `--base rc/next`, and give it exactly one
-   `semver:major|minor|patch` label: **major** for a breaking change (something a consumer must
-   change), **minor** for an incremental feature (including adding or removing a control when no
-   consumer has to change anything), **patch** for a bug fix or a change with no behaviour change (docs, tests, CI)
-   (ADR-0002, 2026-10-06 amendment). The
+   `semver:major|minor|patch` label: **major** for a breaking change (something that worked stops
+   working the same way for an existing user), **minor** for a new functionality, **patch** for a
+   bug fix or an incremental change to something that already exists, docs, tests and CI included
+   (ADR-0002, 2026-10-10 amendment). The
    release-candidate PR carries the largest part among the changes it contains.
 3. After CI and the review gate, run `python3 -B workspace/delivery.py merge --pr NUMBER` from the
    slice branch checkout. For a PR into `rc/next` it requires every job that the `tests` workflow's
