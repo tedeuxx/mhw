@@ -408,6 +408,14 @@ outside: a merge commit's own diff (its message is scanned, and the commits it b
 by one), file and path names, and untracked files. With uncommitted edits, the working-tree half scans
 what is on disk, not what a push sends. A finding in an unpushed commit is fixed by rewriting the commit
 that introduced it. A follow-up commit would leave it in the push.*
+*Appended 2026-10-10 (#120 review round 2, finding B2): the agent's own attribution instruction puts a
+`Co-Authored-By` trailer with the vendor's no-reply address in every commit, and the message scan
+reported that address on each one, so item 8 told the agent to strip a trailer it is required to add.
+In the commit-message path only, a line whose whole form is `Co-Authored-By: <name> <that exact
+address>` (the key in any case) is no longer reported. The shared detection engine is unchanged, so
+the paste filter still treats the address as it did. The same address elsewhere in a message, in
+another trailer, or in a file or a commit's added lines is still reported, and so is a
+`Co-Authored-By` line with a different or lookalike address.*
 
 ## Links
 

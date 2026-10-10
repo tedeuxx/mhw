@@ -179,6 +179,56 @@ class OutboundScan(unittest.TestCase):
         self.assertIn("%s:message: credential, %d chars" % (sha, len(AWS_EXAMPLE)), r.stdout)
         self.assertNoLeak(r)
 
+    # The required attribution trailer (#120 review, B2): exempt in a commit message, as a whole line,
+    # with the exact vendor address only. Each row: (message, email lengths the scan must report).
+    def test_attribution_trailer_exemption_is_exact(self):
+        b = self.box
+        vendor = "noreply" + "@" + "anthropic.com"
+        rows = [
+            ("exact trailer", "s\n\nb\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <%s>" % vendor, []),
+            ("key in any case", "s\n\nco-authored-by: Claude <%s>\nCO-AUTHORED-BY: Claude <%s>  "
+             % (vendor, vendor), []),
+            ("address in the body", "s\n\nwrite to %s for help" % vendor, [len(vendor)]),
+            ("address in the subject", "mail %s" % vendor, [len(vendor)]),
+            ("address in another trailer", "s\n\nSigned-off-by: Claude <%s>" % vendor, [len(vendor)]),
+            ("trailer with no name", "s\n\nCo-Authored-By: <%s>" % vendor, [len(vendor)]),
+            ("trailer with more after it", "s\n\nCo-Authored-By: Claude <%s> and more" % vendor,
+             [len(vendor)]),
+            ("different address", "s\n\nCo-Authored-By: Person <%s>" % EMAIL, [len(EMAIL)]),
+            ("lookalike domain", "s\n\nCo-Authored-By: Claude <%s>" % (vendor + ".fixture-mail.dev"),
+             [len(vendor) + len(".fixture-mail.dev")]),
+            ("lookalike spelling", "s\n\nCo-Authored-By: Claude <%s>" % vendor.replace("anthropic", "anthrop1c"),
+             [len(vendor)]),
+        ]
+        shas = []
+        for _name, message, _want in rows:
+            b.git("commit", "-q", "--allow-empty", "-m", message)
+            shas.append(b.short("HEAD"))
+        r = b.mhw()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for (name, message, want), sha in zip(rows, shas):
+            got = [l for l in r.stdout.splitlines() if l.startswith(sha + ":message: ")]
+            self.assertEqual(got, ["%s:message: email, %d chars" % (sha, n) for n in want], name)
+            # No leak, the addresses included: no 5-character window of any line of the message.
+            for line in message.splitlines():
+                for i in range(len(line) - 4):
+                    if "@" in line[i:i + 5] or "." in line[i:i + 5]:
+                        self.assertNotIn(line[i:i + 5], r.stdout + r.stderr, name)
+        self.assertNoLeak(r)
+
+    def test_attribution_trailer_is_not_exempt_in_a_file(self):
+        b = self.box
+        vendor = "noreply" + "@" + "anthropic.com"
+        b.write("credits.txt", "Co-Authored-By: Claude <%s>\n" % vendor)
+        b.git("add", "credits.txt")
+        b.git("commit", "-q", "-m", "credits")
+        sha = b.short("HEAD")
+        r = b.mhw()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("credits.txt:1: email, %d chars" % len(vendor), r.stdout)
+        self.assertIn("%s:credits.txt:1: email, %d chars" % (sha, len(vendor)), r.stdout)
+        self.assertNotIn(sha + ":message:", r.stdout)
+
     def test_a_multi_line_secret_added_by_a_commit_is_one_finding(self):
         b = self.box
         pem = ("-----BEGIN " + "RSA PRIVATE KEY-----\n" + "QUJD" * 16 + "\n" + "REVG" * 16 + "\n"
