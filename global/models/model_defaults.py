@@ -39,6 +39,9 @@ import shutil
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # global/, first: no other module named private_copy may replace it
+from private_copy import private_copy  # noqa: E402
+
 MARKER_ID = "managed-by: personal-multi-harness-workstation-configuration"
 NAME = "personal-multi-harness-workstation-configuration"
 SOURCE = "overlay/model-defaults.json"
@@ -58,18 +61,6 @@ HARNESSES = {
 
 class PolicyError(Exception):
     pass
-
-
-def private_copy(src, dst):
-    """The backup is owner-only (0600) from its first byte, whatever the original's mode: it can hold
-    what install removed (PR #146 QA advisory). A file or link already at dst is replaced, never written
-    through (O_EXCL)."""
-    if os.path.lexists(dst):
-        os.remove(dst)
-    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
-        shutil.copyfileobj(inp, out)
-    os.chmod(dst, 0o600)
 
 
 def target_path(harness, home):
@@ -207,12 +198,19 @@ class NativeFile:
 
     def write(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_name(self.path.name + ".new.%d" % os.getpid())
-        tmp.write_text(self.text(), encoding="utf-8")
+        # The backup first: if it cannot be made, no temporary file is left behind and nothing is replaced.
         if self.exists:
             private_copy(str(self.path), str(self.path) + BACKUP)
-            shutil.copymode(self.path, tmp)
-        os.replace(tmp, self.path)
+        tmp = self.path.with_name(self.path.name + ".new.%d" % os.getpid())
+        try:
+            tmp.write_text(self.text(), encoding="utf-8")
+            if self.exists:
+                shutil.copymode(self.path, tmp)
+            os.replace(tmp, self.path)
+        except BaseException:
+            if os.path.lexists(str(tmp)):
+                os.remove(str(tmp))
+            raise
 
 
 def show(pairs):
@@ -410,7 +408,18 @@ def main(argv=None):
         elif mode == "dry-run":
             print("WOULD CHANGE %s: %s (%s; backup %s%s)" % (path, what, label, path.name, BACKUP))
         else:
-            nf.write()
+            try:
+                nf.write()
+            except OSError as e:
+                # Visible, never a traceback; the record keeps what it held, since nothing was changed.
+                print("REFUSE  %s: the backup or the write failed (%s); left untouched (%s)"
+                      % (path, e.__class__.__name__, label))
+                status = max(status, 3)
+                if rec:
+                    new_record[str(path)] = _entry(harness, rec, replaced)
+                else:
+                    new_record.pop(str(path), None)
+                continue
             verb = "REMOVED" if mode == "uninstall" else "CHANGED"
             kept = "; previous file kept as %s%s" % (path, BACKUP) if nf.exists else "; new file"
             print("%s %s: %s (%s%s)" % (verb, path, what, label, kept))

@@ -1,6 +1,6 @@
 #!/bin/sh
-# Render the global brief to each harness, install the user-level deny floor, and install the paste
-# filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0011), and render the inner-loop allow
+# Render the global brief to each harness, install the user-level deny floor (Kiro's too, ADR-0036), and
+# install the paste filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0011), and render the inner-loop allow
 # list (allow-list.conf; ADR-0031: wide only while the admin deny floor is complete), and set each harness's
 # session-start default model and effort from overlay/model-defaults.json (ADR-0007, ADR-0035;
 # global/models/model_defaults.py). The stale-session restart guard
@@ -26,7 +26,8 @@
 #                               deny floor (FLOOR lines; install-managed.sh installs the admin copy)
 #   --shell-rc=FILE             the shell start-up file that gets the paste wrapper's managed block (an
 #                               absolute path). Default (Issue #145): from $SHELL, zsh ${ZDOTDIR:-~}/.zshrc,
-#                               bash ~/.bashrc; another shell gets none. --shell-rc=none writes none.
+#                               bash ~/.bashrc, plus on macOS the login file (~/.bash_profile, see
+#                               rc_bash_login); another shell gets none. --shell-rc=none writes none.
 #                               --check reports it; --dry-run writes nothing; --uninstall removes the block
 #   --method                    opt-in (Issue #61): render the working method (method/) too. Off by default
 #                               until the plugin cutover (#63, #64); once rendered, later runs keep it
@@ -294,18 +295,47 @@ status=0
 raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
 # private_copy SRC DST: every .pmhwc-*backup of a harness config is owner-only (0600) from its first byte,
 # whatever the original's mode: a backup can hold what install removed, such as an MCP server's environment
-# values (PR #146 QA advisory). A file or link already at DST is replaced, never written through.
+# values (PR #146 QA advisory). Whatever is at DST (a file, a link, a FIFO) is unlinked first, never written
+# through, and anything still there after the unlink is refused. DST itself is never opened: the bytes go into
+# a fresh file mktemp made beside it (O_EXCL, 0600), which is then hard-linked to DST. link(2) creates DST
+# exclusively and never follows a link already there, so anything planted at DST after the check (a link to a
+# FIFO or a device included) makes ln fail and nothing is fed to it. DST must then be a regular file, not a
+# link, or the copy is refused. The Python steps share one form, global/private_copy.py. This one stays in
+# shell because install.sh needs no python3; global/private_copy_test.py runs both forms on the same cases and
+# requires the same result.
 private_copy() {
   pc_src=$1
   pc_dst=$2
   rm -f "$pc_dst"
-  (umask 077 && cp "$pc_src" "$pc_dst")
-  chmod 600 "$pc_dst"
+  if [ -e "$pc_dst" ] || [ -L "$pc_dst" ]; then
+    echo "REFUSE  $pc_dst: something is still there after the unlink; no backup written" >&2
+    return 1
+  fi
+  pc_tmp=$(umask 077 && mktemp "$pc_dst.XXXXXX") || return 1
+  if ! { [ -f "$pc_tmp" ] && [ ! -L "$pc_tmp" ] && chmod 600 "$pc_tmp" && cat "$pc_src" > "$pc_tmp" \
+         && ln "$pc_tmp" "$pc_dst"; }; then
+    rm -f "$pc_tmp"
+    echo "REFUSE  $pc_dst: the backup could not be created exclusively; no backup written" >&2
+    return 1
+  fi
+  rm -f "$pc_tmp"
+  if [ -d "$pc_dst" ]; then
+    # A directory (or a link to one) planted at DST after the check: POSIX ln put the link inside it. Take
+    # that one name back out (it is ours, by the random name mktemp chose) and refuse.
+    rm -f "$pc_dst/${pc_tmp##*/}"
+    echo "REFUSE  $pc_dst: a directory appeared there; no backup written" >&2
+    return 1
+  fi
+  if [ ! -f "$pc_dst" ] || [ -L "$pc_dst" ]; then
+    echo "REFUSE  $pc_dst: not a regular file after the copy" >&2
+    return 1
+  fi
 }
 
 # The shell start-up block that activates the paste wrapper (Issue #145; it was opt-in under Issue #58).
 # install writes it into the shell's own start-up file, chosen from $SHELL (zsh: ${ZDOTDIR:-~}/.zshrc;
-# bash: ~/.bashrc), or into --shell-rc=FILE; --shell-rc=none writes none. It is one marked block, replaced
+# bash: ~/.bashrc, and on macOS also the file a bash login shell reads, see rc_bash_login), or into
+# --shell-rc=FILE only; --shell-rc=none writes none. It is one marked block per file, replaced
 # whole when it differs, never duplicated; the earlier one-line form (a line carrying $rc_tag) is replaced
 # by it. Every write keeps the previous file as <file>.pmhwc-backup and prints old -> new; uninstall removes
 # exactly the block (and an earlier one-line form). Damaged markers are refused, nothing written.
@@ -331,9 +361,28 @@ rc_zshrc() { # the default zsh start-up file, or nothing when ZDOTDIR leads outs
   if rc_inside_home "$rc_z"; then printf '%s' "$rc_z"; fi
   return 0
 }
-rc_pick() { # sets rc (the start-up file this run writes, or empty) and rc_why (why it is empty)
+rc_there() { [ -e "$1" ] || [ -L "$1" ]; }
+# rc_bash_login: on macOS a bash login shell (what Terminal.app opens) reads the first of ~/.bash_profile,
+# ~/.bash_login and ~/.profile that exists, and never ~/.bashrc. Sets rc_login to the first of the two bash-only
+# files that exists, or to a new ~/.bash_profile when none of the three does. When only ~/.profile exists,
+# rc_login stays empty and rc_login_why says why: sh reads ~/.profile too (a function named kiro-cli is a syntax
+# error there), and creating ~/.bash_profile would stop bash reading ~/.profile.
+rc_bash_login() {
+  rc_login=
+  rc_login_why=
+  [ "$(uname -s)" = Darwin ] || return 0
+  if rc_there "$HOME/.bash_profile"; then rc_login="$HOME/.bash_profile"
+  elif rc_there "$HOME/.bash_login"; then rc_login="$HOME/.bash_login"
+  elif rc_there "$HOME/.profile"; then
+    rc_login_why="for a bash login shell: only ~/.profile is there, which sh also reads, and a new ~/.bash_profile would stop bash reading it"
+  else rc_login="$HOME/.bash_profile"; fi
+  return 0
+}
+rc_pick() { # sets rc (the start-up file this run writes, or empty), rc_why (why it is empty), and rc_login
   rc=
   rc_why=
+  rc_login=
+  rc_login_why=
   case $shell_rc in
     none) rc_why="--shell-rc=none"; return 0 ;;
     ?*) rc=$shell_rc; return 0 ;;
@@ -344,7 +393,10 @@ rc_pick() { # sets rc (the start-up file this run writes, or empty) and rc_why (
       rc=$(rc_zshrc)
       [ -n "$rc" ] || rc_why="ZDOTDIR=$ZDOTDIR is outside HOME=$HOME"
       ;;
-    bash|*/bash) rc="$HOME/.bashrc" ;;
+    bash|*/bash)
+      rc="$HOME/.bashrc"
+      rc_bash_login
+      ;;
     *) rc_why="your shell (SHELL=${SHELL:-unset}) is neither zsh nor bash" ;;
   esac
   return 0
@@ -373,6 +425,10 @@ EOF
   return 0
 }
 rc_damaged() { [ "$rc_bad" = 1 ] || [ "$rc_nb" -gt 1 ] || [ "$rc_nb" != "$rc_ne" ]; }
+# The start-up files install created (one path per line), so uninstall can delete one it emptied: an empty
+# ~/.bash_profile left behind would stop bash reading ~/.profile. A file that was there before is never deleted.
+rc_created="$data_dir/shell-rc-created.list"
+rc_was_created() { [ -f "$rc_created" ] && grep -qxF "$1" "$rc_created"; }
 rc_write() { # rc_write FILE NEW: FILE gets NEW's content; the previous file is kept beside it
   rc_write_file=$1
   rc_write_new=$2
@@ -382,6 +438,10 @@ rc_write() { # rc_write FILE NEW: FILE gets NEW's content; the previous file is 
     rc_kept="previous file kept as $rc_write_file.pmhwc-backup"
   else
     rc_kept="new file"
+    if ! rc_was_created "$rc_write_file"; then
+      mkdir -p "$data_dir"
+      printf '%s\n' "$rc_write_file" >> "$rc_created"
+    fi
   fi
   # Written through, so a start-up file that is a symbolic link (a dotfiles checkout) stays one, mode kept.
   cat "$rc_write_new" > "$rc_write_file"
@@ -393,6 +453,25 @@ shell_rc_line() {
       echo "NOTE    automatic paste cleaning: no shell start-up file is written ($rc_why); add this line to yours:"
       echo "        $rc_line"
     fi
+    return 0
+  fi
+  rc_login_file=$rc_login
+  shell_rc_one "$rc"
+  if [ -n "$rc_login_file" ]; then
+    shell_rc_one "$rc_login_file"
+  elif [ -n "$rc_login_why" ] && [ "$mode" = install ]; then
+    echo "NOTE    automatic paste cleaning: no bash login start-up file is written ($rc_login_why); add this line to yours:"
+    echo "        $rc_line"
+  fi
+}
+shell_rc_one() { # shell_rc_one FILE: the managed block in one start-up file
+  rc=$1
+  if [ -L "$rc" ] && [ ! -e "$rc" ]; then
+    # A link to nothing: writing through it would create its target somewhere else, or fail with a raw shell
+    # error that stops every later step. Refused visibly; the other steps still run.
+    echo "REFUSE  $rc is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:"
+    echo "        $rc_line"
+    raise 3
     return 0
   fi
   if [ -e "$rc" ] && [ ! -f "$rc" ]; then
@@ -436,7 +515,7 @@ shell_rc_line() {
 shell_rc_uninstall() {
   rc_seen=
   rc_pick
-  for rc in "$rc" "$(rc_zshrc)" "$HOME/.bashrc"; do
+  for rc in "$rc" "$(rc_zshrc)" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.bash_login"; do
     [ -n "$rc" ] || continue
     case " $rc_seen " in *" $rc "*) continue ;; esac
     rc_seen="$rc_seen $rc"
@@ -448,9 +527,15 @@ shell_rc_uninstall() {
       raise 3
       continue
     fi
+    if [ ! -s "$work/rc.stripped" ] && [ ! -L "$rc" ] && rc_was_created "$rc"; then
+      rm -f "$rc"
+      echo "REMOVED $rc (install created it and only the paste-wrapper block was in it)"
+      continue
+    fi
     rc_write "$rc" "$work/rc.stripped"
     echo "CHANGED $rc: paste-wrapper start-up block present -> absent ($rc_kept)"
   done
+  rm -f "$rc_created"
 }
 
 render() {
@@ -502,7 +587,8 @@ render() {
         printf '# %s; source: global/install.sh (paste wrapper, ADR-0011); %s; do not edit, re-run the installer\n' \
           "$MARKER_ID" "$stamp"
         printf '# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n'
-        printf '# managed block in your shell start-up file (~/.zshrc or ~/.bashrc; Issue #145), which reads:\n'
+        printf '# managed block in your shell start-up file (~/.zshrc, or ~/.bashrc and on macOS ~/.bash_profile;\n'
+        printf '# Issue #145), which reads:\n'
         printf '#   %s\n' "$rc_body"
         printf '# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n'
         printf '# CLI sees them and marks the session (%s=1), so the prompt hook lets its prompts\n' "PMHWC_PASTE_WRAPPER"
@@ -860,6 +946,20 @@ models_step() {
   if [ -n "$overlay" ] && [ -f "$overlay/model-defaults.json" ]; then models_policy="$overlay/model-defaults.json"; fi
   python3 -B "$script_dir/models/model_defaults.py" "--mode=$mode" "--stamp=$stamp" "--policy=$models_policy" || raise $?
 }
+# The deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036, Issue #144): the same validated floor, merged into
+# ~/.kiro/settings/permissions.yaml by global/kiro/kiro_permissions.py. The owner's own rules are kept and a
+# 0600 backup is left beside it; uninstall removes only the deny rules it appended, as it appended them,
+# never one of the owner's, unless his rule is byte-identical to the one it appended, which it cannot tell
+# apart. $1: another mode.
+kiro_step() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP    the Kiro deny floor: python3 3.9 or later is required"
+    raise 2
+    return 0
+  fi
+  python3 -B "$script_dir/kiro/kiro_permissions.py" "--mode=${1:-$mode}" "--stamp=$stamp" "--floor=$floor" \
+    "--floor-from=$floor_from" || raise $?
+}
 # The MCP servers the policy retired (ADR-0035 decision 2: aws-api) leave the Codex user configuration
 # (Issue #145), through global/mcp/mcp_retire.py: a backup, old -> new, nothing else in the file changes.
 mcp_step() {
@@ -874,9 +974,10 @@ if [ "$mode" = uninstall ]; then
   allow_uninstall
   models_step
   mcp_step
+  kiro_step
+  shell_rc_uninstall   # before uninstall_user, which removes the data directory once it is empty
   uninstall_user
   method_step
-  shell_rc_uninstall
   echo "NOTE    the admin layer is not touched here; ${MHW_CMD:-./mhw} uninstall prints its sudo line"
   exit "$status"
 fi
@@ -950,6 +1051,7 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
   fi
 fi
 merge_settings
+kiro_step
 # The retired MCP servers leave config.toml before the model defaults back it up (PR #146 QA advisory).
 mcp_step
 models_step
@@ -984,7 +1086,7 @@ report_floor() {
   [ -f "$codex_rules" ] && is_managed "$codex_rules" && codex_user=present
   echo "FLOOR   Claude Code: user layer $n_user/$n_want rules; admin layer $n_admin/$n_want rules"
   echo "FLOOR   Codex: user rules file $codex_user; admin requirements $n_codex_admin/$n_codex prefix rules"
-  echo "FLOOR   Kiro: none (no rendering; ADR-0016)"
+  kiro_step report
   if [ "$n_admin" -eq "$n_want" ] && [ "$n_codex_admin" -eq "$n_codex" ]; then
     echo "FLOOR   carried by: the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
   elif [ "$n_user" -ne "$n_want" ] || [ "$codex_user" != present ]; then
@@ -998,7 +1100,7 @@ report_floor() {
 report_floor
 
 if [ "$mode" = install ]; then
-  echo "RESTART REQUIRED: open fresh Claude Code and Codex sessions before further work; Codex hook trust remains an owner action in /hooks."
+  echo "RESTART REQUIRED: open fresh Claude Code, Codex and Kiro sessions before further work; Codex hook trust remains an owner action in /hooks."
 fi
 
 exit "$status"

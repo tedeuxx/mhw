@@ -462,7 +462,86 @@ hb="$base/home-bash"; mkdir -p "$hb"
 HOME="$hb" SHELL=/bin/bash sh "$inst" > /dev/null; expect "install under bash" 0 $?
 if [ "$(cat "$hb/.bashrc")" = "$(block_of "$hb")" ] && [ ! -e "$hb/.zshrc" ]; then ok "bash: the block goes into ~/.bashrc"; else ko "bash: the block is not in ~/.bashrc"; fi
 HOME="$hb" SHELL=/bin/bash sh "$inst" --uninstall > /dev/null; expect "uninstall under bash" 0 $?
-if [ ! -s "$hb/.bashrc" ]; then ok "bash: uninstall leaves ~/.bashrc as it was (empty, a file mhw created)"; else ko "bash: uninstall left: $(cat "$hb/.bashrc")"; fi
+if [ ! -e "$hb/.bashrc" ]; then ok "bash: uninstall deletes the ~/.bashrc install created, once it holds nothing else"; else ko "bash: uninstall left: $(cat "$hb/.bashrc")"; fi
+# A start-up file that is a symbolic link to nothing is refused visibly, nothing is created through it, and the
+# later steps still run (agents-lead lens on PR #151).
+hd="$base/home-dangling-rc"; mkdir -p "$hd"
+ln -s "$hd/missing-dotfiles/zshrc" "$hd/.zshrc"
+HOME="$hd" sh "$inst" > "$base/dangling.out" 2>&1; expect "install refuses a dangling start-up link" 3 $?
+if grep -qxF "REFUSE  $hd/.zshrc is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:" "$base/dangling.out" \
+   && [ -L "$hd/.zshrc" ] && [ ! -e "$hd/missing-dotfiles" ] && [ -f "$hd/.claude/settings.json" ] && grep -q '^FLOOR   ' "$base/dangling.out" \
+   && ! grep -qi 'no such file\|cannot create\|directory nonexistent' "$base/dangling.out"; then
+  ok "a dangling start-up link: REFUSE line, nothing created, later steps ran"
+else
+  ko "a dangling start-up link was not refused cleanly: $(grep -i 'zshrc\|error\|cannot' "$base/dangling.out" | head -n 3)"
+fi
+# macOS: a bash login shell (what Terminal.app opens) reads the first of ~/.bash_profile, ~/.bash_login and
+# ~/.profile, never ~/.bashrc (Issue #145 follow-up). That file gets the block too, by the same merge and 0600
+# backup; ~/.profile is never written (sh reads it too) and no ~/.bash_profile is created to hide it. On Linux
+# only ~/.bashrc is written.
+hl="$base/home-bash-login"; mkdir -p "$hl"
+printf 'export OWNER_LOGIN=1\n[ -r ~/.bashrc ] && . ~/.bashrc\n' > "$hl/.bash_profile"
+chmod 644 "$hl/.bash_profile"
+lsum=$(cksum < "$hl/.bash_profile")
+HOME="$hl" SHELL=/bin/bash sh "$inst" > "$base/bash-login.out"; expect "install under bash with an owner's ~/.bash_profile" 0 $?
+if [ "$(uname -s)" = Darwin ]; then
+  lb_mode=$(stat -f %Lp "$hl/.bash_profile.pmhwc-backup" 2>/dev/null || echo absent)
+  if [ "$(cat "$hl/.bash_profile")" = "$(printf 'export OWNER_LOGIN=1\n[ -r ~/.bashrc ] && . ~/.bashrc\n%s' "$(block_of "$hl")")" ] \
+     && [ "$(cksum < "$hl/.bash_profile.pmhwc-backup")" = "$lsum" ] && [ "$lb_mode" = 600 ] \
+     && [ "$(cat "$hl/.bashrc")" = "$(block_of "$hl")" ] \
+     && grep -qxF "CHANGED $hl/.bash_profile: paste-wrapper start-up block absent -> present (previous file kept as $hl/.bash_profile.pmhwc-backup); new shells clean pastes" "$base/bash-login.out"; then
+    ok "macOS bash: the block is merged into the owner's ~/.bash_profile (0600 backup) and ~/.bashrc"
+  else
+    ko "macOS bash: ~/.bash_profile is wrong: $(cat "$hl/.bash_profile"); backup mode $lb_mode"
+  fi
+  t=$(env -i HOME="$hl" PATH=/usr/bin:/bin /bin/bash -l -c 'type claude' 2>&1 | head -n 1)
+  case $t in
+    *function*) ok "macOS bash: a login shell defines the wrapper functions" ;;
+    *) ko "macOS bash: a login shell did not define claude: $t" ;;
+  esac
+  HOME="$hl" SHELL=/bin/bash sh "$inst" --check > /dev/null 2>&1; expect "check under bash with both files carrying the block" 0 $?
+  HOME="$hl" SHELL=/bin/bash sh "$inst" --uninstall > /dev/null 2>&1; expect "uninstall under bash with ~/.bash_profile" 0 $?
+  if [ "$(cksum < "$hl/.bash_profile")" = "$lsum" ]; then ok "macOS bash: uninstall gives ~/.bash_profile back byte for byte"; else ko "macOS bash: uninstall left: $(cat "$hl/.bash_profile")"; fi
+  # Only ~/.bash_login: it gets the block, and no ~/.bash_profile is created (it would hide ~/.bash_login).
+  hl2="$base/home-bash-login2"; mkdir -p "$hl2"
+  printf 'export OWNER_BASH_LOGIN=1\n' > "$hl2/.bash_login"
+  HOME="$hl2" SHELL=/bin/bash sh "$inst" > /dev/null; expect "install under bash with only ~/.bash_login" 0 $?
+  if [ ! -e "$hl2/.bash_profile" ] && grep -qxF "$rc_end" "$hl2/.bash_login"; then ok "macOS bash: ~/.bash_login gets the block, no ~/.bash_profile created"; else ko "macOS bash: ~/.bash_login case wrong"; fi
+  # Only ~/.profile: it is never written, nothing is created to hide it, and the line is printed.
+  hl3="$base/home-bash-profile-only"; mkdir -p "$hl3"
+  printf 'export OWNER_PROFILE=1\n' > "$hl3/.profile"
+  psum=$(cksum < "$hl3/.profile")
+  HOME="$hl3" SHELL=/bin/bash sh "$inst" > "$base/bash-profile-only.out"; expect "install under bash with only ~/.profile" 0 $?
+  if [ "$(cksum < "$hl3/.profile")" = "$psum" ] && [ ! -e "$hl3/.profile.pmhwc-backup" ] && [ ! -e "$hl3/.bash_profile" ] \
+     && [ ! -e "$hl3/.bash_login" ] && grep -q '^NOTE    automatic paste cleaning: no bash login start-up file is written (for a bash login shell: only ~/.profile is there' "$base/bash-profile-only.out"; then
+    ok "macOS bash: ~/.profile is left alone, nothing hides it, and the line is printed"
+  else
+    ko "macOS bash: the ~/.profile case wrote something or printed no line"
+  fi
+  # No login file at all: a new ~/.bash_profile holds only the block, and uninstall leaves it empty.
+  hl4="$base/home-bash-login-none"; mkdir -p "$hl4"
+  HOME="$hl4" SHELL=/bin/bash sh "$inst" > /dev/null; expect "install under bash with no login file" 0 $?
+  if [ "$(cat "$hl4/.bash_profile")" = "$(block_of "$hl4")" ]; then ok "macOS bash: a new ~/.bash_profile holds the block"; else ko "macOS bash: no ~/.bash_profile block"; fi
+  # Uninstall deletes the ~/.bash_profile it created (an empty one would stop bash reading a later ~/.profile).
+  HOME="$hl4" SHELL=/bin/bash sh "$inst" --uninstall > "$base/bash-login-none-un.out" 2>&1; expect "uninstall under bash after a created ~/.bash_profile" 0 $?
+  if [ ! -e "$hl4/.bash_profile" ] && [ ! -e "$hl4/.bashrc" ] && grep -qxF "REMOVED $hl4/.bash_profile (install created it and only the paste-wrapper block was in it)" "$base/bash-login-none-un.out"; then
+    ok "macOS bash: uninstall deletes the start-up files install created"
+  else
+    ko "macOS bash: a created start-up file was left: $(ls -A "$hl4")"
+  fi
+  # A file that was there before, even empty, is never deleted.
+  hl5="$base/home-bash-login-empty"; mkdir -p "$hl5"
+  : > "$hl5/.bash_profile"
+  HOME="$hl5" SHELL=/bin/bash sh "$inst" > /dev/null 2>&1; expect "install under bash with an empty ~/.bash_profile" 0 $?
+  HOME="$hl5" SHELL=/bin/bash sh "$inst" --uninstall > /dev/null 2>&1; expect "uninstall under bash with an empty ~/.bash_profile" 0 $?
+  if [ -f "$hl5/.bash_profile" ] && [ ! -s "$hl5/.bash_profile" ]; then ok "macOS bash: the owner's empty ~/.bash_profile stays"; else ko "macOS bash: the owner's empty ~/.bash_profile was deleted"; fi
+else
+  if [ "$(cksum < "$hl/.bash_profile")" = "$lsum" ] && [ ! -e "$hl/.bash_profile.pmhwc-backup" ]; then
+    ok "Linux bash: ~/.bash_profile is not written"
+  else
+    ko "Linux bash: ~/.bash_profile was written"
+  fi
+fi
 hz="$base/home-zdotdir"; mkdir -p "$hz/zdot"
 HOME="$hz" ZDOTDIR="$hz/zdot" sh "$inst" > /dev/null; expect "install with ZDOTDIR" 0 $?
 if [ -f "$hz/zdot/.zshrc" ] && [ ! -e "$hz/.zshrc" ]; then ok "zsh: ZDOTDIR's .zshrc gets the block"; else ko "zsh: ZDOTDIR not honoured"; fi
@@ -1081,6 +1160,37 @@ find and awk allows removed|install also removes the user-level `Bash(find:*)` a
 paste wrapper block written|one marked block that sources it in the start-up file
 paste wrapper block removed on uninstall|`mhw uninstall` removes exactly
 EOF
+
+# 24. the Kiro deny floor (ADR-0036, Issue #144): install.sh merges the same floor into
+# ~/.kiro/settings/permissions.yaml, keeps the owner's own rule, --check reports it, uninstall takes back
+# only what it added. The rule engine itself is global/kiro/kiro_permissions_test.py's and Kiro's.
+hk="$base/kiro"
+mkdir -p "$hk/.kiro/settings"
+kp="$hk/.kiro/settings/permissions.yaml"
+printf 'rules:\n  - capability: shell\n    match:\n      - git *\n    effect: allow\n' > "$kp"
+HOME="$hk" sh "$inst" > "$base/kiro.out" 2>&1; expect "install with a Kiro permissions.yaml of the owner's" 0 $?
+if grep -q "^MERGED  $kp (" "$base/kiro.out" && grep -q '"git \*"' "$kp" && grep -q '"sudo \*"' "$kp" \
+   && grep -q '"~/.ssh/id_\*"' "$kp"; then
+  ok "the Kiro floor is merged beside the owner's allow rule"
+else
+  ko "the Kiro floor was not merged as expected"
+fi
+kb_mode=$(stat -c %a "$kp.pmhwc-backup" 2>/dev/null || stat -f %Lp "$kp.pmhwc-backup" 2>/dev/null || echo absent)
+if [ "$kb_mode" = 600 ]; then ok "the Kiro backup is 0600"; else ko "the Kiro backup is $kb_mode"; fi
+HOME="$hk" sh "$inst" --check > "$base/kiro-check.out" 2>&1; expect "--check after the Kiro merge" 0 $?
+if grep -q "^OK      $kp (all [0-9]* deny-floor patterns present" "$base/kiro-check.out" \
+   && grep -Eq '^FLOOR   Kiro: user permissions.yaml ([0-9]+)/\1 floor patterns' "$base/kiro-check.out"; then
+  ok "--check names the Kiro file and its complete floor"
+else
+  ko "--check does not report the Kiro floor"
+fi
+HOME="$hk" sh "$inst" --uninstall > "$base/kiro-un.out" 2>&1; expect "uninstall with the Kiro floor" 0 $?
+if [ -f "$kp" ] && grep -q '"git \*"' "$kp" && ! grep -q 'sudo' "$kp" \
+   && [ ! -e "$(data "$hk")/kiro-permissions-owned.json" ]; then
+  ok "uninstall leaves only the owner's Kiro rule"
+else
+  ko "uninstall did not take back exactly the Kiro floor"
+fi
 
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

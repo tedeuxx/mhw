@@ -346,7 +346,9 @@ recorded writing.~~
 
 - **Kiro has no effort setting here.** Its effort is a per-model entry, and whether the pinned model
   accepts one was not verified, so the policy refuses a Kiro effort.
-- **Windows:** `install.ps1` does not render these values. The control is macOS and Linux only.
+- ~~**Windows:** `install.ps1` does not render these values. The control is macOS and Linux only.~~
+  *Struck 2026-10-11: `install.ps1` runs the same script since the #145 follow-up; see the amendment
+  "Windows parity and the bash login file".*
 - **A vendor-retired pinned ID passes `--check` and breaks the session, with no fallback.** `--check`
   compares strings only. Measured on Claude Code by the agents-lead review of #119: a retired ID makes
   the session exit with a model error rather than fall back to a default. For Codex and Kiro the
@@ -599,9 +601,11 @@ shell gets the line printed as an owner step, the one residual.
 
 **7. Declared gaps.**
 
-- **Windows.** `install.ps1` does none of the four.
-- **bash on macOS** reads `~/.bash_profile` in a login shell, not `~/.bashrc`, so a bash user there gets
-  the block in a file Terminal does not read by default. Not measured.
+- ~~**Windows.** `install.ps1` does none of the four.~~ *Struck 2026-10-11: it does three; see the next
+  amendment.*
+- ~~**bash on macOS** reads `~/.bash_profile` in a login shell, not `~/.bashrc`, so a bash user there gets
+  the block in a file Terminal does not read by default. Not measured.~~ *Struck 2026-10-11: the login
+  file gets the block too; see the next amendment.*
 - **One backup per file.** Each backup is overwritten by the next write of that item, so after two
   writes it no longer holds the pre-mhw original (the model record keeps the replaced value itself).
 - **The MCP and allow backups hold what was removed.** `config.toml.pmhwc-mcp-backup` keeps the removed
@@ -610,6 +614,72 @@ shell gets the line printed as an owner step, the one residual.
   above; no harness probe matched them.
 - **What stays the owner's, by design:** the administrator password, the vendor trust approvals (Codex
   `/hooks`, never forged), ratifying records, and opening a fresh session after an install.
+
+## Amendment 2026-10-11: Windows parity and the bash login file (#145 follow-up)
+
+The two gaps named in item 7 above, and stated on the release candidate PR #148, are closed as far as each
+platform allows. Refs #145.
+
+**1. Windows.** `global/install.ps1` now runs three of the four items, through the same Python scripts
+`install.sh` runs, in the same order (the MCP step before the model step, so the model backup never holds
+the retired server):
+
+| #145 item | `install.ps1` |
+| --- | --- |
+| Codex MCP: `aws-api` leaves `config.toml` | `global/mcp/mcp_retire.py`, unchanged |
+| Model and effort pins (Claude Code, Codex, Kiro CLI) | `global/models/model_defaults.py --home=%USERPROFILE%`, with the overlay's `model-defaults.json` |
+| Retired `find` and `awk` allows | in PowerShell, from `global/allow-retired.conf`: exactly the listed rules leave `permissions.allow`, backup `settings.json.pmhwc-allow-backup`, the same `CHANGED`, `DRIFT` and `WOULD CHANGE` lines |
+| Paste wrapper start-up block | **cannot apply**: the wrapper needs a POSIX pty and `/usr/bin/python3` (ADR-0011, ADR-0033). One `NOTE` line says so |
+
+Each Python step needs Python 3.9 or later; without it the step prints `SKIP` and the run exits 2, as the
+working-method step already did. Declared limits on Windows: there is no `mhw uninstall` (it is refused
+there), so the backup beside each file is the way back. Every backup is owner-only on Windows too (a
+security finding is fixed, never accepted): 0600 is a POSIX mode, so the empty backup is first given an
+access list that grants the current user alone, with inheritance disabled, and only then filled
+(`Copy-Private` in `install.ps1`; `owner_only_acl` in `global/private_copy.py`, by SID through `icacls`,
+for the Python steps). A failure to set it writes no backup. *Written and tested*: CI runs
+`global/install.test.ps1` section 14 under Windows PowerShell 5.1 and PowerShell 7, and asserts the
+access list of all six backups there and of the deny-floor backup in section 6. **Not installed** on any
+Windows machine.
+
+**2. The bash login file on macOS.** A bash login shell, which Terminal.app opens, reads the first of
+`~/.bash_profile`, `~/.bash_login` and `~/.profile` that exists, and never `~/.bashrc`. On macOS with
+bash, `install.sh` now also writes the block into that file, with the same merge, marker, backup (0600)
+and uninstall as `~/.bashrc`:
+
+- `~/.bash_profile` or `~/.bash_login`, whichever bash reads, gets the block; neither is created over the
+  other.
+- When neither exists and `~/.profile` does, nothing is written and the line is printed as an owner step.
+  `sh` reads `~/.profile` too, where a function named `kiro-cli` is a syntax error, and creating
+  `~/.bash_profile` would stop bash reading `~/.profile`.
+- When none of the three exists, a new `~/.bash_profile` holds the block.
+- Uninstall removes the block from `~/.bash_profile` and `~/.bash_login` on every platform.
+- Install records each start-up file it created (`shell-rc-created.list` in the data directory). Uninstall
+  deletes such a file when nothing but the block was in it, so an empty `~/.bash_profile` never stays behind
+  to stop bash reading a later `~/.profile`. A file that was there before install, even an empty one, is
+  never deleted.
+- A start-up file that is a symbolic link to a missing file is refused with a `REFUSE` line (exit 3):
+  nothing is created through it, and the later install steps still run.
+
+On Linux nothing changes: desktop terminals open non-login shells, and the usual `~/.profile` sources
+`~/.bashrc`. *Written and tested* (`global/install.test.sh`, the bash login cases; a real `bash -l` defines
+the wrapper functions on macOS); **not installed**.
+
+**3. One backup helper.** The four Python copies of `private_copy` (they had drifted: only the Kiro one used
+`O_NOFOLLOW`) are now one, `global/private_copy.py`. Each step puts `global/` first on `sys.path`, so no module
+of that name on `PYTHONPATH` or in site-packages can stand in for it (tested). On Windows the exclusive handle
+stays open while the access list is set, and the bytes go through that handle. The shell form in `install.sh` stays, because
+`install.sh` must run without `python3`. It never opens the destination: it refuses anything still there
+after the unlink, writes the bytes into a fresh `mktemp` file beside it (exclusive, 0600) and hard-links that
+to the destination. `link(2)` is exclusive and does not follow a link already there, so nothing planted
+after the check (a FIFO, a link to a FIFO or to a device) is ever written to. A directory planted there
+gets the link inside it under POSIX `ln`; that one name is taken back out and the copy refused. The result
+must be a regular file, not a link. `global/private_copy_test.py` runs both forms on the same cases (FIFOs
+and a link to `/dev/null` included, and things planted after the unlink and after the check) and fails if
+they differ, if either blocks on a FIFO, or if any Python file defines its own copy again. Two checks in
+the shell form (the absence check after the unlink and the final regular-file check) are defence in depth:
+`ln`'s exclusivity already decides every case the suite plants, so removing either one alone leaves it
+green.
 
 ## Links
 
