@@ -273,9 +273,9 @@ def models_text(f):
     differ = [line for line in lines if not line.startswith("OK")]
     if not differ:
         return "%s; policy: %s%s" % (values, "user layer matches" if overridden else "matches", override)
-    owner = sum(1 for line in differ if line.startswith("KEPT"))
-    note = "; %d hold a value of yours that install leaves alone" % owner if owner else ""
-    return "%s; policy: %d harness(es) differ%s%s" % (values, len(differ), note, override)
+    # Issue #145: install writes the pinned value whatever the key holds, so a differing harness is a
+    # pending write for `mhw install`, never a value of the owner's held back from it.
+    return "%s; policy: %d harness(es) differ; mhw install sets them%s" % (values, len(differ), override)
 
 
 def _setting(settings, harness, key):
@@ -1037,9 +1037,10 @@ def plan_lines(plan):
 
 
 def show(lines, verbose):
-    """The installers' lines: all of them with --verbose; otherwise only the problems."""
+    """The installers' lines: all of them with --verbose; otherwise the problems, and every CHANGED line,
+    which names a setting of the owner's that install replaced or removed, old -> new (Issue #145)."""
     for line in lines:
-        if verbose or _PROBLEM.match(line):
+        if verbose or _PROBLEM.match(line) or line.startswith("CHANGED "):
             print("    " + line, flush=True)
 
 
@@ -1090,14 +1091,16 @@ def owner_steps(lines):
     """The owner's own acts that install.sh names in its output, as plain next steps (Issue #113)."""
     steps = []
     for i, line in enumerate(lines):
+        # Issue #145: install writes the paste wrapper's block into ~/.zshrc or ~/.bashrc itself. Only when
+        # it chose no file (another shell, --shell-rc=none, a ZDOTDIR outside HOME) is the line the owner's;
+        # install.sh gives the reason in parentheses, and the step repeats it rather than guessing one.
         if line.startswith("NOTE    automatic paste cleaning") and i + 1 < len(lines):
-            steps.append("To clean pasted text automatically, add this line to your shell startup file "
-                         "(~/.zshrc or ~/.bashrc):\n       " + lines[i + 1].strip())
+            m = re.search(r"\((.*)\); add this line", line)
+            why = " (%s)" % m.group(1) if m else ""
+            steps.append("mhw wrote no shell start-up file%s. To clean pasted text automatically, add this "
+                         "line to yours:\n       %s" % (why, lines[i + 1].strip()))
         if line.startswith("RESTART REQUIRED") and "/hooks" in line:
             steps.append("In Codex, approve the mhw hooks once: type /hooks in a new session.")
-        if line.startswith("KEPT") and MODELS_TAG in line:
-            steps.append("A session-start model default holds your own value, so the pinned one is not in "
-                         "effect; to hand it to mhw, delete the key and run install again:\n       " + line[8:])
     return steps
 
 

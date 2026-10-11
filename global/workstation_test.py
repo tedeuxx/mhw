@@ -18,6 +18,12 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import workstation as ws  # noqa: E402
 
+# PR #146 lens H1: install writes the paste wrapper block into the start-up file of $SHELL (or
+# $ZDOTDIR). Pinned to a shell install knows no file for, so no run here writes a start-up file.
+os.environ.pop("ZDOTDIR", None)
+os.environ.pop("PMHWC_PASTE_WRAPPER", None)
+os.environ["SHELL"] = "/bin/sh"
+
 STAMP = "release: v3.1.0; commit: " + "a" * 40
 # The installer's own FLOOR line for a user-only floor, word for word (global/install.sh).
 USER_FLOOR = ("the user layer only; a session flag can drop it (--setting-sources project, measured); install the "
@@ -332,10 +338,14 @@ class ModelsLine(unittest.TestCase):
         self.assertEqual(self.models([]), values + "; policy: none (no model-defaults.json in the overlay)")
         ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
         self.assertEqual(self.models(ok), values + "; policy: matches")
-        refused = ok + ["KEPT    /h/.codex/config.toml: model_reasoning_effort is \"high\" (model defaults codex)",
-                        "MISSING /h/.kiro/settings/cli.json: install would set (model defaults kiro-cli)"]
-        self.assertEqual(self.models(refused), values + "; policy: 2 harness(es) differ; 1 hold a value of "
-                                                        "yours that install leaves alone")
+        differ = ok + ["DRIFT   /h/.codex/config.toml: install would change model_reasoning_effort \"high\" -> "
+                       "\"medium\" (model defaults codex)",
+                       "MISSING /h/.kiro/settings/cli.json: install would change (model defaults kiro-cli)"]
+        line = self.models(differ)
+        self.assertEqual(line, values + "; policy: 2 harness(es) differ; mhw install sets them")
+        # Issue #145: a value of the owner's is a pending write, never counted as held back from install.
+        self.assertNotIn("of yours", line)
+        self.assertNotIn("leaves alone", line)
 
     def test_workspace_override_is_never_reported_as_matching(self):
         """PR #119 lens: a workspace key beats the user layer, the only layer mhw writes. The line shows
@@ -350,16 +360,28 @@ class ModelsLine(unittest.TestCase):
         # Without the workspace key the same lines do match.
         self.assertTrue(self.models(ok).endswith("; policy: matches"))
 
-    def test_an_owner_value_is_no_pending_write(self):
-        """PR #119 lens: a KEPT owner value is reported, but install has nothing to write for it."""
-        kept = ["KEPT    /h/.claude/settings.json: model is \"opus[1m]\" (model defaults claude-code); your value",
-                "OK      /h/.codex/config.toml: x (model defaults codex)"]
-        self.assertEqual(ws.issues(kept), 0)
-        self.assertEqual(ws.issues(kept + ["DRIFT   /h/.kiro/settings/cli.json: x (model defaults kiro-cli)"]), 1)
-        steps = ws.owner_steps(kept)
-        self.assertEqual(len(steps), 1, steps)
-        self.assertIn("delete the key and run install again", steps[0])
-        self.assertIn("/h/.claude/settings.json: model is \"opus[1m]\"", steps[0])
+    def test_an_owner_value_is_a_pending_write_and_no_owner_step(self):
+        """Issue #145: install overwrites an owner's model value, so --check counts it as a pending write,
+        and install names no owner step for it (no "delete the key and run install again")."""
+        drift = ["DRIFT   /h/.claude/settings.json: install would change model \"opus[1m]\" -> "
+                 "\"claude-opus-5-5[1m]\" (model defaults claude-code)",
+                 "OK      /h/.codex/config.toml: x (model defaults codex)"]
+        self.assertEqual(ws.issues(drift), 1)
+        changed = ["CHANGED /h/.claude/settings.json: model \"opus[1m]\" -> \"claude-opus-5-5[1m]\" "
+                   "(model defaults claude-code; previous file kept as /h/.claude/settings.json.pmhwc-models-backup)"]
+        self.assertEqual(ws.issues(changed), 0)
+        self.assertEqual(ws.owner_steps(drift + changed), [])
+
+    def test_changed_lines_are_always_shown(self):
+        """Issue #145: every setting install replaces is shown old -> new, without --verbose."""
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            ws.show(["OK      /h/a", "CHANGED /h/.zshrc: paste-wrapper start-up block absent -> present (new file)",
+                     "WROTE   /h/b"], verbose=False)
+        self.assertEqual(buf.getvalue().splitlines(),
+                         ["    CHANGED /h/.zshrc: paste-wrapper start-up block absent -> present (new file)"])
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
@@ -1014,13 +1036,21 @@ class AdminNotRemoved(unittest.TestCase):
 class OwnerSteps(unittest.TestCase):
     def test_install_sh_acts_become_next_steps(self):
         steps = ws.owner_steps([
-            "NOTE    automatic paste cleaning starts only once this line is in your shell rc; add it yourself:",
+            "NOTE    automatic paste cleaning: no shell start-up file is written (--shell-rc=none); add this "
+            "line to yours:",
             '        [ -r "/h/snippet.sh" ] && . "/h/snippet.sh"',
             "RESTART REQUIRED: open fresh Claude Code and Codex sessions before further work; Codex hook "
             "trust remains an owner action in /hooks."])
         self.assertEqual(len(steps), 2, steps)
         self.assertIn('[ -r "/h/snippet.sh" ] && . "/h/snippet.sh"', steps[0])
         self.assertIn("/hooks", steps[1])
+        # The step repeats install.sh's own reason; it never claims the shell is neither zsh nor bash.
+        self.assertIn("(--shell-rc=none)", steps[0])
+        self.assertNotIn("neither zsh nor bash", steps[0])
+        fish = ws.owner_steps([
+            "NOTE    automatic paste cleaning: no shell start-up file is written (your shell (SHELL=/bin/fish) "
+            "is neither zsh nor bash); add this line to yours:", "        line"])
+        self.assertIn("(your shell (SHELL=/bin/fish) is neither zsh nor bash)", fish[0])
         self.assertEqual(ws.owner_steps(["OK      something"]), [])
 
     def test_sudo_never_runs_without_a_terminal(self):

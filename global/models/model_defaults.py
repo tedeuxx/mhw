@@ -17,16 +17,18 @@ pinned model accepts one was not verified, so the policy schema refuses a Kiro e
 
 Ownership. These files belong to the owner, so the keys mhw set are recorded, with the provenance stamp,
 in ${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/model-defaults.json.
-A key is written only when it is absent, or still holds the value mhw recorded writing. A key holding
-any other value is the owner's: it is never overwritten (KEPT, exit unchanged), and the line says how to
-hand it over. Uninstall removes a key only while it still holds the value mhw recorded. Every write
-leaves the previous file beside it as <file>.pmhwc-models-backup. A TOML edit is parsed (tomllib, Python
-3.11+) before it replaces the file; one that would not parse is refused and nothing is written. A
-recorded file outside --home (and CODEX_HOME) is never edited.
+The pinned value is written whatever the key holds (Issue #145; ADR-0035, amendment of 2026-10-11, which
+strikes the earlier "owner value is KEPT" rule). Every write is reported as old -> new on a CHANGED
+line. A value of the owner's that it replaces is recorded beside the key, so uninstall puts it back.
+Uninstall touches a key only while it still holds the value mhw recorded: it restores the replaced
+value, or removes the key when there was none. Every write leaves the previous file beside it as
+<file>.pmhwc-models-backup. A TOML edit is parsed (tomllib, Python 3.11+) before it replaces the file;
+one that would not parse is refused and nothing is written. A recorded file outside --home (and
+CODEX_HOME) is never edited.
 
-Output lines use install.sh's words: OK, SET, STAMP, DRIFT, MISSING, STALE, KEPT, REFUSE, REMOVED, WOULD.
-Exit codes: 0 ok (an owner's value KEPT included); 1 a target differs (--check); 2 usage or invalid
-policy; 3 a file or value mhw cannot read, a foreign record, or an edit that would not parse.
+Output lines use install.sh's words: OK, CHANGED, STAMP, DRIFT, MISSING, STALE, REFUSE, REMOVED, WOULD.
+Exit codes: 0 ok; 1 a target differs (--check); 2 usage or invalid policy; 3 a file or value mhw cannot
+read, a foreign record, or an edit that would not parse.
 Standard library only, Python 3.9+.
 """
 
@@ -224,25 +226,43 @@ def read_record(path):
 
 def record_text(entries, stamp):
     doc = {"managed-by": "%s; source: %s; %s; do not edit, re-run the installer" % (MARKER_ID, SOURCE, stamp),
-           "note": "The session-start model and effort keys this project set, per file; it removes only these.",
+           "note": "The session-start model and effort keys this project set, per file, and under "
+                   "\"replaced\" the value each one replaced; uninstall restores those and removes the rest.",
            "set": entries}
     return json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
 
 
+def _strings(d):
+    return {k: v for k, v in (d or {}).items() if isinstance(k, str) and isinstance(v, str)} \
+        if isinstance(d, dict) else {}
+
+
 def plan(policy, home, record):
-    """-> list of (harness, path, want {key: value}, recorded {key: value})."""
+    """-> list of (harness, path, want {key: value}, recorded {key: value}, replaced {key: value})."""
     out, seen = [], set()
     for harness in HARNESSES:
         path = target_path(harness, home)
         rec = record.get(str(path), {})
         want = policy.get(harness, {})
         if want or rec.get("keys"):
-            out.append((harness, path, want, dict(rec.get("keys") or {})))
+            out.append((harness, path, want, _strings(rec.get("keys")), _strings(rec.get("replaced"))))
         seen.add(str(path))
     for p, rec in record.items():
         if p not in seen and rec.get("harness") in HARNESSES and rec.get("keys"):
-            out.append((rec["harness"], Path(p), {}, dict(rec["keys"])))
+            out.append((rec["harness"], Path(p), {}, _strings(rec["keys"]), _strings(rec.get("replaced"))))
     return out
+
+
+def _entry(harness, keys, replaced):
+    e = {"harness": harness, "keys": keys}
+    replaced = {k: v for k, v in replaced.items() if k in keys}
+    if replaced:
+        e["replaced"] = replaced
+    return e
+
+
+def _shown(value):
+    return "(absent)" if value is None else json.dumps(value)
 
 
 def _inside(path, roots):
@@ -287,12 +307,12 @@ def main(argv=None):
     pending = False
     new_record = {}
     roots = [home] + ([Path(os.environ["CODEX_HOME"])] if os.environ.get("CODEX_HOME") else [])
-    for harness, path, want, rec in plan(policy, home, record):
+    for harness, path, want, rec, replaced in plan(policy, home, record):
         if not _inside(path, roots):
             # A recorded file outside --home (and CODEX_HOME) is never edited: a record read through a
             # leaked XDG_DATA_HOME must not reach the real settings of a test's or a dry run's caller.
             print("NOTE    %s: recorded, but outside %s; left untouched" % (path, home))
-            new_record[str(path)] = {"harness": harness, "keys": rec}
+            new_record[str(path)] = _entry(harness, rec, replaced)
             continue
         try:
             nf = NativeFile(harness, path)
@@ -300,36 +320,44 @@ def main(argv=None):
             print("REFUSE  %s: not readable as its format; model defaults left untouched" % path)
             status = max(status, 3)
             if rec:
-                new_record[str(path)] = {"harness": harness, "keys": rec}
+                new_record[str(path)] = _entry(harness, rec, replaced)
             continue
-        keep, changes, refused, unreadable, notes = {}, {}, [], [], []
+        # changes: key -> new value (None removes it); olds: key -> the value it holds now.
+        keep, kept_replaced, changes, olds, unreadable, notes = {}, {}, {}, {}, [], []
         for key in list(want) + [k for k in rec if k not in want]:
             cur, w, r = nf.get(key), want.get(key), rec.get(key)
             if mode == "uninstall":
                 w = None
             if w is not None:
-                if cur == w:
-                    if r is not None:
-                        keep[key] = w
-                elif cur is None or (r is not None and cur == r):
-                    changes[key] = w
-                    keep[key] = w
-                elif cur is UNREADABLE:
+                if cur is UNREADABLE:
                     unreadable.append("%s holds a value mhw cannot read, the policy says %s" % (key, json.dumps(w)))
+                    if r is not None:
+                        keep[key] = r
+                        if key in replaced:
+                            kept_replaced[key] = replaced[key]
+                    continue
+                if cur != w:
+                    # Issue #145: the pinned value is written whatever the key holds.
+                    changes[key], olds[key] = w, cur
+                if cur == w or (r is not None and cur == r):
+                    # Still mhw's value (or the pin): the replaced value recorded earlier stands.
+                    if r is not None or cur != w:
+                        keep[key] = w
+                        if key in replaced:
+                            kept_replaced[key] = replaced[key]
                 else:
-                    refused.append("%s is %s, the policy says %s" % (key, json.dumps(cur), json.dumps(w)))
+                    # The owner's value, the latest one he set (PR #146 lens L1): it is what uninstall
+                    # restores. A key he deleted (None) records nothing, so uninstall removes the key.
+                    keep[key] = w
+                    if cur is not None:
+                        kept_replaced[key] = cur
             elif r is not None:
                 if cur == r:
-                    changes[key] = None
+                    # Undo: the replaced value comes back, or the key goes when there was none.
+                    changes[key], olds[key] = replaced.get(key), cur
                 elif cur is not None:
                     notes.append("%s was changed to a value of yours; left alone" % key)
         label = "model defaults %s" % harness
-        if refused:
-            # KEPT, not REFUSE: the owner's value is a settled state, not a failure. It changes no exit
-            # code (so it masks no real failure in another install step) and it is no pending write
-            # (so a repeated install settles); `mhw status` and the install's next steps still name it.
-            print("KEPT    %s: %s (%s); your value, not overwritten. Delete the key and re-run install to "
-                  "have mhw set and own it, or keep your value" % (path, "; ".join(refused), label))
         if unreadable:
             status = max(status, 3)
             print("REFUSE  %s: %s (%s); not readable, so not overwritten" % (path, "; ".join(unreadable), label))
@@ -337,16 +365,19 @@ def main(argv=None):
             print("NOTE    %s: %s" % (path, note))
         if not changes:
             if keep:
-                new_record[str(path)] = {"harness": harness, "keys": keep}
-            if not refused and not unreadable and mode != "uninstall":
+                new_record[str(path)] = _entry(harness, keep, kept_replaced)
+            if not unreadable and mode != "uninstall":
                 mine = "" if keep == want else " (a value equal to the policy that you set stays yours)"
                 print("OK      %s: %s (%s)%s" % (path, show(want), label, mine))
             continue
-        sets = {k: v for k, v in changes.items() if v is not None}
-        drops = [k for k, v in changes.items() if v is None]
-        what = "; ".join(filter(None, ["set " + show(sets) if sets else "",
-                                       "remove " + ", ".join(drops) if drops else ""]))
-        word = "STALE  " if not sets else ("MISSING" if all(nf.get(k) is None for k in sets) else "DRIFT  ")
+        what = "; ".join("%s %s -> %s" % (k, _shown(olds[k]), _shown(v)) for k, v in changes.items())
+        stale = all(k not in want or mode == "uninstall" for k in changes)
+        if stale:
+            word = "STALE  "
+        elif all(olds[k] is None for k in changes):
+            word = "MISSING"
+        else:
+            word = "DRIFT  "
         for k, v in changes.items():
             nf.put(k, v)
         broken = nf.invalid()
@@ -356,19 +387,19 @@ def main(argv=None):
             print("REFUSE  %s: setting the model defaults would make it unparseable (%s); nothing written "
                   "(%s)" % (path, broken, label))
             if rec:
-                new_record[str(path)] = {"harness": harness, "keys": rec}
+                new_record[str(path)] = _entry(harness, rec, replaced)
             continue
         if keep:
-            new_record[str(path)] = {"harness": harness, "keys": keep}
+            new_record[str(path)] = _entry(harness, keep, kept_replaced)
         if mode == "check":
-            print("%s %s: install would %s (%s)" % (word, path, what, label))
+            print("%s %s: install would change %s (%s)" % (word, path, what, label))
             status = max(status, 1)
             pending = True
         elif mode == "dry-run":
-            print("WOULD SET %s: %s (%s; backup %s%s)" % (path, what, label, path.name, BACKUP))
+            print("WOULD CHANGE %s: %s (%s; backup %s%s)" % (path, what, label, path.name, BACKUP))
         else:
             nf.write()
-            verb = "REMOVED" if mode == "uninstall" else "SET    "
+            verb = "REMOVED" if mode == "uninstall" else "CHANGED"
             kept = "; previous file kept as %s%s" % (path, BACKUP) if nf.exists else "; new file"
             print("%s %s: %s (%s%s)" % (verb, path, what, label, kept))
 

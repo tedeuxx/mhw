@@ -24,9 +24,10 @@
 #   --managed-root=DIR          read the admin layer under DIR instead of / (tests only); this script
 #                               never writes the admin layer, it only reports which layer carries the
 #                               deny floor (FLOOR lines; install-managed.sh installs the admin copy)
-#   --shell-rc=FILE             opt-in (Issue #58): append the one line that activates the paste wrapper
-#                               to FILE (an absolute path, e.g. your ~/.zshrc), printing it; idempotent.
-#                               Without it the line is only printed. --check reports FILE; --dry-run writes nothing
+#   --shell-rc=FILE             the shell start-up file that gets the paste wrapper's managed block (an
+#                               absolute path). Default (Issue #145): from $SHELL, zsh ${ZDOTDIR:-~}/.zshrc,
+#                               bash ~/.bashrc; another shell gets none. --shell-rc=none writes none.
+#                               --check reports it; --dry-run writes nothing; --uninstall removes the block
 #   --method                    opt-in (Issue #61): render the working method (method/) too. Off by default
 #                               until the plugin cutover (#63, #64); once rendered, later runs keep it
 #                               current and --uninstall removes it (global/method/method_render.py)
@@ -45,8 +46,8 @@
 # `clipboard_guard.py add-term` does).
 # The paste wrapper (ADR-0011, automatic cleaning at the paste boundary) is installed beside the core with
 # a managed shell snippet defining claude, codex and kiro-cli functions that run the CLIs through it. The
-# installer never sources that snippet. It edits a shell rc only when the owner names one with
-# --shell-rc=FILE (opt-in, Issue #58): one guarded line is appended, printed, and never duplicated.
+# installer never sources that snippet. Since Issue #145 it adds one marked block that sources it to the
+# shell start-up file (see shell_rc_line), with a backup; uninstall removes exactly that block.
 # The wrapper exports a session marker; the prompt hook stays as the safety net and blocks only where
 # the marker is absent (sessions not opened through the wrapper; ADR-0011, 2026-10-05 amendment).
 set -eu
@@ -92,14 +93,15 @@ for arg in "$@"; do
     --method) method_optin=--opt-in ;;
     --overlay=none) overlay= ;;
     --overlay=*) overlay=${arg#--overlay=} ;;
+    --shell-rc=none) shell_rc=none ;;
     --shell-rc=?*) shell_rc=${arg#--shell-rc=} ;;
-    -h|--help) sed -n '2,35p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,36p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
 
 case $shell_rc in
-  ''|/*) ;;
+  ''|none|/*) ;;
   *) echo "--shell-rc needs an absolute path, got: $shell_rc" >&2; exit 2 ;;
 esac
 
@@ -291,53 +293,154 @@ fi
 status=0
 raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
 
-# The shell start-up line that activates the paste wrapper (Issue #58). Opt-in: it is written only with
-# --shell-rc=FILE, only into that file, only when absent, and printed as it is written. Without the flag
-# it is printed for the owner to add himself. A line carrying our tag but differing is never rewritten.
+# The shell start-up block that activates the paste wrapper (Issue #145; it was opt-in under Issue #58).
+# install writes it into the shell's own start-up file, chosen from $SHELL (zsh: ${ZDOTDIR:-~}/.zshrc;
+# bash: ~/.bashrc), or into --shell-rc=FILE; --shell-rc=none writes none. It is one marked block, replaced
+# whole when it differs, never duplicated; the earlier one-line form (a line carrying $rc_tag) is replaced
+# by it. Every write keeps the previous file as <file>.pmhwc-backup and prints old -> new; uninstall removes
+# exactly the block (and an earlier one-line form). Damaged markers are refused, nothing written.
+# A file chosen by default (not named with --shell-rc) must be inside $HOME: an inherited ZDOTDIR that
+# points elsewhere (a test run under a throwaway HOME, PR #146 lens H1) writes nothing and prints the line.
+# Byte-exactness: uninstall gives the file back as it was, except that a final newline install added to a
+# file that had none stays (awk ends every line it prints).
+rc_begin_prefix="# >>> personal-multi-harness-workstation-configuration: paste wrapper"
+rc_begin="$rc_begin_prefix (ADR-0011); managed block, mhw uninstall removes it"
+rc_end="# <<< personal-multi-harness-workstation-configuration: paste wrapper"
 rc_tag="# personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)"
-rc_line="[ -r \"$snippet_dest\" ] && . \"$snippet_dest\"  $rc_tag"
+rc_body="[ -r \"$snippet_dest\" ] && . \"$snippet_dest\""
+rc_line="$rc_body  $rc_tag"
+rc_inside_home() { # rc_inside_home FILE: true when FILE is under $HOME
+  rc_check_file=$1
+  case $rc_check_file in
+    "$HOME"/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+rc_zshrc() { # the default zsh start-up file, or nothing when ZDOTDIR leads outside $HOME
+  rc_z="${ZDOTDIR:-$HOME}/.zshrc"
+  if rc_inside_home "$rc_z"; then printf '%s' "$rc_z"; fi
+  return 0
+}
+rc_pick() { # sets rc (the start-up file this run writes, or empty) and rc_why (why it is empty)
+  rc=
+  rc_why=
+  case $shell_rc in
+    none) rc_why="--shell-rc=none"; return 0 ;;
+    ?*) rc=$shell_rc; return 0 ;;
+    *) ;;
+  esac
+  case ${SHELL:-} in
+    zsh|*/zsh)
+      rc=$(rc_zshrc)
+      [ -n "$rc" ] || rc_why="ZDOTDIR=$ZDOTDIR is outside HOME=$HOME"
+      ;;
+    bash|*/bash) rc="$HOME/.bashrc" ;;
+    *) rc_why="your shell (SHELL=${SHELL:-unset}) is neither zsh nor bash" ;;
+  esac
+  return 0
+}
+# rc_scan FILE: $work/rc.stripped (the file without our block and without an earlier one-line form),
+# $work/rc.block (our block's lines), and the counts rc_nb (begin markers), rc_ne (end markers), rc_bad
+# (1 when they are out of order) and rc_leg (earlier one-line forms).
+rc_scan() {
+  rc_scan_file=$1
+  : > "$work/rc.stripped"
+  : > "$work/rc.block"
+  rc_nb=0; rc_ne=0; rc_bad=0; rc_leg=0
+  [ -f "$rc_scan_file" ] || return 0
+  rc_counts=$(awk -v bp="$rc_begin_prefix" -v e="$rc_end" -v tag="$rc_tag" \
+      -v out="$work/rc.stripped" -v blk="$work/rc.block" '
+    BEGIN { nb = 0; ne = 0; bad = 0; leg = 0; inb = 0 }
+    index($0, bp) == 1 { nb++; if (inb) bad = 1; inb = 1; print > blk; next }
+    $0 == e { ne++; if (!inb) bad = 1; inb = 0; print > blk; next }
+    inb { print > blk; next }
+    index($0, tag) > 0 { leg++; next }
+    { print > out }
+    END { if (inb) bad = 1; printf "%d %d %d %d\n", nb, ne, bad, leg }' "$rc_scan_file")
+  read -r rc_nb rc_ne rc_bad rc_leg <<EOF
+$rc_counts
+EOF
+  return 0
+}
+rc_damaged() { [ "$rc_bad" = 1 ] || [ "$rc_nb" -gt 1 ] || [ "$rc_nb" != "$rc_ne" ]; }
+rc_write() { # rc_write FILE NEW: FILE gets NEW's content; the previous file is kept beside it
+  rc_write_file=$1
+  rc_write_new=$2
+  mkdir -p "$(dirname "$rc_write_file")"
+  if [ -e "$rc_write_file" ]; then
+    cp -p "$rc_write_file" "$rc_write_file.pmhwc-backup"
+    rc_kept="previous file kept as $rc_write_file.pmhwc-backup"
+  else
+    rc_kept="new file"
+  fi
+  # Written through, so a start-up file that is a symbolic link (a dotfiles checkout) stays one, mode kept.
+  cat "$rc_write_new" > "$rc_write_file"
+}
 shell_rc_line() {
-  if [ -z "$shell_rc" ]; then
+  rc_pick
+  if [ -z "$rc" ]; then
     if [ "$mode" = install ]; then
-      echo "NOTE    automatic paste cleaning starts only once this line is in your shell rc; add it yourself:"
+      echo "NOTE    automatic paste cleaning: no shell start-up file is written ($rc_why); add this line to yours:"
       echo "        $rc_line"
-      echo "        or re-run with --shell-rc=<absolute path of your rc> to have it appended (opt-in)"
     fi
     return 0
   fi
-  if [ -e "$shell_rc" ] && [ ! -f "$shell_rc" ]; then
-    echo "REFUSE  $shell_rc is not a regular file; nothing written. Add this line yourself:"
+  if [ -e "$rc" ] && [ ! -f "$rc" ]; then
+    echo "REFUSE  $rc is not a regular file; nothing written. Add this line yourself:"
     echo "        $rc_line"
     raise 3
     return 0
   fi
-  if [ -f "$shell_rc" ] && grep -qxF "$rc_line" "$shell_rc"; then
-    echo "OK      $shell_rc activates the paste wrapper"
+  printf '%s\n%s\n%s\n' "$rc_begin" "$rc_body" "$rc_end" > "$work/rc.want"
+  rc_scan "$rc"
+  if rc_damaged; then
+    echo "REFUSE  $rc: the paste-wrapper block's markers are damaged (missing, repeated or out of order); nothing written. Fix or remove them, then run install again"
+    raise 3
     return 0
   fi
-  if [ -f "$shell_rc" ] && grep -qF "$rc_tag" "$shell_rc"; then
-    echo "STALE   $shell_rc carries a different paste-wrapper line; left alone. Replace it yourself with:"
-    echo "        $rc_line"
-    raise 1
+  if [ "$rc_nb" = 1 ] && [ "$rc_leg" = 0 ] && cmp -s "$work/rc.block" "$work/rc.want"; then
+    echo "OK      $rc activates the paste wrapper (managed block)"
     return 0
   fi
+  if [ "$rc_leg" -gt 0 ]; then rc_old="the earlier one-line form"
+  elif [ "$rc_nb" = 1 ]; then rc_old="a different block"
+  else rc_old="absent"; fi
   case $mode in
     check)
-      echo "MISSING $shell_rc: no paste-wrapper start-up line; install --shell-rc=$shell_rc appends it"
+      if [ "$rc_old" = absent ]; then echo "MISSING $rc: no paste-wrapper start-up block; install adds it"
+      else echo "DRIFT   $rc: paste-wrapper start-up block is $rc_old; install replaces it"; fi
       raise 1
       ;;
     dry-run)
-      echo "WOULD APPEND to $shell_rc: $rc_line"
+      echo "WOULD CHANGE $rc: paste-wrapper start-up block $rc_old -> present (backup $rc.pmhwc-backup):"
+      cat "$work/rc.want"
       ;;
-    install)
-      if [ -s "$shell_rc" ] && [ -n "$(tail -c 1 "$shell_rc")" ]; then
-        printf '\n' >> "$shell_rc"
-      fi
-      printf '%s\n' "$rc_line" >> "$shell_rc"
-      echo "APPENDED to $shell_rc (opt-in, --shell-rc): $rc_line"
-      echo "NOTE    it takes effect in new shells; delete that one line to deactivate the wrapper"
+    install|*)   # uninstall never reaches here (shell_rc_uninstall)
+      cat "$work/rc.stripped" "$work/rc.want" > "$work/rc.new"
+      rc_write "$rc" "$work/rc.new"
+      echo "CHANGED $rc: paste-wrapper start-up block $rc_old -> present ($rc_kept); new shells clean pastes"
       ;;
   esac
+}
+# Uninstall: the block (and an earlier one-line form) leaves every start-up file it may be in.
+shell_rc_uninstall() {
+  rc_seen=
+  rc_pick
+  for rc in "$rc" "$(rc_zshrc)" "$HOME/.bashrc"; do
+    [ -n "$rc" ] || continue
+    case " $rc_seen " in *" $rc "*) continue ;; esac
+    rc_seen="$rc_seen $rc"
+    [ -f "$rc" ] || continue
+    rc_scan "$rc"
+    [ "$rc_nb" = 0 ] && [ "$rc_ne" = 0 ] && [ "$rc_leg" = 0 ] && continue
+    if rc_damaged; then
+      echo "REFUSE  $rc: the paste-wrapper block's markers are damaged; nothing removed"
+      raise 3
+      continue
+    fi
+    rc_write "$rc" "$work/rc.stripped"
+    echo "CHANGED $rc: paste-wrapper start-up block present -> absent ($rc_kept)"
+  done
 }
 
 render() {
@@ -388,9 +491,9 @@ render() {
       {
         printf '# %s; source: global/install.sh (paste wrapper, ADR-0011); %s; do not edit, re-run the installer\n' \
           "$MARKER_ID" "$stamp"
-        printf '# The paste filter at the harness-CLI paste boundary (ADR-0011). To activate it, add this line to\n'
-        printf '# your ~/.zshrc or ~/.bashrc yourself, or run install.sh --shell-rc=<that file> (opt-in):\n'
-        printf '#   %s\n' "$rc_line"
+        printf '# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n'
+        printf '# managed block in your shell start-up file (~/.zshrc or ~/.bashrc; Issue #145), which reads:\n'
+        printf '#   %s\n' "$rc_body"
         printf '# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n'
         printf '# CLI sees them and marks the session (%s=1), so the prompt hook lets its prompts\n' "PMHWC_PASTE_WRAPPER"
         printf '# through. "command claude" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\n'
@@ -733,9 +836,10 @@ method_step() {
 }
 # The session-start default model and reasoning effort per agent harness (ADR-0007, ADR-0035), from
 # the overlay's model-defaults.json, written into each harness's own user-level key by
-# global/models/model_defaults.py. The keys it sets are recorded, so an owner's own value is never
-# overwritten (KEPT, which changes no exit code) and uninstall removes only what it set. With no overlay file the policy is
-# empty: keys it set earlier are removed while they still hold its value.
+# global/models/model_defaults.py. The pinned value is written whatever the key holds (Issue #145),
+# reported old -> new; a value of the owner's it replaces is recorded, so uninstall restores it, and
+# removes the keys that had none. With no overlay file the policy is empty: keys it set earlier are
+# undone the same way while they still hold its value.
 models_step() {
   if ! command -v python3 >/dev/null 2>&1; then
     echo "SKIP    the session-start model defaults: python3 3.9 or later is required"
@@ -746,14 +850,23 @@ models_step() {
   if [ -n "$overlay" ] && [ -f "$overlay/model-defaults.json" ]; then models_policy="$overlay/model-defaults.json"; fi
   python3 -B "$script_dir/models/model_defaults.py" "--mode=$mode" "--stamp=$stamp" "--policy=$models_policy" || raise $?
 }
+# The MCP servers the policy retired (ADR-0035 decision 2: aws-api) leave the Codex user configuration
+# (Issue #145), through global/mcp/mcp_retire.py: a backup, old -> new, nothing else in the file changes.
+mcp_step() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP    the retired MCP servers: python3 3.9 or later is required"
+    raise 2
+    return 0
+  fi
+  python3 -B "$script_dir/mcp/mcp_retire.py" "--mode=$mode" || raise $?
+}
 if [ "$mode" = uninstall ]; then
   allow_uninstall
   models_step
+  mcp_step
   uninstall_user
   method_step
-  if [ -n "$shell_rc" ] && [ -f "$shell_rc" ] && grep -qF "$rc_tag" "$shell_rc"; then
-    echo "NOTE    $shell_rc still carries the paste-wrapper line; it is guarded and now does nothing. Delete it yourself"
-  fi
+  shell_rc_uninstall
   echo "NOTE    the admin layer is not touched here; ${MHW_CMD:-./mhw} uninstall prints its sudo line"
   exit "$status"
 fi
@@ -828,6 +941,7 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
 fi
 merge_settings
 models_step
+mcp_step
 allow_step
 method_step
 
