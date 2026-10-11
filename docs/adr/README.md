@@ -55,7 +55,7 @@ Each is raised one at a time, when a slice reaches it.
 | [0023](0023-breaking-glass-all-layers-native-switch.md) | Total breaking glass through each native switch | proposed; ended 2026-10-04 |
 | [0024](0024-breaking-glass-per-layer-expiring-switches.md) | Expiring per-layer switches | superseded by 0028 |
 | [0025](0025-hook-layers-in-the-native-admin-layer.md) | Hooks in each agent harness's admin layer | proposed; restart-guard and switch parts superseded by 0028 |
-| [0026](0026-four-distribution-layers-rubric.md) | Four distribution layers and the placement rubric; `distribution.json` applies it (2026-10-11) | accepted 2026-10-11; parts changed by 0027, 0028, 0032, 0035, 0036 |
+| [0026](0026-four-distribution-layers-rubric.md) | Four distribution layers and the placement rubric; `distribution.json` applies it (2026-10-11) | accepted 2026-10-11; parts changed by 0035 (accepted) and by the proposed 0027, 0028, 0032, 0036 |
 | [0027](0027-native-carrier-per-component-from-the-enforcement-matrix.md) | Native carrier per component, from the enforcement matrix | proposed |
 | [0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) | Restart guard and switches removed; OS privilege only | proposed |
 | [0029](0029-provenance-stamp-in-every-installed-file.md) | Provenance stamp in every installed file | proposed |

@@ -130,11 +130,13 @@ in force until the owner ratifies it.
 - [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (proposed) removes
   `/breaking-glass` and the expiring switches. The criterion for entering the managed layer stands.
   The phrase *"the scope of `/breaking-glass`"* in Consequences, and the `/breaking-glass` argument in
-  option 3, name a command that no longer exists. OS privilege is now the only way to turn a managed
-  hook off.
+  option 3, name a command that no longer exists. The code at this record's acceptance already works
+  that way: OS privilege is the only way to turn a managed hook off. ADR-0028 itself is still
+  proposed, so the decision behind that code awaits the owner's ratification.
 - [ADR-0032](0032-this-repository-is-the-single-source-of-the-working-method.md) (proposed) moves the
   working method (agents, skills, commands) from the plugin into this repository, rendered at user
   level. Placement test question 2 already puts it there, since the method applies in every project.
+  ADR-0032 is proposed, so this change is not yet in force.
   Once ADR-0032 is accepted, the **plugin** row of the layer table and the plugin clause of
   *Placement by repository* are superseded for those artifacts. Until the plugin cutover, the method
   installed alongside the enabled plugin is a copy in two layers, the defect *One layer per artifact*
@@ -149,10 +151,34 @@ in force until the owner ratifies it.
 
 **The manifest.** [`distribution.json`](../../distribution.json) applies this rubric to the files
 `rc/next` tracks: every tracked file is listed in exactly one artifact, or in `not_distributed`.
+That holds under one precedence rule, which the manifest states in its `path_rules` field: **a
+`not_distributed` entry wins over an artifact's directory entry.** Without that rule, five test files
+would sit in two places: `global/mcp/mcp_render_test.py`, `global/mcp/mcp_retire_test.py`,
+`global/method/method_commands_test.py`, `global/method/method_render_test.py` and
+`global/models/model_defaults_test.py`. Each matches both `*_test.py` and its component's directory.
 Nothing reads it. No check, test or CI job consumes it, and this amendment adds none: a check would be
 a new tool, owed its own record, as *Out of scope here* says. Each artifact's layer is the
 implementing agent's application of the test and is open to the owner's correction. Like the record,
 the manifest states intent, not what is installed.
+
+**Two departures from this record's own layer table, ratified with it.** The manifest follows the
+placement test where it disagrees with the examples in *The layers* table. The owner ratifies these
+two departures together with the record:
+
+1. **The global brief is `managed`, not `user`.** The table lists *"the global brief"* in the user
+   row. The manifest places it as managed-class, with its gap declared. The reason is placement test
+   question 1: the brief carries the firewall's mission and its protections, so switching it off would
+   be a risk and not an inconvenience. Its clause on missing carriers then applies: no admin
+   instruction carrier is used yet, so it is installed at user level, declared as managed-class, and
+   not reclassified as a preference. The table row predates that reading.
+2. **`.github/` is `not_distributed`, although the table gives *"that repository's CI publication"* as
+   its workspace example.** Meanwhile `AGENTS.md`, `CLAUDE.md` and `workspace/` are classed
+   `workspace`, though none of them is installed on a workstation either, so "not installed" is not
+   the line between them. The line is the reader. Those files are read by an agent harness working in
+   this repository, which makes them the repository's own contract with the harness. The workflows
+   are read only by the forge's CI runner, which is not one of the four carriers. The table's CI
+   example stays true for the publication contract written in `AGENTS.md` and `workspace/`; the
+   workflow files that execute it are outside the four layers.
 
 ## Links
 

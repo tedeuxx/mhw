@@ -3,6 +3,7 @@
   "repository": "tedeuxx/mhw",
   "role": "firewall",
   "peer": "tedeuxx/tadeumendonca-skills",
+  "path_rules": "An entry ending in '/' is a directory prefix; an entry containing '*' is matched against the file's basename; any other entry is an exact repository-relative path. Precedence: a not_distributed entry wins over an artifact's directory entry, so a test file inside an artifact's directory is not distributed. With that rule every tracked file matches exactly one artifact or not_distributed.",
   "not_distributed": [
     "docs/",
     ".github/",
