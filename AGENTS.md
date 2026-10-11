@@ -247,9 +247,20 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   slice B, amending [ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md)): each
   harness's model pinned by ID, at medium effort (no effort on Kiro), from `overlay/model-defaults.json`
   through `global/models/model_defaults.py`. *Written and tested* in throwaway homes; **not installed**
-  on the reference machine, and no default checked in a new session. macOS and Linux only. On that
+  on the reference machine, and no default checked in a new session. macOS and Linux only. ~~On that
   machine the owner holds his own Claude Code `model` and Codex `model_reasoning_effort`; install keeps
-  them, so those two pins take effect only after he deletes the keys.
+  them, so those two pins take effect only after he deletes the keys.~~ *Struck 2026-10-11
+  ([#145](https://github.com/tedeuxx/mhw/issues/145)):* install writes the pin over any value, reports
+  old -> new and records the replaced value, which uninstall restores. *Written and tested* in throwaway
+  homes; not installed.
+- **Install applies every workstation setting itself** ([#145](https://github.com/tedeuxx/mhw/issues/145);
+  ADR-0035 amendment of 2026-10-11). Besides the model pins above, `mhw install` removes the `aws-api`
+  MCP server from the Codex user configuration (`global/mcp/mcp_retire.py`), removes `Bash(find:*)` and
+  `Bash(awk:*)` from the Claude Code user allow list (`global/allow-retired.conf`), and adds the paste
+  wrapper's block to `~/.zshrc` or `~/.bashrc`. Each keeps a backup and prints old -> new; uninstall
+  removes the block and restores the model values, and the MCP and allow removals are restorable from
+  their backups. *Written and tested* in throwaway homes; **not installed** on the reference machine.
+  Windows (`install.ps1`) does none of the four.
 - **Outbound scan** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 7,
   slice F): `mhw scan` checks the files and commits a branch changed and prints `file:line`, the
   category and the length, never the text; the `outbound-scan` CI check runs it on every pull request.

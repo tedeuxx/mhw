@@ -111,18 +111,21 @@ class ModelDefaults(unittest.TestCase):
     def test_dry_run_writes_nothing(self):
         code, out = self.run_mode("dry-run")
         self.assertEqual(code, 0, out)
-        self.assertEqual(out.count("WOULD SET"), 3, out)
+        self.assertEqual(out.count("WOULD CHANGE"), 3, out)
+        self.assertIn('model (absent) -> "claude-opus-5-5[1m]"', out)
         self.assertEqual([p for p in self.home.rglob("*") if p.is_file()], [])
 
     # --- drift and the owner's own values ------------------------------------------------------
 
-    def test_drift_in_each_harness_is_reported_and_never_overwritten(self):
+    def test_drift_in_each_harness_is_reported_then_overwritten_old_to_new(self):
+        # Issue #145: the pinned value is written whatever the key holds. Drift as /model would leave it
+        # is a pending write (check 1), install replaces it and says old -> new, and check then settles.
         self.run_mode("install")
         drifted = {"claude-code": ("model", "opus[1m]"), "codex": ("model_reasoning_effort", "high"),
                    "kiro-cli": ("chat.defaultModel", "auto")}
         for harness, (key, value) in drifted.items():
             with self.subTest(harness=harness):
-                rel, _ = EXPECT[harness]
+                rel, want = EXPECT[harness]
                 path = self.home / rel
                 text = path.read_text(encoding="utf-8")
                 if path.suffix == ".toml":
@@ -131,32 +134,58 @@ class ModelDefaults(unittest.TestCase):
                     doc = json.loads(text)
                     doc[key] = value
                     path.write_text(json.dumps(doc), encoding="utf-8")
-                # KEPT (PR #119): the owner's value is a settled state, not a failure. The one pending write
-                # is the record, which stops claiming the key; after that install, check settles at 0.
                 code, out = self.run_mode("check")
                 self.assertEqual(code, 1, out)
-                self.assertIn("KEPT    %s: %s is \"%s\"" % (path, key, value), out)
+                self.assertIn('DRIFT   %s: install would change %s "%s" -> "%s"' % (path, key, value, want[key]), out)
+                self.assertNotIn("KEPT", out)
                 self.assertNotIn("REFUSE", out)
                 code, out = self.run_mode("install")
                 self.assertEqual(code, 0, out)
-                self.assertEqual(read_keys(self.home, harness)[key], value, "the owner's value was overwritten")
+                self.assertIn('CHANGED %s: %s "%s" -> "%s"' % (path, key, value, want[key]), out)
+                self.assertEqual(read_keys(self.home, harness)[key], want[key], "the pinned value was not written")
+                self.assertNotIn("Delete the key", out)
                 code, out = self.run_mode("check")
                 self.assertEqual(code, 0, out)
-                self.assertIn("KEPT    %s: %s is \"%s\"" % (path, key, value), out)
+        # The keys were absent before mhw first set them: drift overwritten later records nothing to restore,
+        # so uninstall removes them rather than bringing back the drifted values.
+        record = json.loads((self.home / RECORD).read_text(encoding="utf-8"))
+        self.assertTrue(all("replaced" not in e for e in record["set"].values()), record)
+        self.assertEqual(self.run_mode("uninstall")[0], 0)
+        for harness, (_, want) in EXPECT.items():
+            self.assertEqual({k: v for k, v in read_keys(self.home, harness).items() if k in want}, {}, harness)
 
-    def test_owner_value_present_before_install_is_kept_and_settles(self):
-        self.seed(".codex/config.toml", 'model = "gpt-5.6-sol"\nmodel_reasoning_effort = "high"\n')
+    def test_owner_value_present_before_install_is_replaced_and_uninstall_restores_it(self):
+        seed = 'model = "gpt-5.6-sol"\nmodel_reasoning_effort = "high"\n'
+        path = self.seed(".codex/config.toml", seed)
         code, out = self.run_mode("install")
         self.assertEqual(code, 0, out)
-        self.assertEqual(toml_top(self.home / ".codex/config.toml")["model_reasoning_effort"], "high")
-        self.assertIn("Delete the key and re-run install", out)
-        # A repeated install settles: nothing more to write, check passes, the owner's line stays KEPT.
+        self.assertEqual(toml_top(path)["model_reasoning_effort"], "medium")
+        self.assertIn('CHANGED %s: model_reasoning_effort "high" -> "medium" (model defaults codex; previous file '
+                      'kept as %s.pmhwc-models-backup)' % (path, path), out)
+        self.assertNotIn("Delete the key", out)
+        self.assertEqual(Path(str(path) + ".pmhwc-models-backup").read_text(encoding="utf-8"), seed)
+        record = json.loads((self.home / RECORD).read_text(encoding="utf-8"))
+        self.assertEqual(record["set"][str(path)], {"harness": "codex", "keys": {"model_reasoning_effort": "medium"},
+                                                    "replaced": {"model_reasoning_effort": "high"}})
+        # A repeated install settles: nothing more to write, check passes.
         code, out = self.run_mode("install")
         self.assertEqual(code, 0, out)
-        self.assertNotIn("SET", out)
-        code, out = self.run_mode("check")
+        self.assertNotIn("CHANGED", out)
+        self.assertEqual(self.run_mode("check")[0], 0)
+        # Uninstall puts the owner's value back; the model equal to the policy was his and is untouched.
+        code, out = self.run_mode("uninstall")
         self.assertEqual(code, 0, out)
-        self.assertIn("KEPT    %s: model_reasoning_effort is \"high\"" % (self.home / ".codex/config.toml"), out)
+        self.assertIn('REMOVED %s: model_reasoning_effort "medium" -> "high"' % path, out)
+        self.assertEqual(path.read_text(encoding="utf-8"), seed)
+
+    def test_a_foreign_record_is_refused(self):
+        record = self.home / RECORD
+        record.parent.mkdir(parents=True)
+        record.write_text(json.dumps({"set": {}}), encoding="utf-8")
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 3, out)
+        self.assertIn("NOT managed by this project", out)
+        self.assertFalse((self.home / ".claude/settings.json").exists())
 
     def test_unreadable_owner_value_is_still_a_refusal(self):
         # A value mhw cannot read is not a settled owner state: it stays REFUSE, exit 3.
@@ -175,16 +204,19 @@ class ModelDefaults(unittest.TestCase):
                 for p in (path, self.home / RECORD):
                     if p.exists():
                         p.unlink()
-                # The owner's quoted key: KEPT, the file untouched, no second model line.
+                # The owner's quoted key: found, replaced in place (no second model line), restored on uninstall.
                 self.seed(".codex/config.toml", '%s = "gpt-owner"\n' % spelling)
                 code, out = self.run_mode("install")
                 self.assertEqual(code, 0, out)
-                self.assertIn('KEPT    %s: model is "gpt-owner"' % path, out)
-                self.assertEqual(self.model_lines(path), ['%s = "gpt-owner"' % spelling])
+                self.assertIn('CHANGED %s: model "gpt-owner" -> "gpt-5.6-sol"' % path, out)
+                self.assertEqual(self.model_lines(path), ['model = "gpt-5.6-sol"'])
+                self.assertEqual(self.run_mode("uninstall")[0], 0)
+                self.assertEqual(self.model_lines(path), ['model = "gpt-owner"'])
                 # mhw's own value, respelt with a quoted key, is still recognised as mhw's: a policy change
                 # replaces that line instead of inserting a duplicate.
                 for p in (path, self.home / RECORD):
-                    p.unlink()
+                    if p.exists():
+                        p.unlink()
                 self.assertEqual(self.run_mode("install")[0], 0)
                 path.write_text(path.read_text(encoding="utf-8").replace('model = "gpt', '%s = "gpt' % spelling),
                                 encoding="utf-8")

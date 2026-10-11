@@ -134,8 +134,9 @@ A prefix floor cannot block only `find -delete`, so the whole command now asks.
 *Added 2026-10-10 (slice A):* `find:*` and `awk:*` are not owned by mhw. They are in neither
 `global/allow-list.conf` nor `overlay/allow-list.conf`, nowhere in mhw's git history as an allow entry,
 and not under mhw's ownership key in `~/.claude/settings.json`. They are present in the
-tadeumendonca-skills plugin's project settings. Their removal is therefore an owner action, not code
-in this repository.
+tadeumendonca-skills plugin's project settings. ~~Their removal is therefore an owner action, not code
+in this repository.~~ *Struck 2026-10-11 (#145):* the user-level removal is installer work, see the
+amendment of that date below. The two project files stay outside this repository.
 
 ### 5. Model and effort
 
@@ -254,9 +255,10 @@ same pull request. One line per slice, with the files it touches:
    B amendment below for why the carrier changed.
 4. **Codex MCP removal** (decision 2): the `aws-api` entry in the Codex user configuration, and in the
    untracked local MCP overlay ([ADR-0017](0017-single-source-mcp-with-secret-indirection.md)) if it
-   is there. *Appended 2026-10-10 (RC review, advisory A1): the entry lives in the owner's own
-   configuration, so this item is an owner action, not code in this repository. It became
-   owner-action Issue [#124](https://github.com/tedeuxx/mhw/issues/124).*
+   is there. *Appended 2026-10-10 (RC review, advisory A1): ~~the entry lives in the owner's own
+   configuration, so this item is an owner action, not code in this repository.~~ It became
+   owner-action Issue [#124](https://github.com/tedeuxx/mhw/issues/124).* *Struck 2026-10-11 (#145):
+   the Codex removal is installer work, see the amendment of that date below.*
 5. **Hook principle and session close** (decisions 6 and 10): the brief and overlay text,
    `global/AGENTS.md` and `overlay/AGENTS.md`.
 6. **Outbound scan** (decision 7): the new `mhw scan` in `global/workstation.py`, reusing the paste
@@ -318,13 +320,15 @@ ships its own carrier, run as one step of `global/install.sh`:
 | Codex | `gpt-5.6-sol` | `medium` | the keys read from the binary; not checked in a new session |
 | Kiro CLI | `claude-sonnet-4.5` | not set | the model list measured (`kiro-cli chat --list-models`, 2.29.0): it is the top model offered; not checked in a new session |
 
-**2. Ownership semantics.** A key is written only when it is absent, or still holds the value mhw
-recorded writing.
+**2. Ownership semantics.** ~~A key is written only when it is absent, or still holds the value mhw
+recorded writing.~~
 
-- **KEPT.** A key holding any other value is the owner's. It is kept, never overwritten. It changes no
+- ~~**KEPT.** A key holding any other value is the owner's. It is kept, never overwritten. It changes no
   exit code, it is not a pending write (so a repeated install settles, and `mhw status` does not count
   it), and `mhw install` lists it as an owner next step: delete the key and run install again to hand
-  it to mhw. A value the owner set that already equals the policy also stays his.
+  it to mhw.~~ A value the owner set that already equals the policy also stays his.
+  *Struck 2026-10-11 (#145):* the pinned value is now written whatever the key holds; see the amendment
+  of that date below.
 - **REFUSE, exit 3**, only for: a file or value mhw cannot read; an ownership record mhw does not own;
   an edit that would not parse.
 - **The TOML parse guard needs Python 3.11 or later** (`tomllib`). Every Codex edit is parsed before
@@ -335,7 +339,8 @@ recorded writing.
   replaces the file atomically with its mode kept. The backup is overwritten on each write, so after a
   second write it no longer holds the pre-mhw original. JSON files are re-serialised whole: the same
   keys and order, but re-indented.
-- **Uninstall** removes a key only while it still holds the value mhw recorded.
+- **Uninstall** removes a key only while it still holds the value mhw recorded. *Appended 2026-10-11
+  (#145): when install replaced a value, uninstall restores that value instead of removing the key.*
 
 **3. Declared gaps.**
 
@@ -357,8 +362,8 @@ recorded writing.
   not measured.
 
 **4. On the reference machine.** The owner's user layer holds his own Claude Code `model` and Codex
-`model_reasoning_effort`. Those are KEPT, so those two pins take effect only after he deletes the keys
-and installs again.
+`model_reasoning_effort`. ~~Those are KEPT, so those two pins take effect only after he deletes the keys
+and installs again.~~ *Struck 2026-10-11 (#145):* the next install replaces them and says old -> new.
 
 ## Amendment 2026-10-10: implementing decisions 6 and 10 (brief text)
 
@@ -533,9 +538,72 @@ It asserts the line is written, not that any agent reads it.
 **4. Pending.** tadeumendonca-io and tadeumendonca-skills do not carry the line yet. Each gets its own
 pull request in its own repository; implementation-plan item 8 is complete only when both land.
 
+## Amendment 2026-10-11: install applies every workstation setting itself (#145)
+
+**1. The owner's rule.** Issue [#145](https://github.com/tedeuxx/mhw/issues/145), in his words:
+*"voce tem que corrigir sua distribuicao, o objetivo é nao ter intervencao manual minha na configuracao
+da workstation."* (You have to fix your distribution: the goal is no manual intervention from me in the
+workstation's configuration.)
+
+It reverses the "owner value is KEPT" rule of slice B (decisions 5 and 8; struck above) and turns three
+owner actions into installer work: #123 (the model pins), #124 (the Codex MCP server, decision 2) and
+#127 (the allow entries, decision 4), plus the paste wrapper's start-up line (ADR-0033). The four items
+share three properties: a backup of the previous file, an output line naming old -> new (`CHANGED`, which
+`mhw install` always shows, without `--verbose`), and a way back.
+
+**2. Model and effort (decisions 5 and 8).** `global/models/model_defaults.py` writes the pinned value
+whatever the key holds. A value that was not mhw's is recorded beside the key, under `"replaced"` in the
+ownership record, and uninstall restores it; a key that had no value is removed. `--check` reports a
+held value as `DRIFT … old -> new`, a pending write, so `mhw status` counts it and no longer says the
+owner holds it. Unchanged: REFUSE, exit 3, for an unreadable file or value, a foreign record, or a TOML
+edit that would not parse (the parse guard needs Python 3.11+, as before).
+
+**3. Codex MCP (decision 2).** `global/mcp/mcp_render.py` (ADR-0017) owns only its managed block, and a
+hand-written `aws-api` table sits outside it, so reconciling through the renderer would not reach it. A
+targeted removal does: `global/mcp/mcp_retire.py`, run by `install.sh`, removes each server listed in
+`global/mcp/retired-servers.conf` (only `aws-api`) from `${CODEX_HOME:-~/.codex}/config.toml`, table and
+sub-tables, nothing else. The result must parse (tomllib) and equal the original minus that server, or
+nothing is written; without tomllib a file naming the server is refused. No server content is ever
+printed. A copy listed in the managed block is named, not edited: it comes back from the local MCP
+definition on the next render. The backup `config.toml.pmhwc-mcp-backup` is the way back; uninstall does
+not re-add a retired server.
+
+**4. Allow list (decision 4).** `allow_retire` in `global/allow-list.sh` removes from `permissions.allow`
+in `~/.claude/settings.json` exactly the rules in `global/allow-retired.conf`: `Bash(find:*)` and
+`Bash(awk:*)`, and each one's space-wildcard spelling. The parser's wider refusal set (every
+interpreter and dispatcher) is not applied to the owner's own rules: decision 4 removed only these two
+("everything else stays"), and a rule the owner wrote that the list does not name stays. The backup
+`settings.json.pmhwc-allow-backup` is the way back; uninstall does not re-add a rule the policy retired.
+The two project settings files of #127 are outside this repository and untouched.
+
+**5. Paste wrapper (ADR-0033).** `install.sh` writes one marked block that sources the snippet into the
+start-up file of `$SHELL`: zsh `${ZDOTDIR:-~}/.zshrc`, bash `~/.bashrc`. It replaces a differing block
+whole and the earlier one-line form (Issue #58's opt-in), never duplicates, keeps the previous file as
+`<file>.pmhwc-backup` and writes through a symbolic link. Uninstall removes exactly the block. Damaged
+markers are refused. `--shell-rc=FILE` names another file and `--shell-rc=none` writes none; another
+shell gets the line printed as an owner step, the one residual.
+
+**6. Evidence level.** *Written and tested* in throwaway homes (`global/install.test.sh` sections 2,
+2c'', 17 to 20, `global/models/model_defaults_test.py`, `global/mcp/mcp_retire_test.py`,
+`global/workstation_test.py`); **not installed** on the reference machine.
+
+**7. Declared gaps.**
+
+- **Windows.** `install.ps1` does none of the four.
+- **bash on macOS** reads `~/.bash_profile` in a login shell, not `~/.bashrc`, so a bash user there gets
+  the block in a file Terminal does not read by default. Not measured.
+- **One backup per file.** Each backup is overwritten by the next write of that item, so after two
+  writes it no longer holds the pre-mhw original (the model record keeps the replaced value itself).
+- **The MCP and allow backups hold what was removed.** `config.toml.pmhwc-mcp-backup` keeps the removed
+  server as it was, any environment value included, with the original file's mode.
+- **The space-wildcard allow spelling** was added by reading, not measured against Claude Code.
+- **What stays the owner's, by design:** the administrator password, the vendor trust approvals (Codex
+  `/hooks`, never forged), ratifying records, and opening a fresh session after an install.
+
 ## Links
 
-- Issues: none (owner request in session, 2026-10-10)
+- Issues: none (owner request in session, 2026-10-10);
+  [#145](https://github.com/tedeuxx/mhw/issues/145) (install applies every setting itself, 2026-10-11)
 - Pull requests: #118 (slice A), #119 (slice B), #120 (slice F), #121 (decision 9, owner-action queue),
   #126 (decisions 6 and 10), #132 (decision 1, mhw sphere line)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),

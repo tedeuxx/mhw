@@ -6,10 +6,15 @@ set -u
 base=${1:?usage: install.test.sh <base dir>}
 mkdir -p "$base"
 inst="$(cd "$(dirname "$0")" && pwd)/install.sh"
-unset CODEX_HOME XDG_DATA_HOME
+unset CODEX_HOME XDG_DATA_HOME ZDOTDIR PMHWC_PASTE_WRAPPER
+# Issue #145: install writes the paste wrapper's block into the start-up file of $SHELL. The suite fixes
+# the shell, so a run is the same on every machine; sections that test another shell set it per call.
+SHELL=/bin/zsh
+export SHELL
 # Sections 1-16 seed settings files with values of their own (a "model" among them), which the model
-# defaults would rightly refuse to overwrite. They run with a copy of the repository overlay minus
-# model-defaults.json; section 17 runs the real overlay and asserts the model defaults (ADR-0035).
+# defaults would overwrite (Issue #145) and so blur what those sections assert. They run with a copy of the
+# repository overlay minus model-defaults.json; section 17 runs the real overlay and asserts the model
+# defaults (ADR-0035).
 models_off="$base/overlay-without-model-defaults"
 mkdir -p "$models_off"
 cp -R "$(cd "$(dirname "$0")/.." && pwd)/overlay/." "$models_off/"
@@ -314,10 +319,20 @@ if head -n 1 "$sn" | grep -q '^# managed-by: personal-multi-harness-workstation-
 else
   ko "the snippet is wrong"
 fi
+# Issue #145: the block goes into the start-up file of $SHELL (zsh here) and nowhere else, and install
+# names no "add this line yourself" step.
+rc_begin="# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it"
+rc_end="# <<< personal-multi-harness-workstation-configuration: paste wrapper"
+block_of() { printf '%s\n%s\n%s\n' "$rc_begin" "[ -r \"$(data "$1")/paste-filter.sh\" ] && . \"$(data "$1")/paste-filter.sh\"" "$rc_end"; }
 found=""
-for rc in .zshrc .bashrc .bash_profile .profile .zprofile .zshenv; do [ -e "$h/$rc" ] && found="$found $rc"; done
-if [ -z "$found" ]; then ok "no shell rc was written"; else ko "shell rc written:$found"; fi
-if grep -qF ". \"$sn\"" "$base/fresh.out"; then ok "install tells the owner the line to add himself"; else ko "install printed no activation line"; fi
+for rc in .bashrc .bash_profile .profile .zprofile .zshenv; do [ -e "$h/$rc" ] && found="$found $rc"; done
+if [ -z "$found" ] && [ "$(cat "$h/.zshrc")" = "$(block_of "$h")" ] && [ ! -e "$h/.zshrc.pmhwc-backup" ] \
+   && grep -qxF "CHANGED $h/.zshrc: paste-wrapper start-up block absent -> present (new file); new shells clean pastes" "$base/fresh.out"; then
+  ok "install wrote the paste-wrapper block into ~/.zshrc only, and said absent -> present"
+else
+  ko "the default start-up block is wrong (other rc:$found)"; cat "$h/.zshrc" 2>/dev/null
+fi
+if grep -q 'automatic paste cleaning' "$base/fresh.out"; then ko "install still asks the owner to add the line"; else ok "install asks the owner for no shell line"; fi
 # The snippet's function, sourced by a real zsh and bash: it reaches the real program through the wrapper
 # (stdin is not a terminal here, so the wrapper execs straight through) with the arguments and exit status
 # intact. A fake claude on PATH stands in for the CLI.
@@ -337,56 +352,132 @@ for shl in zsh bash; do
   fi
 done
 
-# 2c''. the opt-in shell start-up line (Issue #58), against THROWAWAY rc files only. It is written only
-# with --shell-rc=FILE, appended once, printed, and never duplicated or rewritten.
+# 2c''. the shell start-up block (Issue #145; opt-in under Issue #58), against THROWAWAY rc files only:
+# added with a backup, printed old -> new, never duplicated, replacing the earlier one-line form, and
+# removed exactly by uninstall.
 h3="$base/home-rc"; mkdir -p "$h3"
 rc="$h3/zshrc-throwaway"
-printf 'export SYNTHETIC_OWNER_SETTING=1' > "$rc"          # no trailing newline, on purpose
-sn3="$(data "$h3")/paste-filter.sh"
-want_rc="[ -r \"$sn3\" ] && . \"$sn3\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)"
-rc_before=$(cksum < "$rc")
+printf 'export SYNTHETIC_OWNER_SETTING=1\n# owner line two\n' > "$rc"
+rc_orig=$(cksum < "$rc")
+want_block=$(block_of "$h3")
 HOME="$h3" sh "$inst" --dry-run --shell-rc="$rc" > "$base/rc-dry.out"; expect "dry-run with --shell-rc" 0 $?
-if [ "$(cksum < "$rc")" = "$rc_before" ] && grep -qxF "WOULD APPEND to $rc: $want_rc" "$base/rc-dry.out"; then
-  ok "dry-run prints the rc line and writes nothing"
+if [ "$(cksum < "$rc")" = "$rc_orig" ] && grep -qxF "WOULD CHANGE $rc: paste-wrapper start-up block absent -> present (backup $rc.pmhwc-backup):" "$base/rc-dry.out"; then
+  ok "dry-run prints the block and writes nothing"
 else
   ko "dry-run with --shell-rc wrote the rc or printed the wrong line"
 fi
+HOME="$h3" sh "$inst" --check --shell-rc="$rc" > "$base/rc-check0.out"; expect "check reports the missing block" 1 $?
+if grep -q "^MISSING $rc: no paste-wrapper start-up block" "$base/rc-check0.out"; then ok "check names the missing block"; else ko "check did not name the missing block"; fi
 HOME="$h3" sh "$inst" --shell-rc="$rc" > "$base/rc-1.out"; expect "install with --shell-rc" 0 $?
-if [ "$(grep -cxF "$want_rc" "$rc")" -eq 1 ] && [ "$(sed -n 1p "$rc")" = "export SYNTHETIC_OWNER_SETTING=1" ] \
-   && [ "$(wc -l < "$rc" | tr -d ' ')" -eq 2 ] && grep -qxF "APPENDED to $rc (opt-in, --shell-rc): $want_rc" "$base/rc-1.out"; then
-  ok "install appends the line once, on its own line, keeps the owner's content and prints what it wrote"
+if [ "$(cat "$rc")" = "$(printf 'export SYNTHETIC_OWNER_SETTING=1\n# owner line two\n%s' "$want_block")" ] \
+   && [ "$(cksum < "$rc.pmhwc-backup")" = "$rc_orig" ] \
+   && grep -qxF "CHANGED $rc: paste-wrapper start-up block absent -> present (previous file kept as $rc.pmhwc-backup); new shells clean pastes" "$base/rc-1.out"; then
+  ok "install appends the block once, keeps the owner's lines and a backup, and prints old -> new"
 else
   ko "install --shell-rc produced the wrong rc: $(cat "$rc")"
 fi
 rc_once=$(cksum < "$rc")
 HOME="$h3" sh "$inst" --shell-rc="$rc" > "$base/rc-2.out"; expect "install with --shell-rc, again" 0 $?
-if [ "$(cksum < "$rc")" = "$rc_once" ] && grep -qxF "OK      $rc activates the paste wrapper" "$base/rc-2.out"; then
+if [ "$(cksum < "$rc")" = "$rc_once" ] && grep -qxF "OK      $rc activates the paste wrapper (managed block)" "$base/rc-2.out" \
+   && ! grep -q "^CHANGED $rc" "$base/rc-2.out"; then
   ok "a second install leaves the rc byte-identical (idempotent)"
 else
   ko "a second install changed the rc"
 fi
-HOME="$h3" sh "$inst" --check --shell-rc="$rc" > "$base/rc-check.out"; expect "check with the rc line present" 0 $?
+HOME="$h3" sh "$inst" --check --shell-rc="$rc" > "$base/rc-check.out"; expect "check with the block present" 0 $?
 for shl in zsh bash; do
   if command -v "$shl" >/dev/null 2>&1; then
     t=$(HOME="$h3" "$shl" -c ". \"$rc\"; type claude" 2>&1 | head -n 1)
     case $t in
       *function*) ok "$shl: sourcing the rc defines the wrapper functions" ;;
-      *) ko "$shl: the rc line did not define claude: $t" ;;
+      *) ko "$shl: the rc block did not define claude: $t" ;;
     esac
   fi
 done
+# The owner edits inside the block: it is replaced whole, still once.
+sed 's/ && \. / \&\& true ; . /' "$rc" > "$base/rc.t" && cat "$base/rc.t" > "$rc"
+HOME="$h3" sh "$inst" --check --shell-rc="$rc" > "$base/rc-check2.out"; expect "check reports a changed block" 1 $?
+HOME="$h3" sh "$inst" --shell-rc="$rc" > "$base/rc-3.out"; expect "install replaces a changed block" 0 $?
+if [ "$(cksum < "$rc")" = "$rc_once" ] && grep -q "^CHANGED $rc: paste-wrapper start-up block a different block -> present" "$base/rc-3.out"; then
+  ok "a changed block is replaced whole, not duplicated"
+else
+  ko "a changed block was not repaired: $(cat "$rc")"
+fi
+# Uninstall removes exactly the block: the file is the owner's again, byte for byte.
+HOME="$h3" sh "$inst" --uninstall --shell-rc="$rc" > "$base/rc-un.out"; expect "uninstall with the block" 0 $?
+if [ "$(cksum < "$rc")" = "$rc_orig" ] && grep -qxF "CHANGED $rc: paste-wrapper start-up block present -> absent (previous file kept as $rc.pmhwc-backup)" "$base/rc-un.out"; then
+  ok "uninstall removes exactly the block, prints present -> absent, keeps a backup"
+else
+  ko "uninstall left the rc wrong: $(cat "$rc")"
+fi
+# The earlier one-line form (Issue #58's opt-in) is replaced by the block, once.
+rc_old="$h3/old-form-rc"
+printf 'export A=1\n[ -r "/old/paste-filter.sh" ] && . "/old/paste-filter.sh"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\nexport B=2\n' > "$rc_old"
+HOME="$h3" sh "$inst" --shell-rc="$rc_old" > "$base/rc-old.out"; expect "install over the one-line form" 0 $?
+if [ "$(cat "$rc_old")" = "$(printf 'export A=1\nexport B=2\n%s' "$want_block")" ] \
+   && grep -q "^CHANGED $rc_old: paste-wrapper start-up block the earlier one-line form -> present" "$base/rc-old.out"; then
+  ok "the earlier one-line form is replaced by the block"
+else
+  ko "the one-line form was not replaced: $(cat "$rc_old")"
+fi
+# A file with no newline at its end gets one, then the block.
+rc_nl="$h3/no-newline-rc"
+printf 'export X=1' > "$rc_nl"
+HOME="$h3" sh "$inst" --shell-rc="$rc_nl" > /dev/null; expect "install over a file with no final newline" 0 $?
+if [ "$(cat "$rc_nl")" = "$(printf 'export X=1\n%s' "$want_block")" ]; then ok "the block starts on its own line"; else ko "the block was glued to the last line: $(cat "$rc_nl")"; fi
+# Damaged markers are refused, nothing written.
+rc_bad="$h3/damaged-rc"
+printf 'x\n%s\nmine\n' "$rc_begin" > "$rc_bad"
+bad_before=$(cksum < "$rc_bad")
+HOME="$h3" sh "$inst" --shell-rc="$rc_bad" > "$base/rc-bad.out"; expect "install refuses damaged markers" 3 $?
+if [ "$(cksum < "$rc_bad")" = "$bad_before" ] && grep -q "^REFUSE  $rc_bad: the paste-wrapper block's markers are damaged" "$base/rc-bad.out"; then
+  ok "damaged markers: nothing written"
+else
+  ko "damaged markers were rewritten"
+fi
+# A start-up file that is a symbolic link stays one (a dotfiles checkout), written through.
+mkdir -p "$h3/dotfiles"
+printf 'export DOT=1\n' > "$h3/dotfiles/zshrc"
+ln -s "$h3/dotfiles/zshrc" "$h3/link-rc"
+HOME="$h3" sh "$inst" --shell-rc="$h3/link-rc" > /dev/null; expect "install through a symbolic link" 0 $?
+if [ -L "$h3/link-rc" ] && [ "$(cat "$h3/dotfiles/zshrc")" = "$(printf 'export DOT=1\n%s' "$want_block")" ]; then
+  ok "a symbolic-link start-up file stays a link; its target gets the block"
+else
+  ko "the symbolic link was replaced or its target not written"
+fi
 rc_new="$h3/never-created-rc"
-HOME="$h3" sh "$inst" --check --shell-rc="$rc_new" > "$base/rc-miss.out"; expect "check reports a missing rc line" 1 $?
-if grep -q "^MISSING $rc_new" "$base/rc-miss.out" && [ ! -e "$rc_new" ]; then ok "check names the missing line and creates nothing"; else ko "check on a missing rc line"; fi
-rc_stale="$h3/stale-rc"
-printf '. /old/place/paste-filter.sh  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n' > "$rc_stale"
-stale_before=$(cksum < "$rc_stale")
-HOME="$h3" sh "$inst" --shell-rc="$rc_stale" > "$base/rc-stale.out"; expect "install refuses to rewrite a different tagged line" 1 $?
-if [ "$(cksum < "$rc_stale")" = "$stale_before" ] && grep -q "^STALE   $rc_stale" "$base/rc-stale.out"; then ok "a differing tagged line is reported and left alone"; else ko "a differing tagged line was rewritten"; fi
+HOME="$h3" sh "$inst" --check --shell-rc="$rc_new" > "$base/rc-miss.out"; expect "check reports a missing rc block" 1 $?
+if grep -q "^MISSING $rc_new" "$base/rc-miss.out" && [ ! -e "$rc_new" ]; then ok "check names the missing block and creates nothing"; else ko "check on a missing rc block"; fi
 mkdir -p "$h3/rc-is-a-dir"
 HOME="$h3" sh "$inst" --shell-rc="$h3/rc-is-a-dir" > "$base/rc-dir.out"; expect "install refuses a non-regular rc" 3 $?
 HOME="$h3" sh "$inst" --shell-rc=relative-rc > /dev/null 2>&1; expect "a relative --shell-rc is a usage error" 2 $?
 if [ ! -e "$h3/relative-rc" ] && [ ! -e relative-rc ]; then ok "a relative --shell-rc writes nothing"; else ko "a relative --shell-rc wrote a file"; fi
+# The shell decides the file: bash gets ~/.bashrc; a shell mhw does not know, or --shell-rc=none, gets none
+# and the owner is given the line.
+hb="$base/home-bash"; mkdir -p "$hb"
+HOME="$hb" SHELL=/bin/bash sh "$inst" > /dev/null; expect "install under bash" 0 $?
+if [ "$(cat "$hb/.bashrc")" = "$(block_of "$hb")" ] && [ ! -e "$hb/.zshrc" ]; then ok "bash: the block goes into ~/.bashrc"; else ko "bash: the block is not in ~/.bashrc"; fi
+HOME="$hb" SHELL=/bin/bash sh "$inst" --uninstall > /dev/null; expect "uninstall under bash" 0 $?
+if [ ! -s "$hb/.bashrc" ]; then ok "bash: uninstall leaves ~/.bashrc as it was (empty, a file mhw created)"; else ko "bash: uninstall left: $(cat "$hb/.bashrc")"; fi
+hz="$base/home-zdotdir"; mkdir -p "$hz/zdot"
+HOME="$hz" ZDOTDIR="$hz/zdot" sh "$inst" > /dev/null; expect "install with ZDOTDIR" 0 $?
+if [ -f "$hz/zdot/.zshrc" ] && [ ! -e "$hz/.zshrc" ]; then ok "zsh: ZDOTDIR's .zshrc gets the block"; else ko "zsh: ZDOTDIR not honoured"; fi
+for case_ in fish none; do
+  hn="$base/home-noshell-$case_"; mkdir -p "$hn"
+  if [ "$case_" = fish ]; then
+    HOME="$hn" SHELL=/usr/local/bin/fish sh "$inst" > "$base/noshell-$case_.out"; rc_code=$?
+  else
+    HOME="$hn" sh "$inst" --shell-rc=none > "$base/noshell-$case_.out"; rc_code=$?
+  fi
+  expect "install with no start-up file ($case_)" 0 "$rc_code"
+  written=$(find "$hn" -maxdepth 1 -name '.*rc' | wc -l | tr -d ' ')
+  if [ "$written" -eq 0 ] && grep -q '^NOTE    automatic paste cleaning: no shell start-up file is written' "$base/noshell-$case_.out" \
+     && grep -qF ". \"$(data "$hn")/paste-filter.sh\"" "$base/noshell-$case_.out"; then
+    ok "$case_: no start-up file is written and the line is printed"
+  else
+    ko "$case_: start-up handling wrong ($written file(s))"
+  fi
+done
 
 # 2d. a managed watcher plist left by an earlier version is removed on install; launchctl never runs
 h2="$base/home-oldplist"; mkdir -p "$h2/Library/LaunchAgents"
@@ -790,33 +881,125 @@ else
 fi
 HOME="$hm" sh "$inst" --check --overlay="$repo_overlay" > "$base/models2.out" 2>&1
 expect "check after install with model defaults" 0 $?
-# Drift as /model would leave it: another value replaces ours. --check names it; install never overwrites it.
+# Drift as /model would leave it: another value replaces ours. --check names it as a pending write, and
+# install writes the pinned value back, old -> new (Issue #145).
 jq '.model = "opus[1m]"' "$hm/.claude/settings.json" > "$base/models.t" && cat "$base/models.t" > "$hm/.claude/settings.json"
+pinned=$(jq -r '."claude-code".model' "$models_policy")
 HOME="$hm" sh "$inst" --check --overlay="$repo_overlay" > "$base/models3.out" 2>&1
-expect "check reports a drifted model default (the record still claims the key)" 1 $?
-if grep -q '^KEPT    .*/.claude/settings.json: model is "opus\[1m\]"' "$base/models3.out"; then
-  ok "check names the drifted Claude Code model as the owner's (KEPT)"
+expect "check reports a drifted model default as a pending write" 1 $?
+if grep -qF "DRIFT   $hm/.claude/settings.json: install would change model \"opus[1m]\" -> \"$pinned\"" "$base/models3.out" \
+   && ! grep -q '^KEPT' "$base/models3.out"; then
+  ok "check names the drifted Claude Code model old -> new, and no KEPT"
 else
-  ko "check did not name the drifted model"
+  ko "check did not name the drifted model"; cat "$base/models3.out"
 fi
-# PR #119: an owner's value is KEPT, not a failure. It adds no exit code, so a non-zero install exit
-# always means another step failed, and a repeated install settles (check 0, nothing more to write).
-HOME="$hm" sh "$inst" --overlay="$repo_overlay" > "$base/models3b.out" 2>&1; expect "install with an owner's model value" 0 $?
-if [ "$(jq -r .model "$hm/.claude/settings.json")" = "opus[1m]" ]; then
-  ok "install leaves the owner's model value alone"
+HOME="$hm" sh "$inst" --overlay="$repo_overlay" > "$base/models3b.out" 2>&1; expect "install over an owner's model value" 0 $?
+if [ "$(jq -r .model "$hm/.claude/settings.json")" = "$pinned" ] \
+   && grep -qF "CHANGED $hm/.claude/settings.json: model \"opus[1m]\" -> \"$pinned\"" "$base/models3b.out" \
+   && ! grep -q 'Delete the key' "$base/models3b.out"; then
+  ok "install writes the pinned model over the owner's value and prints old -> new"
 else
-  ko "install overwrote the owner's model value"
+  ko "install did not overwrite the owner's model value: $(jq -r .model "$hm/.claude/settings.json")"
 fi
 HOME="$hm" sh "$inst" --check --overlay="$repo_overlay" > "$base/models3c.out" 2>&1
-expect "check settles after install with an owner's model value" 0 $?
+expect "check settles after install over an owner's model value" 0 $?
 HOME="$hm" sh "$inst" --uninstall > "$base/models4.out" 2>&1
-if [ "$(jq -c '{model, effortLevel, theme}' "$hm/.claude/settings.json")" = '{"model":"opus[1m]","effortLevel":null,"theme":"dark"}' ] \
+if [ "$(jq -c '{model, effortLevel, theme}' "$hm/.claude/settings.json")" = '{"model":null,"effortLevel":null,"theme":"dark"}' ] \
    && ! grep -q '^model' "$hm/.codex/config.toml" \
    && [ "$(jq -r '."chat.defaultModel" // "absent"' "$hm/.kiro/settings/cli.json")" = absent ]; then
-  ok "uninstall removes only the model-default keys mhw set"
+  ok "uninstall removes the model-default keys mhw set where there was no value before"
 else
   ko "uninstall model defaults: $(jq -c . "$hm/.claude/settings.json")"
 fi
+# A value the owner held before the first install is replaced, recorded, and put back by uninstall.
+hm2="$base/home-models-owner"; mkdir -p "$hm2/.claude" "$hm2/.codex"
+echo '{"theme": "dark", "model": "opus[1m]"}' > "$hm2/.claude/settings.json"
+printf 'model_reasoning_effort = "high"\n' > "$hm2/.codex/config.toml"
+HOME="$hm2" sh "$inst" --overlay="$repo_overlay" > "$base/models5.out" 2>&1; expect "install over values held before mhw" 0 $?
+if [ "$(jq -r .model "$hm2/.claude/settings.json")" = "$pinned" ] \
+   && grep -qxF "model_reasoning_effort = \"$(jq -r .codex.effort "$models_policy")\"" "$hm2/.codex/config.toml" \
+   && grep -qF 'model_reasoning_effort "high" -> ' "$base/models5.out"; then
+  ok "install replaces values the owner held before mhw, old -> new"
+else
+  ko "install did not replace the owner's earlier values"; cat "$base/models5.out"
+fi
+HOME="$hm2" sh "$inst" --uninstall > "$base/models6.out" 2>&1
+if [ "$(jq -c '{model, theme}' "$hm2/.claude/settings.json")" = '{"model":"opus[1m]","theme":"dark"}' ] \
+   && grep -qxF 'model_reasoning_effort = "high"' "$hm2/.codex/config.toml"; then
+  ok "uninstall restores the values the owner held before mhw"
+else
+  ko "uninstall did not restore the owner's values: $(jq -c . "$hm2/.claude/settings.json")"
+fi
+
+# 18. the user-level allow entries the policy retired (Issue #145, ADR-0035 decision 4): removed from
+# ~/.claude/settings.json with a backup, old -> new; every other rule of the owner's stays.
+ha="$base/home-allow-retired"; mkdir -p "$ha/.claude"
+printf '%s\n' '{"permissions": {"allow": ["Bash(ls:*)", "Bash(find:*)", "Bash(awk:*)", "Bash(find *)", "Bash(gawk:*)", "Bash(findmnt:*)"]}, "theme": "dark"}' > "$ha/.claude/settings.json"
+seed_sum=$(cksum < "$ha/.claude/settings.json")
+HOME="$ha" sh "$inst" --check > "$base/allow-r1.out" 2>&1; expect "check reports the retired allow entries" 1 $?
+if grep -qF "DRIFT   $ha/.claude/settings.json: install would change permissions.allow Bash(awk:*) present -> absent; Bash(find *) present -> absent; Bash(find:*) present -> absent" "$base/allow-r1.out"; then
+  ok "check names each retired allow entry, present -> absent"
+else
+  ko "check did not name the retired allow entries"; grep allow "$base/allow-r1.out"
+fi
+HOME="$ha" sh "$inst" --dry-run > /dev/null 2>&1
+if [ "$(cksum < "$ha/.claude/settings.json")" = "$seed_sum" ]; then ok "dry-run leaves the retired entries in place"; else ko "dry-run changed the settings"; fi
+HOME="$ha" sh "$inst" > "$base/allow-r2.out" 2>&1; expect "install removes the retired allow entries" 0 $?
+s_allow=$(jq -c '[.permissions.allow[] | select(startswith("Bash(ls") or startswith("Bash(find") or startswith("Bash(awk") or startswith("Bash(gawk"))]' "$ha/.claude/settings.json")
+if [ "$s_allow" = '["Bash(ls:*)","Bash(gawk:*)","Bash(findmnt:*)"]' ] && [ "$(jq -r .theme "$ha/.claude/settings.json")" = dark ] \
+   && [ "$(jq -c '[.permissions.allow[] | select(startswith("Bash(find") or startswith("Bash(awk"))]' "$ha/.claude/settings.json.pmhwc-allow-backup")" = '["Bash(find:*)","Bash(awk:*)","Bash(find *)","Bash(findmnt:*)"]' ] \
+   && grep -qF "CHANGED $ha/.claude/settings.json: permissions.allow Bash(awk:*) present -> absent; Bash(find *) present -> absent; Bash(find:*) present -> absent (retired, ADR-0035 decision 4; previous file kept as $ha/.claude/settings.json.pmhwc-allow-backup)" "$base/allow-r2.out"; then
+  ok "install removes exactly the listed entries, keeps the owner's others, a backup still holds them, prints old -> new"
+else
+  ko "retired allow entries: $s_allow"; grep allow "$base/allow-r2.out"
+fi
+HOME="$ha" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the retired entries leave" 0 $?
+HOME="$ha" sh "$inst" > "$base/allow-r3.out" 2>&1
+if ! grep -q '^CHANGED .*permissions.allow' "$base/allow-r3.out"; then ok "a second install removes nothing more"; else ko "a second install reported a removal again"; fi
+HOME="$ha" sh "$inst" --uninstall > "$base/allow-r4.out" 2>&1
+if [ "$(jq '[.permissions.allow[]? | select(. == "Bash(find:*)" or . == "Bash(awk:*)")] | length' "$ha/.claude/settings.json")" -eq 0 ] \
+   && [ "$(jq -c '.permissions.allow' "$ha/.claude/settings.json")" = '["Bash(ls:*)","Bash(gawk:*)","Bash(findmnt:*)"]' ] \
+   && grep -qF "NOTE    $ha/.claude/settings.json: the allow entries the policy retired are in $ha/.claude/settings.json.pmhwc-allow-backup" "$base/allow-r4.out"; then
+  ok "uninstall does not re-add a retired entry, keeps the owner's rules, and names the backup"
+else
+  ko "uninstall and the retired entries: $(jq -c '.permissions.allow' "$ha/.claude/settings.json")"
+fi
+
+# 19. the MCP servers the policy retired (Issue #145, ADR-0035 decision 2): aws-api leaves the Codex user
+# configuration, with a backup; nothing else in the file changes and no server content is printed.
+# Per-case semantics: global/mcp/mcp_retire_test.py.
+if python3 -c 'import tomllib' 2>/dev/null; then
+  hc="$base/home-mcp-retired"; mkdir -p "$hc/.codex"
+  canary="canary-""value-""7311"
+  printf '%s\n' 'approval_policy = "on-request"' '' '[mcp_servers.aws-api]' 'command = "uvx"' '' '[mcp_servers.aws-api.env]' \
+    "AWS_PROFILE = \"$canary\"" '' '[mcp_servers.keep]' 'command = "keep"' > "$hc/.codex/config.toml"
+  chmod 600 "$hc/.codex/config.toml"
+  mcp_seed=$(cksum < "$hc/.codex/config.toml")
+  HOME="$hc" sh "$inst" --check > "$base/mcp-r1.out" 2>&1; expect "check reports the retired MCP server" 1 $?
+  HOME="$hc" sh "$inst" > "$base/mcp-r2.out" 2>&1; expect "install removes the retired MCP server" 0 $?
+  if ! grep -q 'aws-api' "$hc/.codex/config.toml" && grep -qxF '[mcp_servers.keep]' "$hc/.codex/config.toml" \
+     && grep -qxF 'approval_policy = "on-request"' "$hc/.codex/config.toml" \
+     && [ "$(cksum < "$hc/.codex/config.toml.pmhwc-mcp-backup")" = "$mcp_seed" ] \
+     && grep -qF "CHANGED $hc/.codex/config.toml: mcp_servers.aws-api present -> absent" "$base/mcp-r2.out"; then
+    ok "install removes aws-api only, keeps a backup and prints present -> absent"
+  else
+    ko "the retired MCP server was not removed cleanly"; cat "$hc/.codex/config.toml"
+  fi
+  if grep -q "$canary" "$base/mcp-r1.out" "$base/mcp-r2.out"; then ko "a server value was printed"; else ok "no MCP server value is printed"; fi
+  HOME="$hc" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the MCP server leaves" 0 $?
+else
+  echo "SKIP  python3 has no tomllib (3.11+): the MCP removal is refused there, not tested here"
+fi
+
+# 20. uninstall after a default install removes exactly the start-up block it wrote: the owner's ~/.zshrc,
+# seeded before, comes back byte for byte.
+hu="$base/home-uninstall-rc"; mkdir -p "$hu"
+printf 'export MINE=1\nalias ll="ls -l"\n' > "$hu/.zshrc"
+zsum=$(cksum < "$hu/.zshrc")
+HOME="$hu" sh "$inst" > /dev/null 2>&1; expect "default install with an owner's .zshrc" 0 $?
+if grep -qxF "$rc_begin" "$hu/.zshrc" && [ "$(grep -c "$rc_end" "$hu/.zshrc")" -eq 1 ]; then ok "the default install added the block to the owner's .zshrc"; else ko "no block in the owner's .zshrc"; fi
+HOME="$hu" sh "$inst" --uninstall > "$base/uninstall-rc.out" 2>&1; expect "uninstall after a default install" 0 $?
+if [ "$(cksum < "$hu/.zshrc")" = "$zsum" ]; then ok "uninstall gives the owner's .zshrc back byte for byte"; else ko "uninstall left .zshrc: $(cat "$hu/.zshrc")"; fi
 
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
