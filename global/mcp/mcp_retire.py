@@ -2,7 +2,7 @@
 """Remove the MCP servers the policy retired from the Codex user configuration (ADR-0035 decision 2,
 Issue #145).
 
-    mcp_retire.py --mode=install|check|dry-run|uninstall [--home=DIR] [--policy=FILE]
+    mcp_retire.py --mode=install|check|dry-run|uninstall
 
 The policy is global/mcp/retired-servers.conf: one server name per line. ADR-0035 decision 2 moves
 cloud access to the CLI, so the aws-api server goes ("pode remover, não uso"). The owner's rule of
@@ -65,8 +65,10 @@ def load_policy(path):
     return names
 
 
-def target(home):
-    return Path(os.environ.get("CODEX_HOME") or Path(home) / ".codex") / "config.toml"
+def target():
+    """The Codex user configuration, from the environment only (HOME, CODEX_HOME), as mcp_render.py does:
+    no command-line argument names a path this script writes."""
+    return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
 
 
 def _header_of(line, name):
@@ -83,51 +85,33 @@ def _block_span(lines):
     return None
 
 
-def plan(text, names):
-    """-> (new text, removed names, names found only inside the managed block). Raises Refuse."""
-    if tomllib is None:
-        # No parser to verify with: a file that never names a retired server is settled; one that does is
-        # refused rather than edited blind.
-        if not any(n in text for n in names):
-            return text, [], []
-        raise Refuse("it names a retired MCP server, and removing one needs Python 3.11+ (tomllib) to verify "
-                     "the edit; nothing written")
-    try:
-        old = tomllib.loads(text)
-    except tomllib.TOMLDecodeError as e:
-        raise Refuse("not valid TOML (%s); left untouched" % e)
-    servers = old.get("mcp_servers")
-    present = [n for n in names if isinstance(servers, dict) and n in servers]
-    if not present:
-        return text, [], []
-    lines = text.splitlines(keepends=True)
-    block = _block_span(lines)
-    drop, removed, in_block = set(), [], []
-    for name in present:
-        hit = False
-        for i, line in enumerate(lines):
-            if not _header_of(line, name):
-                continue
-            if block and block[0] <= i <= block[1]:
-                continue
-            hit = True
-            # The table runs to the next header. Comment lines directly above that header describe it, so
-            # they stay; anything else of this table goes, its trailing blank lines included.
-            j = i + 1
-            while j < len(lines) and not HEADER_RE.match(lines[j]) and not (block and j == block[0]):
-                j += 1
-            k = j
-            while k > i + 1 and lines[k - 1].lstrip().startswith("#"):
-                k -= 1
-            drop.update(range(i, k))
-        if hit:
-            removed.append(name)
-        elif block and any(_header_of(l, name) for l in lines[block[0]:block[1] + 1]):
-            in_block.append(name)
-        else:
-            raise Refuse("the retired MCP server %s is not written as a [mcp_servers.%s] table (an inline "
-                         "table or dotted keys); nothing written" % (name, name))
-    new_text = "".join(l for i, l in enumerate(lines) if i not in drop)
+def _in_block(i, block):
+    return block is not None and block[0] <= i <= block[1]
+
+
+def _table_lines(lines, i, block):
+    """The line numbers of the table whose header is line i: up to the next header (or the managed block),
+    minus the comment lines directly above that header, which describe it and stay."""
+    j = i + 1
+    while j < len(lines) and not HEADER_RE.match(lines[j]) and not (block and j == block[0]):
+        j += 1
+    k = j
+    while k > i + 1 and lines[k - 1].lstrip().startswith("#"):
+        k -= 1
+    return range(i, k)
+
+
+def _drop_lines(lines, name, block):
+    """-> the line numbers of every hand-written table of the server (outside the managed block)."""
+    drop = set()
+    for i, line in enumerate(lines):
+        if _header_of(line, name) and not _in_block(i, block):
+            drop.update(_table_lines(lines, i, block))
+    return drop
+
+
+def _verify(old, new_text, removed):
+    """The edited text must parse to the original document minus exactly the removed servers."""
     try:
         new = tomllib.loads(new_text)
     except tomllib.TOMLDecodeError as e:
@@ -138,48 +122,68 @@ def plan(text, names):
     alt = copy.deepcopy(want)
     if alt.get("mcp_servers") == {}:
         del alt["mcp_servers"]
-    if new != want and new != alt:
+    if new not in (want, alt):
         raise Refuse("removing %s would change more than that server; nothing written" % ", ".join(removed))
+
+
+def _present(text, names):
+    """-> (parsed document, the retired names it holds). Raises Refuse."""
+    if tomllib is None:
+        # No parser to verify with: a file that never names a retired server is settled; one that does is
+        # refused rather than edited blind.
+        if not any(n in text for n in names):
+            return None, []
+        raise Refuse("it names a retired MCP server, and removing one needs Python 3.11+ (tomllib) to verify "
+                     "the edit; nothing written")
+    try:
+        old = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as e:
+        raise Refuse("not valid TOML (%s); left untouched" % e)
+    servers = old.get("mcp_servers")
+    return old, [n for n in names if isinstance(servers, dict) and n in servers]
+
+
+def plan(text, names):
+    """-> (new text, removed names, names found only inside the managed block). Raises Refuse."""
+    old, present = _present(text, names)
+    if not present:
+        return text, [], []
+    lines = text.splitlines(keepends=True)
+    block = _block_span(lines)
+    drop, removed, in_block = set(), [], []
+    for name in present:
+        mine = _drop_lines(lines, name, block)
+        if mine:
+            drop |= mine
+            removed.append(name)
+        elif block and any(_header_of(l, name) for l in lines[block[0]:block[1] + 1]):
+            in_block.append(name)
+        else:
+            raise Refuse("the retired MCP server %s is not written as a [mcp_servers.%s] table (an inline "
+                         "table or dotted keys); nothing written" % (name, name))
+    if not removed:
+        return text, [], in_block
+    new_text = "".join(l for i, l in enumerate(lines) if i not in drop)
+    _verify(old, new_text, removed)
     return new_text, removed, in_block
 
 
-def main(argv=None):
-    mode, home, policy = None, Path.home(), POLICY
-    for arg in (argv if argv is not None else sys.argv[1:]):
-        if arg.startswith("--mode="):
-            mode = arg.split("=", 1)[1]
-        elif arg.startswith("--home="):
-            home = Path(arg.split("=", 1)[1])
-        elif arg.startswith("--policy="):
-            policy = Path(arg.split("=", 1)[1])
-        else:
-            print("unknown argument: %s" % arg, file=sys.stderr)
-            return 2
-    if mode not in ("install", "check", "dry-run", "uninstall"):
-        print("--mode=install|check|dry-run|uninstall is required", file=sys.stderr)
-        return 2
-    try:
-        names = load_policy(policy)
-    except (OSError, ValueError) as e:
-        print("REFUSE  retired MCP servers: %s" % e, file=sys.stderr)
-        return 2
-    path = target(home)
-    backup = Path(str(path) + BACKUP)
-    if mode == "uninstall":
-        if backup.exists():
-            print("NOTE    %s: the MCP server(s) mhw removed are in %s; uninstall does not re-add a server the "
-                  "policy retired (ADR-0035 decision 2)" % (path, backup))
-        return 0
-    if not names or not path.exists():
-        print("OK      %s: no retired MCP server (%s)" % (path, ", ".join(names) or "none retired"))
-        return 0
+def _write(path, backup, text):
+    shutil.copy2(str(path), str(backup))
+    tmp = path.with_name(path.name + ".new.%d" % os.getpid())
+    tmp.write_text(text, encoding="utf-8")
+    shutil.copymode(str(path), str(tmp))
+    os.replace(str(tmp), str(path))
+
+
+def _apply(mode, path, backup, names):
+    """install, check or dry-run against one config.toml -> exit code."""
     try:
         text = path.read_text(encoding="utf-8")
+        new_text, removed, in_block = plan(text, names)
     except (OSError, UnicodeDecodeError) as e:
         print("REFUSE  %s: unreadable (%s); left untouched" % (path, e.__class__.__name__))
         return 3
-    try:
-        new_text, removed, in_block = plan(text, names)
     except Refuse as e:
         print("REFUSE  %s: %s" % (path, e))
         return 3
@@ -196,13 +200,34 @@ def main(argv=None):
     if mode == "dry-run":
         print("WOULD CHANGE %s: %s (retired MCP servers; backup %s%s)" % (path, what, path.name, BACKUP))
         return 0
-    shutil.copy2(str(path), str(backup))
-    tmp = path.with_name(path.name + ".new.%d" % os.getpid())
-    tmp.write_text(new_text, encoding="utf-8")
-    shutil.copymode(str(path), str(tmp))
-    os.replace(str(tmp), str(path))
+    _write(path, backup, new_text)
     print("CHANGED %s: %s (retired MCP servers, ADR-0035 decision 2; previous file kept as %s)" % (path, what, backup))
     return 0
+
+
+def main(argv=None):
+    args = argv if argv is not None else sys.argv[1:]
+    modes = ("install", "check", "dry-run", "uninstall")
+    if len(args) != 1 or args[0] not in ["--mode=" + m for m in modes]:
+        print("usage: mcp_retire.py --mode=install|check|dry-run|uninstall", file=sys.stderr)
+        return 2
+    mode = args[0].split("=", 1)[1]
+    try:
+        names = load_policy(POLICY)
+    except (OSError, ValueError) as e:
+        print("REFUSE  retired MCP servers: %s" % e, file=sys.stderr)
+        return 2
+    path = target()
+    backup = Path(str(path) + BACKUP)
+    if mode == "uninstall":
+        if backup.exists():
+            print("NOTE    %s: the MCP server(s) mhw removed are in %s; uninstall does not re-add a server the "
+                  "policy retired (ADR-0035 decision 2)" % (path, backup))
+        return 0
+    if not names or not path.exists():
+        print("OK      %s: no retired MCP server (%s)" % (path, ", ".join(names) or "none retired"))
+        return 0
+    return _apply(mode, path, backup, names)
 
 
 if __name__ == "__main__":

@@ -272,7 +272,7 @@ allow_retire() {
     dry-run)
       echo "WOULD CHANGE $settings: permissions.allow $ar_what (backup $settings.pmhwc-allow-backup)"
       ;;
-    install)
+    install|*)   # uninstall never calls allow_retire
       if ! jq --indent 4 --argjson r "$ar_list" '.permissions.allow |= map(select(. as $x | $r | index($x) | not))
             | if .permissions.allow == [] then del(.permissions.allow) else . end
             | if .permissions == {} then del(.permissions) else . end' "$settings" > "$work/allow.retired.json" 2>/dev/null; then

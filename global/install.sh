@@ -309,19 +309,25 @@ rc_target() { # the start-up file this run writes, or nothing
   case $shell_rc in
     none) return 0 ;;
     ?*) printf '%s' "$shell_rc"; return 0 ;;
+    *) ;;
   esac
   case ${SHELL:-} in
     zsh|*/zsh) printf '%s' "${ZDOTDIR:-$HOME}/.zshrc" ;;
     bash|*/bash) printf '%s' "$HOME/.bashrc" ;;
+    *) ;;   # another shell: no file; the line is printed for the owner
   esac
   return 0
 }
 # rc_scan FILE: $work/rc.stripped (the file without our block and without an earlier one-line form),
-# $work/rc.block (our block's lines) and rc_state "<begins> <ends> <damaged 0|1> <one-line forms>".
+# $work/rc.block (our block's lines), and the counts rc_nb (begin markers), rc_ne (end markers), rc_bad
+# (1 when they are out of order) and rc_leg (earlier one-line forms).
 rc_scan() {
+  rc_scan_file=$1
   : > "$work/rc.stripped"
   : > "$work/rc.block"
-  rc_state=$(awk -v bp="$rc_begin_prefix" -v e="$rc_end" -v tag="$rc_tag" \
+  rc_nb=0; rc_ne=0; rc_bad=0; rc_leg=0
+  [ -f "$rc_scan_file" ] || return 0
+  rc_counts=$(awk -v bp="$rc_begin_prefix" -v e="$rc_end" -v tag="$rc_tag" \
       -v out="$work/rc.stripped" -v blk="$work/rc.block" '
     BEGIN { nb = 0; ne = 0; bad = 0; leg = 0; inb = 0 }
     index($0, bp) == 1 { nb++; if (inb) bad = 1; inb = 1; print > blk; next }
@@ -329,13 +335,25 @@ rc_scan() {
     inb { print > blk; next }
     index($0, tag) > 0 { leg++; next }
     { print > out }
-    END { if (inb) bad = 1; printf "%d %d %d %d\n", nb, ne, bad, leg }' "$1")
+    END { if (inb) bad = 1; printf "%d %d %d %d\n", nb, ne, bad, leg }' "$rc_scan_file")
+  read -r rc_nb rc_ne rc_bad rc_leg <<EOF
+$rc_counts
+EOF
+  return 0
 }
-rc_write() { # $1 start-up file, $2 its new content; the previous file is kept beside it
-  mkdir -p "$(dirname "$1")"
-  if [ -e "$1" ]; then cp -p "$1" "$1.pmhwc-backup"; rc_kept="previous file kept as $1.pmhwc-backup"; else rc_kept="new file"; fi
+rc_damaged() { [ "$rc_bad" = 1 ] || [ "$rc_nb" -gt 1 ] || [ "$rc_nb" != "$rc_ne" ]; }
+rc_write() { # rc_write FILE NEW: FILE gets NEW's content; the previous file is kept beside it
+  rc_write_file=$1
+  rc_write_new=$2
+  mkdir -p "$(dirname "$rc_write_file")"
+  if [ -e "$rc_write_file" ]; then
+    cp -p "$rc_write_file" "$rc_write_file.pmhwc-backup"
+    rc_kept="previous file kept as $rc_write_file.pmhwc-backup"
+  else
+    rc_kept="new file"
+  fi
   # Written through, so a start-up file that is a symbolic link (a dotfiles checkout) stays one, mode kept.
-  cat "$2" > "$1"
+  cat "$rc_write_new" > "$rc_write_file"
 }
 shell_rc_line() {
   rc=$(rc_target)
@@ -353,24 +371,18 @@ shell_rc_line() {
     return 0
   fi
   printf '%s\n%s\n%s\n' "$rc_begin" "$rc_body" "$rc_end" > "$work/rc.want"
-  if [ -f "$rc" ]; then
-    rc_scan "$rc"
-  else
-    : > "$work/rc.stripped"; : > "$work/rc.block"; rc_state="0 0 0 0"
-  fi
-  # shellcheck disable=SC2086 # four numbers, split on purpose
-  set -- $rc_state
-  if [ "$3" = 1 ] || [ "$1" -gt 1 ] || [ "$1" != "$2" ]; then
+  rc_scan "$rc"
+  if rc_damaged; then
     echo "REFUSE  $rc: the paste-wrapper block's markers are damaged (missing, repeated or out of order); nothing written. Fix or remove them, then run install again"
     raise 3
     return 0
   fi
-  if [ "$1" = 1 ] && [ "$4" = 0 ] && cmp -s "$work/rc.block" "$work/rc.want"; then
+  if [ "$rc_nb" = 1 ] && [ "$rc_leg" = 0 ] && cmp -s "$work/rc.block" "$work/rc.want"; then
     echo "OK      $rc activates the paste wrapper (managed block)"
     return 0
   fi
-  if [ "$4" -gt 0 ]; then rc_old="the earlier one-line form"
-  elif [ "$1" = 1 ]; then rc_old="a different block"
+  if [ "$rc_leg" -gt 0 ]; then rc_old="the earlier one-line form"
+  elif [ "$rc_nb" = 1 ]; then rc_old="a different block"
   else rc_old="absent"; fi
   case $mode in
     check)
@@ -382,7 +394,7 @@ shell_rc_line() {
       echo "WOULD CHANGE $rc: paste-wrapper start-up block $rc_old -> present (backup $rc.pmhwc-backup):"
       cat "$work/rc.want"
       ;;
-    install)
+    install|*)   # uninstall never reaches here (shell_rc_uninstall)
       cat "$work/rc.stripped" "$work/rc.want" > "$work/rc.new"
       rc_write "$rc" "$work/rc.new"
       echo "CHANGED $rc: paste-wrapper start-up block $rc_old -> present ($rc_kept); new shells clean pastes"
@@ -398,10 +410,8 @@ shell_rc_uninstall() {
     rc_seen="$rc_seen $rc"
     [ -f "$rc" ] || continue
     rc_scan "$rc"
-    # shellcheck disable=SC2086 # four numbers, split on purpose
-    set -- $rc_state
-    [ "$1" = 0 ] && [ "$2" = 0 ] && [ "$4" = 0 ] && continue
-    if [ "$3" = 1 ] || [ "$1" -gt 1 ] || [ "$1" != "$2" ]; then
+    [ "$rc_nb" = 0 ] && [ "$rc_ne" = 0 ] && [ "$rc_leg" = 0 ] && continue
+    if rc_damaged; then
       echo "REFUSE  $rc: the paste-wrapper block's markers are damaged; nothing removed"
       raise 3
       continue

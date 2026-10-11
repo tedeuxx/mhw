@@ -323,7 +323,11 @@ fi
 # names no "add this line yourself" step.
 rc_begin="# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it"
 rc_end="# <<< personal-multi-harness-workstation-configuration: paste wrapper"
-block_of() { printf '%s\n%s\n%s\n' "$rc_begin" "[ -r \"$(data "$1")/paste-filter.sh\" ] && . \"$(data "$1")/paste-filter.sh\"" "$rc_end"; }
+block_of() { # block_of HOME: the block install writes for that HOME
+  block_home=$1
+  printf '%s\n%s\n%s\n' "$rc_begin" "[ -r \"$(data "$block_home")/paste-filter.sh\" ] && . \"$(data "$block_home")/paste-filter.sh\"" "$rc_end"
+  return 0
+}
 found=""
 for rc in .bashrc .bash_profile .profile .zprofile .zshenv; do [ -e "$h/$rc" ] && found="$found $rc"; done
 if [ -z "$found" ] && [ "$(cat "$h/.zshrc")" = "$(block_of "$h")" ] && [ ! -e "$h/.zshrc.pmhwc-backup" ] \

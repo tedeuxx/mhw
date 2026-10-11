@@ -370,7 +370,12 @@ def main(argv=None):
             continue
         what = "; ".join("%s %s -> %s" % (k, _shown(olds[k]), _shown(v)) for k, v in changes.items())
         stale = all(k not in want or mode == "uninstall" for k in changes)
-        word = "STALE  " if stale else ("MISSING" if all(olds[k] is None for k in changes) else "DRIFT  ")
+        if stale:
+            word = "STALE  "
+        elif all(olds[k] is None for k in changes):
+            word = "MISSING"
+        else:
+            word = "DRIFT  "
         for k, v in changes.items():
             nf.put(k, v)
         broken = nf.invalid()

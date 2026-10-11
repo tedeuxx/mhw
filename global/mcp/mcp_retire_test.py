@@ -57,8 +57,10 @@ class Retire(unittest.TestCase):
         self.path = self.home / ".codex" / "config.toml"
 
     def run_mode(self, mode):
+        # The script reads HOME and CODEX_HOME only (no path argument): HOME is the throwaway one.
         env = {k: v for k, v in os.environ.items() if k != "CODEX_HOME"}
-        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=" + mode, "--home=" + str(self.home)],
+        env["HOME"] = str(self.home)
+        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=" + mode],
                            capture_output=True, text=True, env=env)
         return p.returncode, p.stdout + p.stderr
 
@@ -148,11 +150,17 @@ class Retire(unittest.TestCase):
         other = self.home / "codex-elsewhere"
         other.mkdir()
         (other / "config.toml").write_text(OWNER, encoding="utf-8")
-        env = dict(os.environ, CODEX_HOME=str(other))
-        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=install", "--home=" + str(self.home)],
+        env = dict(os.environ, CODEX_HOME=str(other), HOME=str(self.home))
+        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=install"],
                            capture_output=True, text=True, env=env)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertEqual((other / "config.toml").read_text(encoding="utf-8"), WITHOUT)
+
+    def test_a_path_argument_is_refused(self):
+        # By construction no argument names a file this script writes (SonarCloud S2083 on PR #146).
+        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=install", "--home=/elsewhere"],
+                           capture_output=True, text=True, env=dict(os.environ, HOME=str(self.home)))
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
 
     def test_policy_lists_aws_api(self):
         names = [l.strip() for l in (HERE / "retired-servers.conf").read_text(encoding="utf-8").splitlines()
