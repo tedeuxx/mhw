@@ -560,19 +560,52 @@ def workspace(project):
 
 
 # ADR-0037: in every repository the owner authors, the root brief is AGENTS.md alone. Measured on Claude
-# Code 2.1.296 (2026-10-11): a root AGENTS.md is loaded natively only when none of these exists; any one
-# of them replaces it entirely. Codex cuts project docs at project_doc_max_bytes, 32768 bytes by default.
+# Code 2.1.296 (2026-10-11): a root AGENTS.md is loaded natively only when none of these exists, in the
+# root or in any ancestor directory; any one of them replaces it entirely. Codex cuts project docs at
+# project_doc_max_bytes, 32768 bytes by default (32768 read whole, 32769 loses the last byte, measured).
 SHADOWS = ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md")
 CODEX_DOC_MAX_BYTES = 32768
 
 
+def main_checkout_of(top):
+    """The main checkout's root when top is a LINKED git worktree (its git dir differs from the common
+    dir), else None. Measured on Claude Code 2.1.296: a linked worktree does not load its main checkout's
+    instruction files, wherever the worktree sits; a separate repository nested under a checkout does."""
+    dirs = []
+    for flag in ("--git-dir", "--git-common-dir"):
+        try:
+            p = subprocess.run(["git", "-C", str(top), "rev-parse", flag], capture_output=True, text=True)
+        except OSError:
+            return None
+        if p.returncode != 0 or not p.stdout.strip():
+            return None
+        dirs.append((top / p.stdout.strip()).resolve())
+    git_dir, common = dirs
+    return common.parent if git_dir != common else None
+
+
 def root_brief_findings(top):
-    """What stops the workspace's root AGENTS.md from reaching every agent harness whole. An instruction
-    check: it reports and changes nothing, and no hook runs it."""
+    """What stops the workspace's root AGENTS.md from reaching every agent harness whole: a shadowing file
+    (SHADOWS) in the root or in an ancestor directory, and an AGENTS.md Codex truncates. The user-level
+    ~/.claude/CLAUDE.md is not a shadow (measured). A linked worktree skips its main checkout's root;
+    ancestors above that root are still named, as not measured. An instruction check: it reports and
+    changes nothing, and no hook runs it."""
     found = ["%s: AGENTS.md is the root brief; this file makes Claude Code ignore AGENTS.md" % name
              for name in SHADOWS if (top / name).is_file()]
-    found += ["%s (ancestor): this file makes Claude Code ignore AGENTS.md" % (parent / "CLAUDE.md")
-              for parent in top.parents if (parent / "CLAUDE.md").is_file()]
+    user_brief = Path.home().resolve() / ".claude" / "CLAUDE.md"
+    main = main_checkout_of(top)
+    # The main checkout's own shadow files are not read from its linked worktree (measured).
+    seen = {user_brief} | ({main / name for name in SHADOWS} if main is not None else set())
+    above = False
+    for parent in top.resolve().parents:
+        if parent == main:
+            above = True
+        label = "ancestor above the main checkout, not measured" if above and parent != main else "ancestor"
+        for name in SHADOWS:
+            path = parent / name
+            if path not in seen and path.is_file():
+                seen.add(path)  # outer/.claude/CLAUDE.md is both outer's and outer/.claude's: name it once
+                found.append("%s (%s): this file makes Claude Code ignore AGENTS.md" % (path, label))
     try:
         size = (top / "AGENTS.md").stat().st_size
     except OSError:

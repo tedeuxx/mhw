@@ -73,8 +73,11 @@ In this repository:
   shadowing file exists, that `AGENTS.md` stays under 30,000 bytes (an early warning before Codex's
   32,768) and that the rule sentence is there.
 - `mhw status` reports, for the workspace given by `--project` (or the git root of the current
-  directory), a root `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md`, a `CLAUDE.md` in any
-  ancestor directory, and an `AGENTS.md` over 32,768 bytes. `mhw status --summary` keeps its ten-line
+  directory), a `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md` in the root or in any ancestor
+  directory, and an `AGENTS.md` over 32,768 bytes. It never names the user-level `~/.claude/CLAUDE.md`.
+  In a linked git worktree it skips the main checkout's own three files, because Claude Code does not
+  read them from there (measured; see Evidence). It still names ancestors above the main checkout, and
+  labels them as not measured. `mhw status --summary` keeps its ten-line
   limit by counting the findings on its existing workspace item. This is a check the owner or an agent
   runs; no hook runs it.
 
@@ -100,11 +103,44 @@ asked the model to return it without reading files. The copy was this record's o
 | Codex CLI 0.160.0 | nonce placed after 40,000 bytes of padding (62,430 bytes) | `NONE`: truncated (calibration) |
 
 The user-level `~/.claude/CLAUDE.md` did **not** shadow the project `AGENTS.md`: the first row ran with
-it present. The owner's own probes the same day also found that `.claude/CLAUDE.md`, `CLAUDE.local.md`
-or an ancestor `CLAUDE.md` each replace `AGENTS.md`; those three were not re-measured by this record.
-Codex's limit is its `project_doc_max_bytes` default, 32,768 bytes (owner's live probe; the calibration
-above shows truncation, not the exact byte). Kiro truncates steering at 50,000 characters (owner's
-measurement), a looser limit than Codex's, so the Codex limit governs. Kiro was not probed here.
+it present.
+
+~~The owner's own probes the same day also found that `.claude/CLAUDE.md`, `CLAUDE.local.md` or an
+ancestor `CLAUDE.md` each replace `AGENTS.md`; those three were not re-measured by this record.~~
+~~Codex's limit is its `project_doc_max_bytes` default, 32,768 bytes (owner's live probe; the
+calibration above shows truncation, not the exact byte).~~ *(Struck 2026-10-11: the `agents-lead`
+lens on PR #154 measured all of it, in the rows below.)*
+
+The `agents-lead` lens on PR #154 ran the probes below on the same builds, the same day. Each used a
+fresh nonce, in throwaway directories with no shadowing file above the probe root.
+
+| Probe | Layout | What came back |
+| --- | --- | --- |
+| R1 | root `.claude/CLAUDE.md` beside the root `AGENTS.md` | only the `.claude/CLAUDE.md` nonce: `AGENTS.md` shadowed |
+| R2 | root `CLAUDE.local.md` beside the root `AGENTS.md` | only the `CLAUDE.local.md` nonce: `AGENTS.md` shadowed |
+| B | a plain directory with `CLAUDE.md`, above a separate git repository with `AGENTS.md` | only the ancestor nonce: shadowed |
+| C | `X/.claude/CLAUDE.md` above the git repository `X/repo` | only the ancestor nonce: shadowed |
+| L | `X/CLAUDE.local.md` above the git repository `X/repo` | only the ancestor nonce: shadowed |
+| w | a **linked worktree** of an outer repository that has a committed `CLAUDE.md`, at `outer/.claude/worktrees/w`, with its own `CLAUDE.md` removed | only the worktree's own `AGENTS.md` nonce; neither outer file was loaded |
+| f | the same, with the linked worktree at `outer/sub/f` | only the worktree's own `AGENTS.md` nonce |
+| e | a **separate** `git init` repository at `outer/.claude/worktrees/e` | only the outer `CLAUDE.md` nonce: its own `AGENTS.md` shadowed |
+| Codex | root `AGENTS.md` of exactly 32,768 bytes ending in a nonce | the nonce came back whole |
+| Codex | the same at 32,769 bytes | the nonce came back missing exactly its final byte |
+
+So, on Claude Code 2.1.296, any of the three names shadows `AGENTS.md` from the root or from an
+ancestor directory. A linked worktree does not read its main checkout's files, wherever the worktree
+sits. A separate repository nested under a checkout does read them. Why Claude Code skips the main
+checkout from a linked worktree is a hypothesis about its internals and is not established; only the
+behaviour is measured. **Not measured:** an ancestor *above* the main checkout, seen from a linked
+worktree. `mhw status` keeps naming those and labels them as not measured.
+
+Codex's limit is inclusive: 32,768 bytes is read whole, and from 32,769 on the tail is cut. `mhw status`
+uses `size > 32768`. The user-level `~/.codex/AGENTS.md` (about 14.8 KB) was loaded in both Codex runs
+and did not count against the project budget. **Hypothesis, not measured:** Codex applies the budget to
+the concatenation of every project `AGENTS.md` from the git root down to the working directory. If so,
+a nested `AGENTS.md` shares the root's budget, and a check that measures only the root file
+under-reports. Kiro truncates steering at 50,000 characters (owner's measurement). That is a looser
+limit than Codex's, so the Codex limit governs. Kiro was not probed.
 
 ### Consequences
 
@@ -115,9 +151,17 @@ measurement), a looser limit than Codex's, so the Codex limit governs. Kiro was 
   here green; only a fresh nonce probe finds it.
 - Bad: `mhw status` reports; it prevents nothing. A `CLAUDE.md` added by a person, a tool or an
   `/init` command takes effect at once.
-- Bad: the ancestor check is a directory walk. A git worktree nested inside another checkout (for
+- ~~Bad: the ancestor check is a directory walk. A git worktree nested inside another checkout (for
   example under `.claude/worktrees/`) inherits the outer checkout's `CLAUDE.md` as an ancestor, and the
-  check names it; that is correct, and may surprise.
+  check names it; that is correct, and may surprise.~~ *(Struck 2026-10-11: false for the case it
+  named. The PR #154 lens measured probes w and f, and a linked worktree does not inherit its main
+  checkout's files.)*
+- Bad: the ancestor check is a directory walk, and it encodes a measured Claude Code behaviour that is
+  not documented. A **linked worktree** (for example this repository's agent worktrees under
+  `.claude/worktrees/`) does not read its main checkout's `CLAUDE.md`, `.claude/CLAUDE.md` or
+  `CLAUDE.local.md`, so the check skips them. A **separate repository** nested under a checkout does
+  read them, so the check names them. A build that changes either behaviour makes the check wrong in
+  one direction or the other, and only a fresh probe would show it.
 - Neutral: the method source in `method/` still speaks of a consuming repository's `CLAUDE.md` (for
   example the loop-mode contract block). Rewording it is the plugin repository's change
   (tadeumendonca-skills#562) and the cutover's (#62), not this record's.
