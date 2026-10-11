@@ -21,8 +21,9 @@ retired server is refused the same way.
 Never printed: the server's command, arguments, environment or any value. A line names the file, the
 server and "present -> absent".
 
-Backup. Before the write the previous file is copied, mode kept, to config.toml.pmhwc-mcp-backup. That is
-the restore route: uninstall does not re-add a server the policy retired, it names the backup.
+Backup. Before the write the previous file is copied to config.toml.pmhwc-mcp-backup, owner-only (0600)
+from its first byte whatever the original's mode, since it holds the removed server's environment
+values. That is the restore route: uninstall does not re-add a server the policy retired, it names the backup.
 
 Exit codes, as install.sh: 0 ok · 1 a retired server is present (--check) · 2 usage · 3 unreadable, not
 valid TOML, a shape this script does not edit, or an edit that would not verify.
@@ -51,6 +52,18 @@ HEADER_RE = re.compile(r"\s*\[")
 
 class Refuse(Exception):
     pass
+
+
+def private_copy(src, dst):
+    """The backup is owner-only (0600) from its first byte, whatever the original's mode: it can hold
+    what install removed (PR #146 QA advisory). A file or link already at dst is replaced, never written
+    through (O_EXCL)."""
+    if os.path.lexists(dst):
+        os.remove(dst)
+    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
+        shutil.copyfileobj(inp, out)
+    os.chmod(dst, 0o600)
 
 
 def load_policy(path):
@@ -169,15 +182,13 @@ def plan(text, names):
 
 
 def _write(path, backup, text):
-    """As mcp_render.atomic_write: the backup keeps the mode, and the new file is created with the old mode
-    from its first byte, so the content is never readable more widely than before, even for a moment.
+    """As mcp_render.atomic_write: the new file is created with the old mode from its first byte, so the content is never readable more widely than before, even for a moment.
     A config.toml that is a symbolic link (a dotfiles checkout) is written through: the link stays, its
     target loses the server (PR #146 lens L2). The backup holds what was removed, environment values
     included, so it is owner-only (0600) whatever the original's mode."""
     target = os.path.realpath(str(path))
     mode = os.stat(target).st_mode & 0o7777
-    shutil.copy2(target, str(backup))
-    os.chmod(str(backup), 0o600)
+    private_copy(target, str(backup))
     tmp = "%s.new.%d" % (target, os.getpid())
     try:
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)

@@ -827,7 +827,7 @@ if [ "$s" = "release: unreleased, after v9.8.7; commit: $c2" ]; then ok "after t
 # layer is read under a throwaway --managed-root and installed there by install-managed.sh --root; no
 # system path is read or written. The report never changes the exit status.
 hf="$base/floor-layer"; mr="$base/floor-root"; mkdir -p "$hf" "$mr"
-HOME="$hf" sh "$inst" > /dev/null 2>&1; expect "install for the floor-layer report" 0 $?
+HOME="$hf" sh "$inst" --managed-root="$mr" > /dev/null 2>&1; expect "install for the floor-layer report (throwaway admin root, never the system one)" 0 $?
 HOME="$hf" sh "$inst" --check --managed-root="$mr" > "$base/floor1.out" 2>&1; expect "check without an admin floor stays clean" 0 $?
 if grep -q "^FLOOR   Claude Code: user layer $floor_rules/$floor_rules rules; admin layer 0/$floor_rules rules" "$base/floor1.out" \
    && grep -q '^FLOOR   carried by: the user layer only' "$base/floor1.out"; then
@@ -1021,6 +1021,32 @@ HOME="$hu" sh "$inst" > /dev/null 2>&1; expect "default install with an owner's 
 if grep -qxF "$rc_begin" "$hu/.zshrc" && [ "$(grep -c "$rc_end" "$hu/.zshrc")" -eq 1 ]; then ok "the default install added the block to the owner's .zshrc"; else ko "no block in the owner's .zshrc"; fi
 HOME="$hu" sh "$inst" --uninstall > "$base/uninstall-rc.out" 2>&1; expect "uninstall after a default install" 0 $?
 if [ "$(cksum < "$hu/.zshrc")" = "$zsum" ]; then ok "uninstall gives the owner's .zshrc back byte for byte"; else ko "uninstall left .zshrc: $(cat "$hu/.zshrc")"; fi
+
+# 21. every backup of a harness config the installer writes is owner-only (0600), whatever the original's
+# mode, and the retired MCP server leaves config.toml before the model defaults back it up, so no
+# backup but the MCP one holds the server (PR #146 QA advisory).
+hb2="$base/home-backups"; mkdir -p "$hb2/.claude" "$hb2/.codex"
+canary2="canary-""value-""5150"
+printf '%s\n' '{"model": "owner-model", "permissions": {"allow": ["Bash(find:*)"]}}' > "$hb2/.claude/settings.json"
+printf '%s\n' 'model_reasoning_effort = "high"' '' '[mcp_servers.aws-api]' 'command = "uvx"' '' '[mcp_servers.aws-api.env]' \
+  "AWS_PROFILE = \"$canary2\"" > "$hb2/.codex/config.toml"
+printf 'export MINE=1\n' > "$hb2/.zshrc"
+chmod 644 "$hb2/.claude/settings.json" "$hb2/.codex/config.toml" "$hb2/.zshrc"
+HOME="$hb2" sh "$inst" --overlay="$repo_overlay" > "$base/backups.out" 2>&1; expect "install over 0644 harness configs" 0 $?
+backups=$(find "$hb2" -name '*.pmhwc-*backup' -type f | sort)
+nb=$(printf '%s\n' "$backups" | grep -c .)
+wide=""
+for b in $backups; do
+  m=$(stat -c %a "$b" 2>/dev/null || stat -f %Lp "$b")
+  [ "$m" = 600 ] || wide="$wide ${b#"$hb2"/}=$m"
+done
+# settings.json (merge, models, allow), config.toml (mcp, models) and .zshrc: six backups.
+if [ "$nb" -eq 6 ] && [ -z "$wide" ]; then ok "all $nb backups of harness configs are 0600"; else ko "backups not owner-only ($nb found):$wide"; fi
+if grep -q "$canary2" "$hb2/.codex/config.toml.pmhwc-mcp-backup" && ! grep -q "aws-api" "$hb2/.codex/config.toml.pmhwc-models-backup"; then
+  ok "only the MCP backup holds the retired server; the models backup is taken after it left"
+else
+  ko "the models backup of config.toml still holds the retired server"
+fi
 
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

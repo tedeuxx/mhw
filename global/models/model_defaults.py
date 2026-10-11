@@ -21,7 +21,7 @@ The pinned value is written whatever the key holds (Issue #145; ADR-0035, amendm
 strikes the earlier "owner value is KEPT" rule). Every write is reported as old -> new on a CHANGED
 line. A value of the owner's that it replaces is recorded beside the key, so uninstall puts it back.
 Uninstall touches a key only while it still holds the value mhw recorded: it restores the replaced
-value, or removes the key when there was none. Every write leaves the previous file beside it as
+value, or removes the key when there was none. Every write leaves the previous file, owner-only (0600), beside it as
 <file>.pmhwc-models-backup. A TOML edit is parsed (tomllib, Python 3.11+) before it replaces the file;
 one that would not parse is refused and nothing is written. A recorded file outside --home (and
 CODEX_HOME) is never edited.
@@ -58,6 +58,18 @@ HARNESSES = {
 
 class PolicyError(Exception):
     pass
+
+
+def private_copy(src, dst):
+    """The backup is owner-only (0600) from its first byte, whatever the original's mode: it can hold
+    what install removed (PR #146 QA advisory). A file or link already at dst is replaced, never written
+    through (O_EXCL)."""
+    if os.path.lexists(dst):
+        os.remove(dst)
+    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
+        shutil.copyfileobj(inp, out)
+    os.chmod(dst, 0o600)
 
 
 def target_path(harness, home):
@@ -198,7 +210,7 @@ class NativeFile:
         tmp = self.path.with_name(self.path.name + ".new.%d" % os.getpid())
         tmp.write_text(self.text(), encoding="utf-8")
         if self.exists:
-            shutil.copy2(self.path, str(self.path) + BACKUP)
+            private_copy(str(self.path), str(self.path) + BACKUP)
             shutil.copymode(self.path, tmp)
         os.replace(tmp, self.path)
 

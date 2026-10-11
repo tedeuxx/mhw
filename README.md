@@ -230,8 +230,9 @@ method with `-Method`. From a clone, or through the npm `mhw` command, which run
 
 Paste wrapper, the primary paste cleaner: the installer writes a snippet of shell functions and, since
 [#145](https://github.com/tedeuxx/mhw/issues/145), one marked block that sources it in the start-up file
-of your shell: `~/.zshrc` for zsh (`$ZDOTDIR/.zshrc` when set), `~/.bashrc` for bash. The previous file is
-kept as `<file>.pmhwc-backup`, the output says `absent -> present`, and `mhw uninstall` removes exactly
+of your shell: `~/.zshrc` for zsh (`$ZDOTDIR/.zshrc` when set, if it is inside your home directory;
+a `ZDOTDIR` outside `$HOME` gets nothing written, and only the line below is printed), `~/.bashrc` for bash. The previous file is
+kept as `<file>.pmhwc-backup`, owner-only (0600), the output says `absent -> present`, and `mhw uninstall` removes exactly
 that block. `--shell-rc=FILE` names another file and `--shell-rc=none` writes none; for any other shell
 the installer prints the line for you to add:
 

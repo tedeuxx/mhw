@@ -280,7 +280,7 @@ allow_retire() {
         raise 3
         return 0
       fi
-      cp -p "$settings" "$settings.pmhwc-allow-backup"
+      private_copy "$settings" "$settings.pmhwc-allow-backup"
       cat "$work/allow.retired.json" > "$settings"
       echo "CHANGED $settings: permissions.allow $ar_what (retired, ADR-0035 decision 4; previous file kept as $settings.pmhwc-allow-backup)"
       ;;
