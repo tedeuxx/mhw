@@ -149,6 +149,19 @@ class Reader(unittest.TestCase):
             with self.assertRaises(kp.Refuse, msg=bad):
                 kp.parse(bad)
 
+    def test_a_plain_scalar_that_is_not_a_string_is_refused_never_requoted(self):
+        # PR #150 review advisory 2: refusing keeps a rule Kiro rejects rejected, rather than switching it on.
+        for tok in (".5", "1e3", "0x1F", "0o7", "0b101", ".inf", "-.INF", ".nan", ".NaN", "~", "null", "NULL",
+                    "nUlL", "true", "TrUe", "FALSE", "yes", "Off", "1_000", "-1", "+.5", "1.", "12:30", "3E-2"):
+            for doc in ("rules:\n  - capability: %s\n    effect: deny\n" % tok,
+                        "rules:\n  - capability: shell\n    match: [%s]\n    effect: deny\n" % tok,
+                        "rules:\n  - capability: shell\n    match:\n      - %s\n    effect: deny\n" % tok):
+                with self.assertRaises(kp.Refuse, msg=doc):
+                    kp.parse(doc)
+        for tok in ("git *", "e5", "v1.2", "true-ish", "1a", ".", "nullx", "~/x"):
+            self.assertEqual(kp.parse("rules:\n  - capability: shell\n    match:\n      - %s\n    effect: deny\n"
+                                      % tok)["rules"][0]["match"], [tok])
+
 
 class Install(Base):
     def test_fresh_home_check_dry_run_install_settles(self):
@@ -191,8 +204,8 @@ class Install(Base):
         backup = Path(str(self.path) + ".pmhwc-backup")
         self.assertEqual(backup.read_text(encoding="utf-8"), OWNER)
         self.assertEqual(stat.S_IMODE(backup.stat().st_mode), 0o600)
-        self.assertEqual(json.loads(self.owned.read_text(encoding="utf-8"))["owned"]["shell"],
-                         ["gh auth token *", "terraform -chdir=*"])
+        self.assertEqual(json.loads(self.owned.read_text(encoding="utf-8"))["appended"][0],
+                         {"capability": "shell", "match": ["gh auth token *", "terraform -chdir=*"]})
         code, out = self.run_mode("uninstall")
         self.assertEqual(code, 0, out)
         self.assertIn("UNMERGED", out)
@@ -272,8 +285,74 @@ class Install(Base):
         code, out = self.run_mode("install", floor=grown)
         self.assertIn("1 deny-floor pattern(s) added", out)
         self.assertEqual(self.rules()[-1], {"capability": "shell", "effect": "deny", "match": ["git push --force *"]})
-        self.assertIn("git push --force *",
-                      json.loads(self.owned.read_text(encoding="utf-8"))["owned"]["shell"])
+        self.assertEqual(json.loads(self.owned.read_text(encoding="utf-8"))["appended"][-1],
+                         {"capability": "shell", "match": ["git push --force *"]})
+        code, out = self.run_mode("uninstall", floor=grown)
+        self.assertEqual(code, 0, out)
+        self.assertFalse(self.path.exists(), out)
+
+    def test_his_rules_holding_owned_patterns_are_untouched_by_uninstall(self):
+        # PR #150 review advisory 4: an allow rule, an excluded deny and a plain deny of his own, each holding
+        # a pattern mhw appended. Uninstall edits only mhw's own rule.
+        # His rules before the install hold exactly what mhw then appends (an allow and an excluded deny do
+        # not cover the floor), and come first: only the effect and the exclude list tell them apart.
+        his_before = [{"capability": "shell", "effect": "allow",
+                       "match": ["sudo *", "gh auth token *", "terraform -chdir=*"]},
+                      {"capability": "fs_read", "effect": "deny", "match": ["~/.ssh/id_*", "**/.env"],
+                       "exclude": ["a/.env"]}]
+        self.owner_file(kp.emit({"rules": his_before, "policies": None}, STAMP, "x", header=False))
+        self.run_mode("install")
+        doc = kp.parse(self.path.read_text(encoding="utf-8"))
+        self.assertEqual(doc["rules"][2], dict(his_before[0], effect="deny"))
+        # Written by him after the install: a deny holding mhw's patterns and one more. Only the position
+        # tells it apart from mhw's own rule.
+        his_later = [{"capability": "shell", "effect": "deny",
+                      "match": ["sudo *", "gh auth token *", "terraform -chdir=*", "curl *"]}]
+        doc["rules"] += his_later
+        self.path.write_text(kp.emit(doc, STAMP, "x"), encoding="utf-8")
+        code, out = self.run_mode("uninstall")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.rules(), his_before + his_later)
+
+    def test_a_recorded_rule_edited_by_hand_is_left_alone_and_said(self):
+        self.run_mode("install")
+        doc = kp.parse(self.path.read_text(encoding="utf-8"))
+        doc["rules"][0]["match"].reverse()  # no longer starts with what mhw appended
+        self.path.write_text(kp.emit(doc, STAMP, "x"), encoding="utf-8")
+        code, out = self.run_mode("uninstall")
+        self.assertEqual(code, 0, out)
+        self.assertIn("NOTE    %s: the shell deny rule mhw appended (3 pattern(s)) was not found" % self.path, out)
+        self.assertEqual(self.rules(), [doc["rules"][0]])
+
+    def test_install_never_writes_a_merge_that_does_not_read_back(self):
+        # PR #150 review advisory 5: run() calls verify(); a broken serialiser must leave the file as it was.
+        self.owner_file()
+        before = self.path.read_bytes()
+        real_emit, old_home = kp.emit, os.environ.get("HOME")
+        kp.emit = lambda doc, stamp, floor_from, header=True: "rules: []\n"
+        os.environ["HOME"] = str(self.home)
+        try:
+            code = kp.run("install", STAMP, kp.load_floor(self.floor), "x")
+        finally:
+            kp.emit = real_emit
+            os.environ["HOME"] = old_home
+        self.assertEqual(code, 3)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertFalse(Path(str(self.path) + ".pmhwc-backup").exists())
+        self.assertFalse(self.owned.exists())
+
+    def test_a_planted_link_at_a_temporary_name_is_not_followed(self):
+        # PR #150 review advisory 1: the temporary file is created with a random name and O_EXCL.
+        self.owner_file()
+        victim = self.home / "victim"
+        victim.write_text("untouched\n", encoding="utf-8")
+        planted = Path("%s.new.%d" % (self.path, os.getpid()))
+        planted.symlink_to(victim)
+        kp.write(self.path, "rules: []\n")
+        self.assertEqual(victim.read_text(encoding="utf-8"), "untouched\n")
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "rules: []\n")
+        self.assertEqual(sorted(p.name for p in self.path.parent.iterdir()),
+                         sorted(["permissions.yaml", planted.name]))
 
     def test_symlink_is_written_through(self):
         real = self.home / "dotfiles" / "permissions.yaml"

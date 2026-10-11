@@ -356,7 +356,8 @@ the forge.
    install and canary; `install.sh` cannot remove it anyway, because its union never removes a rule.
 3. **`install.sh` reports which layer carries the floor.** Every run, `--check` included, ends with
    `FLOOR` lines: the user and admin counts for Claude Code, the user file and admin prefix-rule count
-   for Codex, Kiro as none, and one `carried by:` verdict (the admin layer; the user layer only; the
+   for Codex, ~~Kiro as none,~~ *(struck 2026-10-11: Kiro's line now counts the patterns in its
+   permissions.yaml, ADR-0036)* and one `carried by:` verdict (the admin layer; the user layer only; the
    user layer with an incomplete admin copy; or no complete layer). The report never changes the exit
    status: admin drift is `install-managed.sh --check`'s to report.
 4. **The plugin's irreversible-action rules are absorbed where a native prefix can carry them.** The

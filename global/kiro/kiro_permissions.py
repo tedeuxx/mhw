@@ -27,12 +27,15 @@ quoting do not survive (the backup does). The new text is parsed back and must e
 the appended ones, or nothing is written. Before a write the previous file is copied to
 permissions.yaml.pmhwc-backup, owner-only (0600).
 
-Ownership. The patterns this script appended (absent before) are recorded in
+Ownership. The deny rules this script appended (capability and match list, as appended) are recorded in
 $XDG_DATA_HOME/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json, outside the
 YAML: Kiro rewrites permissions.yaml when the owner answers a consent prompt with a user-scope rule (read
-from the IDE bundle), which drops every comment. Uninstall removes only recorded patterns; a rule left
-with an empty match list is removed whole, because an empty match list matches everything. With no
-record, uninstall removes nothing (the safe direction) and says so.
+from the IDE bundle), which drops every comment. Uninstall edits only those rules, found by shape (a
+deny rule of that capability, no exclude, whose match list starts with the recorded patterns), never one
+of the owner's rules even when it holds the same pattern. A pattern Kiro appended to one of them stays; a
+rule left with an empty match list is removed whole, because an empty match list matches everything. A
+recorded rule that cannot be found, or no record at all, removes nothing (the safe direction), said on a
+NOTE line.
 
 The provenance stamp is the first comment line. A Kiro rewrite drops it: --check then reads STAMP, and
 install writes it back.
@@ -48,6 +51,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 MARKER_ID = "managed-by: personal-multi-harness-workstation-configuration"
@@ -56,11 +60,20 @@ CAPS = ("shell", "fs_read", "fs_write")
 EFFECTS = ("deny", "allow", "ask")
 RULE_KEYS = ("capability", "effect", "match", "exclude")
 WORD_RE = re.compile(r"[A-Za-z0-9._/~=:@+*-]+")
-# Plain scalars YAML's core schema would read as something other than a string; and the characters a plain
-# scalar may not start with. Both are refused rather than guessed at.
-NOT_STRING_RE = re.compile(r"(?:~|null|Null|NULL|true|True|TRUE|false|False|FALSE|[-+]?(?:\.inf|\.Inf|\.INF)"
-                           r"|\.nan|\.NaN|\.NAN|[-+]?[0-9][0-9_]*(?:\.[0-9_]*)?(?:[eE][-+]?[0-9]+)?"
-                           r"|0x[0-9a-fA-F]+|0o[0-7]+)")
+# Plain scalars a YAML parser could read as something other than a string, and the characters a plain
+# scalar may not start with. Both are refused, never re-quoted: quoting one would turn a rule Kiro rejects
+# (which disables the whole file) into a rule that applies. Fail closed, so the test is wider than YAML 1.2
+# core: matched case-insensitively (after lowering), YAML 1.1 booleans included, and any number spelling
+# (signs, leading dot, exponent, hex, octal, binary, underscores, sexagesimal).
+NOT_STRING_WORDS = {"~", "null", "true", "false", "yes", "no", "on", "off", "y", "n"}
+NOT_STRING_RE = re.compile(r"[-+]?(?:0x[0-9a-f_]+|0o[0-7_]+|0b[01_]+"
+                           r"|(?:[0-9][0-9_]*(?::[0-9_]+)*(?:\.[0-9_]*)?|\.[0-9][0-9_]*)(?:e[-+]?[0-9_]+)?"
+                           r"|\.inf|\.nan)")
+
+
+def not_a_string(tok):
+    low = tok.lower()
+    return low in NOT_STRING_WORDS or NOT_STRING_RE.fullmatch(low) is not None
 BAD_START = set("&*!|>{}%@`,[]'\"#")
 
 
@@ -176,7 +189,7 @@ def _scalar(tok, n):
         raise Refuse("line %d: a value YAML reads as something other than a plain string: %s" % (n, tok))
     if ": " in tok or tok.endswith(":") or " #" in tok:
         raise Refuse("line %d: a plain scalar holding ': ' or ' #': %s" % (n, tok))
-    if NOT_STRING_RE.fullmatch(tok):
+    if not_a_string(tok):
         raise Refuse("line %d: %s is not a string in YAML" % (n, tok))
     return tok
 
@@ -403,7 +416,7 @@ def verify(new_text, want_doc):
 def private_copy(src, dst):
     if os.path.lexists(dst):
         os.remove(dst)
-    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
     with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
         shutil.copyfileobj(inp, out)
     os.chmod(dst, 0o600)
@@ -418,9 +431,10 @@ def write(path, text):
     else:
         mode = 0o600
         real.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    tmp = "%s.new.%d" % (real, os.getpid())
+    # A random name created with O_EXCL (mkstemp) in the same directory: a symbolic link planted at a
+    # predictable temporary path cannot redirect the write.
+    fd, tmp = tempfile.mkstemp(prefix=real.name + ".new.", dir=str(real.parent))
     try:
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(text)
         os.chmod(tmp, mode)
@@ -436,19 +450,30 @@ def read_owned():
         doc = json.loads(owned_path().read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    if not isinstance(doc, dict) or not isinstance(doc.get("owned"), dict):
+    if not isinstance(doc, dict) or not isinstance(doc.get("appended"), list):
         return None
-    owned = {c: [p for p in doc["owned"].get(c, []) if isinstance(p, str)] for c in CAPS}
-    return {"owned": owned, "created": doc.get("created") is True}
+    appended = [{"capability": e["capability"], "match": list(e["match"])} for e in doc["appended"]
+                if isinstance(e, dict) and e.get("capability") in CAPS and isinstance(e.get("match"), list)
+                and e["match"] and all(isinstance(p, str) for p in e["match"])]
+    return {"appended": appended, "created": doc.get("created") is True}
 
 
-def write_owned(owned, created, stamp):
+def write_owned(appended, created, stamp):
+    """The record of the rules install appended: each one's capability and match list, as appended."""
     path = owned_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    body = {"_": "%s; source: global/kiro/kiro_permissions.py (the deny-floor patterns it appended to "
+    body = {"_": "%s; source: global/kiro/kiro_permissions.py (the deny rules it appended to "
                  "~/.kiro/settings/permissions.yaml; uninstall removes only these); %s; do not edit" % (MARKER_ID, stamp),
-            "created": created, "owned": owned}
+            "created": created, "appended": appended}
     write(path, json.dumps(body, indent=2) + "\n")
+
+
+def is_ours(rule, entry):
+    """True when rule is the deny rule install appended for entry: same capability, effect deny, no exclude,
+    and its match list starts with entry's patterns in order (Kiro appends a consent pattern at the end)."""
+    match = rule.get("match") or []
+    return (rule.get("capability") == entry["capability"] and rule.get("effect") == "deny"
+            and not rule.get("exclude") and match[:len(entry["match"])] == entry["match"])
 
 
 # --- modes -----------------------------------------------------------------------------------------------
@@ -525,14 +550,12 @@ def run(mode, stamp, want, floor_from):
         return 0
     rec = read_owned()
     created = rec["created"] if rec else text is None
-    owned = {c: list(rec["owned"][c]) if rec else [] for c in CAPS}
-    for c in CAPS:
-        owned[c] += [p for p in miss[c] if p not in owned[c]]
+    appended = (rec["appended"] if rec else []) + [{"capability": c, "match": list(miss[c])} for c in CAPS if miss[c]]
     backup = Path(str(path) + BACKUP)
     if text is not None:
         private_copy(os.path.realpath(str(path)), str(backup))
     write(path, new_text)
-    write_owned(owned, created, stamp)
+    write_owned(appended, created, stamp)
     if text is None:
         print("MERGED  %s (new file; %d deny-floor patterns)" % (path, n_want))
     elif n_miss == 0:
@@ -560,15 +583,26 @@ def uninstall(stamp, floor_from):
     except Refuse as e:
         print("REFUSE  %s: %s" % (path, e))
         return 3
-    rules = []
-    for r in doc["rules"]:
-        mine = rec["owned"].get(r.get("capability"), []) if r.get("effect") == "deny" and not r.get("exclude") else []
-        if mine and r.get("match"):
-            left = [p for p in r["match"] if p not in mine]
-            if not left:
-                continue  # an empty match list would match everything: the rule goes whole
-            r = dict(r, match=left)
-        rules.append(r)
+    # Only the rules install appended are edited, never one of the owner's: each recorded rule is found as
+    # the first unclaimed deny rule that is_ours() recognises. One that cannot be found is left alone, said.
+    rules = [dict(r) for r in doc["rules"]]
+    drop = set()
+    for entry in rec["appended"]:
+        idx = [i for i, r in enumerate(rules) if i not in drop and is_ours(r, entry)]
+        if not idx:
+            print("NOTE    %s: the %s deny rule mhw appended (%d pattern(s)) was not found as written (edited by "
+                  "hand?); nothing removed for it (a deny left behind is the safe direction)"
+                  % (path, entry["capability"], len(entry["match"])))
+            continue
+        # The first: at install no earlier rule could match (it would have covered the patterns, so nothing
+        # would have been appended); a later one is his or Kiro's addition.
+        i = idx[0]
+        left = rules[i]["match"][len(entry["match"]):]
+        if left:
+            rules[i] = dict(rules[i], match=left)  # a pattern Kiro appended after a consent prompt stays
+        else:
+            drop.add(i)  # an empty match list would match everything: the rule goes whole
+    rules = [r for i, r in enumerate(rules) if i not in drop]
     new_doc = {"rules": rules, "policies": doc.get("policies")}
     if rec["created"] and not rules and not doc.get("policies"):
         private_copy(os.path.realpath(str(path)), str(path) + BACKUP)

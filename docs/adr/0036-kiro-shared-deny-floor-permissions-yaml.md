@@ -103,12 +103,23 @@ rules, one per capability. Install never removes a rule.
   parsed back and must equal his rules plus the appended ones, or nothing is written. The previous
   file is kept as `permissions.yaml.pmhwc-backup`, owner-only (0600). A new file is created 0600 in a
   0700 directory, as Kiro creates it. A symbolic link is written through.
-- **Ownership.** The patterns install appended are recorded in
-  `~/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json`, not
-  in the YAML, because Kiro's own write-back drops comments. Uninstall removes only those patterns. A
-  rule whose match list becomes empty is removed whole, because an empty match list matches
-  everything. A pattern Kiro appended to one of these rules after a consent prompt stays. With no
-  record, uninstall removes nothing, because a deny left behind is the safe direction.
+- **Ownership.** The deny rules install appended (capability and match list, as appended) are recorded
+  in `~/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json`,
+  not in the YAML, because Kiro's own write-back drops comments. Uninstall edits only those rules,
+  never one of the owner's, even when his rule holds the same pattern (PR #150 review). A rule counts as
+  mhw's when it is a deny of that capability, has no `exclude`, and its match list starts with the
+  recorded patterns; the first such rule is taken, because at install no earlier rule could match. The
+  recorded patterns are removed from it. A pattern Kiro appended after a consent prompt stays. A rule
+  whose match list becomes empty is removed whole, because an empty match list matches everything. A
+  recorded rule that cannot be found (edited by hand), or no record at all, removes nothing and prints
+  a `NOTE`, because a deny left behind is the safe direction.
+- **Not a string.** A plain scalar any YAML parser could read as something other than a string is
+  refused, never re-quoted (PR #150 review). This covers null, `~`, booleans in any case including
+  YAML 1.1's `yes`, `no`, `on` and `off`, and every number spelling. Re-quoting would turn a rule Kiro
+  rejects, which disables the whole file, into a rule that applies.
+- **Temporary file.** Every write goes through a random name created with `O_EXCL` (`mkstemp`) in
+  the target's directory, then an atomic rename. A link planted at a predictable name is never
+  followed. The backup is opened with `O_EXCL` and `O_NOFOLLOW`.
 - **Stamp.** The first comment line carries the provenance stamp (ADR-0029). When Kiro rewrites the
   file the stamp is lost. `--check` then reports `STAMP` and install writes it back.
 - **permissions.json.** A non-empty `permissions.json` with no `permissions.yaml` beside it is
@@ -139,7 +150,7 @@ rules, one per capability. Install never removes a rule.
 
 | Claim | Level |
 | --- | --- |
-| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (24 cases; nine source mutations, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
+| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (29 cases, Python 3.14 and 3.9; every source mutation of the guards, the `verify()` call, the not-a-string check and the temporary file, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
 | The rendered file is what Kiro's schema accepts | **structural**: the field set and the validation rules are read from the IDE 1.2.56 bundle. No Kiro build loaded the file |
 | A Kiro IDE or Kiro CLI V3 session denies a floor command | **not measured**. The IDE runtime is outside this agent's reach. A CLI measurement needs a model call, a throwaway HOME has no login, and copying the owner's credentials into one is not allowed (ADR-0008). The owner's fresh-session canary is the route |
 | Installed on the reference machine | **no**. The owner installs the release candidate |
