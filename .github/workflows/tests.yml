@@ -228,7 +228,7 @@ jobs:
           python3 --version
           python3 -B global/mcp/mcp_render_test.py "$RUNNER_TEMP/mcp"
           echo "security calls (probe):"; cat "$PMHWC_SECURITY_CALL_LOG" 2>/dev/null || echo "(none)"
-      - name: nothing was written into the exported ZDOTDIR (PR #146 lens H1)
+      - name: nothing was written into the exported ZDOTDIR sentinel
         if: always()
         run: |
           echo "ZDOTDIR=$ZDOTDIR"
