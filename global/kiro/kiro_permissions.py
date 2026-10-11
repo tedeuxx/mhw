@@ -49,7 +49,9 @@ file is refused with that cause and the remedy named, never guessed at.
 Kiro's lock. install and uninstall take Kiro's own lock (proper-lockfile: a <real file>.lock directory made
 with mkdir, read from the IDE bundle) before reading, and hold it across the write and the rename, so a
 consent rule Kiro writes meanwhile is never lost. The wait is bounded; a lock still held is refused, with
-nothing written and the lock left alone.
+nothing written and the lock left alone. While held, the lock's mtime is refreshed before each rename (it
+never looks stale to Kiro); on release it is removed only if it is still the directory mhw made (same
+device and inode), and a failed release is a NOTE, never a traceback.
 
 permissions.json. Kiro reads permissions.yaml when it exists and permissions.json only otherwise (read from
 the IDE bundle). Writing a yaml beside the owner's json would silently drop his json rules, so a non-empty
@@ -455,6 +457,7 @@ def write(path, text):
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(text)
         os.chmod(tmp, mode)
+        refresh_held_locks()
         os.replace(tmp, str(real))
     except BaseException:
         if os.path.exists(tmp):
@@ -530,10 +533,46 @@ def kiro_lock(path):
                              "nothing written. Re-run when Kiro is idle; if no Kiro is running, remove that "
                              "directory and re-run" % lock)
             time.sleep(0.1)
+    st = os.stat(lock)
+    ident = (st.st_dev, st.st_ino)
+    _HELD_LOCKS.append(lock)
     try:
         yield
     finally:
+        _HELD_LOCKS.remove(lock)
+        release_lock(lock, ident)
+
+
+# The lock directories this process holds: write() refreshes their mtime just before its rename, so a held
+# lock never looks older than proper-lockfile's stale threshold (10 s, read from the IDE bundle).
+_HELD_LOCKS = []
+
+
+def refresh_held_locks():
+    for lock in _HELD_LOCKS:
+        try:
+            os.utime(lock)
+        except OSError:
+            pass  # release_lock reports a lock that is no longer ours
+
+
+def release_lock(lock, ident):
+    """Remove the lock only when it is provably still ours (same device and inode as the directory we made);
+    otherwise Kiro may have reclaimed it as stale and taken it, so it is left alone. A failure to remove is
+    reported, never raised: by then the write has succeeded."""
+    try:
+        st = os.stat(lock)
+    except OSError:
+        print("NOTE    Kiro's lock %s was gone before mhw released it; nothing removed" % lock)
+        return
+    if (st.st_dev, st.st_ino) != ident:
+        print("NOTE    Kiro's lock %s is no longer the one mhw took (Kiro reclaimed it); left alone" % lock)
+        return
+    try:
         os.rmdir(lock)
+    except OSError as e:
+        print("NOTE    could not release Kiro's lock %s (%s); remove that directory if no Kiro is running"
+              % (lock, e.__class__.__name__))
 
 
 # --- modes -----------------------------------------------------------------------------------------------

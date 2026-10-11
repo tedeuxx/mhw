@@ -159,7 +159,12 @@ rules, one per capability. Install never removes a rule.
 - **Kiro's lock.** install and uninstall take Kiro's own lock (`<real file>.lock`, an `mkdir`
   directory) before reading and hold it across the write and the rename. A consent rule Kiro writes
   meanwhile is therefore never lost. The wait is bounded (3 seconds). A lock still held after that is
-  refused visibly, with the lock's path: nothing is written and the lock is never removed.
+  refused visibly, with the lock's path: nothing is written and the lock is never removed. While the
+  lock is held, its mtime is refreshed just before each rename, so it never looks older than
+  proper-lockfile's 10-second stale threshold. On release, mhw removes the lock only if it is provably
+  still the one it made (same device and inode). If not, Kiro reclaimed it, so it is left alone with a
+  `NOTE`. A release that fails after a good write is a `NOTE` naming the lock, never a traceback, and the
+  exit code stays 0 (PR #150 QA L1, L2).
 - **permissions.json.** A non-empty `permissions.json` with no `permissions.yaml` beside it is
   refused. Writing the YAML would make Kiro stop reading the owner's JSON rules.
 - **Report.** `install.sh --check` prints `OK`, `MISSING`, `DRIFT` or `STAMP` for the file, and the
@@ -193,7 +198,7 @@ rules, one per capability. Install never removes a rule.
 
 | Claim | Level |
 | --- | --- |
-| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (37 cases, Python 3.14 and 3.9; every source mutation of the ownership guards, the install-time reconciliation, the distinct matching, the `verify()` call, the not-a-string check including timestamps and `=`, the temporary file, Kiro's lock and the refusal message, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
+| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (40 cases, Python 3.14 and 3.9; every source mutation of the ownership guards, the install-time reconciliation, the distinct matching, the `verify()` call, the not-a-string check including timestamps and `=`, the temporary file, Kiro's lock and the refusal message, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
 | The rendered file is what Kiro's schema accepts | **structural**: the field set and the validation rules are read from the IDE 1.2.56 bundle. No Kiro build loaded the file |
 | A Kiro IDE or Kiro CLI V3 session denies a floor command | **not measured**. The IDE runtime is outside this agent's reach. A CLI measurement needs a model call, a throwaway HOME has no login, and copying the owner's credentials into one is not allowed (ADR-0008). The owner's fresh-session canary is the route |
 | A deny still applies in a Kiro CLI V3 session started with `--trust-all-tools` | **not measured** (a hypothesis for the owner's fresh-session canary). The documentation says no allow overrides a deny, but trust-all is a session switch, not an allow rule |

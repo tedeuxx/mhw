@@ -4,12 +4,15 @@ throwaway HOMEs only (ADR-0036, Issue #144). No Kiro runs here; the rule engine 
 
     kiro_permissions_test.py [base directory]   (default: a fresh directory under $TMPDIR)
 """
+import contextlib
+import io
 import json
 import os
 import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -297,6 +300,54 @@ class Install(Base):
         self.assertEqual(code, 0, out)
         self.assertFalse(lock.exists())  # ours is released
 
+    def test_a_lock_kiro_reclaimed_is_never_removed(self):
+        # PR #150 QA L1: Kiro reclaims our lock as stale and takes its own; mhw must not remove Kiro's.
+        self.owner_file()
+        lock = Path(str(os.path.realpath(str(self.path))) + ".lock")
+        other = self.home / "kiro-made-this"
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            with kp.kiro_lock(self.path):
+                self.assertTrue(lock.is_dir())
+                other.mkdir()          # a new directory while ours still exists: a different inode
+                lock.rmdir()
+                other.rename(lock)     # Kiro's lock now sits at the same path
+        self.assertTrue(lock.is_dir(), out.getvalue())
+        self.assertIn("is no longer the one mhw took", out.getvalue())
+
+    def test_a_failed_release_after_a_good_write_is_a_note_not_a_traceback(self):
+        # PR #150 QA L2: the rmdir fails (here: the directory is not empty); main still exits 0.
+        self.owner_file()
+        lock = Path(str(os.path.realpath(str(self.path))) + ".lock")
+        real_run, old_home = kp.run, os.environ.get("HOME")
+
+        def run_then_block_release(*args):
+            code = real_run(*args)
+            (lock / "kiro-pid").write_text("x", encoding="utf-8")
+            return code
+        kp.run = run_then_block_release
+        os.environ["HOME"] = str(self.home)
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                code = kp.main(["--mode=install", "--stamp=" + STAMP, "--floor=%s" % self.floor])
+        finally:
+            kp.run = real_run
+            os.environ["HOME"] = old_home
+        self.assertEqual(code, 0, out.getvalue())
+        self.assertIn("MERGED", out.getvalue())
+        self.assertIn("NOTE    could not release Kiro's lock %s" % lock, out.getvalue())
+
+    def test_a_held_lock_is_refreshed_before_the_rename(self):
+        # PR #150 QA L1: while held, the lock never looks older than proper-lockfile's 10 s stale threshold.
+        self.owner_file()
+        lock = Path(str(os.path.realpath(str(self.path))) + ".lock")
+        with kp.kiro_lock(self.path):
+            os.utime(str(lock), (1000000000, 1000000000))
+            kp.write(self.path, "rules: []\n")
+            self.assertGreater(lock.stat().st_mtime, time.time() - 60)
+        self.assertFalse(lock.exists())
+
     def test_install_waits_for_a_lock_released_in_time(self):
         self.owner_file()
         lock = Path(str(self.path) + ".lock")
@@ -306,7 +357,6 @@ class Install(Base):
         p = subprocess.Popen([sys.executable, "-B", str(SCRIPT), "--mode=install", "--stamp=" + STAMP,
                               "--floor=%s" % self.floor], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                              text=True, env=env)
-        import time
         time.sleep(0.5)
         lock.rmdir()
         out = p.communicate(timeout=30)[0]
