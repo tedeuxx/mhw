@@ -404,34 +404,40 @@ rc_pick() { # sets rc (the start-up file this run writes, or empty), rc_why (why
 # The unmarked two-line form an owner added by hand before the managed block existed (seen on the reference
 # machine's ~/.zshrc, 2026-10-11 canary): this comment line, immediately followed by this source line, both
 # exact. With the block also present the snippet was sourced twice. Only the exact pair is recognised; either
-# line alone, or any other spelling, is the owner's and stays.
+# line alone, or any other spelling, is the owner's and stays. A pair that opens a compound command's body (the
+# last line before it ends in then, else, do, {, && or ||) is left in place and reported (rc_leg2k): removing it
+# could leave an empty body, which bash refuses (PR #153 lens).
 rc_leg2_comment="# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)"
 # shellcheck disable=SC2016  # the literal $HOME is the text the owner's file holds
 rc_leg2_source='. "$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh"'
 # rc_scan FILE: $work/rc.stripped (the file without our block and without an earlier form), $work/rc.block
 # (our block's lines), and the counts rc_nb (begin markers), rc_ne (end markers), rc_bad (1 when they are out
-# of order), rc_leg (earlier forms, both kinds) and rc_leg2 (of which the unmarked two-line form).
+# of order), rc_leg (earlier forms, both kinds), rc_leg2 (of which the unmarked two-line form) and rc_leg2k
+# (unmarked two-line forms left in place because they open a compound command's body).
 rc_scan() {
   rc_scan_file=$1
   : > "$work/rc.stripped"
   : > "$work/rc.block"
-  rc_nb=0; rc_ne=0; rc_bad=0; rc_leg=0; rc_leg2=0
+  rc_nb=0; rc_ne=0; rc_bad=0; rc_leg=0; rc_leg2=0; rc_leg2k=0
   [ -f "$rc_scan_file" ] || return 0
   # ENVIRON, not -v: awk -v would process backslash escapes in the values.
   rc_counts=$(RC_L2C=$rc_leg2_comment RC_L2S=$rc_leg2_source awk -v bp="$rc_begin_prefix" -v e="$rc_end" -v tag="$rc_tag" \
       -v out="$work/rc.stripped" -v blk="$work/rc.block" '
-    BEGIN { nb = 0; ne = 0; bad = 0; leg = 0; leg2 = 0; inb = 0; held = 0
+    function emit(line) { print line > out; if (line ~ /[^ \t]/) last = line }
+    BEGIN { nb = 0; ne = 0; bad = 0; leg = 0; leg2 = 0; leg2k = 0; inb = 0; held = 0; last = ""
             l2c = ENVIRON["RC_L2C"]; l2s = ENVIRON["RC_L2S"] }
+    held && !inb && $0 == l2s && last ~ /(then|else|do|[{]|&&|[|][|])[ \t]*$/ {
+      held = 0; leg2k++; emit(l2c); emit($0); next }
     held && !inb && $0 == l2s { held = 0; leg++; leg2++; next }
-    held { held = 0; print l2c > out }
+    held { held = 0; emit(l2c) }
     !inb && $0 == l2c { held = 1; next }
     index($0, bp) == 1 { nb++; if (inb) bad = 1; inb = 1; print > blk; next }
     $0 == e { ne++; if (!inb) bad = 1; inb = 0; print > blk; next }
     inb { print > blk; next }
     index($0, tag) > 0 { leg++; next }
-    { print > out }
-    END { if (held) print l2c > out; if (inb) bad = 1; printf "%d %d %d %d %d\n", nb, ne, bad, leg, leg2 }' "$rc_scan_file")
-  read -r rc_nb rc_ne rc_bad rc_leg rc_leg2 <<EOF
+    { emit($0) }
+    END { if (held) emit(l2c); if (inb) bad = 1; printf "%d %d %d %d %d %d\n", nb, ne, bad, leg, leg2, leg2k }' "$rc_scan_file")
+  read -r rc_nb rc_ne rc_bad rc_leg rc_leg2 rc_leg2k <<EOF
 $rc_counts
 EOF
   return 0
@@ -499,6 +505,9 @@ shell_rc_one() { # shell_rc_one FILE: the managed block in one start-up file
     raise 3
     return 0
   fi
+  if [ "$rc_leg2k" -gt 0 ] && [ "$mode" != uninstall ]; then
+    echo "NOTE    $rc: an unmarked two-line paste-filter source opens a compound command's body (after then, else, do, {, && or ||); left in place, since removing it could leave an empty body bash refuses. It sources the snippet a second time: remove it by hand"
+  fi
   if [ "$rc_nb" = 1 ] && [ "$rc_leg" = 0 ] && cmp -s "$work/rc.block" "$work/rc.want"; then
     echo "OK      $rc activates the paste wrapper (managed block)"
     return 0
@@ -535,6 +544,9 @@ shell_rc_uninstall() {
     rc_seen="$rc_seen $rc"
     [ -f "$rc" ] || continue
     rc_scan "$rc"
+    if [ "$rc_leg2k" -gt 0 ]; then
+      echo "NOTE    $rc: an unmarked two-line paste-filter source inside a compound command's body is left in place; the snippet it sources is removed, so remove that line by hand"
+    fi
     [ "$rc_nb" = 0 ] && [ "$rc_ne" = 0 ] && [ "$rc_leg" = 0 ] && continue
     if rc_damaged; then
       echo "REFUSE  $rc: the paste-wrapper block's markers are damaged; nothing removed"

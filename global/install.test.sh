@@ -459,6 +459,17 @@ if [ "$(cat "$rc_near")" = "$(printf '%s\n%s' "$rc_near_orig" "$want_block")" ] 
 else
   ko "a near miss was removed: $(cat "$rc_near")"
 fi
+# PR #153 lens: a pair that is the whole body of an if is left in place and reported, so bash still parses the
+# file (removing it would leave "then" followed by "fi").
+rc_if="$h3/two-line-if-rc"
+printf 'if true; then\n%s\n%s\nfi\n' "$rc_l2c" "$rc_l2s" > "$rc_if"
+HOME="$h3" sh "$inst" --shell-rc="$rc_if" > "$base/rc-if.out"; expect "install over a pair inside an if body" 0 $?
+if [ "$(sed -n 2,3p "$rc_if")" = "$(printf '%s\n%s' "$rc_l2c" "$rc_l2s")" ] && bash -n "$rc_if" \
+   && grep -q "^NOTE    $rc_if: an unmarked two-line paste-filter source opens a compound command's body" "$base/rc-if.out"; then
+  ok "a pair opening an if body is kept, the file still parses in bash, and a NOTE says so"
+else
+  ko "the pair inside an if body was removed or not reported: $(cat "$rc_if")"
+fi
 # Uninstall over the two-line form alone (no block): it goes, since the snippet it sources goes too.
 rc_two_only="$h3/two-line-only-rc"
 printf 'export A=1\n%s\n%s\n' "$rc_l2c" "$rc_l2s" > "$rc_two_only"
