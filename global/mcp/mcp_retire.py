@@ -169,11 +169,22 @@ def plan(text, names):
 
 
 def _write(path, backup, text):
-    shutil.copy2(str(path), str(backup))
-    tmp = path.with_name(path.name + ".new.%d" % os.getpid())
-    tmp.write_text(text, encoding="utf-8")
-    shutil.copymode(str(path), str(tmp))
-    os.replace(str(tmp), str(path))
+    """As mcp_render.atomic_write: the backup keeps the mode, and the new file is created with the old mode
+    from its first byte, so the content is never readable more widely than before, even for a moment."""
+    target = str(path)
+    mode = os.stat(target).st_mode & 0o7777
+    shutil.copy2(target, str(backup))
+    tmp = "%s.new.%d" % (target, os.getpid())
+    try:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.chmod(tmp, mode)
+        os.replace(tmp, target)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
 
 
 def _apply(mode, path, backup, names):
