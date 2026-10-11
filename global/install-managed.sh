@@ -117,22 +117,12 @@ assert len(rules) == sum(r.startswith("Bash(") and r.endswith(":*)") for r in de
     && validate_kiro "$1"
 }
 
-validate_kiro() { # $1 stage: the Kiro admin document must be one Kiro accepts, or it drops every rule in it
-  /usr/bin/python3 -I -B -c '
-import json, sys
-raw = open(sys.argv[1] + "/kiro.json", "rb").read()
-assert not raw.startswith(b"\xef\xbb\xbf")          # Kiro ignores a file with a byte order mark
-d = json.loads(raw.decode("utf-8"))
-assert isinstance(d, dict) and set(d) == {"rules", sys.argv[2]}
-assert isinstance(d[sys.argv[2]], str) and "; release: " in d[sys.argv[2]] and "; commit: " in d[sys.argv[2]]
-rules = d["rules"]
-assert isinstance(rules, list) and rules
-for r in rules:
-    # The administration scope allows deny and ask only; an unknown field makes Kiro reject the whole file.
-    assert set(r) == {"capability", "effect", "match"} and r["effect"] == "deny"
-    assert r["capability"] in ("shell", "fs_read", "fs_write")
-    assert isinstance(r["match"], list) and r["match"] and all(isinstance(m, str) and m for m in r["match"])
-assert len({r["capability"] for r in rules}) == len(rules)' "$1" "$NAME" 2>/dev/null
+validate_kiro() { # $1 stage: the Kiro admin document must be one Kiro accepts. A file Kiro rejects is NOT "no rule":
+  # Kiro IDE and the Kiro CLI V3 engine then deny EVERY tool call (read from both bundles, PR #153 lens), and so
+  # can a statement of 64 or more conditions. kiro_permissions.py --mode=admin-validate checks the shape Kiro's
+  # parser accepts and keeps every compiled statement under its condition ceiling, so a future floor cannot
+  # silently produce a lockout file. Rollback: --remove, or delete that one file as root.
+  /usr/bin/python3 -I -B "$script_dir/kiro/kiro_permissions.py" --mode=admin-validate "--file=$1/kiro.json" >/dev/null 2>&1
 }
 
 render() { # $1 empty stage directory
@@ -260,7 +250,13 @@ case $mode in
     compare "$st/claude.json" "$claude_file"
     compare "$st/requirements.toml" "$codex_file"
     if kiro_foreign; then echo "REFUSE  $kiro_file: NOT managed by this project; --apply refuses it"; status=1
-    else compare "$st/kiro.json" "$kiro_file"; fi
+    else
+      compare "$st/kiro.json" "$kiro_file"
+      if [ -f "$kiro_file" ] && ! /usr/bin/python3 -I -B "$script_dir/kiro/kiro_permissions.py" --mode=admin-validate "--file=$kiro_file" >/dev/null 2>&1; then
+        echo "REFUSE  $kiro_file: Kiro would reject it, and then Kiro IDE and the Kiro CLI V3 engine deny EVERY tool call; --apply rewrites it, --remove deletes it (Kiro CLI 2.x is unaffected)"
+        status=1
+      fi
+    fi
     rm -rf "$st"
     exit "$status"
     ;;

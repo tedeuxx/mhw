@@ -277,6 +277,11 @@ sh, fr = rules
 assert sh["effect"] == "allow" and fr == {"capability": "fs_read", "effect": "allow"}
 assert set(sh) == {"capability", "match", "exclude", "effect"} and set(fr) == {"capability", "effect"}
 assert len(sh["match"]) == 2 * n and all(isinstance(m, str) and m for m in sh["match"])
+# Kiro compiles each match pattern to its own Cedar statement of 1 + len(exclude) (+1 for ask) conditions,
+# and treats a policy with a statement of 64 or more that fails its cedar-wasm probe as deny-all (read from
+# the bundles); the repository ceiling is 32 (kiro_permissions.CONDITION_CEILING).
+for r in rules:
+    assert 1 + len(r.get("exclude") or []) + (r["effect"] == "ask") <= 32, r
 def glob(p):
     if p.endswith(" *"):
         return re.compile(re.escape(p[:-2]) + r"( .*)?", re.S)

@@ -242,6 +242,33 @@ jq '.rules |= map(.match |= map(select(. != "sudo *")))' "$base/kiro.keep" > "$k
 sh "$inst" --check --root="$r" > "$base/check-kiro.out" 2>&1; expect "check flags a floor pattern removed from the Kiro admin copy" 1 $?
 if grep -qF "DRIFT   $kiro" "$base/check-kiro.out"; then ok "the drift names the Kiro admin copy"; else ko "the drift names the Kiro admin copy"; fi
 cp "$base/kiro.keep" "$kiro"
+# PR #153 lens B1: a Kiro admin file Kiro rejects puts Kiro IDE and the V3 engine in deny-all, so a statement
+# over the condition ceiling (1 + excludes) is refused before install, and an installed one is named by --check.
+jq '.rules[0].exclude = [range(0; 40) | "x\(.)"]' "$base/kiro.keep" > "$kiro"
+sh "$inst" --check --root="$r" > "$base/check-kiro-invalid.out" 2>&1; expect "check flags an installed Kiro file Kiro would reject" 1 $?
+if grep -qF "REFUSE  $kiro: Kiro would reject it, and then Kiro IDE and the Kiro CLI V3 engine deny EVERY tool call" "$base/check-kiro-invalid.out"; then
+  ok "check names the deny-all consequence and the way out"
+else
+  ko "check names the deny-all consequence and the way out" "$(grep Kiro "$base/check-kiro-invalid.out")"
+fi
+cp "$base/kiro.keep" "$kiro"
+bigstage="$base/stage-big"; cp -R "$stage" "$bigstage"
+jq '.rules[0].exclude = [range(0; 40) | "x\(.)"]' "$stage/kiro.json" > "$bigstage/kiro.json"
+bigsha=$(python3 -I -B -c '
+import hashlib, os, sys
+d = sys.argv[1]
+h = hashlib.sha256()
+for n in ["clipboard_guard.py", "clipboard.conf", "../claude.json", "../requirements.toml", "../kiro.json"]:
+    data = open(os.path.normpath(os.path.join(d, "bin", n)), "rb").read()
+    h.update(n.encode() + b"\0" + str(len(data)).encode() + b"\0" + data)
+print(h.hexdigest())' "$bigstage")
+cp "$kiro" "$base/kiro.before-big"
+sh "$inst" --apply="$bigstage" --sha256="$bigsha" --root="$r" > "$base/apply-big.out" 2>&1; expect "apply refuses a Kiro rule over the condition ceiling (hash matching)" 3 $?
+if cmp -s "$kiro" "$base/kiro.before-big" && grep -q "does not validate" "$base/apply-big.out"; then
+  ok "the over-ceiling stage installs nothing"
+else
+  ko "the over-ceiling stage installs nothing" "$(cat "$base/apply-big.out")"
+fi
 # install.sh's FLOOR report reads the admin copy (--managed-root), and counts a pattern removed from it.
 hk="$base/home-kiro-report"; mkdir -p "$hk"
 HOME="$hk" sh "$here/install.sh" --check --managed-root="$r" > "$base/kiro-report.out" 2>&1

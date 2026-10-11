@@ -757,6 +757,62 @@ class AdminCopy(Base):
         admin.write_text("not json", encoding="utf-8")
         self.assertIn("not read (", self.report(admin)[0])
 
+    def validate_file(self, doc, raw=None):
+        f = self.home / "kiro.json"
+        f.write_bytes(raw if raw is not None else json.dumps(doc).encode("utf-8"))
+        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=admin-validate", "--file=%s" % f],
+                           capture_output=True, text=True)
+        return p.returncode, p.stderr
+
+    def test_conditions_follow_kiros_compiler(self):
+        # Vpd (IDE 1.2.56) / yQc (kas 2.29.1): one statement per pattern, 1 + excludes (+1 for ask).
+        self.assertEqual(kp.conditions({"effect": "deny", "match": ["a *"] * 184}), 1)
+        self.assertEqual(kp.conditions({"effect": "deny", "match": ["a"], "exclude": ["x"] * 5}), 6)
+        self.assertEqual(kp.conditions({"effect": "ask", "match": ["a"], "exclude": ["x"]}), 3)
+        self.assertEqual(kp.conditions({"effect": "deny", "match": ["*"], "exclude": ["x"]}), 1)
+
+    def test_admin_validate_accepts_the_render_with_many_patterns(self):
+        want = {"shell": ["p%d *" % i for i in range(300)], "fs_read": ["~/.x"], "fs_write": ["~/.x"]}
+        self.assertEqual(self.validate_file(kp.admin_doc(want, STAMP))[0], 0)
+
+    def test_admin_validate_refuses_a_statement_over_the_ceiling(self):
+        doc = kp.admin_doc(kp.load_floor(self.floor), STAMP)
+        doc["rules"][0]["exclude"] = ["x%d" % i for i in range(kp.CONDITION_CEILING - 1)]
+        self.assertEqual(self.validate_file(doc)[0], 0)          # 1 + 31 = 32: at the ceiling
+        doc["rules"][0]["exclude"].append("one more")
+        code, err = self.validate_file(doc)                      # 33: over it
+        self.assertEqual(code, 3)
+        self.assertIn("over the ceiling of 32", err)
+        with self.assertRaises(kp.Refuse):
+            kp.admin_check(doc)
+
+    def test_admin_validate_refuses_what_kiro_rejects(self):
+        good = kp.admin_doc(kp.load_floor(self.floor), STAMP)
+        bad = []
+        d = json.loads(json.dumps(good)); d["rules"][0]["extra"] = 1; bad.append(d)        # unknown field
+        d = json.loads(json.dumps(good)); d["rules"][0]["effect"] = "allow"; bad.append(d)  # not in admin scope
+        d = json.loads(json.dumps(good)); d["rules"] = []; bad.append(d)
+        d = json.loads(json.dumps(good)); d["rules"][0]["match"] = []; bad.append(d)
+        d = json.loads(json.dumps(good)); d["settings"] = {}; bad.append(d)
+        d = json.loads(json.dumps(good)); del d[kp.NAME]; bad.append(d)
+        for doc in bad:
+            self.assertEqual(self.validate_file(doc)[0], 3, doc)
+        self.assertEqual(self.validate_file(None, raw=b"\xef\xbb\xbf" + json.dumps(good).encode())[0], 3)
+        self.assertEqual(self.validate_file(None, raw=b"{not json")[0], 3)
+        self.assertEqual(self.validate_file(good)[0], 0)
+
+    def test_report_names_the_deny_all_of_an_invalid_file(self):
+        admin = self.home / "managed-settings.json"
+        doc = kp.admin_doc(kp.load_floor(self.floor), STAMP)
+        doc["rules"][0]["extra"] = 1
+        admin.write_text(json.dumps(doc), encoding="utf-8")
+        line = self.report(admin)[0]
+        self.assertIn("INVALID (", line)
+        self.assertIn("deny every tool call", line)
+        self.assertIn("install-managed.sh --remove", line)
+        admin.write_text("{not json", encoding="utf-8")
+        self.assertIn("deny every tool call", self.report(admin)[0])
+
     def test_admin_only_on_report(self):
         env = {k: v for k, v in os.environ.items() if k != "XDG_DATA_HOME"}
         env["HOME"] = str(self.home)
