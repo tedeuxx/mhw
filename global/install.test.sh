@@ -462,7 +462,19 @@ hb="$base/home-bash"; mkdir -p "$hb"
 HOME="$hb" SHELL=/bin/bash sh "$inst" > /dev/null; expect "install under bash" 0 $?
 if [ "$(cat "$hb/.bashrc")" = "$(block_of "$hb")" ] && [ ! -e "$hb/.zshrc" ]; then ok "bash: the block goes into ~/.bashrc"; else ko "bash: the block is not in ~/.bashrc"; fi
 HOME="$hb" SHELL=/bin/bash sh "$inst" --uninstall > /dev/null; expect "uninstall under bash" 0 $?
-if [ ! -s "$hb/.bashrc" ]; then ok "bash: uninstall leaves ~/.bashrc as it was (empty, a file mhw created)"; else ko "bash: uninstall left: $(cat "$hb/.bashrc")"; fi
+if [ ! -e "$hb/.bashrc" ]; then ok "bash: uninstall deletes the ~/.bashrc install created, once it holds nothing else"; else ko "bash: uninstall left: $(cat "$hb/.bashrc")"; fi
+# A start-up file that is a symbolic link to nothing is refused visibly, nothing is created through it, and the
+# later steps still run (agents-lead lens on PR #151).
+hd="$base/home-dangling-rc"; mkdir -p "$hd"
+ln -s "$hd/missing-dotfiles/zshrc" "$hd/.zshrc"
+HOME="$hd" sh "$inst" > "$base/dangling.out" 2>&1; expect "install refuses a dangling start-up link" 3 $?
+if grep -qxF "REFUSE  $hd/.zshrc is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:" "$base/dangling.out" \
+   && [ -L "$hd/.zshrc" ] && [ ! -e "$hd/missing-dotfiles" ] && [ -f "$hd/.claude/settings.json" ] && grep -q '^FLOOR   ' "$base/dangling.out" \
+   && ! grep -qi 'no such file\|cannot create\|directory nonexistent' "$base/dangling.out"; then
+  ok "a dangling start-up link: REFUSE line, nothing created, later steps ran"
+else
+  ko "a dangling start-up link was not refused cleanly: $(grep -i 'zshrc\|error\|cannot' "$base/dangling.out" | head -n 3)"
+fi
 # macOS: a bash login shell (what Terminal.app opens) reads the first of ~/.bash_profile, ~/.bash_login and
 # ~/.profile, never ~/.bashrc (Issue #145 follow-up). That file gets the block too, by the same merge and 0600
 # backup; ~/.profile is never written (sh reads it too) and no ~/.bash_profile is created to hide it. On Linux
@@ -510,6 +522,19 @@ if [ "$(uname -s)" = Darwin ]; then
   hl4="$base/home-bash-login-none"; mkdir -p "$hl4"
   HOME="$hl4" SHELL=/bin/bash sh "$inst" > /dev/null; expect "install under bash with no login file" 0 $?
   if [ "$(cat "$hl4/.bash_profile")" = "$(block_of "$hl4")" ]; then ok "macOS bash: a new ~/.bash_profile holds the block"; else ko "macOS bash: no ~/.bash_profile block"; fi
+  # Uninstall deletes the ~/.bash_profile it created (an empty one would stop bash reading a later ~/.profile).
+  HOME="$hl4" SHELL=/bin/bash sh "$inst" --uninstall > "$base/bash-login-none-un.out" 2>&1; expect "uninstall under bash after a created ~/.bash_profile" 0 $?
+  if [ ! -e "$hl4/.bash_profile" ] && [ ! -e "$hl4/.bashrc" ] && grep -qxF "REMOVED $hl4/.bash_profile (install created it and only the paste-wrapper block was in it)" "$base/bash-login-none-un.out"; then
+    ok "macOS bash: uninstall deletes the start-up files install created"
+  else
+    ko "macOS bash: a created start-up file was left: $(ls -A "$hl4")"
+  fi
+  # A file that was there before, even empty, is never deleted.
+  hl5="$base/home-bash-login-empty"; mkdir -p "$hl5"
+  : > "$hl5/.bash_profile"
+  HOME="$hl5" SHELL=/bin/bash sh "$inst" > /dev/null 2>&1; expect "install under bash with an empty ~/.bash_profile" 0 $?
+  HOME="$hl5" SHELL=/bin/bash sh "$inst" --uninstall > /dev/null 2>&1; expect "uninstall under bash with an empty ~/.bash_profile" 0 $?
+  if [ -f "$hl5/.bash_profile" ] && [ ! -s "$hl5/.bash_profile" ]; then ok "macOS bash: the owner's empty ~/.bash_profile stays"; else ko "macOS bash: the owner's empty ~/.bash_profile was deleted"; fi
 else
   if [ "$(cksum < "$hl/.bash_profile")" = "$lsum" ] && [ ! -e "$hl/.bash_profile.pmhwc-backup" ]; then
     ok "Linux bash: ~/.bash_profile is not written"

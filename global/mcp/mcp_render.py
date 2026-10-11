@@ -32,7 +32,7 @@ import stat
 import subprocess
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # global/: the one shared private_copy
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # global/, first: no other module named private_copy may replace it
 from private_copy import private_copy  # noqa: E402
 
 try:

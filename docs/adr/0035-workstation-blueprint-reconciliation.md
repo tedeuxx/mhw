@@ -654,13 +654,21 @@ and uninstall as `~/.bashrc`:
   `~/.bash_profile` would stop bash reading `~/.profile`.
 - When none of the three exists, a new `~/.bash_profile` holds the block.
 - Uninstall removes the block from `~/.bash_profile` and `~/.bash_login` on every platform.
+- Install records each start-up file it created (`shell-rc-created.list` in the data directory). Uninstall
+  deletes such a file when nothing but the block was in it, so an empty `~/.bash_profile` never stays behind
+  to stop bash reading a later `~/.profile`. A file that was there before install, even an empty one, is
+  never deleted.
+- A start-up file that is a symbolic link to a missing file is refused with a `REFUSE` line (exit 3):
+  nothing is created through it, and the later install steps still run.
 
 On Linux nothing changes: desktop terminals open non-login shells, and the usual `~/.profile` sources
 `~/.bashrc`. *Written and tested* (`global/install.test.sh`, the bash login cases; a real `bash -l` defines
 the wrapper functions on macOS); **not installed**.
 
 **3. One backup helper.** The four Python copies of `private_copy` (they had drifted: only the Kiro one used
-`O_NOFOLLOW`) are now one, `global/private_copy.py`. The shell form in `install.sh` stays, because
+`O_NOFOLLOW`) are now one, `global/private_copy.py`. Each step puts `global/` first on `sys.path`, so no module
+of that name on `PYTHONPATH` or in site-packages can stand in for it (tested). On Windows the exclusive handle
+stays open while the access list is set, and the bytes go through that handle. The shell form in `install.sh` stays, because
 `install.sh` must run without `python3`. It never opens the destination: it refuses anything still there
 after the unlink, writes the bytes into a fresh `mktemp` file beside it (exclusive, 0600) and hard-links that
 to the destination. `link(2)` is exclusive and does not follow a link already there, so nothing planted

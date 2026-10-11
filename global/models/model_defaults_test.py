@@ -92,6 +92,44 @@ class ModelDefaults(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertEqual(out.count("OK"), 4, out)
 
+    def test_a_backup_that_cannot_be_made_leaves_no_temporary_file_and_changes_nothing(self):
+        # agents-lead lens on PR #151: the backup is taken before the temporary file is written, so a failed
+        # backup leaves no <file>.new.<pid> behind; the failure is a REFUSE line, not a traceback.
+        path = self.seed(".claude/settings.json", json.dumps({"model": "owner-model"}))
+        before = path.read_bytes()
+        blocker = Path(str(path) + ".pmhwc-models-backup")
+        blocker.mkdir()
+        (blocker / "keep").write_text("x", encoding="utf-8")  # a non-empty directory: it cannot be unlinked
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 3, out)
+        self.assertIn("REFUSE  %s: the backup or the write failed" % path, out)
+        self.assertNotIn("Traceback", out)
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual([p.name for p in path.parent.iterdir() if ".new." in p.name], [])
+
+    def test_a_failed_replace_removes_its_temporary_file(self):
+        sys.path.insert(0, str(SCRIPT.parent))
+        try:
+            import model_defaults as md
+        finally:
+            sys.path.pop(0)
+        path = self.seed(".claude/settings.json", json.dumps({"model": "owner-model"}))
+        before = path.read_bytes()
+        nf = md.NativeFile("claude-code", path)
+        nf.put("model", "pinned")
+        real = md.os.replace
+
+        def failing(*a):
+            raise OSError("replace failed")
+        md.os.replace = failing
+        try:
+            with self.assertRaises(OSError):
+                nf.write()
+        finally:
+            md.os.replace = real
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual([p.name for p in path.parent.iterdir() if ".new." in p.name], [])
+
     def test_install_keeps_every_other_key_and_table(self):
         self.seed(".claude/settings.json", json.dumps({"theme": "dark", "permissions": {"deny": ["x"]}}))
         self.seed(".codex/config.toml", '# mine\napproval_policy = "on-request"\n\n[profiles.x]\nmodel = "other"\n')

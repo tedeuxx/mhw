@@ -34,7 +34,7 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))  # global/: the one shared private_copy
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # global/, first: no other module named private_copy may replace it
 from private_copy import private_copy  # noqa: E402
 
 try:

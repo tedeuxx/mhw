@@ -261,6 +261,25 @@ class OneForm(unittest.TestCase):
                 spec.loader.exec_module(mod)
                 self.assertIs(mod.private_copy, shared.private_copy)
 
+    def test_a_planted_private_copy_earlier_on_the_path_never_replaces_the_real_one(self):
+        # agents-lead lens on PR #151: each step puts global/ FIRST on sys.path, so a module named private_copy
+        # on PYTHONPATH (which comes before site-packages too) cannot stand in for the confidentiality helper.
+        fake = BASE / "planted-path"
+        fake.mkdir(exist_ok=True)
+        (fake / "private_copy.py").write_text("def private_copy(src, dst):\n    raise SystemExit('FAKE')\n",
+                                              encoding="utf-8")
+        probe = ("import importlib.util, sys\n"
+                 "spec = importlib.util.spec_from_file_location('step', sys.argv[1])\n"
+                 "m = importlib.util.module_from_spec(spec)\n"
+                 "spec.loader.exec_module(m)\n"
+                 "print(m.private_copy.__module__, sys.modules[m.private_copy.__module__].__file__)\n")
+        for rel in USERS:
+            with self.subTest(rel):
+                p = subprocess.run([sys.executable, "-B", "-c", probe, str(HERE / rel)], capture_output=True, text=True,
+                                   env=dict(os.environ, PYTHONPATH=str(fake)), cwd=str(fake))
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertEqual(Path(p.stdout.split()[-1]).resolve(), SHARED.resolve(), p.stdout)
+
     def test_one_shell_form(self):
         hits = []
         for p in sorted(list(HERE.glob("*.sh")) + [HERE.parent / "mhw"]):

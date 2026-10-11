@@ -291,7 +291,8 @@ class Install(Base):
         for mode in ("install", "uninstall"):
             code, out = self.run_mode(mode)
             self.assertEqual(code, 3, out)
-            self.assertIn("lock %s is held" % lock, out)
+            # The script names the lock by its resolved path (a TMPDIR under /var is /private/var on macOS).
+            self.assertIn("lock %s is held" % os.path.realpath(str(lock)), out)
         self.assertEqual(self.path.read_bytes(), before)
         self.assertFalse(self.owned.exists())
         self.assertTrue(lock.is_dir())  # Kiro's lock is never taken away

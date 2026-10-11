@@ -41,13 +41,15 @@ def private_copy(src, dst):
         os.remove(dst)
     fd = os.open(dst, FLAGS, 0o600)
     if os.name == "nt":
-        os.close(fd)
+        # The exclusive handle stays open across the lockdown and the bytes go through it, so no other file can
+        # be swapped in by path between the two. The CRT opens it sharing read, write and delete, and changing
+        # an access list is not a data access, so icacls can set it while the handle is held.
         try:
             owner_only_acl(dst)
         except (OSError, subprocess.CalledProcessError) as e:
+            os.close(fd)
             os.remove(dst)
             raise OSError("could not make %s owner-only (%s); no backup written" % (dst, e.__class__.__name__))
-        fd = os.open(dst, os.O_WRONLY | getattr(os, "O_BINARY", 0))
     with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
         shutil.copyfileobj(inp, out)
     os.chmod(dst, 0o600)

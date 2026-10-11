@@ -425,6 +425,10 @@ EOF
   return 0
 }
 rc_damaged() { [ "$rc_bad" = 1 ] || [ "$rc_nb" -gt 1 ] || [ "$rc_nb" != "$rc_ne" ]; }
+# The start-up files install created (one path per line), so uninstall can delete one it emptied: an empty
+# ~/.bash_profile left behind would stop bash reading ~/.profile. A file that was there before is never deleted.
+rc_created="$data_dir/shell-rc-created.list"
+rc_was_created() { [ -f "$rc_created" ] && grep -qxF "$1" "$rc_created"; }
 rc_write() { # rc_write FILE NEW: FILE gets NEW's content; the previous file is kept beside it
   rc_write_file=$1
   rc_write_new=$2
@@ -434,6 +438,10 @@ rc_write() { # rc_write FILE NEW: FILE gets NEW's content; the previous file is 
     rc_kept="previous file kept as $rc_write_file.pmhwc-backup"
   else
     rc_kept="new file"
+    if ! rc_was_created "$rc_write_file"; then
+      mkdir -p "$data_dir"
+      printf '%s\n' "$rc_write_file" >> "$rc_created"
+    fi
   fi
   # Written through, so a start-up file that is a symbolic link (a dotfiles checkout) stays one, mode kept.
   cat "$rc_write_new" > "$rc_write_file"
@@ -458,6 +466,14 @@ shell_rc_line() {
 }
 shell_rc_one() { # shell_rc_one FILE: the managed block in one start-up file
   rc=$1
+  if [ -L "$rc" ] && [ ! -e "$rc" ]; then
+    # A link to nothing: writing through it would create its target somewhere else, or fail with a raw shell
+    # error that stops every later step. Refused visibly; the other steps still run.
+    echo "REFUSE  $rc is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:"
+    echo "        $rc_line"
+    raise 3
+    return 0
+  fi
   if [ -e "$rc" ] && [ ! -f "$rc" ]; then
     echo "REFUSE  $rc is not a regular file; nothing written. Add this line yourself:"
     echo "        $rc_line"
@@ -511,9 +527,15 @@ shell_rc_uninstall() {
       raise 3
       continue
     fi
+    if [ ! -s "$work/rc.stripped" ] && [ ! -L "$rc" ] && rc_was_created "$rc"; then
+      rm -f "$rc"
+      echo "REMOVED $rc (install created it and only the paste-wrapper block was in it)"
+      continue
+    fi
     rc_write "$rc" "$work/rc.stripped"
     echo "CHANGED $rc: paste-wrapper start-up block present -> absent ($rc_kept)"
   done
+  rm -f "$rc_created"
 }
 
 render() {
@@ -953,9 +975,9 @@ if [ "$mode" = uninstall ]; then
   models_step
   mcp_step
   kiro_step
+  shell_rc_uninstall   # before uninstall_user, which removes the data directory once it is empty
   uninstall_user
   method_step
-  shell_rc_uninstall
   echo "NOTE    the admin layer is not touched here; ${MHW_CMD:-./mhw} uninstall prints its sudo line"
   exit "$status"
 fi
