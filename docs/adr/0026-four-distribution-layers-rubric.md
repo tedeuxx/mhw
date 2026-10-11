@@ -172,7 +172,8 @@ two departures together with the record:
    instruction carrier is used yet, so it is installed at user level, declared as managed-class, and
    not reclassified as a preference. The table row predates that reading.
 2. **`.github/` is `not_distributed`, although the table gives *"that repository's CI publication"* as
-   its workspace example.** Meanwhile `AGENTS.md`, `CLAUDE.md` and `workspace/` are classed
+   its workspace example.** Meanwhile `AGENTS.md`, ~~`CLAUDE.md`~~ *(struck 2026-10-11: deleted,
+   [ADR-0037](0037-agents-md-is-the-only-root-brief.md))* and `workspace/` are classed
    `workspace`, though none of them is installed on a workstation either, so "not installed" is not
    the line between them. The line is the reader. Those files are read by an agent harness working in
    this repository, which makes them the repository's own contract with the harness. The workflows
