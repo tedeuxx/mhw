@@ -863,8 +863,8 @@ models_step() {
 # The deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036, Issue #144): the same validated floor, merged into
 # ~/.kiro/settings/permissions.yaml by global/kiro/kiro_permissions.py. The owner's own rules are kept and a
 # 0600 backup is left beside it; uninstall removes only the deny rules it appended, as it appended them,
-# never one of the owner's.
-# $1: another mode.
+# never one of the owner's, unless his rule is byte-identical to the one it appended, which it cannot tell
+# apart. $1: another mode.
 kiro_step() {
   if ! command -v python3 >/dev/null 2>&1; then
     echo "SKIP    the Kiro deny floor: python3 3.9 or later is required"

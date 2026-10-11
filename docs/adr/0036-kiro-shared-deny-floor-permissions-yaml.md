@@ -111,7 +111,9 @@ rules, one per capability. Install never removes a rule.
   - Install reconciles the record with the file before it appends anything, and forgets an entry that
     has no such rule (a `NOTE` line). The record therefore never holds an entry without its own rule.
   - Uninstall removes only matched rules, and removes each one whole. It never edits one of the owner's
-    rules, even when his rule holds the same pattern.
+    rules, even when his rule holds the same pattern, with one exception. If his rule is
+    byte-identical to the one mhw appended, uninstall cannot tell them apart and removes it. That
+    happens when he deletes mhw's rule and types the same rule back with no install in between.
   - A rule mhw appended that later gained a pattern cannot be told apart from one of his own, so it
     stays. The extra pattern comes from his edit or from a consent pattern Kiro appended.
   - An entry that cannot be matched, or no record at all, removes nothing and prints a `NOTE`, because

@@ -34,7 +34,9 @@ from the IDE bundle), which drops every comment. Each entry is matched to its ow
 of that capability, no exclude, with exactly the recorded match list. Install reconciles the record with
 the file before anything else and forgets an entry with no such rule (a NOTE line), so the record never
 holds an entry without its own rule. Uninstall removes only matched rules, whole, never one of the
-owner's rules even when it holds the same pattern. A rule mhw appended that has since gained a pattern
+owner's rules even when it holds the same pattern, unless his rule is byte-identical to the one mhw
+appended (he deleted mhw's rule and typed the same rule back, with no install in between), which it cannot
+tell apart. A rule mhw appended that has since gained a pattern
 (his edit, or a consent pattern Kiro appended) can no longer be told apart from his, so it stays. An
 entry that cannot be matched, or no record at all, removes nothing (the safe direction), said on a NOTE
 line.
@@ -538,7 +540,8 @@ def run(mode, stamp, want, floor_from):
         return 0
     # Install reconciles the record with the file first: an entry whose rule is gone (or edited past
     # recognition) is forgotten, so the record never holds an entry without its own rule, and a later
-    # uninstall cannot claim one of the owner's rules for it (PR #150 re-review).
+    # uninstall cannot claim one of the owner's rules for it, unless his rule is byte-identical to the one
+    # mhw appended (PR #150 re-review).
     rec = read_owned() if mode == "install" else None
     kept = []
     if rec is not None:
@@ -610,7 +613,8 @@ def uninstall(stamp, floor_from):
     except Refuse as e:
         print("REFUSE  %s: %s" % (path, e))
         return 3
-    # Only the rules install appended are edited, never one of the owner's: each recorded entry is matched
+    # Only the rules install appended are edited, never one of the owner's unless it is byte-identical to
+    # one mhw appended (which cannot be told apart): each recorded entry is matched
     # to its own distinct rule (match_entries). One that cannot be matched is left alone, said.
     rules = [dict(r) for r in doc["rules"]]
     drop = set()
