@@ -1,6 +1,6 @@
 # ADR-0026: Four distribution layers and the rubric that places each artifact
 
-- **Status:** proposed
+- **Status:** accepted (ratified by the owner, 2026-10-04)
 - **Date:** 2026-10-04
 - **Deciders:** the owner
 - **Refines:** [ADR-0014](0014-purpose-boundary-firewall-vs-plugin.md) (its two-way split becomes four layers)
@@ -53,7 +53,7 @@ manifests, the inventory and the dehydration all depend on it.
 
 ## Decision outcome
 
-**Proposed: option 1.**
+**Chosen: option 1.**
 
 ### The layers
 

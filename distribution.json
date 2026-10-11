@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "repository": "tedeuxx/personal-multi-harness-workstation-configuration",
+  "role": "firewall",
+  "peer": "tedeuxx/tadeumendonca-skills",
+  "not_distributed": [
+    "docs/",
+    ".github/",
+    "*_test.py",
+    "*.test.sh",
+    "*.test.ps1",
+    "README.md",
+    ".gitignore",
+    ".bumpversion.toml"
+  ],
+  "artifacts": [
+    {
+      "id": "global-brief",
+      "layer": "managed",
+      "paths": ["global/AGENTS.md"],
+      "gap": "Installed as a user-level instruction in every harness (ADR-0010); no managed instruction carrier is used yet."
+    },
+    {
+      "id": "deny-floor",
+      "layer": "managed",
+      "paths": ["global/deny-floor.conf"],
+      "gap": "Installed at user level (ADR-0016); promotion to the admin layer is pending. Kiro carries no floor."
+    },
+    {
+      "id": "restart-guard",
+      "layer": "managed",
+      "paths": ["global/hooks/restart_guard.py"],
+      "gap": "Kiro has no admin-only hook carrier (ADR-0024)."
+    },
+    {
+      "id": "hitl-escalation-guard",
+      "layer": "managed",
+      "paths": ["global/hooks/hitl-escalation-guard.sh", "global/hitl.conf"],
+      "gap": "Kiro has no admin-only hook carrier (ADR-0024)."
+    },
+    {
+      "id": "paste-filter",
+      "layer": "managed",
+      "paths": [
+        "global/clipboard/clipboard_guard.py",
+        "global/clipboard.conf",
+        "global/profile/locales/pt-BR/clipboard.conf"
+      ],
+      "gap": "Kiro has no admin-only hook carrier (ADR-0024)."
+    },
+    {
+      "id": "paste-wrapper",
+      "layer": "managed",
+      "paths": ["global/clipboard/paste_wrapper.py"],
+      "gap": "No harness carrier: a shell launcher the owner activates by sourcing it (ADR-0011)."
+    },
+    {
+      "id": "breaking-glass-switch",
+      "layer": "managed",
+      "paths": ["global/hooks/breaking_glass.py"]
+    },
+    {
+      "id": "managed-installer",
+      "layer": "managed",
+      "paths": ["global/install-managed.sh"]
+    },
+    {
+      "id": "breaking-glass-command",
+      "layer": "user",
+      "paths": ["global/commands/breaking-glass.md"]
+    },
+    {
+      "id": "user-installer",
+      "layer": "user",
+      "paths": ["global/install.sh", "global/install.ps1"]
+    },
+    {
+      "id": "personal-profile",
+      "layer": "user",
+      "paths": [
+        "global/profile/README.md",
+        "global/profile/profile.py",
+        "global/profile/profile.schema.json",
+        "global/profile/profile.example.json",
+        "overlay/"
+      ]
+    },
+    {
+      "id": "mcp-single-source",
+      "layer": "user",
+      "paths": ["global/mcp/"]
+    },
+    {
+      "id": "workspace-session-contract",
+      "layer": "workspace",
+      "paths": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".claude/",
+        ".codex/",
+        ".kiro/",
+        ".agents/",
+        "workspace/README.md",
+        "workspace/session-policy.json",
+        "workspace/startup.py",
+        "workspace/delivery.py"
+      ]
+    },
+    {
+      "id": "distribution-manifest",
+      "layer": "workspace",
+      "paths": ["distribution.json", "workspace/distribution_check.py"]
+    }
+  ]
+}
