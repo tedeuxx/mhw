@@ -52,6 +52,10 @@ This changes how a harness is supported, so a record is owed (ADR-0001 significa
 
 Add the allow list to the same file, an IDE-compatible agent, and global hooks.
 
+*Annotated 2026-10-11:* the IDE-agent part of this option arrives anyway as a side effect of the V3
+agent form the owner asked for: with a `permissions` block the IDE loads `workstation.json` too. See the
+amendment "the floor also in Kiro's admin file; the agent in the V3 form".
+
 - Good: closest to Claude Code and Codex.
 - Bad: much larger. The IDE has no prompt-submit hook type to carry the paste filter (*documented*
   absence). The owner rejected it for this version.
@@ -92,7 +96,7 @@ Option A.
 | Deny wins over ask and allow, across every scope; no allow can override a deny | **documented** |
 | A shell pattern ending in `" *"` matches the bare prefix and the prefix followed by anything; `*` matches any run of characters; each part of a compound command (`;`, `&&`, `\|\|`, `\|`) is checked on its own | **documented** (wildcard, compound commands); the `" *"` expansion is **read from the IDE bundle** (it compiles a pattern to a Cedar `like` plus an `==` on the prefix) |
 | Filesystem patterns are globs: `*` inside one path part, `**` across parts; a leading `~/` is the home directory | **documented** (globs); the `~/` expansion is **read from the IDE bundle** |
-| A rule with an unknown field, a missing capability or an invalid effect makes Kiro reject the whole file, which then contributes no rule | **read from the IDE bundle** (`zwe`, `DNu`, `mas`) |
+| A rule with an unknown field, a missing capability or an invalid effect makes Kiro reject the whole file, ~~which then contributes no rule~~ *corrected 2026-10-11 (PR #153 lens):* and a rejected file is **not** "no rule": the error is fatal, the policy engine is built with `policyLoaded=false`, and it answers **deny to every tool call** in that session | **read from the IDE bundle** (`zwe`, `DNu`, `mas`; the deny-all in `evaluate()`), and the same code in the bundled V3 engine (kas 2.29.1) |
 | A rule with an unknown capability is skipped with a warning | **read from the IDE bundle** |
 | When `permissions.yaml` exists, `permissions.json` in the same directory is not read | **read from the IDE bundle** (`jss`) |
 | The IDE also reads a root-owned admin file as the `administration` scope: `/Library/Application Support/Kiro/managed-settings.json` (macOS), `/etc/kiro/managed-settings.json` (Linux), `C:\ProgramData\Kiro\managed-settings.json` (Windows), same rules schema, parsed as JSON | **read from the IDE bundle** (`Gjd`, `Jjd`); ~~not rendered, not measured; whether Kiro CLI V3 reads it is not checked~~ *2026-10-11 amendment:* rendered by `install-managed.sh`; the Kiro CLI V3 engine reads the same three paths with the same loader (**read from the bundled V3 engine**, kas 2.29.1, `@kiro/agent/dist/server/acp-server.js`); not measured |
@@ -148,7 +152,8 @@ rules, one per capability. Install never removes a rule.
   - timestamp, in all three spellings;
   - value (`=`).
 
-  Re-quoting would turn a rule Kiro rejects, which disables the whole file, into a rule that applies.
+  Re-quoting would turn a rule Kiro rejects, which disables the whole file (*2026-10-11:* in fact puts
+  Kiro in deny-all for every tool call; see "A file Kiro rejects locks Kiro out"), into a rule that applies.
 - **Temporary file.** Every write goes through a random name created with `O_EXCL` (`mkstemp`) in
   the target's directory, then an atomic rename. A link planted at a predictable name is never
   followed. The backup is opened with `O_EXCL` and `O_NOFOLLOW`.
@@ -268,8 +273,9 @@ at `/Library/Application Support/Kiro/managed-settings.json` (macOS) or `/etc/ki
   permission loader ignores a top-level key it does not know, *read from the bundle*).
 - **Validated before install.** `validate()` refuses a stage whose Kiro document Kiro would reject: a
   byte order mark, a top-level shape other than the rules list and our key, a rule field other than
-  `capability`, `effect` and `match`, an effect other than `deny` (the administration scope allows
-  `deny` and `ask` only, *read from the bundle*), an unknown capability or an empty match list. The
+  `capability`, `effect`, `match` and `exclude`, an effect other than `deny` (the administration scope
+  allows `deny` and `ask` only, *read from the bundle*), an unknown capability, an empty match list, or a
+  statement over the 32-condition ceiling (see "A file Kiro rejects locks Kiro out" below). The
   document is bound into the stage hash like the other two.
 - **Never over someone else's file.** An existing `managed-settings.json` without our key (an
   organisation's Kiro policy, or a file that is not JSON) is refused by the render and by `--apply`
@@ -316,10 +322,42 @@ rejected for this record; this happens as a side effect of the V3 form he asked 
 `/upgrade-agent` he ran already produced it. If he wants the IDE kept out, the alternative is a second,
 V3-only agent file, which the CLI 2.x engine would also list.
 
+### A file Kiro rejects locks Kiro out, and the way back (PR #153 lens, B1)
+
+Read from both bundles: when Kiro cannot parse `managed-settings.json`, or a rule in it breaks the schema,
+the error is fatal and Kiro IDE and the Kiro CLI V3 engine **deny every tool call** until the file is
+fixed or gone. The same deny-all follows when a compiled Cedar statement of 64 or more conditions fails
+Kiro's cedar-wasm probe.
+
+How Kiro counts conditions, read from `Vpd` (IDE 1.2.56) and `yQc` (kas 2.29.1): every match pattern
+compiles to **its own** statement, of 1 condition for the pattern, plus 1 per `exclude` entry, plus 1 for
+an `ask` rule. So a deny rule with 184 patterns compiles to 184 statements of one condition each, not to
+one statement of 184. Splitting the shell rule would not change any count, so it is not split. What can
+reach the limit is a long `exclude` list.
+
+The guard, in code:
+
+- `kiro_permissions.py --mode=admin-validate` checks the shape Kiro's parser accepts: the fields,
+  `deny` only, string lists, no byte order mark, valid JSON.
+- It also refuses any rule whose statements exceed a ceiling of **32** conditions, half of Kiro's 64.
+- `install-managed.sh` runs it on the stage before install, and on the installed file in `--check`.
+  The latter reports `REFUSE … deny EVERY tool call; --apply rewrites it, --remove deletes it`.
+- `admin_doc()` refuses to render over the ceiling.
+- The `FLOOR` line reads `INVALID (…)` with the same consequence and the way out.
+- The agent's V3 rule has 1 + 11 conditions. `allow-list.test.sh` asserts it stays at or under 32.
+
+A floor that grows cannot silently produce a lockout file: the render or the stage is refused.
+
+**Rollback**, for a lockout from any cause: `sudo /bin/sh global/install-managed.sh --remove`, or delete
+that one file as root (`/Library/Application Support/Kiro/managed-settings.json`, or
+`/etc/kiro/managed-settings.json` on Linux). Kiro CLI on the 2.x engine, the default, does not read the
+file, so it stays usable during a lockout. `docs/runbooks/breaking-glass.md` lists the file.
+
 ### Evidence
 
 | Claim | Level |
 | --- | --- |
+| A Kiro admin document Kiro would reject, or with a statement over the 32-condition ceiling, is refused at render, at `--apply` (with a matching hash) and named by `--check`; the `FLOOR` line names the deny-all | **tested** (`install-managed.test.sh` 3c; `kiro_permissions_test.py` `AdminCopy`), the ceiling mutation-checked; the deny-all and the condition counting are read from the bundles, not measured |
 | `install-managed.sh` renders, validates, hashes, installs, checks, refuses beside a foreign file and removes the Kiro admin copy | **tested** under a throwaway `--root` (`global/install-managed.test.sh` 3c, 5b, 6), the install and foreign-file guards mutation-checked |
 | The rendered document passes the validation Kiro's bundles apply | **emulated** in the suite from the code read in the IDE 1.2.56 and kas 2.29.1 bundles; no Kiro loaded it |
 | `install.sh` counts the admin copy on its `FLOOR` line | **tested** (`global/install-managed.test.sh` 3c; `global/kiro/kiro_permissions_test.py` `AdminCopy`), the count mutation-checked |
