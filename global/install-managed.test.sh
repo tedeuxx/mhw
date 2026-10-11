@@ -24,10 +24,13 @@ NAME=personal-multi-harness-workstation-configuration
 if [ "$(uname -s)" = Darwin ]; then
   bin="$r/Library/Application Support/$NAME/bin"
   dropin="$r/Library/Application Support/ClaudeCode/managed-settings.d/50-$NAME.json"
+  kiro_rel="Library/Application Support/Kiro/managed-settings.json"
 else
   bin="$r/etc/$NAME/bin"
   dropin="$r/etc/claude-code/managed-settings.d/50-$NAME.json"
+  kiro_rel="etc/kiro/managed-settings.json"
 fi
+kiro="$r/$kiro_rel"
 req="$r/etc/codex/requirements.toml"
 switches="$(dirname "$bin")/breaking-glass"
 export TMPDIR="$base/tmp"
@@ -39,7 +42,7 @@ line=$(sed -n 's/^RUN     //p' "$base/render.out")
 stage=$(printf '%s' "$line" | sed -n 's/.*--apply="\([^"]*\)".*/\1/p')
 sha=$(printf '%s' "$line" | sed -n 's/.*--sha256=\([0-9a-f]*\).*/\1/p')
 case $line in "sudo /bin/sh "*) ok "render prints a sudo line" ;; *) ko "render prints a sudo line" "$line" ;; esac
-if [ -d "$stage" ] && [ ${#sha} -eq 64 ] && [ ! -e "$bin" ] && [ ! -e "$dropin" ] && [ ! -e "$req" ]; then
+if [ -d "$stage" ] && [ ${#sha} -eq 64 ] && [ ! -e "$bin" ] && [ ! -e "$dropin" ] && [ ! -e "$req" ] && [ ! -e "$kiro" ]; then
   ok "render stages and installs nothing"
 else
   ko "render stages and installs nothing"
@@ -48,13 +51,13 @@ sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check before apply repo
 
 # 2. the hash binds every staged file: a wrong hash or a changed file installs nothing
 sh "$inst" --apply="$stage" --sha256=0000 --root="$r" > /dev/null 2>&1; expect "apply refuses a wrong hash" 3 $?
-for f in bin/clipboard_guard.py bin/clipboard.conf claude.json requirements.toml; do
+for f in bin/clipboard_guard.py bin/clipboard.conf claude.json requirements.toml kiro.json; do
   cp "$stage/$f" "$base/keep"
   printf '\n' >> "$stage/$f"
   sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply refuses a changed $f" 3 $?
   cp "$base/keep" "$stage/$f"
 done
-[ ! -e "$dropin" ] && [ ! -e "$req" ] && ok "a refused apply installs nothing" || ko "a refused apply installs nothing"
+[ ! -e "$dropin" ] && [ ! -e "$req" ] && [ ! -e "$kiro" ] && ok "a refused apply installs nothing" || ko "a refused apply installs nothing"
 
 # 3. apply installs the admin documents and the scripts
 sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply exits 0" 0 $?
@@ -142,6 +145,42 @@ if [ "$nrules" -eq "$want_cmds" ] && grep -q '^\[rules\]$' "$req" \
 else
   ko "the Codex requirements carry one forbidden prefix rule per cmd entry ($want_cmds)" "got $nrules"
 fi
+# 3c. the Kiro admin copy (ADR-0036, 2026-10-11 amendment): root-owned managed-settings.json, the floor as
+# deny rules. Checked against the validation Kiro's bundles apply (read from Kiro IDE 1.2.56 and the Kiro CLI V3
+# engine 2.29.1, emulated here): a "rules" array; each rule an object with a string capability, an effect the
+# administration scope allows (deny, ask), only capability/effect/match/exclude, match a string array. And the
+# login controls that read the same file act on nothing: no signin_method rule and no "settings" object.
+# Counts are derived from the source: a cmd or glob line is one shell pattern, a file line one fs_read and one
+# fs_write pattern.
+want_kiro=$(awk '$1 == "cmd" || $1 == "glob" { n++ } $1 == "file" { n += 2 } END { print n }' "$here/deny-floor.conf" "$ofloor")
+if python3 - "$kiro" "$NAME" "$want_kiro" <<'PY'
+import json, sys
+path, name, want = sys.argv[1], sys.argv[2], int(sys.argv[3])
+raw = open(path, "rb").read()
+assert not raw.startswith(b"\xef\xbb\xbf")
+d = json.loads(raw)
+assert isinstance(d, dict) and isinstance(d.get("rules"), list), "Kiro: Policy must contain a rules array"
+for r in d["rules"]:
+    assert isinstance(r, dict) and isinstance(r.get("capability"), str)
+    assert r.get("effect") in ("deny", "ask"), "administration scope allows deny and ask only"
+    assert not set(r) - {"capability", "effect", "match", "exclude"}, "Kiro rejects an unknown rule field"
+    for k in ("match", "exclude"):
+        assert k not in r or (isinstance(r[k], list) and all(isinstance(x, str) for x in r[k]))
+assert set(d) == {"rules", name} and "managed-by: " + name in d[name]
+assert "settings" not in d and not any(r["capability"] == "signin_method" for r in d["rules"])
+caps = {r["capability"]: r["match"] for r in d["rules"]}
+assert set(caps) == {"shell", "fs_read", "fs_write"} and all(r["effect"] == "deny" for r in d["rules"])
+assert sum(len(m) for m in caps.values()) == want, (sum(len(m) for m in caps.values()), want)
+assert "sudo *" in caps["shell"] and "gh workflow run *" in caps["shell"] and "terraform -chdir=*" in caps["shell"]
+assert "~/.ssh/id_*" in caps["fs_read"] and "~/.ssh/id_*" in caps["fs_write"] and "**/.env" in caps["fs_read"]
+PY
+then
+  ok "the Kiro admin copy carries every floor pattern ($want_kiro) as deny rules Kiro's schema accepts (emulated)"
+else
+  ko "the Kiro admin copy is missing patterns or is outside Kiro's schema"
+fi
+kmode=$(ls -l "$kiro" | cut -c1-10)
+[ "$kmode" = "-rw-r--r--" ] && ok "the Kiro admin copy is 0644" || ko "the Kiro admin copy is 0644" "$kmode"
 if command -v codex >/dev/null 2>&1; then
   # Credential-free: the same token lists, written as a user .rules file, through Codex's own evaluator.
   # This proves the lists, not that Codex loads them from the admin path (that needs root).
@@ -173,21 +212,21 @@ case $src_stamp in
   *) ko "the source stamp names HEAD" "'$src_stamp' vs $head_sha" ;;
 esac
 unstamped=""
-for f in "$dropin" "$req" "$bin/clipboard_guard.py" "$bin/clipboard.conf"; do
+for f in "$dropin" "$req" "$kiro" "$bin/clipboard_guard.py" "$bin/clipboard.conf"; do
   got=$(grep -m 1 -F "managed-by: $NAME" "$f" | sed -n 's/.*; \(release: [^;"]*; commit: [^;"]*\);.*/\1/p')
   [ -n "$src_stamp" ] && [ "$got" = "$src_stamp" ] || unstamped="$unstamped $f"
 done
 if [ -z "$unstamped" ]; then ok "every installed admin file carries the source's stamp"; else ko "every installed admin file carries the source's stamp" "missing in:$unstamped"; fi
-if [ "$(grep -c '^OK .*(release: ' "$base/check-clean.out")" -eq 4 ]; then ok "check reports each admin file's stamp"; else ko "check reports each admin file's stamp"; fi
+if [ "$(grep -c '^OK .*(release: ' "$base/check-clean.out")" -eq 5 ]; then ok "check reports each admin file's stamp"; else ko "check reports each admin file's stamp"; fi
 other=0123456789abcdef0123456789abcdef01234567
-for f in "$req" "$dropin"; do
+for f in "$req" "$dropin" "$kiro"; do
   sed "s/; commit: [^;\"]*;/; commit: $other;/" "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
 done
 sh "$inst" --check --root="$r" > "$base/check-stamp.out" 2>&1; expect "check flags a stamp other than the source's" 1 $?
-if [ "$(grep -c "^STAMP .*commit: $other" "$base/check-stamp.out")" -eq 2 ] && ! grep -q '^DRIFT' "$base/check-stamp.out"; then
-  ok "both restamped admin documents are named STAMP, not DRIFT"
+if [ "$(grep -c "^STAMP .*commit: $other" "$base/check-stamp.out")" -eq 3 ] && ! grep -q '^DRIFT' "$base/check-stamp.out"; then
+  ok "the three restamped admin documents are named STAMP, not DRIFT"
 else
-  ko "both restamped admin documents are named STAMP, not DRIFT" "$(cat "$base/check-stamp.out")"
+  ko "the three restamped admin documents are named STAMP, not DRIFT" "$(cat "$base/check-stamp.out")"
 fi
 sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1
 sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "apply restores the source's stamp" 0 $?
@@ -198,6 +237,33 @@ jq '.permissions.deny |= map(select(. != "Bash(sudo:*)"))' "$base/dropin.keep" >
 sh "$inst" --check --root="$r" > "$base/check-floor.out" 2>&1; expect "check flags a deny-floor rule removed from the admin drop-in" 1 $?
 if grep -q '^DRIFT .*managed-settings.d' "$base/check-floor.out"; then ok "the drift names the drop-in"; else ko "the drift names the drop-in"; fi
 cp "$base/dropin.keep" "$dropin"
+cp "$kiro" "$base/kiro.keep"
+jq '.rules |= map(.match |= map(select(. != "sudo *")))' "$base/kiro.keep" > "$kiro"
+sh "$inst" --check --root="$r" > "$base/check-kiro.out" 2>&1; expect "check flags a floor pattern removed from the Kiro admin copy" 1 $?
+if grep -qF "DRIFT   $kiro" "$base/check-kiro.out"; then ok "the drift names the Kiro admin copy"; else ko "the drift names the Kiro admin copy"; fi
+cp "$base/kiro.keep" "$kiro"
+# install.sh's FLOOR report reads the admin copy (--managed-root), and counts a pattern removed from it.
+hk="$base/home-kiro-report"; mkdir -p "$hk"
+HOME="$hk" sh "$here/install.sh" --check --managed-root="$r" > "$base/kiro-report.out" 2>&1
+if grep -qF "FLOOR   Kiro: admin managed-settings.json $want_kiro/$want_kiro floor patterns" "$base/kiro-report.out"; then
+  ok "install.sh reports the Kiro admin copy complete"
+else
+  ko "install.sh reports the Kiro admin copy complete" "$(grep 'FLOOR   Kiro' "$base/kiro-report.out")"
+fi
+jq '.rules |= map(.match |= map(select(. != "sudo *")))' "$base/kiro.keep" > "$kiro"
+HOME="$hk" sh "$here/install.sh" --check --managed-root="$r" > "$base/kiro-report2.out" 2>&1
+if grep -qF "FLOOR   Kiro: admin managed-settings.json $((want_kiro - 1))/$want_kiro floor patterns" "$base/kiro-report2.out"; then
+  ok "install.sh counts a pattern missing from the Kiro admin copy"
+else
+  ko "install.sh counts a pattern missing from the Kiro admin copy" "$(grep 'FLOOR   Kiro' "$base/kiro-report2.out")"
+fi
+cp "$base/kiro.keep" "$kiro"
+HOME="$hk" sh "$here/install.sh" --check --managed-root="$base/no-admin" > "$base/kiro-report3.out" 2>&1
+if grep -qF "FLOOR   Kiro: admin managed-settings.json absent" "$base/kiro-report3.out"; then
+  ok "install.sh reports an absent Kiro admin copy as absent"
+else
+  ko "install.sh reports an absent Kiro admin copy as absent" "$(grep 'FLOOR   Kiro' "$base/kiro-report3.out")"
+fi
 
 # 4. the registered commands run from the admin bin (direct payloads: proves the commands, not routing)
 h="$base/home"; mkdir -p "$h/project/.git"
@@ -241,10 +307,27 @@ sh "$inst" --root="$r2" > /dev/null 2>&1; expect "render refuses beside a foreig
 sh "$inst" --apply="$stage" --sha256="$sha" --root="$r2" > /dev/null 2>&1; expect "apply refuses beside a foreign Codex requirements file" 3 $?
 sh "$inst" --remove --root="$r2" > /dev/null 2>&1
 grep -q 'someone else' "$r2/etc/codex/requirements.toml" && ok "remove keeps a foreign Codex requirements file" || ko "remove keeps a foreign Codex requirements file"
+# 5b. a foreign Kiro managed-settings.json (an organisation's policy) is never overwritten or removed
+r3="$base/root3"; mkdir -p "$(dirname "$r3/$kiro_rel")"
+printf '%s\n' '{"rules": [{"capability": "shell", "effect": "deny", "match": ["theirs *"]}]}' > "$r3/$kiro_rel"
+keep3=$(cksum < "$r3/$kiro_rel")
+sh "$inst" --root="$r3" > /dev/null 2>&1; expect "render refuses beside a foreign Kiro managed-settings.json" 3 $?
+sh "$inst" --apply="$stage" --sha256="$sha" --root="$r3" > /dev/null 2>&1; expect "apply refuses beside a foreign Kiro managed-settings.json" 3 $?
+sh "$inst" --check --root="$r3" > "$base/check-foreign-kiro.out" 2>&1
+grep -qF "REFUSE  $r3/$kiro_rel: NOT managed by this project" "$base/check-foreign-kiro.out" && ok "check names a foreign Kiro managed-settings.json" || ko "check names a foreign Kiro managed-settings.json"
+sh "$inst" --remove --root="$r3" > "$base/remove-foreign-kiro.out" 2>&1
+if [ "$(cksum < "$r3/$kiro_rel")" = "$keep3" ] && grep -q "^NOTE .*NOT managed by this project; left alone" "$base/remove-foreign-kiro.out"; then
+  ok "remove keeps a foreign Kiro managed-settings.json, byte for byte"
+else
+  ko "remove keeps a foreign Kiro managed-settings.json, byte for byte"
+fi
+# Not JSON at all is foreign too (it could be anyone's), never overwritten.
+printf 'not json\n' > "$r3/$kiro_rel"
+sh "$inst" --apply="$stage" --sha256="$sha" --root="$r3" > /dev/null 2>&1; expect "apply refuses beside an unreadable Kiro managed-settings.json" 3 $?
 
 # 6. remove takes away exactly what apply installed
 sh "$inst" --remove --root="$r" > /dev/null 2>&1; expect "remove exits 0" 0 $?
-[ ! -e "$dropin" ] && [ ! -e "$req" ] && [ ! -e "$bin" ] && ok "remove leaves no admin-layer file of ours" || ko "remove leaves no admin-layer file of ours"
+[ ! -e "$dropin" ] && [ ! -e "$req" ] && [ ! -e "$bin" ] && [ ! -e "$kiro" ] && ok "remove leaves no admin-layer file of ours" || ko "remove leaves no admin-layer file of ours"
 if [ "$(id -u)" != 0 ]; then
   # A wrong hash: even a broken root check then stops at the hash (3), never at a system path.
   sh "$inst" --apply="$stage" --sha256=0000 > /dev/null 2>&1; expect "apply without --root refuses a non-root run" 2 $?

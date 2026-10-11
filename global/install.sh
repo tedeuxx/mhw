@@ -972,7 +972,7 @@ kiro_step() {
     return 0
   fi
   python3 -B "$script_dir/kiro/kiro_permissions.py" "--mode=${1:-$mode}" "--stamp=$stamp" "--floor=$floor" \
-    "--floor-from=$floor_from" || raise $?
+    "--floor-from=$floor_from" ${2:+"$2"} || raise $?
 }
 # The MCP servers the policy retired (ADR-0035 decision 2: aws-api) leave the Codex user configuration
 # (Issue #145), through global/mcp/mcp_retire.py: a backup, old -> new, nothing else in the file changes.
@@ -1082,6 +1082,9 @@ report_floor() {
     m_claude="$managed_root/etc/claude-code/managed-settings.d/50-personal-multi-harness-workstation-configuration.json"
   fi
   m_codex="$managed_root/etc/codex/requirements.toml"
+  # The Kiro admin copy (ADR-0036, 2026-10-11 amendment); install-managed.sh installs it.
+  if [ "$(uname -s)" = Darwin ]; then m_kiro="$managed_root/Library/Application Support/Kiro/managed-settings.json"
+  else m_kiro="$managed_root/etc/kiro/managed-settings.json"; fi
   command -v jq >/dev/null 2>&1 || { echo "FLOOR   not reported: jq is required"; return 0; }
   want=$(jq -cR -s 'split("\n") | map(select(length > 0)) | unique' "$floor_claude")
   n_want=$(printf '%s' "$want" | jq length)
@@ -1100,7 +1103,7 @@ report_floor() {
   [ -f "$codex_rules" ] && is_managed "$codex_rules" && codex_user=present
   echo "FLOOR   Claude Code: user layer $n_user/$n_want rules; admin layer $n_admin/$n_want rules"
   echo "FLOOR   Codex: user rules file $codex_user; admin requirements $n_codex_admin/$n_codex prefix rules"
-  kiro_step report
+  kiro_step report "--admin=$m_kiro"
   if [ "$n_admin" -eq "$n_want" ] && [ "$n_codex_admin" -eq "$n_codex" ]; then
     echo "FLOOR   carried by: the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
   elif [ "$n_user" -ne "$n_want" ] || [ "$codex_user" != present ]; then

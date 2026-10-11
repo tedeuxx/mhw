@@ -2,6 +2,9 @@
 """Render the workstation deny floor into Kiro's user-level permissions.yaml (ADR-0036, Issue #144).
 
     kiro_permissions.py --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE
+                        [--admin=FILE]   (report only: also a FLOOR line for the root-owned admin copy)
+    kiro_permissions.py --mode=admin-json --stamp=STAMP --from-yaml=FILE
+                        (print the admin managed-settings.json install-managed.sh installs; writes nothing)
 
 FILE is the deny floor install.sh already validated (global/deny-floor.conf, then the overlay's), the same
 single source the Claude Code and Codex floors are rendered from. STAMP is install.sh's provenance stamp
@@ -636,6 +639,62 @@ def total(want):
     return sum(len(v) for v in want.values())
 
 
+# --- the root-owned admin copy (ADR-0036, 2026-10-11 amendment) ------------------------------------------
+# Kiro IDE 1.2.56 and the Kiro CLI V3 engine (kas 2.29.1) read a root-owned managed-settings.json as their
+# "administration" scope: the same rules schema as permissions.yaml, parsed as JSON, deny and ask only (read
+# from both bundles). The same file is read by Kiro's sign-in "login controls", which act only on rules of
+# capability signin_method and on a "settings" object, neither of which is rendered here. install-managed.sh
+# writes it, as root, from the floor install.sh rendered; this script only renders and counts.
+NAME = "personal-multi-harness-workstation-configuration"
+
+
+def admin_doc(want, stamp):
+    """The admin document: one stamp key of ours (JSON has no comment) and one deny rule per capability."""
+    return {NAME: "%s; source: global/install-managed.sh via global/kiro/kiro_permissions.py; %s; do not edit, "
+                  "re-run the installer" % (MARKER_ID, stamp),
+            "rules": [{"capability": c, "effect": "deny", "match": list(want[c])} for c in CAPS if want[c]]}
+
+
+def want_from_yaml(path):
+    """The floor as install.sh rendered it into a fresh permissions.yaml: its deny rules, in order."""
+    doc = parse(Path(path).read_text(encoding="utf-8"))
+    want = {c: [] for c in CAPS}
+    for r in doc["rules"]:
+        if r.get("effect") != "deny" or r.get("exclude") or r.get("capability") not in CAPS:
+            raise Refuse("%s holds a rule that is not a plain floor deny rule" % path)
+        for p in r.get("match") or []:
+            if p not in want[r["capability"]]:
+                want[r["capability"]].append(p)
+    if not any(want.values()):
+        raise Refuse("%s holds no deny-floor pattern" % path)
+    return want
+
+
+def admin_report(admin, want):
+    """One FLOOR line for the admin copy: absent, not ours, unreadable, or n/m floor patterns."""
+    n_want = total(want)
+    where = "admin managed-settings.json"
+    if not os.path.lexists(admin):
+        state = "absent"
+    else:
+        try:
+            with open(admin, encoding="utf-8") as f:
+                doc = json.load(f)
+        except (OSError, UnicodeDecodeError, ValueError) as e:
+            state = "not read (%s)" % e.__class__.__name__
+        else:
+            if not isinstance(doc, dict) or MARKER_ID not in str(doc.get(NAME, "")):
+                state = "present and NOT managed by this project"
+            elif not isinstance(doc.get("rules"), list) or not all(isinstance(r, dict) for r in doc["rules"]):
+                state = "not read (no rules list)"
+            else:
+                n_miss = sum(1 for c in CAPS for p in want[c] if not covered(doc["rules"], c, p))
+                state = "%d/%d floor patterns" % (n_want - n_miss, n_want)
+    print("FLOOR   Kiro: %s %s (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, "
+          "read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)"
+          % (where, state))
+
+
 def run(mode, stamp, want, floor_from):
     path = target()
     n_want = total(want)
@@ -777,14 +836,30 @@ def main(argv=None):
     opts = {}
     for a in args:
         k, sep, v = a.partition("=")
-        if not sep or k not in ("--mode", "--stamp", "--floor", "--floor-from") or k in opts:
+        if not sep or k not in ("--mode", "--stamp", "--floor", "--floor-from", "--admin", "--from-yaml") \
+                or k in opts:
             opts = None
             break
         opts[k] = v
+    if opts and opts.get("--mode") == "admin-json":
+        # The admin document for install-managed.sh, from the permissions.yaml install.sh rendered into a
+        # throwaway home: printed on stdout, nothing written.
+        if not opts.get("--stamp") or not opts.get("--from-yaml") or set(opts) != {"--mode", "--stamp", "--from-yaml"}:
+            print("usage: kiro_permissions.py --mode=admin-json --stamp=STAMP --from-yaml=FILE", file=sys.stderr)
+            return 2
+        try:
+            want = want_from_yaml(opts["--from-yaml"])
+        except (OSError, UnicodeDecodeError, Refuse) as e:
+            print("REFUSE  Kiro admin document: %s" % e, file=sys.stderr)
+            return 3
+        print(json.dumps(admin_doc(want, opts["--stamp"]), indent=2, ensure_ascii=True))
+        return 0
     modes = ("install", "check", "dry-run", "uninstall", "report")
-    if not opts or opts.get("--mode") not in modes or not opts.get("--stamp") or not opts.get("--floor"):
+    if not opts or opts.get("--mode") not in modes or not opts.get("--stamp") or not opts.get("--floor") \
+            or "--from-yaml" in opts or ("--admin" in opts and opts["--mode"] != "report"):
         print("usage: kiro_permissions.py --mode=install|check|dry-run|uninstall|report --stamp=STAMP "
-              "--floor=FILE [--floor-from=TEXT]", file=sys.stderr)
+              "--floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n"
+              "       kiro_permissions.py --mode=admin-json --stamp=STAMP --from-yaml=FILE", file=sys.stderr)
         return 2
     floor_from = opts.get("--floor-from") or "global/deny-floor.conf"
     try:
@@ -794,7 +869,10 @@ def main(argv=None):
         return 2
     mode = opts["--mode"]
     if mode not in ("install", "uninstall"):
-        return run(mode, opts["--stamp"], want, floor_from)
+        code = run(mode, opts["--stamp"], want, floor_from)
+        if opts.get("--admin"):
+            admin_report(opts["--admin"], want)
+        return code
     # A writing mode holds Kiro's own lock from before the read until after the rename, so while both honour
     # it a consent rule Kiro writes meanwhile is not lost (best effort; see kiro_lock, PR #150 lens).
     try:
