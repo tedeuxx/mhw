@@ -203,6 +203,18 @@ class ModelDefaults(unittest.TestCase):
         self.assertIn('REMOVED %s: model_reasoning_effort "medium" -> "high"' % path, out)
         self.assertEqual(path.read_text(encoding="utf-8"), seed)
 
+    def test_the_backup_is_owner_only_whatever_the_original_mode(self):
+        # PR #146 QA advisory: a backup can hold what another step removes later; it is 0600 from the start.
+        path = self.seed(".codex/config.toml", 'model_reasoning_effort = "high"\n')
+        os.chmod(path, 0o644)
+        backup = Path(str(path) + ".pmhwc-models-backup")
+        backup.write_text("stale\n", encoding="utf-8")
+        os.chmod(backup, 0o644)
+        self.assertEqual(self.run_mode("install")[0], 0)
+        self.assertEqual(os.stat(path).st_mode & 0o777, 0o644)
+        self.assertEqual(os.stat(backup).st_mode & 0o777, 0o600)
+        self.assertEqual(backup.read_text(encoding="utf-8"), 'model_reasoning_effort = "high"\n')
+
     def test_a_foreign_record_is_refused(self):
         record = self.home / RECORD
         record.parent.mkdir(parents=True)

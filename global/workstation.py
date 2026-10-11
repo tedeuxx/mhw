@@ -1099,6 +1099,10 @@ def owner_steps(lines):
             why = " (%s)" % m.group(1) if m else ""
             steps.append("mhw wrote no shell start-up file%s. To clean pasted text automatically, add this "
                          "line to yours:\n       %s" % (why, lines[i + 1].strip()))
+        # A retired MCP server rendered into the managed block comes from the owner's local MCP definition,
+        # so removing it there is his act; shown in plain install output, not only with --verbose.
+        if line.startswith("NOTE") and "the retired MCP server" in line and "in the managed block" in line:
+            steps.append(line[8:].strip())
         if line.startswith("RESTART REQUIRED") and "/hooks" in line:
             steps.append("In Codex, approve the mhw hooks once: type /hooks in a new session.")
     return steps

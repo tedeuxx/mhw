@@ -292,6 +292,16 @@ fi
 
 status=0
 raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
+# private_copy SRC DST: every .pmhwc-*backup of a harness config is owner-only (0600) from its first byte,
+# whatever the original's mode: a backup can hold what install removed, such as an MCP server's environment
+# values (PR #146 QA advisory). A file or link already at DST is replaced, never written through.
+private_copy() {
+  pc_src=$1
+  pc_dst=$2
+  rm -f "$pc_dst"
+  (umask 077 && cp "$pc_src" "$pc_dst")
+  chmod 600 "$pc_dst"
+}
 
 # The shell start-up block that activates the paste wrapper (Issue #145; it was opt-in under Issue #58).
 # install writes it into the shell's own start-up file, chosen from $SHELL (zsh: ${ZDOTDIR:-~}/.zshrc;
@@ -368,7 +378,7 @@ rc_write() { # rc_write FILE NEW: FILE gets NEW's content; the previous file is 
   rc_write_new=$2
   mkdir -p "$(dirname "$rc_write_file")"
   if [ -e "$rc_write_file" ]; then
-    cp -p "$rc_write_file" "$rc_write_file.pmhwc-backup"
+    private_copy "$rc_write_file" "$rc_write_file.pmhwc-backup"
     rc_kept="previous file kept as $rc_write_file.pmhwc-backup"
   else
     rc_kept="new file"
@@ -746,7 +756,7 @@ merge_settings() {
       mkdir -p "$(dirname "$settings")"
       tmp="$settings.new.$$"
       if [ -e "$settings" ]; then
-        cp -p "$settings" "$settings.pmhwc-backup"
+        private_copy "$settings" "$settings.pmhwc-backup"
         cp -p "$settings" "$tmp"
       fi
       cat "$merged" > "$tmp"
@@ -816,7 +826,7 @@ uninstall_user() {
     echo "OK      $settings holds no entry of ours"
     return 0
   fi
-  cp -p "$settings" "$settings.pmhwc-backup"
+  private_copy "$settings" "$settings.pmhwc-backup"
   cat "$work/settings.unmerged.json" > "$settings.new.$$"
   mv "$settings.new.$$" "$settings"
   echo "UNMERGED $settings (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as $settings.pmhwc-backup)"
@@ -940,8 +950,9 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
   fi
 fi
 merge_settings
-models_step
+# The retired MCP servers leave config.toml before the model defaults back it up (PR #146 QA advisory).
 mcp_step
+models_step
 allow_step
 method_step
 

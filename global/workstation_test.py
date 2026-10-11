@@ -1051,6 +1051,13 @@ class OwnerSteps(unittest.TestCase):
             "NOTE    automatic paste cleaning: no shell start-up file is written (your shell (SHELL=/bin/fish) "
             "is neither zsh nor bash); add this line to yours:", "        line"])
         self.assertIn("(your shell (SHELL=/bin/fish) is neither zsh nor bash)", fish[0])
+        # PR #146 QA advisory: a retired MCP server left in the managed block is a next step, so plain
+        # mhw install output shows it.
+        block = ws.owner_steps([
+            "NOTE    /h/.codex/config.toml: the retired MCP server aws-api is in the managed block, rendered "
+            "from the local MCP definition (ADR-0017); remove it there and re-run the renderer"])
+        self.assertEqual(len(block), 1, block)
+        self.assertIn("aws-api is in the managed block", block[0])
         self.assertEqual(ws.owner_steps(["OK      something"]), [])
 
     def test_sudo_never_runs_without_a_terminal(self):

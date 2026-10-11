@@ -863,6 +863,32 @@ class Secrets(unittest.TestCase):
         self.assertFalse(os.path.exists(marker))
 
 
+class BackupMode(unittest.TestCase):
+    """PR #147 lens F1: the renderer's .pmhwc-backup is owner-only whatever the original's mode, and a
+    link planted at the backup path is replaced, never written through."""
+
+    def test_backup_is_owner_only_and_never_written_through(self):
+        d = os.path.join(BASE, "backup-mode")
+        os.makedirs(d, exist_ok=True)
+        path = os.path.join(d, "config.toml")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write("old = 1\n")
+        os.chmod(path, 0o644)
+        decoy = os.path.join(d, "decoy")
+        with open(decoy, "w", encoding="utf-8") as fh:
+            fh.write("decoy\n")
+        os.symlink(decoy, path + ".pmhwc-backup")
+        r.atomic_write(path, "new = 2\n", backup=True)
+        backup = path + ".pmhwc-backup"
+        self.assertFalse(os.path.islink(backup))
+        self.assertEqual(stat.S_IMODE(os.stat(backup).st_mode), 0o600)
+        with open(backup, encoding="utf-8") as fh:
+            self.assertEqual(fh.read(), "old = 1\n")
+        with open(decoy, encoding="utf-8") as fh:
+            self.assertEqual(fh.read(), "decoy\n")
+        self.assertEqual(stat.S_IMODE(os.stat(path).st_mode), 0o644)
+
+
 class Scan(unittest.TestCase):
     def test_scan_lists_key_names_and_never_a_value(self):
         h = mk_home("home-scan")
