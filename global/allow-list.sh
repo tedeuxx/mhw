@@ -244,6 +244,49 @@ allow_claude() {
   esac
 }
 
+# ---- The user-level allow entries the policy retired (Issue #145; ADR-0035 decision 4): allow-retired.conf.
+# They are not mhw's (no ownership key holds them), so they are removed by name: exactly the listed rules,
+# from permissions.allow only, with the previous file kept as settings.json.pmhwc-allow-backup and each
+# removal reported old -> new. The backup is the restore route: uninstall does not re-add a rule the policy
+# retired.
+allow_retired_src="$script_dir/allow-retired.conf"
+allow_retire() {
+  [ -f "$allow_retired_src" ] || { echo "source not found: $allow_retired_src" >&2; raise 2; return 0; }
+  [ -f "$settings" ] || return 0
+  jq -e 'type == "object"' "$settings" >/dev/null 2>&1 || return 0   # merge_settings already refused it
+  ar_list=$(grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$allow_retired_src" | jq -cR -s 'split("\n") | map(select(length > 0))')
+  if ! ar_hit=$(jq -c --argjson r "$ar_list" '[(.permissions.allow? // []) | if type == "array" then .[] else empty end
+                                               | select(. as $x | $r | index($x))] | unique' "$settings" 2>/dev/null); then
+    return 0   # allow_claude refuses a permissions section of the wrong shape
+  fi
+  if [ "$ar_hit" = "[]" ]; then
+    echo "OK      $settings: no allow entry the policy retired"
+    return 0
+  fi
+  ar_what=$(printf '%s' "$ar_hit" | jq -r 'map(. + " present -> absent") | join("; ")')
+  case $mode in
+    check)
+      echo "DRIFT   $settings: install would change permissions.allow $ar_what (retired, ADR-0035 decision 4)"
+      raise 1
+      ;;
+    dry-run)
+      echo "WOULD CHANGE $settings: permissions.allow $ar_what (backup $settings.pmhwc-allow-backup)"
+      ;;
+    install|*)   # uninstall never calls allow_retire
+      if ! jq --indent 4 --argjson r "$ar_list" '.permissions.allow |= map(select(. as $x | $r | index($x) | not))
+            | if .permissions.allow == [] then del(.permissions.allow) else . end
+            | if .permissions == {} then del(.permissions) else . end' "$settings" > "$work/allow.retired.json" 2>/dev/null; then
+        echo "REFUSE  $settings: the retired allow entries could not be removed; left untouched" >&2
+        raise 3
+        return 0
+      fi
+      private_copy "$settings" "$settings.pmhwc-allow-backup"
+      cat "$work/allow.retired.json" > "$settings"
+      echo "CHANGED $settings: permissions.allow $ar_what (retired, ADR-0035 decision 4; previous file kept as $settings.pmhwc-allow-backup)"
+      ;;
+  esac
+}
+
 # ---- A managed file of ours (Codex rules, Kiro agent): written whole, never over an unmanaged file.
 allow_place() { # $1 rendered file, $2 destination, $3 narrow rendering (for the widen note)
   if [ -e "$2" ] && ! is_managed "$2"; then
@@ -320,6 +363,7 @@ allow_step() {
   if [ "$allow_tier_claude" = narrow ] || [ "$allow_tier_codex" = narrow ]; then
     echo "RISK    admin deny floor incomplete (Claude Code: $allow_tier_claude, Codex: $allow_tier_codex tier): an allow list without the admin barrier is limited to reading; ${MHW_CMD:-./mhw} install (it asks for your administrator password once) widens it"
   fi
+  allow_retire
   allow_claude
   allow_codex_rules_render "$allow_tier_codex" "$work/allow.rules"
   narrow_rules=
@@ -341,6 +385,9 @@ allow_uninstall() {
     if [ -f "$u" ] && is_managed "$u"; then rm -f "$u"; echo "REMOVED $u"
     elif [ -e "$u" ]; then echo "NOTE    $u exists and is NOT managed by this project; left alone"; fi
   done
+  if [ -f "$settings.pmhwc-allow-backup" ]; then
+    echo "NOTE    $settings: the allow entries the policy retired are in $settings.pmhwc-allow-backup; uninstall does not re-add them (ADR-0035 decision 4)"
+  fi
   [ -f "$settings" ] && command -v jq >/dev/null 2>&1 || return 0
   if jq -e --arg ok "$ALLOW_OWN_KEY" 'type == "object" and has($ok)' "$settings" >/dev/null 2>&1; then
     jq --indent 4 --arg ok "$ALLOW_OWN_KEY" '

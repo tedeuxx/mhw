@@ -15,7 +15,11 @@ conf="$here/allow-list.conf"
 floor_src="$here/deny-floor.conf"
 overlay_floor="$here/../overlay/deny-floor.conf"
 [ -f "$overlay_floor" ] || overlay_floor=/dev/null
-unset CODEX_HOME XDG_DATA_HOME
+unset CODEX_HOME XDG_DATA_HOME ZDOTDIR PMHWC_PASTE_WRAPPER
+# PR #146 lens H1: install writes the paste wrapper block into the start-up file of $SHELL. A shell
+# install knows no file for picks none, so no run of this suite writes a start-up file anywhere.
+SHELL=/bin/sh
+export SHELL
 pass=0
 fail=0
 ok() { pass=$((pass + 1)); echo "PASS  $1"; }
