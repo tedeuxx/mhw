@@ -61,6 +61,23 @@ Add the allow list to the same file, an IDE-compatible agent, and global hooks.
 - Good: no code.
 - Bad: Kiro keeps no floor at all.
 
+### Option D: the Kiro CLI 2.x carrier (not chosen; the strongest alternative)
+
+Render the floor into the CLI agent `~/.kiro/agents/workstation.json` as
+`toolsSettings.execute_bash.deniedCommands` and the file tools' `deniedPaths` (*documented* for CLI
+2.x agents, ADR-0016 and ADR-0027).
+
+- Good: it reaches the engine the installed CLI runs by default (2.x, 2.29.1). Sessions launched
+  through the paste wrapper run `kiro-cli` with no engine flag, so they run on 2.x and Option A does
+  not reach them.
+- Bad: the IDE ignores that agent (Issue #144), so the IDE, which is what #144 asks for, gets nothing.
+- Bad: it applies only to sessions that select the `workstation` agent. A session on another agent
+  has no floor.
+- Bad: a second rendering with a different grammar (regex command patterns), which is more to keep in
+  step with the floor.
+
+Option D could be added beside A later. It is not part of this decision.
+
 ## Decision outcome
 
 Option A.
@@ -78,6 +95,8 @@ Option A.
 | A rule with an unknown field, a missing capability or an invalid effect makes Kiro reject the whole file, which then contributes no rule | **read from the IDE bundle** (`zwe`, `DNu`, `mas`) |
 | A rule with an unknown capability is skipped with a warning | **read from the IDE bundle** |
 | When `permissions.yaml` exists, `permissions.json` in the same directory is not read | **read from the IDE bundle** (`jss`) |
+| The IDE also reads a root-owned admin file as the `administration` scope: `/Library/Application Support/Kiro/managed-settings.json` (macOS), `/etc/kiro/managed-settings.json` (Linux), `C:\ProgramData\Kiro\managed-settings.json` (Windows), same rules schema, parsed as JSON | **read from the IDE bundle** (`Gjd`, `Jjd`); not rendered, not measured; whether Kiro CLI V3 reads it is not checked |
+| Kiro's writer takes `proper-lockfile`'s lock, a `<file>.lock` directory made with `mkdir`, around its read-modify-write, and serialises with the `yaml` package (v2: plain scalars where it can, lines folded at 80 columns) | **read from the IDE bundle** (`was`, `lineWidth: 80`) |
 | A user-scope consent decision is written back to the file, re-serialised without comments; a new pattern of a given capability and effect is appended to the first rule of that capability and effect | **read from the IDE bundle** (`was`, `Xjd`) |
 | Kiro CLI 2.x ignores the file; `kiro-cli --v3` runs the V3 engine | **documented** (ADR-0027) and the help text of the installed `kiro-cli` 2.29.1 (*measured*: the `--v3` and `--v2` flags exist) |
 
@@ -119,14 +138,28 @@ rules, one per capability. Install never removes a rule.
   - An entry that cannot be matched, or no record at all, removes nothing and prints a `NOTE`, because
     a deny left behind is the safe direction.
 - **Not a string.** A plain scalar any YAML parser could read as something other than a string is
-  refused, never re-quoted (PR #150 review). This covers null, `~`, booleans in any case including
-  YAML 1.1's `yes`, `no`, `on` and `off`, and every number spelling. Re-quoting would turn a rule Kiro
-  rejects, which disables the whole file, into a rule that applies.
+  refused, never re-quoted (PR #150 reviews). This covers YAML 1.2 core plus every YAML 1.1 implicit
+  type (yaml.org/type), matched in any case:
+  - bool, including `yes`, `no`, `on` and `off`;
+  - float and int, in every number spelling: hex, octal, binary, underscores, sexagesimal, leading dot,
+    exponent, `.inf` and `.nan`;
+  - merge (`<<`);
+  - null and `~`;
+  - timestamp, in all three spellings;
+  - value (`=`).
+
+  Re-quoting would turn a rule Kiro rejects, which disables the whole file, into a rule that applies.
 - **Temporary file.** Every write goes through a random name created with `O_EXCL` (`mkstemp`) in
   the target's directory, then an atomic rename. A link planted at a predictable name is never
   followed. The backup is opened with `O_EXCL` and `O_NOFOLLOW`.
 - **Stamp.** The first comment line carries the provenance stamp (ADR-0029). When Kiro rewrites the
-  file the stamp is lost. `--check` then reports `STAMP` and install writes it back.
+  file the stamp is lost. If the rewrite stays inside the reader's subset, `--check` reports `STAMP`
+  and install writes the stamp back. If it does not (see Consequences), the file is refused with its
+  cause.
+- **Kiro's lock.** install and uninstall take Kiro's own lock (`<real file>.lock`, an `mkdir`
+  directory) before reading and hold it across the write and the rename. A consent rule Kiro writes
+  meanwhile is therefore never lost. The wait is bounded (3 seconds). A lock still held after that is
+  refused visibly, with the lock's path: nothing is written and the lock is never removed.
 - **permissions.json.** A non-empty `permissions.json` with no `permissions.yaml` beside it is
   refused. Writing the YAML would make Kiro stop reading the owner's JSON rules.
 - **Report.** `install.sh --check` prints `OK`, `MISSING`, `DRIFT` or `STAMP` for the file, and the
@@ -141,12 +174,17 @@ rules, one per capability. Install never removes a rule.
 - **The CLI agent `~/.kiro/agents/workstation.json`** (allow list, ADR-0031) is ignored by the IDE,
   because it carries fields only the CLI has (Issue #144, read-only). The IDE gets the floor and not
   the allow list.
-- **No local admin layer for the IDE.** ADR-0027 read an admin file
-  (`/Library/Application Support/Kiro/managed-settings.json`), but the IDE's enterprise scope appears
-  to be delivered from the cloud (Issue #144). This floor is user scope only, and the owner or any
+- **Admin layer: not rendered (open option).** ~~No local admin layer for the IDE.~~ The IDE 1.2.56
+  bundle reads a root-owned `managed-settings.json` as its `administration` scope, with the same rules
+  schema as the user file, parsed as JSON. The paths are in the schema table above (*read from the
+  bundle*; not measured; Kiro CLI V3 not checked). Issue #144's reading that the enterprise scope comes
+  only from the cloud was wrong for this build. This decision renders nothing there. Rendering the
+  floor into it, as `install-managed.sh` does for Claude Code and Codex, is an **open option for the
+  owner** (a scope decision). Until then the Kiro floor is user scope only, and the owner or any
   process running as him can edit it.
 - **Kiro CLI 2.x** (the installed 2.29.1, default engine) does not read the file. The floor reaches
-  the CLI only with `--v3`.
+  the CLI only with `--v3`. Sessions launched through the paste wrapper's `kiro-cli` function pass no
+  engine flag, so they run on 2.x and have no Kiro floor (Option D would reach them).
 - **Windows:** `install.ps1` does not render it.
 - **Workspace scope:** nothing is written to `~/.kiro/workspace-roots/`. A deny there still adds to
   the floor, and no allow there can lift it (*documented*).
@@ -155,9 +193,10 @@ rules, one per capability. Install never removes a rule.
 
 | Claim | Level |
 | --- | --- |
-| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (33 cases, Python 3.14 and 3.9; every source mutation of the ownership guards, the install-time reconciliation, the distinct matching, the `verify()` call, the not-a-string check and the temporary file, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
+| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (37 cases, Python 3.14 and 3.9; every source mutation of the ownership guards, the install-time reconciliation, the distinct matching, the `verify()` call, the not-a-string check including timestamps and `=`, the temporary file, Kiro's lock and the refusal message, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
 | The rendered file is what Kiro's schema accepts | **structural**: the field set and the validation rules are read from the IDE 1.2.56 bundle. No Kiro build loaded the file |
 | A Kiro IDE or Kiro CLI V3 session denies a floor command | **not measured**. The IDE runtime is outside this agent's reach. A CLI measurement needs a model call, a throwaway HOME has no login, and copying the owner's credentials into one is not allowed (ADR-0008). The owner's fresh-session canary is the route |
+| A deny still applies in a Kiro CLI V3 session started with `--trust-all-tools` | **not measured** (a hypothesis for the owner's fresh-session canary). The documentation says no allow overrides a deny, but trust-all is a session switch, not an allow rule |
 | Installed on the reference machine | **no**. The owner installs the release candidate |
 
 ### Consequences
@@ -168,6 +207,13 @@ rules, one per capability. Install never removes a rule.
   is not written.
 - Bad: Kiro's write-back drops the stamp and the comments. `--check` turns `STAMP` until the next
   install.
+- Bad: Kiro's writer can also leave a file this reader refuses. It folds a plain pattern longer than
+  the 80-column line onto a second line, and leaves a value such as `yes` unquoted. After such a
+  write-back, `--check` and install refuse the file (exit 3) and nothing is written. The message
+  names the probable cause and the remedy: quote each pattern on one line, or restore
+  `permissions.yaml.pmhwc-backup` and add the new rule again. The reader is deliberately not loosened,
+  because guessing at such a file could switch on a rule Kiro would reject. The floor already in the
+  file still applies, since Kiro reads its own output.
 - Bad: re-serialising the file loses the owner's comments. The backup keeps them.
 - Bad: on the default Kiro CLI engine nothing changes.
 - Version cut (ADR-0002): **minor**. A new protection for a harness. Nothing an adopter had is removed

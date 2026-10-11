@@ -42,7 +42,14 @@ entry that cannot be matched, or no record at all, removes nothing (the safe dir
 line.
 
 The provenance stamp is the first comment line. A Kiro rewrite drops it: --check then reads STAMP, and
-install writes it back.
+install writes it back, as long as the rewrite stays inside the reader's subset. Kiro's writer (the yaml
+package, lines folded at 80 columns) can fold a long pattern or leave a value such as yes unquoted; such a
+file is refused with that cause and the remedy named, never guessed at.
+
+Kiro's lock. install and uninstall take Kiro's own lock (proper-lockfile: a <real file>.lock directory made
+with mkdir, read from the IDE bundle) before reading, and hold it across the write and the rename, so a
+consent rule Kiro writes meanwhile is never lost. The wait is bounded; a lock still held is refused, with
+nothing written and the lock left alone.
 
 permissions.json. Kiro reads permissions.yaml when it exists and permissions.json only otherwise (read from
 the IDE bundle). Writing a yaml beside the owner's json would silently drop his json rules, so a non-empty
@@ -50,12 +57,14 @@ permissions.json without a permissions.yaml is REFUSED.
 
 Exit codes, as install.sh: 0 ok · 1 drift, stamp or missing (--check) · 2 usage or floor · 3 refused.
 """
+import contextlib
 import json
 import os
 import re
 import shutil
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 MARKER_ID = "managed-by: personal-multi-harness-workstation-configuration"
@@ -66,18 +75,22 @@ RULE_KEYS = ("capability", "effect", "match", "exclude")
 WORD_RE = re.compile(r"[A-Za-z0-9._/~=:@+*-]+")
 # Plain scalars a YAML parser could read as something other than a string, and the characters a plain
 # scalar may not start with. Both are refused, never re-quoted: quoting one would turn a rule Kiro rejects
-# (which disables the whole file) into a rule that applies. Fail closed, so the test is wider than YAML 1.2
-# core: matched case-insensitively (after lowering), YAML 1.1 booleans included, and any number spelling
-# (signs, leading dot, exponent, hex, octal, binary, underscores, sexagesimal).
-NOT_STRING_WORDS = {"~", "null", "true", "false", "yes", "no", "on", "off", "y", "n"}
+# (which disables the whole file) into a rule that applies. Fail closed: YAML 1.2 core plus every YAML 1.1
+# implicit type (yaml.org/type: bool, float, int, merge, null, timestamp, value), matched case-insensitively
+# (after lowering), with any number spelling (signs, leading dot, exponent, hex, octal, binary, underscores,
+# sexagesimal) and the three timestamp spellings.
+NOT_STRING_WORDS = {"~", "null", "true", "false", "yes", "no", "on", "off", "y", "n", "<<", "="}
 NOT_STRING_RE = re.compile(r"[-+]?(?:0x[0-9a-f_]+|0o[0-7_]+|0b[01_]+"
                            r"|(?:[0-9][0-9_]*(?::[0-9_]+)*(?:\.[0-9_]*)?|\.[0-9][0-9_]*)(?:e[-+]?[0-9_]+)?"
                            r"|\.inf|\.nan)")
+TIMESTAMP_RE = re.compile(r"[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:(?:[t ]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}"
+                          r"(?:\.[0-9]*)?(?:[ \t]*(?:z|[-+][0-9]{1,2}(?::[0-9]{2})?))?)?")
 
 
 def not_a_string(tok):
     low = tok.lower()
-    return low in NOT_STRING_WORDS or NOT_STRING_RE.fullmatch(low) is not None
+    return (low in NOT_STRING_WORDS or NOT_STRING_RE.fullmatch(low) is not None
+            or TIMESTAMP_RE.fullmatch(low) is not None)
 BAD_START = set("&*!|>{}%@`,[]'\"#")
 
 
@@ -493,6 +506,36 @@ def match_entries(rules, appended):
     return out
 
 
+LOCK_WAIT = 3.0  # seconds; Kiro holds its lock only for one read-modify-write
+
+
+@contextlib.contextmanager
+def kiro_lock(path):
+    """Kiro's own lock on permissions.yaml (proper-lockfile, read from the IDE bundle): a directory
+    <real file>.lock created with mkdir, which is atomic. Taken with a short bounded wait and held across the
+    read, the write and the rename. Still held after the wait: Refuse, nothing written."""
+    real = Path(os.path.realpath(str(path)))
+    if not real.parent.is_dir():
+        yield  # no settings directory: no file, so no Kiro writer to wait for (and none is created here)
+        return
+    lock = str(real) + ".lock"
+    deadline = time.monotonic() + LOCK_WAIT
+    while True:
+        try:
+            os.mkdir(lock, 0o700)
+            break
+        except FileExistsError:
+            if time.monotonic() >= deadline:
+                raise Refuse("Kiro's lock %s is held (Kiro is writing the file, or a crashed writer left it); "
+                             "nothing written. Re-run when Kiro is idle; if no Kiro is running, remove that "
+                             "directory and re-run" % lock)
+            time.sleep(0.1)
+    try:
+        yield
+    finally:
+        os.rmdir(lock)
+
+
 # --- modes -----------------------------------------------------------------------------------------------
 
 def load_target(path):
@@ -513,7 +556,13 @@ def load_target(path):
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as e:
         raise Refuse("unreadable (%s); left untouched" % e.__class__.__name__)
-    return text, parse(text)
+    try:
+        return text, parse(text)
+    except Refuse as e:
+        raise Refuse("%s. Kiro probably rewrote this file after a consent prompt: its writer folds a long pattern "
+                     "onto several lines and leaves values such as yes unquoted, which this reader refuses rather "
+                     "than guess at. Nothing written. Put each pattern on one line, quoted (\"...\"), or restore "
+                     "%s%s and add your new rule again, then re-run" % (e, path.name, BACKUP))
 
 
 def total(want):
@@ -672,9 +721,19 @@ def main(argv=None):
     except (OSError, ValueError) as e:
         print("REFUSE  Kiro deny floor: %s" % e, file=sys.stderr)
         return 2
-    if opts["--mode"] == "uninstall":
-        return uninstall(opts["--stamp"], floor_from)
-    return run(opts["--mode"], opts["--stamp"], want, floor_from)
+    mode = opts["--mode"]
+    if mode not in ("install", "uninstall"):
+        return run(mode, opts["--stamp"], want, floor_from)
+    # A writing mode holds Kiro's own lock from before the read until after the rename, so a consent rule
+    # Kiro writes meanwhile is never lost (PR #150 agents-lead lens).
+    try:
+        with kiro_lock(target()):
+            if mode == "uninstall":
+                return uninstall(opts["--stamp"], floor_from)
+            return run(mode, opts["--stamp"], want, floor_from)
+    except Refuse as e:
+        print("REFUSE  %s: %s" % (target(), e))
+        return 3
 
 
 if __name__ == "__main__":

@@ -149,6 +149,24 @@ class Reader(unittest.TestCase):
             with self.assertRaises(kp.Refuse, msg=bad):
                 kp.parse(bad)
 
+    def test_every_yaml_1_1_implicit_type_is_refused(self):
+        # PR #150 QA B1: one or more members per YAML 1.1 implicit type (yaml.org/type), each refused in a
+        # match list, never accepted and re-quoted; "git *" is the accepted control.
+        rows = [("bool", "Yes"), ("bool", "OFF"),
+                ("float", "1.5e3"), ("float", "-.INF"), ("float", "190:20:30.15"),
+                ("int", "0x1F"), ("int", "0b1010"), ("int", "190:20:30"), ("int", "685_230"), ("int", "02472256"),
+                ("merge", "<<"),
+                ("null", "~"), ("null", "NULL"),
+                ("timestamp", "2026-10-11"), ("timestamp", "2001-12-14t21:59:43.10-05:00"),
+                ("timestamp", "2001-12-14T21:59:43.10Z"), ("timestamp", "2001-12-14 21:59:43.10 -5"),
+                ("value", "=")]
+        for typ, tok in rows:
+            with self.assertRaises(kp.Refuse, msg="%s %r" % (typ, tok)):
+                kp._scalar(tok, 1)
+            with self.assertRaises(kp.Refuse, msg="%s %r in a document" % (typ, tok)):
+                kp.parse("rules:\n  - capability: shell\n    match:\n      - %s\n    effect: deny\n" % tok)
+        self.assertEqual(kp._scalar("git *", 1), "git *")
+
     def test_a_plain_scalar_that_is_not_a_string_is_refused_never_requoted(self):
         # PR #150 review advisory 2: refusing keeps a rule Kiro rejects rejected, rather than switching it on.
         for tok in (".5", "1e3", "0x1F", "0o7", "0b101", ".inf", "-.INF", ".nan", ".NaN", "~", "null", "NULL",
@@ -212,13 +230,34 @@ class Install(Base):
         self.assertEqual(self.rules(), OWNER_RULES)  # his own "sudo *" deny stays
         self.assertFalse(self.owned.exists())
 
-    def test_kiro_rewrite_drops_the_stamp_then_install_restamps(self):
+    # What Kiro's writer (eemeli/yaml v2 stringify: plain scalars where it can, lineWidth 80) leaves after a
+    # user-scope consent, hand-written in that style: no comments, plain scalars, quotes only where YAML
+    # needs them. The floor rules are FLOOR's, as install appended them.
+    KIRO_STYLE = ("rules:\n"
+                  "  - capability: shell\n"
+                  "    effect: deny\n"
+                  "    match:\n"
+                  "      - sudo *\n"
+                  "      - gh auth token *\n"
+                  "      - terraform -chdir=*\n"
+                  "  - capability: fs_read\n"
+                  "    effect: deny\n"
+                  "    match:\n"
+                  "      - ~/.ssh/id_*\n"
+                  "      - \"**/.env\"\n"
+                  "  - capability: fs_write\n"
+                  "    effect: deny\n"
+                  "    match:\n"
+                  "      - ~/.ssh/id_*\n"
+                  "      - \"**/.env\"\n"
+                  "  - capability: shell\n"
+                  "    effect: allow\n"
+                  "    match:\n"
+                  "%s")
+
+    def test_kiro_plain_rewrite_reads_stamp_then_install_restamps(self):
         self.run_mode("install")
-        # What the IDE's writer does after a user-scope consent: re-serialise without comments, and add an
-        # allow rule.
-        doc = kp.parse(self.path.read_text(encoding="utf-8"))
-        doc["rules"].append({"capability": "shell", "effect": "allow", "match": ["ls *"]})
-        self.path.write_text(kp.emit(doc, STAMP, "x", header=False), encoding="utf-8")
+        self.path.write_text(self.KIRO_STYLE % "      - ls *\n", encoding="utf-8")
         code, out = self.run_mode("check")
         self.assertEqual(code, 1, out)
         self.assertIn("STAMP   %s: the deny-floor patterns match, but it carries (none)" % self.path, out)
@@ -226,6 +265,53 @@ class Install(Base):
         self.assertIn("RESTAMPED", out)
         self.assertEqual(self.run_mode("check")[0], 0)
         self.assertIn({"capability": "shell", "effect": "allow", "match": ["ls *"]}, self.rules())
+
+    def test_kiro_folded_or_yes_rewrite_is_refused_with_its_cause(self):
+        long_pattern = "      - deploy-tool --environment production --region somewhere --profile somebody\n" \
+                       "        --dry-run *\n"  # a long plain scalar folded at 80 columns
+        for tail in (long_pattern, "      - yes\n"):
+            self.run_mode("install")
+            self.path.write_text(self.KIRO_STYLE % tail, encoding="utf-8")
+            before = self.path.read_bytes()
+            for mode in ("check", "install"):
+                code, out = self.run_mode(mode)
+                self.assertEqual(code, 3, out)
+                self.assertIn("Kiro probably rewrote this file", out)
+                self.assertIn("Put each pattern on one line, quoted", out)
+            self.assertEqual(self.path.read_bytes(), before)
+
+    def test_a_held_kiro_lock_refuses_and_writes_nothing(self):
+        self.owner_file()
+        lock = Path(str(self.path) + ".lock")
+        lock.mkdir()
+        before = self.path.read_bytes()
+        for mode in ("install", "uninstall"):
+            code, out = self.run_mode(mode)
+            self.assertEqual(code, 3, out)
+            self.assertIn("lock %s is held" % lock, out)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertFalse(self.owned.exists())
+        self.assertTrue(lock.is_dir())  # Kiro's lock is never taken away
+        lock.rmdir()
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 0, out)
+        self.assertFalse(lock.exists())  # ours is released
+
+    def test_install_waits_for_a_lock_released_in_time(self):
+        self.owner_file()
+        lock = Path(str(self.path) + ".lock")
+        lock.mkdir()
+        env = {k: v for k, v in os.environ.items() if k != "XDG_DATA_HOME"}
+        env["HOME"] = str(self.home)
+        p = subprocess.Popen([sys.executable, "-B", str(SCRIPT), "--mode=install", "--stamp=" + STAMP,
+                              "--floor=%s" % self.floor], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             text=True, env=env)
+        import time
+        time.sleep(0.5)
+        lock.rmdir()
+        out = p.communicate(timeout=30)[0]
+        self.assertEqual(p.returncode, 0, out)
+        self.assertIn("MERGED", out)
 
     def test_new_stamp_reads_stamp(self):
         self.run_mode("install")
