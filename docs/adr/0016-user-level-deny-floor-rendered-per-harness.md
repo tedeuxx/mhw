@@ -306,7 +306,7 @@ this amendment in a throwaway home, same version, no login and no model call:
 Codex has the same weakness by its help text: `codex exec --ignore-rules` skips user and project
 `.rules` files (0.160.0, not exercised). Neither flag needs privilege, and an agent can type either.
 The admin layer is the only one outside their reach (ADR-0014, ADR-0027). The PRD's placement rule
-(ADR-0026, proposed) puts a protection in one layer, installed before the old copy is removed.
+(ADR-0026, ~~proposed~~ accepted 2026-10-11) puts a protection in one layer, installed before the old copy is removed.
 
 **The owner's constraint on exceptions** (2026-10-05, set while this slice was built):
 
