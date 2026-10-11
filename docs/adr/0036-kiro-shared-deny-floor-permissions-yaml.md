@@ -157,14 +157,20 @@ rules, one per capability. Install never removes a rule.
   and install writes the stamp back. If it does not (see Consequences), the file is refused with its
   cause.
 - **Kiro's lock.** install and uninstall take Kiro's own lock (`<real file>.lock`, an `mkdir`
-  directory) before reading and hold it across the write and the rename. A consent rule Kiro writes
-  meanwhile is therefore never lost. The wait is bounded (3 seconds). A lock still held after that is
-  refused visibly, with the lock's path: nothing is written and the lock is never removed. While the
-  lock is held, its mtime is refreshed just before each rename, so it never looks older than
-  proper-lockfile's 10-second stale threshold. On release, mhw removes the lock only if it is provably
-  still the one it made (same device and inode). If not, Kiro reclaimed it, so it is left alone with a
-  `NOTE`. A release that fails after a good write is a `NOTE` naming the lock, never a traceback, and the
-  exit code stays 0 (PR #150 QA L1, L2).
+  directory) before reading and hold it across the write and the rename. While both sides honour the
+  lock, a consent rule Kiro writes meanwhile is not lost.
+  - **Held lock.** The wait is bounded (3 seconds). A lock still held after that is refused visibly,
+    with the lock's path; nothing is written and Kiro's lock is never removed.
+  - **Before each rename.** mhw checks that the lock is still the directory it made (same device and
+    inode). If Kiro reclaimed it as stale and took its own, the write is refused (exit 3): the
+    temporary file is removed, nothing is renamed and Kiro's lock stays. If it is still ours, its
+    mtime is refreshed, so it does not look older than proper-lockfile's 10-second stale threshold.
+  - **On release.** The lock is removed only if it still looks like the one mhw made; otherwise it is
+    left alone with a `NOTE`. A release that fails after a good write is a `NOTE` naming the lock,
+    never a traceback, and the exit code stays 0 (PR #150 QA L1, L2; agents-lead lens).
+  - **Limit.** The identity check is best effort, not proof. A device and inode pair can be reused,
+    and a reclaim can still land in the short window between the check and the rename, or between
+    the check and the `rmdir`.
 - **permissions.json.** A non-empty `permissions.json` with no `permissions.yaml` beside it is
   refused. Writing the YAML would make Kiro stop reading the owner's JSON rules.
 - **Report.** `install.sh --check` prints `OK`, `MISSING`, `DRIFT` or `STAMP` for the file, and the
@@ -198,7 +204,7 @@ rules, one per capability. Install never removes a rule.
 
 | Claim | Level |
 | --- | --- |
-| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (40 cases, Python 3.14 and 3.9; every source mutation of the ownership guards, the install-time reconciliation, the distinct matching, the `verify()` call, the not-a-string check including timestamps and `=`, the temporary file, Kiro's lock and the refusal message, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
+| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (41 cases, Python 3.14 and 3.9; every source mutation of the ownership guards, the install-time reconciliation, the distinct matching, the `verify()` call, the not-a-string check including timestamps and `=`, the temporary file, Kiro's lock and the refusal message, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
 | The rendered file is what Kiro's schema accepts | **structural**: the field set and the validation rules are read from the IDE 1.2.56 bundle. No Kiro build loaded the file |
 | A Kiro IDE or Kiro CLI V3 session denies a floor command | **not measured**. The IDE runtime is outside this agent's reach. A CLI measurement needs a model call, a throwaway HOME has no login, and copying the owner's credentials into one is not allowed (ADR-0008). The owner's fresh-session canary is the route |
 | A deny still applies in a Kiro CLI V3 session started with `--trust-all-tools` | **not measured** (a hypothesis for the owner's fresh-session canary). The documentation says no allow overrides a deny, but trust-all is a session switch, not an allow rule |

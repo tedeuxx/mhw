@@ -47,11 +47,13 @@ package, lines folded at 80 columns) can fold a long pattern or leave a value su
 file is refused with that cause and the remedy named, never guessed at.
 
 Kiro's lock. install and uninstall take Kiro's own lock (proper-lockfile: a <real file>.lock directory made
-with mkdir, read from the IDE bundle) before reading, and hold it across the write and the rename, so a
-consent rule Kiro writes meanwhile is never lost. The wait is bounded; a lock still held is refused, with
-nothing written and the lock left alone. While held, the lock's mtime is refreshed before each rename (it
-never looks stale to Kiro); on release it is removed only if it is still the directory mhw made (same
-device and inode), and a failed release is a NOTE, never a traceback.
+with mkdir, read from the IDE bundle) before reading, and hold it across the write and the rename, so while
+both honour the lock a consent rule Kiro writes meanwhile is not lost. The wait is bounded; a lock still
+held is refused, with nothing written and the lock left alone. Before each rename the lock must still be
+the directory mhw made (same device and inode), or the write is refused and nothing is renamed (Kiro
+reclaimed it); if it is, its mtime is refreshed so it does not look stale to Kiro. On release it is removed
+only if it still looks like ours, and a failed release is a NOTE, never a traceback. The identity check is
+best effort: an inode can be reused, and a reclaim can land between a check and the rename or the rmdir.
 
 permissions.json. Kiro reads permissions.yaml when it exists and permissions.json only otherwise (read from
 the IDE bundle). Writing a yaml beside the owner's json would silently drop his json rules, so a non-empty
@@ -535,29 +537,40 @@ def kiro_lock(path):
             time.sleep(0.1)
     st = os.stat(lock)
     ident = (st.st_dev, st.st_ino)
-    _HELD_LOCKS.append(lock)
+    held = (lock, ident)
+    _HELD_LOCKS.append(held)
     try:
         yield
     finally:
-        _HELD_LOCKS.remove(lock)
+        _HELD_LOCKS.remove(held)
         release_lock(lock, ident)
 
 
-# The lock directories this process holds: write() refreshes their mtime just before its rename, so a held
-# lock never looks older than proper-lockfile's stale threshold (10 s, read from the IDE bundle).
+# The lock directories this process holds, with the identity each had when mhw made it. write() checks and
+# refreshes them just before its rename (refresh_held_locks).
 _HELD_LOCKS = []
 
 
 def refresh_held_locks():
-    for lock in _HELD_LOCKS:
+    """Just before a rename: each held lock must still be the directory mhw made (same device and inode).
+    If Kiro reclaimed it as stale and took its own, Refuse, so write() removes its temporary file and renames
+    nothing. Otherwise its mtime is refreshed, so it never looks older than proper-lockfile's stale threshold
+    (10 s, read from the IDE bundle). Best effort: an inode can be reused, and a reclaim can still land
+    between this check and the rename."""
+    for lock, ident in _HELD_LOCKS:
         try:
-            os.utime(lock)
+            st = os.stat(lock)
         except OSError:
-            pass  # release_lock reports a lock that is no longer ours
+            st = None
+        if st is None or (st.st_dev, st.st_ino) != ident:
+            raise Refuse("Kiro's lock %s is no longer the one mhw took (Kiro reclaimed it as stale); nothing "
+                         "written, so no rule Kiro is writing is lost. Re-run" % lock)
+        os.utime(lock)
 
 
 def release_lock(lock, ident):
-    """Remove the lock only when it is provably still ours (same device and inode as the directory we made);
+    """Remove the lock only when it still looks like ours (same device and inode as the directory we made;
+    best effort, since an inode can be reused and a reclaim can land between the stat and the rmdir);
     otherwise Kiro may have reclaimed it as stale and taken it, so it is left alone. A failure to remove is
     reported, never raised: by then the write has succeeded."""
     try:
@@ -763,8 +776,8 @@ def main(argv=None):
     mode = opts["--mode"]
     if mode not in ("install", "uninstall"):
         return run(mode, opts["--stamp"], want, floor_from)
-    # A writing mode holds Kiro's own lock from before the read until after the rename, so a consent rule
-    # Kiro writes meanwhile is never lost (PR #150 agents-lead lens).
+    # A writing mode holds Kiro's own lock from before the read until after the rename, so while both honour
+    # it a consent rule Kiro writes meanwhile is not lost (best effort; see kiro_lock, PR #150 lens).
     try:
         with kiro_lock(target()):
             if mode == "uninstall":

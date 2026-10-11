@@ -338,6 +338,38 @@ class Install(Base):
         self.assertIn("MERGED", out.getvalue())
         self.assertIn("NOTE    could not release Kiro's lock %s" % lock, out.getvalue())
 
+    def test_a_lock_kiro_reclaims_before_the_write_refuses_and_renames_nothing(self):
+        # PR #150 agents-lead lens: Kiro reclaims the lock as stale after mhw took it and before mhw writes.
+        # mhw must refuse (exit 3), leave the file as it was and Kiro's lock in place. The reclaim is
+        # simulated with a directory made before ours is removed, so its inode always differs.
+        self.owner_file()
+        before = self.path.read_bytes()
+        lock = Path(str(os.path.realpath(str(self.path))) + ".lock")
+        other = self.home / "kiro-made-this"
+        real_run, old_home = kp.run, os.environ.get("HOME")
+
+        def reclaim_then_run(*args):
+            other.mkdir()
+            lock.rmdir()
+            other.rename(lock)
+            return real_run(*args)
+        kp.run = reclaim_then_run
+        os.environ["HOME"] = str(self.home)
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                code = kp.main(["--mode=install", "--stamp=" + STAMP, "--floor=%s" % self.floor])
+        finally:
+            kp.run = real_run
+            os.environ["HOME"] = old_home
+        self.assertEqual(code, 3, out.getvalue())
+        self.assertIn("REFUSE  %s: Kiro's lock %s is no longer the one mhw took" % (self.path, lock), out.getvalue())
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertTrue(lock.is_dir())
+        self.assertFalse(self.owned.exists())
+        self.assertEqual(sorted(p.name for p in self.path.parent.iterdir()),
+                         sorted(["permissions.yaml", "permissions.yaml.lock", "permissions.yaml.pmhwc-backup"]))
+
     def test_a_held_lock_is_refreshed_before_the_rename(self):
         # PR #150 QA L1: while held, the lock never looks older than proper-lockfile's 10 s stale threshold.
         self.owner_file()
