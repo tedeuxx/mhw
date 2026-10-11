@@ -105,14 +105,17 @@ rules, one per capability. Install never removes a rule.
   0700 directory, as Kiro creates it. A symbolic link is written through.
 - **Ownership.** The deny rules install appended (capability and match list, as appended) are recorded
   in `~/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json`,
-  not in the YAML, because Kiro's own write-back drops comments. Uninstall edits only those rules,
-  never one of the owner's, even when his rule holds the same pattern (PR #150 review). A rule counts as
-  mhw's when it is a deny of that capability, has no `exclude`, and its match list starts with the
-  recorded patterns; the first such rule is taken, because at install no earlier rule could match. The
-  recorded patterns are removed from it. A pattern Kiro appended after a consent prompt stays. A rule
-  whose match list becomes empty is removed whole, because an empty match list matches everything. A
-  recorded rule that cannot be found (edited by hand), or no record at all, removes nothing and prints
-  a `NOTE`, because a deny left behind is the safe direction.
+  not in the YAML, because Kiro's own write-back drops comments. Each entry is matched to its own
+  distinct rule, which must be a deny of that capability with no `exclude` and exactly the recorded
+  match list (PR #150 reviews).
+  - Install reconciles the record with the file before it appends anything, and forgets an entry that
+    has no such rule (a `NOTE` line). The record therefore never holds an entry without its own rule.
+  - Uninstall removes only matched rules, and removes each one whole. It never edits one of the owner's
+    rules, even when his rule holds the same pattern.
+  - A rule mhw appended that later gained a pattern cannot be told apart from one of his own, so it
+    stays. The extra pattern comes from his edit or from a consent pattern Kiro appended.
+  - An entry that cannot be matched, or no record at all, removes nothing and prints a `NOTE`, because
+    a deny left behind is the safe direction.
 - **Not a string.** A plain scalar any YAML parser could read as something other than a string is
   refused, never re-quoted (PR #150 review). This covers null, `~`, booleans in any case including
   YAML 1.1's `yes`, `no`, `on` and `off`, and every number spelling. Re-quoting would turn a rule Kiro
@@ -150,7 +153,7 @@ rules, one per capability. Install never removes a rule.
 
 | Claim | Level |
 | --- | --- |
-| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (29 cases, Python 3.14 and 3.9; every source mutation of the guards, the `verify()` call, the not-a-string check and the temporary file, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
+| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (33 cases, Python 3.14 and 3.9; every source mutation of the ownership guards, the install-time reconciliation, the distinct matching, the `verify()` call, the not-a-string check and the temporary file, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
 | The rendered file is what Kiro's schema accepts | **structural**: the field set and the validation rules are read from the IDE 1.2.56 bundle. No Kiro build loaded the file |
 | A Kiro IDE or Kiro CLI V3 session denies a floor command | **not measured**. The IDE runtime is outside this agent's reach. A CLI measurement needs a model call, a throwaway HOME has no login, and copying the owner's credentials into one is not allowed (ADR-0008). The owner's fresh-session canary is the route |
 | Installed on the reference machine | **no**. The owner installs the release candidate |

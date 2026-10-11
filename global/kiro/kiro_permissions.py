@@ -30,12 +30,14 @@ permissions.yaml.pmhwc-backup, owner-only (0600).
 Ownership. The deny rules this script appended (capability and match list, as appended) are recorded in
 $XDG_DATA_HOME/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json, outside the
 YAML: Kiro rewrites permissions.yaml when the owner answers a consent prompt with a user-scope rule (read
-from the IDE bundle), which drops every comment. Uninstall edits only those rules, found by shape (a
-deny rule of that capability, no exclude, whose match list starts with the recorded patterns), never one
-of the owner's rules even when it holds the same pattern. A pattern Kiro appended to one of them stays; a
-rule left with an empty match list is removed whole, because an empty match list matches everything. A
-recorded rule that cannot be found, or no record at all, removes nothing (the safe direction), said on a
-NOTE line.
+from the IDE bundle), which drops every comment. Each entry is matched to its own distinct rule: a deny
+of that capability, no exclude, with exactly the recorded match list. Install reconciles the record with
+the file before anything else and forgets an entry with no such rule (a NOTE line), so the record never
+holds an entry without its own rule. Uninstall removes only matched rules, whole, never one of the
+owner's rules even when it holds the same pattern. A rule mhw appended that has since gained a pattern
+(his edit, or a consent pattern Kiro appended) can no longer be told apart from his, so it stays. An
+entry that cannot be matched, or no record at all, removes nothing (the safe direction), said on a NOTE
+line.
 
 The provenance stamp is the first comment line. A Kiro rewrite drops it: --check then reads STAMP, and
 install writes it back.
@@ -470,10 +472,23 @@ def write_owned(appended, created, stamp):
 
 def is_ours(rule, entry):
     """True when rule is the deny rule install appended for entry: same capability, effect deny, no exclude,
-    and its match list starts with entry's patterns in order (Kiro appends a consent pattern at the end)."""
-    match = rule.get("match") or []
+    and exactly entry's match list, in order."""
     return (rule.get("capability") == entry["capability"] and rule.get("effect") == "deny"
-            and not rule.get("exclude") and match[:len(entry["match"])] == entry["match"])
+            and not rule.get("exclude") and rule.get("match") == entry["match"])
+
+
+def match_entries(rules, appended):
+    """-> for each recorded entry, the index of its own rule, or None. Each rule serves one entry at most.
+    Only a rule exactly as install appended it counts. A rule that also holds another pattern (his edit, or
+    a consent pattern Kiro appended) cannot be told apart from one of his own, so it is never taken: the
+    deny it carries stays, which is the safe direction (PR #150 re-review)."""
+    claimed, out = set(), []
+    for entry in appended:
+        i = next((i for i, r in enumerate(rules) if i not in claimed and is_ours(r, entry)), None)
+        if i is not None:
+            claimed.add(i)
+        out.append(i)
+    return out
 
 
 # --- modes -----------------------------------------------------------------------------------------------
@@ -521,6 +536,19 @@ def run(mode, stamp, want, floor_from):
         print("FLOOR   Kiro: user permissions.yaml %s (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI "
               "2.x does not read it; not enforced-measured; ADR-0036)" % state)
         return 0
+    # Install reconciles the record with the file first: an entry whose rule is gone (or edited past
+    # recognition) is forgotten, so the record never holds an entry without its own rule, and a later
+    # uninstall cannot claim one of the owner's rules for it (PR #150 re-review).
+    rec = read_owned() if mode == "install" else None
+    kept = []
+    if rec is not None:
+        found = match_entries(doc["rules"], rec["appended"])
+        kept = [e for e, i in zip(rec["appended"], found) if i is not None]
+        if len(kept) != len(rec["appended"]):
+            print("NOTE    %s: %d recorded mhw rule(s) no longer in %s (removed or edited by hand); forgotten, so "
+                  "uninstall never takes one of your rules for them" % (owned_path(), len(rec["appended"]) - len(kept),
+                                                                       path))
+            write_owned(kept, rec["created"], stamp)
     have = stamp_of(text) if text is not None else "none"
     if text is not None and n_miss == 0 and have == stamp:
         print("OK      %s (all %d deny-floor patterns present; %s)" % (path, n_want, stamp))
@@ -548,9 +576,8 @@ def run(mode, stamp, want, floor_from):
             for p in miss[c]:
                 print("  + %s deny %s" % (c, p))
         return 0
-    rec = read_owned()
     created = rec["created"] if rec else text is None
-    appended = (rec["appended"] if rec else []) + [{"capability": c, "match": list(miss[c])} for c in CAPS if miss[c]]
+    appended = kept + [{"capability": c, "match": list(miss[c])} for c in CAPS if miss[c]]
     backup = Path(str(path) + BACKUP)
     if text is not None:
         private_copy(os.path.realpath(str(path)), str(backup))
@@ -583,25 +610,19 @@ def uninstall(stamp, floor_from):
     except Refuse as e:
         print("REFUSE  %s: %s" % (path, e))
         return 3
-    # Only the rules install appended are edited, never one of the owner's: each recorded rule is found as
-    # the first unclaimed deny rule that is_ours() recognises. One that cannot be found is left alone, said.
+    # Only the rules install appended are edited, never one of the owner's: each recorded entry is matched
+    # to its own distinct rule (match_entries). One that cannot be matched is left alone, said.
     rules = [dict(r) for r in doc["rules"]]
     drop = set()
-    for entry in rec["appended"]:
-        idx = [i for i, r in enumerate(rules) if i not in drop and is_ours(r, entry)]
-        if not idx:
-            print("NOTE    %s: the %s deny rule mhw appended (%d pattern(s)) was not found as written (edited by "
-                  "hand?); nothing removed for it (a deny left behind is the safe direction)"
+    for entry, i in zip(rec["appended"], match_entries(doc["rules"], rec["appended"])):
+        if i is None:
+            print("NOTE    %s: the %s deny rule mhw appended (%d pattern(s)) was not found as its own rule "
+                  "(removed or edited by hand?); nothing removed for it (a deny left behind is the safe direction)"
                   % (path, entry["capability"], len(entry["match"])))
             continue
-        # The first: at install no earlier rule could match (it would have covered the patterns, so nothing
-        # would have been appended); a later one is his or Kiro's addition.
-        i = idx[0]
-        left = rules[i]["match"][len(entry["match"]):]
-        if left:
-            rules[i] = dict(rules[i], match=left)  # a pattern Kiro appended after a consent prompt stays
-        else:
-            drop.add(i)  # an empty match list would match everything: the rule goes whole
+        # The rule holds exactly what install appended, so it goes whole (never left with an empty match
+        # list, which would match everything).
+        drop.add(i)
     rules = [r for i, r in enumerate(rules) if i not in drop]
     new_doc = {"rules": rules, "policies": doc.get("policies")}
     if rec["created"] and not rules and not doc.get("policies"):
@@ -620,7 +641,7 @@ def uninstall(stamp, floor_from):
             return 3
         private_copy(os.path.realpath(str(path)), str(path) + BACKUP)
         write(path, new_text)
-        print("UNMERGED %s (the deny-floor patterns mhw added removed, your rules kept; previous version kept as "
+        print("UNMERGED %s (the deny rules mhw added removed, your rules kept; previous version kept as "
               "%s%s)" % (path, path, BACKUP))
     owned_path().unlink()
     print("REMOVED %s" % owned_path())

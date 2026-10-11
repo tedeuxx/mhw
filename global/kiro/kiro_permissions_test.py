@@ -233,13 +233,17 @@ class Install(Base):
         self.assertEqual(code, 1)
         self.assertIn("STAMP   ", out)
 
-    def test_consent_pattern_in_our_rule_survives_uninstall(self):
+    def test_a_rule_that_gained_a_consent_pattern_is_left_whole(self):
+        # The IDE appends a deny consent to the first deny rule. That rule can no longer be told apart from
+        # one of his own, so uninstall leaves it whole and says so (the safe direction).
         self.run_mode("install")
         doc = kp.parse(self.path.read_text(encoding="utf-8"))
-        doc["rules"][0]["match"].append("curl *")  # the IDE appends a deny consent to the first deny rule
+        doc["rules"][0]["match"].append("curl *")
         self.path.write_text(kp.emit(doc, STAMP, "x"), encoding="utf-8")
-        self.assertEqual(self.run_mode("uninstall")[0], 0)
-        self.assertEqual(self.rules(), [{"capability": "shell", "effect": "deny", "match": ["curl *"]}])
+        code, out = self.run_mode("uninstall")
+        self.assertEqual(code, 0, out)
+        self.assertIn("NOTE    %s: the shell deny rule mhw appended (3 pattern(s)) was not found" % self.path, out)
+        self.assertEqual(self.rules(), [doc["rules"][0]])
 
     def test_created_file_is_removed_on_uninstall(self):
         self.run_mode("install")
@@ -313,6 +317,65 @@ class Install(Base):
         code, out = self.run_mode("uninstall")
         self.assertEqual(code, 0, out)
         self.assertEqual(self.rules(), his_before + his_later)
+
+    def put(self, rules):
+        self.path.write_text(kp.emit({"rules": rules, "policies": None}, STAMP, "x", header=False), encoding="utf-8")
+
+    def record(self):
+        return json.loads(self.owned.read_text(encoding="utf-8"))["appended"]
+
+    def test_a_stale_record_never_claims_his_rule(self):
+        # PR #150 re-review: install, he deletes mhw's rule, install again, he adds his own deny that starts
+        # with the same pattern, uninstall. His rule must stay whole.
+        self.floor.write_text("cmd sudo\n", encoding="utf-8")
+        self.run_mode("install")
+        self.put([{"capability": "shell", "effect": "allow", "match": ["ls *"]}])  # mhw's rule deleted
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 0, out)
+        self.assertIn("NOTE    %s: 1 recorded mhw rule(s) no longer in" % self.owned, out)
+        self.assertEqual(self.record(), [{"capability": "shell", "match": ["sudo *"]}])
+        his = {"capability": "shell", "effect": "deny", "match": ["sudo *", "curl *"]}
+        self.put(self.rules() + [his])
+        code, out = self.run_mode("uninstall")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.rules(), [{"capability": "shell", "effect": "allow", "match": ["ls *"]}, his])
+
+    def test_reconciled_even_when_nothing_is_missing(self):
+        # He deletes mhw's rule but keeps a deny of his own that covers the floor: install has nothing to add,
+        # and still forgets the entry.
+        self.floor.write_text("cmd sudo\n", encoding="utf-8")
+        self.run_mode("install")
+        his = {"capability": "shell", "effect": "deny", "match": ["sudo *", "curl *"]}
+        self.path.write_text(kp.emit({"rules": [his], "policies": None}, STAMP, "x"), encoding="utf-8")
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 0, out)
+        self.assertIn("OK      ", out)
+        self.assertEqual(self.record(), [])
+        self.assertEqual(self.run_mode("uninstall")[0], 0)
+        self.assertEqual(self.rules(), [his])
+
+    def test_uninstall_matches_each_entry_to_a_distinct_rule(self):
+        # Defence in depth: a record holding two entries for one rule (written by an older or broken install)
+        # takes that one rule only, and says so for the other.
+        self.floor.write_text("cmd sudo\n", encoding="utf-8")
+        self.run_mode("install")
+        body = json.loads(self.owned.read_text(encoding="utf-8"))
+        body["appended"] = body["appended"] * 2
+        self.owned.write_text(json.dumps(body), encoding="utf-8")
+        his = {"capability": "shell", "effect": "allow", "match": ["sudo *"]}
+        self.put(self.rules() + [his])
+        code, out = self.run_mode("uninstall")
+        self.assertEqual(code, 0, out)
+        self.assertIn("was not found as its own rule", out)
+        self.assertEqual(self.rules(), [his])
+
+    def test_the_exact_rule_is_preferred_over_his_earlier_prefix_rule(self):
+        self.floor.write_text("cmd sudo\n", encoding="utf-8")
+        self.run_mode("install")
+        his = {"capability": "shell", "effect": "deny", "match": ["sudo *", "curl *"]}
+        self.put([his] + self.rules())  # he inserts his rule above mhw's
+        self.assertEqual(self.run_mode("uninstall")[0], 0)
+        self.assertEqual(self.rules(), [his])
 
     def test_a_recorded_rule_edited_by_hand_is_left_alone_and_said(self):
         self.run_mode("install")
