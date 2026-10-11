@@ -261,6 +261,43 @@ sys.exit(0 if all(ok(c) for c in good) and not any(ok(c) for c in bad) else 1)
 PY
 then ok "Kiro patterns admit the inner loop and refuse chaining, expansion and lookalikes"; else ko "a Kiro pattern is too broad or too narrow"; fi
 
+# 8b. The same agent in the Kiro V3 form (2026-10-11 canary: /upgrade-agent prompt). The V3 engine skips a
+# JSON agent with the 2.0 fields and no "permissions" (read from the bundled engine), so both must be there.
+# The V3 shell rule is checked with an emulation of Kiro's matcher as read from the bundle (a pattern ending
+# in " *" is the bare prefix or the prefix and a space; "*" elsewhere is any run): it admits exactly what the
+# 2.x patterns admit on the same samples. An emulation, not a Kiro run.
+if python3 - "$kpat" "$n_narrow_cmd" <<'PY'
+import json, re, sys
+doc = json.load(open(sys.argv[1]))
+n = int(sys.argv[2])
+assert "allowedTools" in doc and "toolsSettings" in doc, "2.0 fields gone"
+rules = doc["permissions"]["rules"]
+assert [r["capability"] for r in rules] == ["shell", "fs_read"], rules
+sh, fr = rules
+assert sh["effect"] == "allow" and fr == {"capability": "fs_read", "effect": "allow"}
+assert set(sh) == {"capability", "match", "exclude", "effect"} and set(fr) == {"capability", "effect"}
+assert len(sh["match"]) == 2 * n and all(isinstance(m, str) and m for m in sh["match"])
+def glob(p):
+    if p.endswith(" *"):
+        return re.compile(re.escape(p[:-2]) + r"( .*)?", re.S)
+    return re.compile(".*".join(re.escape(x) for x in p.split("*")), re.S)
+inc = [glob(p) for p in sh["match"]]
+exc = [glob(p) for p in sh["exclude"]]
+def v3(c):
+    return any(p.fullmatch(c) for p in inc) and not any(p.fullmatch(c) for p in exc)
+legacy = [re.compile(p) for p in doc["toolsSettings"]["execute_bash"]["allowedCommands"]]
+def v2(c):
+    return any(p.fullmatch(c) for p in legacy)
+samples = ["git status", "git status --short", "gh pr view 12 --json body", "git rev-parse --show-toplevel",
+           "git status > x", "git status < x", "git status $(touch x)", "git status `touch x`", "git status (x)",
+           "git status {x}", "git status; touch x", "git status && touch x", "git status | sh",
+           "Xgit status", "git statusx", "git commit -m x", "xgit status"]
+diff = [c for c in samples if v2(c) != v3(c)]
+assert not diff, diff
+assert v3("git status --short") and not v3("git status > x") and not v3("git commit -m x")
+PY
+then ok "Kiro agent carries the V3 permissions block, admitting what the 2.x patterns admit (emulated)"; else ko "Kiro V3 permissions block wrong or wider than 2.x"; fi
+
 # 9. Codex itself: deny beats allow across the two rendered rules files (credential-free).
 cx=${CODEX:-$(command -v codex 2>/dev/null || true)}
 h="$base/home-narrow"
