@@ -1,6 +1,8 @@
 # ADR-0035: Reconcile the workstation harness blueprint item by item
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-10-11, the owner's ratification of all eight implementation
+  amendments on [Issue #125](https://github.com/tedeuxx/mhw/issues/125#issuecomment-6114071072); see the
+  amendment "accepted" below)
 - **Date:** 2026-10-10
 - **Deciders:** the owner (each decision below, 2026-10-10, in the reconciliation interview); written
   by tech-lead
@@ -680,6 +682,16 @@ they differ, if either blocks on a FIFO, or if any Python file defines its own c
 the shell form (the absence check after the unlink and the final regular-file check) are defence in depth:
 `ln`'s exclusivity already decides every case the suite plants, so removing either one alone leaves it
 green.
+
+## Amendment 2026-10-11: accepted ([Issue #125](https://github.com/tedeuxx/mhw/issues/125))
+
+The owner ratified, in session on 2026-10-11, all eight implementation amendments above: slice A,
+slice B, the brief text, slice F (including its fail-closed CI check when the scanner cannot run), the
+owner-action queue, the sphere line, #145, and the #145 Windows and bash-login follow-up. Recorded on
+Issue #125 in [this comment](https://github.com/tedeuxx/mhw/issues/125#issuecomment-6114071072):
+*"ratified all eight ADR-0035 implementation amendments"*. The status moves from proposed to
+accepted. Nothing in the decisions or the amendments changes; the evidence levels stated in each
+amendment stay as written (most items are written and tested, not installed).
 
 ## Links
 
