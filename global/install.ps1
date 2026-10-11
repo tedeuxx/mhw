@@ -10,10 +10,18 @@
 #
 # Renders the brief, the deny floor and the working method (global\method\method_render.py, ADR-0032). The deny floor is merged into %USERPROFILE%\.claude\settings.json
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
-# <CODEX_HOME>\rules\workstation-deny-floor.rules. The escalation rules (ADR-0013) are instructions
-# on every OS; the HITL picker guard hook was never ported here and is removed everywhere since Issue
-# #60. The paste filter at the harness-CLI prompt (ADR-0011) is not ported either: it runs
-# on the stock /usr/bin/python3, which Windows does not have.
+# <CODEX_HOME>\rules\workstation-deny-floor.rules and, through global\kiro\kiro_permissions.py, into
+# %USERPROFILE%\.kiro\settings\permissions.yaml (ADR-0036). Since Issue #145 it also does what install.sh does
+# since v5.2.0, through the same Python scripts where there is one: the retired MCP servers leave the Codex
+# config (global\mcp\mcp_retire.py), the session-start model and effort are pinned
+# (global\models\model_defaults.py), and the retired find and awk allows leave permissions.allow. Those
+# steps need Python 3.9 or later; without it each prints SKIP and the run exits 2. The escalation rules
+# (ADR-0013) are instructions on every OS; the HITL picker guard hook was never ported here and is removed
+# everywhere since Issue #60. The paste filter at the harness-CLI prompt and the paste wrapper (ADR-0011)
+# are not ported either: they run on the stock /usr/bin/python3 and a POSIX pty, which Windows does not
+# have, so no shell start-up file is written. There is no uninstall on Windows: each step's backup beside
+# its file is the way back. Backups are made with Copy-Item and inherit the profile directory's access
+# control; owner-only (0600) is a POSIX mode this script does not set.
 #
 # Exit codes: 0 ok, 1 drift, stamp or missing (-Check), 2 usage or invalid floor entry, 3 an UNMANAGED or
 # unreadable file is in the way.
@@ -356,28 +364,114 @@ function Merge-DenyFloor([string]$settings) {
         }
     }
 }
-Merge-DenyFloor (Join-Path $home_ '.claude\settings.json')
+$settingsFile = Join-Path $home_ '.claude\settings.json'
+Merge-DenyFloor $settingsFile
+
+# Python 3.9 or later, for the steps written in Python (the same scripts install.sh runs): found once.
+$script:py = $null
+$script:pyLooked = $false
+function Get-Python {
+    if ($script:pyLooked) { return $script:py }
+    $script:pyLooked = $true
+    foreach ($c in @('python3', 'python', 'py')) {
+        $cmd = Get-Command $c -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $cmd) { continue }
+        try { $v = & $cmd.Source --version } catch { continue }
+        if ($LASTEXITCODE -eq 0 -and "$v" -match 'Python 3\.(9|[1-9][0-9])') { $script:py = $cmd.Source; break }
+    }
+    return $script:py
+}
+# Run one Python step: global\<rel> with its arguments; a missing Python is SKIP and exit 2, as install.sh.
+function Invoke-PyStep([string]$what, [string]$rel, [string[]]$a) {
+    $py = Get-Python
+    if (-not $py) {
+        Write-Output "SKIP    ${what}: Python 3.9 or later is required"
+        Set-Status 2
+        return
+    }
+    & $py -B (Join-Path $scriptDir $rel) @a
+    Set-Status $LASTEXITCODE
+}
+
+# The deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036, Issue #144): the floor validated above, merged into
+# %USERPROFILE%\.kiro\settings\permissions.yaml by global\kiro\kiro_permissions.py, the same step install.sh
+# runs (kiro_step). The script finds the file from the profile directory (Python's home on Windows), and
+# takes the floor as a file, so the validated lines are handed over in a temporary file removed after it.
+function Invoke-Kiro {
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText($tmp, (($floorLines -join "`n") + "`n"), $utf8)
+        Invoke-PyStep 'the Kiro deny floor' 'kiro\kiro_permissions.py' @("--mode=$mode", "--stamp=$stamp", "--floor=$tmp", "--floor-from=$floorFrom")
+    } finally {
+        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+    }
+}
+Invoke-Kiro
+
+# Issue #145, as install.sh does since v5.2.0. The retired MCP servers (ADR-0035 decision 2: aws-api) leave
+# the Codex user configuration, before the model defaults back that file up (PR #146 QA advisory).
+Invoke-PyStep 'the retired MCP servers' 'mcp\mcp_retire.py' @("--mode=$mode")
+# The session-start default model and reasoning effort (ADR-0007, ADR-0035) from the overlay's
+# model-defaults.json: Claude Code model and effortLevel, Codex model and model_reasoning_effort, Kiro CLI
+# chat.defaultModel. The pinned value is written over any value, reported old -> new, with a backup.
+$modelsPolicy = 'none'
+if ($Overlay -ne 'none' -and (Test-Path -LiteralPath (Join-Path $Overlay 'model-defaults.json') -PathType Leaf)) {
+    $modelsPolicy = Join-Path $Overlay 'model-defaults.json'
+}
+Invoke-PyStep 'the session-start model defaults' 'models\model_defaults.py' @("--mode=$mode", "--stamp=$stamp", "--policy=$modelsPolicy", "--home=$home_")
+
+# The user-level Claude Code allow entries the policy retired (ADR-0035 decision 4: find and awk, every
+# wildcard spelling), listed in global\allow-retired.conf: removed by name from permissions.allow only, as
+# install.sh's allow_retire does, with the previous file kept as settings.json.pmhwc-allow-backup. Nothing
+# else is removed; install.ps1 renders no allow list of its own (ADR-0031 is POSIX only).
+function Remove-RetiredAllow([string]$settings) {
+    $src = Join-Path $scriptDir 'allow-retired.conf'
+    if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { [Console]::Error.WriteLine("source not found: $src"); Set-Status 2; return }
+    $retired = @(Get-Content -LiteralPath $src | Where-Object { $_ -notmatch '^\s*(#|$)' })
+    if (-not (Test-Path -LiteralPath $settings -PathType Leaf)) { return }
+    try { $obj = Get-Content -LiteralPath $settings -Raw | ConvertFrom-Json } catch { return }   # Merge-DenyFloor refused it
+    if ($obj -isnot [System.Management.Automation.PSCustomObject]) { return }
+    $perms = $obj.PSObject.Properties['permissions']
+    if (-not $perms -or $perms.Value -isnot [System.Management.Automation.PSCustomObject]) { return }
+    $allowProp = $perms.Value.PSObject.Properties['allow']
+    $allow = @()
+    if ($allowProp -and $allowProp.Value -is [System.Array]) { $allow = @($allowProp.Value) }
+    $hits = @($allow | Where-Object { $_ -is [string] -and $retired -ccontains $_ } | Select-Object -Unique)
+    if ($hits.Count -eq 0) { Write-Output "OK      ${settings}: no allow entry the policy retired"; return }
+    $what = ($hits | ForEach-Object { "$_ present -> absent" }) -join '; '
+    $backup = "$settings.pmhwc-allow-backup"
+    switch ($mode) {
+        'check' {
+            Write-Output "DRIFT   ${settings}: install would change permissions.allow $what (retired, ADR-0035 decision 4)"
+            Set-Status 1
+        }
+        'dry-run' { Write-Output "WOULD CHANGE ${settings}: permissions.allow $what (backup $backup)" }
+        'install' {
+            $keep = @($allow | Where-Object { -not ($_ -is [string] -and $retired -ccontains $_) })
+            if ($keep.Count -eq 0) { $perms.Value.PSObject.Properties.Remove('allow') }
+            else { $perms.Value | Add-Member -NotePropertyName allow -NotePropertyValue ([object[]]$keep) -Force }
+            if (@($perms.Value.PSObject.Properties).Count -eq 0) { $obj.PSObject.Properties.Remove('permissions') }
+            Copy-Item -LiteralPath $settings -Destination $backup -Force
+            $tmp = "$settings.new.$PID"
+            [System.IO.File]::WriteAllText($tmp, ($obj | ConvertTo-Json -Depth 100), $utf8)
+            Move-Item -LiteralPath $tmp -Destination $settings -Force
+            Write-Output "CHANGED ${settings}: permissions.allow $what (retired, ADR-0035 decision 4; previous file kept as $backup)"
+        }
+    }
+}
+Remove-RetiredAllow $settingsFile
+
+# The fourth #145 item, the paste wrapper's shell start-up block, has nothing to write here: the wrapper
+# needs a POSIX pty and /usr/bin/python3 and is not ported to Windows (ADR-0011, ADR-0033).
+Write-Output 'NOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written'
 
 # The working method (Issue #61, ADR-0032): agents, skills and commands from <repo>\method, rendered into
 # each agent harness's user-level carrier by global\method\method_render.py, the same step install.sh
 # runs. It gets this script's mode, its stamp and the profile directory, so it never reads HOME.
 function Invoke-Method {
-    $py = $null
-    foreach ($c in @('python3', 'python', 'py')) {
-        $cmd = Get-Command $c -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $cmd) { continue }
-        try { $v = & $cmd.Source --version } catch { continue }
-        if ($LASTEXITCODE -eq 0 -and "$v" -match 'Python 3\.(9|[1-9][0-9])') { $py = $cmd.Source; break }
-    }
-    if (-not $py) {
-        Write-Output 'SKIP    the working method (method\): Python 3.9 or later is required to render it'
-        Set-Status 2
-        return
-    }
     $a = @("--mode=$mode", "--stamp=$stamp", "--home=$home_")
     if ($Method) { $a += '--opt-in' }
-    & $py -B (Join-Path $scriptDir 'method\method_render.py') @a
-    Set-Status $LASTEXITCODE
+    Invoke-PyStep 'the working method (method\)' 'method\method_render.py' $a
 }
 Invoke-Method
 

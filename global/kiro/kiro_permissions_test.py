@@ -370,6 +370,75 @@ class Install(Base):
         self.assertEqual(sorted(p.name for p in self.path.parent.iterdir()),
                          sorted(["permissions.yaml", "permissions.yaml.lock", "permissions.yaml.pmhwc-backup"]))
 
+    def reclaim_inside(self, name, mode):
+        """Run main() in mode with kp.<name> wrapped so that Kiro reclaims the lock just before it runs.
+        -> (exit code, output)."""
+        lock = Path(str(os.path.realpath(str(self.path))) + ".lock")
+        other = self.home / "kiro-made-this"
+        real, old_home = getattr(kp, name), os.environ.get("HOME")
+
+        def reclaim_then(*args, **kw):
+            other.mkdir()
+            lock.rmdir()
+            other.rename(lock)
+            return real(*args, **kw)
+        setattr(kp, name, reclaim_then)
+        os.environ["HOME"] = str(self.home)
+        del kp._CHANGED[:]
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                code = kp.main(["--mode=" + mode, "--stamp=" + STAMP, "--floor=%s" % self.floor])
+        finally:
+            setattr(kp, name, real)
+            os.environ["HOME"] = old_home
+            del kp._CHANGED[:]
+        self.assertTrue(lock.is_dir())  # Kiro's lock stays
+        return code, out.getvalue()
+
+    def test_a_reclaim_after_the_yaml_rename_says_the_yaml_was_changed(self):
+        # PR #150 review residual (a): the reclaim lands after permissions.yaml was renamed and before the
+        # ownership record is written. The refusal must not claim "nothing written": the file holds the floor,
+        # the record does not, and the message says so and what it means for uninstall.
+        self.owner_file()
+        code, out = self.reclaim_inside("write_owned", "install")
+        self.assertEqual(code, 3, out)
+        real = os.path.realpath(str(self.path))
+        self.assertIn("REFUSE  %s: Kiro's lock %s.lock is no longer the one mhw took" % (self.path, real), out)
+        self.assertIn("; %s was already changed before that, and %s was not" % (real, os.path.realpath(str(self.owned))),
+                      out)
+        self.assertIn("uninstall will leave them in place", out)
+        self.assertNotIn("nothing written", out)
+        self.assertNotIn("not changed", out)
+        self.assertEqual(self.rules()[:3], OWNER_RULES)
+        self.assertEqual(len(self.rules()), 6)  # the floor went in
+        self.assertFalse(self.owned.exists())
+
+    def test_a_reclaim_before_any_rename_says_the_file_was_not_changed(self):
+        self.owner_file()
+        before = self.path.read_bytes()
+        code, out = self.reclaim_inside("write", "install")
+        self.assertEqual(code, 3, out)
+        self.assertIn("; %s not changed, so no rule Kiro is writing is lost. Re-run" % os.path.realpath(str(self.path)),
+                      out)
+        self.assertNotIn("already changed", out)
+        self.assertEqual(self.path.read_bytes(), before)
+
+    def test_uninstall_never_removes_the_file_once_kiro_reclaimed_the_lock(self):
+        # PR #150 review residual (b): mhw created the file and only its rules are in it, so uninstall would
+        # remove it. If Kiro reclaimed the lock meanwhile, the removal is refused like a rename: the file and
+        # the record stay, exit 3, and the message says the file was not changed.
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 0, out)
+        before = self.path.read_bytes()
+        code, out = self.reclaim_inside("uninstall", "uninstall")
+        self.assertEqual(code, 3, out)
+        self.assertIn("REFUSE  %s: Kiro's lock" % self.path, out)
+        self.assertIn("%s not changed" % os.path.realpath(str(self.path)), out)
+        self.assertNotIn("REMOVED", out)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertTrue(self.owned.exists())
+
     def test_a_held_lock_is_refreshed_before_the_rename(self):
         # PR #150 QA L1: while held, the lock never looks older than proper-lockfile's 10 s stale threshold.
         self.owner_file()

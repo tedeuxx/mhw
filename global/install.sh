@@ -26,7 +26,8 @@
 #                               deny floor (FLOOR lines; install-managed.sh installs the admin copy)
 #   --shell-rc=FILE             the shell start-up file that gets the paste wrapper's managed block (an
 #                               absolute path). Default (Issue #145): from $SHELL, zsh ${ZDOTDIR:-~}/.zshrc,
-#                               bash ~/.bashrc; another shell gets none. --shell-rc=none writes none.
+#                               bash ~/.bashrc, plus on macOS the login file (~/.bash_profile, see
+#                               rc_bash_login); another shell gets none. --shell-rc=none writes none.
 #                               --check reports it; --dry-run writes nothing; --uninstall removes the block
 #   --method                    opt-in (Issue #61): render the working method (method/) too. Off by default
 #                               until the plugin cutover (#63, #64); once rendered, later runs keep it
@@ -294,18 +295,23 @@ status=0
 raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
 # private_copy SRC DST: every .pmhwc-*backup of a harness config is owner-only (0600) from its first byte,
 # whatever the original's mode: a backup can hold what install removed, such as an MCP server's environment
-# values (PR #146 QA advisory). A file or link already at DST is replaced, never written through.
+# values (PR #146 QA advisory). A file or link already at DST is unlinked first, never written through; DST is
+# then created under noclobber (set -C), so a file or link planted there after the unlink makes the copy fail
+# (the shell's nearest form of O_EXCL; a link to a device or FIFO is still opened, which O_NOFOLLOW refuses).
+# The Python steps share one form, global/private_copy.py. This one stays in shell because install.sh needs no
+# python3; global/private_copy_test.py runs both forms on the same cases and requires the same result.
 private_copy() {
   pc_src=$1
   pc_dst=$2
   rm -f "$pc_dst"
-  (umask 077 && cp "$pc_src" "$pc_dst")
+  (umask 077 && set -C && cat "$pc_src" > "$pc_dst") || return 1
   chmod 600 "$pc_dst"
 }
 
 # The shell start-up block that activates the paste wrapper (Issue #145; it was opt-in under Issue #58).
 # install writes it into the shell's own start-up file, chosen from $SHELL (zsh: ${ZDOTDIR:-~}/.zshrc;
-# bash: ~/.bashrc), or into --shell-rc=FILE; --shell-rc=none writes none. It is one marked block, replaced
+# bash: ~/.bashrc, and on macOS also the file a bash login shell reads, see rc_bash_login), or into
+# --shell-rc=FILE only; --shell-rc=none writes none. It is one marked block per file, replaced
 # whole when it differs, never duplicated; the earlier one-line form (a line carrying $rc_tag) is replaced
 # by it. Every write keeps the previous file as <file>.pmhwc-backup and prints old -> new; uninstall removes
 # exactly the block (and an earlier one-line form). Damaged markers are refused, nothing written.
@@ -331,9 +337,28 @@ rc_zshrc() { # the default zsh start-up file, or nothing when ZDOTDIR leads outs
   if rc_inside_home "$rc_z"; then printf '%s' "$rc_z"; fi
   return 0
 }
-rc_pick() { # sets rc (the start-up file this run writes, or empty) and rc_why (why it is empty)
+rc_there() { [ -e "$1" ] || [ -L "$1" ]; }
+# rc_bash_login: on macOS a bash login shell (what Terminal.app opens) reads the first of ~/.bash_profile,
+# ~/.bash_login and ~/.profile that exists, and never ~/.bashrc. Sets rc_login to the first of the two bash-only
+# files that exists, or to a new ~/.bash_profile when none of the three does. When only ~/.profile exists,
+# rc_login stays empty and rc_login_why says why: sh reads ~/.profile too (a function named kiro-cli is a syntax
+# error there), and creating ~/.bash_profile would stop bash reading ~/.profile.
+rc_bash_login() {
+  rc_login=
+  rc_login_why=
+  [ "$(uname -s)" = Darwin ] || return 0
+  if rc_there "$HOME/.bash_profile"; then rc_login="$HOME/.bash_profile"
+  elif rc_there "$HOME/.bash_login"; then rc_login="$HOME/.bash_login"
+  elif rc_there "$HOME/.profile"; then
+    rc_login_why="for a bash login shell: only ~/.profile is there, which sh also reads, and a new ~/.bash_profile would stop bash reading it"
+  else rc_login="$HOME/.bash_profile"; fi
+  return 0
+}
+rc_pick() { # sets rc (the start-up file this run writes, or empty), rc_why (why it is empty), and rc_login
   rc=
   rc_why=
+  rc_login=
+  rc_login_why=
   case $shell_rc in
     none) rc_why="--shell-rc=none"; return 0 ;;
     ?*) rc=$shell_rc; return 0 ;;
@@ -344,7 +369,10 @@ rc_pick() { # sets rc (the start-up file this run writes, or empty) and rc_why (
       rc=$(rc_zshrc)
       [ -n "$rc" ] || rc_why="ZDOTDIR=$ZDOTDIR is outside HOME=$HOME"
       ;;
-    bash|*/bash) rc="$HOME/.bashrc" ;;
+    bash|*/bash)
+      rc="$HOME/.bashrc"
+      rc_bash_login
+      ;;
     *) rc_why="your shell (SHELL=${SHELL:-unset}) is neither zsh nor bash" ;;
   esac
   return 0
@@ -395,6 +423,17 @@ shell_rc_line() {
     fi
     return 0
   fi
+  rc_login_file=$rc_login
+  shell_rc_one "$rc"
+  if [ -n "$rc_login_file" ]; then
+    shell_rc_one "$rc_login_file"
+  elif [ -n "$rc_login_why" ] && [ "$mode" = install ]; then
+    echo "NOTE    automatic paste cleaning: no bash login start-up file is written ($rc_login_why); add this line to yours:"
+    echo "        $rc_line"
+  fi
+}
+shell_rc_one() { # shell_rc_one FILE: the managed block in one start-up file
+  rc=$1
   if [ -e "$rc" ] && [ ! -f "$rc" ]; then
     echo "REFUSE  $rc is not a regular file; nothing written. Add this line yourself:"
     echo "        $rc_line"
@@ -436,7 +475,7 @@ shell_rc_line() {
 shell_rc_uninstall() {
   rc_seen=
   rc_pick
-  for rc in "$rc" "$(rc_zshrc)" "$HOME/.bashrc"; do
+  for rc in "$rc" "$(rc_zshrc)" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.bash_login"; do
     [ -n "$rc" ] || continue
     case " $rc_seen " in *" $rc "*) continue ;; esac
     rc_seen="$rc_seen $rc"
@@ -502,7 +541,8 @@ render() {
         printf '# %s; source: global/install.sh (paste wrapper, ADR-0011); %s; do not edit, re-run the installer\n' \
           "$MARKER_ID" "$stamp"
         printf '# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n'
-        printf '# managed block in your shell start-up file (~/.zshrc or ~/.bashrc; Issue #145), which reads:\n'
+        printf '# managed block in your shell start-up file (~/.zshrc, or ~/.bashrc and on macOS ~/.bash_profile;\n'
+        printf '# Issue #145), which reads:\n'
         printf '#   %s\n' "$rc_body"
         printf '# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n'
         printf '# CLI sees them and marks the session (%s=1), so the prompt hook lets its prompts\n' "PMHWC_PASTE_WRAPPER"

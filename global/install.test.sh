@@ -463,6 +463,60 @@ HOME="$hb" SHELL=/bin/bash sh "$inst" > /dev/null; expect "install under bash" 0
 if [ "$(cat "$hb/.bashrc")" = "$(block_of "$hb")" ] && [ ! -e "$hb/.zshrc" ]; then ok "bash: the block goes into ~/.bashrc"; else ko "bash: the block is not in ~/.bashrc"; fi
 HOME="$hb" SHELL=/bin/bash sh "$inst" --uninstall > /dev/null; expect "uninstall under bash" 0 $?
 if [ ! -s "$hb/.bashrc" ]; then ok "bash: uninstall leaves ~/.bashrc as it was (empty, a file mhw created)"; else ko "bash: uninstall left: $(cat "$hb/.bashrc")"; fi
+# macOS: a bash login shell (what Terminal.app opens) reads the first of ~/.bash_profile, ~/.bash_login and
+# ~/.profile, never ~/.bashrc (Issue #145 follow-up). That file gets the block too, by the same merge and 0600
+# backup; ~/.profile is never written (sh reads it too) and no ~/.bash_profile is created to hide it. On Linux
+# only ~/.bashrc is written.
+hl="$base/home-bash-login"; mkdir -p "$hl"
+printf 'export OWNER_LOGIN=1\n[ -r ~/.bashrc ] && . ~/.bashrc\n' > "$hl/.bash_profile"
+chmod 644 "$hl/.bash_profile"
+lsum=$(cksum < "$hl/.bash_profile")
+HOME="$hl" SHELL=/bin/bash sh "$inst" > "$base/bash-login.out"; expect "install under bash with an owner's ~/.bash_profile" 0 $?
+if [ "$(uname -s)" = Darwin ]; then
+  lb_mode=$(stat -f %Lp "$hl/.bash_profile.pmhwc-backup" 2>/dev/null || echo absent)
+  if [ "$(cat "$hl/.bash_profile")" = "$(printf 'export OWNER_LOGIN=1\n[ -r ~/.bashrc ] && . ~/.bashrc\n%s' "$(block_of "$hl")")" ] \
+     && [ "$(cksum < "$hl/.bash_profile.pmhwc-backup")" = "$lsum" ] && [ "$lb_mode" = 600 ] \
+     && [ "$(cat "$hl/.bashrc")" = "$(block_of "$hl")" ] \
+     && grep -qxF "CHANGED $hl/.bash_profile: paste-wrapper start-up block absent -> present (previous file kept as $hl/.bash_profile.pmhwc-backup); new shells clean pastes" "$base/bash-login.out"; then
+    ok "macOS bash: the block is merged into the owner's ~/.bash_profile (0600 backup) and ~/.bashrc"
+  else
+    ko "macOS bash: ~/.bash_profile is wrong: $(cat "$hl/.bash_profile"); backup mode $lb_mode"
+  fi
+  t=$(env -i HOME="$hl" PATH=/usr/bin:/bin /bin/bash -l -c 'type claude' 2>&1 | head -n 1)
+  case $t in
+    *function*) ok "macOS bash: a login shell defines the wrapper functions" ;;
+    *) ko "macOS bash: a login shell did not define claude: $t" ;;
+  esac
+  HOME="$hl" SHELL=/bin/bash sh "$inst" --check > /dev/null 2>&1; expect "check under bash with both files carrying the block" 0 $?
+  HOME="$hl" SHELL=/bin/bash sh "$inst" --uninstall > /dev/null 2>&1; expect "uninstall under bash with ~/.bash_profile" 0 $?
+  if [ "$(cksum < "$hl/.bash_profile")" = "$lsum" ]; then ok "macOS bash: uninstall gives ~/.bash_profile back byte for byte"; else ko "macOS bash: uninstall left: $(cat "$hl/.bash_profile")"; fi
+  # Only ~/.bash_login: it gets the block, and no ~/.bash_profile is created (it would hide ~/.bash_login).
+  hl2="$base/home-bash-login2"; mkdir -p "$hl2"
+  printf 'export OWNER_BASH_LOGIN=1\n' > "$hl2/.bash_login"
+  HOME="$hl2" SHELL=/bin/bash sh "$inst" > /dev/null; expect "install under bash with only ~/.bash_login" 0 $?
+  if [ ! -e "$hl2/.bash_profile" ] && grep -qxF "$rc_end" "$hl2/.bash_login"; then ok "macOS bash: ~/.bash_login gets the block, no ~/.bash_profile created"; else ko "macOS bash: ~/.bash_login case wrong"; fi
+  # Only ~/.profile: it is never written, nothing is created to hide it, and the line is printed.
+  hl3="$base/home-bash-profile-only"; mkdir -p "$hl3"
+  printf 'export OWNER_PROFILE=1\n' > "$hl3/.profile"
+  psum=$(cksum < "$hl3/.profile")
+  HOME="$hl3" SHELL=/bin/bash sh "$inst" > "$base/bash-profile-only.out"; expect "install under bash with only ~/.profile" 0 $?
+  if [ "$(cksum < "$hl3/.profile")" = "$psum" ] && [ ! -e "$hl3/.profile.pmhwc-backup" ] && [ ! -e "$hl3/.bash_profile" ] \
+     && [ ! -e "$hl3/.bash_login" ] && grep -q '^NOTE    automatic paste cleaning: no bash login start-up file is written (for a bash login shell: only ~/.profile is there' "$base/bash-profile-only.out"; then
+    ok "macOS bash: ~/.profile is left alone, nothing hides it, and the line is printed"
+  else
+    ko "macOS bash: the ~/.profile case wrote something or printed no line"
+  fi
+  # No login file at all: a new ~/.bash_profile holds only the block, and uninstall leaves it empty.
+  hl4="$base/home-bash-login-none"; mkdir -p "$hl4"
+  HOME="$hl4" SHELL=/bin/bash sh "$inst" > /dev/null; expect "install under bash with no login file" 0 $?
+  if [ "$(cat "$hl4/.bash_profile")" = "$(block_of "$hl4")" ]; then ok "macOS bash: a new ~/.bash_profile holds the block"; else ko "macOS bash: no ~/.bash_profile block"; fi
+else
+  if [ "$(cksum < "$hl/.bash_profile")" = "$lsum" ] && [ ! -e "$hl/.bash_profile.pmhwc-backup" ]; then
+    ok "Linux bash: ~/.bash_profile is not written"
+  else
+    ko "Linux bash: ~/.bash_profile was written"
+  fi
+fi
 hz="$base/home-zdotdir"; mkdir -p "$hz/zdot"
 HOME="$hz" ZDOTDIR="$hz/zdot" sh "$inst" > /dev/null; expect "install with ZDOTDIR" 0 $?
 if [ -f "$hz/zdot/.zshrc" ] && [ ! -e "$hz/.zshrc" ]; then ok "zsh: ZDOTDIR's .zshrc gets the block"; else ko "zsh: ZDOTDIR not honoured"; fi

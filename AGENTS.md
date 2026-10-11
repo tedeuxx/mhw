@@ -247,7 +247,8 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   slice B, amending [ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md)): each
   harness's model pinned by ID, at medium effort (no effort on Kiro), from `overlay/model-defaults.json`
   through `global/models/model_defaults.py`. *Written and tested* in throwaway homes; **not installed**
-  on the reference machine, and no default checked in a new session. macOS and Linux only. ~~On that
+  on the reference machine, and no default checked in a new session. ~~macOS and Linux only.~~ Windows
+  too since the #145 follow-up (`install.ps1`, CI-tested). ~~On that
   machine the owner holds his own Claude Code `model` and Codex `model_reasoning_effort`; install keeps
   them, so those two pins take effect only after he deletes the keys.~~ *Struck 2026-10-11
   ([#145](https://github.com/tedeuxx/mhw/issues/145)):* install writes the pin over any value, reports
@@ -258,10 +259,13 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   MCP server from the Codex user configuration (`global/mcp/mcp_retire.py`), removes the wildcard allows of
   `find` and `awk` (`Bash(x *)`, `Bash(x:*)`, `Bash(x*)`) from the Claude Code user allow list
   (`global/allow-retired.conf`), and adds the paste
-  wrapper's block to `~/.zshrc` or `~/.bashrc`. Each keeps a backup and prints old -> new; uninstall
+  wrapper's block to `~/.zshrc` or `~/.bashrc` (on macOS also the bash login file, `~/.bash_profile` or
+  `~/.bash_login`; never `~/.profile`). Each keeps a backup and prints old -> new; uninstall
   removes the block and restores the model values, and the MCP and allow removals are restorable from
   their backups. *Written and tested* in throwaway homes; **not installed** on the reference machine.
-  Windows (`install.ps1`) does none of the four.
+  ~~Windows (`install.ps1`) does none of the four.~~ *Amended 2026-10-11 (#145 follow-up):* `install.ps1`
+  does the MCP removal, the model pins and the allow removal, through the same scripts; the paste wrapper
+  cannot apply on Windows. *Written and CI-tested* on Windows; not installed anywhere.
 - **Outbound scan** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 7,
   slice F): `mhw scan` checks the files and commits a branch changed and prints `file:line`, the
   category and the length, never the text; the `outbound-scan` CI check runs it on every pull request.
@@ -281,4 +285,5 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   ignores the CLI agent `workstation.json`). The IDE bundle reads a root-owned admin file,
   `managed-settings.json`, as its `administration` scope. That is *read from the bundle*: nothing is
   rendered there and nothing is measured, and Kiro CLI V3 was not checked. Rendering the floor there is
-  an open option for the owner. Windows does not render the Kiro floor.
+  an open option for the owner. ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
+  `install.ps1` renders it too (*written and CI-tested*; Kiro on Windows not measured).

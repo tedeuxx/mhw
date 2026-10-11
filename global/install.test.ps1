@@ -19,6 +19,7 @@ $repo = Split-Path -Parent $here
 $inst = Join-Path $here 'install.ps1'
 $shell = (Get-Process -Id $PID).Path
 Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue
+Remove-Item Env:XDG_DATA_HOME -ErrorAction SilentlyContinue
 $script:pass = 0
 $script:fail = 0
 Write-Output "shell: $shell, PowerShell $($PSVersionTable.PSVersion) $($PSVersionTable.PSEdition)"
@@ -30,9 +31,20 @@ function Expect([string]$d, [int]$want, [int]$got) {
 }
 function Check([string]$d, [bool]$cond) { if ($cond) { Ok $d } else { Ko $d } }
 
+# Sections 1-13 seed settings files with values of their own (a "model" among them), which the model defaults
+# would overwrite (Issue #145) and so blur what those sections assert. As install.test.sh does, they run with a
+# copy of the repository overlay minus model-defaults.json; section 14 runs the real overlay.
+$repoOverlay = Join-Path $repo 'overlay'
+$modelsOff = Join-Path $Base 'overlay-without-model-defaults'
+New-Item -ItemType Directory -Force -Path $modelsOff | Out-Null
+Copy-Item -Path (Join-Path $repoOverlay '*') -Destination $modelsOff -Recurse -Force
+Remove-Item -LiteralPath (Join-Path $modelsOff 'model-defaults.json') -Force -ErrorAction SilentlyContinue
+
 # Run the installer with USERPROFILE pointed at a throwaway directory. Returns its stdout lines; the exit
-# code is left in $script:rc. stderr is not captured (it goes to the job log).
+# code is left in $script:rc. stderr is not captured (it goes to the job log). Without an -Overlay argument
+# the copy above is used.
 function Run([string]$prof, [string[]]$a = @()) {
+    if (-not ($a -contains '-Overlay')) { $a = @($a) + @('-Overlay', $modelsOff) }
     $saved = $env:USERPROFILE
     $env:USERPROFILE = $prof
     try {
@@ -62,7 +74,8 @@ function Targets([string]$h) {
         (Join-Path $h '.codex\AGENTS.md'),
         (Join-Path $h '.kiro\steering\workstation-global-brief.md'),
         (Join-Path $h '.codex\rules\workstation-deny-floor.rules'),
-        (Join-Path $h '.claude\settings.json')
+        (Join-Path $h '.claude\settings.json'),
+        (Join-Path $h '.kiro\settings\permissions.yaml')
     )
 }
 function Fingerprint([string]$h) {
@@ -330,6 +343,54 @@ $h = Join-Path $Base 'home-profile-stale'; New-Item -ItemType Directory -Force -
 $null = Run $h @('-Overlay', $profileDir)
 Expect 'stale compiled profile refused before installation' 1 $script:rc
 Check 'stale profile wrote no target' ((Count-Files $h) -eq 0)
+
+# 14. Issue #145: what install.sh does since v5.2.0, on Windows, with the repository overlay (it holds
+# model-defaults.json). The retired MCP server leaves the Codex config (only the MCP backup holds it), the
+# model and effort pins are written over the owner's values, the retired find and awk allows leave
+# permissions.allow (the rest stays), and the Kiro floor is merged beside the owner's rule (ADR-0036).
+$pins = Get-Content -LiteralPath (Join-Path $repoOverlay 'model-defaults.json') -Raw | ConvertFrom-Json
+$h = Join-Path $Base 'home-145'
+New-Item -ItemType Directory -Force -Path (Join-Path $h '.claude'), (Join-Path $h '.codex'), (Join-Path $h '.kiro\settings') | Out-Null
+$sf = Join-Path $h '.claude\settings.json'
+[System.IO.File]::WriteAllText($sf, '{ "model": "owner-model", "permissions": { "allow": [ "Bash(find:*)", "Bash(awk *)", "Bash(ls:*)" ] } }')
+$cf = Join-Path $h '.codex\config.toml'
+$canary = 'canary-' + 'value-' + '5150'
+[System.IO.File]::WriteAllText($cf, "model_reasoning_effort = `"high`"`n`n[mcp_servers.aws-api]`ncommand = `"uvx`"`n`n[mcp_servers.aws-api.env]`nAWS_PROFILE = `"$canary`"`n`n[mcp_servers.keep-me]`ncommand = `"x`"`n")
+$kf = Join-Path $h '.kiro\settings\permissions.yaml'
+[System.IO.File]::WriteAllText($kf, "rules:`n  - capability: shell`n    match:`n      - git *`n    effect: allow`n")
+$out = Run $h @('-Overlay', $repoOverlay); Expect 'install with the repository overlay (#145 parity)' 0 $script:rc
+$s = Settings $h
+Check 'model and effort pins written over the owner value (Claude Code)' (
+    $s.model -ceq $pins.'claude-code'.model -and $s.effortLevel -ceq $pins.'claude-code'.effort)
+Check 'the retired find and awk allows are gone, the owner allow stays' ((@($s.permissions.allow) -join '|') -ceq 'Bash(ls:*)')
+Check 'the allow backup holds the retired entries' (
+    (Test-Path -LiteralPath "$sf.pmhwc-allow-backup") -and [System.IO.File]::ReadAllText("$sf.pmhwc-allow-backup").Contains('Bash(find:*)'))
+Check 'the allow change is printed old -> new' ([bool]($out | Where-Object {
+            $_ -clike 'CHANGED *settings.json: permissions.allow Bash(find:*) present -> absent; Bash(awk `*) present -> absent (retired, ADR-0035 decision 4;*' }))
+$toml = [System.IO.File]::ReadAllText($cf)
+Check 'the retired aws-api MCP server left config.toml; another server stays' (-not $toml.Contains('aws-api') -and $toml.Contains('[mcp_servers.keep-me]'))
+Check 'Codex model and effort pinned' (
+    $toml.Contains("model = `"$($pins.codex.model)`"") -and $toml.Contains("model_reasoning_effort = `"$($pins.codex.effort)`"") -and -not $toml.Contains('"high"'))
+Check 'only the MCP backup holds the retired server' (
+    [System.IO.File]::ReadAllText("$cf.pmhwc-mcp-backup").Contains($canary) -and -not [System.IO.File]::ReadAllText("$cf.pmhwc-models-backup").Contains('aws-api'))
+$kcli = Get-Content -LiteralPath (Join-Path $h '.kiro\settings\cli.json') -Raw | ConvertFrom-Json
+Check 'Kiro CLI default model pinned' ($kcli.'chat.defaultModel' -ceq $pins.'kiro-cli'.model)
+$ky = [System.IO.File]::ReadAllText($kf)
+Check 'the Kiro floor is merged beside the owner rule, with a backup' (
+    $ky.Contains('"git *"') -and $ky.Contains('"sudo *"') -and $ky.Contains('"~/.ssh/id_*"') -and (Test-Path -LiteralPath "$kf.pmhwc-backup"))
+Check 'the paste wrapper is named as not ported' ([bool]($out | Where-Object { $_ -clike 'NOTE    the paste wrapper and the paste filter are not ported to Windows*' }))
+$snap = @($sf, $cf, $kf) | ForEach-Object { (Get-FileHash -LiteralPath $_).Hash }
+$out = Run $h @('-Check', '-Overlay', $repoOverlay); Expect 'check is clean after the #145 steps' 0 $script:rc
+Check 'check names the Kiro file complete' ([bool]($out | Where-Object { $_ -clike 'OK      *permissions.yaml (all * deny-floor patterns present;*' }))
+$null = Run $h @('-Overlay', $repoOverlay); Expect 're-run with the repository overlay' 0 $script:rc
+Check 're-run left settings, config.toml and permissions.yaml byte-identical' (
+    ((@($sf, $cf, $kf) | ForEach-Object { (Get-FileHash -LiteralPath $_).Hash }) -join ',') -ceq ($snap -join ','))
+# A drifted pin and a re-added retired allow are reported by -Check.
+$s = Settings $h
+$s.permissions.allow = [object[]]@('Bash(ls:*)', 'Bash(find *)')
+[System.IO.File]::WriteAllText($sf, ($s | ConvertTo-Json -Depth 100))
+$out = Run $h @('-Check', '-Overlay', $repoOverlay); Expect 'check flags a re-added retired allow' 1 $script:rc
+Check 'check names the retired allow as DRIFT' ([bool]($out | Where-Object { $_ -clike 'DRIFT   *settings.json: install would change permissions.allow Bash(find `*) present -> absent*' }))
 
 Write-Output "$($script:pass) passed, $($script:fail) failed"
 if ($script:fail -ne 0) { exit 1 }

@@ -32,6 +32,9 @@ import stat
 import subprocess
 import sys
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # global/: the one shared private_copy
+from private_copy import private_copy  # noqa: E402
+
 try:
     import tomllib
 except ImportError:  # Python < 3.11: the Codex surface refuses, the JSON surfaces still work
@@ -526,19 +529,6 @@ def json_plan(data, want, managed_before, adopt):
 
 
 # ------------------------------------------------------------------------------------------ writing
-
-
-def private_copy(src, dst):
-    """The .pmhwc-backup is owner-only (0600) from its first byte, whatever the original's mode: it is
-    the file most likely to hold a plain-text credential from before a migration (PR #147 lens F1). A file
-    or link already at dst is replaced, never written through (O_EXCL). Same helper as mcp_retire.py and
-    model_defaults.py; install.sh carries the shell form."""
-    if os.path.lexists(dst):
-        os.remove(dst)
-    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
-        shutil.copyfileobj(inp, out)
-    os.chmod(dst, 0o600)
 
 
 def atomic_write(path, text, backup):

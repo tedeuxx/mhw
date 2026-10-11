@@ -39,6 +39,9 @@ import shutil
 import sys
 from pathlib import Path
 
+sys.path.append(str(Path(__file__).resolve().parent.parent))  # global/: the one shared private_copy
+from private_copy import private_copy  # noqa: E402
+
 MARKER_ID = "managed-by: personal-multi-harness-workstation-configuration"
 NAME = "personal-multi-harness-workstation-configuration"
 SOURCE = "overlay/model-defaults.json"
@@ -58,18 +61,6 @@ HARNESSES = {
 
 class PolicyError(Exception):
     pass
-
-
-def private_copy(src, dst):
-    """The backup is owner-only (0600) from its first byte, whatever the original's mode: it can hold
-    what install removed (PR #146 QA advisory). A file or link already at dst is replaced, never written
-    through (O_EXCL)."""
-    if os.path.lexists(dst):
-        os.remove(dst)
-    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
-        shutil.copyfileobj(inp, out)
-    os.chmod(dst, 0o600)
 
 
 def target_path(harness, home):
