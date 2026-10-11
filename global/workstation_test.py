@@ -384,6 +384,77 @@ class ModelsLine(unittest.TestCase):
                          ["    CHANGED /h/.zshrc: paste-wrapper start-up block absent -> present (new file)"])
 
 
+class RootBrief(unittest.TestCase):
+    """ADR-0037: AGENTS.md is the root brief. Status names a file that makes Claude Code ignore it and an
+    AGENTS.md Codex would truncate (project_doc_max_bytes, 32768 by default). An instruction check."""
+
+    SHADOW = "%s: AGENTS.md is the root brief; this file makes Claude Code ignore AGENTS.md"
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="root-brief-")
+        self.addCleanup(self.temp.cleanup)
+        self.top = Path(self.temp.name) / "parent" / "repo"
+        self.top.mkdir(parents=True)
+
+    def local(self):
+        # Findings in the workspace itself; an ancestor of the temporary directory is not this test's.
+        return [f for f in ws.root_brief_findings(self.top) if "(ancestor)" not in f]
+
+    def agents(self, size):
+        (self.top / "AGENTS.md").write_bytes(b"x" * size)
+
+    def test_clean_workspace_has_no_finding(self):
+        self.agents(100)
+        self.assertEqual(self.local(), [])
+
+    def test_each_shadowing_file_is_named(self):
+        self.agents(100)
+        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"):
+            with self.subTest(name=name):
+                path = self.top / name
+                path.parent.mkdir(exist_ok=True)
+                path.write_text("@AGENTS.md\n")
+                self.assertEqual(self.local(), [self.SHADOW % name])
+                path.unlink()
+        # A directory named like the file is not a brief.
+        (self.top / "CLAUDE.md").mkdir()
+        self.assertEqual(self.local(), [])
+
+    def test_ancestor_claude_md_is_named(self):
+        self.agents(100)
+        (self.top.parent / "CLAUDE.md").write_text("x\n")
+        self.assertIn("%s (ancestor): this file makes Claude Code ignore AGENTS.md" % (self.top.parent / "CLAUDE.md"),
+                      ws.root_brief_findings(self.top))
+
+    def test_codex_limit_is_exclusive(self):
+        self.agents(32768)
+        self.assertEqual(self.local(), [])
+        self.agents(32769)
+        self.assertEqual(self.local(), ["AGENTS.md is 32769 bytes, over 32768: Codex truncates it"])
+
+    def test_no_agents_md_is_not_a_size_finding(self):
+        self.assertEqual(self.local(), [])
+
+    def test_workspace_carries_the_findings(self):
+        self.agents(100)
+        (self.top / "CLAUDE.md").write_text("x\n")
+        got = ws.workspace(str(self.top))
+        self.assertIn(self.SHADOW % "CLAUDE.md", got["brief"])
+
+    def test_status_and_summary_report_them(self):
+        found = [self.SHADOW % "CLAUDE.md", "AGENTS.md is 40000 bytes, over 32768: Codex truncates it"]
+        space = {"name": "proj", "root": Path("/proj"), "carriers": ["AGENTS.md", "CLAUDE.md"], "brief": found}
+        out = ws.render_status(facts(workspace=space))
+        self.assertEqual([line[19:] for line in out if line.startswith("  root brief       ")], found)
+        summary = ws.render_summary(facts(workspace=space))
+        self.assertLessEqual(len(summary), 10)
+        layers = [line for line in summary if line.startswith("  layers ")][0]
+        self.assertIn("workspace: proj (root brief: 2 finding(s); %s status)" % ws.CMD, layers)
+        clean = dict(space, brief=[])
+        self.assertFalse(any(line.startswith("  root brief") for line in ws.render_status(facts(workspace=clean))))
+        self.assertNotIn("root brief", " ".join(ws.render_summary(facts(workspace=clean))))
+
+
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
 class EndToEnd(unittest.TestCase):
     """The real installers in a throwaway HOME and admin root: status must read their output right."""

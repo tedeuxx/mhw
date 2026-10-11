@@ -209,6 +209,8 @@ def render_status(f, verbose=False):
     plugin_text = "%d enabled in Claude Code" % len(plugins) if plugins else "none enabled in Claude Code"
     lines.append("  layers           managed: %s · user: %s · workspace: %s · plugin: %s" % (
         managed_text(f), "installed" if user else "absent", ws_text, plugin_text))
+    for finding in ws.get("brief", []):
+        lines.append("  root brief       " + finding)
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
     lines.append("  method           %s" % method_text(f.get("method")))
@@ -348,9 +350,12 @@ def render_summary(f):
     lines.append("  workstation      %s · version key: %s%s" % (stamp, key_text, owner))
     ws = f["workspace"]
     plugins = f["plugins"]
+    # The root-brief check rides on the workspace item, so the summary keeps its ten-line limit.
+    brief = len(ws.get("brief", []))
+    ws_text = "%s (root brief: %d finding(s); %s status)" % (ws["name"], brief, CMD) if brief else ws["name"]
     lines.append("  layers           managed: %s · user: %s · workspace: %s · plugin: %s" % (
         managed_text(f), "installed" if user else "absent",
-        ws["name"] or "none", "%d in Claude Code" % len(plugins) if plugins else "none"))
+        ws_text or "none", "%d in Claude Code" % len(plugins) if plugins else "none"))
     overrides = ["%s %s = %s" % (h, k, v) for h, layer, k, v in settings if layer == "workspace"]
     off = ["%s %s" % (h, layer) for h, layer, k, v in settings if k == "disableAllHooks" and v == "true"]
     if off:
@@ -551,7 +556,30 @@ def workspace(project):
         top = Path(out[0])
     carriers = [c for c in (KEY_FILE, "AGENTS.md", "CLAUDE.md", ".claude", ".codex", ".kiro", ".agents")
                 if (top / c).exists()]
-    return {"name": top.name, "root": top, "carriers": carriers}
+    return {"name": top.name, "root": top, "carriers": carriers, "brief": root_brief_findings(top)}
+
+
+# ADR-0037: in every repository the owner authors, the root brief is AGENTS.md alone. Measured on Claude
+# Code 2.1.296 (2026-10-11): a root AGENTS.md is loaded natively only when none of these exists; any one
+# of them replaces it entirely. Codex cuts project docs at project_doc_max_bytes, 32768 bytes by default.
+SHADOWS = ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md")
+CODEX_DOC_MAX_BYTES = 32768
+
+
+def root_brief_findings(top):
+    """What stops the workspace's root AGENTS.md from reaching every agent harness whole. An instruction
+    check: it reports and changes nothing, and no hook runs it."""
+    found = ["%s: AGENTS.md is the root brief; this file makes Claude Code ignore AGENTS.md" % name
+             for name in SHADOWS if (top / name).is_file()]
+    found += ["%s (ancestor): this file makes Claude Code ignore AGENTS.md" % (parent / "CLAUDE.md")
+              for parent in top.parents if (parent / "CLAUDE.md").is_file()]
+    try:
+        size = (top / "AGENTS.md").stat().st_size
+    except OSError:
+        size = 0
+    if size > CODEX_DOC_MAX_BYTES:
+        found.append("AGENTS.md is %d bytes, over %d: Codex truncates it" % (size, CODEX_DOC_MAX_BYTES))
+    return found
 
 
 METHOD_PLUGIN = "tadeumendonca-skills"

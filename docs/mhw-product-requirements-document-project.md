@@ -667,6 +667,8 @@ Slice: [#57](https://github.com/tedeuxx/mhw/issues/57).
   uses a write credential scoped to that repository only.
 - **Mirror:** that repository is marked "generated, do not edit"; its README and AGENTS.md carry the
   notice, and a decision record there points here.
+- **Root brief:** the generated package emits `AGENTS.md` only, never `CLAUDE.md`
+  ([ADR-0037](adr/0037-agents-md-is-the-only-root-brief.md)).
 - **Guard:** a CI test loads the generated package as a plugin before it is pushed.
 - **Owner act:** create the credential and store it as a repository secret. The agent names it and its
   scope and never sees the value.
