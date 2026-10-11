@@ -182,7 +182,8 @@ def plan(text, names):
 
 
 def _write(path, backup, text):
-    """As mcp_render.atomic_write: the new file is created with the old mode from its first byte, so the content is never readable more widely than before, even for a moment.
+    """As mcp_render.atomic_write: the new file is created with the old mode from its first byte, so the
+    content is never readable more widely than before, even for a moment.
     A config.toml that is a symbolic link (a dotfiles checkout) is written through: the link stays, its
     target loses the server (PR #146 lens L2). The backup holds what was removed, environment values
     included, so it is owner-only (0600) whatever the original's mode."""

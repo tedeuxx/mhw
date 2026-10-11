@@ -528,13 +528,26 @@ def json_plan(data, want, managed_before, adopt):
 # ------------------------------------------------------------------------------------------ writing
 
 
+def private_copy(src, dst):
+    """The .pmhwc-backup is owner-only (0600) from its first byte, whatever the original's mode: it is
+    the file most likely to hold a plain-text credential from before a migration (PR #147 lens F1). A file
+    or link already at dst is replaced, never written through (O_EXCL). Same helper as mcp_retire.py and
+    model_defaults.py; install.sh carries the shell form."""
+    if os.path.lexists(dst):
+        os.remove(dst)
+    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
+        shutil.copyfileobj(inp, out)
+    os.chmod(dst, 0o600)
+
+
 def atomic_write(path, text, backup):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     mode = 0o600
     if os.path.exists(path):
         mode = os.stat(path).st_mode & 0o7777
         if backup:
-            shutil.copy2(path, path + ".pmhwc-backup")
+            private_copy(path, path + ".pmhwc-backup")
     tmp = "%s.new.%d" % (path, os.getpid())
     try:
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
