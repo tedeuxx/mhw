@@ -1,0 +1,622 @@
+#!/usr/bin/env python3
+"""Render the workstation deny floor into Kiro's user-level permissions.yaml (ADR-0036, Issue #144).
+
+    kiro_permissions.py --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE
+
+FILE is the deny floor install.sh already validated (global/deny-floor.conf, then the overlay's), the same
+single source the Claude Code and Codex floors are rendered from. STAMP is install.sh's provenance stamp
+("release: ...; commit: ..."), so it is derived once (ADR-0029).
+
+Target. ~/.kiro/settings/permissions.yaml, from HOME only: no argument names a path this script writes.
+Kiro IDE (1.x) and Kiro CLI V3 read it with one rule engine (documented, kiro.dev/docs/permissions).
+
+Rendering. Every floor entry becomes a deny pattern:
+  cmd  <words>        shell    "<words> *"   Kiro compiles a pattern ending in " *" to "equals <words>, or
+                                              <words> followed by anything" (read from the IDE bundle)
+  glob <words>*       shell    "<words>*"     as written
+  file <path>         fs_read and fs_write "<path>"  (a leading ~/ is the home directory)
+A pattern is present when some deny rule of that exact capability, with no exclude list, lists it. The
+missing patterns are appended as new deny rules, one per capability. Nothing is ever removed on install.
+
+Merge, never clobber. The file is parsed with a strict reader for the subset Kiro's schema uses (a
+top-level "rules" list of mappings with capability, effect, match and exclude, and an optional "policies"
+list). Anything outside that subset (an anchor, a tag, a flow mapping, a multi-line scalar, an unknown
+key), or a file Kiro itself would reject (it then drops every rule in it), is REFUSED: nothing written.
+The owner's rules are kept, in order, value for value; the file is re-serialised, so his comments and
+quoting do not survive (the backup does). The new text is parsed back and must equal the old rules plus
+the appended ones, or nothing is written. Before a write the previous file is copied to
+permissions.yaml.pmhwc-backup, owner-only (0600).
+
+Ownership. The patterns this script appended (absent before) are recorded in
+$XDG_DATA_HOME/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json, outside the
+YAML: Kiro rewrites permissions.yaml when the owner answers a consent prompt with a user-scope rule (read
+from the IDE bundle), which drops every comment. Uninstall removes only recorded patterns; a rule left
+with an empty match list is removed whole, because an empty match list matches everything. With no
+record, uninstall removes nothing (the safe direction) and says so.
+
+The provenance stamp is the first comment line. A Kiro rewrite drops it: --check then reads STAMP, and
+install writes it back.
+
+permissions.json. Kiro reads permissions.yaml when it exists and permissions.json only otherwise (read from
+the IDE bundle). Writing a yaml beside the owner's json would silently drop his json rules, so a non-empty
+permissions.json without a permissions.yaml is REFUSED.
+
+Exit codes, as install.sh: 0 ok · 1 drift, stamp or missing (--check) · 2 usage or floor · 3 refused.
+"""
+import json
+import os
+import re
+import shutil
+import sys
+from pathlib import Path
+
+MARKER_ID = "managed-by: personal-multi-harness-workstation-configuration"
+BACKUP = ".pmhwc-backup"
+CAPS = ("shell", "fs_read", "fs_write")
+EFFECTS = ("deny", "allow", "ask")
+RULE_KEYS = ("capability", "effect", "match", "exclude")
+WORD_RE = re.compile(r"[A-Za-z0-9._/~=:@+*-]+")
+# Plain scalars YAML's core schema would read as something other than a string; and the characters a plain
+# scalar may not start with. Both are refused rather than guessed at.
+NOT_STRING_RE = re.compile(r"(?:~|null|Null|NULL|true|True|TRUE|false|False|FALSE|[-+]?(?:\.inf|\.Inf|\.INF)"
+                           r"|\.nan|\.NaN|\.NAN|[-+]?[0-9][0-9_]*(?:\.[0-9_]*)?(?:[eE][-+]?[0-9]+)?"
+                           r"|0x[0-9a-fA-F]+|0o[0-7]+)")
+BAD_START = set("&*!|>{}%@`,[]'\"#")
+
+
+class Refuse(Exception):
+    pass
+
+
+def target():
+    return Path.home() / ".kiro" / "settings" / "permissions.yaml"
+
+
+def owned_path():
+    base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
+    return Path(base) / "personal-multi-harness-workstation-configuration" / "kiro-permissions-owned.json"
+
+
+# --- the floor -------------------------------------------------------------------------------------------
+
+def load_floor(path):
+    """-> {capability: [pattern, ...]} in floor order, without repeats."""
+    want = {c: [] for c in CAPS}
+
+    def add(cap, pattern):
+        if pattern not in want[cap]:
+            want[cap].append(pattern)
+
+    for raw in Path(path).read_text(encoding="utf-8").splitlines():
+        line = raw.rstrip("\r")
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        f = line.split()
+        if f[0] not in ("cmd", "file", "glob") or len(f) < 2 or not all(WORD_RE.fullmatch(w) for w in f[1:]):
+            raise ValueError("invalid deny-floor entry: %s" % line)
+        if f[0] == "cmd":
+            if any("*" in w for w in f[1:]):
+                raise ValueError("a cmd word may not hold *: %s" % line)
+            add("shell", " ".join(f[1:]) + " *")
+        elif f[0] == "glob":
+            add("shell", " ".join(f[1:]))
+        else:
+            if len(f) != 2:
+                raise ValueError("a file entry takes one path: %s" % line)
+            add("fs_read", f[1])
+            add("fs_write", f[1])
+    if not any(want.values()):
+        raise ValueError("the deny floor has no entry")
+    return want
+
+
+# --- a strict reader for the subset of YAML Kiro's schema uses -------------------------------------------
+
+def _strip_comment(text, lineno):
+    """The line without its comment; quotes are tracked so a # inside one stays."""
+    quote = None
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if quote == '"':
+            if ch == "\\":
+                i += 2
+                continue
+            if ch == '"':
+                quote = None
+        elif quote == "'":
+            if ch == "'":
+                if i + 1 < len(text) and text[i + 1] == "'":
+                    i += 2
+                    continue
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        elif ch == "#" and (i == 0 or text[i - 1] in " \t"):
+            return text[:i].rstrip()
+        i += 1
+    if quote:
+        raise Refuse("line %d: a quoted scalar does not end on its line" % lineno)
+    return text.rstrip()
+
+
+def _lines(text):
+    out = []
+    for n, raw in enumerate(text.splitlines(), 1):
+        body = _strip_comment(raw.rstrip("\r"), n)
+        if not body.strip():
+            continue
+        if body.strip() in ("---", "..."):
+            if out:
+                raise Refuse("line %d: more than one YAML document" % n)
+            continue
+        if "\t" in body[:len(body) - len(body.lstrip())]:
+            raise Refuse("line %d: a tab in the indentation" % n)
+        out.append((len(body) - len(body.lstrip(" ")), body.strip(), n))
+    return out
+
+
+def _scalar(tok, n):
+    tok = tok.strip()
+    if not tok:
+        raise Refuse("line %d: an empty value" % n)
+    if tok[0] == '"':
+        try:
+            value = json.loads(tok)
+        except ValueError:
+            raise Refuse("line %d: a double-quoted scalar this reader does not decode: %s" % (n, tok))
+        if not isinstance(value, str):
+            raise Refuse("line %d: not a string" % n)
+        return value
+    if tok[0] == "'":
+        if len(tok) < 2 or tok[-1] != "'" or re.search(r"(?<!')'(?!')", tok[1:-1]):
+            raise Refuse("line %d: a single-quoted scalar this reader does not decode: %s" % (n, tok))
+        return tok[1:-1].replace("''", "'")
+    if tok[0] in BAD_START or tok.startswith(("- ", "? ", ": ")) or tok == "-":
+        raise Refuse("line %d: a value YAML reads as something other than a plain string: %s" % (n, tok))
+    if ": " in tok or tok.endswith(":") or " #" in tok:
+        raise Refuse("line %d: a plain scalar holding ': ' or ' #': %s" % (n, tok))
+    if NOT_STRING_RE.fullmatch(tok):
+        raise Refuse("line %d: %s is not a string in YAML" % (n, tok))
+    return tok
+
+
+def _flow_seq(tok, n):
+    if not (tok.startswith("[") and tok.endswith("]")):
+        raise Refuse("line %d: a flow sequence must open and close on one line" % n)
+    inner = tok[1:-1].strip()
+    if not inner:
+        return []
+    items, cur, quote, i = [], "", None, 0
+    while i < len(inner):
+        ch = inner[i]
+        if quote == '"' and ch == "\\":
+            cur += inner[i:i + 2]
+            i += 2
+            continue
+        if quote:
+            if ch == quote:
+                if quote == "'" and inner[i + 1:i + 2] == "'":
+                    cur += "''"
+                    i += 2
+                    continue
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        elif ch in "[]{}":
+            raise Refuse("line %d: a nested flow collection" % n)
+        elif ch == ",":
+            items.append(cur)
+            cur = ""
+            i += 1
+            continue
+        cur += ch
+        i += 1
+    if cur.strip() or not items:
+        items.append(cur)
+    return [_scalar(x, n) for x in items]
+
+
+def _key_value(content, n):
+    m = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_]*)\s*:(?:\s+(.*))?", content)
+    if not m:
+        raise Refuse("line %d: expected 'key: value', got: %s" % (n, content))
+    return m.group(1), (m.group(2) or "").strip()
+
+
+def _block_seq(lines, i, min_indent):
+    """Items '- x' at one indent >= min_indent, from lines[i] -> (raw item lines, next index)."""
+    if i >= len(lines) or lines[i][0] < min_indent or not (lines[i][1] == "-" or lines[i][1].startswith("- ")):
+        return None, i
+    ind = lines[i][0]
+    items = []
+    while i < len(lines) and lines[i][0] == ind and (lines[i][1] == "-" or lines[i][1].startswith("- ")):
+        start = i
+        i += 1
+        while i < len(lines) and lines[i][0] > ind:
+            i += 1
+        items.append(lines[start:i])
+    if i < len(lines) and lines[i][0] > ind:
+        raise Refuse("line %d: unexpected indentation" % lines[i][2])
+    return (ind, items), i
+
+
+def _seq_value(rest, lines, i, parent_indent, n):
+    """A key's sequence value: inline flow or a following block of scalars -> (list, next index)."""
+    if rest:
+        return _flow_seq(rest, n), i
+    got, j = _block_seq(lines, i, parent_indent)
+    if got is None:
+        raise Refuse("line %d: the key has no value" % n)
+    out = []
+    for item in got[1]:
+        ind, content, m = item[0]
+        if len(item) != 1 or content == "-":
+            raise Refuse("line %d: a sequence item must be one scalar on its line" % m)
+        out.append(_scalar(content[2:], m))
+    return out, j
+
+
+def _rule(item):
+    ind, content, n = item[0]
+    first = content[2:].strip()
+    if not first:
+        raise Refuse("line %d: a rule must start on its '- ' line" % n)
+    if first.startswith("{"):
+        raise Refuse("line %d: a rule written as a flow mapping" % n)
+    key_indent = ind + 2 + (len(content[2:]) - len(content[2:].lstrip(" ")))
+    body = [(key_indent, first, n)] + list(item[1:])
+    rule, i = {}, 0
+    while i < len(body):
+        kind, kcontent, kn = body[i]
+        if kind != key_indent:
+            raise Refuse("line %d: unexpected indentation in a rule" % kn)
+        key, rest = _key_value(kcontent, kn)
+        if key in rule:
+            raise Refuse("line %d: %s repeated in one rule" % (kn, key))
+        if key not in RULE_KEYS:
+            raise Refuse("line %d: Kiro rejects a rule with the field %r, and then drops every rule in the file"
+                         % (kn, key))
+        i += 1
+        if key in ("match", "exclude"):
+            rule[key], i = _seq_value(rest, body, i, key_indent, kn)
+        else:
+            if not rest:
+                raise Refuse("line %d: %s has no value" % (kn, key))
+            rule[key] = _scalar(rest, kn)
+    if "capability" not in rule:
+        raise Refuse("line %d: a rule with no capability; Kiro would drop every rule in the file" % n)
+    if rule.get("effect") not in EFFECTS:
+        raise Refuse("line %d: a rule whose effect is not deny, allow or ask; Kiro would drop every rule in the "
+                     "file" % n)
+    return {k: rule[k] for k in RULE_KEYS if k in rule}
+
+
+def parse(text):
+    """-> {"rules": [rule, ...], "policies": [id, ...] or None}. Raises Refuse."""
+    lines = _lines(text)
+    doc = {"rules": None, "policies": None}
+    i = 0
+    if not lines:
+        return {"rules": [], "policies": None}
+    while i < len(lines):
+        ind, content, n = lines[i]
+        if ind != 0:
+            raise Refuse("line %d: unexpected indentation at the top level" % n)
+        key, rest = _key_value(content, n)
+        if key not in doc:
+            raise Refuse("line %d: a top-level key this reader does not keep: %s" % (n, key))
+        if doc[key] is not None:
+            raise Refuse("line %d: %s repeated" % (n, key))
+        i += 1
+        if key == "policies":
+            doc[key], i = _seq_value(rest, lines, i, 0, n)
+            continue
+        if rest:
+            if rest != "[]":
+                raise Refuse("line %d: rules must be a block list of rules (or [])" % n)
+            doc["rules"] = []
+            continue
+        got, i = _block_seq(lines, i, 0)
+        if got is None:
+            raise Refuse("line %d: rules has no value" % n)
+        doc["rules"] = [_rule(item) for item in got[1]]
+    if doc["rules"] is None:
+        raise Refuse('no "rules" list; Kiro would reject the file')
+    return doc
+
+
+# --- emit, merge, verify ---------------------------------------------------------------------------------
+
+def _q(s):
+    return json.dumps(s, ensure_ascii=True)
+
+
+def emit(doc, stamp, floor_from, header=True):
+    out = [] if not header else ["# %s; source: %s via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours "
+           "are this project's; every other rule is yours); %s; re-run the installer" % (MARKER_ID, floor_from,
+                                                                                         stamp),
+           "# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in",
+           "# any scope. Your own rules are kept; comments are not (the installer re-serialises this file)."]
+    if doc.get("policies") is not None:
+        out.append("policies:" + ("" if doc["policies"] else " []"))
+        out += ["  - %s" % _q(p) for p in doc["policies"]]
+    if not doc["rules"]:
+        out.append("rules: []")
+    else:
+        out.append("rules:")
+        for rule in doc["rules"]:
+            first = True
+            for key in RULE_KEYS:
+                if key not in rule:
+                    continue
+                lead = "  - " if first else "    "
+                first = False
+                value = rule[key]
+                if isinstance(value, list):
+                    if not value:
+                        out.append("%s%s: []" % (lead, key))
+                    else:
+                        out.append("%s%s:" % (lead, key))
+                        out += ["      - %s" % _q(v) for v in value]
+                else:
+                    out.append("%s%s: %s" % (lead, key, _q(value)))
+    return "\n".join(out) + "\n"
+
+
+def covered(rules, cap, pattern):
+    return any(r.get("capability") == cap and r.get("effect") == "deny" and not r.get("exclude")
+               and pattern in (r.get("match") or []) for r in rules)
+
+
+def missing(doc, want):
+    return {c: [p for p in want[c] if not covered(doc["rules"], c, p)] for c in CAPS}
+
+
+def stamp_of(text):
+    for line in text.splitlines()[:5]:
+        if MARKER_ID in line:
+            m = re.search(r"; (release: [^;]*; commit: [^;]*);", line)
+            return m.group(1) if m else "none"
+    return "none"
+
+
+def merged(doc, miss):
+    rules = [dict(r) for r in doc["rules"]]
+    for c in CAPS:
+        if miss[c]:
+            rules.append({"capability": c, "effect": "deny", "match": list(miss[c])})
+    return {"rules": rules, "policies": doc.get("policies")}
+
+
+def verify(new_text, want_doc):
+    try:
+        got = parse(new_text)
+    except Refuse as e:
+        raise Refuse("the merged file would not read back (%s); nothing written" % e)
+    if got != want_doc:
+        raise Refuse("the merged file would not read back as your rules plus the floor; nothing written")
+
+
+# --- files -----------------------------------------------------------------------------------------------
+
+def private_copy(src, dst):
+    if os.path.lexists(dst):
+        os.remove(dst)
+    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
+        shutil.copyfileobj(inp, out)
+    os.chmod(dst, 0o600)
+
+
+def write(path, text):
+    """Atomic. A file that is a symbolic link is written through; a new file is 0600 in a 0700 directory, as
+    Kiro creates it; an existing file keeps its mode."""
+    real = Path(os.path.realpath(str(path)))
+    if real.exists():
+        mode = os.stat(str(real)).st_mode & 0o7777
+    else:
+        mode = 0o600
+        real.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    tmp = "%s.new.%d" % (real, os.getpid())
+    try:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.chmod(tmp, mode)
+        os.replace(tmp, str(real))
+    except BaseException:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
+
+
+def read_owned():
+    try:
+        doc = json.loads(owned_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(doc, dict) or not isinstance(doc.get("owned"), dict):
+        return None
+    owned = {c: [p for p in doc["owned"].get(c, []) if isinstance(p, str)] for c in CAPS}
+    return {"owned": owned, "created": doc.get("created") is True}
+
+
+def write_owned(owned, created, stamp):
+    path = owned_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = {"_": "%s; source: global/kiro/kiro_permissions.py (the deny-floor patterns it appended to "
+                 "~/.kiro/settings/permissions.yaml; uninstall removes only these); %s; do not edit" % (MARKER_ID, stamp),
+            "created": created, "owned": owned}
+    write(path, json.dumps(body, indent=2) + "\n")
+
+
+# --- modes -----------------------------------------------------------------------------------------------
+
+def load_target(path):
+    """-> (text or None, doc). Raises Refuse."""
+    json_path = path.with_name("permissions.json")
+    if not path.exists() and json_path.exists():
+        try:
+            nonempty = json_path.read_text(encoding="utf-8").strip() != ""
+        except (OSError, UnicodeDecodeError):
+            nonempty = True
+        if nonempty:
+            raise Refuse("%s holds your rules, and Kiro reads permissions.yaml instead of it when both exist; "
+                         "nothing written. Move its rules into permissions.yaml (same schema), then re-run"
+                         % json_path)
+    if not path.exists():
+        return None, {"rules": [], "policies": None}
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        raise Refuse("unreadable (%s); left untouched" % e.__class__.__name__)
+    return text, parse(text)
+
+
+def total(want):
+    return sum(len(v) for v in want.values())
+
+
+def run(mode, stamp, want, floor_from):
+    path = target()
+    n_want = total(want)
+    try:
+        text, doc = load_target(path)
+    except Refuse as e:
+        if mode == "report":
+            print("FLOOR   Kiro: user permissions.yaml not read (%s)" % e)
+            return 0
+        print("REFUSE  %s: %s" % (path, e))
+        return 3
+    miss = missing(doc, want)
+    n_miss = total(miss)
+    if mode == "report":
+        state = "absent" if text is None else "%d/%d floor patterns" % (n_want - n_miss, n_want)
+        print("FLOOR   Kiro: user permissions.yaml %s (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI "
+              "2.x does not read it; not enforced-measured; ADR-0036)" % state)
+        return 0
+    have = stamp_of(text) if text is not None else "none"
+    if text is not None and n_miss == 0 and have == stamp:
+        print("OK      %s (all %d deny-floor patterns present; %s)" % (path, n_want, stamp))
+        return 0
+    if mode == "check":
+        if text is None:
+            print("MISSING %s" % path)
+        elif n_miss == 0:
+            print("STAMP   %s: the deny-floor patterns match, but it carries (%s) and the source is (%s)"
+                  % (path, have, stamp))
+        else:
+            print("DRIFT   %s (%d deny-floor pattern(s) missing; %s)" % (path, n_miss, have))
+        return 1
+    new_doc = merged(doc, miss)
+    new_text = emit(new_doc, stamp, floor_from)
+    try:
+        verify(new_text, new_doc)
+    except Refuse as e:
+        print("REFUSE  %s: %s" % (path, e))
+        return 3
+    if mode == "dry-run":
+        print("WOULD MERGE %s: %d deny-floor pattern(s), every rule of yours kept (backup %s%s):"
+              % (path, n_miss, path.name, BACKUP))
+        for c in CAPS:
+            for p in miss[c]:
+                print("  + %s deny %s" % (c, p))
+        return 0
+    rec = read_owned()
+    created = rec["created"] if rec else text is None
+    owned = {c: list(rec["owned"][c]) if rec else [] for c in CAPS}
+    for c in CAPS:
+        owned[c] += [p for p in miss[c] if p not in owned[c]]
+    backup = Path(str(path) + BACKUP)
+    if text is not None:
+        private_copy(os.path.realpath(str(path)), str(backup))
+    write(path, new_text)
+    write_owned(owned, created, stamp)
+    if text is None:
+        print("MERGED  %s (new file; %d deny-floor patterns)" % (path, n_want))
+    elif n_miss == 0:
+        print("RESTAMPED %s (%s; previous version kept as %s)" % (path, stamp, backup))
+    else:
+        print("MERGED  %s (%d deny-floor pattern(s) added, every rule of yours kept; previous version kept as %s)"
+              % (path, n_miss, backup))
+    return 0
+
+
+def uninstall(stamp, floor_from):
+    path = target()
+    rec = read_owned()
+    if rec is None:
+        if path.exists():
+            print("NOTE    %s: no record of which deny rules mhw added; nothing removed (a deny left behind is the "
+                  "safe direction). Remove them by hand if you want them gone" % path)
+        return 0
+    if not path.exists():
+        owned_path().unlink()
+        print("REMOVED %s (the file it describes is gone)" % owned_path())
+        return 0
+    try:
+        text, doc = load_target(path)
+    except Refuse as e:
+        print("REFUSE  %s: %s" % (path, e))
+        return 3
+    rules = []
+    for r in doc["rules"]:
+        mine = rec["owned"].get(r.get("capability"), []) if r.get("effect") == "deny" and not r.get("exclude") else []
+        if mine and r.get("match"):
+            left = [p for p in r["match"] if p not in mine]
+            if not left:
+                continue  # an empty match list would match everything: the rule goes whole
+            r = dict(r, match=left)
+        rules.append(r)
+    new_doc = {"rules": rules, "policies": doc.get("policies")}
+    if rec["created"] and not rules and not doc.get("policies"):
+        private_copy(os.path.realpath(str(path)), str(path) + BACKUP)
+        path.unlink()
+        print("REMOVED %s (mhw created it and only its deny-floor rules were in it; kept as %s%s)"
+              % (path, path, BACKUP))
+    elif new_doc == doc:
+        print("OK      %s holds no deny rule mhw added" % path)
+    else:
+        new_text = emit(new_doc, stamp, floor_from, header=False)
+        try:
+            verify(new_text, new_doc)
+        except Refuse as e:
+            print("REFUSE  %s: %s" % (path, e))
+            return 3
+        private_copy(os.path.realpath(str(path)), str(path) + BACKUP)
+        write(path, new_text)
+        print("UNMERGED %s (the deny-floor patterns mhw added removed, your rules kept; previous version kept as "
+              "%s%s)" % (path, path, BACKUP))
+    owned_path().unlink()
+    print("REMOVED %s" % owned_path())
+    return 0
+
+
+def main(argv=None):
+    args = argv if argv is not None else sys.argv[1:]
+    opts = {}
+    for a in args:
+        k, sep, v = a.partition("=")
+        if not sep or k not in ("--mode", "--stamp", "--floor", "--floor-from") or k in opts:
+            opts = None
+            break
+        opts[k] = v
+    modes = ("install", "check", "dry-run", "uninstall", "report")
+    if not opts or opts.get("--mode") not in modes or not opts.get("--stamp") or not opts.get("--floor"):
+        print("usage: kiro_permissions.py --mode=install|check|dry-run|uninstall|report --stamp=STAMP "
+              "--floor=FILE [--floor-from=TEXT]", file=sys.stderr)
+        return 2
+    floor_from = opts.get("--floor-from") or "global/deny-floor.conf"
+    try:
+        want = load_floor(opts["--floor"])
+    except (OSError, ValueError) as e:
+        print("REFUSE  Kiro deny floor: %s" % e, file=sys.stderr)
+        return 2
+    if opts["--mode"] == "uninstall":
+        return uninstall(opts["--stamp"], floor_from)
+    return run(opts["--mode"], opts["--stamp"], want, floor_from)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

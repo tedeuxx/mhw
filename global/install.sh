@@ -1,6 +1,6 @@
 #!/bin/sh
-# Render the global brief to each harness, install the user-level deny floor, and install the paste
-# filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0011), and render the inner-loop allow
+# Render the global brief to each harness, install the user-level deny floor (Kiro's too, ADR-0036), and
+# install the paste filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0011), and render the inner-loop allow
 # list (allow-list.conf; ADR-0031: wide only while the admin deny floor is complete), and set each harness's
 # session-start default model and effort from overlay/model-defaults.json (ADR-0007, ADR-0035;
 # global/models/model_defaults.py). The stale-session restart guard
@@ -860,6 +860,18 @@ models_step() {
   if [ -n "$overlay" ] && [ -f "$overlay/model-defaults.json" ]; then models_policy="$overlay/model-defaults.json"; fi
   python3 -B "$script_dir/models/model_defaults.py" "--mode=$mode" "--stamp=$stamp" "--policy=$models_policy" || raise $?
 }
+# The deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036, Issue #144): the same validated floor, merged into
+# ~/.kiro/settings/permissions.yaml by global/kiro/kiro_permissions.py. The owner's own rules are kept and a
+# 0600 backup is left beside it; only the patterns it appended are removed on uninstall. $1: another mode.
+kiro_step() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP    the Kiro deny floor: python3 3.9 or later is required"
+    raise 2
+    return 0
+  fi
+  python3 -B "$script_dir/kiro/kiro_permissions.py" "--mode=${1:-$mode}" "--stamp=$stamp" "--floor=$floor" \
+    "--floor-from=$floor_from" || raise $?
+}
 # The MCP servers the policy retired (ADR-0035 decision 2: aws-api) leave the Codex user configuration
 # (Issue #145), through global/mcp/mcp_retire.py: a backup, old -> new, nothing else in the file changes.
 mcp_step() {
@@ -874,6 +886,7 @@ if [ "$mode" = uninstall ]; then
   allow_uninstall
   models_step
   mcp_step
+  kiro_step
   uninstall_user
   method_step
   shell_rc_uninstall
@@ -950,6 +963,7 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
   fi
 fi
 merge_settings
+kiro_step
 # The retired MCP servers leave config.toml before the model defaults back it up (PR #146 QA advisory).
 mcp_step
 models_step
@@ -984,7 +998,7 @@ report_floor() {
   [ -f "$codex_rules" ] && is_managed "$codex_rules" && codex_user=present
   echo "FLOOR   Claude Code: user layer $n_user/$n_want rules; admin layer $n_admin/$n_want rules"
   echo "FLOOR   Codex: user rules file $codex_user; admin requirements $n_codex_admin/$n_codex prefix rules"
-  echo "FLOOR   Kiro: none (no rendering; ADR-0016)"
+  kiro_step report
   if [ "$n_admin" -eq "$n_want" ] && [ "$n_codex_admin" -eq "$n_codex" ]; then
     echo "FLOOR   carried by: the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
   elif [ "$n_user" -ne "$n_want" ] || [ "$codex_user" != present ]; then
@@ -998,7 +1012,7 @@ report_floor() {
 report_floor
 
 if [ "$mode" = install ]; then
-  echo "RESTART REQUIRED: open fresh Claude Code and Codex sessions before further work; Codex hook trust remains an owner action in /hooks."
+  echo "RESTART REQUIRED: open fresh Claude Code, Codex and Kiro sessions before further work; Codex hook trust remains an owner action in /hooks."
 fi
 
 exit "$status"
