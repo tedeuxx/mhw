@@ -1,6 +1,8 @@
 # ADR-0026: Four distribution layers and the rubric that places each artifact
 
-- **Status:** accepted (ratified by the owner, 2026-10-04)
+- **Status:** ~~proposed~~ ~~accepted (ratified by the owner, 2026-10-04)~~ accepted (2026-10-11, the
+  owner's ratification in session; see the amendment "accepted" below, which also says why the
+  2026-10-04 date is struck)
 - **Date:** 2026-10-04
 - **Deciders:** the owner
 - **Refines:** [ADR-0014](0014-purpose-boundary-firewall-vs-plugin.md) (its two-way split becomes four layers)
@@ -53,7 +55,7 @@ manifests, the inventory and the dehydration all depend on it.
 
 ## Decision outcome
 
-**Chosen: option 1.**
+~~**Proposed: option 1.**~~ **Chosen: option 1** (accepted 2026-10-11).
 
 ### The layers
 
@@ -108,8 +110,58 @@ that apply this rubric. This record decides no individual artifact's placement.
 - Bad: promotion is two pull requests in two repositories for each artifact, which is slower than a
   single edit.
 
+## Amendment 2026-10-11: accepted
+
+**Ratified by the owner on 2026-10-11, in session.** He chose to turn the uncommitted ratification
+edit and the manifest into a pull request rather than park or discard them. This pull request is the
+first recorded trace of the ratification.
+
+**Why the 2026-10-04 date is struck.** A local edit, never committed, set the status to *"accepted
+(ratified by the owner, 2026-10-04)"*. No Issue comment, pull request or commit records a ratification
+on that date: `rc/next` carried this record as `proposed` until this change, and the index said the
+same. A date with no trace is not evidence, so the record dates its acceptance to 2026-10-11. The
+struck text stays in the status line so the earlier claim remains visible.
+
+**What later records change here.** Read this record together with them. None of the proposed ones is
+in force until the owner ratifies it.
+
+- [ADR-0027](0027-native-carrier-per-component-from-the-enforcement-matrix.md) (proposed) fills in the
+  *Native carrier* column per component class, from the measured enforcement matrix.
+- [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (proposed) removes
+  `/breaking-glass` and the expiring switches. The criterion for entering the managed layer stands.
+  The phrase *"the scope of `/breaking-glass`"* in Consequences, and the `/breaking-glass` argument in
+  option 3, name a command that no longer exists. OS privilege is now the only way to turn a managed
+  hook off.
+- [ADR-0032](0032-this-repository-is-the-single-source-of-the-working-method.md) (proposed) moves the
+  working method (agents, skills, commands) from the plugin into this repository, rendered at user
+  level. Placement test question 2 already puts it there, since the method applies in every project.
+  Once ADR-0032 is accepted, the **plugin** row of the layer table and the plugin clause of
+  *Placement by repository* are superseded for those artifacts. Until the plugin cutover, the method
+  installed alongside the enabled plugin is a copy in two layers, the defect *One layer per artifact*
+  names. `mhw status` reports it as `DUPLICATE`.
+- [ADR-0035](0035-workstation-blueprint-reconciliation.md) (accepted) decision 6, *hooks only for
+  existential risk*, narrows which hooks may enter the managed layer. It is consistent with placement
+  test question 1.
+- [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md) (proposed) and its 2026-10-11 amendment
+  give Kiro an admin carrier for the **deny floor** (`managed-settings.json`). The Kiro gap named in
+  option 1 and in Consequences is now narrower: Kiro still has no admin carrier for **hooks**
+  ([ADR-0025](0025-hook-layers-in-the-native-admin-layer.md)).
+
+**The manifest.** [`distribution.json`](../../distribution.json) applies this rubric to the files
+`rc/next` tracks: every tracked file is listed in exactly one artifact, or in `not_distributed`.
+Nothing reads it. No check, test or CI job consumes it, and this amendment adds none: a check would be
+a new tool, owed its own record, as *Out of scope here* says. Each artifact's layer is the
+implementing agent's application of the test and is open to the owner's correction. Like the record,
+the manifest states intent, not what is installed.
+
 ## Links
 
+- [ADR-0027](0027-native-carrier-per-component-from-the-enforcement-matrix.md),
+  [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md),
+  [ADR-0032](0032-this-repository-is-the-single-source-of-the-working-method.md),
+  [ADR-0035](0035-workstation-blueprint-reconciliation.md),
+  [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md): later records that change parts of this
+  one (see the amendment above)
 - [ADR-0014](0014-purpose-boundary-firewall-vs-plugin.md): firewall versus plugin, refined here
 - [ADR-0024](0024-breaking-glass-per-layer-expiring-switches.md): native admin layers per harness
 - [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md): the first artifacts placed in the managed layer
