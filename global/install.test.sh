@@ -1048,5 +1048,39 @@ else
   ko "the models backup of config.toml still holds the retired server"
 fi
 
+# 22. the uninstall backup of ~/.claude/settings.json is owner-only too (PR #148 QA advisory A1): the
+# file is 0644 and no earlier backup is there, so only the uninstall copy decides the mode.
+hun="$base/home-uninstall-backup"; mkdir -p "$hun"
+HOME="$hun" sh "$inst" > /dev/null 2>&1; expect "install before the uninstall-backup check" 0 $?
+chmod 644 "$hun/.claude/settings.json"
+rm -f "$hun/.claude/settings.json.pmhwc-backup"
+HOME="$hun" sh "$inst" --uninstall > "$base/uninstall-backup.out" 2>&1; expect "uninstall writes its backup" 0 $?
+ub="$hun/.claude/settings.json.pmhwc-backup"
+ub_mode=$(stat -c %a "$ub" 2>/dev/null || stat -f %Lp "$ub" 2>/dev/null || echo absent)
+if [ "$ub_mode" = 600 ] && jq -e '.["personal-multi-harness-workstation-configuration"] != null' "$ub" >/dev/null 2>&1 \
+   && grep -q '^UNMERGED ' "$base/uninstall-backup.out"; then
+  ok "the uninstall backup holds the pre-uninstall settings and is 0600"
+else
+  ko "the uninstall backup is $ub_mode"
+fi
+
+# 23. the README states each of the four #145 behaviours (PR #148 QA blocker B1): one row per behaviour, the
+# phrase the README must carry. A behaviour the README stops naming turns this red.
+readme="$(cd "$(dirname "$0")/.." && pwd)/README.md"
+while IFS='|' read -r what needle; do
+  [ -n "$what" ] || continue
+  if grep -qF -- "$needle" "$readme"; then ok "README names #145: $what"; else ko "README does not name #145: $what ($needle)"; fi
+done <<'EOF'
+model pins written over any value|install writes the pin over any value
+model value restored on uninstall|uninstall restores the value it replaced
+aws-api removed from Codex|`mhw install` removes the `aws-api`
+aws-api listed in retired-servers.conf|`global/mcp/retired-servers.conf`
+aws-api restore route|`config.toml.pmhwc-mcp-backup`, owner-only (0600)
+aws-api not re-added|uninstall does not re-add the server
+find and awk allows removed|install also removes the user-level `Bash(find:*)` and `Bash(awk:*)`
+paste wrapper block written|one marked block that sources it in the start-up file
+paste wrapper block removed on uninstall|`mhw uninstall` removes exactly
+EOF
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
