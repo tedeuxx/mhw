@@ -83,6 +83,19 @@ function Fingerprint([string]$h) {
             if (Test-Path -LiteralPath $_) { "$_ " + (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash } else { "absent $_" }
         }) -join "`n"
 }
+# True when the file's access list grants the current user alone: inheritance disabled, at least one rule,
+# every rule an Allow for the current user's SID (compared as SIDs, so no account name is parsed).
+$meSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+function Test-OwnerOnly([string]$path) {
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { Write-Host "      (absent: $path)"; return $false }
+    $acl = Get-Acl -LiteralPath $path
+    $rules = @($acl.Access)
+    $sids = @($rules | ForEach-Object { $_.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value })
+    foreach ($r in $rules) { Write-Host "      acl $($path.Substring($Base.Length)): $($r.IdentityReference) $($r.AccessControlType) $($r.FileSystemRights) inherited=$($r.IsInherited)" }
+    return ($acl.AreAccessRulesProtected -and $rules.Count -ge 1 -and
+        -not ($rules | Where-Object { $_.AccessControlType -ne 'Allow' -or $_.IsInherited }) -and
+        -not ($sids | Where-Object { $_ -ne $meSid }))
+}
 function Settings([string]$h) { Get-Content -LiteralPath (Join-Path $h '.claude\settings.json') -Raw | ConvertFrom-Json }
 function Deny([string]$h) { @((Settings $h).permissions.deny) }
 function Count-Rule([string]$h, [string]$r) { @(Deny $h | Where-Object { $_ -ceq $r }).Count }
@@ -280,6 +293,8 @@ Check 'existing deny entries keep their place at the head' ($d[0] -ceq 'Bash(my-
 Check 'deny is a union: a floor rule already present is not duplicated, a foreign rule is kept' (
     $d.Count -eq ($floorRules + 1) -and (Count-Rule $h 'Bash(rm -rf:*)') -eq 1 -and (Count-Rule $h 'Bash(my-own-rule:*)') -eq 1)
 Check 'backup holds the previous settings byte for byte' ((Get-FileHash -LiteralPath "$sf.pmhwc-backup").Hash -ceq $origHash)
+Check 'the settings backup is owner-only (current user alone, inheritance disabled)' (Test-OwnerOnly "$sf.pmhwc-backup")
+Check 'the control: the settings file itself still inherits its access list' (-not (Test-OwnerOnly $sf))
 $snap = (Get-FileHash -LiteralPath $sf).Hash
 $null = Run $h; Expect 're-merge' 0 $script:rc
 Check 're-merge left settings byte-identical' ((Get-FileHash -LiteralPath $sf).Hash -ceq $snap)
@@ -378,6 +393,10 @@ Check 'Kiro CLI default model pinned' ($kcli.'chat.defaultModel' -ceq $pins.'kir
 $ky = [System.IO.File]::ReadAllText($kf)
 Check 'the Kiro floor is merged beside the owner rule, with a backup' (
     $ky.Contains('"git *"') -and $ky.Contains('"sudo *"') -and $ky.Contains('"~/.ssh/id_*"') -and (Test-Path -LiteralPath "$kf.pmhwc-backup"))
+foreach ($b in @("$sf.pmhwc-backup", "$sf.pmhwc-allow-backup", "$sf.pmhwc-models-backup", "$cf.pmhwc-mcp-backup",
+                 "$cf.pmhwc-models-backup", "$kf.pmhwc-backup")) {
+    Check "owner-only backup: $($b.Substring($h.Length + 1))" (Test-OwnerOnly $b)
+}
 Check 'the paste wrapper is named as not ported' ([bool]($out | Where-Object { $_ -clike 'NOTE    the paste wrapper and the paste filter are not ported to Windows*' }))
 $snap = @($sf, $cf, $kf) | ForEach-Object { (Get-FileHash -LiteralPath $_).Hash }
 $out = Run $h @('-Check', '-Overlay', $repoOverlay); Expect 'check is clean after the #145 steps' 0 $script:rc

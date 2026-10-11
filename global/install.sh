@@ -295,17 +295,41 @@ status=0
 raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
 # private_copy SRC DST: every .pmhwc-*backup of a harness config is owner-only (0600) from its first byte,
 # whatever the original's mode: a backup can hold what install removed, such as an MCP server's environment
-# values (PR #146 QA advisory). A file or link already at DST is unlinked first, never written through; DST is
-# then created under noclobber (set -C), so a file or link planted there after the unlink makes the copy fail
-# (the shell's nearest form of O_EXCL; a link to a device or FIFO is still opened, which O_NOFOLLOW refuses).
-# The Python steps share one form, global/private_copy.py. This one stays in shell because install.sh needs no
-# python3; global/private_copy_test.py runs both forms on the same cases and requires the same result.
+# values (PR #146 QA advisory). Whatever is at DST (a file, a link, a FIFO) is unlinked first, never written
+# through, and anything still there after the unlink is refused. DST itself is never opened: the bytes go into
+# a fresh file mktemp made beside it (O_EXCL, 0600), which is then hard-linked to DST. link(2) creates DST
+# exclusively and never follows a link already there, so anything planted at DST after the check (a link to a
+# FIFO or a device included) makes ln fail and nothing is fed to it. DST must then be a regular file, not a
+# link, or the copy is refused. The Python steps share one form, global/private_copy.py. This one stays in
+# shell because install.sh needs no python3; global/private_copy_test.py runs both forms on the same cases and
+# requires the same result.
 private_copy() {
   pc_src=$1
   pc_dst=$2
   rm -f "$pc_dst"
-  (umask 077 && set -C && cat "$pc_src" > "$pc_dst") || return 1
-  chmod 600 "$pc_dst"
+  if [ -e "$pc_dst" ] || [ -L "$pc_dst" ]; then
+    echo "REFUSE  $pc_dst: something is still there after the unlink; no backup written" >&2
+    return 1
+  fi
+  pc_tmp=$(umask 077 && mktemp "$pc_dst.XXXXXX") || return 1
+  if ! { [ -f "$pc_tmp" ] && [ ! -L "$pc_tmp" ] && chmod 600 "$pc_tmp" && cat "$pc_src" > "$pc_tmp" \
+         && ln "$pc_tmp" "$pc_dst"; }; then
+    rm -f "$pc_tmp"
+    echo "REFUSE  $pc_dst: the backup could not be created exclusively; no backup written" >&2
+    return 1
+  fi
+  rm -f "$pc_tmp"
+  if [ -d "$pc_dst" ]; then
+    # A directory (or a link to one) planted at DST after the check: POSIX ln put the link inside it. Take
+    # that one name back out (it is ours, by the random name mktemp chose) and refuse.
+    rm -f "$pc_dst/${pc_tmp##*/}"
+    echo "REFUSE  $pc_dst: a directory appeared there; no backup written" >&2
+    return 1
+  fi
+  if [ ! -f "$pc_dst" ] || [ -L "$pc_dst" ]; then
+    echo "REFUSE  $pc_dst: not a regular file after the copy" >&2
+    return 1
+  fi
 }
 
 # The shell start-up block that activates the paste wrapper (Issue #145; it was opt-in under Issue #58).

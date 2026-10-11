@@ -11,6 +11,7 @@ import ast
 import importlib.util
 import os
 import re
+import signal
 import stat
 import subprocess
 import sys
@@ -29,6 +30,9 @@ BASE = Path(tempfile.mkdtemp(prefix="private-copy-test.", dir=str(_ROOT) if _ROO
 sys.path.insert(0, str(HERE))
 import private_copy as shared  # noqa: E402
 
+UMASK = os.umask(0)  # this run's umask, so a shell plant (inside mktemp's umask 077) matches a Python one
+os.umask(UMASK)
+
 
 def shell_form():
     """The private_copy function, as install.sh defines it (the text between its header and the closing brace)."""
@@ -41,15 +45,26 @@ def shell_form():
 
 def run_shell(src, dst, prelude=""):
     script = shell_form() + prelude + 'private_copy "$1" "$2"\n'
-    return subprocess.run(["sh", "-c", script, "sh", str(src), str(dst)], capture_output=True, text=True)
+    # A timeout: a form that opened a FIFO for writing would block there forever.
+    return subprocess.run(["sh", "-c", script, "sh", str(src), str(dst)], capture_output=True, text=True,
+                          env=dict(os.environ, PC_DST=str(dst)), timeout=20)
+
+
+def _blocked(signum, frame):
+    raise AssertionError("the Python form blocked (it opened a FIFO for writing)")
 
 
 def run_python(src, dst):
+    old = signal.signal(signal.SIGALRM, _blocked)
+    signal.alarm(20)
     try:
         shared.private_copy(str(src), str(dst))
         return 0
     except OSError:
         return 1
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
 
 
 def mode(p):
@@ -84,12 +99,25 @@ class Case:
             os.symlink("victim", str(self.dst))  # relative: both cases read back the same
         elif at_dst == "dangling":
             os.symlink("victim", str(self.dst))  # relative: both cases read back the same
+        elif at_dst == "fifo":
+            os.mkfifo(str(self.dst), 0o644)
+        elif at_dst == "link-to-fifo":
+            os.mkfifo(str(self.victim), 0o644)
+            os.symlink("victim", str(self.dst))
+        elif at_dst == "link-to-device":
+            os.symlink(os.devnull, str(self.dst))
 
     def outcome(self, code):
         files = {}
         for p in sorted(self.dir.iterdir()):
-            kind = "link" if p.is_symlink() else "file"
-            files[p.name] = (kind, mode(p), p.read_bytes() if kind == "file" else os.readlink(str(p)))
+            if p.is_symlink():
+                files[p.name] = ("link", mode(p), os.readlink(str(p)))
+            elif stat.S_ISFIFO(os.lstat(str(p)).st_mode):
+                files[p.name] = ("fifo", mode(p), b"")  # never opened here: that would block
+            elif p.is_dir():
+                files[p.name] = ("dir", mode(p), "|".join(sorted(x.name for x in p.iterdir())))
+            else:
+                files[p.name] = ("file", mode(p), p.read_bytes())
         return code, files
 
 
@@ -103,6 +131,9 @@ class SameBehaviour(unittest.TestCase):
         "a hard link at the destination": {"at_dst": "hardlink"},
         "a symbolic link at the destination": {"at_dst": "symlink"},
         "a dangling symbolic link at the destination": {"at_dst": "dangling"},
+        "a FIFO at the destination": {"at_dst": "fifo"},
+        "a symbolic link to a FIFO at the destination": {"at_dst": "link-to-fifo"},
+        "a symbolic link to /dev/null at the destination": {"at_dst": "link-to-device"},
     }
 
     def test_both_forms_give_the_same_result(self):
@@ -124,25 +155,75 @@ class SameBehaviour(unittest.TestCase):
                     self.assertNotEqual(files["victim"][2], py.src.read_bytes(), name)
                 if kw.get("at_dst") == "dangling":
                     self.assertNotIn("victim", files, "the dangling link's target was created")
+                if kw.get("at_dst") == "link-to-fifo":
+                    self.assertEqual(files["victim"][0], "fifo", name)
 
-    def test_a_link_planted_after_the_unlink_is_refused_by_both(self):
+    def test_anything_planted_after_the_unlink_is_refused_by_both(self):
         # The race the exclusive create guards against: something lands at the destination between the unlink
-        # and the create. Simulated by making the unlink a no-op, with a link to a regular file at dst.
-        py = Case(at_dst="symlink")
-        real = os.path.lexists
-        os.path.lexists = lambda p: False if str(p) == str(py.dst) else real(p)
-        try:
-            got_py = py.outcome(run_python(py.src, py.dst))
-        finally:
-            os.path.lexists = real
-        sh = Case(at_dst="symlink")
-        p = run_shell(sh.src, sh.dst, prelude="rm() { :; }\n")
-        got_sh = sh.outcome(1 if p.returncode else 0)
-        self.assertEqual(got_py, got_sh, "python and shell differ (shell stderr: %s)" % p.stderr)
-        code, files = got_py
-        self.assertEqual(code, 1)
-        self.assertEqual(files["victim"][2], b"a file the link points at\n")
-        self.assertEqual(files[py.dst.name][0], "link")
+        # and the create. Simulated by making the unlink of the destination a no-op. Both forms must refuse and
+        # leave what was planted exactly as it was (compared with an untouched copy of the fixture), so no byte
+        # reaches a FIFO, a device or a link's target. A form that opened the FIFO would block: the shell run
+        # has a timeout.
+        for planted in ("symlink", "fifo", "link-to-fifo", "link-to-device", "file"):
+            with self.subTest(planted):
+                py = Case(at_dst=planted)
+                real = os.path.lexists
+                os.path.lexists = lambda p, d=str(py.dst): False if str(p) == d else real(p)
+                try:
+                    got_py = py.outcome(run_python(py.src, py.dst))
+                finally:
+                    os.path.lexists = real
+                sh = Case(at_dst=planted)
+                p = run_shell(sh.src, sh.dst,
+                              prelude='rm() { case "$2" in "$PC_DST") return 0 ;; esac; command rm "$@"; }\n')
+                got_sh = sh.outcome(1 if p.returncode else 0)
+                self.assertEqual(got_py, got_sh, "%s: python and shell differ (shell stderr: %s)" % (planted, p.stderr))
+                untouched = Case(at_dst=planted).outcome(1)
+                self.assertEqual(got_py, untouched, planted)
+
+    def test_anything_planted_between_the_check_and_the_create_is_refused_by_both(self):
+        # The narrower race: the destination is absent when checked, and something lands there just before the
+        # create (Python: inside the lexists check; shell: inside mktemp, after the absence check). The create
+        # must be exclusive and never follow it: both refuse and the planted entry, and what it points at, stay.
+        plants = {
+            "a link to a FIFO": 'ln -s victim "$PC_DST"',
+            "a link to /dev/null": 'ln -s /dev/null "$PC_DST"',
+            "a link to a directory": 'ln -s victim-dir "$PC_DST"',
+            "a FIFO": 'mkfifo "$PC_DST"',
+            "a directory": 'mkdir "$PC_DST"',
+        }
+        for name, plant in plants.items():
+            with self.subTest(name):
+                results = []
+                for form in ("python", "shell"):
+                    c = Case()
+                    os.mkfifo(str(c.victim), 0o644)
+                    (c.dir / "victim-dir").mkdir()
+                    if form == "python":
+                        real = os.path.lexists
+
+                        def planting(p, d=str(c.dst)):
+                            if str(p) == d:
+                                subprocess.run(["sh", "-c", plant], env=dict(os.environ, PC_DST=d), check=True,
+                                               cwd=str(c.dir))
+                                return False
+                            return real(p)
+                        os.path.lexists = planting
+                        try:
+                            code = run_python(c.src, c.dst)
+                        finally:
+                            os.path.lexists = real
+                    else:
+                        p = run_shell(c.src, c.dst,
+                                      prelude='mktemp() { (umask %03o && cd "${PC_DST%%/*}" && %s); command mktemp "$@"; }\n'
+                                      % (UMASK, plant))
+                        code = 1 if p.returncode else 0
+                    results.append(c.outcome(code))
+                    self.assertEqual(sorted((c.dir / "victim-dir").iterdir()), [], "%s: written into the directory" % name)
+                    if name == "a directory":
+                        self.assertEqual(sorted(c.dst.iterdir()), [], "%s: written into the planted directory" % name)
+                self.assertEqual(results[0], results[1], "%s: python and shell differ" % name)
+                self.assertEqual(results[0][0], 1, name)
 
     def test_the_python_form_opens_exclusively_and_without_following_a_link(self):
         seen = []
@@ -157,7 +238,7 @@ class SameBehaviour(unittest.TestCase):
             shared.private_copy(str(c.src), str(c.dst))
         finally:
             os.open = real
-        want = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        want = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
         self.assertEqual(seen, [want])
 
 

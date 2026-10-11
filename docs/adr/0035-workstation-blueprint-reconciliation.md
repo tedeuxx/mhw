@@ -633,10 +633,14 @@ the retired server):
 
 Each Python step needs Python 3.9 or later; without it the step prints `SKIP` and the run exits 2, as the
 working-method step already did. Declared limits on Windows: there is no `mhw uninstall` (it is refused
-there), so the backup beside each file is the way back; backups are not made owner-only (0600 is a POSIX
-mode; a backup inherits the access control of the profile directory). *Written and tested*: CI runs
-`global/install.test.ps1` section 14 under Windows PowerShell 5.1 and PowerShell 7. **Not installed** on
-any Windows machine.
+there), so the backup beside each file is the way back. Every backup is owner-only on Windows too (a
+security finding is fixed, never accepted): 0600 is a POSIX mode, so the empty backup is first given an
+access list that grants the current user alone, with inheritance disabled, and only then filled
+(`Copy-Private` in `install.ps1`; `owner_only_acl` in `global/private_copy.py`, by SID through `icacls`,
+for the Python steps). A failure to set it writes no backup. *Written and tested*: CI runs
+`global/install.test.ps1` section 14 under Windows PowerShell 5.1 and PowerShell 7, and asserts the
+access list of all six backups there and of the deny-floor backup in section 6. **Not installed** on any
+Windows machine.
 
 **2. The bash login file on macOS.** A bash login shell, which Terminal.app opens, reads the first of
 `~/.bash_profile`, `~/.bash_login` and `~/.profile` that exists, and never `~/.bashrc`. On macOS with
@@ -657,9 +661,17 @@ the wrapper functions on macOS); **not installed**.
 
 **3. One backup helper.** The four Python copies of `private_copy` (they had drifted: only the Kiro one used
 `O_NOFOLLOW`) are now one, `global/private_copy.py`. The shell form in `install.sh` stays, because
-`install.sh` must run without `python3`; it now creates the backup under noclobber, the shell's nearest form
-of `O_EXCL`. `global/private_copy_test.py` runs both forms on the same cases and fails if they differ, or if
-any Python file defines its own copy again.
+`install.sh` must run without `python3`. It never opens the destination: it refuses anything still there
+after the unlink, writes the bytes into a fresh `mktemp` file beside it (exclusive, 0600) and hard-links that
+to the destination. `link(2)` is exclusive and does not follow a link already there, so nothing planted
+after the check (a FIFO, a link to a FIFO or to a device) is ever written to. A directory planted there
+gets the link inside it under POSIX `ln`; that one name is taken back out and the copy refused. The result
+must be a regular file, not a link. `global/private_copy_test.py` runs both forms on the same cases (FIFOs
+and a link to `/dev/null` included, and things planted after the unlink and after the check) and fails if
+they differ, if either blocks on a FIFO, or if any Python file defines its own copy again. Two checks in
+the shell form (the absence check after the unlink and the final regular-file check) are defence in depth:
+`ln`'s exclusivity already decides every case the suite plants, so removing either one alone leaves it
+green.
 
 ## Links
 

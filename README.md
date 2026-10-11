@@ -224,8 +224,8 @@ Windows (PowerShell 5.1 and 7, tested in CI) renders the brief and the deny floo
 `permissions.yaml` included), and the working method with `-Method`. Since the #145 follow-up it also
 removes the `aws-api` MCP server from Codex, pins the session-start model and effort, and removes the
 retired `find` and `awk` allows, as `install.sh` does; these steps need Python 3.9 or later. The paste
-wrapper is not ported, so no shell start-up file is written. There is no uninstall on Windows, and
-backups are plain copies, not owner-only (0600). From a clone, or through the npm `mhw` command, which runs the same script:
+wrapper is not ported, so no shell start-up file is written. There is no uninstall on Windows. Every
+backup is owner-only there too: its access list grants the current user alone, inheritance disabled. From a clone, or through the npm `mhw` command, which runs the same script:
 
 ```powershell
 .\global\install.ps1

@@ -20,8 +20,9 @@
 # everywhere since Issue #60. The paste filter at the harness-CLI prompt and the paste wrapper (ADR-0011)
 # are not ported either: they run on the stock /usr/bin/python3 and a POSIX pty, which Windows does not
 # have, so no shell start-up file is written. There is no uninstall on Windows: each step's backup beside
-# its file is the way back. Backups are made with Copy-Item and inherit the profile directory's access
-# control; owner-only (0600) is a POSIX mode this script does not set.
+# its file is the way back. Every backup is owner-only: its access list grants the current user alone, with
+# inheritance disabled, set before a byte is written (Copy-Private here, owner_only_acl in
+# global/private_copy.py for the Python steps).
 #
 # Exit codes: 0 ok, 1 drift, stamp or missing (-Check), 2 usage or invalid floor entry, 3 an UNMANAGED or
 # unreadable file is in the way.
@@ -253,6 +254,32 @@ function Get-StampOf([string]$text) {
 
 function Set-Status([int]$code) { if ($code -gt $script:status) { $script:status = $code } }
 
+# Copy-Private SRC DST: the PowerShell form of private_copy (global/private_copy.py). A backup can hold what
+# install removed, so it is owner-only from its first byte: whatever is at DST is removed, DST is created
+# empty and exclusively (CreateNew), its access list is set to the current user alone with inheritance
+# disabled, and only then are the bytes written (the access list stays on the existing file). Any failure
+# stops the run before the original is changed.
+function Set-OwnerOnly([string]$path) {
+    $me = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+    $acl = Get-Acl -LiteralPath $path
+    $acl.SetAccessRuleProtection($true, $false)
+    foreach ($r in @($acl.Access)) { [void]$acl.RemoveAccessRule($r) }
+    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($me, 'FullControl', 'Allow')))
+    Set-Acl -LiteralPath $path -AclObject $acl
+}
+function Copy-Private([string]$src, [string]$dst) {
+    if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force }
+    $fs = [System.IO.File]::Open($dst, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+    $fs.Close()
+    try {
+        Set-OwnerOnly $dst
+        [System.IO.File]::WriteAllBytes($dst, [System.IO.File]::ReadAllBytes($src))
+    } catch {
+        Remove-Item -LiteralPath $dst -Force -ErrorAction SilentlyContinue
+        throw
+    }
+}
+
 function Invoke-Target([string]$kind, [string]$dest) {
     [byte[]]$bytes = Get-Rendered $kind
     if ((Test-Path -LiteralPath $dest) -and -not (Test-Managed $dest)) {
@@ -356,7 +383,7 @@ function Merge-DenyFloor([string]$settings) {
             $obj.permissions | Add-Member -NotePropertyName deny -NotePropertyValue ([object[]]($existing + $missing)) -Force
             $obj | Add-Member -NotePropertyName $StampKey -NotePropertyValue $want -Force
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $settings) | Out-Null
-            if (Test-Path -LiteralPath $settings) { Copy-Item -LiteralPath $settings -Destination "$settings.pmhwc-backup" -Force }
+            if (Test-Path -LiteralPath $settings) { Copy-Private $settings "$settings.pmhwc-backup" }
             $tmp = "$settings.new.$PID"
             [System.IO.File]::WriteAllText($tmp, ($obj | ConvertTo-Json -Depth 100), $utf8)
             Move-Item -LiteralPath $tmp -Destination $settings -Force
@@ -451,7 +478,7 @@ function Remove-RetiredAllow([string]$settings) {
             if ($keep.Count -eq 0) { $perms.Value.PSObject.Properties.Remove('allow') }
             else { $perms.Value | Add-Member -NotePropertyName allow -NotePropertyValue ([object[]]$keep) -Force }
             if (@($perms.Value.PSObject.Properties).Count -eq 0) { $obj.PSObject.Properties.Remove('permissions') }
-            Copy-Item -LiteralPath $settings -Destination $backup -Force
+            Copy-Private $settings $backup
             $tmp = "$settings.new.$PID"
             [System.IO.File]::WriteAllText($tmp, ($obj | ConvertTo-Json -Depth 100), $utf8)
             Move-Item -LiteralPath $tmp -Destination $settings -Force
