@@ -269,6 +269,16 @@ Three caveats, all from the same page:
 **Evidence level: documented.** Kiro CLI is not installed on the reference workstation, and Kiro has no
 active subscription (ADR-0003), so nothing was loaded or measured.
 
+## Amendment 2026-10-11: what `install.ps1` adds to the parity table (#145 follow-up)
+
+Appended rows, not edits to the table above. `install.ps1` now also runs, as `install.sh` does: the Kiro
+deny floor into `%USERPROFILE%\.kiro\settings\permissions.yaml` (ADR-0036), the retired MCP servers out of
+the Codex `config.toml`, the session-start model and effort pins (ADR-0035) and the removal of the retired
+`find` and `awk` allows. The first three run the same Python scripts and need Python 3.9 or later; the
+fourth is PowerShell. Still not ported: the paste filter and the paste wrapper (no POSIX pty, no stock
+Python). Each is *CI-tested* on the Windows job under PowerShell 5.1 and 7 (`global/install.test.ps1`
+section 14); see ADR-0035, amendment "Windows parity and the bash login file".
+
 ## Links
 
 - `AGENTS.md`, "Mission" and "Principles", item 1. ADR-0003 (Kiro access mode). ADR-0004. ADR-0005.

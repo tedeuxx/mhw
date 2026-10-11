@@ -1097,8 +1097,10 @@ def owner_steps(lines):
         if line.startswith("NOTE    automatic paste cleaning") and i + 1 < len(lines):
             m = re.search(r"\((.*)\); add this line", line)
             why = " (%s)" % m.group(1) if m else ""
-            steps.append("mhw wrote no shell start-up file%s. To clean pasted text automatically, add this "
-                         "line to yours:\n       %s" % (why, lines[i + 1].strip()))
+            # macOS bash: ~/.bashrc got the block, only the login file did not (only ~/.profile is there).
+            which = "bash login start-up file" if "no bash login start-up file" in line else "shell start-up file"
+            steps.append("mhw wrote no %s%s. To clean pasted text automatically, add this "
+                         "line to yours:\n       %s" % (which, why, lines[i + 1].strip()))
         # A retired MCP server rendered into the managed block comes from the owner's local MCP definition,
         # so removing it there is his act; shown in plain install output, not only with --verbose.
         if line.startswith("NOTE") and "the retired MCP server" in line and "in the managed block" in line:

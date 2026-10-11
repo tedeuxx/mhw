@@ -31,9 +31,11 @@ valid TOML, a shape this script does not edit, or an edit that would not verify.
 import copy
 import os
 import re
-import shutil
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # global/, first: no other module named private_copy may replace it
+from private_copy import private_copy  # noqa: E402
 
 try:
     import tomllib
@@ -52,18 +54,6 @@ HEADER_RE = re.compile(r"\s*\[")
 
 class Refuse(Exception):
     pass
-
-
-def private_copy(src, dst):
-    """The backup is owner-only (0600) from its first byte, whatever the original's mode: it can hold
-    what install removed (PR #146 QA advisory). A file or link already at dst is replaced, never written
-    through (O_EXCL)."""
-    if os.path.lexists(dst):
-        os.remove(dst)
-    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
-        shutil.copyfileobj(inp, out)
-    os.chmod(dst, 0o600)
 
 
 def load_policy(path):

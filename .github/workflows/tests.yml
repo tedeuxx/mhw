@@ -74,7 +74,8 @@ jobs:
             global/method/method_commands_test.py \
             global/models/model_defaults.py global/models/model_defaults_test.py \
             global/prerequisites.py global/prerequisites_test.py \
-            global/npm_package_test.py
+            global/npm_package_test.py \
+            global/private_copy.py global/private_copy_test.py
       - name: node syntax check of the npm launcher, alias and postinstall (Issue #68)
         run: |
           node --version
@@ -175,6 +176,12 @@ jobs:
         run: |
           python3 --version
           python3 -B global/mcp/mcp_retire_test.py "$RUNNER_TEMP/mcp-retire"
+      # Issue #145: the one Python private_copy and install.sh's shell form, run on the same cases (both must
+      # give a 0600 copy, unlink first, never write through a link); no Python step may define its own copy.
+      - name: backup helper suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/private_copy_test.py "$RUNNER_TEMP/private-copy"
       # Issue #144, ADR-0036: the deny floor merged into Kiro's user-level permissions.yaml (IDE and CLI V3),
       # in throwaway HOMEs only; the owner's rules kept, only the appended patterns taken back.
       - name: Kiro deny floor suite

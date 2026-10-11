@@ -171,6 +171,14 @@ rules, one per capability. Install never removes a rule.
   - **Limit.** The identity check is best effort, not proof. A device and inode pair can be reused,
     and a reclaim can still land in the short window between the check and the rename, or between
     the check and the `rmdir`.
+  - *Appended 2026-10-11 (PR #150 review residuals).* **A refusal tells the truth.** A reclaim seen
+    after `permissions.yaml` was renamed (when the ownership record is written) no longer says
+    "nothing written": the message names the file already changed and the one that was not, and says
+    that the rules appended in that run are not recorded, so uninstall will leave them (the safe
+    direction). A reclaim seen before any rename says the file was not changed.
+  - *Appended 2026-10-11.* **Removing the file is guarded like a rename.** When uninstall would delete
+    a `permissions.yaml` mhw created that holds only its rules, it checks the lock first; if Kiro
+    reclaimed it, nothing is removed (exit 3) and the record stays.
 - **permissions.json.** A non-empty `permissions.json` with no `permissions.yaml` beside it is
   refused. Writing the YAML would make Kiro stop reading the owner's JSON rules.
 - **Report.** `install.sh --check` prints `OK`, `MISSING`, `DRIFT` or `STAMP` for the file, and the
@@ -196,7 +204,11 @@ rules, one per capability. Install never removes a rule.
 - **Kiro CLI 2.x** (the installed 2.29.1, default engine) does not read the file. The floor reaches
   the CLI only with `--v3`. Sessions launched through the paste wrapper's `kiro-cli` function pass no
   engine flag, so they run on 2.x and have no Kiro floor (Option D would reach them).
-- **Windows:** `install.ps1` does not render it.
+- ~~**Windows:** `install.ps1` does not render it.~~ *Struck 2026-10-11 (#145 follow-up): `install.ps1`
+  runs `global/kiro/kiro_permissions.py` with the floor it already validated, into
+  `%USERPROFILE%\.kiro\settings\permissions.yaml` (Python's home on Windows). Written and tested on the
+  Windows CI runner (`global/install.test.ps1`). That Kiro on Windows reads this path is documented in
+  its `~/.kiro` form only; not measured.*
 - **Workspace scope:** nothing is written to `~/.kiro/workspace-roots/`. A deny there still adds to
   the floor, and no allow there can lift it (*documented*).
 
@@ -204,7 +216,7 @@ rules, one per capability. Install never removes a rule.
 
 | Claim | Level |
 | --- | --- |
-| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (41 cases, Python 3.14 and 3.9; every source mutation of the ownership guards, the install-time reconciliation, the distinct matching, the `verify()` call, the not-a-string check including timestamps and `=`, the temporary file, Kiro's lock and the refusal message, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
+| The renderer and its merge, refusal, ownership, stamp and uninstall paths | **tested**, in throwaway HOMEs: `global/kiro/kiro_permissions_test.py` (~~41 cases~~ 44 cases since 2026-10-11, the three added ones mutation-checked on Python 3.14; 41 cases, Python 3.14 and 3.9; every source mutation of the ownership guards, the install-time reconciliation, the distinct matching, the `verify()` call, the not-a-string check including timestamps and `=`, the temporary file, Kiro's lock and the refusal message, each killed by the suite) and `global/install.test.sh` section 24, through `install.sh` |
 | The rendered file is what Kiro's schema accepts | **structural**: the field set and the validation rules are read from the IDE 1.2.56 bundle. No Kiro build loaded the file |
 | A Kiro IDE or Kiro CLI V3 session denies a floor command | **not measured**. The IDE runtime is outside this agent's reach. A CLI measurement needs a model call, a throwaway HOME has no login, and copying the owner's credentials into one is not allowed (ADR-0008). The owner's fresh-session canary is the route |
 | A deny still applies in a Kiro CLI V3 session started with `--trust-all-tools` | **not measured** (a hypothesis for the owner's fresh-session canary). The documentation says no allow overrides a deny, but trust-all is a session switch, not an allow rule |

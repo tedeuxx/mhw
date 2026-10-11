@@ -1051,6 +1051,14 @@ class OwnerSteps(unittest.TestCase):
             "NOTE    automatic paste cleaning: no shell start-up file is written (your shell (SHELL=/bin/fish) "
             "is neither zsh nor bash); add this line to yours:", "        line"])
         self.assertIn("(your shell (SHELL=/bin/fish) is neither zsh nor bash)", fish[0])
+        # macOS bash with only ~/.profile: ~/.bashrc got the block, so the step names the login file only.
+        login = ws.owner_steps([
+            "NOTE    automatic paste cleaning: no bash login start-up file is written (for a bash login shell: "
+            "only ~/.profile is there, which sh also reads, and a new ~/.bash_profile would stop bash reading "
+            "it); add this line to yours:", "        line"])
+        self.assertEqual(len(login), 1, login)
+        self.assertIn("mhw wrote no bash login start-up file (for a bash login shell: only ~/.profile", login[0])
+        self.assertNotIn("no shell start-up file", login[0])
         # PR #146 QA advisory: a retired MCP server left in the managed block is a next step, so plain
         # mhw install output shows it.
         block = ws.owner_steps([

@@ -49,9 +49,11 @@ file is refused with that cause and the remedy named, never guessed at.
 Kiro's lock. install and uninstall take Kiro's own lock (proper-lockfile: a <real file>.lock directory made
 with mkdir, read from the IDE bundle) before reading, and hold it across the write and the rename, so while
 both honour the lock a consent rule Kiro writes meanwhile is not lost. The wait is bounded; a lock still
-held is refused, with nothing written and the lock left alone. Before each rename the lock must still be
-the directory mhw made (same device and inode), or the write is refused and nothing is renamed (Kiro
-reclaimed it); if it is, its mtime is refreshed so it does not look stale to Kiro. On release it is removed
+held is refused, with nothing written and the lock left alone. Before each rename, and before uninstall
+removes a file mhw created, the lock must still be the directory mhw made (same device and inode), or that
+step is refused and the file is left as it is (Kiro reclaimed it); the refusal names any file this run had
+already changed before it saw the reclaim. If the lock is still ours, its mtime is refreshed so it does not
+look stale to Kiro. On release it is removed
 only if it still looks like ours, and a failed release is a NOTE, never a traceback. The identity check is
 best effort: an inode can be reused, and a reclaim can land between a check and the rename or the rmdir.
 
@@ -65,11 +67,13 @@ import contextlib
 import json
 import os
 import re
-import shutil
 import sys
 import tempfile
 import time
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # global/, first: no other module named private_copy may replace it
+from private_copy import private_copy  # noqa: E402
 
 MARKER_ID = "managed-by: personal-multi-harness-workstation-configuration"
 BACKUP = ".pmhwc-backup"
@@ -434,15 +438,6 @@ def verify(new_text, want_doc):
 
 # --- files -----------------------------------------------------------------------------------------------
 
-def private_copy(src, dst):
-    if os.path.lexists(dst):
-        os.remove(dst)
-    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
-    with os.fdopen(fd, "wb") as out, open(src, "rb") as inp:
-        shutil.copyfileobj(inp, out)
-    os.chmod(dst, 0o600)
-
-
 def write(path, text):
     """Atomic. A file that is a symbolic link is written through; a new file is 0600 in a 0700 directory, as
     Kiro creates it; an existing file keeps its mode."""
@@ -459,12 +454,13 @@ def write(path, text):
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(text)
         os.chmod(tmp, mode)
-        refresh_held_locks()
+        refresh_held_locks(str(real))
         os.replace(tmp, str(real))
     except BaseException:
         if os.path.exists(tmp):
             os.remove(tmp)
         raise
+    _CHANGED.append(str(real))
 
 
 def read_owned():
@@ -547,25 +543,44 @@ def kiro_lock(path):
 
 
 # The lock directories this process holds, with the identity each had when mhw made it. write() checks and
-# refreshes them just before its rename (refresh_held_locks).
+# refreshes them just before its rename, and uninstall just before it removes the file (refresh_held_locks).
 _HELD_LOCKS = []
+# The files this process has already replaced or removed under the lock, in order, so a refusal that comes
+# after one of them says so instead of claiming nothing was written (PR #150 review residual).
+_CHANGED = []
+# How many deny patterns this run appends to permissions.yaml (set by run() just before it writes).
+_APPENDED = 0
 
 
-def refresh_held_locks():
-    """Just before a rename: each held lock must still be the directory mhw made (same device and inode).
-    If Kiro reclaimed it as stale and took its own, Refuse, so write() removes its temporary file and renames
-    nothing. Otherwise its mtime is refreshed, so it never looks older than proper-lockfile's stale threshold
-    (10 s, read from the IDE bundle). Best effort: an inode can be reused, and a reclaim can still land
-    between this check and the rename."""
+def refresh_held_locks(pending):
+    """Just before pending (a real path) is replaced or removed: each held lock must still be the directory mhw
+    made (same device and inode). If Kiro reclaimed it as stale and took its own, Refuse, so pending is left as
+    it is: write() removes its temporary file and renames nothing, uninstall removes nothing. The message says
+    which files were already changed before the reclaim was seen, if any. Otherwise the lock's mtime is
+    refreshed, so it never looks older than proper-lockfile's stale threshold (10 s, read from the IDE bundle).
+    Best effort: an inode can be reused, and a reclaim can still land between this check and the rename."""
     for lock, ident in _HELD_LOCKS:
         try:
             st = os.stat(lock)
         except OSError:
             st = None
         if st is None or (st.st_dev, st.st_ino) != ident:
-            raise Refuse("Kiro's lock %s is no longer the one mhw took (Kiro reclaimed it as stale); nothing "
-                         "written, so no rule Kiro is writing is lost. Re-run" % lock)
+            raise Refuse(reclaimed_message(lock, pending))
         os.utime(lock)
+
+
+def reclaimed_message(lock, pending):
+    """What a refusal after a reclaim must say: the truth about what this run already changed."""
+    head = "Kiro's lock %s is no longer the one mhw took (Kiro reclaimed it as stale)" % lock
+    if not _CHANGED:
+        return head + "; %s not changed, so no rule Kiro is writing is lost. Re-run" % pending
+    msg = "%s; %s was already changed before that, and %s was not" % (head, " and ".join(_CHANGED), pending)
+    if _APPENDED and Path(pending) == Path(os.path.realpath(str(owned_path()))):
+        # Only the record can be left behind: the rules this run appended are in the file and not recorded, so
+        # they read as the owner's from now on (install never records a pattern already present).
+        msg += (". The deny rules this run appended are in the file but not in mhw's record, so uninstall will "
+                "leave them in place (the safe direction); remove them by hand if you want them gone")
+    return msg
 
 
 def release_lock(lock, ident):
@@ -685,6 +700,8 @@ def run(mode, stamp, want, floor_from):
     backup = Path(str(path) + BACKUP)
     if text is not None:
         private_copy(os.path.realpath(str(path)), str(backup))
+    global _APPENDED
+    _APPENDED = n_miss
     write(path, new_text)
     write_owned(appended, created, stamp)
     if text is None:
@@ -732,6 +749,8 @@ def uninstall(stamp, floor_from):
     new_doc = {"rules": rules, "policies": doc.get("policies")}
     if rec["created"] and not rules and not doc.get("policies"):
         private_copy(os.path.realpath(str(path)), str(path) + BACKUP)
+        # Guarded like a rename: if Kiro reclaimed the lock, the file stays (PR #150 review residual).
+        refresh_held_locks(os.path.realpath(str(path)))
         path.unlink()
         print("REMOVED %s (mhw created it and only its deny-floor rules were in it; kept as %s%s)"
               % (path, path, BACKUP))
