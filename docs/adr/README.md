@@ -66,3 +66,4 @@ Each is raised one at a time, when a slice reaches it.
 | [0034](0034-npm-distribution-from-github-by-tag.md) | npm distribution from GitHub by tag, with an archive stamp; the `mhw` command and its postinstall (2026-10-06) | proposed |
 | [0035](0035-workstation-blueprint-reconciliation.md) | Workstation harness blueprint reconciled item by item (2026-10-10) | accepted |
 | [0036](0036-kiro-shared-deny-floor-permissions-yaml.md) | Kiro IDE and Kiro CLI share one deny floor in the user-level `permissions.yaml` (2026-10-11) | proposed |
+| [0037](0037-agents-md-is-the-only-root-brief.md) | `AGENTS.md` is the only root brief in every repository the owner authors; no `CLAUDE.md` (2026-10-11) | proposed |

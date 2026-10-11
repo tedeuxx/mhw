@@ -296,7 +296,10 @@ def v2(c):
 samples = ["git status", "git status --short", "gh pr view 12 --json body", "git rev-parse --show-toplevel",
            "git status > x", "git status < x", "git status $(touch x)", "git status `touch x`", "git status (x)",
            "git status {x}", "git status; touch x", "git status && touch x", "git status | sh",
-           "Xgit status", "git statusx", "git commit -m x", "xgit status"]
+           "Xgit status", "git statusx", "git commit -m x", "xgit status",
+           "git status --short\ntouch x", "git status --short\rtouch x", "git status\n", "git status\r"]
+# PR #153 QA advisory A1: newline and CR are refused by the V3 text too, not only by its subcommand split.
+assert {"*\n*", "*\r*"} <= set(sh["exclude"]), sh["exclude"]
 diff = [c for c in samples if v2(c) != v3(c)]
 assert not diff, diff
 assert v3("git status --short") and not v3("git status > x") and not v3("git commit -m x")

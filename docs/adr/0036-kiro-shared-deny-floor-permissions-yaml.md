@@ -368,6 +368,17 @@ file, so it stays usable during a lockout. `docs/runbooks/breaking-glass.md` lis
 Version cut (ADR-0002): **minor**. A new protection layer for a harness; nothing an adopter had is
 removed. The status of this record stays **proposed** until the owner ratifies it.
 
+## Amendment 2026-10-11: newline and CR in the V3 `exclude` list (PR #153 QA advisory A1)
+
+The V3 shell rule's `exclude` list above named the characters the 2.x pattern refuses, but not the
+newline and CR that the 2.x pattern also refuses. Where Kiro matches the command text, `git status`
+followed by a newline and a second command was refused by the 2.x pattern and admitted by the V3 text
+glob; it was safe only because V3 splits subcommands (read from the bundle, not run). The list now
+carries a newline and a CR too: 13 excludes, 14 conditions per statement, under the ceiling of 32. Test
+8b in `global/allow-list.test.sh` adds the newline and CR samples, asserts both entries, and goes red
+when either is removed from the renderer (mutation-checked). Still **emulated**; no Kiro ran the
+rendered agent.
+
 ## Links
 
 - Issue #144 and its 2026-10-11 decision comment. ADR-0016 (the floor), ADR-0027 (the Kiro carriers),
