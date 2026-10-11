@@ -690,5 +690,136 @@ class Refusals(Base):
         self.assertEqual(p.returncode, 2)
 
 
+class AdminCopy(Base):
+    """The root-owned managed-settings.json (ADR-0036, 2026-10-11 amendment): rendered and counted here,
+    installed by install-managed.sh."""
+
+    def admin_json(self, yaml_path, *extra):
+        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=admin-json", "--stamp=" + STAMP,
+                            "--from-yaml=%s" % yaml_path] + list(extra), capture_output=True, text=True)
+        return p.returncode, p.stdout, p.stderr
+
+    def test_admin_json_is_the_floor_install_rendered(self):
+        self.assertEqual(self.run_mode("install")[0], 0)
+        code, out, _ = self.admin_json(self.path)
+        self.assertEqual(code, 0)
+        doc = json.loads(out)
+        self.assertEqual(set(doc), {"rules", kp.NAME})
+        self.assertIn(kp.MARKER_ID, doc[kp.NAME])
+        self.assertIn(STAMP, doc[kp.NAME])
+        self.assertEqual(doc["rules"], [
+            {"capability": "shell", "effect": "deny", "match": ["sudo *", "gh auth token *", "terraform -chdir=*"]},
+            {"capability": "fs_read", "effect": "deny", "match": ["~/.ssh/id_*", "**/.env"]},
+            {"capability": "fs_write", "effect": "deny", "match": ["~/.ssh/id_*", "**/.env"]}])
+
+    def test_admin_json_refuses_a_file_that_is_not_only_the_floor(self):
+        self.path.parent.mkdir(parents=True)
+        self.path.write_text(OWNER, encoding="utf-8")  # holds an allow rule: not a fresh render
+        code, out, err = self.admin_json(self.path)
+        self.assertEqual(code, 3)
+        self.assertEqual(out, "")
+        self.assertIn("not a plain floor deny rule", err)
+
+    def test_admin_json_usage(self):
+        code, _, err = self.admin_json(self.path, "--floor=%s" % self.floor)
+        self.assertEqual(code, 2)
+        self.assertIn("usage", err)
+
+    def report(self, admin):
+        env = {k: v for k, v in os.environ.items() if k != "XDG_DATA_HOME"}
+        env["HOME"] = str(self.home)
+        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=report", "--stamp=" + STAMP,
+                            "--floor=%s" % self.floor, "--admin=%s" % admin], capture_output=True, text=True,
+                           env=env)
+        self.assertEqual(p.returncode, 0)
+        return [ln for ln in p.stdout.splitlines() if "admin managed-settings.json" in ln]
+
+    def test_report_counts_the_admin_copy(self):
+        admin = self.home / "managed-settings.json"
+        self.assertEqual(self.report(admin), [
+            "FLOOR   Kiro: admin managed-settings.json absent (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine "
+            "as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not "
+            "enforced-measured; ADR-0036)"])
+        want = kp.load_floor(self.floor)
+        doc = kp.admin_doc(want, STAMP)
+        admin.write_text(json.dumps(doc), encoding="utf-8")
+        self.assertIn("admin managed-settings.json 7/7 floor patterns", self.report(admin)[0])
+        doc["rules"][0]["match"].remove("sudo *")
+        admin.write_text(json.dumps(doc), encoding="utf-8")
+        self.assertIn("admin managed-settings.json 6/7 floor patterns", self.report(admin)[0])
+        # A pattern under an exclude does not count, as in the user file.
+        doc = kp.admin_doc(want, STAMP)
+        doc["rules"][0]["exclude"] = ["x"]
+        admin.write_text(json.dumps(doc), encoding="utf-8")
+        self.assertIn("admin managed-settings.json 4/7 floor patterns", self.report(admin)[0])
+        admin.write_text(json.dumps({"rules": doc["rules"]}), encoding="utf-8")
+        self.assertIn("present and NOT managed by this project", self.report(admin)[0])
+        admin.write_text("not json", encoding="utf-8")
+        self.assertIn("not read (", self.report(admin)[0])
+
+    def validate_file(self, doc, raw=None):
+        f = self.home / "kiro.json"
+        f.write_bytes(raw if raw is not None else json.dumps(doc).encode("utf-8"))
+        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=admin-validate", "--file=%s" % f],
+                           capture_output=True, text=True)
+        return p.returncode, p.stderr
+
+    def test_conditions_follow_kiros_compiler(self):
+        # Vpd (IDE 1.2.56) / yQc (kas 2.29.1): one statement per pattern, 1 + excludes (+1 for ask).
+        self.assertEqual(kp.conditions({"effect": "deny", "match": ["a *"] * 184}), 1)
+        self.assertEqual(kp.conditions({"effect": "deny", "match": ["a"], "exclude": ["x"] * 5}), 6)
+        self.assertEqual(kp.conditions({"effect": "ask", "match": ["a"], "exclude": ["x"]}), 3)
+        self.assertEqual(kp.conditions({"effect": "deny", "match": ["*"], "exclude": ["x"]}), 1)
+
+    def test_admin_validate_accepts_the_render_with_many_patterns(self):
+        want = {"shell": ["p%d *" % i for i in range(300)], "fs_read": ["~/.x"], "fs_write": ["~/.x"]}
+        self.assertEqual(self.validate_file(kp.admin_doc(want, STAMP))[0], 0)
+
+    def test_admin_validate_refuses_a_statement_over_the_ceiling(self):
+        doc = kp.admin_doc(kp.load_floor(self.floor), STAMP)
+        doc["rules"][0]["exclude"] = ["x%d" % i for i in range(kp.CONDITION_CEILING - 1)]
+        self.assertEqual(self.validate_file(doc)[0], 0)          # 1 + 31 = 32: at the ceiling
+        doc["rules"][0]["exclude"].append("one more")
+        code, err = self.validate_file(doc)                      # 33: over it
+        self.assertEqual(code, 3)
+        self.assertIn("over the ceiling of 32", err)
+        with self.assertRaises(kp.Refuse):
+            kp.admin_check(doc)
+
+    def test_admin_validate_refuses_what_kiro_rejects(self):
+        good = kp.admin_doc(kp.load_floor(self.floor), STAMP)
+        bad = []
+        d = json.loads(json.dumps(good)); d["rules"][0]["extra"] = 1; bad.append(d)        # unknown field
+        d = json.loads(json.dumps(good)); d["rules"][0]["effect"] = "allow"; bad.append(d)  # not in admin scope
+        d = json.loads(json.dumps(good)); d["rules"] = []; bad.append(d)
+        d = json.loads(json.dumps(good)); d["rules"][0]["match"] = []; bad.append(d)
+        d = json.loads(json.dumps(good)); d["settings"] = {}; bad.append(d)
+        d = json.loads(json.dumps(good)); del d[kp.NAME]; bad.append(d)
+        for doc in bad:
+            self.assertEqual(self.validate_file(doc)[0], 3, doc)
+        self.assertEqual(self.validate_file(None, raw=b"\xef\xbb\xbf" + json.dumps(good).encode())[0], 3)
+        self.assertEqual(self.validate_file(None, raw=b"{not json")[0], 3)
+        self.assertEqual(self.validate_file(good)[0], 0)
+
+    def test_report_names_the_deny_all_of_an_invalid_file(self):
+        admin = self.home / "managed-settings.json"
+        doc = kp.admin_doc(kp.load_floor(self.floor), STAMP)
+        doc["rules"][0]["extra"] = 1
+        admin.write_text(json.dumps(doc), encoding="utf-8")
+        line = self.report(admin)[0]
+        self.assertIn("INVALID (", line)
+        self.assertIn("deny every tool call", line)
+        self.assertIn("install-managed.sh --remove", line)
+        admin.write_text("{not json", encoding="utf-8")
+        self.assertIn("deny every tool call", self.report(admin)[0])
+
+    def test_admin_only_on_report(self):
+        env = {k: v for k, v in os.environ.items() if k != "XDG_DATA_HOME"}
+        env["HOME"] = str(self.home)
+        p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=check", "--stamp=" + STAMP,
+                            "--floor=%s" % self.floor, "--admin=/x"], capture_output=True, text=True, env=env)
+        self.assertEqual(p.returncode, 2)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

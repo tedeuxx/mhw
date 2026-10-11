@@ -18,15 +18,18 @@ whole session; `sudo`/`su` serves that purpose.
 | --- | --- |
 | `/Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json` [`/etc/claude-code/managed-settings.d/…`] | Claude Code: the paste prompt hook (`UserPromptSubmit`) and the deny floor (`permissions.deny`). An admin layer installed before Issue #60 also carries the removed HITL picker guard (`PreToolUse`, matcher `AskUserQuestion`); the next `--apply` deletes it |
 | `/etc/codex/requirements.toml` | Codex: the paste prompt hook (`[[hooks.UserPromptSubmit]]`) and the deny floor (`[rules] prefix_rules`) |
+| `/Library/Application Support/Kiro/managed-settings.json` [`/etc/kiro/managed-settings.json`] | Kiro IDE and the Kiro CLI V3 engine: the deny floor, as `administration`-scope deny rules (ADR-0036, 2026-10-11 amendment). No hook. **If Kiro rejects this file, it denies every tool call**; removing it (below, or deleting that one file as root) ends that. Kiro CLI 2.x does not read it |
 | `/Library/Application Support/personal-multi-harness-workstation-configuration/bin/` [`/etc/personal-multi-harness-workstation-configuration/bin/`] | the hook scripts those entries run |
 
-Kiro has no admin layer for hooks and runs none of these. Windows installs no hook.
+Kiro has no admin layer for hooks and runs none of these hooks; its admin file carries only the floor.
+Windows installs no hook and no admin file.
 
 ## Turn every hook off
 
 1. In the repository checkout, as yourself: `sh global/install-managed.sh --uninstall`. It prints one
    line, `sudo /bin/sh "<checkout>/global/install-managed.sh" --remove`. Run it in your own terminal.
-2. This also removes the **admin copy of the deny floor**, which lives in the same documents. The
+2. This also removes the **admin copy of the deny floor**, which lives in the same documents, plus
+   Kiro's `managed-settings.json`, which carries only the floor. The
    user-level copy stays when `install.sh` installed it; check with `sh global/install.sh --check
    --hooks=managed` (its `FLOOR` lines name the layer that carries it).
 3. Do **not** run plain `sh global/install.sh` or `./mhw install` afterwards: with no admin

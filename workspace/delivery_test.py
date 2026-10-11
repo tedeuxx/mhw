@@ -366,6 +366,14 @@ class DeliveryTests(unittest.TestCase):
                 for phrase in ("Melhoria de harness", "Session type", "improvement session"):
                     self.assertNotIn(phrase, text)
 
+    def test_kiro_steering_forbids_inferring_a_session_type(self):
+        # 2026-10-11 canary: a Kiro IDE agent announced a session type ("Bugfix") inferred from the task.
+        # With no intake (Issue #60), the always-included Kiro steering says not to infer or announce one.
+        text = " ".join((d.ROOT / ".kiro/steering/workspace-session.md").read_text().split())
+        self.assertTrue(text.startswith("--- inclusion: always ---"))
+        self.assertIn("Do not infer or announce a type for the session (bugfix or any other) from the task; "
+                      "this workspace has none.", text)
+
     def test_brief_declares_the_personal_sphere(self):
         # ADR-0035 decision 1: one sphere line above the first section, declaration only.
         brief = (d.ROOT / "AGENTS.md").read_text()

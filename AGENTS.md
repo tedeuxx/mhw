@@ -283,7 +283,11 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   is the default engine, and sessions started through the paste wrapper run on it; it does not read
   the file. The IDE has no paste wrapper, no prompt hook, no model default and no allow list (it
   ignores the CLI agent `workstation.json`). The IDE bundle reads a root-owned admin file,
-  `managed-settings.json`, as its `administration` scope. That is *read from the bundle*: nothing is
+  `managed-settings.json`, as its `administration` scope. That is *read from the bundle*: ~~nothing is
   rendered there and nothing is measured, and Kiro CLI V3 was not checked. Rendering the floor there is
-  an open option for the owner. ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
+  an open option for the owner.~~ *Amended 2026-10-11 (owner's decision):* `install-managed.sh` renders
+  the floor there too, and the user file stays as the fallback. The Kiro CLI V3 engine reads the same
+  file (*read from its bundle*). *Written and tested* in a throwaway root; not installed; not measured.
+  The Kiro agent now carries the V3 form beside the 2.0 fields, and on the V3 engine the paste wrapper
+  cleans nothing, because that engine does not enable bracketed paste (*observed* 2026-10-11). ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
   `install.ps1` renders it too (*written and CI-tested*; Kiro on Windows not measured).
