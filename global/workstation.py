@@ -1091,11 +1091,14 @@ def owner_steps(lines):
     """The owner's own acts that install.sh names in its output, as plain next steps (Issue #113)."""
     steps = []
     for i, line in enumerate(lines):
-        # Issue #145: install writes the paste wrapper's block into ~/.zshrc or ~/.bashrc itself. Only a
-        # shell it does not know (or --shell-rc=none) leaves the line to the owner.
+        # Issue #145: install writes the paste wrapper's block into ~/.zshrc or ~/.bashrc itself. Only when
+        # it chose no file (another shell, --shell-rc=none, a ZDOTDIR outside HOME) is the line the owner's;
+        # install.sh gives the reason in parentheses, and the step repeats it rather than guessing one.
         if line.startswith("NOTE    automatic paste cleaning") and i + 1 < len(lines):
-            steps.append("Your shell is neither zsh nor bash, so mhw wrote no start-up file. To clean pasted "
-                         "text automatically, add this line to yours:\n       " + lines[i + 1].strip())
+            m = re.search(r"\((.*)\); add this line", line)
+            why = " (%s)" % m.group(1) if m else ""
+            steps.append("mhw wrote no shell start-up file%s. To clean pasted text automatically, add this "
+                         "line to yours:\n       %s" % (why, lines[i + 1].strip()))
         if line.startswith("RESTART REQUIRED") and "/hooks" in line:
             steps.append("In Codex, approve the mhw hooks once: type /hooks in a new session.")
     return steps

@@ -170,10 +170,14 @@ def plan(text, names):
 
 def _write(path, backup, text):
     """As mcp_render.atomic_write: the backup keeps the mode, and the new file is created with the old mode
-    from its first byte, so the content is never readable more widely than before, even for a moment."""
-    target = str(path)
+    from its first byte, so the content is never readable more widely than before, even for a moment.
+    A config.toml that is a symbolic link (a dotfiles checkout) is written through: the link stays, its
+    target loses the server (PR #146 lens L2). The backup holds what was removed, environment values
+    included, so it is owner-only (0600) whatever the original's mode."""
+    target = os.path.realpath(str(path))
     mode = os.stat(target).st_mode & 0o7777
     shutil.copy2(target, str(backup))
+    os.chmod(str(backup), 0o600)
     tmp = "%s.new.%d" % (target, os.getpid())
     try:
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)

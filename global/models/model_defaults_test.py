@@ -146,13 +146,38 @@ class ModelDefaults(unittest.TestCase):
                 self.assertNotIn("Delete the key", out)
                 code, out = self.run_mode("check")
                 self.assertEqual(code, 0, out)
-        # The keys were absent before mhw first set them: drift overwritten later records nothing to restore,
-        # so uninstall removes them rather than bringing back the drifted values.
+        # PR #146 lens L1: each drifted value is the owner's latest, so it is recorded as replaced and
+        # uninstall brings it back, not the absence that preceded mhw's first write.
         record = json.loads((self.home / RECORD).read_text(encoding="utf-8"))
-        self.assertTrue(all("replaced" not in e for e in record["set"].values()), record)
+        for harness, (key, value) in drifted.items():
+            self.assertEqual(record["set"][str(self.home / EXPECT[harness][0])].get("replaced"), {key: value}, record)
         self.assertEqual(self.run_mode("uninstall")[0], 0)
-        for harness, (_, want) in EXPECT.items():
-            self.assertEqual({k: v for k, v in read_keys(self.home, harness).items() if k in want}, {}, harness)
+        for harness, (key, value) in drifted.items():
+            got = {k: v for k, v in read_keys(self.home, harness).items() if k in EXPECT[harness][1]}
+            self.assertEqual(got, {key: value}, harness)
+
+    def test_uninstall_restores_the_latest_owner_value(self):
+        # PR #146 lens L1: owner X, install, owner Z, install, uninstall gives Z back (not X).
+        path = self.seed(".codex/config.toml", 'model_reasoning_effort = "owner-x"\n')
+        self.assertEqual(self.run_mode("install")[0], 0)
+        path.write_text(path.read_text(encoding="utf-8").replace('"medium"', '"owner-z"'), encoding="utf-8")
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 0, out)
+        self.assertIn('model_reasoning_effort "owner-z" -> "medium"', out)
+        record = json.loads((self.home / RECORD).read_text(encoding="utf-8"))
+        self.assertEqual(record["set"][str(path)]["replaced"], {"model_reasoning_effort": "owner-z"})
+        self.assertEqual(self.run_mode("uninstall")[0], 0)
+        self.assertEqual(toml_top(path)["model_reasoning_effort"], "owner-z")
+
+    def test_a_key_the_owner_deleted_is_removed_on_uninstall(self):
+        # The owner's latest state was "absent": uninstall does not resurrect the value mhw first replaced.
+        path = self.seed(".codex/config.toml", 'model_reasoning_effort = "owner-x"\n')
+        self.assertEqual(self.run_mode("install")[0], 0)
+        path.write_text("".join(l for l in path.read_text(encoding="utf-8").splitlines(keepends=True)
+                                if not l.startswith("model_reasoning_effort")), encoding="utf-8")
+        self.assertEqual(self.run_mode("install")[0], 0)
+        self.assertEqual(self.run_mode("uninstall")[0], 0)
+        self.assertNotIn("model_reasoning_effort", toml_top(path))
 
     def test_owner_value_present_before_install_is_replaced_and_uninstall_restores_it(self):
         seed = 'model = "gpt-5.6-sol"\nmodel_reasoning_effort = "high"\n'

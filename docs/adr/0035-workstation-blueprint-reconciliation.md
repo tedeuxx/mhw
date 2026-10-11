@@ -552,8 +552,9 @@ share three properties: a backup of the previous file, an output line naming old
 `mhw install` always shows, without `--verbose`), and a way back.
 
 **2. Model and effort (decisions 5 and 8).** `global/models/model_defaults.py` writes the pinned value
-whatever the key holds. A value that was not mhw's is recorded beside the key, under `"replaced"` in the
-ownership record, and uninstall restores it; a key that had no value is removed. `--check` reports a
+whatever the key holds. The owner's latest value is recorded beside the key, under `"replaced"` in the
+ownership record, and uninstall restores it: a value he sets after an install replaces the one recorded
+earlier (review of #146), and a key he deleted records nothing. A key that had no value is removed. `--check` reports a
 held value as `DRIFT … old -> new`, a pending write, so `mhw status` counts it and no longer says the
 owner holds it. Unchanged: REFUSE, exit 3, for an unreadable file or value, a foreign record, or a TOML
 edit that would not parse (the parse guard needs Python 3.11+, as before).
@@ -565,12 +566,17 @@ targeted removal does: `global/mcp/mcp_retire.py`, run by `install.sh`, removes 
 sub-tables, nothing else. The result must parse (tomllib) and equal the original minus that server, or
 nothing is written; without tomllib a file naming the server is refused. No server content is ever
 printed. A copy listed in the managed block is named, not edited: it comes back from the local MCP
-definition on the next render. The backup `config.toml.pmhwc-mcp-backup` is the way back; uninstall does
-not re-add a retired server.
+definition on the next render. A `config.toml` that is a symbolic link is written through: the link
+stays and its target loses the server. The backup `config.toml.pmhwc-mcp-backup` is the way back, made
+owner-only (0600) because it holds the removed server's environment values; uninstall does not re-add a
+retired server. A test calibrates the equality guard: an edit that drops one key too many is refused.
 
 **4. Allow list (decision 4).** `allow_retire` in `global/allow-list.sh` removes from `permissions.allow`
-in `~/.claude/settings.json` exactly the rules in `global/allow-retired.conf`: `Bash(find:*)` and
-`Bash(awk:*)`, and each one's space-wildcard spelling. The parser's wider refusal set (every
+in `~/.claude/settings.json` exactly the rules in `global/allow-retired.conf`: for `find` and `awk`,
+each of the three wildcard spellings the Claude Code permissions documentation
+(https://code.claude.com/docs/en/permissions, read for the review of #146) gives a whole-program allow:
+`Bash(x *)`, the current form; `Bash(x:*)`, documented as equivalent; and `Bash(x*)`, which also matches
+longer names. The bare `Bash(find)` and `Bash(awk)` match only the command with no argument and stay. The parser's wider refusal set (every
 interpreter and dispatcher) is not applied to the owner's own rules: decision 4 removed only these two
 ("everything else stays"), and a rule the owner wrote that the list does not name stays. The backup
 `settings.json.pmhwc-allow-backup` is the way back; uninstall does not re-add a rule the policy retired.
@@ -579,8 +585,12 @@ The two project settings files of #127 are outside this repository and untouched
 **5. Paste wrapper (ADR-0033).** `install.sh` writes one marked block that sources the snippet into the
 start-up file of `$SHELL`: zsh `${ZDOTDIR:-~}/.zshrc`, bash `~/.bashrc`. It replaces a differing block
 whole and the earlier one-line form (Issue #58's opt-in), never duplicates, keeps the previous file as
-`<file>.pmhwc-backup` and writes through a symbolic link. Uninstall removes exactly the block. Damaged
-markers are refused. `--shell-rc=FILE` names another file and `--shell-rc=none` writes none; another
+`<file>.pmhwc-backup` and writes through a symbolic link. Uninstall removes exactly the block: the file
+comes back byte for byte, except that a final newline install added to a file that had none stays. Damaged
+markers are refused. A file chosen by default must be inside `$HOME`: an inherited `ZDOTDIR` pointing
+elsewhere writes nothing and the line is printed with that reason (review of #146: three suites run
+under a throwaway HOME had written the block into an exported `ZDOTDIR`; each suite now also pins
+`SHELL` and unsets `ZDOTDIR`, and CI asserts an exported sentinel `ZDOTDIR` stays empty). `--shell-rc=FILE` names another file and `--shell-rc=none` writes none; another
 shell gets the line printed as an owner step, the one residual.
 
 **6. Evidence level.** *Written and tested* in throwaway homes (`global/install.test.sh` sections 2,
@@ -595,8 +605,9 @@ shell gets the line printed as an owner step, the one residual.
 - **One backup per file.** Each backup is overwritten by the next write of that item, so after two
   writes it no longer holds the pre-mhw original (the model record keeps the replaced value itself).
 - **The MCP and allow backups hold what was removed.** `config.toml.pmhwc-mcp-backup` keeps the removed
-  server as it was, any environment value included, with the original file's mode.
-- **The space-wildcard allow spelling** was added by reading, not measured against Claude Code.
+  server as it was, any environment value included, at mode 0600.
+- **The allow spellings are documented, not measured.** They were read from the vendor documentation
+  above; no harness probe matched them.
 - **What stays the owner's, by design:** the administrator password, the vendor trust approvals (Codex
   `/hooks`, never forged), ratifying records, and opening a fresh session after an install.
 

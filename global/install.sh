@@ -299,22 +299,43 @@ raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
 # whole when it differs, never duplicated; the earlier one-line form (a line carrying $rc_tag) is replaced
 # by it. Every write keeps the previous file as <file>.pmhwc-backup and prints old -> new; uninstall removes
 # exactly the block (and an earlier one-line form). Damaged markers are refused, nothing written.
+# A file chosen by default (not named with --shell-rc) must be inside $HOME: an inherited ZDOTDIR that
+# points elsewhere (a test run under a throwaway HOME, PR #146 lens H1) writes nothing and prints the line.
+# Byte-exactness: uninstall gives the file back as it was, except that a final newline install added to a
+# file that had none stays (awk ends every line it prints).
 rc_begin_prefix="# >>> personal-multi-harness-workstation-configuration: paste wrapper"
 rc_begin="$rc_begin_prefix (ADR-0011); managed block, mhw uninstall removes it"
 rc_end="# <<< personal-multi-harness-workstation-configuration: paste wrapper"
 rc_tag="# personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)"
 rc_body="[ -r \"$snippet_dest\" ] && . \"$snippet_dest\""
 rc_line="$rc_body  $rc_tag"
-rc_target() { # the start-up file this run writes, or nothing
+rc_inside_home() { # rc_inside_home FILE: true when FILE is under $HOME
+  rc_check_file=$1
+  case $rc_check_file in
+    "$HOME"/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+rc_zshrc() { # the default zsh start-up file, or nothing when ZDOTDIR leads outside $HOME
+  rc_z="${ZDOTDIR:-$HOME}/.zshrc"
+  if rc_inside_home "$rc_z"; then printf '%s' "$rc_z"; fi
+  return 0
+}
+rc_pick() { # sets rc (the start-up file this run writes, or empty) and rc_why (why it is empty)
+  rc=
+  rc_why=
   case $shell_rc in
-    none) return 0 ;;
-    ?*) printf '%s' "$shell_rc"; return 0 ;;
+    none) rc_why="--shell-rc=none"; return 0 ;;
+    ?*) rc=$shell_rc; return 0 ;;
     *) ;;
   esac
   case ${SHELL:-} in
-    zsh|*/zsh) printf '%s' "${ZDOTDIR:-$HOME}/.zshrc" ;;
-    bash|*/bash) printf '%s' "$HOME/.bashrc" ;;
-    *) ;;   # another shell: no file; the line is printed for the owner
+    zsh|*/zsh)
+      rc=$(rc_zshrc)
+      [ -n "$rc" ] || rc_why="ZDOTDIR=$ZDOTDIR is outside HOME=$HOME"
+      ;;
+    bash|*/bash) rc="$HOME/.bashrc" ;;
+    *) rc_why="your shell (SHELL=${SHELL:-unset}) is neither zsh nor bash" ;;
   esac
   return 0
 }
@@ -356,10 +377,10 @@ rc_write() { # rc_write FILE NEW: FILE gets NEW's content; the previous file is 
   cat "$rc_write_new" > "$rc_write_file"
 }
 shell_rc_line() {
-  rc=$(rc_target)
+  rc_pick
   if [ -z "$rc" ]; then
     if [ "$mode" = install ]; then
-      echo "NOTE    automatic paste cleaning: no shell start-up file is written (SHELL=${SHELL:-unset}, or --shell-rc=none); add this line to yours:"
+      echo "NOTE    automatic paste cleaning: no shell start-up file is written ($rc_why); add this line to yours:"
       echo "        $rc_line"
     fi
     return 0
@@ -404,7 +425,8 @@ shell_rc_line() {
 # Uninstall: the block (and an earlier one-line form) leaves every start-up file it may be in.
 shell_rc_uninstall() {
   rc_seen=
-  for rc in "$(rc_target)" "${ZDOTDIR:-$HOME}/.zshrc" "$HOME/.bashrc"; do
+  rc_pick
+  for rc in "$rc" "$(rc_zshrc)" "$HOME/.bashrc"; do
     [ -n "$rc" ] || continue
     case " $rc_seen " in *" $rc "*) continue ;; esac
     rc_seen="$rc_seen $rc"

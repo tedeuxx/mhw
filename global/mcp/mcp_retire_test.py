@@ -162,6 +162,27 @@ class Retire(unittest.TestCase):
                            capture_output=True, text=True, env=dict(os.environ, HOME=str(self.home)))
         self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
 
+    def test_backup_is_owner_only_whatever_the_original_mode(self):
+        self.path.write_text(OWNER, encoding="utf-8")
+        os.chmod(self.path, 0o644)
+        self.assertEqual(self.run_mode("install")[0], 0)
+        self.assertEqual(os.stat(self.path).st_mode & 0o777, 0o644)
+        self.assertEqual(os.stat(str(self.path) + ".pmhwc-mcp-backup").st_mode & 0o777, 0o600)
+
+    def test_a_symlinked_config_is_written_through(self):
+        # PR #146 lens L2: the link stays a link, and its target is the file that loses the server.
+        dotfiles = self.home / "dotfiles"
+        dotfiles.mkdir()
+        real = dotfiles / "config.toml"
+        real.write_text(OWNER, encoding="utf-8")
+        os.symlink(str(real), str(self.path))
+        code, out = self.run_mode("install")
+        self.assertEqual(code, 0, out)
+        self.assertTrue(self.path.is_symlink())
+        self.assertEqual(real.read_text(encoding="utf-8"), WITHOUT)
+        self.assertEqual(Path(str(self.path) + ".pmhwc-mcp-backup").read_text(encoding="utf-8"), OWNER)
+        self.assertEqual(self.run_mode("check")[0], 0)
+
     def test_policy_lists_aws_api(self):
         names = [l.strip() for l in (HERE / "retired-servers.conf").read_text(encoding="utf-8").splitlines()
                  if l.strip() and not l.startswith("#")]
@@ -186,6 +207,25 @@ class WithoutTomllib(unittest.TestCase):
                 mcp_retire.plan(OWNER, ["aws-api"])
         finally:
             mcp_retire.tomllib = saved
+
+
+@unittest.skipUnless(sys.version_info >= (3, 11), "the guard parses with tomllib (Python 3.11+)")
+class VerifyGuard(unittest.TestCase):
+    """PR #146 lens M1: the equality guard is the net under a mis-dropped line range. An edit that
+    removes the server and one key too many must be refused; exactly the server must pass."""
+
+    def test_an_edit_that_drops_too_much_is_refused(self):
+        sys.path.insert(0, str(HERE))
+        try:
+            import mcp_retire
+        finally:
+            sys.path.pop(0)
+        old = mcp_retire.tomllib.loads(OWNER)
+        too_much = WITHOUT.replace('args = []\n', '')            # keep-me loses its args as well
+        with self.assertRaises(mcp_retire.Refuse) as caught:
+            mcp_retire._verify(old, too_much, ["aws-api"])
+        self.assertIn("would change more than that server", str(caught.exception))
+        mcp_retire._verify(old, WITHOUT, ["aws-api"])           # exactly the server: no refusal
 
 
 if __name__ == "__main__":

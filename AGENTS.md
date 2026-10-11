@@ -255,8 +255,9 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   homes; not installed.
 - **Install applies every workstation setting itself** ([#145](https://github.com/tedeuxx/mhw/issues/145);
   ADR-0035 amendment of 2026-10-11). Besides the model pins above, `mhw install` removes the `aws-api`
-  MCP server from the Codex user configuration (`global/mcp/mcp_retire.py`), removes `Bash(find:*)` and
-  `Bash(awk:*)` from the Claude Code user allow list (`global/allow-retired.conf`), and adds the paste
+  MCP server from the Codex user configuration (`global/mcp/mcp_retire.py`), removes the wildcard allows of
+  `find` and `awk` (`Bash(x *)`, `Bash(x:*)`, `Bash(x*)`) from the Claude Code user allow list
+  (`global/allow-retired.conf`), and adds the paste
   wrapper's block to `~/.zshrc` or `~/.bashrc`. Each keeps a backup and prints old -> new; uninstall
   removes the block and restores the model values, and the MCP and allow removals are restorable from
   their backups. *Written and tested* in throwaway homes; **not installed** on the reference machine.

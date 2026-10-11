@@ -466,6 +466,20 @@ if [ ! -s "$hb/.bashrc" ]; then ok "bash: uninstall leaves ~/.bashrc as it was (
 hz="$base/home-zdotdir"; mkdir -p "$hz/zdot"
 HOME="$hz" ZDOTDIR="$hz/zdot" sh "$inst" > /dev/null; expect "install with ZDOTDIR" 0 $?
 if [ -f "$hz/zdot/.zshrc" ] && [ ! -e "$hz/.zshrc" ]; then ok "zsh: ZDOTDIR's .zshrc gets the block"; else ko "zsh: ZDOTDIR not honoured"; fi
+# PR #146 lens H1: an inherited ZDOTDIR outside HOME (a suite run under a throwaway HOME on a machine
+# that exports it) is never written, by install or by uninstall. A sentinel .zshrc there already holds a
+# block, as the owner's real one would, and must come back byte for byte.
+hs2="$base/home-zdot-outside"; zs="$base/zdotdir-sentinel"; mkdir -p "$hs2" "$zs"
+printf 'export OWNER_ZSH=1\n%s\n' "$(block_of "$base/elsewhere")" > "$zs/.zshrc"
+zs_sum=$(cksum < "$zs/.zshrc")
+HOME="$hs2" ZDOTDIR="$zs" sh "$inst" > "$base/zdot-out.out" 2>&1; expect "install with ZDOTDIR outside HOME" 0 $?
+HOME="$hs2" ZDOTDIR="$zs" sh "$inst" --uninstall > "$base/zdot-out-un.out" 2>&1; expect "uninstall with ZDOTDIR outside HOME" 0 $?
+if [ "$(cksum < "$zs/.zshrc")" = "$zs_sum" ] && [ "$(find "$zs" -type f | wc -l | tr -d ' ')" -eq 1 ] \
+   && grep -qF "no shell start-up file is written (ZDOTDIR=$zs is outside HOME=$hs2)" "$base/zdot-out.out"; then
+  ok "a ZDOTDIR outside HOME is never written: no block, no backup, the line printed with the reason"
+else
+  ko "a ZDOTDIR outside HOME was written: $(find "$zs" -type f)"
+fi
 for case_ in fish none; do
   hn="$base/home-noshell-$case_"; mkdir -p "$hn"
   if [ "$case_" = fish ]; then
@@ -908,10 +922,10 @@ fi
 HOME="$hm" sh "$inst" --check --overlay="$repo_overlay" > "$base/models3c.out" 2>&1
 expect "check settles after install over an owner's model value" 0 $?
 HOME="$hm" sh "$inst" --uninstall > "$base/models4.out" 2>&1
-if [ "$(jq -c '{model, effortLevel, theme}' "$hm/.claude/settings.json")" = '{"model":null,"effortLevel":null,"theme":"dark"}' ] \
+if [ "$(jq -c '{model, effortLevel, theme}' "$hm/.claude/settings.json")" = '{"model":"opus[1m]","effortLevel":null,"theme":"dark"}' ] \
    && ! grep -q '^model' "$hm/.codex/config.toml" \
    && [ "$(jq -r '."chat.defaultModel" // "absent"' "$hm/.kiro/settings/cli.json")" = absent ]; then
-  ok "uninstall removes the model-default keys mhw set where there was no value before"
+  ok "uninstall restores the latest owner value (opus[1m]) and removes the keys that had none"
 else
   ko "uninstall model defaults: $(jq -c . "$hm/.claude/settings.json")"
 fi
@@ -936,13 +950,17 @@ else
 fi
 
 # 18. the user-level allow entries the policy retired (Issue #145, ADR-0035 decision 4): removed from
-# ~/.claude/settings.json with a backup, old -> new; every other rule of the owner's stays.
+# ~/.claude/settings.json with a backup, old -> new; every other rule of the owner's stays. All three
+# wildcard spellings go (https://code.claude.com/docs/en/permissions); the bare Bash(find) and
+# Bash(awk), which match only the command with no argument, stay, and so do gawk and findmnt.
 ha="$base/home-allow-retired"; mkdir -p "$ha/.claude"
-printf '%s\n' '{"permissions": {"allow": ["Bash(ls:*)", "Bash(find:*)", "Bash(awk:*)", "Bash(find *)", "Bash(gawk:*)", "Bash(findmnt:*)"]}, "theme": "dark"}' > "$ha/.claude/settings.json"
+printf '%s\n' '{"permissions": {"allow": ["Bash(ls:*)", "Bash(find:*)", "Bash(awk:*)", "Bash(find *)", "Bash(find*)", "Bash(awk *)", "Bash(awk*)", "Bash(gawk:*)", "Bash(findmnt:*)", "Bash(find)", "Bash(awk)"]}, "theme": "dark"}' > "$ha/.claude/settings.json"
 seed_sum=$(cksum < "$ha/.claude/settings.json")
+retired_what='Bash(awk *) present -> absent; Bash(awk*) present -> absent; Bash(awk:*) present -> absent; Bash(find *) present -> absent; Bash(find*) present -> absent; Bash(find:*) present -> absent'
+kept_allow='["Bash(ls:*)","Bash(gawk:*)","Bash(findmnt:*)","Bash(find)","Bash(awk)"]'
 HOME="$ha" sh "$inst" --check > "$base/allow-r1.out" 2>&1; expect "check reports the retired allow entries" 1 $?
-if grep -qF "DRIFT   $ha/.claude/settings.json: install would change permissions.allow Bash(awk:*) present -> absent; Bash(find *) present -> absent; Bash(find:*) present -> absent" "$base/allow-r1.out"; then
-  ok "check names each retired allow entry, present -> absent"
+if grep -qF "DRIFT   $ha/.claude/settings.json: install would change permissions.allow $retired_what" "$base/allow-r1.out"; then
+  ok "check names each retired allow entry, all three spellings, present -> absent"
 else
   ko "check did not name the retired allow entries"; grep allow "$base/allow-r1.out"
 fi
@@ -950,10 +968,10 @@ HOME="$ha" sh "$inst" --dry-run > /dev/null 2>&1
 if [ "$(cksum < "$ha/.claude/settings.json")" = "$seed_sum" ]; then ok "dry-run leaves the retired entries in place"; else ko "dry-run changed the settings"; fi
 HOME="$ha" sh "$inst" > "$base/allow-r2.out" 2>&1; expect "install removes the retired allow entries" 0 $?
 s_allow=$(jq -c '[.permissions.allow[] | select(startswith("Bash(ls") or startswith("Bash(find") or startswith("Bash(awk") or startswith("Bash(gawk"))]' "$ha/.claude/settings.json")
-if [ "$s_allow" = '["Bash(ls:*)","Bash(gawk:*)","Bash(findmnt:*)"]' ] && [ "$(jq -r .theme "$ha/.claude/settings.json")" = dark ] \
-   && [ "$(jq -c '[.permissions.allow[] | select(startswith("Bash(find") or startswith("Bash(awk"))]' "$ha/.claude/settings.json.pmhwc-allow-backup")" = '["Bash(find:*)","Bash(awk:*)","Bash(find *)","Bash(findmnt:*)"]' ] \
-   && grep -qF "CHANGED $ha/.claude/settings.json: permissions.allow Bash(awk:*) present -> absent; Bash(find *) present -> absent; Bash(find:*) present -> absent (retired, ADR-0035 decision 4; previous file kept as $ha/.claude/settings.json.pmhwc-allow-backup)" "$base/allow-r2.out"; then
-  ok "install removes exactly the listed entries, keeps the owner's others, a backup still holds them, prints old -> new"
+if [ "$s_allow" = "$kept_allow" ] && [ "$(jq -r .theme "$ha/.claude/settings.json")" = dark ] \
+   && [ "$(jq '[.permissions.allow[] | select(startswith("Bash(find") or startswith("Bash(awk"))] | length' "$ha/.claude/settings.json.pmhwc-allow-backup")" -eq 9 ] \
+   && grep -qF "CHANGED $ha/.claude/settings.json: permissions.allow $retired_what (retired, ADR-0035 decision 4; previous file kept as $ha/.claude/settings.json.pmhwc-allow-backup)" "$base/allow-r2.out"; then
+  ok "install removes exactly the listed spellings, keeps the bare forms and the owner's others, a backup still holds them, prints old -> new"
 else
   ko "retired allow entries: $s_allow"; grep allow "$base/allow-r2.out"
 fi
@@ -961,8 +979,7 @@ HOME="$ha" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the
 HOME="$ha" sh "$inst" > "$base/allow-r3.out" 2>&1
 if ! grep -q '^CHANGED .*permissions.allow' "$base/allow-r3.out"; then ok "a second install removes nothing more"; else ko "a second install reported a removal again"; fi
 HOME="$ha" sh "$inst" --uninstall > "$base/allow-r4.out" 2>&1
-if [ "$(jq '[.permissions.allow[]? | select(. == "Bash(find:*)" or . == "Bash(awk:*)")] | length' "$ha/.claude/settings.json")" -eq 0 ] \
-   && [ "$(jq -c '.permissions.allow' "$ha/.claude/settings.json")" = '["Bash(ls:*)","Bash(gawk:*)","Bash(findmnt:*)"]' ] \
+if [ "$(jq -c '.permissions.allow' "$ha/.claude/settings.json")" = "$kept_allow" ] \
    && grep -qF "NOTE    $ha/.claude/settings.json: the allow entries the policy retired are in $ha/.claude/settings.json.pmhwc-allow-backup" "$base/allow-r4.out"; then
   ok "uninstall does not re-add a retired entry, keeps the owner's rules, and names the backup"
 else

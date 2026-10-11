@@ -337,15 +337,17 @@ def main(argv=None):
                             kept_replaced[key] = replaced[key]
                     continue
                 if cur != w:
-                    # Issue #145: the pinned value is written whatever the key holds. A value that was not
-                    # mhw's is recorded as replaced, so uninstall puts it back; a value mhw already owned
-                    # (r set) keeps the replaced value recorded when mhw first took the key.
+                    # Issue #145: the pinned value is written whatever the key holds.
                     changes[key], olds[key] = w, cur
-                if r is not None:
-                    if key in replaced:
-                        kept_replaced[key] = replaced[key]
-                    keep[key] = w
-                elif cur != w:
+                if cur == w or (r is not None and cur == r):
+                    # Still mhw's value (or the pin): the replaced value recorded earlier stands.
+                    if r is not None or cur != w:
+                        keep[key] = w
+                        if key in replaced:
+                            kept_replaced[key] = replaced[key]
+                else:
+                    # The owner's value, the latest one he set (PR #146 lens L1): it is what uninstall
+                    # restores. A key he deleted (None) records nothing, so uninstall removes the key.
                     keep[key] = w
                     if cur is not None:
                         kept_replaced[key] = cur

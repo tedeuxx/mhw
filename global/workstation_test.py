@@ -18,6 +18,12 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import workstation as ws  # noqa: E402
 
+# PR #146 lens H1: install writes the paste wrapper block into the start-up file of $SHELL (or
+# $ZDOTDIR). Pinned to a shell install knows no file for, so no run here writes a start-up file.
+os.environ.pop("ZDOTDIR", None)
+os.environ.pop("PMHWC_PASTE_WRAPPER", None)
+os.environ["SHELL"] = "/bin/sh"
+
 STAMP = "release: v3.1.0; commit: " + "a" * 40
 # The installer's own FLOOR line for a user-only floor, word for word (global/install.sh).
 USER_FLOOR = ("the user layer only; a session flag can drop it (--setting-sources project, measured); install the "
@@ -1030,14 +1036,21 @@ class AdminNotRemoved(unittest.TestCase):
 class OwnerSteps(unittest.TestCase):
     def test_install_sh_acts_become_next_steps(self):
         steps = ws.owner_steps([
-            "NOTE    automatic paste cleaning: no shell start-up file is written (SHELL=/bin/fish, or "
-            "--shell-rc=none); add this line to yours:",
+            "NOTE    automatic paste cleaning: no shell start-up file is written (--shell-rc=none); add this "
+            "line to yours:",
             '        [ -r "/h/snippet.sh" ] && . "/h/snippet.sh"',
             "RESTART REQUIRED: open fresh Claude Code and Codex sessions before further work; Codex hook "
             "trust remains an owner action in /hooks."])
         self.assertEqual(len(steps), 2, steps)
         self.assertIn('[ -r "/h/snippet.sh" ] && . "/h/snippet.sh"', steps[0])
         self.assertIn("/hooks", steps[1])
+        # The step repeats install.sh's own reason; it never claims the shell is neither zsh nor bash.
+        self.assertIn("(--shell-rc=none)", steps[0])
+        self.assertNotIn("neither zsh nor bash", steps[0])
+        fish = ws.owner_steps([
+            "NOTE    automatic paste cleaning: no shell start-up file is written (your shell (SHELL=/bin/fish) "
+            "is neither zsh nor bash); add this line to yours:", "        line"])
+        self.assertIn("(your shell (SHELL=/bin/fish) is neither zsh nor bash)", fish[0])
         self.assertEqual(ws.owner_steps(["OK      something"]), [])
 
     def test_sudo_never_runs_without_a_terminal(self):
