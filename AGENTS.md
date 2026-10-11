@@ -271,3 +271,14 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   actions only the owner can take are Issues in mhw labelled `owner-action`, and `mhw status` shows
   their open count, or `not read` with a reason, never a false 0. *Written and tested*; **not
   installed** on the reference machine. Not shown on Windows.
+- **Kiro deny floor** ([ADR-0036](docs/adr/0036-kiro-shared-deny-floor-permissions-yaml.md),
+  [#144](https://github.com/tedeuxx/mhw/issues/144)): `mhw install` merges the same deny floor into
+  `~/.kiro/settings/permissions.yaml`, which Kiro IDE and Kiro CLI V3 read (*documented*). The owner's
+  rules are kept, and the previous file is backed up 0600. *Written and tested* in throwaway homes;
+  **not installed** on the reference machine; not *enforced-measured* in any Kiro build. Kiro CLI 2.x
+  is the default engine, and sessions started through the paste wrapper run on it; it does not read
+  the file. The IDE has no paste wrapper, no prompt hook, no model default and no allow list (it
+  ignores the CLI agent `workstation.json`). The IDE bundle reads a root-owned admin file,
+  `managed-settings.json`, as its `administration` scope. That is *read from the bundle*: nothing is
+  rendered there and nothing is measured, and Kiro CLI V3 was not checked. Rendering the floor there is
+  an open option for the owner. Windows does not render the Kiro floor.

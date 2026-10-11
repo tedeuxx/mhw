@@ -345,7 +345,8 @@ allow_codex_profile_render() { # $1 tier, $2 output
   } > "$2"
 }
 
-allow_kiro_render() { # $2 output. Kiro carries no deny floor (ADR-0016), so it never gets the wide tier.
+allow_kiro_render() { # $2 output. This CLI 2.x agent reads no deny floor (the Kiro floor in permissions.yaml
+  # reaches only the IDE and CLI V3, ADR-0036), so it never gets the wide tier.
   allow_words narrow cmd | jq -R -s --arg d "$MARKER_ID; source: global/allow-list.conf; $stamp; do not edit, re-run the installer" '
     split("\n") | map(select(length > 0)) as $w
     | {name: "workstation",
@@ -375,7 +376,7 @@ allow_step() {
   allow_place "$work/allow.profile" "$allow_codex_profile" "$narrow_profile"
   allow_kiro_render "$work/allow.kiro.json"
   allow_place "$work/allow.kiro.json" "$allow_kiro_agent" ""
-  echo "ALLOW   Claude Code: $allow_tier_claude tier · Codex: $allow_tier_codex tier, profile $ALLOW_PROFILE · Kiro: narrow tier, agent workstation (no deny floor there)"
+  echo "ALLOW   Claude Code: $allow_tier_claude tier · Codex: $allow_tier_codex tier, profile $ALLOW_PROFILE · Kiro: narrow tier, agent workstation (Kiro CLI 2.x reads no deny floor; the floor is in permissions.yaml, IDE and CLI V3, ADR-0036)"
 }
 
 # Uninstall: our files go, and only the allow rules and permission mode this

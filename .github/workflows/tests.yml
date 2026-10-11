@@ -66,6 +66,7 @@ jobs:
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/mcp/mcp_retire.py global/mcp/mcp_retire_test.py \
+            global/kiro/kiro_permissions.py global/kiro/kiro_permissions_test.py \
             global/profile/profile.py global/profile/profile_test.py \
             global/workstation.py global/workstation_test.py \
             global/scan.py global/scan_test.py \
@@ -174,6 +175,12 @@ jobs:
         run: |
           python3 --version
           python3 -B global/mcp/mcp_retire_test.py "$RUNNER_TEMP/mcp-retire"
+      # Issue #144, ADR-0036: the deny floor merged into Kiro's user-level permissions.yaml (IDE and CLI V3),
+      # in throwaway HOMEs only; the owner's rules kept, only the appended patterns taken back.
+      - name: Kiro deny floor suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/kiro/kiro_permissions_test.py "$RUNNER_TEMP/kiro-permissions"
       # Issues #71-#75: the five workflow commands render on all three agent harnesses with their required
       # sections, Codex implicit invocation off; the handover sanitisation check on a synthetic fixture.
       - name: workflow-commands suite

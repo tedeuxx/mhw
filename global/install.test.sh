@@ -1082,5 +1082,36 @@ paste wrapper block written|one marked block that sources it in the start-up fil
 paste wrapper block removed on uninstall|`mhw uninstall` removes exactly
 EOF
 
+# 24. the Kiro deny floor (ADR-0036, Issue #144): install.sh merges the same floor into
+# ~/.kiro/settings/permissions.yaml, keeps the owner's own rule, --check reports it, uninstall takes back
+# only what it added. The rule engine itself is global/kiro/kiro_permissions_test.py's and Kiro's.
+hk="$base/kiro"
+mkdir -p "$hk/.kiro/settings"
+kp="$hk/.kiro/settings/permissions.yaml"
+printf 'rules:\n  - capability: shell\n    match:\n      - git *\n    effect: allow\n' > "$kp"
+HOME="$hk" sh "$inst" > "$base/kiro.out" 2>&1; expect "install with a Kiro permissions.yaml of the owner's" 0 $?
+if grep -q "^MERGED  $kp (" "$base/kiro.out" && grep -q '"git \*"' "$kp" && grep -q '"sudo \*"' "$kp" \
+   && grep -q '"~/.ssh/id_\*"' "$kp"; then
+  ok "the Kiro floor is merged beside the owner's allow rule"
+else
+  ko "the Kiro floor was not merged as expected"
+fi
+kb_mode=$(stat -c %a "$kp.pmhwc-backup" 2>/dev/null || stat -f %Lp "$kp.pmhwc-backup" 2>/dev/null || echo absent)
+if [ "$kb_mode" = 600 ]; then ok "the Kiro backup is 0600"; else ko "the Kiro backup is $kb_mode"; fi
+HOME="$hk" sh "$inst" --check > "$base/kiro-check.out" 2>&1; expect "--check after the Kiro merge" 0 $?
+if grep -q "^OK      $kp (all [0-9]* deny-floor patterns present" "$base/kiro-check.out" \
+   && grep -Eq '^FLOOR   Kiro: user permissions.yaml ([0-9]+)/\1 floor patterns' "$base/kiro-check.out"; then
+  ok "--check names the Kiro file and its complete floor"
+else
+  ko "--check does not report the Kiro floor"
+fi
+HOME="$hk" sh "$inst" --uninstall > "$base/kiro-un.out" 2>&1; expect "uninstall with the Kiro floor" 0 $?
+if [ -f "$kp" ] && grep -q '"git \*"' "$kp" && ! grep -q 'sudo' "$kp" \
+   && [ ! -e "$(data "$hk")/kiro-permissions-owned.json" ]; then
+  ok "uninstall leaves only the owner's Kiro rule"
+else
+  ko "uninstall did not take back exactly the Kiro floor"
+fi
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

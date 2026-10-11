@@ -107,7 +107,8 @@ invalid one stops the run with exit 2, so an entry the parser would drop never b
 - **Codex:** a managed file, `${CODEX_HOME:-~/.codex}/rules/workstation-deny-floor.rules`, with the
   usual marker line, overwrite and drift rules (ADR-0010). The owner's own `default.rules`, where Codex
   writes his approvals, is never touched.
-- **Kiro:** nothing is rendered (below).
+- **Kiro:** ~~nothing is rendered (below).~~ *(Amended 2026-10-11, below: the same floor is merged into
+  the user-level `~/.kiro/settings/permissions.yaml`, [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md).)*
 - **Windows:** `install.ps1` renders the Codex file and merges the deny floor into the Claude Code
   settings with the same grammar and validation. ~~**Untested**: no PowerShell runtime was available, and
   it has never run.~~ Tested on a Windows CI runner since ADR-0010's 2026-10-01 amendment on Windows,
@@ -355,7 +356,8 @@ the forge.
    install and canary; `install.sh` cannot remove it anyway, because its union never removes a rule.
 3. **`install.sh` reports which layer carries the floor.** Every run, `--check` included, ends with
    `FLOOR` lines: the user and admin counts for Claude Code, the user file and admin prefix-rule count
-   for Codex, Kiro as none, and one `carried by:` verdict (the admin layer; the user layer only; the
+   for Codex, ~~Kiro as none,~~ *(struck 2026-10-11: Kiro's line now counts the patterns in its
+   permissions.yaml, ADR-0036)* and one `carried by:` verdict (the admin layer; the user layer only; the
    user layer with an incomplete admin copy; or no complete layer). The report never changes the exit
    status: admin drift is `install-managed.sh --check`'s to report.
 4. **The plugin's irreversible-action rules are absorbed where a native prefix can carry them.** The
@@ -474,6 +476,17 @@ clean but locked worktree; `git push --follow-tags` is denied even where no rele
   CLI V3 engine (ADR-0027); rendering it is a later slice.
 - Version cut (ADR-0002): **minor**. New protection; nothing an adopter had is removed or weakened, and
   the admin copy is opt-in by `sudo`.
+
+## Amendment 2026-10-11: Kiro IDE and Kiro CLI V3 carry the floor (proposed)
+
+On [Issue #144](https://github.com/tedeuxx/mhw/issues/144) the owner chose a shared deny floor for Kiro.
+`install.sh` now merges the same validated floor into `~/.kiro/settings/permissions.yaml`. Kiro IDE 1.x
+and Kiro CLI V3 read that file (*documented*). The rendering, the merge rules, the evidence and the
+gaps are in [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md). The `FLOOR   Kiro:` line of
+`--check` now counts the patterns present instead of printing "none". The "carried by" verdict still
+covers Claude Code and Codex only. Kiro has no admin copy, and the default Kiro CLI engine (2.x) does
+not read the file. This amendment is proposed until the owner ratifies ADR-0036. The *written and
+tested* status of the Kiro floor does not make it *installed*.
 
 ## Links
 

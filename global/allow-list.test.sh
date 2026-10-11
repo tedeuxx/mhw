@@ -114,7 +114,7 @@ else
   ko "Codex wide tier wrong"
 fi
 if [ "$(jq '.toolsSettings.execute_bash.allowedCommands | length' "$k")" -eq "$n_narrow_cmd" ]; then
-  ok "Kiro stays narrow: it carries no deny floor"
+  ok "Kiro stays narrow: its CLI 2.x agent reads no deny floor"
 else
   ko "Kiro was widened without a floor"
 fi
