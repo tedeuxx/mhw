@@ -44,6 +44,14 @@ password once)`; `check` exits non-zero ([#52](https://github.com/tedeuxx/mhw/is
    Expected: refused, *"policy forbids commands starting with `npm publish`"*. Then `npm --version`
    runs.
 
+6. **Kiro** (since the 2026-10-11 amendment of
+   [ADR-0036](../adr/0036-kiro-shared-deny-floor-permissions-yaml.md)): `./mhw status --verbose` shows
+   `FLOOR   Kiro: admin managed-settings.json n/n floor patterns`. Then, in a fresh Kiro CLI session on
+   the V3 engine (`kiro-cli chat --agent-engine v3`) in the same folder, ask it to run
+   `npm publish --dry-run`. Expected: denied. Then `npm --version` runs. In the Kiro IDE, the same two
+   commands in a fresh chat. Neither has been seen yet: until it is, the Kiro admin copy is *installed*,
+   not *enforced*. The Kiro CLI 2.x engine (the default) does not read this file.
+
 Record the result on Issue #59. Until steps 3 and 5 are seen, the admin floor is *installed*, not
 *enforced*.
 

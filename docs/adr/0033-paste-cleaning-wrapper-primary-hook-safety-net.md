@@ -69,7 +69,8 @@ Chosen: option 1.
   five generic categories (credential, e-mail, payment card, CPF, CNPJ; `block_categories` in
   `clipboard.conf`).
 - **Coverage, stated:** Claude Code and Codex command-line sessions on macOS and Linux. Kiro CLI is
-  wrapped but not measured, and has no hook. Out of reach: desktop apps, IDE extensions, files read by
+  wrapped ~~but not measured~~, and has no hook. *Amended 2026-10-11:* on the V3 engine the wrapper
+  cleans nothing, measured; see the amendment "Kiro CLI V3 does not enable bracketed paste". Out of reach: desktop apps, IDE extensions, files read by
   path, pasted images, Windows.
 
 ## Consequences
@@ -92,6 +93,33 @@ and loaded on 2026-10-01 and withdrawn the same day on the owner's correction; t
 its leftovers and `--check` reports them as `STALE`. Its detection core (`clipboard_guard.py`, the term
 hashes and the salt store) is what this record keeps. The measurements, mutation checks and residuals
 of each step remain in ADR-0011's amendments.
+
+## Amendment 2026-10-11: Kiro CLI V3 does not enable bracketed paste (measured gap)
+
+**Observed** in the owner's fresh-session canary on the reference machine, 2026-10-11: `kiro-cli`
+2.29.1 started with `--agent-engine v3` through the paste wrapper. The V3 terminal UI never enabled
+bracketed paste, so after its grace period the wrapper printed its warning that pastes are **not**
+cleaned. That is the behaviour this record designed for a CLI without bracketed paste (fail open,
+visibly): every paste into a Kiro CLI V3 session reaches Kiro uncleaned. Sessions on the 2.x engine
+were not observed in the canary. Kiro has no prompt hook from this project, so on V3 **nothing** checks
+a paste. The README coverage table carries the gap.
+
+**A native carrier exists, read from the bundle and not wired.** The bundled V3 engine (kas 2.29.1,
+`@kiro/agent/dist/server/acp-server.js`) loads hook files (`{"version": "v1", "hooks": [{"name",
+"trigger", "action": {"type": "command", "command", "timeout"}}]}`) from the workspace's
+`.kiro/hooks/` and from a user-level global directory under `~/.kiro/hooks/`. It has a
+`UserPromptSubmit` trigger (also spelled `promptSubmit`), passes `{"hook_event_name":
+"UserPromptSubmit", "prompt": ...}` on stdin, and treats exit code 2 on that trigger as **block**,
+sending the hook's stderr on. The proposal, for the owner: render one user-level hook file there that
+runs the existing `clipboard_guard.py prompt-hook` with a Kiro output mode (exit 2 and the redacted
+copy on stderr). Hooks are allowed here only for existential risk; a confidentiality breach through a
+pasted prompt is that case. **Not wired**, because each link is read from the bundle and none is
+measured: whether the global directory is exactly `~/.kiro/hooks/`, the file suffix it accepts, that
+a block keeps the prompt from the model, and where the stderr text goes (to the owner or into the
+agent's context; the guard's redacted copy holds no secret, but the owner should see it). A
+measurement needs a logged-in Kiro session, which a throwaway home does not have (ADR-0008); the
+owner's fresh-session canary is the route. Kiro IDE: the IDE 1.2.56 bundle documents no prompt-submit
+hook type for a user scope (ADR-0036), so this proposal does not reach the IDE.
 
 ## Links
 

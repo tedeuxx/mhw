@@ -95,7 +95,7 @@ Option A.
 | A rule with an unknown field, a missing capability or an invalid effect makes Kiro reject the whole file, which then contributes no rule | **read from the IDE bundle** (`zwe`, `DNu`, `mas`) |
 | A rule with an unknown capability is skipped with a warning | **read from the IDE bundle** |
 | When `permissions.yaml` exists, `permissions.json` in the same directory is not read | **read from the IDE bundle** (`jss`) |
-| The IDE also reads a root-owned admin file as the `administration` scope: `/Library/Application Support/Kiro/managed-settings.json` (macOS), `/etc/kiro/managed-settings.json` (Linux), `C:\ProgramData\Kiro\managed-settings.json` (Windows), same rules schema, parsed as JSON | **read from the IDE bundle** (`Gjd`, `Jjd`); not rendered, not measured; whether Kiro CLI V3 reads it is not checked |
+| The IDE also reads a root-owned admin file as the `administration` scope: `/Library/Application Support/Kiro/managed-settings.json` (macOS), `/etc/kiro/managed-settings.json` (Linux), `C:\ProgramData\Kiro\managed-settings.json` (Windows), same rules schema, parsed as JSON | **read from the IDE bundle** (`Gjd`, `Jjd`); ~~not rendered, not measured; whether Kiro CLI V3 reads it is not checked~~ *2026-10-11 amendment:* rendered by `install-managed.sh`; the Kiro CLI V3 engine reads the same three paths with the same loader (**read from the bundled V3 engine**, kas 2.29.1, `@kiro/agent/dist/server/acp-server.js`); not measured |
 | Kiro's writer takes `proper-lockfile`'s lock, a `<file>.lock` directory made with `mkdir`, around its read-modify-write, and serialises with the `yaml` package (v2: plain scalars where it can, lines folded at 80 columns) | **read from the IDE bundle** (`was`, `lineWidth: 80`) |
 | A user-scope consent decision is written back to the file, re-serialised without comments; a new pattern of a given capability and effect is appended to the first rule of that capability and effect | **read from the IDE bundle** (`was`, `Xjd`) |
 | Kiro CLI 2.x ignores the file; `kiro-cli --v3` runs the V3 engine | **documented** (ADR-0027) and the help text of the installed `kiro-cli` 2.29.1 (*measured*: the `--v3` and `--v2` flags exist) |
@@ -193,7 +193,8 @@ rules, one per capability. Install never removes a rule.
 - **The CLI agent `~/.kiro/agents/workstation.json`** (allow list, ADR-0031) is ignored by the IDE,
   because it carries fields only the CLI has (Issue #144, read-only). The IDE gets the floor and not
   the allow list.
-- **Admin layer: not rendered (open option).** ~~No local admin layer for the IDE.~~ The IDE 1.2.56
+- ~~**Admin layer: not rendered (open option).**~~ *Closed 2026-10-11 by the owner's decision; see the
+  amendment "the floor also in Kiro's admin file" below.* ~~No local admin layer for the IDE.~~ The IDE 1.2.56
   bundle reads a root-owned `managed-settings.json` as its `administration` scope, with the same rules
   schema as the user file, parsed as JSON. The paths are in the schema table above (*read from the
   bundle*; not measured; Kiro CLI V3 not checked). Issue #144's reading that the enterprise scope comes
@@ -241,6 +242,93 @@ rules, one per capability. Install never removes a rule.
 - Bad: on the default Kiro CLI engine nothing changes.
 - Version cut (ADR-0002): **minor**. A new protection for a harness. Nothing an adopter had is removed
   or weakened.
+
+## Amendment 2026-10-11: the floor also in Kiro's admin file; the agent in the V3 form
+
+### The owner's decision
+
+On 2026-10-11, in session, the owner chose the open option above: render the deny floor **also** into
+the root-owned Kiro admin file, through the admin-layer installer that already does this for Claude
+Code and Codex, and **keep** the user `~/.kiro/settings/permissions.yaml` as the fallback (the pattern
+ADR-0016 uses for Claude Code and Codex). Rejected: **admin only** (the reason given: Kiro CLI V3 might
+not read it; the bundle read for this amendment shows the V3 engine does read it, and the user copy
+is still what an install without the administrator password leaves), and **user only** (the owner or
+any process running as him can edit it).
+
+### Decision
+
+`install-managed.sh` stages a third admin document, `kiro.json`, and installs it, root-owned and 0644,
+at `/Library/Application Support/Kiro/managed-settings.json` (macOS) or `/etc/kiro/managed-settings.json`
+(Linux).
+
+- **One source.** The document is rendered by `global/kiro/kiro_permissions.py --mode=admin-json` from
+  the `permissions.yaml` that `install.sh` rendered into the same throwaway home, so the admin and the
+  user copy cannot name two floors. It holds one deny rule per capability (`shell`, `fs_read`,
+  `fs_write`) and one top-level key of ours carrying the provenance stamp (JSON has no comment; the
+  permission loader ignores a top-level key it does not know, *read from the bundle*).
+- **Validated before install.** `validate()` refuses a stage whose Kiro document Kiro would reject: a
+  byte order mark, a top-level shape other than the rules list and our key, a rule field other than
+  `capability`, `effect` and `match`, an effect other than `deny` (the administration scope allows
+  `deny` and `ask` only, *read from the bundle*), an unknown capability or an empty match list. The
+  document is bound into the stage hash like the other two.
+- **Never over someone else's file.** An existing `managed-settings.json` without our key (an
+  organisation's Kiro policy, or a file that is not JSON) is refused by the render and by `--apply`
+  (exit 3), reported by `--check` as `REFUSE`, and left alone by `--remove` with a `NOTE`.
+- **Reported.** `--check` compares it like the other admin documents (`OK`, `STAMP`, `DRIFT`,
+  `MISSING`). `install.sh` prints a second Kiro line, `FLOOR   Kiro: admin managed-settings.json n/m
+  floor patterns` (or `absent`, `present and NOT managed by this project`, `not read`), which
+  `mhw status --verbose` relays.
+- **Uninstall.** `--remove` deletes it when it is ours.
+- **Windows: not rendered.** The admin-layer installer has no Windows form (ADR-0025). The Windows path
+  `C:\ProgramData\Kiro\managed-settings.json` is read by both bundles, and nothing writes it.
+
+### What else reads that file, read from the bundles
+
+- **Kiro's sign-in "login controls"** read the same path, in the IDE and in the Kiro CLI binary
+  (`login_controls.rs` in 2.29.1). They act only on rules of capability `signin_method` and on a
+  `settings` object. Neither is rendered, so they find nothing to apply. The IDE logs a warning when the
+  file has no `rules` array (*"without it the agent refuses every tool call"*); ours always has one.
+- **Kiro CLI 2.x** (the Rust engine) reads the path only for login controls, not for permissions, so
+  this copy does not reach it either.
+
+### The agent in the V3 form (canary finding 3b)
+
+The 2026-10-11 canary saw Kiro CLI 2.29.1 ask *"Your agent configs are still in the 2.0 format. Upgrade
+them to run on 3.0? They'll keep working in 2.0."* for `~/.kiro/agents/workstation.json`. The bundled V3
+engine skips a JSON agent that has the 2.0 fields (`allowedTools`, `toolsSettings`) and no
+`permissions` block (*read from the bundle*: `kii`, `Eii`, `bii` in kas 2.29.1). The owner ran
+`/upgrade-agent`; it kept the 2.0 fields and added a `permissions` block (observed on the reference
+machine: the file and its `.bak`).
+
+The renderer (`global/allow-list.sh`) now writes both, so `/upgrade-agent` is not needed: the 2.0
+fields unchanged, and `permissions.rules` with the shell allow rule `/upgrade-agent` wrote (`"<words>
+*"` and `"<words>"` per trusted command) and `fs_read` allow. The shell rule also carries an `exclude`
+list of the characters the 2.x pattern refuses (`;`, `&`, `|`, `<`, `>`, `$`, backtick, parentheses,
+braces), so where Kiro matches the command text the V3 allow is not wider than the 2.x one. How V3
+splits a command (tree-sitter; substitutions are evaluated as their own commands) is read from the
+bundle; whether the redirect text is part of the matched string is **not** established, and no Kiro
+build ran the rendered agent.
+
+**A consequence the owner should see.** Kiro IDE 1.2.56 has the same agent loader (the same two field
+lists, *read from the IDE bundle*). With the `permissions` block it no longer skips this agent, so the
+narrow allow list can reach the IDE when that agent is selected. Option B above (an IDE agent) was
+rejected for this record; this happens as a side effect of the V3 form he asked for, and the
+`/upgrade-agent` he ran already produced it. If he wants the IDE kept out, the alternative is a second,
+V3-only agent file, which the CLI 2.x engine would also list.
+
+### Evidence
+
+| Claim | Level |
+| --- | --- |
+| `install-managed.sh` renders, validates, hashes, installs, checks, refuses beside a foreign file and removes the Kiro admin copy | **tested** under a throwaway `--root` (`global/install-managed.test.sh` 3c, 5b, 6), the install and foreign-file guards mutation-checked |
+| The rendered document passes the validation Kiro's bundles apply | **emulated** in the suite from the code read in the IDE 1.2.56 and kas 2.29.1 bundles; no Kiro loaded it |
+| `install.sh` counts the admin copy on its `FLOOR` line | **tested** (`global/install-managed.test.sh` 3c; `global/kiro/kiro_permissions_test.py` `AdminCopy`), the count mutation-checked |
+| Kiro IDE and the Kiro CLI V3 engine apply it as the administration scope | **read from the bundles**; not measured |
+| The V3 agent form loads in the V3 engine and still loads in CLI 2.x | **read from the bundle** and the vendor's own prompt text; the rendered file was not run by any Kiro |
+| Installed on the reference machine | **no**. The owner installs the release candidate (`mhw install` asks for the administrator password once) |
+
+Version cut (ADR-0002): **minor**. A new protection layer for a harness; nothing an adopter had is
+removed. The status of this record stays **proposed** until the owner ratifies it.
 
 ## Links
 
