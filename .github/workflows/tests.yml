@@ -13,7 +13,7 @@ jobs:
   # Stable mechanical gate for the workspace's checked merge command.
   delivery-ci:
     if: always()
-    needs: [shellcheck, profiles, suites, windows]
+    needs: [shellcheck, profiles, suites, windows, isolation-smoke]
     runs-on: ubuntu-latest
     steps:
       - name: Require every suite to pass
@@ -255,6 +255,29 @@ jobs:
           echo "ZDOTDIR=$ZDOTDIR"
           find "$ZDOTDIR" -mindepth 1 -print
           [ -z "$(find "$ZDOTDIR" -mindepth 1 -print)" ]
+
+  # Issue #62: method-issue-sync.yml's subprocess isolation recipe (bubblewrap, socat, the AppArmor
+  # user-namespace sysctl, and an unprivileged-namespace smoke test), run on ubuntu-latest so a PR measures
+  # it without a trip to main. method_issue_sync_test.py keeps this script identical to the workflow's.
+  isolation-smoke:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Install subprocess isolation dependencies (same script as method-issue-sync.yml)
+        run: |
+          for i in 1 2 3; do
+            sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends bubblewrap socat && break
+            echo "apt-get attempt $i failed, retrying..."
+            sleep 5
+          done
+          # Ubuntu 24.04+ restricts unprivileged user namespaces via AppArmor; the sysctl is absent on older
+          # kernels, which is fine. Guarded as the action's own step guards it.
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ] && command -v sudo >/dev/null; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          bwrap --version
+          # Smoke test: an unprivileged user namespace actually opens. Red here names the cause.
+          bwrap --unshare-user --ro-bind / / /bin/true
 
   # install.ps1 on a real Windows host (Issue #9, ADR-0010). Throwaway USERPROFILEs under RUNNER_TEMP
   # only. Runs under Windows PowerShell 5.1 (what a stock Windows has) and PowerShell 7. The runner's git
