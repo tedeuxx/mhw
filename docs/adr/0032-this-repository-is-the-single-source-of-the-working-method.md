@@ -268,8 +268,11 @@ the owner wants, and gave the CI write access to the plugin's contents.
 **Evidence, 2026-10-12.** Written and tested: `.github/scripts/method_issue_sync_test.py` checks the
 workflow's structure (parsed with the runner's ruby) and drives the script against a stub `gh`. After the
 agent, a deterministic `verify` step fails the run unless the twin exists in the mhw Issue's state.
-**Not run:**
-~~no secret is stored yet, and~~ GitHub runs this workflow only from `main`. *(Struck 2026-10-12: the
+~~**Not run:**~~
+~~no secret is stored yet, and~~ GitHub runs this workflow only from `main`. *(Struck 2026-10-12: it ran
+once. The first canary, run 38269161317 on mhw#162 at v5.5.0, failed in the sync job before any write
+because bubblewrap was missing; no twin was created. The fix, #163, is written and tested and its isolation recipe is measured on a PR runner (`isolation-smoke` in `tests.yml` passed on #163, run 38273021598); it has
+not run on `main`.)* *(Struck 2026-10-12: the
 three secrets were stored that day, 13:43Z, per `gh secret list --repo tedeuxx/mhw`.)* The App's author login
 (`app/tedeuxx-mhw-mirror`) is a hypothesis the canary confirms.
 

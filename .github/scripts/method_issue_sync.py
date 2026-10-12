@@ -311,8 +311,10 @@ def cmd_backlink(issue, args):
         raise Refused("backlink takes no arguments")
     twin = find_twin(issue)
     if twin is None:
-        print("no twin for %s yet; nothing to link" % mhw_url(issue))
-        return
+        # The backlink job runs only after a successful sync, so a missing twin is a failure, never a
+        # green "nothing to link" (first canary, 2026-10-12).
+        print("FAIL  no twin for %s; nothing was linked" % mhw_url(issue))
+        raise SystemExit(1)
     comments = json.loads(gh(["issue", "view", issue, "--repo", MHW_REPO, "--json", "comments"], "MHW_TOKEN"))
     if any(BACKLINK_MARKER in (c.get("body") or "") and author_login(c) in BACKLINK_AUTHORS
            for c in comments.get("comments", [])):

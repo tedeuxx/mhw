@@ -9,7 +9,8 @@
 # - sync: contents:read + issues:read on mhw. The agent's only shell is .github/scripts/method_issue_sync.py,
 #   which writes only to the twin in -skills with the GitHub App token (Issues read/write, installed only on
 #   -skills). It has no Read/Glob/Grep, so it cannot read the process environment.
-# - backlink: issues:write on mhw, no agent. Comments the twin's URL on the mhw Issue once.
+# - backlink: issues:write on mhw, no agent. Runs only when sync succeeded (so after verify found the twin);
+#   comments the twin's URL on the mhw Issue once, and fails red if it finds no twin.
 # No token is printed; secrets reach steps only through `with:` and `env:`.
 #
 # Owner setup and canary: docs/runbooks/method-issue-sync.md. Each sync run spends the owner's Claude
@@ -130,6 +131,28 @@ jobs:
         env:
           SYNC_DIR: ${{ runner.temp }}/method-sync
         run: mkdir -p "$SYNC_DIR"
+      # CLAUDE_CODE_SUBPROCESS_ENV_SCRUB below needs bubblewrap, which ubuntu-latest does not ship: the
+      # first canary (2026-10-12, run 38269161317) failed setting up Claude Code with "bubblewrap is required
+      # for subprocess env scrubbing and isolation". The recipe is the pinned action's own "Install
+      # subprocess isolation dependencies" step (which runs only when allowed_non_write_users is set), without
+      # its continue-on-error, plus a smoke test, so a missing piece fails here, red, with its cause.
+      # From the runner image's apt sources; nothing pinned. tests.yml's isolation-smoke job runs the same
+      # script on every PR (method_issue_sync_test.py keeps the two identical).
+      - name: Install subprocess isolation dependencies (required by the env scrub)
+        run: |
+          for i in 1 2 3; do
+            sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends bubblewrap socat && break
+            echo "apt-get attempt $i failed, retrying..."
+            sleep 5
+          done
+          # Ubuntu 24.04+ restricts unprivileged user namespaces via AppArmor; the sysctl is absent on older
+          # kernels, which is fine. Guarded as the action's own step guards it.
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ] && command -v sudo >/dev/null; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          bwrap --version
+          # Smoke test: an unprivileged user namespace actually opens. Red here names the cause.
+          bwrap --unshare-user --ro-bind / / /bin/true
       # anthropics/claude-code-action v1.0.248 (annotated tag -> commit 1d6de8cb..., the same commit as v1,
       # verified with git ls-remote 2026-10-12). github_token is the read-only mhw token: the action sets it
       # as GH_TOKEN for the agent, so the -skills writes go through the script with MHW_SKILLS_TOKEN.
@@ -213,7 +236,7 @@ jobs:
   backlink:
     needs: [select, sync]
     if: >-
-      !cancelled() && needs.select.outputs.ready == 'true' &&
+      needs.sync.result == 'success' && needs.select.outputs.ready == 'true' &&
       needs.select.outputs.issues != '[]' && needs.select.outputs.issues != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5

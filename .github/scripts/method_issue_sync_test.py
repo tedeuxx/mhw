@@ -23,6 +23,8 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 WORKFLOW = os.path.join(ROOT, ".github", "workflows", "method-issue-sync.yml")
+TESTS_WORKFLOW = os.path.join(ROOT, ".github", "workflows", "tests.yml")
+ISOLATION_INSTALL = "sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends bubblewrap socat"
 SCRIPT = os.path.join(HERE, "method_issue_sync.py")
 
 PIN_CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
@@ -36,12 +38,12 @@ ALLOWED_TOOLS = {
 MUST_DISALLOW = {"Read", "Glob", "Grep", "Edit", "MultiEdit", "NotebookEdit", "WebFetch", "WebSearch", "Task"}
 
 
-def load_workflow():
+def load_workflow(path=WORKFLOW):
     ruby = shutil.which("ruby")
     if not ruby:
         raise AssertionError("ruby is required to parse the workflow (preinstalled on the CI runners)")
     out = subprocess.run(
-        [ruby, "-ryaml", "-rjson", "-e", "puts JSON.dump(YAML.safe_load(File.read(ARGV[0])))", WORKFLOW],
+        [ruby, "-ryaml", "-rjson", "-e", "puts JSON.dump(YAML.safe_load(File.read(ARGV[0])))", path],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True).stdout
     doc = json.loads(out)
     # YAML 1.1 reads the bare key `on` as the boolean true.
@@ -204,6 +206,57 @@ class Workflow(unittest.TestCase):
         self.assertNotIn("continue-on-error", steps[-1])
         self.assertEqual(steps[-1]["run"].strip(), "python3 -B .github/scripts/method_issue_sync.py verify")
         self.assertNotIn("if", steps[-1], "verify runs whenever the agent step succeeded")
+
+    def test_bubblewrap_is_installed_before_any_scrubbed_step(self):
+        # First canary, 2026-10-12: the scrub needs bubblewrap, which ubuntu-latest does not ship.
+        scrubbed = 0
+        for job in self.jobs.values():
+            steps = job.get("steps", [])
+            for i, step in enumerate(steps):
+                if str((step.get("env") or {}).get("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB", "0")) == "0":
+                    continue
+                scrubbed += 1
+                installs = [s.get("run", "") for s in steps[:i] if ISOLATION_INSTALL in s.get("run", "")]
+                self.assertEqual(len(installs), 1, "bubblewrap is installed once, before the scrubbed step")
+                self.assert_isolation_recipe(installs[0])
+        self.assertEqual(scrubbed, 1, "the agent step carries the scrub")
+
+    def assert_isolation_recipe(self, run):
+        lines = [ln.strip() for ln in run.splitlines() if ln.strip() and not ln.strip().startswith("#")]
+        self.assertIn(ISOLATION_INSTALL + " && break", lines)
+        guard = ("if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ] && command -v sudo >/dev/null; "
+                 "then")
+        self.assertIn(guard, lines)
+        self.assertEqual(lines[lines.index(guard) + 1], "sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0")
+        self.assertEqual(lines[-1], "bwrap --unshare-user --ro-bind / / /bin/true", "the smoke test ends the step")
+        order = [lines.index(ISOLATION_INSTALL + " && break"), lines.index(guard), lines.index("bwrap --version"),
+                 len(lines) - 1]
+        self.assertEqual(order, sorted(order))
+        self.assertNotIn("|| true", run)
+
+    def test_isolation_recipe_also_runs_on_every_pr(self):
+        tests = load_workflow(TESTS_WORKFLOW)
+        job = tests["jobs"]["isolation-smoke"]
+        self.assertEqual(job["runs-on"], "ubuntu-latest")
+        self.assertIn("isolation-smoke", tests["jobs"]["delivery-ci"]["needs"])
+        self.assertNotIn("continue-on-error", job)
+        runs = [s["run"] for s in job["steps"] if "run" in s]
+        self.assertEqual(len(runs), 1)
+        self.assertNotIn("continue-on-error", job["steps"][0])
+        sync_step = [s for s in self.jobs["sync"]["steps"] if ISOLATION_INSTALL in s.get("run", "")][0]
+        self.assertNotIn("continue-on-error", sync_step)
+        self.assertEqual(runs[0], sync_step["run"], "the PR job runs exactly the workflow's script")
+        self.assert_isolation_recipe(runs[0])
+
+    def test_backlink_runs_only_after_a_successful_sync(self):
+        job = self.jobs["backlink"]
+        cond = " ".join(job["if"].split())
+        self.assertIn("needs.sync.result == 'success'", cond)
+        self.assertTrue(cond.startswith("needs.sync.result == 'success' &&"), cond)
+        self.assertNotIn("||", cond, "no alternative may bypass the sync-success condition")
+        for loose in ("!cancelled()", "always()", "failure()"):
+            self.assertNotIn(loose, cond)
+        self.assertIn("sync", job["needs"])
 
     def test_backlink_job_runs_the_script_without_an_agent(self):
         steps = self.jobs["backlink"]["steps"]
@@ -410,7 +463,10 @@ class Script(unittest.TestCase):
         self.assertEqual(self.writes()[-1]["args"], ["issue", "close", "42", "--repo", "tedeuxx/tadeumendonca-skills"])
 
     def test_backlink_once(self):
-        self.assertEqual(self.run_script("backlink").returncode, 0)   # no twin yet: nothing posted
+        proc = self.run_script("backlink")   # no twin: red, nothing posted, no link claimed
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("FAIL", proc.stdout)
+        self.assertIn("nothing was linked", proc.stdout)
         self.assertEqual(self.writes(), [])
         self.add_twin()
         self.assertEqual(self.run_script("backlink").returncode, 0)
