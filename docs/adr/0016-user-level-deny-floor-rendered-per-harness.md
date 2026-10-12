@@ -485,7 +485,8 @@ and Kiro CLI V3 read that file (*documented*). The rendering, the merge rules, t
 gaps are in [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md). The `FLOOR   Kiro:` line of
 `--check` now counts the patterns present instead of printing "none". The "carried by" verdict still
 covers Claude Code and Codex only. Kiro has no admin copy, and the default Kiro CLI engine (2.x) does
-not read the file. This amendment is proposed until the owner ratifies ADR-0036. The *written and
+not read the file. ~~This amendment is proposed until the owner ratifies ADR-0036.~~ *(Struck
+2026-10-11: the owner ratified ADR-0036, so this amendment is accepted with it.)* The *written and
 tested* status of the Kiro floor does not make it *installed*.
 
 ## Links

@@ -1,6 +1,7 @@
 # ADR-0037: AGENTS.md is the only root brief in every repository the owner authors
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-10-11, the owner's ratification in session; see the
+  amendment "accepted" below)
 - **Date:** 2026-10-11
 - **Deciders:** the owner (the rule, in session, 2026-10-11); written by the implementing agent
 - **Related:** [ADR-0010](0010-global-brief-rendered-to-each-harness.md) (the user-level brief, unchanged),
@@ -165,6 +166,12 @@ limit than Codex's, so the Codex limit governs. Kiro was not probed.
 - Neutral: the method source in `method/` still speaks of a consuming repository's `CLAUDE.md` (for
   example the loop-mode contract block). Rewording it is the plugin repository's change
   (tadeumendonca-skills#562) and the cutover's (#62), not this record's.
+
+## Amendment 2026-10-11: accepted
+
+The owner ratified this record, in session on 2026-10-11, answering a picker with *"Ratificar"*. The
+status moves from proposed to accepted. Nothing in the decision changes; the evidence levels stated
+above stay as written (`mhw status` reports the case; it is a check the owner runs, not a hook).
 
 ## Links
 

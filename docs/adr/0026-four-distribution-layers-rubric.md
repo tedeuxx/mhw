@@ -144,7 +144,8 @@ in force until the owner ratifies it.
 - [ADR-0035](0035-workstation-blueprint-reconciliation.md) (accepted) decision 6, *hooks only for
   existential risk*, narrows which hooks may enter the managed layer. It is consistent with placement
   test question 1.
-- [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md) (proposed) and its 2026-10-11 amendment
+- [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md) (~~proposed~~ accepted 2026-10-11) and its
+  2026-10-11 amendment
   give Kiro an admin carrier for the **deny floor** (`managed-settings.json`). The Kiro gap named in
   option 1 and in Consequences is now narrower: Kiro still has no admin carrier for **hooks**
   ([ADR-0025](0025-hook-layers-in-the-native-admin-layer.md)).
