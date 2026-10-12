@@ -75,7 +75,8 @@ jobs:
             global/models/model_defaults.py global/models/model_defaults_test.py \
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py \
-            global/private_copy.py global/private_copy_test.py
+            global/private_copy.py global/private_copy_test.py \
+            .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py
       - name: node syntax check of the npm launcher, alias and postinstall (Issue #68)
         run: |
           node --version
@@ -212,6 +213,12 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/prerequisites_test.py
+      # Issue #62, ADR-0032 2026-10-12 amendment: the method backlog sync. The workflow's structure (parsed
+      # with the runner's ruby) and the agent's only route to GitHub, against a stub gh on PATH; no network.
+      - name: method issue sync suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B .github/scripts/method_issue_sync_test.py
       - name: GitHub repository settings standard suite (stub gh on PATH; no network, never squash)
         run: sh global/github-repo-settings.test.sh "$RUNNER_TEMP/repo-settings"
       # ADR-0011, the paste filter. It never reads or writes the system clipboard. Issue #58: the real

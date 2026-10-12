@@ -221,6 +221,57 @@ the cut of one skill.
 lacks the disclaimer, lacks exactly one closing tool section, or carries a tool word outside both; 11
 mutations of the skill sources turned it red and the unmutated copy stayed green.
 
+## Amendment 2026-10-12: the plugin is fed by backlog sync, not by a file mirror (#62)
+
+Status unchanged (proposed). The context above says the plan later regenerates the plugin from here
+(#62), and
+the first build of #62 (PR #158, closed) packaged `method/` in CI and pushed it to
+`tadeumendonca-skills` on each release. The owner redirected it on 2026-10-12 (his words, translated,
+recorded on #62): *"Demands made in mhw need to be adapted to the plugin's format"*, *"the only
+expectation was to reflect Issues in the skills repo and, periodically (once a week), run the sprint and
+generate the updated mirrored version"*, *"What matters is not losing the synchronism of
+Issues/backlog"*. He agreed ("de acordo") to the mechanism below the same day.
+
+**Decision.** What crosses from this repository to the plugin is the **backlog**, not files:
+
+- A method demand is an mhw Issue labelled `method`. `.github/workflows/method-issue-sync.yml` reflects
+  it as a twin Issue in `tadeumendonca-skills`, adapted to the plugin's format (which carriers change:
+  agents, skills, commands, manifests, powers, hooks; and the acceptance criteria), with a hidden marker
+  `<!-- mhw-issue: tedeuxx/mhw#N -->` and a link back. Edits, close and reopen follow; the mhw Issue
+  gets the twin's link once. Runbook: [`docs/runbooks/method-issue-sync.md`](../runbooks/method-issue-sync.md).
+- **The adaptation to plugin files is done by the -skills sprint**, which is weekly and scheduled later.
+  Nothing in this repository writes plugin files. Until that sprint runs, `method/` here and the plugin
+  can diverge; the twins are the record of what is owed.
+
+**New third-party action.** `anthropics/claude-code-action`, pinned by commit (v1.0.248, the commit `v1`
+points at, verified with `git ls-remote` on 2026-10-12), joins `actions/create-github-app-token`
+(v3.2.0, likewise pinned). It is the first model-running dependency in this repository's CI. Its blast
+radius is bounded outside the model: the agent's only shell is `.github/scripts/method_issue_sync.py`,
+which writes only to the twin, meaning the App-authored Issue carrying the marker (-skills is public, so
+a marked Issue opened by anyone else is ignored and named in a warning, never edited), only from files
+in the run's scratch directory, and refuses credential-shaped text and any 12-character run of a token
+the run holds; it has no file-reading tools, and project settings are not loaded (read from the action's
+source, `--setting-sources user`; not measured on a runner). The mhw
+Issue's text is declared data, not instructions, in the prompt; that clause is an instruction to a model,
+not a control.
+
+**Cross-repository credential.** The GitHub App `tedeuxx-mhw-mirror`, now with Issues read/write and
+Metadata read only, installed only on `tadeumendonca-skills`. Its token is minted per job, scoped to that
+one repository and to `issues` (write in the sync job, read in the back-link job), and revoked when the
+job ends. The model credential is `CLAUDE_CODE_OAUTH_TOKEN`, the owner's subscription, as in the other
+two repositories; each run spends it. A PAT and archiving -skills without a mirror were rejected on
+2026-10-11 and stay rejected.
+
+**Rejected:** the CI file mirror (PR #158). It kept the files byte-identical but skipped the adaptation
+the owner wants, and gave the CI write access to the plugin's contents.
+
+**Evidence, 2026-10-12.** Written and tested: `.github/scripts/method_issue_sync_test.py` checks the
+workflow's structure (parsed with the runner's ruby) and drives the script against a stub `gh`. After the
+agent, a deterministic `verify` step fails the run unless the twin exists in the mhw Issue's state.
+**Not run:**
+no secret is stored yet, and GitHub runs this workflow only from `main`. The App's author login
+(`app/tedeuxx-mhw-mirror`) is a hypothesis the canary confirms.
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)
