@@ -86,7 +86,8 @@ class MissingInput(Refused):
     Kept apart from a refusal so a run that never got its inputs is not read as a boundary doing its job:
     the first re-run of the canary (2026-10-12, run 38294048591) ended in two turns with no twin, and the
     pinned Claude Code (2.1.296) drops subprocess env names that look like secrets (MHW_TOKEN,
-    MHW_SKILLS_TOKEN) when CLAUDE_CODE_SUBPROCESS_ENV_SCRUB is set (read from its bundle, not measured)."""
+    MHW_SKILLS_TOKEN) when CLAUDE_CODE_SUBPROCESS_ENV_SCRUB is set (read from its bundle and measured
+    locally on that version; not measured on the runner)."""
 
 
 def marker(issue):
@@ -426,10 +427,14 @@ def cmd_final_line(args):
         print("final-line: the execution file holds no result message")
         return
     last = results[-1]
-    denials = last.get("permission_denials")
+    # The SDK result carries a list; the action's own log line carries permission_denials_count.
+    denials = last.get("permission_denials_count")
+    if not isinstance(denials, int) or isinstance(denials, bool):
+        listed = last.get("permission_denials")
+        denials = len(listed) if isinstance(listed, list) else "?"
     print("subtype: %s  turns: %s  is_error: %s  permission_denials: %s"
           % (last.get("subtype", "?"), last.get("num_turns", "?"), last.get("is_error", "?"),
-             len(denials) if isinstance(denials, list) else "?"))
+             denials))
     text = str(last.get("result") or "(none)")
     if len(text) > MAX_RESULT_CHARS:
         text = text[:MAX_RESULT_CHARS] + " [cut at %d characters]" % MAX_RESULT_CHARS

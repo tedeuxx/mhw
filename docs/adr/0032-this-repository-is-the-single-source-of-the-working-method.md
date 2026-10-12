@@ -275,9 +275,9 @@ because bubblewrap was missing; no twin was created. The fix, #163, is written a
 not run on `main`.)* *(Struck 2026-10-12: the
 three secrets were stored that day, 13:43Z, per `gh secret list --repo tedeuxx/mhw`.)* The App's author login
 (`app/tedeuxx-mhw-mirror`) is a hypothesis the canary confirms. *(Added 2026-10-12: a second canary,
-run 38294048591 on v5.5.1, failed before any write because the subprocess env scrub drops secret-shaped
-env names, the two token names included; read from the Claude Code 2.1.296 bundle and measured locally on
-that version. #165, written and tested and not run on `main`, hands the script its inputs as 0600 files
+run 38294048591 on v5.5.1, failed before any write; the likely cause is that the subprocess env scrub
+drops secret-shaped env names, the two token names included (read from the 2.1.296 bundle and measured
+locally on that version; on the runner it is inferred, the tool output was not printed). #165, written and tested and not run on `main`, hands the script its inputs as 0600 files
 outside the agent's Write directory; the scrub stays on.)*
 
 ## Links

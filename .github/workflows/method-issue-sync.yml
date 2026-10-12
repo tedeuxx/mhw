@@ -155,7 +155,8 @@ jobs:
           bwrap --unshare-user --ro-bind / / /bin/true
       # The scrub below drops, from the agent's subprocesses, every env name that looks like a secret:
       # MHW_TOKEN and MHW_SKILLS_TOKEN included (read from the 2.1.296 bundle the pinned action installs,
-      # not measured; the re-run canary, run 38294048591, ended in two turns with no twin). So the script's
+      # and measured locally on that version; not measured on the runner; the re-run canary, run
+      # 38294048591, ended in two turns with no twin). So the script's
       # inputs are handed over as 0600 files in method-sync-input, a sibling of the Write tool's method-sync,
       # never inside it; the tokens are not in the action's env at all. The runner is discarded with the job,
       # the App token is revoked by its post step and the job token expires with the job.
@@ -180,7 +181,7 @@ jobs:
           MHW_INPUT_DIR: ${{ runner.temp }}/method-sync-input
           # Best-effort scrub of Anthropic, cloud and Actions secrets, and of any env name shaped like a
           # secret, from the agent's subprocesses (the action's docs/security.md; the name rule read from
-          # the 2.1.296 bundle).
+          # the 2.1.296 bundle and measured locally on that version; not measured on the runner).
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

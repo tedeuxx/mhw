@@ -108,7 +108,8 @@ Not mirrored:
   could not set up Claude Code because `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` needs bubblewrap, which
   ubuntu-latest does not ship. No twin was created. The backlink job ran anyway and went green with
   "nothing to link"; since #163 it runs only after a successful sync and fails red when it finds no twin.
-- **Second canary 2026-10-12: failed, the env scrub dropped the tokens; fix written and tested in
+- **Second canary 2026-10-12: failed, most likely because the env scrub dropped the tokens (inferred on
+  the runner); fix written and tested in
   [#165](https://github.com/tedeuxx/mhw/pull/165); not run yet; the next canary is the probe.** On v5.5.1,
   run 38294048591 on mhw#162: isolation worked, the model ended after two turns, no twin, and `verify`
   failed red. Claude Code 2.1.296 (the version the pinned action installs) drops every env name shaped

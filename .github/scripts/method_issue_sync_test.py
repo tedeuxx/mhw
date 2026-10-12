@@ -711,6 +711,17 @@ class Script(unittest.TestCase):
             self.assertNotIn(hidden, proc.stdout + proc.stderr)
         self.assertEqual(self.calls(), [])
 
+    def test_final_line_prefers_the_denials_count(self):
+        # The action's log reports permission_denials_count (run 38294048591); the SDK list is the fallback.
+        path = self.execution_file([{"type": "result", "subtype": "success", "num_turns": 2, "is_error": False,
+                                     "permission_denials_count": 3, "permission_denials": [{}],
+                                     "result": "r"}], "count.json")
+        self.assertIn("permission_denials: 3", self.run_script("final-line", path).stdout)
+        path = self.execution_file([{"type": "result", "permission_denials_count": 0, "result": "r"}], "zero.json")
+        self.assertIn("permission_denials: 0", self.run_script("final-line", path).stdout)
+        path = self.execution_file([{"type": "result", "result": "r"}], "none.json")
+        self.assertIn("permission_denials: ?", self.run_script("final-line", path).stdout)
+
     def test_final_line_takes_the_last_result_and_caps_it(self):
         path = self.execution_file([{"type": "result", "result": "first"},
                                     {"type": "result", "result": "y" * 2500}])
