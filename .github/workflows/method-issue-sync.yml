@@ -186,10 +186,16 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
+          # The Write tool's permission is an Edit(path) rule: Claude Code matches file writes against Edit
+          # rules only, and a Write(path) rule is ignored (third canary, run 38307434605: the body write was
+          # denied). Measured locally on 2.1.296, headless, scrub=1, cwd a checkout, the directory outside it:
+          # Edit(//<dir>/**) lets Write create a file in <dir> and denies the sibling method-sync-input, a
+          # ../ traversal into it and the cwd, with the Edit tool itself still disallowed and no --add-dir.
+          # Not measured on the runner.
           claude_args: >-
             --max-turns 30
             --setting-sources user
-            --allowedTools "Bash(python3 .github/scripts/method_issue_sync.py:*),Write(/${{ runner.temp }}/method-sync/**)"
+            --allowedTools "Bash(python3 .github/scripts/method_issue_sync.py:*),Edit(/${{ runner.temp }}/method-sync/**)"
             --disallowedTools "Read,Glob,Grep,Edit,MultiEdit,NotebookEdit,WebFetch,WebSearch,Task"
           prompt: |
             You keep the method backlog of tedeuxx/mhw in sync with tedeuxx/tadeumendonca-skills (mhw Issue #62).
