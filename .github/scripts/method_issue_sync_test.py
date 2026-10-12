@@ -205,6 +205,30 @@ class Workflow(unittest.TestCase):
         self.assertEqual(steps[-1]["run"].strip(), "python3 -B .github/scripts/method_issue_sync.py verify")
         self.assertNotIn("if", steps[-1], "verify runs whenever the agent step succeeded")
 
+    def test_bubblewrap_is_installed_before_any_scrubbed_step(self):
+        # First canary, 2026-10-12: the scrub needs bubblewrap, which ubuntu-latest does not ship.
+        scrubbed = 0
+        for job in self.jobs.values():
+            steps = job.get("steps", [])
+            for i, step in enumerate(steps):
+                if str((step.get("env") or {}).get("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB", "0")) == "0":
+                    continue
+                scrubbed += 1
+                installs = [s.get("run", "") for s in steps[:i] if "apt-get install -y bubblewrap" in s.get("run", "")]
+                self.assertEqual(len(installs), 1, "bubblewrap is installed once, before the scrubbed step")
+                run = installs[0]
+                self.assertLess(run.index("sudo apt-get update"), run.index("sudo apt-get install -y bubblewrap"))
+                self.assertIn("bwrap --version", run)
+        self.assertEqual(scrubbed, 1, "the agent step carries the scrub")
+
+    def test_backlink_runs_only_after_a_successful_sync(self):
+        job = self.jobs["backlink"]
+        cond = " ".join(job["if"].split())
+        self.assertIn("needs.sync.result == 'success'", cond)
+        for loose in ("!cancelled()", "always()", "failure()"):
+            self.assertNotIn(loose, cond)
+        self.assertIn("sync", job["needs"])
+
     def test_backlink_job_runs_the_script_without_an_agent(self):
         steps = self.jobs["backlink"]["steps"]
         self.assertFalse([s for s in steps if str(s.get("uses", "")).startswith("anthropics/")])
@@ -410,7 +434,10 @@ class Script(unittest.TestCase):
         self.assertEqual(self.writes()[-1]["args"], ["issue", "close", "42", "--repo", "tedeuxx/tadeumendonca-skills"])
 
     def test_backlink_once(self):
-        self.assertEqual(self.run_script("backlink").returncode, 0)   # no twin yet: nothing posted
+        proc = self.run_script("backlink")   # no twin: red, nothing posted, no link claimed
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("FAIL", proc.stdout)
+        self.assertIn("nothing was linked", proc.stdout)
         self.assertEqual(self.writes(), [])
         self.add_twin()
         self.assertEqual(self.run_script("backlink").returncode, 0)
