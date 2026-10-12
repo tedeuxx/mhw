@@ -7,12 +7,12 @@ format, and the two stay in sync. The weekly -skills sprint drains the twins and
 amendment). The workflow is
 [`.github/workflows/method-issue-sync.yml`](../../.github/workflows/method-issue-sync.yml).
 
-**Evidence level:** written and tested (structure and the sync script, against a stub `gh`). **Ran
-twice, and failed both times before any write; no twin was created** (see *Canary history*). The fix in
-[#165](https://github.com/tedeuxx/mhw/pull/165) is written and tested, and smoke-tested under a real
-scrubbed Claude Code 2.1.296 session on macOS against a stub `gh`; it has not run on `main` yet. GitHub
-runs `issues` and `workflow_dispatch` workflows from the default branch, so the next canary needs the
-release candidate carrying #165 on `main`.
+**Evidence level:** written and tested (structure and the sync script, against a stub `gh`). **Ran three
+times, and failed each time before any write to tadeumendonca-skills; no twin was created** (see *Canary
+history*). The latest fix, [#167](https://github.com/tedeuxx/mhw/pull/167), is written and tested, and
+its permission rule is measured locally on Claude Code 2.1.296; it has not run on `main` yet. GitHub runs
+`issues` and `workflow_dispatch` workflows from the default branch, so the next canary needs the release
+candidate carrying #167 on `main`.
 
 ## What it does
 
@@ -119,6 +119,16 @@ Not mirrored:
   `MHW_TOKEN is not set` on the runner is inferred: the tool output was not printed. Since #165 the sync
   job stashes the inputs as 0600 files the script reads, a missing input is exit 3 `MISSING-INPUT`, and a
   `final-line` step prints the model's last result (never tool input or output) in the job log.
+- **Third canary 2026-10-12: failed, the Write tool was denied the body file; fix written and tested in
+  [#167](https://github.com/tedeuxx/mhw/pull/167); not run yet; the next canary is the probe.** On v5.5.2,
+  run 38307434605 on mhw#162: the inputs reached the script (#165 worked), then `final-line` printed
+  `permission_denials: 1` and the model's report that the Write tool was denied the file under
+  `method-sync/` (observed in the job log); `verify` failed red. The cause, measured locally on Claude
+  Code 2.1.296 headless with scrub=1 and inferred on the runner: file writes are matched against
+  `Edit(path)` rules only, and the workflow's `Write(path)` rule granted nothing (2.1.296 says so on
+  stderr; the runner log does not show that line). Since #167 the rule is `Edit(//<runner.temp>/method-sync/**)`
+  with the Edit tool itself still disallowed; measured locally, it lets Write create a file there and
+  denies the sibling `method-sync-input`, a `../` traversal into it and the cwd, without `--add-dir`.
 
 ## Cost
 
@@ -155,7 +165,8 @@ was not checked for this runbook).
   are a short list, not a scanner.
 - The script's inputs, the two tokens included, are 0600 files in a 0700 `method-sync-input` directory
   under the runner's temp directory, written by `stash-inputs` before the agent; the Write tool reaches
-  only the sibling `method-sync`, and `stash-inputs` refuses a directory inside it and never replaces a
+  only the sibling `method-sync` (through an `Edit(path)` rule, the form Claude Code matches writes
+  against; measured locally on 2.1.296, not on the runner), and `stash-inputs` refuses a directory inside it and never replaces a
   file. The tokens are not in the agent's environment. The runner is discarded with the job.
 - `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` is set: a best-effort scrub of Anthropic, cloud and Actions secrets
   from the agent's subprocesses, per the action's own documentation. Not measured.
