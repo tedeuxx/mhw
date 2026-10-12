@@ -33,7 +33,8 @@ PIN_CLAUDE = "anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae4
 SECRETS = ("MHW_MIRROR_APP_ID", "MHW_MIRROR_APP_PRIVATE_KEY", "CLAUDE_CODE_OAUTH_TOKEN")
 ALLOWED_TOOLS = {
     "Bash(python3 .github/scripts/method_issue_sync.py:*)",
-    "Write(/${{ runner.temp }}/method-sync/**)",
+    # An Edit rule: Claude Code matches Write against Edit(path) rules only (measured locally, 2.1.296).
+    "Edit(/${{ runner.temp }}/method-sync/**)",
 }
 # The core of the rule Claude Code 2.1.296 (the version the pinned action installs) uses to drop
 # secret-shaped env names from subprocesses under CLAUDE_CODE_SUBPROCESS_ENV_SCRUB, copied from its
@@ -197,6 +198,11 @@ class Workflow(unittest.TestCase):
         turns = re.search(r"--max-turns (\d+)", args)
         self.assertTrue(turns and 0 < int(turns.group(1)) <= 40)
         self.assertEqual(args.count("--allowedTools"), 1)
+        # Third canary (run 38307434605): a Write(path) rule is ignored by file permission checks, so a
+        # rule spelled that way grants nothing; and no rule may widen to the cwd or the input directory.
+        self.assertNotIn("Write(", args)
+        self.assertNotIn("--add-dir", args)
+        self.assertIn("Edit", disallowed.split(","), "the Edit tool stays off; only its path rule is used")
 
     def test_prompt(self):
         prompt = self.claude_step()["with"]["prompt"]
@@ -249,8 +255,8 @@ class Workflow(unittest.TestCase):
         self.assertEqual(env["MHW_SYNC_DIR"], claude_env["MHW_SYNC_DIR"])
         # The Write tool's directory must not contain the input directory.
         write_rule = [t for t in flag_value(steps[claude]["with"]["claude_args"], "--allowedTools").split(",")
-                      if t.startswith("Write(")][0]
-        write_dir = write_rule[len("Write(/"):-len("/**)")]
+                      if t.startswith("Edit(")][0]
+        write_dir = write_rule[len("Edit(/"):-len("/**)")]
         self.assertEqual(write_dir, env["MHW_SYNC_DIR"])
         self.assertFalse((env["MHW_INPUT_DIR"] + "/").startswith(write_dir + "/"))
 
