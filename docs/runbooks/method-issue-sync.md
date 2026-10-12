@@ -7,9 +7,12 @@ format, and the two stay in sync. The weekly -skills sprint drains the twins and
 amendment). The workflow is
 [`.github/workflows/method-issue-sync.yml`](../../.github/workflows/method-issue-sync.yml).
 
-**Evidence level:** written and tested (structure and the sync script, against a stub `gh`). **Not run:**
-no real run has happened, and none can until the three secrets exist and the workflow is on `main`
-(GitHub runs `issues` and `workflow_dispatch` workflows from the default branch).
+**Evidence level:** written and tested (structure and the sync script, against a stub `gh`). **Ran once,
+and failed:** the first canary (2026-10-12, run 38269161317, on v5.5.0) failed in the sync job before any
+write, and no twin was created (see *Canary history*). The fix in
+[#163](https://github.com/tedeuxx/mhw/pull/163) is written and tested; its isolation recipe is measured on a PR runner (`isolation-smoke` in `tests.yml` passed on #163, run 38273021598). It has not run on `main`
+yet. GitHub runs `issues` and `workflow_dispatch` workflows from the default branch, so the next canary
+needs the release candidate carrying #163 on `main`.
 
 ## What it does
 
@@ -97,8 +100,11 @@ Not mirrored:
 
 ### Canary history
 
-- **First canary 2026-10-12: failed, bubblewrap missing; fixed in
-  [#163](https://github.com/tedeuxx/mhw/pull/163).** On v5.5.0, run 38269161317 on mhw#162: the sync job
+- **First canary 2026-10-12: failed, bubblewrap missing; fix written and tested in
+  [#163](https://github.com/tedeuxx/mhw/pull/163); not run yet; the next canary is the probe.** The
+  isolation recipe (bubblewrap and socat, the AppArmor user-namespace sysctl, and the smoke test
+  `bwrap --unshare-user --ro-bind / / /bin/true`) is measured on a PR runner: `isolation-smoke` passed on
+  #163 (run 38273021598). That measures the recipe, not the action's use of it. On v5.5.0, run 38269161317 on mhw#162: the sync job
   could not set up Claude Code because `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` needs bubblewrap, which
   ubuntu-latest does not ship. No twin was created. The backlink job ran anyway and went green with
   "nothing to link"; since #163 it runs only after a successful sync and fails red when it finds no twin.
