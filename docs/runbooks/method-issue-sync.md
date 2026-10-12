@@ -7,12 +7,12 @@ format, and the two stay in sync. The weekly -skills sprint drains the twins and
 amendment). The workflow is
 [`.github/workflows/method-issue-sync.yml`](../../.github/workflows/method-issue-sync.yml).
 
-**Evidence level:** written and tested (structure and the sync script, against a stub `gh`). **Ran once,
-and failed:** the first canary (2026-10-12, run 38269161317, on v5.5.0) failed in the sync job before any
-write, and no twin was created (see *Canary history*). The fix in
-[#163](https://github.com/tedeuxx/mhw/pull/163) is written and tested; its isolation recipe is measured on a PR runner (`isolation-smoke` in `tests.yml` passed on #163, run 38273021598). It has not run on `main`
-yet. GitHub runs `issues` and `workflow_dispatch` workflows from the default branch, so the next canary
-needs the release candidate carrying #163 on `main`.
+**Evidence level:** written and tested (structure and the sync script, against a stub `gh`). **Ran
+twice, and failed both times before any write; no twin was created** (see *Canary history*). The fix in
+[#165](https://github.com/tedeuxx/mhw/pull/165) is written and tested, and smoke-tested under a real
+scrubbed Claude Code 2.1.296 session on macOS against a stub `gh`; it has not run on `main` yet. GitHub
+runs `issues` and `workflow_dispatch` workflows from the default branch, so the next canary needs the
+release candidate carrying #165 on `main`.
 
 ## What it does
 
@@ -108,6 +108,16 @@ Not mirrored:
   could not set up Claude Code because `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` needs bubblewrap, which
   ubuntu-latest does not ship. No twin was created. The backlink job ran anyway and went green with
   "nothing to link"; since #163 it runs only after a successful sync and fails red when it finds no twin.
+- **Second canary 2026-10-12: failed, the env scrub dropped the tokens; fix written and tested in
+  [#165](https://github.com/tedeuxx/mhw/pull/165); not run yet; the next canary is the probe.** On v5.5.1,
+  run 38294048591 on mhw#162: isolation worked, the model ended after two turns, no twin, and `verify`
+  failed red. Claude Code 2.1.296 (the version the pinned action installs) drops every env name shaped
+  like a secret from Bash subprocesses when `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` is set: read from its
+  bundle, and measured locally on the same version (macOS) with a probe that saw `MHW_TOKEN` and
+  `MHW_SKILLS_TOKEN` absent and `MHW_ISSUE`, `MHW_SYNC_DIR` present. That the script answered
+  `MHW_TOKEN is not set` on the runner is inferred: the tool output was not printed. Since #165 the sync
+  job stashes the inputs as 0600 files the script reads, a missing input is exit 3 `MISSING-INPUT`, and a
+  `final-line` step prints the model's last result (never tool input or output) in the job log.
 
 ## Cost
 
@@ -142,6 +152,10 @@ was not checked for this runbook).
   the mhw Issue is in. It also refuses a title or body containing any 12-character run of a token the
   run holds. A refusal names an argument's position or kind, never its value. The credential patterns
   are a short list, not a scanner.
+- The script's inputs, the two tokens included, are 0600 files in a 0700 `method-sync-input` directory
+  under the runner's temp directory, written by `stash-inputs` before the agent; the Write tool reaches
+  only the sibling `method-sync`, and `stash-inputs` refuses a directory inside it and never replaces a
+  file. The tokens are not in the agent's environment. The runner is discarded with the job.
 - `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` is set: a best-effort scrub of Anthropic, cloud and Actions secrets
   from the agent's subprocesses, per the action's own documentation. Not measured.
 - After the agent, a `verify` step (no model) fails the run unless the twin exists and its state is
