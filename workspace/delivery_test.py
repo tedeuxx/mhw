@@ -11,7 +11,8 @@ import delivery as d
 
 TESTS_RUN = [{"name": n, "workflowName": "tests", "conclusion": "SUCCESS"} for n in (
     "shellcheck", "profiles (ubuntu-latest)", "profiles (macos-latest)", "profiles (windows-latest)",
-    "suites (ubuntu-latest)", "suites (macos-latest)", "windows (powershell)", "windows (pwsh)")]
+    "suites (ubuntu-latest)", "suites (macos-latest)", "windows (powershell)", "windows (pwsh)",
+    "isolation-smoke")]
 
 
 HEAD = "a" * 40
@@ -130,7 +131,7 @@ class DeliveryTests(unittest.TestCase):
         for checks in (sonar_only, foreign_ci, partial, renamed):
             with self.subTest(n=len(checks)), self.assertRaises(d.Pending):
                 d.checks_pass(dict(self.slice, statusCheckRollup=checks))
-        self.assertEqual(d.tests_jobs(), ["shellcheck", "profiles", "suites", "windows"])
+        self.assertEqual(d.tests_jobs(), ["shellcheck", "profiles", "suites", "windows", "isolation-smoke"])
 
     def test_pending_tests_or_dirty_merge_state_is_refused(self):
         pending = self.slice["statusCheckRollup"] + [
