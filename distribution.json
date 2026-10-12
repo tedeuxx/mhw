@@ -28,7 +28,7 @@
       "id": "deny-floor",
       "layer": "managed",
       "paths": ["global/deny-floor.conf", "global/kiro/kiro_permissions.py"],
-      "gap": "Rendered at user level by install.sh and into the admin layer by install-managed.sh (ADR-0016 2026-10-05 amendment; Kiro: ADR-0036, proposed, where the admin file is read by Kiro IDE and the Kiro CLI V3 engine only)."
+      "gap": "Rendered at user level by install.sh and into the admin layer by install-managed.sh (ADR-0016 2026-10-05 amendment; Kiro: ADR-0036, accepted 2026-10-11, where the admin file is read by Kiro IDE and the Kiro CLI V3 engine only)."
     },
     {
       "id": "paste-filter",

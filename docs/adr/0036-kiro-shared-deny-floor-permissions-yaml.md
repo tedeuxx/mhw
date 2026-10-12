@@ -1,6 +1,8 @@
 # ADR-0036: Kiro IDE and Kiro CLI share one deny floor in the user-level permissions.yaml
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-10-11, the owner's ratification in session, recorded on
+  [Issue #144](https://github.com/tedeuxx/mhw/issues/144); see the amendment "accepted" below, which also
+  says what is still not measured)
 - **Date:** 2026-10-11
 - **Deciders:** the owner (the option, on [Issue #144](https://github.com/tedeuxx/mhw/issues/144),
   2026-10-11); written by the implementing agent
@@ -366,7 +368,8 @@ file, so it stays usable during a lockout. `docs/runbooks/breaking-glass.md` lis
 | Installed on the reference machine | **no**. The owner installs the release candidate (`mhw install` asks for the administrator password once) |
 
 Version cut (ADR-0002): **minor**. A new protection layer for a harness; nothing an adopter had is
-removed. The status of this record stays **proposed** until the owner ratifies it.
+removed. ~~The status of this record stays **proposed** until the owner ratifies it.~~ *(Struck
+2026-10-11: ratified; see the amendment "accepted" below.)*
 
 ## Amendment 2026-10-11: newline and CR in the V3 `exclude` list (PR #153 QA advisory A1)
 
@@ -378,6 +381,21 @@ carries a newline and a CR too: 13 excludes, 14 conditions per statement, under 
 8b in `global/allow-list.test.sh` adds the newline and CR samples, asserts both entries, and goes red
 when either is removed from the renderer (mutation-checked). Still **emulated**; no Kiro ran the
 rendered agent.
+
+## Amendment 2026-10-11: accepted ([Issue #144](https://github.com/tedeuxx/mhw/issues/144))
+
+The owner ratified this record, in session on 2026-10-11, answering a picker with *"Ratificar agora"*.
+He chose that over the alternative of waiting for the admin-file canary. The decision ratified is the
+Kiro deny floor rendered into the user-level `~/.kiro/settings/permissions.yaml` plus the root-owned
+admin `managed-settings.json`, with the anti-lockout validation and the rollback described above. The
+ratification is recorded on Issue #144. The status moves from proposed to accepted.
+
+He ratified knowing what is still not measured, and nothing here changes it: that Kiro IDE and the
+Kiro CLI V3 engine actually read the admin `managed-settings.json` as their `administration` scope is
+**read from the bundles, not measured live**. The measurement is step 6 of the
+[admin-layer runbook](../runbooks/deny-floor-admin-layer.md), after the owner installs the release
+candidate. The evidence levels in the tables above stay as written; accepting the decision does not
+make the floor *installed* or *enforced-measured* in any Kiro build.
 
 ## Links
 

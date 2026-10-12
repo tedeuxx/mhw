@@ -218,7 +218,8 @@ The source of truth for every layer lives here, versioned; what is installed on 
 - **No client name, client artefact or employer-confidential content** is ever written into this
   repository, even as an example. Describe by sector or category.
 - **In every repository the owner authors, the root instruction file is `AGENTS.md` alone** (owner,
-  2026-10-11, [ADR-0037](docs/adr/0037-agents-md-is-the-only-root-brief.md), proposed). Do not add a
+  2026-10-11, [ADR-0037](docs/adr/0037-agents-md-is-the-only-root-brief.md), ~~proposed~~ accepted
+  2026-10-11). Do not add a
   `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md`, not even an `@AGENTS.md` bridge: any one of them
   makes Claude Code ignore `AGENTS.md` (measured, 2.1.296). Keep `AGENTS.md` under 32,768 bytes, where
   Codex truncates it. `mhw status` names both cases; it is a check you run, not a hook. The user-level
