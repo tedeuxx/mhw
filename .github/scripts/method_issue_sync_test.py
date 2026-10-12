@@ -35,6 +35,16 @@ ALLOWED_TOOLS = {
     "Bash(python3 .github/scripts/method_issue_sync.py:*)",
     "Write(/${{ runner.temp }}/method-sync/**)",
 }
+# The core of the rule Claude Code 2.1.296 (the version the pinned action installs) uses to drop
+# secret-shaped env names from subprocesses under CLAUDE_CODE_SUBPROCESS_ENV_SCRUB, copied from its
+# bundle (read, not measured). A name the agent's script needs must not match it.
+_SCRUB_WORDS = ["TOKEN", "SECRET", "PASSWORD", "PASSWD", "PASSPHRASE", "KEY", "AUTH", "COOKIE", "PAT", "DSN",
+                "WEBHOOK", "CREDENTIAL", "CREDENTIALS", "CREDS", "APIKEY", "ACCESSKEY", "SECRETKEY",
+                "ACCOUNTKEY", "PRIVATEKEY", "AUTHKEY", "SSHKEY", "SIGNINGKEY", "MASTERKEY", "DEPLOYKEY",
+                "ENCRYPTIONKEY", "PGPASSWORD", "SSHPASS"]
+SCRUBBED_NAME = re.compile(
+    r"((^|_)(%s|(KEY|SECRET|PASSWORD|CREDENTIAL)S)|_(PWD|PASS|JWT)|(TOKEN|SECRET|PASSWORD|PASSWD|PASSPHRASE))"
+    r"(?=$|[_0-9])" % "|".join(_SCRUB_WORDS), re.I)
 MUST_DISALLOW = {"Read", "Glob", "Grep", "Edit", "MultiEdit", "NotebookEdit", "WebFetch", "WebSearch", "Task"}
 
 
@@ -161,9 +171,16 @@ class Workflow(unittest.TestCase):
         w, env = step["with"], step["env"]
         self.assertEqual(w["claude_code_oauth_token"], "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}")
         self.assertEqual(w["github_token"], "${{ github.token }}")
-        self.assertEqual(env["MHW_SKILLS_TOKEN"], "${{ steps.app.outputs.token }}")
-        self.assertEqual(env["MHW_TOKEN"], "${{ github.token }}")
         self.assertEqual(env["MHW_ISSUE"], "${{ matrix.issue }}")
+        self.assertEqual(env["MHW_SYNC_DIR"], "${{ runner.temp }}/method-sync")
+        self.assertEqual(env["MHW_INPUT_DIR"], "${{ runner.temp }}/method-sync-input")
+        self.assertEqual(step.get("id"), "claude")
+        # No token in the action's env: the scrub would drop it from the script anyway (run 38294048591).
+        for name, value in env.items():
+            self.assertNotIn("outputs.token", str(value))
+            self.assertNotIn("github.token", str(value))
+            if not name.startswith("CLAUDE_CODE_"):
+                self.assertIsNone(SCRUBBED_NAME.search(name), "%s would be scrubbed from the script" % name)
         self.assertEqual(env["CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"], "1")
         self.assertNotIn("anthropic_api_key", w)
 
@@ -206,6 +223,48 @@ class Workflow(unittest.TestCase):
         self.assertNotIn("continue-on-error", steps[-1])
         self.assertEqual(steps[-1]["run"].strip(), "python3 -B .github/scripts/method_issue_sync.py verify")
         self.assertNotIn("if", steps[-1], "verify runs whenever the agent step succeeded")
+
+    def test_scrub_rule_copy_is_calibrated(self):
+        # The copied rule must bite on the names it dropped in the re-run canary, or the check above is empty.
+        for name in ("MHW_TOKEN", "MHW_SKILLS_TOKEN", "MHW_SECRETS_DIR", "GH_TOKEN", "APP_PRIVATE_KEY"):
+            self.assertIsNotNone(SCRUBBED_NAME.search(name), name)
+        for name in ("MHW_ISSUE", "MHW_SYNC_DIR", "MHW_INPUT_DIR", "RUNNER_TEMP"):
+            self.assertIsNone(SCRUBBED_NAME.search(name), name)
+
+    def test_inputs_are_stashed_before_the_agent(self):
+        steps = self.jobs["sync"]["steps"]
+        claude = [i for i, st in enumerate(steps) if str(st.get("uses", "")).startswith("anthropics/")][0]
+        stash = [i for i, st in enumerate(steps) if "method_issue_sync.py stash-inputs" in st.get("run", "")]
+        self.assertEqual(len(stash), 1)
+        self.assertLess(stash[0], claude)
+        step = steps[stash[0]]
+        self.assertEqual(step["run"].strip(), "python3 -B .github/scripts/method_issue_sync.py stash-inputs")
+        self.assertNotIn("if", step)
+        env = step["env"]
+        self.assertEqual(env["MHW_TOKEN"], "${{ github.token }}")
+        self.assertEqual(env["MHW_SKILLS_TOKEN"], "${{ steps.app.outputs.token }}")
+        self.assertEqual(env["MHW_ISSUE"], "${{ matrix.issue }}")
+        claude_env = steps[claude]["env"]
+        self.assertEqual(env["MHW_INPUT_DIR"], claude_env["MHW_INPUT_DIR"])
+        self.assertEqual(env["MHW_SYNC_DIR"], claude_env["MHW_SYNC_DIR"])
+        # The Write tool's directory must not contain the input directory.
+        write_rule = [t for t in flag_value(steps[claude]["with"]["claude_args"], "--allowedTools").split(",")
+                      if t.startswith("Write(")][0]
+        write_dir = write_rule[len("Write(/"):-len("/**)")]
+        self.assertEqual(write_dir, env["MHW_SYNC_DIR"])
+        self.assertFalse((env["MHW_INPUT_DIR"] + "/").startswith(write_dir + "/"))
+
+    def test_final_line_is_printed_after_the_agent(self):
+        steps = self.jobs["sync"]["steps"]
+        claude = [i for i, st in enumerate(steps) if str(st.get("uses", "")).startswith("anthropics/")][0]
+        final = [i for i, st in enumerate(steps) if "method_issue_sync.py final-line" in st.get("run", "")]
+        self.assertEqual(len(final), 1)
+        self.assertTrue(claude < final[0] < len(steps) - 1, "between the agent and verify")
+        step = steps[final[0]]
+        self.assertEqual(step["if"], "always()")
+        self.assertEqual(step["env"]["EXECUTION_FILE"], "${{ steps.claude.outputs.execution_file }}")
+        self.assertEqual(step["run"].strip(),
+                         'python3 -B .github/scripts/method_issue_sync.py final-line "$EXECUTION_FILE"')
 
     def test_bubblewrap_is_installed_before_any_scrubbed_step(self):
         # First canary, 2026-10-12: the scrub needs bubblewrap, which ubuntu-latest does not ship.
@@ -354,7 +413,11 @@ class Script(unittest.TestCase):
         env = {"PATH": self.bin + os.pathsep + os.environ.get("PATH", ""), "STUB_STATE": self.state,
                "STUB_LOG": self.log, "MHW_ISSUE": issue, "MHW_TOKEN": "tok-mhw",
                "MHW_SKILLS_TOKEN": "tok-skills", "MHW_SYNC_DIR": self.sync, "GITHUB_TOKEN": "tok-other"}
-        env.update(extra_env or {})
+        for name, value in (extra_env or {}).items():
+            if value is None:
+                env.pop(name, None)
+            else:
+                env[name] = value
         return subprocess.run([sys.executable, "-B", SCRIPT] + list(args), env=env, stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, universal_newlines=True)
 
@@ -551,6 +614,132 @@ class Script(unittest.TestCase):
                          "a marker in someone else's comment does not suppress the back-link")
         self.assertEqual(self.run_script("backlink").returncode, 0)
         self.assertEqual(len([c for c in self.writes() if c["args"][:2] == ["issue", "comment"]]), 1)
+
+    # The scrubbed subprocess: no token names in the environment (re-run canary, run 38294048591).
+    SCRUBBED = {"MHW_TOKEN": None, "MHW_SKILLS_TOKEN": None, "GITHUB_TOKEN": None}
+
+    def stash(self, folder, extra=None):
+        env = {"MHW_INPUT_DIR": folder}
+        env.update(extra or {})
+        return self.run_script("stash-inputs", extra_env=env)
+
+    def test_missing_input_is_exit_3_and_named(self):
+        proc = self.run_script("mhw-view", extra_env=self.SCRUBBED)
+        self.assertEqual(proc.returncode, 3, proc.stderr)
+        self.assertIn("REFUSED  MISSING-INPUT MHW_TOKEN:", proc.stderr)
+        self.assertEqual(self.calls(), [], "nothing reaches gh without its token")
+        proc = self.run_script("find-twin", extra_env=self.SCRUBBED)
+        self.assertEqual(proc.returncode, 3)
+        self.assertIn("MISSING-INPUT MHW_SKILLS_TOKEN", proc.stderr)
+        proc = self.run_script("find-twin", extra_env={"MHW_ISSUE": None})
+        self.assertEqual(proc.returncode, 3)
+        self.assertIn("MISSING-INPUT MHW_ISSUE", proc.stderr)
+        # A refusal is still exit 2, so the two read differently.
+        self.assertEqual(self.run_script("skills-view", "x").returncode, 2)
+
+    def test_stashed_inputs_reach_a_scrubbed_subprocess(self):
+        folder = os.path.join(self.tmp, "method-sync-input")
+        proc = self.stash(folder)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        for value in ("tok-mhw", "tok-skills", self.sync):
+            self.assertNotIn(value, proc.stdout + proc.stderr)
+        self.assertEqual(stat.S_IMODE(os.stat(folder).st_mode), 0o700)
+        self.assertEqual(sorted(os.listdir(folder)), ["MHW_ISSUE", "MHW_SKILLS_TOKEN", "MHW_SYNC_DIR", "MHW_TOKEN"])
+        for name in os.listdir(folder):
+            self.assertEqual(stat.S_IMODE(os.stat(os.path.join(folder, name)).st_mode), 0o600)
+        scrubbed = dict(self.SCRUBBED, MHW_ISSUE=None, MHW_SYNC_DIR=None, MHW_INPUT_DIR=folder)
+        self.assertEqual(self.run_script("mhw-view", extra_env=scrubbed).returncode, 0)
+        proc = self.run_script("skills-create", "--title", "[mhw#7] T", "--body-file", self.good_body(),
+                               extra_env=scrubbed)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        tokens = {c["args"][1]: c["token"] for c in self.calls()}
+        self.assertEqual(tokens["view"], "MHW_TOKEN")
+        self.assertEqual(tokens["create"], "MHW_SKILLS_TOKEN")
+        # RUNNER_TEMP/method-sync-input is the fallback when MHW_INPUT_DIR is gone too.
+        fallback = dict(scrubbed, MHW_INPUT_DIR=None, RUNNER_TEMP=self.tmp)
+        self.assertEqual(self.run_script("find-twin", extra_env=fallback).returncode, 0)
+
+    def test_stashed_tokens_still_count_for_the_token_run_check(self):
+        folder = os.path.join(self.tmp, "method-sync-input")
+        held = "Kq9" * 20
+        self.assertEqual(self.stash(folder, {"MHW_SKILLS_TOKEN": held}).returncode, 0)
+        path = self.body("<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7\n"
+                         "see %s\n" % held[3:15], "run.md")
+        scrubbed = dict(self.SCRUBBED, MHW_INPUT_DIR=folder)
+        self.assert_refused("skills-create", "--title", "x", "--body-file", path, extra_env=scrubbed)
+
+    def test_stash_refuses_to_replace_or_to_sit_in_the_write_dir(self):
+        folder = os.path.join(self.tmp, "method-sync-input")
+        self.assertEqual(self.stash(folder).returncode, 0)
+        proc = self.stash(folder, {"MHW_TOKEN": "tok-replaced"})
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        with open(os.path.join(folder, "MHW_TOKEN")) as fh:
+            self.assertEqual(fh.read(), "tok-mhw")
+        # An existing, empty, world-readable directory is tightened to 0700, not used as it is.
+        loose = os.path.join(self.tmp, "loose")
+        os.mkdir(loose, 0o755)
+        os.chmod(loose, 0o755)
+        self.assertEqual(self.stash(loose).returncode, 0)
+        self.assertEqual(stat.S_IMODE(os.stat(loose).st_mode), 0o700)
+        proc = self.stash(os.path.join(self.sync, "inputs"))
+        self.assertEqual(proc.returncode, 2)
+        self.assertFalse(os.path.exists(os.path.join(self.sync, "inputs")))
+        proc = self.stash(os.path.join(self.tmp, "other"), {"MHW_SKILLS_TOKEN": None})
+        self.assertEqual(proc.returncode, 3)
+        self.assertIn("MISSING-INPUT MHW_SKILLS_TOKEN", proc.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "other", "MHW_TOKEN")))
+
+    def execution_file(self, messages, name="exec.json"):
+        path = os.path.join(self.tmp, name)
+        with open(path, "w") as fh:
+            json.dump(messages, fh)
+        return path
+
+    def test_final_line_prints_the_result_only(self):
+        path = self.execution_file([
+            {"type": "system", "subtype": "init", "tools": ["Bash"]},
+            {"type": "assistant", "message": {"content": [{"type": "tool_use", "input": {"command": "TOOL-IN-XYZ"}}]}},
+            {"type": "user", "message": {"content": [{"type": "tool_result", "content": "TOOL-OUT-XYZ"}]}},
+            {"type": "result", "subtype": "success", "num_turns": 2, "is_error": False,
+             "permission_denials": [{"tool_name": "Bash"}], "result": "REFUSED  MISSING-INPUT MHW_TOKEN"},
+        ])
+        proc = self.run_script("final-line", path, extra_env={"MHW_ISSUE": None})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("subtype: success  turns: 2  is_error: False  permission_denials: 1", proc.stdout)
+        self.assertIn("result: REFUSED  MISSING-INPUT MHW_TOKEN", proc.stdout)
+        for hidden in ("TOOL-IN-XYZ", "TOOL-OUT-XYZ", "init"):
+            self.assertNotIn(hidden, proc.stdout + proc.stderr)
+        self.assertEqual(self.calls(), [])
+
+    def test_final_line_prefers_the_denials_count(self):
+        # The action's log reports permission_denials_count (run 38294048591); the SDK list is the fallback.
+        path = self.execution_file([{"type": "result", "subtype": "success", "num_turns": 2, "is_error": False,
+                                     "permission_denials_count": 3, "permission_denials": [{}],
+                                     "result": "r"}], "count.json")
+        self.assertIn("permission_denials: 3", self.run_script("final-line", path).stdout)
+        path = self.execution_file([{"type": "result", "permission_denials_count": 0, "result": "r"}], "zero.json")
+        self.assertIn("permission_denials: 0", self.run_script("final-line", path).stdout)
+        path = self.execution_file([{"type": "result", "result": "r"}], "none.json")
+        self.assertIn("permission_denials: ?", self.run_script("final-line", path).stdout)
+
+    def test_final_line_takes_the_last_result_and_caps_it(self):
+        path = self.execution_file([{"type": "result", "result": "first"},
+                                    {"type": "result", "result": "y" * 2500}])
+        out = self.run_script("final-line", path).stdout
+        self.assertNotIn("first", out)
+        self.assertIn("y" * 2000 + " [cut at 2000 characters]", out)
+        self.assertNotIn("y" * 2001, out)
+
+    def test_final_line_never_fails_and_withholds_credentials(self):
+        for path in (os.path.join(self.tmp, "absent.json"), self.execution_file({"x": 1}, "obj.json"),
+                     self.execution_file([{"type": "assistant"}], "noresult.json"), ""):
+            proc = self.run_script("final-line", path)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertIn("final-line:", proc.stdout)
+        leak = "ghs_" + "q" * 36
+        proc = self.run_script("final-line", self.execution_file([{"type": "result", "result": leak}], "leak.json"))
+        self.assertNotIn(leak, proc.stdout)
+        self.assertIn("withheld", proc.stdout)
 
     def test_verify(self):
         proc = self.run_script("verify")
