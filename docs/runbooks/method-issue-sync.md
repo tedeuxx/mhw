@@ -95,6 +95,14 @@ Not mirrored:
    Expected: a second run closes the twin. The canary passes when both happened; the closed pair can
    stay as the record.
 
+### Canary history
+
+- **First canary 2026-10-12: failed, bubblewrap missing; fixed in
+  [#163](https://github.com/tedeuxx/mhw/pull/163).** On v5.5.0, run 38269161317 on mhw#162: the sync job
+  could not set up Claude Code because `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` needs bubblewrap, which
+  ubuntu-latest does not ship. No twin was created. The backlink job ran anyway and went green with
+  "nothing to link"; since #163 it runs only after a successful sync and fails red when it finds no twin.
+
 ## Cost
 
 Each sync run is one Claude Code session (at most 30 turns) on the owner's Claude subscription, through
