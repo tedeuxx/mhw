@@ -153,20 +153,34 @@ jobs:
           bwrap --version
           # Smoke test: an unprivileged user namespace actually opens. Red here names the cause.
           bwrap --unshare-user --ro-bind / / /bin/true
-      # anthropics/claude-code-action v1.0.248 (annotated tag -> commit 1d6de8cb..., the same commit as v1,
-      # verified with git ls-remote 2026-10-12). github_token is the read-only mhw token: the action sets it
-      # as GH_TOKEN for the agent, so the -skills writes go through the script with MHW_SKILLS_TOKEN.
-      # --setting-sources user keeps a project settings file from widening the allowed tools.
-      - name: Adapt the mhw Issue into its tadeumendonca-skills twin
-        uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc
+      # The scrub below drops, from the agent's subprocesses, every env name that looks like a secret:
+      # MHW_TOKEN and MHW_SKILLS_TOKEN included (read from the 2.1.296 bundle the pinned action installs,
+      # not measured; the re-run canary, run 38294048591, ended in two turns with no twin). So the script's
+      # inputs are handed over as 0600 files in method-sync-input, a sibling of the Write tool's method-sync,
+      # never inside it; the tokens are not in the action's env at all. The runner is discarded with the job,
+      # the App token is revoked by its post step and the job token expires with the job.
+      - name: Hand the script its inputs as 0600 files (the env scrub drops the token names)
         env:
           MHW_ISSUE: ${{ matrix.issue }}
           MHW_TOKEN: ${{ github.token }}
           MHW_SKILLS_TOKEN: ${{ steps.app.outputs.token }}
           MHW_SYNC_DIR: ${{ runner.temp }}/method-sync
-          # Best-effort scrub of Anthropic, cloud and Actions secrets from the agent's subprocesses
-          # (the action's docs/security.md). Whether it also drops the MHW_* names is not measured; if it
-          # did, the script would refuse and verify would turn the run red.
+          MHW_INPUT_DIR: ${{ runner.temp }}/method-sync-input
+        run: python3 -B .github/scripts/method_issue_sync.py stash-inputs
+      # anthropics/claude-code-action v1.0.248 (annotated tag -> commit 1d6de8cb..., the same commit as v1,
+      # verified with git ls-remote 2026-10-12). github_token is the read-only mhw token: the action sets it
+      # as GH_TOKEN for the agent, so the -skills writes go through the script with the stashed App token.
+      # --setting-sources user keeps a project settings file from widening the allowed tools.
+      - name: Adapt the mhw Issue into its tadeumendonca-skills twin
+        id: claude
+        uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc
+        env:
+          MHW_ISSUE: ${{ matrix.issue }}
+          MHW_SYNC_DIR: ${{ runner.temp }}/method-sync
+          MHW_INPUT_DIR: ${{ runner.temp }}/method-sync-input
+          # Best-effort scrub of Anthropic, cloud and Actions secrets, and of any env name shaped like a
+          # secret, from the agent's subprocesses (the action's docs/security.md; the name rule read from
+          # the 2.1.296 bundle).
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -224,6 +238,13 @@ jobs:
             [removed: <category>] in its place; describe an organisation by sector, never by name.
 
             Finish with one line: created, updated, closed, reopened or unchanged, and the twin's URL.
+      # The model's final line, so a failed sync is diagnosable from the job log: subtype, turns,
+      # permission denials and the result text only, never the tool input or output.
+      - name: The model's final result (never the tool input or output)
+        if: always()
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+        run: python3 -B .github/scripts/method_issue_sync.py final-line "$EXECUTION_FILE"
       # The post-condition, outside the model: a twin exists and its state is the mhw Issue's. A sync the
       # script refused, or the agent abandoned, turns the run red here.
       - name: Verify the twin exists and mirrors the mhw Issue's state

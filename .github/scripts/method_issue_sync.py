@@ -43,6 +43,11 @@ TWIN_AUTHOR = "app/tedeuxx-mhw-mirror"
 BACKLINK_AUTHORS = ("github-actions", "app/github-actions", "github-actions[bot]")
 # Token values a title or body must never contain any 12-character run of.
 TOKEN_NAMES = ("MHW_SKILLS_TOKEN", "MHW_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN", "GH_TOKEN")
+# The inputs `stash-inputs` hands to the agent's subprocesses as 0600 files, because the env scrub drops
+# the token names. The directory is a sibling of the Write tool's directory, never inside it.
+STASHED = ("MHW_ISSUE", "MHW_SYNC_DIR", "MHW_TOKEN", "MHW_SKILLS_TOKEN")
+INPUT_SUBDIR = "method-sync-input"
+MAX_RESULT_CHARS = 2000
 TOKEN_RUN = 12
 
 # Shapes of a credential; a body or title matching one is refused, never posted. Not exhaustive.
@@ -65,11 +70,23 @@ USAGE = """usage: method_issue_sync.py COMMAND [ARGS]
   skills-reopen N                              reopen the twin (only while the mhw Issue is open)
   verify                                       (sync job, after the agent) exit 1 unless the twin exists in the mhw Issue's state
   backlink                                     (backlink job only) comment the twin's URL on the mhw Issue once
+  stash-inputs                                 (sync job, before the agent) hand the inputs over as 0600 files
+  final-line FILE                              (sync job, after the agent) print the model's final result only
+Exit 2: refused. Exit 3: MISSING-INPUT, an input the run never handed over.
 """
 
 
 class Refused(Exception):
     """A request outside the boundary. Exit 2, message on stderr, nothing sent to GitHub."""
+
+
+class MissingInput(Refused):
+    """An input the run did not hand over. Exit 3, `MISSING-INPUT <NAME>` on stderr, nothing sent.
+
+    Kept apart from a refusal so a run that never got its inputs is not read as a boundary doing its job:
+    the first re-run of the canary (2026-10-12, run 38294048591) ended in two turns with no twin, and the
+    pinned Claude Code (2.1.296) drops subprocess env names that look like secrets (MHW_TOKEN,
+    MHW_SKILLS_TOKEN) when CLAUDE_CODE_SUBPROCESS_ENV_SCRUB is set (read from its bundle, not measured)."""
 
 
 def marker(issue):
@@ -80,18 +97,46 @@ def mhw_url(issue):
     return "https://github.com/%s/issues/%s" % (MHW_REPO, issue)
 
 
+def input_dir():
+    """Where the sync job's `stash-inputs` step left the inputs: MHW_INPUT_DIR, else RUNNER_TEMP/INPUT_SUBDIR."""
+    explicit = os.environ.get("MHW_INPUT_DIR", "")
+    if explicit:
+        return explicit
+    runner_temp = os.environ.get("RUNNER_TEMP", "")
+    return os.path.join(runner_temp, INPUT_SUBDIR) if runner_temp else ""
+
+
+def read_input(name):
+    """An input from the environment, else from the stashed file of the same name; "" when neither."""
+    value = os.environ.get(name, "")
+    if value:
+        return value
+    folder = input_dir()
+    path = os.path.join(folder, name) if folder else ""
+    if path and os.path.isfile(path):
+        with open(path, encoding="utf-8") as fh:
+            return fh.read().strip()
+    return ""
+
+
+def require_input(name):
+    value = read_input(name)
+    if not value:
+        raise MissingInput("MISSING-INPUT %s: not in the environment and not in the input directory "
+                           "(the subprocess env scrub drops names that look like secrets; the sync job "
+                           "stashes them with stash-inputs)" % name)
+    return value
+
+
 def env_issue():
-    value = os.environ.get("MHW_ISSUE", "")
+    value = require_input("MHW_ISSUE")
     if not re.fullmatch(r"[1-9][0-9]{0,6}", value):
         raise Refused("MHW_ISSUE is not an Issue number")
     return value
 
 
 def token(name):
-    value = os.environ.get(name, "")
-    if not value:
-        raise Refused("%s is not set" % name)
-    return value
+    return require_input(name)
 
 
 def gh(args, token_name):
@@ -160,7 +205,7 @@ def check_secrets(text, what):
         if pattern.search(text):
             raise Refused("the %s looks like it carries a credential; nothing was sent" % what)
     for name in TOKEN_NAMES:
-        value = os.environ.get(name, "")
+        value = read_input(name)
         for start in range(0, len(value) - TOKEN_RUN + 1):
             if value[start:start + TOKEN_RUN] in text:
                 raise Refused("the %s contains part of a token held by this run; nothing was sent" % what)
@@ -173,7 +218,7 @@ def check_title(title):
 
 
 def read_body(path, issue, twin_body):
-    root = os.environ.get("MHW_SYNC_DIR", "")
+    root = read_input("MHW_SYNC_DIR")
     if not root or not os.path.isdir(root):
         raise Refused("MHW_SYNC_DIR is not a directory")
     real_root = os.path.realpath(root)
@@ -330,6 +375,74 @@ def cmd_backlink(issue, args):
     sys.stdout.write(gh(["issue", "comment", issue, "--repo", MHW_REPO, "--body-file", path], "MHW_TOKEN"))
 
 
+def cmd_stash_inputs(args):
+    """(sync job, before the agent) write STASHED from the environment into the input directory, 0600.
+
+    Refuses when the directory already holds a file, so it cannot be used to replace an input; and when
+    the directory is inside MHW_SYNC_DIR, where the agent's Write tool reaches."""
+    if args:
+        raise Refused("stash-inputs takes no arguments")
+    folder = input_dir()
+    if not folder:
+        raise MissingInput("MISSING-INPUT MHW_INPUT_DIR: neither it nor RUNNER_TEMP is set")
+    values = {}
+    for name in STASHED:
+        value = os.environ.get(name, "")
+        if not value:
+            raise MissingInput("MISSING-INPUT %s: stash-inputs reads it from the environment" % name)
+        values[name] = value
+    sync_root = os.path.realpath(values["MHW_SYNC_DIR"])
+    real_folder = os.path.realpath(folder)
+    if os.path.commonpath([sync_root, real_folder]) == sync_root:
+        raise Refused("the input directory must not be inside MHW_SYNC_DIR")
+    os.makedirs(folder, mode=0o700, exist_ok=True)
+    os.chmod(folder, 0o700)
+    if os.listdir(folder):
+        raise Refused("the input directory is not empty; nothing was replaced")
+    for name, value in values.items():
+        fd = os.open(os.path.join(folder, name), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(value)
+    print("stashed %d inputs in the input directory" % len(values))
+
+
+def cmd_final_line(args):
+    """(sync job, after the agent) print the model's final result, never the tool input or output.
+
+    Reads the action's execution file (a JSON list of SDK messages) and prints, from its last `result`
+    message only: subtype, turns, is_error, the count of permission denials, and the `result` text,
+    capped. Exit 0 whatever it finds: it reports, the verify step decides."""
+    if len(args) != 1:
+        raise Refused("final-line takes the execution file's path")
+    try:
+        with open(args[0], encoding="utf-8") as fh:
+            messages = json.load(fh)
+    except (OSError, ValueError):
+        print("final-line: no readable execution file")
+        return
+    results = [m for m in messages if isinstance(m, dict) and m.get("type") == "result"] \
+        if isinstance(messages, list) else []
+    if not results:
+        print("final-line: the execution file holds no result message")
+        return
+    last = results[-1]
+    denials = last.get("permission_denials")
+    print("subtype: %s  turns: %s  is_error: %s  permission_denials: %s"
+          % (last.get("subtype", "?"), last.get("num_turns", "?"), last.get("is_error", "?"),
+             len(denials) if isinstance(denials, list) else "?"))
+    text = str(last.get("result") or "(none)")
+    if len(text) > MAX_RESULT_CHARS:
+        text = text[:MAX_RESULT_CHARS] + " [cut at %d characters]" % MAX_RESULT_CHARS
+    try:
+        check_secrets(text, "result")
+    except Refused:
+        text = "(withheld: the result text carries something shaped like a credential)"
+    print("result: %s" % text)
+
+
+# Commands that run before an Issue is known or without one.
+NO_ISSUE_COMMANDS = {"stash-inputs": cmd_stash_inputs, "final-line": cmd_final_line}
+
 COMMANDS = {
     "mhw-view": cmd_mhw_view,
     "find-twin": cmd_find_twin,
@@ -345,11 +458,17 @@ COMMANDS = {
 
 
 def main(argv):
-    if not argv or argv[0] not in COMMANDS:
+    if not argv or (argv[0] not in COMMANDS and argv[0] not in NO_ISSUE_COMMANDS):
         sys.stderr.write(USAGE)
         return 2
     try:
-        COMMANDS[argv[0]](env_issue(), argv[1:])
+        if argv[0] in NO_ISSUE_COMMANDS:
+            NO_ISSUE_COMMANDS[argv[0]](argv[1:])
+        else:
+            COMMANDS[argv[0]](env_issue(), argv[1:])
+    except MissingInput as exc:
+        sys.stderr.write("REFUSED  %s\n" % exc)
+        return 3
     except Refused as exc:
         sys.stderr.write("REFUSED  %s\n" % exc)
         return 2
