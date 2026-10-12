@@ -269,7 +269,8 @@ the owner wants, and gave the CI write access to the plugin's contents.
 workflow's structure (parsed with the runner's ruby) and drives the script against a stub `gh`. After the
 agent, a deterministic `verify` step fails the run unless the twin exists in the mhw Issue's state.
 **Not run:**
-no secret is stored yet, and GitHub runs this workflow only from `main`. The App's author login
+~~no secret is stored yet, and~~ GitHub runs this workflow only from `main`. *(Struck 2026-10-12: the
+three secrets were stored that day, 13:43Z, per `gh secret list --repo tedeuxx/mhw`.)* The App's author login
 (`app/tedeuxx-mhw-mirror`) is a hypothesis the canary confirms.
 
 ## Links
