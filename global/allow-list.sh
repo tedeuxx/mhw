@@ -347,6 +347,13 @@ allow_codex_profile_render() { # $1 tier, $2 output
 
 allow_kiro_render() { # $2 output. This CLI 2.x agent reads no deny floor (the Kiro floor in permissions.yaml
   # reaches only the IDE and CLI V3, ADR-0036), so it never gets the wide tier.
+  # One file, both engines (2026-10-11 canary: Kiro CLI 2.29.1 asked to /upgrade-agent). The 2.0 fields
+  # (allowedTools, toolsSettings) are what CLI 2.x reads; "permissions" is the V3 form. The V3 engine skips a
+  # JSON agent that has the 2.0 fields and no "permissions" (read from the bundled V3 engine, kas 2.29.1), and
+  # the CLI's own upgrade prompt says an upgraded agent keeps working in 2.0. The V3 rules are what
+  # /upgrade-agent wrote for this agent ("<words> *" and "<words>"), plus an exclude list carrying the 2.x
+  # pattern's refused characters, newline and CR included (PR #153 QA advisory A1), so the V3 allow is not wider
+  # than the 2.x one where Kiro matches the text. 1 + 13 excludes = 14 conditions, under the ceiling of 32.
   allow_words narrow cmd | jq -R -s --arg d "$MARKER_ID; source: global/allow-list.conf; $stamp; do not edit, re-run the installer" '
     split("\n") | map(select(length > 0)) as $w
     | {name: "workstation",
@@ -355,7 +362,13 @@ allow_kiro_render() { # $2 output. This CLI 2.x agent reads no deny floor (the K
        allowedTools: ["fs_read"],
        toolsSettings: {execute_bash: {
          allowedCommands: [$w[] | "^" + gsub("(?<c>[.+])"; "\\\(.c)") + "( [^;&|<>$`(){}\\n\\r]*)?$"],
-         autoAllowReadonly: false}}}' > "$1"
+         autoAllowReadonly: false}},
+       permissions: {rules: [
+         {capability: "shell",
+          match: [$w[] | (. + " *", .)],
+          exclude: [";", "&", "|", "<", ">", "$", "`", "(", ")", "{", "}", "\n", "\r"] | map("*" + . + "*"),
+          effect: "allow"},
+         {capability: "fs_read", effect: "allow"}]}}' > "$1"
 }
 
 allow_step() {

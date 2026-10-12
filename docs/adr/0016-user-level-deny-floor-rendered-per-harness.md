@@ -306,7 +306,7 @@ this amendment in a throwaway home, same version, no login and no model call:
 Codex has the same weakness by its help text: `codex exec --ignore-rules` skips user and project
 `.rules` files (0.160.0, not exercised). Neither flag needs privilege, and an agent can type either.
 The admin layer is the only one outside their reach (ADR-0014, ADR-0027). The PRD's placement rule
-(ADR-0026, proposed) puts a protection in one layer, installed before the old copy is removed.
+(ADR-0026, ~~proposed~~ accepted 2026-10-11) puts a protection in one layer, installed before the old copy is removed.
 
 **The owner's constraint on exceptions** (2026-10-05, set while this slice was built):
 
@@ -485,7 +485,8 @@ and Kiro CLI V3 read that file (*documented*). The rendering, the merge rules, t
 gaps are in [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md). The `FLOOR   Kiro:` line of
 `--check` now counts the patterns present instead of printing "none". The "carried by" verdict still
 covers Claude Code and Codex only. Kiro has no admin copy, and the default Kiro CLI engine (2.x) does
-not read the file. This amendment is proposed until the owner ratifies ADR-0036. The *written and
+not read the file. ~~This amendment is proposed until the owner ratifies ADR-0036.~~ *(Struck
+2026-10-11: the owner ratified ADR-0036, so this amendment is accepted with it.)* The *written and
 tested* status of the Kiro floor does not make it *installed*.
 
 ## Links

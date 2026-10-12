@@ -22,6 +22,9 @@
 #   /Library/Application Support/personal-multi-harness-workstation-configuration/bin/   hook scripts
 #   /Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json
 #   /etc/codex/requirements.toml             refused when it exists and is not ours
+#   /Library/Application Support/Kiro/managed-settings.json   (Linux /etc/kiro/managed-settings.json) the
+#                                            deny floor for Kiro IDE and the Kiro CLI V3 engine (ADR-0036,
+#                                            2026-10-11 amendment); refused when it exists and is not ours
 # Kiro has no admin layer for hooks; Windows is not supported (ADR-0025).
 # Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage or missing dependency · 3 something
 # unmanaged in the way, or a stage that fails validation or its hash.
@@ -50,7 +53,7 @@ for arg in "$@"; do
     --sha256=*) sha=${arg#--sha256=} ;;
     --root=*) root=${arg#--root=} ;;
     --overlay=*) overlay_arg=$arg ;;
-    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -66,6 +69,11 @@ bin="$base/bin"
 switches="$base/breaking-glass"   # removed (ADR-0028): an earlier --apply created it
 claude_file="$claude_dir/$DROPIN"
 codex_file="$root/etc/codex/requirements.toml"
+if [ "$(uname -s)" = Darwin ]; then
+  kiro_file="$root/Library/Application Support/Kiro/managed-settings.json"
+else
+  kiro_file="$root/etc/kiro/managed-settings.json"
+fi
 
 [ -x /usr/bin/python3 ] || { echo "REFUSE  /usr/bin/python3 is required" >&2; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "REFUSE  jq is required" >&2; exit 2; }
@@ -77,7 +85,7 @@ is_root_run() { [ "$(id -u)" = 0 ] || [ -n "$root" ]; }
 stage_hash() {
   /usr/bin/python3 -I -B -c '
 import hashlib, os, sys
-d, names = sys.argv[1], sys.argv[2].split() + ["../claude.json", "../requirements.toml"]
+d, names = sys.argv[1], sys.argv[2].split() + ["../claude.json", "../requirements.toml", "../kiro.json"]
 h = hashlib.sha256()
 for n in names:
     p = os.path.normpath(os.path.join(d, "bin", n))
@@ -105,7 +113,16 @@ rules = t["rules"]["prefix_rules"]
 assert rules and all(r["decision"] == "forbidden" and r["pattern"] for r in rules)
 # One Codex rule per Claude PREFIX rule: a glob entry is Claude Code only (ADR-0035), the same
 # selector the requirements renderer uses.
-assert len(rules) == sum(r.startswith("Bash(") and r.endswith(":*)") for r in deny)' "$1" "$NAME" 2>/dev/null
+assert len(rules) == sum(r.startswith("Bash(") and r.endswith(":*)") for r in deny)' "$1" "$NAME" 2>/dev/null \
+    && validate_kiro "$1"
+}
+
+validate_kiro() { # $1 stage: the Kiro admin document must be one Kiro accepts. A file Kiro rejects is NOT "no rule":
+  # Kiro IDE and the Kiro CLI V3 engine then deny EVERY tool call (read from both bundles, PR #153 lens), and so
+  # can a statement of 64 or more conditions. kiro_permissions.py --mode=admin-validate checks the shape Kiro's
+  # parser accepts and keeps every compiled statement under its condition ceiling, so a future floor cannot
+  # silently produce a lockout file. Rollback: --remove, or delete that one file as root.
+  /usr/bin/python3 -I -B "$script_dir/kiro/kiro_permissions.py" --mode=admin-validate "--file=$1/kiro.json" >/dev/null 2>&1
 }
 
 render() { # $1 empty stage directory
@@ -156,10 +173,22 @@ render() { # $1 empty stage directory
         + "], decision = \"forbidden\", justification = \"workstation deny floor (ADR-0016)\" },"' "$st/floor.json"
     printf ']\n'
   } > "$st/requirements.toml"
+  # The deny floor for Kiro (ADR-0036, 2026-10-11 amendment), from the permissions.yaml install.sh rendered
+  # into the same throwaway home, so the Kiro admin copy has the same single source as the user copy.
+  if ! /usr/bin/python3 -I -B "$script_dir/kiro/kiro_permissions.py" --mode=admin-json \
+      "--stamp=$stamp" "--from-yaml=$st/home/.kiro/settings/permissions.yaml" > "$st/kiro.json" 2> "$st/kiro.log"; then
+    echo "REFUSE  the Kiro admin document could not be rendered (see $st/kiro.log)" >&2
+    exit 2
+  fi
   validate "$st" || { echo "REFUSE  the rendered admin documents do not validate" >&2; exit 3; }
 }
 
 codex_foreign() { [ -e "$codex_file" ] && ! head -n 5 "$codex_file" | grep -qF "$MARKER_ID"; }
+# JSON has no comment: ours carries the stamp in a top-level key of ours (as the Claude Code drop-in does).
+kiro_foreign() {
+  [ -e "$kiro_file" ] || [ -L "$kiro_file" ] || return 1
+  ! jq -e --arg k "$NAME" --arg m "$MARKER_ID" '(.[$k] // "") | type == "string" and contains($m)' "$kiro_file" >/dev/null 2>&1
+}
 
 case $mode in
   render)
@@ -167,6 +196,10 @@ case $mode in
     render "$st"
     if codex_foreign; then
       echo "REFUSE  $codex_file exists and is NOT managed by this project; nothing to apply" >&2
+      exit 3
+    fi
+    if kiro_foreign; then
+      echo "REFUSE  $kiro_file exists and is NOT managed by this project (an organisation's Kiro policy?); nothing to apply" >&2
       exit 3
     fi
     echo "STAGED  $st (validated; nothing installed)"
@@ -216,6 +249,14 @@ case $mode in
     if [ -e "$switches" ]; then echo "STALE   $switches: removed by ADR-0028; --apply deletes it"; status=1; fi
     compare "$st/claude.json" "$claude_file"
     compare "$st/requirements.toml" "$codex_file"
+    if kiro_foreign; then echo "REFUSE  $kiro_file: NOT managed by this project; --apply refuses it"; status=1
+    else
+      compare "$st/kiro.json" "$kiro_file"
+      if [ -f "$kiro_file" ] && ! /usr/bin/python3 -I -B "$script_dir/kiro/kiro_permissions.py" --mode=admin-validate "--file=$kiro_file" >/dev/null 2>&1; then
+        echo "REFUSE  $kiro_file: Kiro would reject it, and then Kiro IDE and the Kiro CLI V3 engine deny EVERY tool call; --apply rewrites it, --remove deletes it (Kiro CLI 2.x is unaffected)"
+        status=1
+      fi
+    fi
     rm -rf "$st"
     exit "$status"
     ;;
@@ -227,12 +268,13 @@ case $mode in
     trap 'rm -rf "$work"' EXIT
     mkdir "$work/bin"
     for f in $FILES; do cp "$stage/bin/$f" "$work/bin/$f"; done
-    cp "$stage/claude.json" "$stage/requirements.toml" "$work/"
+    cp "$stage/claude.json" "$stage/requirements.toml" "$stage/kiro.json" "$work/"
     [ "$(stage_hash "$work")" = "$sha" ] || { echo "REFUSE  the stage does not match its hash; nothing installed" >&2; exit 3; }
     validate "$work" || { echo "REFUSE  the stage does not validate; nothing installed" >&2; exit 3; }
     if codex_foreign; then echo "REFUSE  $codex_file exists and is NOT managed by this project" >&2; exit 3; fi
+    if kiro_foreign; then echo "REFUSE  $kiro_file exists and is NOT managed by this project" >&2; exit 3; fi
     umask 022
-    mkdir -p "$bin" "$claude_dir" "$(dirname "$codex_file")"
+    mkdir -p "$bin" "$claude_dir" "$(dirname "$codex_file")" "$(dirname "$kiro_file")"
     chmod 755 "$base" "$bin"
     put() { # $1 source, $2 destination, $3 mode: atomic replace, root-owned on a real run
       cp "$1" "$2.new.$$"
@@ -247,19 +289,22 @@ case $mode in
     done
     put "$work/claude.json" "$claude_file" 644
     put "$work/requirements.toml" "$codex_file" 644
+    put "$work/kiro.json" "$kiro_file" 644
     # What an earlier release installed for the restart guard, the breaking-glass switches (ADR-0028)
     # and the HITL picker guard (ADR-0013, 2026-10-05 amendment).
     for f in $LEGACY; do rm -f "$bin/$f"; done
     rm -f "$switches"/*.json
     rmdir "$switches" 2>/dev/null || true
-    echo "INSTALLED $bin, $claude_file, $codex_file"
-    echo "THEN    as yourself: mhw install (./mhw install in a checkout); then open fresh Claude Code and Codex sessions"
+    echo "INSTALLED $bin, $claude_file, $codex_file, $kiro_file"
+    echo "THEN    as yourself: mhw install (./mhw install in a checkout); then open fresh Claude Code, Codex and Kiro sessions"
     ;;
   remove)
     is_root_run || { echo "REFUSE  --remove needs administrator privilege (sudo)" >&2; exit 2; }
     for f in $FILES $LEGACY; do rm -f "$bin/$f"; done
     rm -f "$switches"/*.json "$claude_file"
     if [ -e "$codex_file" ] && ! codex_foreign; then rm -f "$codex_file"; fi
+    if kiro_foreign; then echo "NOTE    $kiro_file is NOT managed by this project; left alone"
+    elif [ -e "$kiro_file" ]; then rm -f "$kiro_file"; fi
     rmdir "$switches" "$bin" "$base" 2>/dev/null || true
     echo "REMOVED the admin-layer hooks; run install.sh as yourself to restore the user-level ones"
     ;;

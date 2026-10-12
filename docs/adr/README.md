@@ -14,7 +14,8 @@ line in short form; where they differ, the record wins. Re-derive the list with
 Each is raised one at a time, when a slice reaches it.
 
 1. **Ratify the proposed records** below, or the proposed parts of the partly accepted ones. The
-   release candidate rests on proposed records: ADR-0026 to ADR-0034 are all proposed.
+   release candidate rests on proposed records: ~~ADR-0026 to ADR-0034 are all proposed.~~ ADR-0027
+   to ADR-0034 are all proposed; ADR-0026 was accepted on 2026-10-11.
 2. **The ten commandments** ([#77](https://github.com/tedeuxx/mhw/issues/77)):
    edit and ratify the draft in the requirements document, section 1c. Nothing is installed before that.
 3. **The cross-repository write credential** for the plugin mirror
@@ -54,7 +55,7 @@ Each is raised one at a time, when a slice reaches it.
 | [0023](0023-breaking-glass-all-layers-native-switch.md) | Total breaking glass through each native switch | proposed; ended 2026-10-04 |
 | [0024](0024-breaking-glass-per-layer-expiring-switches.md) | Expiring per-layer switches | superseded by 0028 |
 | [0025](0025-hook-layers-in-the-native-admin-layer.md) | Hooks in each agent harness's admin layer | proposed; restart-guard and switch parts superseded by 0028 |
-| [0026](0026-four-distribution-layers-rubric.md) | Four distribution layers and the placement rubric | proposed |
+| [0026](0026-four-distribution-layers-rubric.md) | Four distribution layers and the placement rubric; `distribution.json` applies it (2026-10-11) | accepted 2026-10-11; parts changed by 0035 (accepted) and by the proposed 0027, 0028, 0032~~, 0036~~ and the accepted 0036 |
 | [0027](0027-native-carrier-per-component-from-the-enforcement-matrix.md) | Native carrier per component, from the enforcement matrix | proposed |
 | [0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) | Restart guard and switches removed; OS privilege only | proposed |
 | [0029](0029-provenance-stamp-in-every-installed-file.md) | Provenance stamp in every installed file | proposed |
@@ -63,5 +64,6 @@ Each is raised one at a time, when a slice reaches it.
 | [0032](0032-this-repository-is-the-single-source-of-the-working-method.md) | This repository is the single source of the working method | proposed |
 | [0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md) | Paste cleaning: wrapper first, prompt hook as safety net | proposed; supersedes 0011 |
 | [0034](0034-npm-distribution-from-github-by-tag.md) | npm distribution from GitHub by tag, with an archive stamp; the `mhw` command and its postinstall (2026-10-06) | proposed |
-| [0035](0035-workstation-blueprint-reconciliation.md) | Workstation harness blueprint reconciled item by item (2026-10-10) | proposed |
-| [0036](0036-kiro-shared-deny-floor-permissions-yaml.md) | Kiro IDE and Kiro CLI share one deny floor in the user-level `permissions.yaml` (2026-10-11) | proposed |
+| [0035](0035-workstation-blueprint-reconciliation.md) | Workstation harness blueprint reconciled item by item (2026-10-10) | accepted |
+| [0036](0036-kiro-shared-deny-floor-permissions-yaml.md) | Kiro IDE and Kiro CLI share one deny floor in the user-level `permissions.yaml` (2026-10-11) | ~~proposed~~ accepted 2026-10-11 |
+| [0037](0037-agents-md-is-the-only-root-brief.md) | `AGENTS.md` is the only root brief in every repository the owner authors; no `CLAUDE.md` (2026-10-11) | ~~proposed~~ accepted 2026-10-11 |

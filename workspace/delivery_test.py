@@ -357,7 +357,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertFalse([k for k in policy if k.startswith("entry_")])
         self.assertEqual(policy["integration_branch"], "rc/next")
         self.assertEqual(policy["release_merge"], "owner")
-        for carrier in ("AGENTS.md", "CLAUDE.md", "global/AGENTS.md", "workspace/README.md",
+        for carrier in ("AGENTS.md", "global/AGENTS.md", "workspace/README.md",
                         ".kiro/steering/workspace-session.md", ".claude/commands/session-finish.md",
                         ".agents/skills/source-command-session-finish/SKILL.md",
                         "overlay/AGENTS.md", "overlay/desktop-instructions.md"):
@@ -365,6 +365,14 @@ class DeliveryTests(unittest.TestCase):
             with self.subTest(carrier=carrier):
                 for phrase in ("Melhoria de harness", "Session type", "improvement session"):
                     self.assertNotIn(phrase, text)
+
+    def test_kiro_steering_forbids_inferring_a_session_type(self):
+        # 2026-10-11 canary: a Kiro IDE agent announced a session type ("Bugfix") inferred from the task.
+        # With no intake (Issue #60), the always-included Kiro steering says not to infer or announce one.
+        text = " ".join((d.ROOT / ".kiro/steering/workspace-session.md").read_text().split())
+        self.assertTrue(text.startswith("--- inclusion: always ---"))
+        self.assertIn("Do not infer or announce a type for the session (bugfix or any other) from the task; "
+                      "this workspace has none.", text)
 
     def test_brief_declares_the_personal_sphere(self):
         # ADR-0035 decision 1: one sphere line above the first section, declaration only.
@@ -374,9 +382,20 @@ class DeliveryTests(unittest.TestCase):
         self.assertRegex(head, r"(?m)^sphere: personal$")
         self.assertIn("stop-on-undeclared default is not adopted", " ".join(head.split()))
 
+    def test_agents_md_is_the_only_root_brief(self):
+        # ADR-0037 (owner, 2026-10-11): AGENTS.md is the root brief; any of these makes Claude Code ignore
+        # it (measured on 2.1.296), and Codex truncates a project doc past 32768 bytes.
+        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"):
+            with self.subTest(name=name):
+                self.assertFalse((d.ROOT / name).exists(), name)
+        size = (d.ROOT / "AGENTS.md").stat().st_size
+        self.assertLessEqual(size, 30000, "AGENTS.md is %d bytes; condense it before Codex's 32768" % size)
+        brief = " ".join((d.ROOT / "AGENTS.md").read_text().split())
+        self.assertIn("the root instruction file is `AGENTS.md` alone", brief)
+
     def test_carriers_state_who_merges(self):
         # Issue #60: agents merge slices into rc/next; only the release candidate waits for the owner.
-        for carrier in ("AGENTS.md", "CLAUDE.md", "workspace/README.md",
+        for carrier in ("AGENTS.md", "workspace/README.md",
                         ".kiro/steering/workspace-session.md", ".claude/commands/session-finish.md"):
             text = " ".join((d.ROOT / carrier).read_text().split())
             with self.subTest(carrier=carrier):

@@ -217,6 +217,13 @@ The source of truth for every layer lives here, versioned; what is installed on 
   secrets by name and location only.
 - **No client name, client artefact or employer-confidential content** is ever written into this
   repository, even as an example. Describe by sector or category.
+- **In every repository the owner authors, the root instruction file is `AGENTS.md` alone** (owner,
+  2026-10-11, [ADR-0037](docs/adr/0037-agents-md-is-the-only-root-brief.md), ~~proposed~~ accepted
+  2026-10-11). Do not add a
+  `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md`, not even an `@AGENTS.md` bridge: any one of them
+  makes Claude Code ignore `AGENTS.md` (measured, 2.1.296). Keep `AGENTS.md` under 32,768 bytes, where
+  Codex truncates it. `mhw status` names both cases; it is a check you run, not a hook. The user-level
+  brief stays `~/.claude/CLAUDE.md`.
 - **A control is reported at its real evidence level**: written, installed, loaded, enforced — four
   different claims. Never state the stronger one on evidence for the weaker.
 - **Policy decisions are the owner's.** Agents propose, implement what was decided, and verify; they do
@@ -283,7 +290,11 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   is the default engine, and sessions started through the paste wrapper run on it; it does not read
   the file. The IDE has no paste wrapper, no prompt hook, no model default and no allow list (it
   ignores the CLI agent `workstation.json`). The IDE bundle reads a root-owned admin file,
-  `managed-settings.json`, as its `administration` scope. That is *read from the bundle*: nothing is
+  `managed-settings.json`, as its `administration` scope. That is *read from the bundle*: ~~nothing is
   rendered there and nothing is measured, and Kiro CLI V3 was not checked. Rendering the floor there is
-  an open option for the owner. ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
+  an open option for the owner.~~ *Amended 2026-10-11 (owner's decision):* `install-managed.sh` renders
+  the floor there too, and the user file stays as the fallback. The Kiro CLI V3 engine reads the same
+  file (*read from its bundle*). *Written and tested* in a throwaway root; not installed; not measured.
+  The Kiro agent now carries the V3 form beside the 2.0 fields, and on the V3 engine the paste wrapper
+  cleans nothing, because that engine does not enable bracketed paste (*observed* 2026-10-11). ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
   `install.ps1` renders it too (*written and CI-tested*; Kiro on Windows not measured).

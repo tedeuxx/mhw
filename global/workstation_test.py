@@ -384,6 +384,158 @@ class ModelsLine(unittest.TestCase):
                          ["    CHANGED /h/.zshrc: paste-wrapper start-up block absent -> present (new file)"])
 
 
+class RootBrief(unittest.TestCase):
+    """ADR-0037: AGENTS.md is the root brief. Status names a file that makes Claude Code ignore it and an
+    AGENTS.md Codex would truncate (project_doc_max_bytes, 32768 by default). An instruction check."""
+
+    SHADOW = "%s: AGENTS.md is the root brief; this file makes Claude Code ignore AGENTS.md"
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="root-brief-")
+        self.addCleanup(self.temp.cleanup)
+        self.top = Path(self.temp.name).resolve() / "parent" / "repo"
+        self.top.mkdir(parents=True)
+
+    def local(self):
+        # Findings in the workspace itself; an ancestor of the temporary directory is not this test's.
+        return [f for f in ws.root_brief_findings(self.top) if "(ancestor)" not in f]
+
+    def agents(self, size):
+        (self.top / "AGENTS.md").write_bytes(b"x" * size)
+
+    def test_clean_workspace_has_no_finding(self):
+        self.agents(100)
+        self.assertEqual(self.local(), [])
+
+    def test_each_shadowing_file_is_named(self):
+        self.agents(100)
+        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"):
+            with self.subTest(name=name):
+                path = self.top / name
+                path.parent.mkdir(exist_ok=True)
+                path.write_text("@AGENTS.md\n")
+                self.assertEqual(self.local(), [self.SHADOW % name])
+                path.unlink()
+        # A directory named like the file is not a brief.
+        (self.top / "CLAUDE.md").mkdir()
+        self.assertEqual(self.local(), [])
+
+    def test_each_ancestor_shadow_is_named(self):
+        # Lens on PR #154, probes B, C and L: each name shadows AGENTS.md from an ancestor directory too.
+        self.agents(100)
+        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"):
+            with self.subTest(name=name):
+                path = self.top.parent / name
+                path.parent.mkdir(exist_ok=True)
+                path.write_text("x\n")
+                self.assertIn("%s (ancestor): this file makes Claude Code ignore AGENTS.md" % path,
+                              ws.root_brief_findings(self.top))
+                path.unlink()
+
+    def test_user_level_brief_is_not_an_ancestor_shadow(self):
+        # Measured: ~/.claude/CLAUDE.md does not shadow a project AGENTS.md, though home is an ancestor.
+        self.agents(100)
+        home = self.top.parent
+        (home / ".claude").mkdir()
+        (home / ".claude" / "CLAUDE.md").write_text("x\n")
+        old = os.environ.get("HOME")
+        os.environ["HOME"] = str(home)
+        try:
+            self.assertEqual([f for f in ws.root_brief_findings(self.top) if str(home) + os.sep in f], [])
+        finally:
+            if old is None:
+                os.environ.pop("HOME")
+            else:
+                os.environ["HOME"] = old
+
+
+    def test_codex_limit_is_exclusive(self):
+        self.agents(32768)
+        self.assertEqual(self.local(), [])
+        self.agents(32769)
+        self.assertEqual(self.local(), ["AGENTS.md is 32769 bytes, over 32768: Codex truncates it"])
+
+    def test_no_agents_md_is_not_a_size_finding(self):
+        self.assertEqual(self.local(), [])
+
+    def test_workspace_carries_the_findings(self):
+        self.agents(100)
+        (self.top / "CLAUDE.md").write_text("x\n")
+        got = ws.workspace(str(self.top))
+        self.assertIn(self.SHADOW % "CLAUDE.md", got["brief"])
+
+    def test_status_and_summary_report_them(self):
+        found = [self.SHADOW % "CLAUDE.md", "AGENTS.md is 40000 bytes, over 32768: Codex truncates it"]
+        space = {"name": "proj", "root": Path("/proj"), "carriers": ["AGENTS.md", "CLAUDE.md"], "brief": found}
+        out = ws.render_status(facts(workspace=space))
+        self.assertEqual([line[19:] for line in out if line.startswith("  root brief       ")], found)
+        summary = ws.render_summary(facts(workspace=space))
+        self.assertLessEqual(len(summary), 10)
+        layers = [line for line in summary if line.startswith("  layers ")][0]
+        self.assertIn("workspace: proj (root brief: 2 finding(s); %s status)" % ws.CMD, layers)
+        clean = dict(space, brief=[])
+        self.assertFalse(any(line.startswith("  root brief") for line in ws.render_status(facts(workspace=clean))))
+        self.assertNotIn("root brief", " ".join(ws.render_summary(facts(workspace=clean))))
+
+
+@unittest.skipUnless(shutil.which("git"), "needs git")
+class RootBriefWorktrees(unittest.TestCase):
+    """Lens on PR #154, probes w, f and e (Claude Code 2.1.296): a LINKED worktree does not load its main
+    checkout's instruction files, wherever it sits; a separate repository nested under a checkout does."""
+
+    def git(self, cwd, *args):
+        subprocess.run(["git", "-c", "user.email=t@example.invalid", "-c", "user.name=t", "-C", str(cwd)]
+                       + list(args), check=True, capture_output=True)
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="root-brief-wt-")
+        self.addCleanup(self.temp.cleanup)
+        self.outer = Path(self.temp.name).resolve() / "outer"
+        (self.outer / ".claude").mkdir(parents=True)
+        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md", "AGENTS.md"):
+            (self.outer / name).write_text("x\n")
+        self.git(self.outer, "init", "-q")
+        self.git(self.outer, "add", "-A")
+        self.git(self.outer, "commit", "-q", "-m", "init")
+
+    def outer_hits(self, top):
+        return [f for f in ws.root_brief_findings(top) if f.startswith(str(self.outer) + os.sep)
+                and "(ancestor" in f]
+
+    def worktree(self, rel):
+        top = self.outer / rel
+        top.parent.mkdir(parents=True, exist_ok=True)
+        self.git(self.outer, "worktree", "add", "-q", "--detach", str(top))
+        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"):
+            (top / name).unlink()
+        return top
+
+    def test_w_linked_worktree_under_dot_claude_skips_the_main_checkout(self):
+        top = self.worktree(".claude/worktrees/w")
+        self.assertEqual(ws.main_checkout_of(top), self.outer)
+        self.assertEqual(self.outer_hits(top), [])
+
+    def test_f_linked_worktree_elsewhere_skips_the_main_checkout(self):
+        self.assertEqual(self.outer_hits(self.worktree("sub/f")), [])
+
+    def test_e_separate_repository_nested_inherits(self):
+        top = self.outer / ".claude" / "worktrees" / "e"
+        top.mkdir(parents=True)
+        (top / "AGENTS.md").write_text("x\n")
+        self.git(top, "init", "-q")
+        self.assertIsNone(ws.main_checkout_of(top))
+        self.assertEqual(sorted(self.outer_hits(top)),
+                         sorted("%s (ancestor): this file makes Claude Code ignore AGENTS.md" % (self.outer / n)
+                                for n in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md")))
+
+    def test_ancestor_above_the_main_checkout_is_named_as_not_measured(self):
+        above = self.outer.parent / "CLAUDE.md"
+        above.write_text("x\n")
+        top = self.worktree("sub/f")
+        self.assertIn("%s (ancestor above the main checkout, not measured): this file makes Claude Code "
+                      "ignore AGENTS.md" % above, ws.root_brief_findings(top))
+
+
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
 class EndToEnd(unittest.TestCase):
     """The real installers in a throwaway HOME and admin root: status must read their output right."""

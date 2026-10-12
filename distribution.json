@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "repository": "tedeuxx/mhw",
+  "role": "firewall",
+  "peer": "tedeuxx/tadeumendonca-skills",
+  "path_rules": "An entry ending in '/' is a directory prefix; an entry containing '*' is matched against the file's basename; any other entry is an exact repository-relative path. Precedence: a not_distributed entry wins over an artifact's directory entry, so a test file inside an artifact's directory is not distributed. With that rule every tracked file matches exactly one artifact or not_distributed.",
+  "not_distributed": [
+    "docs/",
+    ".github/",
+    "*_test.py",
+    "*.test.sh",
+    "*.test.ps1",
+    "*.test.stub",
+    "global/keychain_test_guard.py",
+    "README.md",
+    ".gitignore",
+    ".gitattributes",
+    ".bumpversion.toml"
+  ],
+  "artifacts": [
+    {
+      "id": "global-brief",
+      "layer": "managed",
+      "paths": ["global/AGENTS.md"],
+      "gap": "Installed as a user-level instruction in every harness (ADR-0010); no managed instruction carrier is used yet."
+    },
+    {
+      "id": "deny-floor",
+      "layer": "managed",
+      "paths": ["global/deny-floor.conf", "global/kiro/kiro_permissions.py"],
+      "gap": "Rendered at user level by install.sh and into the admin layer by install-managed.sh (ADR-0016 2026-10-05 amendment; Kiro: ADR-0036, accepted 2026-10-11, where the admin file is read by Kiro IDE and the Kiro CLI V3 engine only)."
+    },
+    {
+      "id": "paste-filter",
+      "layer": "managed",
+      "paths": [
+        "global/clipboard/clipboard_guard.py",
+        "global/clipboard.conf",
+        "global/profile/locales/pt-BR/clipboard.conf"
+      ],
+      "gap": "Kiro has no admin-only hook carrier (ADR-0025)."
+    },
+    {
+      "id": "paste-wrapper",
+      "layer": "managed",
+      "paths": ["global/clipboard/paste_wrapper.py"],
+      "gap": "No harness carrier: a shell launcher the owner activates by sourcing it (ADR-0033, proposed)."
+    },
+    {
+      "id": "outbound-scan",
+      "layer": "managed",
+      "paths": ["global/scan.py"],
+      "gap": "No harness carrier: mhw scan runs on an instruction in the global brief, informs and never blocks (ADR-0035, decision 7)."
+    },
+    {
+      "id": "managed-installer",
+      "layer": "managed",
+      "paths": ["global/install-managed.sh"]
+    },
+    {
+      "id": "user-installer",
+      "layer": "user",
+      "paths": [
+        "global/install.sh",
+        "global/install.ps1",
+        "global/workstation.py",
+        "global/prerequisites.py",
+        "global/prerequisites.json",
+        "global/owner_actions.py",
+        "global/private_copy.py",
+        "mhw",
+        "workstation",
+        "bin/",
+        "package.json",
+        ".workstation-archive"
+      ]
+    },
+    {
+      "id": "allow-list",
+      "layer": "user",
+      "paths": ["global/allow-list.conf", "global/allow-list.sh", "global/allow-retired.conf"]
+    },
+    {
+      "id": "github-repo-settings",
+      "layer": "user",
+      "paths": ["global/github-repo-settings.json", "global/github-repo-settings.sh"]
+    },
+    {
+      "id": "model-defaults",
+      "layer": "user",
+      "paths": ["global/models/"]
+    },
+    {
+      "id": "personal-profile",
+      "layer": "user",
+      "paths": [
+        "global/profile/README.md",
+        "global/profile/profile.py",
+        "global/profile/profile.schema.json",
+        "global/profile/profile.example.json",
+        "overlay/"
+      ]
+    },
+    {
+      "id": "mcp-single-source",
+      "layer": "user",
+      "paths": ["global/mcp/"]
+    },
+    {
+      "id": "working-method",
+      "layer": "user",
+      "paths": ["method/", "global/method/"],
+      "gap": "Opt-in (install --method) until the plugin cutover (ADR-0032, proposed); while the plugin is also enabled the method sits in two layers, which mhw status reports as DUPLICATE."
+    },
+    {
+      "id": "workspace-session-contract",
+      "layer": "workspace",
+      "paths": [
+        "AGENTS.md",
+        ".claude/",
+        ".kiro/",
+        ".agents/",
+        ".workstation-version",
+        "workspace/README.md",
+        "workspace/session-policy.json",
+        "workspace/delivery.py"
+      ]
+    },
+    {
+      "id": "distribution-manifest",
+      "layer": "workspace",
+      "paths": ["distribution.json"],
+      "gap": "Nothing reads this manifest yet: no check, test or CI job consumes it (ADR-0026, amendment 2026-10-11)."
+    }
+  ]
+}

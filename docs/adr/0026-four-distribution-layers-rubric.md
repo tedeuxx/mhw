@@ -1,6 +1,8 @@
 # ADR-0026: Four distribution layers and the rubric that places each artifact
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ ~~accepted (ratified by the owner, 2026-10-04)~~ accepted (2026-10-11, the
+  owner's ratification in session; see the amendment "accepted" below, which also says why the
+  2026-10-04 date is struck)
 - **Date:** 2026-10-04
 - **Deciders:** the owner
 - **Refines:** [ADR-0014](0014-purpose-boundary-firewall-vs-plugin.md) (its two-way split becomes four layers)
@@ -53,7 +55,7 @@ manifests, the inventory and the dehydration all depend on it.
 
 ## Decision outcome
 
-**Proposed: option 1.**
+~~**Proposed: option 1.**~~ **Chosen: option 1** (accepted 2026-10-11).
 
 ### The layers
 
@@ -108,8 +110,86 @@ that apply this rubric. This record decides no individual artifact's placement.
 - Bad: promotion is two pull requests in two repositories for each artifact, which is slower than a
   single edit.
 
+## Amendment 2026-10-11: accepted
+
+**Ratified by the owner on 2026-10-11, in session.** He chose to turn the uncommitted ratification
+edit and the manifest into a pull request rather than park or discard them. This pull request is the
+first recorded trace of the ratification.
+
+**Why the 2026-10-04 date is struck.** A local edit, never committed, set the status to *"accepted
+(ratified by the owner, 2026-10-04)"*. No Issue comment, pull request or commit records a ratification
+on that date: `rc/next` carried this record as `proposed` until this change, and the index said the
+same. A date with no trace is not evidence, so the record dates its acceptance to 2026-10-11. The
+struck text stays in the status line so the earlier claim remains visible.
+
+**What later records change here.** Read this record together with them. None of the proposed ones is
+in force until the owner ratifies it.
+
+- [ADR-0027](0027-native-carrier-per-component-from-the-enforcement-matrix.md) (proposed) fills in the
+  *Native carrier* column per component class, from the measured enforcement matrix.
+- [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (proposed) removes
+  `/breaking-glass` and the expiring switches. The criterion for entering the managed layer stands.
+  The phrase *"the scope of `/breaking-glass`"* in Consequences, and the `/breaking-glass` argument in
+  option 3, name a command that no longer exists. The code at this record's acceptance already works
+  that way: OS privilege is the only way to turn a managed hook off. ADR-0028 itself is still
+  proposed, so the decision behind that code awaits the owner's ratification.
+- [ADR-0032](0032-this-repository-is-the-single-source-of-the-working-method.md) (proposed) moves the
+  working method (agents, skills, commands) from the plugin into this repository, rendered at user
+  level. Placement test question 2 already puts it there, since the method applies in every project.
+  ADR-0032 is proposed, so this change is not yet in force.
+  Once ADR-0032 is accepted, the **plugin** row of the layer table and the plugin clause of
+  *Placement by repository* are superseded for those artifacts. Until the plugin cutover, the method
+  installed alongside the enabled plugin is a copy in two layers, the defect *One layer per artifact*
+  names. `mhw status` reports it as `DUPLICATE`.
+- [ADR-0035](0035-workstation-blueprint-reconciliation.md) (accepted) decision 6, *hooks only for
+  existential risk*, narrows which hooks may enter the managed layer. It is consistent with placement
+  test question 1.
+- [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md) (~~proposed~~ accepted 2026-10-11) and its
+  2026-10-11 amendment
+  give Kiro an admin carrier for the **deny floor** (`managed-settings.json`). The Kiro gap named in
+  option 1 and in Consequences is now narrower: Kiro still has no admin carrier for **hooks**
+  ([ADR-0025](0025-hook-layers-in-the-native-admin-layer.md)).
+
+**The manifest.** [`distribution.json`](../../distribution.json) applies this rubric to the files
+`rc/next` tracks: every tracked file is listed in exactly one artifact, or in `not_distributed`.
+That holds under one precedence rule, which the manifest states in its `path_rules` field: **a
+`not_distributed` entry wins over an artifact's directory entry.** Without that rule, five test files
+would sit in two places: `global/mcp/mcp_render_test.py`, `global/mcp/mcp_retire_test.py`,
+`global/method/method_commands_test.py`, `global/method/method_render_test.py` and
+`global/models/model_defaults_test.py`. Each matches both `*_test.py` and its component's directory.
+Nothing reads it. No check, test or CI job consumes it, and this amendment adds none: a check would be
+a new tool, owed its own record, as *Out of scope here* says. Each artifact's layer is the
+implementing agent's application of the test and is open to the owner's correction. Like the record,
+the manifest states intent, not what is installed.
+
+**Two departures from this record's own layer table, ratified with it.** The manifest follows the
+placement test where it disagrees with the examples in *The layers* table. The owner ratifies these
+two departures together with the record:
+
+1. **The global brief is `managed`, not `user`.** The table lists *"the global brief"* in the user
+   row. The manifest places it as managed-class, with its gap declared. The reason is placement test
+   question 1: the brief carries the firewall's mission and its protections, so switching it off would
+   be a risk and not an inconvenience. Its clause on missing carriers then applies: no admin
+   instruction carrier is used yet, so it is installed at user level, declared as managed-class, and
+   not reclassified as a preference. The table row predates that reading.
+2. **`.github/` is `not_distributed`, although the table gives *"that repository's CI publication"* as
+   its workspace example.** Meanwhile `AGENTS.md`, ~~`CLAUDE.md`~~ *(struck 2026-10-11: deleted,
+   [ADR-0037](0037-agents-md-is-the-only-root-brief.md))* and `workspace/` are classed
+   `workspace`, though none of them is installed on a workstation either, so "not installed" is not
+   the line between them. The line is the reader. Those files are read by an agent harness working in
+   this repository, which makes them the repository's own contract with the harness. The workflows
+   are read only by the forge's CI runner, which is not one of the four carriers. The table's CI
+   example stays true for the publication contract written in `AGENTS.md` and `workspace/`; the
+   workflow files that execute it are outside the four layers.
+
 ## Links
 
+- [ADR-0027](0027-native-carrier-per-component-from-the-enforcement-matrix.md),
+  [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md),
+  [ADR-0032](0032-this-repository-is-the-single-source-of-the-working-method.md),
+  [ADR-0035](0035-workstation-blueprint-reconciliation.md),
+  [ADR-0036](0036-kiro-shared-deny-floor-permissions-yaml.md): later records that change parts of this
+  one (see the amendment above)
 - [ADR-0014](0014-purpose-boundary-firewall-vs-plugin.md): firewall versus plugin, refined here
 - [ADR-0024](0024-breaking-glass-per-layer-expiring-switches.md): native admin layers per harness
 - [ADR-0025](0025-hook-layers-in-the-native-admin-layer.md): the first artifacts placed in the managed layer

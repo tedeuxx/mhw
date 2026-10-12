@@ -424,6 +424,61 @@ if [ "$(cat "$rc_old")" = "$(printf 'export A=1\nexport B=2\n%s' "$want_block")"
 else
   ko "the one-line form was not replaced: $(cat "$rc_old")"
 fi
+# The unmarked two-line form an owner added by hand (the 2026-10-11 canary found it beside the block in the
+# reference ~/.zshrc, so the snippet was sourced twice): check reports it, install removes exactly that pair
+# with a backup and a CHANGED line, a near-miss spelling is the owner's and stays, and uninstall removes it too.
+rc_l2c='# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)'
+# shellcheck disable=SC2016  # the literal $HOME is the text being matched
+rc_l2s='. "$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh"'
+rc_two="$h3/two-line-rc"
+printf 'export A=1\n%s\n%s\n%s\nexport B=2\n' "$rc_l2c" "$rc_l2s" "$want_block" > "$rc_two"
+rc_two_orig=$(cksum < "$rc_two")
+HOME="$h3" sh "$inst" --check --shell-rc="$rc_two" > "$base/rc-two-check.out"; expect "check reports the two-line form beside the block" 1 $?
+if grep -qxF "DRIFT   $rc_two: paste-wrapper start-up block is sourced twice (an unmarked two-line form beside the block); install replaces it" "$base/rc-two-check.out"; then
+  ok "check names the double sourcing"
+else
+  ko "check did not name the double sourcing: $(cat "$base/rc-two-check.out")"
+fi
+HOME="$h3" sh "$inst" --shell-rc="$rc_two" > "$base/rc-two.out"; expect "install over the two-line form" 0 $?
+if [ "$(cat "$rc_two")" = "$(printf 'export A=1\nexport B=2\n%s' "$want_block")" ] \
+   && [ "$(cksum < "$rc_two.pmhwc-backup")" = "$rc_two_orig" ] \
+   && grep -qxF "CHANGED $rc_two: paste-wrapper start-up block sourced twice (an unmarked two-line form beside the block) -> present (previous file kept as $rc_two.pmhwc-backup); new shells clean pastes" "$base/rc-two.out"; then
+  ok "the unmarked two-line form is removed, the block stays once, a backup is kept"
+else
+  ko "the two-line form was not removed: $(cat "$rc_two")"
+fi
+HOME="$h3" sh "$inst" --check --shell-rc="$rc_two" > /dev/null; expect "check after removing the two-line form" 0 $?
+# Near misses are the owner's: the comment alone, the source line alone, and the pair with a blank line between.
+rc_near="$h3/two-line-near-rc"
+printf '%s\nexport C=3\n%s\n%s\n\n%s\n' "$rc_l2c" "$rc_l2s" "$rc_l2c" "$rc_l2s" > "$rc_near"
+rc_near_orig=$(cat "$rc_near")
+HOME="$h3" sh "$inst" --shell-rc="$rc_near" > "$base/rc-near.out"; expect "install over near misses" 0 $?
+if [ "$(cat "$rc_near")" = "$(printf '%s\n%s' "$rc_near_orig" "$want_block")" ] \
+   && grep -q "^CHANGED $rc_near: paste-wrapper start-up block absent -> present" "$base/rc-near.out"; then
+  ok "only the exact adjacent pair is recognised; near misses stay"
+else
+  ko "a near miss was removed: $(cat "$rc_near")"
+fi
+# PR #153 lens: a pair that is the whole body of an if is left in place and reported, so bash still parses the
+# file (removing it would leave "then" followed by "fi").
+rc_if="$h3/two-line-if-rc"
+printf 'if true; then\n%s\n%s\nfi\n' "$rc_l2c" "$rc_l2s" > "$rc_if"
+HOME="$h3" sh "$inst" --shell-rc="$rc_if" > "$base/rc-if.out"; expect "install over a pair inside an if body" 0 $?
+if [ "$(sed -n 2,3p "$rc_if")" = "$(printf '%s\n%s' "$rc_l2c" "$rc_l2s")" ] && bash -n "$rc_if" \
+   && grep -q "^NOTE    $rc_if: an unmarked two-line paste-filter source opens a compound command's body" "$base/rc-if.out"; then
+  ok "a pair opening an if body is kept, the file still parses in bash, and a NOTE says so"
+else
+  ko "the pair inside an if body was removed or not reported: $(cat "$rc_if")"
+fi
+# Uninstall over the two-line form alone (no block): it goes, since the snippet it sources goes too.
+rc_two_only="$h3/two-line-only-rc"
+printf 'export A=1\n%s\n%s\n' "$rc_l2c" "$rc_l2s" > "$rc_two_only"
+HOME="$h3" sh "$inst" --uninstall --shell-rc="$rc_two_only" > "$base/rc-two-un.out"; expect "uninstall over the two-line form" 0 $?
+if [ "$(cat "$rc_two_only")" = "export A=1" ] && grep -q "^CHANGED $rc_two_only: paste-wrapper start-up block present -> absent" "$base/rc-two-un.out"; then
+  ok "uninstall removes the two-line form"
+else
+  ko "uninstall left the two-line form: $(cat "$rc_two_only")"
+fi
 # A file with no newline at its end gets one, then the block.
 rc_nl="$h3/no-newline-rc"
 printf 'export X=1' > "$rc_nl"
