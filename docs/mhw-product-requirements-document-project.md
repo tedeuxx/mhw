@@ -654,7 +654,7 @@ product-lead lands: the user level (decided on #61).
   `.workstation-version` at the project root; comparators `>=`, `>`, `<=`, `<`, `=` separated by blanks.
   The instruction sits in the **user** brief (one copy reaches every project), not in each project
   brief. The installed release is the provenance stamp ([9a](#9a-provenance-stamp-in-every-installed-file));
-  `unreleased, after vX.Y.Z` compares as X.Y.Z. This repository carries `>=4.0 <5`: the release candidate cuts v4.0.0 (Issue #65).
+  `unreleased, after vX.Y.Z` compares as X.Y.Z. This repository carried `>=4.0 <5`: the release candidate cuts v4.0.0 (Issue #65). It carries `>=5.4 <6` since v5.4.0 (Issue #62).
 
 Slice: [#57](https://github.com/tedeuxx/mhw/issues/57).
 

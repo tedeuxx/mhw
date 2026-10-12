@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - name: Resolve the bump part from the PR label
         id: part
@@ -77,3 +79,94 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ steps.version.outputs.tag }}
         run: gh release create "$TAG" --verify-tag --generate-notes --title "$TAG"
+
+  # Issue #62, ADR-0032: after the release is cut, package method/ as the Claude Code plugin and push it
+  # to tadeumendonca-skills, the generated copy. The credential is a GitHub App installed on that one
+  # repository (owner, 2026-10-11, on #62; runbook docs/runbooks/mirror-github-app.md). Without its two
+  # secrets the job prints a notice and does nothing: it never fails the release, which is already
+  # published when it starts. The token is minted by the action, masked by the runner, scoped to
+  # contents: write on tadeumendonca-skills, revoked when the job ends, and never echoed.
+  mirror:
+    needs: bump
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Are the mirror App secrets set?
+        id: gate
+        env:
+          HAS_ID: ${{ secrets.MHW_MIRROR_APP_ID != '' }}
+          HAS_KEY: ${{ secrets.MHW_MIRROR_APP_PRIVATE_KEY != '' }}
+        run: |
+          if [ "$HAS_ID" = true ] && [ "$HAS_KEY" = true ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=plugin mirror skipped::MHW_MIRROR_APP_ID or MHW_MIRROR_APP_PRIVATE_KEY is not set; tadeumendonca-skills was not updated (docs/runbooks/mirror-github-app.md)"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # actions/checkout v6.1.0 (same pin as the bump job). The release tag, read-only, no credential kept.
+      - if: steps.gate.outputs.ready == 'true'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ needs.bump.outputs.tag }}
+          path: mhw
+          persist-credentials: false
+
+      - name: Package the method and check it as a plugin (before anything is pushed)
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          TAG: ${{ needs.bump.outputs.tag }}
+        run: |
+          python3 --version
+          sha="$(git -C mhw rev-parse HEAD)"
+          python3 -B mhw/global/method/method_package.py build --out="$RUNNER_TEMP/plugin" \
+            --version="${TAG#v}" --stamp="release: $TAG; commit: $sha"
+          python3 -B mhw/global/method/method_package.py check --package="$RUNNER_TEMP/plugin"
+
+      # actions/create-github-app-token v3.2.0 (lightweight tag -> commit, verified with git ls-remote
+      # 2026-10-12). app-id is deprecated in v3 in favour of client-id and still accepted; the secret
+      # holds the App ID, as the runbook stores it.
+      - name: Mint a token for tadeumendonca-skills
+        id: app
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ secrets.MHW_MIRROR_APP_ID }}
+          private-key: ${{ secrets.MHW_MIRROR_APP_PRIVATE_KEY }}
+          owner: tedeuxx
+          repositories: tadeumendonca-skills
+          permission-contents: write
+
+      # actions/checkout v6.1.0. Its default branch; the App token is kept in the checkout's git config
+      # only for the push below, and the runner deletes the workspace when the job ends.
+      - if: steps.gate.outputs.ready == 'true'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: tedeuxx/tadeumendonca-skills
+          path: skills
+          token: ${{ steps.app.outputs.token }}
+
+      - name: Replace the generated paths, commit as the App, push to the default branch
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          TAG: ${{ needs.bump.outputs.tag }}
+          SLUG: ${{ steps.app.outputs.app-slug }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          python3 -B mhw/global/method/method_package.py sync --package="$RUNNER_TEMP/plugin" --target=skills
+          branch="$(git -C skills rev-parse --abbrev-ref HEAD)"
+          git -C skills add -A
+          if git -C skills diff --cached --quiet; then
+            echo "::notice title=plugin mirror::tadeumendonca-skills already carries $TAG; nothing to push"
+            exit 0
+          fi
+          uid="$(gh api "/users/${SLUG}%5Bbot%5D" --jq .id)"
+          git -C skills config user.name "${SLUG}[bot]"
+          git -C skills config user.email "${uid}+${SLUG}[bot]@users.noreply.github.com"
+          # [skip ci]: the plugin repository's own push workflows (its patch bump among them) must not
+          # run on a generated commit; its release is this one, $TAG.
+          git -C skills commit -q -m "chore: mirror the working method from tedeuxx/mhw $TAG [skip ci]" \
+            -m "Generated by tedeuxx/mhw version-main (Issue #62). Do not edit these files here: edit method/ in tedeuxx/mhw."
+          git -C skills push origin "HEAD:refs/heads/$branch"
+          echo "::notice title=plugin mirror::tadeumendonca-skills $branch now carries the method at $TAG"

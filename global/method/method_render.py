@@ -167,8 +167,12 @@ def load(source):
 # --------------------------------------------------------------------------------------------------
 # Rendering. Every function returns the file text.
 
-def marker(where, stamp):
-    return "%s; source: %s; %s; do not edit, re-run the installer" % (MARKER_ID, where, stamp)
+INSTALL_TAIL = "do not edit, re-run the installer"
+
+
+def marker(where, stamp, tail=INSTALL_TAIL):
+    # tail: what a reader of the file must do instead of editing it. The plugin packager (#62) passes its own.
+    return "%s; source: %s; %s; %s" % (MARKER_ID, where, stamp, tail)
 
 
 def q(value):
@@ -176,10 +180,10 @@ def q(value):
     return json.dumps(value, ensure_ascii=False)
 
 
-def skill_md(name, description, purpose, body, where, stamp):
+def skill_md(name, description, purpose, body, where, stamp, tail=INSTALL_TAIL):
     if len(description) > DESCRIPTION_MAX:
         raise SourceError("%s: description is %d characters; the limit is %d" % (where, len(description), DESCRIPTION_MAX))
-    head = ["---", "# " + marker(where, stamp), "name: " + q(name), "description: " + q(description)]
+    head = ["---", "# " + marker(where, stamp, tail), "name: " + q(name), "description: " + q(description)]
     if purpose:
         head += ["metadata:", "  purpose: " + q(purpose)]
     return "\n".join(head + ["---"]) + "\n" + body
@@ -190,8 +194,8 @@ def command_preface(name, invoke):
             "text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\n" % invoke)
 
 
-def claude_command(c, name, stamp):
-    head = ["---", "# " + marker(c["where"], stamp), "description: " + q(c["description"])]
+def claude_command(c, name, stamp, tail=INSTALL_TAIL):
+    head = ["---", "# " + marker(c["where"], stamp, tail), "description: " + q(c["description"])]
     if c["hint"]:
         head.append("argument-hint: " + q(c["hint"]))
     return "\n".join(head + ["---"]) + "\n" + c["body"]
@@ -207,8 +211,8 @@ def codex_policy(where, stamp):
     return "# %s\npolicy:\n  allow_implicit_invocation: false\n" % marker(where, stamp)
 
 
-def claude_agent(a, name, stamp):
-    head = ["---", "# " + marker(a["where"], stamp), "name: " + name, "description: " + q(a["description"])]
+def claude_agent(a, name, stamp, tail=INSTALL_TAIL):
+    head = ["---", "# " + marker(a["where"], stamp, tail), "name: " + name, "description: " + q(a["description"])]
     head.append("tools: " + (", ".join(a["tools"]) if a["tools"] else "[]"))
     if a["excluded"]:
         head.append("disallowedTools: " + ", ".join(a["excluded"]))

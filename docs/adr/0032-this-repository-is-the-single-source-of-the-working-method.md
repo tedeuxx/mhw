@@ -221,6 +221,62 @@ the cut of one skill.
 lacks the disclaimer, lacks exactly one closing tool section, or carries a tool word outside both; 11
 mutations of the skill sources turned it red and the unmutated copy stayed green.
 
+## Amendment 2026-10-12: the plugin is generated from here and mirrored by a GitHub App (#62)
+
+The record said the plugin is regenerated from here later (#62). This is how. It changes no decision
+above; it adds a packager, a CI job, a third-party action and a cross-repository credential, which the
+significance gate names (AGENTS.md, principle 2).
+
+**The owner's ruling** on [#62](https://github.com/tedeuxx/mhw/issues/62), 2026-10-11: the mirror stays,
+and its credential is a **GitHub App** installed once on `tadeumendonca-skills` only. A fine-grained PAT
+and archiving the plugin repository without a mirror were both rejected.
+
+**What was built:**
+
+- `global/method/method_package.py build` renders `method/` with `method_render.py`'s parser and Claude
+  Code renderers into the plugin `tadeumendonca-skills`: `plugin.json` at this repository's release,
+  `agents/`, `skills/`, `commands/`, and the list `.mhw-generated`. Every file carries the ADR-0029
+  stamp and a generated, do-not-edit marker (in `plugin.json`, inside the description). No hooks, no
+  settings, no MCP servers. `check` is the structural load test; `sync` replaces only the generated
+  paths of a checkout.
+- The `mirror` job in `version-main.yml`, after the bump job: mints a token with
+  `actions/create-github-app-token` (pinned by commit) from `MHW_MIRROR_APP_ID` and
+  `MHW_MIRROR_APP_PRIVATE_KEY`, scoped to `tadeumendonca-skills` and `contents: write`; builds from the
+  tag, checks, syncs, commits as the App with the tag and `[skip ci]` in the message, pushes to the
+  default branch. Without the secrets it prints a notice and skips.
+
+**Considered and rejected:**
+
+- **Replace `agents/`, `skills/` and `commands/` whole in the plugin repository.** *Trade-off:* no
+  leftovers, but it would remove the site-stack skills (#64) and the sprint commands the method left out
+  while the plugin is still the running copy. Chosen instead: replace only generated paths, remove only
+  what an earlier mirror generated and still carries the marker, and name every other file in the log.
+- **Remove the plugin's `hooks/` in the mirror.** *Trade-off:* the package would load hookless at once,
+  but removing a running protection is the cutover's decision (#63), not a packaging step.
+- **Let the plugin repository's own patch bump run on the mirror commit.** *Trade-off:* its bump config
+  looks for its own last version in `plugin.json` and would fail on every mirror. `[skip ci]` keeps it
+  off the generated commit.
+
+**Consequences:**
+
+- Good: one source; the plugin carries the same text as the user-level install, and its version names
+  the release it came from.
+- Bad: until the cutover the pushed plugin is the package **plus** what it leaves: `hooks/` (still loaded
+  by Claude Code), `.mcp.json`, `powers/`, `.codex-plugin/`, the commands and skills the method does not
+  carry. The plugin repository's `VERSION` and `.bumpversion.toml` fall out of step with `plugin.json`.
+- Bad: the job runs after the release is published, so a mirror failure leaves a release with a stale
+  plugin; it is visible as a failed job, not prevented.
+- Bad: whether the plugin repository's default branch is protected was not read (the agent's `gh api` is
+  denied); if it is, the App needs a bypass, per the runbook.
+
+**Evidence:** `global/method/method_package_test.py`, 36 tests, registered in `tests.yml`; 15 mutations
+of the packager, the renderer and the workflow each turned it red, the unmutated tree green.
+`claude plugin validate --strict` passed on the package (Claude Code 2.1.296, reference machine);
+calibrated by hand, it fails on a missing front matter, a skill without a description, a non-string
+version and an unknown manifest key, and passes a malformed YAML value, so it is a partial load test. The
+job is **written, not run**: the App does not exist yet and no real push has happened
+([runbook](../runbooks/mirror-github-app.md)).
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)

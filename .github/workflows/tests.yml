@@ -72,6 +72,7 @@ jobs:
             global/scan.py global/scan_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
+            global/method/method_package.py global/method/method_package_test.py \
             global/models/model_defaults.py global/models/model_defaults_test.py \
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py \
@@ -162,6 +163,15 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/method/method_render_test.py "$RUNNER_TEMP/method"
+      # Issue #62, ADR-0032: the working method packaged as the Claude Code plugin tadeumendonca-skills, in
+      # throwaway directories only: the manifest, each agent's tool list, the marker and the one stamp in
+      # every file, no hooks and no protections, the check that runs before the mirror pushes, and the
+      # sync that replaces only generated paths. claude plugin validate runs only where claude is on PATH
+      # (not this runner, which prints SKIP).
+      - name: plugin packager suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/method/method_package_test.py "$RUNNER_TEMP/method-package"
       # ADR-0035: the session-start model and effort defaults, per agent harness, in throwaway HOMEs:
       # render, check, drift (an owner's value is never overwritten) and uninstall of only what mhw set.
       - name: model-defaults suite
