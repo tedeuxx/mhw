@@ -141,6 +141,10 @@ jobs:
           MHW_TOKEN: ${{ github.token }}
           MHW_SKILLS_TOKEN: ${{ steps.app.outputs.token }}
           MHW_SYNC_DIR: ${{ runner.temp }}/method-sync
+          # Best-effort scrub of Anthropic, cloud and Actions secrets from the agent's subprocesses
+          # (the action's docs/security.md). Whether it also drops the MHW_* names is not measured; if it
+          # did, the script would refuse and verify would turn the run red.
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
@@ -222,7 +226,7 @@ jobs:
       matrix:
         issue: ${{ fromJSON(needs.select.outputs.issues) }}
     concurrency:
-      group: method-issue-sync-${{ matrix.issue }}
+      group: method-issue-sync-backlink-${{ matrix.issue }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803

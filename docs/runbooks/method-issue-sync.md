@@ -22,11 +22,18 @@ no real run has happened, and none can until the three secrets exist and the wor
 | Actions → method-issue-sync → Run workflow, with an Issue number | that Issue is synced (only if it carries `method`) |
 | the same, with the number empty | backfill: every open `method` Issue is synced, one at a time |
 
-The twin carries the hidden marker `<!-- mhw-issue: tedeuxx/mhw#N -->` and a link back. On first
-creation the mhw Issue gets one comment with the twin's URL.
+The twin is the Issue the mirror App opened in tadeumendonca-skills carrying the hidden marker
+`<!-- mhw-issue: tedeuxx/mhw#N -->`, with a link back. tadeumendonca-skills is public, so anyone can
+open an Issue carrying a marker: such an Issue is ignored, named in a run warning, and never edited.
+On first creation the mhw Issue gets one comment with the twin's URL; only a comment posted by GitHub
+Actions counts as that link, so a marker typed into someone else's comment does not suppress it.
 
-Not mirrored: removing the `method` label, deleting or transferring the mhw Issue, and comments. An
-edit made directly on the twin is overwritten by the next sync.
+Not mirrored:
+
+- **Removing the `method` label leaves the twin open.** Close the twin by hand, or close the mhw Issue
+  while it still carries the label.
+- Deleting or transferring the mhw Issue, and comments.
+- An edit made directly on the twin is overwritten by the next sync.
 
 ## Already done (2026-10-12)
 
@@ -71,7 +78,14 @@ edit made directly on the twin is overwritten by the next sync.
    ```
 
    Expected: the run is green; a twin titled `[mhw#<N>] Canary: method backlog sync` appears in
-   tadeumendonca-skills; the mhw Issue gets one comment linking it.
+   tadeumendonca-skills; the mhw Issue gets one comment linking it. The canary also confirms the
+   author login the script expects for the App, `app/tedeuxx-mhw-mirror` (`TWIN_AUTHOR` in
+   `.github/scripts/method_issue_sync.py`, a hypothesis until then): if it is wrong, the twin is created
+   but the `verify` step fails red with "no twin", and a second twin appears on the next run.
+
+   ```sh
+   gh issue view <twin number> --repo tedeuxx/tadeumendonca-skills --json author --jq .author.login
+   ```
 
    ```sh
    gh issue list --repo tedeuxx/tadeumendonca-skills --search "mhw#<N> in:title" --state all
@@ -84,8 +98,8 @@ edit made directly on the twin is overwritten by the next sync.
 ## Cost
 
 Each sync run is one Claude Code session (at most 30 turns) on the owner's Claude subscription, through
-`CLAUDE_CODE_OAUTH_TOKEN`, and counts against its usage limits. Every edit of a labelled Issue starts a
-run, so a burst of edits is a burst of runs (one at a time per Issue; a newer queued run replaces an
+`CLAUDE_CODE_OAUTH_TOKEN`, and counts against its usage limits. **Every edit of a labelled Issue (title
+or body) spends one run**, so a burst of edits is a burst of runs (one at a time per Issue; a newer queued run replaces an
 older queued one). A backfill runs one session per open `method` Issue. The back-link job uses no model.
 
 ## Revoke
@@ -111,7 +125,11 @@ was not checked for this runbook).
 - The agent has one shell route, `.github/scripts/method_issue_sync.py`, and no file-reading tools. The
   script writes only to the twin (found by the marker), refuses a body file outside the run's scratch
   directory, refuses a body or title shaped like a credential, and mirrors state only in the direction
-  the mhw Issue is in. The credential patterns are a short list, not a scanner.
+  the mhw Issue is in. It also refuses a title or body containing any 12-character run of a token the
+  run holds. A refusal names an argument's position or kind, never its value. The credential patterns
+  are a short list, not a scanner.
+- `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` is set: a best-effort scrub of Anthropic, cloud and Actions secrets
+  from the agent's subprocesses, per the action's own documentation. Not measured.
 - After the agent, a `verify` step (no model) fails the run unless the twin exists and its state is
   the mhw Issue's. It does not check the twin's text.
 - Personal data and client or employer names are kept out of the twin by the prompt only. The

@@ -145,9 +145,11 @@ class Workflow(unittest.TestCase):
             self.assertNotRegex(run, r"\$\{?(GH_TOKEN|MHW_TOKEN|MHW_SKILLS_TOKEN)\b")
 
     def test_concurrency_per_issue(self):
-        for job in ("sync", "backlink"):
+        groups = {"sync": "method-issue-sync-${{ matrix.issue }}",
+                   "backlink": "method-issue-sync-backlink-${{ matrix.issue }}"}
+        for job, group in groups.items():
             c = self.jobs[job]["concurrency"]
-            self.assertEqual(c["group"], "method-issue-sync-${{ matrix.issue }}")
+            self.assertEqual(c["group"], group)
             self.assertFalse(c["cancel-in-progress"])
             self.assertEqual(self.jobs[job]["strategy"]["matrix"]["issue"],
                              "${{ fromJSON(needs.select.outputs.issues) }}")
@@ -160,6 +162,7 @@ class Workflow(unittest.TestCase):
         self.assertEqual(env["MHW_SKILLS_TOKEN"], "${{ steps.app.outputs.token }}")
         self.assertEqual(env["MHW_TOKEN"], "${{ github.token }}")
         self.assertEqual(env["MHW_ISSUE"], "${{ matrix.issue }}")
+        self.assertEqual(env["CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"], "1")
         self.assertNotIn("anthropic_api_key", w)
 
     def test_allowed_tools_are_bounded(self):
@@ -230,13 +233,14 @@ if args[:2] == ["issue", "view"] and repo() == "tedeuxx/mhw":
         print(json.dumps(state["mhw"]))
 elif args[:2] == ["issue", "comment"] and repo() == "tedeuxx/mhw":
     body = open(args[args.index("--body-file") + 1]).read()
-    state["mhw_comments"].append({"body": body}); save(); print("https://github.com/tedeuxx/mhw/issues/7#c")
+    state["mhw_comments"].append({"body": body, "author": {"login": "github-actions"}}); save(); print("https://github.com/tedeuxx/mhw/issues/7#c")
 elif args[:2] == ["issue", "list"] and repo() == "tedeuxx/tadeumendonca-skills":
     print(json.dumps(state["skills"]))
 elif args[:2] == ["issue", "create"]:
     n = 900 + len(state["skills"])
     body = open(args[args.index("--body-file") + 1]).read()
     state["skills"].append({"number": n, "title": args[args.index("--title") + 1], "state": "OPEN",
+                            "author": {"login": "app/tedeuxx-mhw-mirror"},
                             "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/%d" % n, "body": body})
     save(); print("https://github.com/tedeuxx/tadeumendonca-skills/issues/%d" % n)
 elif args[:2] in (["issue", "close"], ["issue", "reopen"], ["issue", "edit"], ["issue", "comment"], ["issue", "view"]):
@@ -262,7 +266,7 @@ class Script(unittest.TestCase):
         self.set_state(mhw_state="OPEN", skills=[
             {"number": 5, "title": "other", "state": "OPEN", "url": "u5", "body": "unrelated"},
             {"number": 6, "title": "other twin", "state": "OPEN", "url": "u6",
-             "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->"},
+             "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->", "author": {"login": "app/tedeuxx-mhw-mirror"}},
         ])
 
     def tearDown(self):
@@ -274,10 +278,11 @@ class Script(unittest.TestCase):
                                "url": "https://github.com/tedeuxx/mhw/issues/7", "labels": []},
                        "mhw_comments": list(comments), "skills": skills}, fh)
 
-    def add_twin(self, state="OPEN"):
+    def add_twin(self, state="OPEN", number=42, author="app/tedeuxx-mhw-mirror"):
         with open(self.state) as fh:
             st = json.load(fh)
-        st["skills"].append({"number": 42, "title": "[mhw#7] T", "state": state, "url": "u42",
+        st["skills"].append({"number": number, "title": "[mhw#7] T", "state": state, "url": "u%d" % number,
+                             "author": {"login": author},
                              "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"})
         with open(self.state, "w") as fh:
             json.dump(st, fh)
@@ -292,10 +297,11 @@ class Script(unittest.TestCase):
         return self.body("<!-- mhw-issue: tedeuxx/mhw#7 -->\nMirrored from https://github.com/tedeuxx/mhw/issues/7\n"
                          "## What changes in the plugin\n- skills: x\n", name)
 
-    def run_script(self, *args, issue="7"):
+    def run_script(self, *args, issue="7", extra_env=None):
         env = {"PATH": self.bin + os.pathsep + os.environ.get("PATH", ""), "STUB_STATE": self.state,
                "STUB_LOG": self.log, "MHW_ISSUE": issue, "MHW_TOKEN": "tok-mhw",
                "MHW_SKILLS_TOKEN": "tok-skills", "MHW_SYNC_DIR": self.sync, "GITHUB_TOKEN": "tok-other"}
+        env.update(extra_env or {})
         return subprocess.run([sys.executable, "-B", SCRIPT] + list(args), env=env, stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, universal_newlines=True)
 
@@ -308,12 +314,13 @@ class Script(unittest.TestCase):
     def writes(self):
         return [c for c in self.calls() if c["args"][1] in ("create", "edit", "comment", "close", "reopen")]
 
-    def assert_refused(self, *args, issue="7"):
+    def assert_refused(self, *args, issue="7", extra_env=None):
         before = len(self.writes())
-        proc = self.run_script(*args, issue=issue)
+        proc = self.run_script(*args, issue=issue, extra_env=extra_env)
         self.assertEqual(proc.returncode, 2, proc.stderr)
         self.assertIn("REFUSED", proc.stderr)
         self.assertEqual(len(self.writes()), before, "a refusal sends nothing")
+        return proc
 
     def test_every_call_is_scoped_by_repo_and_token(self):
         self.assertEqual(self.run_script("mhw-view").returncode, 0)
@@ -416,6 +423,78 @@ class Script(unittest.TestCase):
             body = json.load(fh)["mhw_comments"][0]["body"]
         self.assertIn("<!-- mhw-twin: tedeuxx/tadeumendonca-skills#42 -->", body)
         self.assertIn("u42", body)
+
+    def test_twin_must_be_app_authored(self):
+        self.add_twin(number=43, author="outsider")
+        proc = self.run_script("find-twin")
+        self.assertEqual(json.loads(proc.stdout), {}, "a marked Issue by anyone else is not the twin")
+        self.assertIn("::warning::ignored #43", proc.stderr)
+        self.assert_refused("skills-edit", "43", "--body-file", self.good_body())
+        self.assert_refused("skills-close", "43")
+        self.add_twin()
+        self.assertEqual(json.loads(self.run_script("find-twin").stdout)["number"], 42)
+        self.assertEqual(self.run_script("backlink").returncode, 0)
+        posted = [c for c in self.writes() if c["args"][:2] == ["issue", "comment"]]
+        with open(self.state) as fh:
+            self.assertIn("tadeumendonca-skills#42", json.load(fh)["mhw_comments"][0]["body"])
+        self.assertEqual(len(posted), 1)
+
+    def test_two_app_authored_twins_are_refused(self):
+        self.add_twin()
+        self.add_twin(number=44)
+        proc = self.assert_refused("find-twin")
+        self.assertIn("#42, #44", proc.stderr)
+        self.assert_refused("skills-edit", "42", "--body-file", self.good_body())
+
+    def test_body_size_cap(self):
+        big = self.body("<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7\n"
+                        + "x" * 60001, "big.md")
+        self.assert_refused("skills-create", "--title", "x", "--body-file", big)
+
+    def test_body_file_must_be_a_regular_file(self):
+        os.mkdir(os.path.join(self.sync, "dir.md"))
+        self.assert_refused("skills-create", "--title", "x", "--body-file", os.path.join(self.sync, "dir.md"))
+
+    def test_title_is_one_line(self):
+        self.assert_refused("skills-create", "--title", "a\nb", "--body-file", self.good_body())
+        self.assert_refused("skills-create", "--title", "a\rb", "--body-file", self.good_body())
+        self.assert_refused("skills-create", "--title", "x" * 257, "--body-file", self.good_body())
+
+    def test_token_runs_are_refused_and_never_printed(self):
+        held = "Zq7" * 20
+        for name in ("MHW_SKILLS_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN"):
+            path = self.body("<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7\n"
+                             "see %s\n" % held[5:17], "t-%s.md" % name)
+            proc = self.assert_refused("skills-create", "--title", "x", "--body-file", path,
+                                       extra_env={name: held})
+            self.assertNotIn(held[5:17], proc.stdout + proc.stderr)
+            proc = self.assert_refused("skills-create", "--title", "t " + held[30:42],
+                                       "--body-file", self.good_body(), extra_env={name: held})
+        # 11 characters of a token are not a match.
+        path = self.body("<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7\n"
+                         "see %s\n" % held[5:16], "t-short.md")
+        proc = self.run_script("skills-create", "--title", "x", "--body-file", path,
+                               extra_env={"MHW_SKILLS_TOKEN": held})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_refusals_do_not_echo_argument_values(self):
+        self.add_twin()
+        for args in (("skills-edit", "42", "--sekrit-flag", "VALUE-XYZ"),
+                     ("skills-view", "NUM-XYZ"),
+                     ("skills-view", "77777")):
+            proc = self.assert_refused(*args)
+            for value in ("sekrit", "VALUE-XYZ", "NUM-XYZ", "77777"):
+                self.assertNotIn(value, proc.stderr)
+
+    def test_backlink_counts_only_comments_by_github_actions(self):
+        self.set_state(mhw_state="OPEN", skills=[], comments=[
+            {"body": "<!-- mhw-twin: tedeuxx/tadeumendonca-skills#1 -->", "author": {"login": "outsider"}}])
+        self.add_twin()
+        self.assertEqual(self.run_script("backlink").returncode, 0)
+        self.assertEqual(len([c for c in self.writes() if c["args"][:2] == ["issue", "comment"]]), 1,
+                         "a marker in someone else's comment does not suppress the back-link")
+        self.assertEqual(self.run_script("backlink").returncode, 0)
+        self.assertEqual(len([c for c in self.writes() if c["args"][:2] == ["issue", "comment"]]), 1)
 
     def test_verify(self):
         proc = self.run_script("verify")

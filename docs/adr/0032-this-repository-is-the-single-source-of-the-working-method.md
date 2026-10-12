@@ -247,8 +247,11 @@ Issues/backlog"*. He agreed ("de acordo") to the mechanism below the same day.
 points at, verified with `git ls-remote` on 2026-10-12), joins `actions/create-github-app-token`
 (v3.2.0, likewise pinned). It is the first model-running dependency in this repository's CI. Its blast
 radius is bounded outside the model: the agent's only shell is `.github/scripts/method_issue_sync.py`,
-which writes only to the twin, only from files in the run's scratch directory, and refuses
-credential-shaped text; it has no file-reading tools, and project settings are not loaded. The mhw
+which writes only to the twin, meaning the App-authored Issue carrying the marker (-skills is public, so
+a marked Issue opened by anyone else is ignored and named in a warning, never edited), only from files
+in the run's scratch directory, and refuses credential-shaped text and any 12-character run of a token
+the run holds; it has no file-reading tools, and project settings are not loaded (read from the action's
+source, `--setting-sources user`; not measured on a runner). The mhw
 Issue's text is declared data, not instructions, in the prompt; that clause is an instruction to a model,
 not a control.
 
@@ -264,9 +267,10 @@ the owner wants, and gave the CI write access to the plugin's contents.
 
 **Evidence, 2026-10-12.** Written and tested: `.github/scripts/method_issue_sync_test.py` checks the
 workflow's structure (parsed with the runner's ruby) and drives the script against a stub `gh`. After the
-agent, a deterministic `verify` step fails the run unless the twin exists in the mhw Issue's state. 48
-mutations of the workflow and the script each turned it red; the unmutated copy is green. **Not run:**
-no secret is stored yet, and GitHub runs this workflow only from `main`.
+agent, a deterministic `verify` step fails the run unless the twin exists in the mhw Issue's state.
+**Not run:**
+no secret is stored yet, and GitHub runs this workflow only from `main`. The App's author login
+(`app/tedeuxx-mhw-mirror`) is a hypothesis the canary confirms.
 
 ## Links
 

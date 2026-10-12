@@ -6,16 +6,20 @@ script, and no other shell. The script is therefore the boundary, and it is deli
 
 - it reads exactly one mhw Issue, the one the run is for (MHW_ISSUE), with MHW_TOKEN;
 - it writes only to tedeuxx/tadeumendonca-skills, with MHW_SKILLS_TOKEN (the GitHub App token), and
-  only to the twin of that mhw Issue: the one -skills Issue whose body carries the hidden marker
-  <!-- mhw-issue: tedeuxx/mhw#N -->. It cannot touch any other -skills Issue;
+  only to the twin of that mhw Issue: the App-authored -skills Issue (author TWIN_AUTHOR) whose body
+  carries the hidden marker <!-- mhw-issue: tedeuxx/mhw#N -->. -skills is public, so anyone can open an
+  Issue carrying the marker: such an Issue is ignored, named in a warning, and never edited. It cannot
+  touch any other -skills Issue;
 - a twin it creates or edits must carry the marker and the link back; a body file must be a regular
   file under MHW_SYNC_DIR (so /proc/self/environ is refused), and a body or title that looks like a
-  credential is refused;
+  credential, or contains 12 or more characters of a token held in its environment, is refused;
+- a refusal names the argument's position or kind, never its value.
 - it closes the twin only while the mhw Issue is closed, and reopens it only while it is open.
 
 `verify` runs after the agent in the sync job and fails the run when no twin exists or its state differs
 from the mhw Issue's, so a refused or abandoned sync is red, not green. `backlink` is not for the agent: the separate backlink job runs it with an issues:write MHW_TOKEN to
-comment the twin's URL on the mhw Issue once. In the agent's job MHW_TOKEN is read-only.
+comment the twin's URL on the mhw Issue once; only a comment by GitHub Actions counts as an existing
+back-link. In the agent's job MHW_TOKEN is read-only.
 
 The token values are never printed. Python 3.9+, the GitHub CLI, no third-party module.
 """
@@ -32,6 +36,14 @@ TWIN_LIST_LIMIT = "2000"
 MAX_BODY_BYTES = 60000
 MAX_TITLE = 256
 BACKLINK_MARKER = "<!-- mhw-twin: "
+# The login gh reports for an Issue the mirror App opened. A hypothesis until the canary confirms it
+# (docs/runbooks/method-issue-sync.md); if it is wrong, verify fails red because no twin is found.
+TWIN_AUTHOR = "app/tedeuxx-mhw-mirror"
+# Logins gh may report for a comment posted with the workflow's GITHUB_TOKEN.
+BACKLINK_AUTHORS = ("github-actions", "app/github-actions", "github-actions[bot]")
+# Token values a title or body must never contain any 12-character run of.
+TOKEN_NAMES = ("MHW_SKILLS_TOKEN", "MHW_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN", "GH_TOKEN")
+TOKEN_RUN = 12
 
 # Shapes of a credential; a body or title matching one is refused, never posted. Not exhaustive.
 SECRET_PATTERNS = [
@@ -107,13 +119,23 @@ def mhw_issue_json(issue):
     return json.loads(out)
 
 
+def author_login(item):
+    return ((item.get("author") or {}).get("login") or "")
+
+
 def find_twin(issue):
     out = skills(["issue", "list", "--state", "all", "--limit", TWIN_LIST_LIMIT,
-                  "--json", "number,title,state,url,body"])
+                  "--json", "number,title,state,url,body,author"])
     needle = marker(issue)
-    found = [i for i in json.loads(out) if needle in (i.get("body") or "")]
+    marked = [i for i in json.loads(out) if needle in (i.get("body") or "")]
+    found = [i for i in marked if author_login(i) == TWIN_AUTHOR]
+    ignored = [i for i in marked if author_login(i) != TWIN_AUTHOR]
+    if ignored:
+        sys.stderr.write("::warning::ignored %s in %s: carries the marker of %s but was not opened by the "
+                         "mirror App\n" % (", ".join("#%s" % i["number"] for i in ignored), SKILLS_REPO,
+                                           mhw_url(issue)))
     if len(found) > 1:
-        raise Refused("more than one Issue in %s carries %s: %s"
+        raise Refused("more than one App-authored Issue in %s carries %s: %s"
                       % (SKILLS_REPO, needle, ", ".join("#%s" % i["number"] for i in found)))
     if not found:
         return None
@@ -123,12 +145,13 @@ def find_twin(issue):
 
 def require_twin(issue, number):
     if not re.fullmatch(r"[1-9][0-9]{0,6}", number or ""):
-        raise Refused("not an Issue number: %r" % number)
+        raise Refused("the Issue number argument is not a number")
     twin = find_twin(issue)
     if twin is None:
         raise Refused("%s has no twin in %s yet" % (mhw_url(issue), SKILLS_REPO))
     if str(twin["number"]) != number:
-        raise Refused("#%s is not the twin of %s (the twin is #%s)" % (number, mhw_url(issue), twin["number"]))
+        raise Refused("the Issue number argument is not the twin of %s (the twin is #%s)"
+                      % (mhw_url(issue), twin["number"]))
     return twin
 
 
@@ -136,6 +159,11 @@ def check_secrets(text, what):
     for pattern in SECRET_PATTERNS:
         if pattern.search(text):
             raise Refused("the %s looks like it carries a credential; nothing was sent" % what)
+    for name in TOKEN_NAMES:
+        value = os.environ.get(name, "")
+        for start in range(0, len(value) - TOKEN_RUN + 1):
+            if value[start:start + TOKEN_RUN] in text:
+                raise Refused("the %s contains part of a token held by this run; nothing was sent" % what)
 
 
 def check_title(title):
@@ -173,15 +201,18 @@ def parse_flags(args, allowed):
     """--flag VALUE pairs only, each at most once, from the allowed set; anything else is refused."""
     flags = {}
     rest = list(args)
+    position = 0
     while rest:
+        position += 1
         flag = rest.pop(0)
         if flag not in allowed:
-            raise Refused("flag not allowed here: %r" % flag)
+            raise Refused("the argument at position %d is not an allowed flag here" % position)
         if flag in flags:
-            raise Refused("flag given twice: %s" % flag)
+            raise Refused("%s is given twice" % flag)
         if not rest:
-            raise Refused("flag without a value: %s" % flag)
+            raise Refused("%s has no value" % flag)
         flags[flag] = rest.pop(0)
+        position += 1
     return flags
 
 
@@ -283,7 +314,8 @@ def cmd_backlink(issue, args):
         print("no twin for %s yet; nothing to link" % mhw_url(issue))
         return
     comments = json.loads(gh(["issue", "view", issue, "--repo", MHW_REPO, "--json", "comments"], "MHW_TOKEN"))
-    if any(BACKLINK_MARKER in (c.get("body") or "") for c in comments.get("comments", [])):
+    if any(BACKLINK_MARKER in (c.get("body") or "") and author_login(c) in BACKLINK_AUTHORS
+           for c in comments.get("comments", [])):
         print("the back-link is already on %s" % mhw_url(issue))
         return
     root = os.environ.get("MHW_SYNC_DIR", "")
