@@ -17,7 +17,8 @@ The owner's working method (agents, skills and slash commands) lived in the `tad
 plugin. The plugin reached Claude Code natively, Codex through a plugin that also registered hooks,
 and Kiro through a generated Power whose loader reads skills only, so Kiro never received the agents.
 The approved plan (#52) moves the method into this repository's user layer, renders it natively into
-all three agent harnesses, and later regenerates the plugin from here (#62).
+all three agent harnesses, and later regenerates the plugin from here ~~(#62)~~. *(Struck 2026-10-12,
+#63: #62 became the Issue sync; the weekly tadeumendonca-skills sprint regenerates the plugin.)*
 
 The owner's rulings on #61 that bound this record:
 
@@ -45,7 +46,8 @@ The owner's rulings on #61 that bound this record:
    the source; `global/method/method_render.py` writes each agent harness's user-level carrier;
    `install.sh` calls it with its own mode and stamp. *Trade-off:* the method's text is carried as it
    stood in the plugin, so passages that describe the plugin's own files and hooks are now stale
-   descriptions (see Consequences); and the plugin stays a second copy until #62 regenerates it.
+   descriptions (see Consequences); and the plugin stays a second copy until ~~#62~~ *(struck 2026-10-12,
+   #63: the weekly tadeumendonca-skills sprint)* regenerates it.
 2. **Keep the plugin as the source and install its packages per agent harness** (Claude Code plugin,
    Codex plugin, Kiro Power). *Trade-off:* no copy, but Kiro gets no agents (its Power loader reads
    skills only), the Codex package registers hooks the hook budget retires, and the method keeps living
@@ -241,7 +243,9 @@ Issues/backlog"*. He agreed ("de acordo") to the mechanism below the same day.
   gets the twin's link once. Runbook: [`docs/runbooks/method-issue-sync.md`](../runbooks/method-issue-sync.md).
 - **The adaptation to plugin files is done by the -skills sprint**, which is weekly and scheduled later.
   Nothing in this repository writes plugin files. Until that sprint runs, `method/` here and the plugin
-  can diverge; the twins are the record of what is owed.
+  can diverge; the twins are the record of what is owed. *(Amended 2026-10-12, #63: that sprint
+  regenerates the plugin from `method/` here; it does not author the method there. See the amendment of
+  that date on #63.)*
 
 **New third-party action.** `anthropics/claude-code-action`, pinned by commit (v1.0.248, the commit `v1`
 points at, verified with `git ls-remote` on 2026-10-12), joins `actions/create-github-app-token`
@@ -283,6 +287,34 @@ outside the agent's Write directory; the scrub stays on.)* *(Added 2026-10-12: a
 (observed). Claude Code matches file writes against `Edit(path)` rules only, so the `Write(path)` rule
 granted nothing (measured locally on 2.1.296; inferred on the runner). #167, written and tested and not
 run on `main`, grants the directory with an `Edit(path)` rule and keeps the Edit tool disallowed.)*
+
+## Amendment 2026-10-12: the workstation is the single source; the plugin is a generated distribution nobody installs (#63)
+
+Status unchanged (proposed). The owner, 2026-10-12, recorded on #63: *"a ideia é que ninguem use o skills
+depois de migrar para o mhw"*, confirmed ("siga") after the orchestrator restated it. An earlier comment
+on #63 the same day framed the choice as the plugin's files staying authored in tadeumendonca-skills;
+that framing was withdrawn.
+
+**Decision.**
+
+- **The workstation is the single source of the method**: `method/` here, installed with
+  `mhw install --method`. #130 then removes the plugin from the workstation.
+- **The plugin is a generated distribution that nobody installs.** tadeumendonca-skills becomes a mirror:
+  it receives method Issues through the sync, and a weekly sprint there regenerates the mirrored version
+  from `method/` here. Scheduling that sprint is later work.
+- **Demands enter as mhw Issues labelled `method`**, mirrored to tadeumendonca-skills as twin Issues by
+  `.github/workflows/method-issue-sync.yml` (the amendment of this date on #62).
+- tadeumendonca-skills carries a deprecation notice in its README and AGENTS.md and an ADR there pointing
+  here. Its duplicate protections are removed only after the deny-floor slice ships, as #63 states.
+
+**Not changed by this amendment.** The installer and the opt-in passages above (*Carrier map*,
+`method/README.md`) are the next slice, with #130.
+
+**Evidence, 2026-10-12.** The sync works end to end on `main` (v5.5.3), *measured*: canary 4 on mhw#162.
+Run 38324740491 created the twin tadeumendonca-skills#564, authored by `app/tedeuxx-mhw-mirror` (the
+login `TWIN_AUTHOR` assumed, now confirmed), `verify` passed (OPEN) and the back-link was posted by
+`github-actions`. Run 38324871241, on closing mhw#162, closed the twin, `verify` passed (CLOSED) and the
+back-link was not posted again. The weekly regeneration does not exist yet.
 
 ## Links
 

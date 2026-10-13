@@ -156,8 +156,11 @@ owner's `tadeumendonca-skills` plugin is the **way of working**: personas, the d
 and project hooks. The plugin may add controls and must never weaken the floor. ~~This repository carries
 no way-of-working content.~~ *(Struck 2026-10-05, Issue #65: since
 [ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md), proposed, the
-method's source is `method/` here and the plugin becomes its generated copy; until the cutover, #62 and
-#63, the plugin stays the running copy.)* "Last barrier" is the firewall's purpose. The global brief is a user-level
+method's source is `method/` here and the plugin becomes its generated copy; until the cutover, ~~#62 and
+#63~~, the plugin stays the running copy.)* *(Amended 2026-10-12, #63: the cutover is #130, which removes
+the plugin once `mhw install --method` carries the method. The plugin is then a generated distribution
+nobody installs; tadeumendonca-skills mirrors it, regenerated weekly from `method/`, and receives method
+demands from Issues here labelled `method` through the sync (#62).)* "Last barrier" is the firewall's purpose. The global brief is a user-level
 instruction, and user level is low precedence in every harness. See
 [ADR-0014](docs/adr/0014-purpose-boundary-firewall-vs-plugin.md). Its first mechanical control, a
 user-level deny floor rendered to Claude Code and Codex, is accepted and was installed on the reference
