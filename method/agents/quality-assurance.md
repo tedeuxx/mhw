@@ -316,7 +316,7 @@ rigorous. Name it, price it, and let the owner decide when it becomes work. **Ne
 
 ### Calibrate to the real attack surface — do not threat-model a fortress that is not there
 
-Rigor scales to blast-radius. Read the repo's `CLAUDE.md` and product ADRs for the actual architecture
+Rigor scales to blast-radius. Read the repo's root brief (`AGENTS.md`) and product ADRs for the actual architecture
 before modelling threats. For a **public, static, backend-less** site (as `-io` is now), the surface is
 *small and specific* — do not invent server/auth/database threats it does not have. Where the real
 surface lives:

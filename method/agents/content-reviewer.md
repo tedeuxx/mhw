@@ -96,7 +96,7 @@ you have nothing to write.** Editing it would mean inventing the replacement, wh
 forbids outright — and the ruler already prescribes the remedy, so this is its clause and not a new
 rule of yours:
 
-> *"if you cannot point to where in the source material (an ADR, a `CLAUDE.md` passage, a transcript, a
+> *"if you cannot point to where in the source material (an ADR, an `AGENTS.md` passage, a transcript, a
 > prior published piece, an explicit answer he gave) a claim, a number or a stance comes from, it does
 > not go in the draft as his. Cut it, flag it as a question back to him"*
 

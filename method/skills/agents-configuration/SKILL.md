@@ -196,7 +196,7 @@ promoted. Full branching diagrams and per-environment topology live in `/scm`, a
 | **`gitflow-multi-env`** | The repo deploys to **more than one environment** and carries an integration branch. | Two hops: PR → integration branch → staging, then a promotion PR → release branch → production behind manual approval. |
 | **`trunk-single-env`** | The repo has **one long-lived branch (`main`) and one destination** — a single deployed environment, or a consumed artifact released deliberately. | One hop: PR → `main` → deploy/release. |
 
-**How to tell**, in order of authority: the repo's `CLAUDE.md` states the model outright; otherwise
+**How to tell**, in order of authority: the repo's root brief (`AGENTS.md`) states the model outright; otherwise
 look for an integration branch (`develop`) on the remote and more than one environment in CI. **If
 both signals are absent, it is `trunk-single-env`.**
 
@@ -207,7 +207,7 @@ independent: either model runs under either mode. A mode names a widely-known ag
 exactly two things — **what the container MEANS, and which ceremonies run at its edges.**
 
 **Two artifacts carry it and neither is this file.** The **contract** — what a mode may vary and what it
-may never touch — is the `<!-- loop-mode-contract -->` block in `CLAUDE.md` at each repository's root.
+may never touch — is the `<!-- loop-mode-contract -->` block in each repository's root brief (`AGENTS.md`), or the record it links to.
 The **record** — which value is in force — is `docs/loop-mode.md`, which carries the value, the closed
 enum, the back-dated start and both pool predicates in full. **This section is a POINTER plus the
 minimum a dispatched persona needs, and it is deliberately not a copy of either.** The contract's
@@ -355,12 +355,13 @@ the `new-issue.md` branch **exist and say this** (the plugin's `inventory-counts
 nothing could assert that anyone obeyed them.
 
 **These rows route INTAKE. The REVIEW chain is routed too, and its operative wording is NOT here (#393).**
-It lives in `CLAUDE.md` at each repository's root, as one table: `loop` → one lens pass plus the gate ·
+It lives in each repository's root brief (`AGENTS.md`), as one table: `loop` → one lens pass plus the gate ·
 `product` → the full chain · `content` → the content pair plus the gate. **This paragraph is a pointer
 and nothing else** — it names the rows without stating their conditions, and the conditions are the
 rule. The carrier is a root brief rather than this skill because the actor that selects a review chain
 is the **orchestrator**, and a nonce probe (#409, re-measured on #393 against build `2.1.263`) shows a
-skill body does not reach it while a root `CLAUDE.md` does — while every persona that loads *this* file
+skill body does not reach it while a root brief does (that probe measured the vendor-named root brief of the time; since ADR-0037 of the
+workstation repository the root brief is `AGENTS.md`, which the harness loads natively) — while every persona that loads *this* file
 is a dispatchee, and a dispatchee cannot select its own dispatch. **Do not copy the table here.** One
 rule in two wordings with no canonical home is exactly #329, where the operative copy ended up in the
 surface nobody read.
@@ -1816,7 +1817,7 @@ action before ending the turn, or say plainly that there is none.
    **The bound is now `wip:` in `docs/loop-mode.md`, read from the record and never assumed** — it is
    `2` at the time of writing, and a value read from a file is the point. **Development parallelises;
    THE REVIEW GATE DOES NOT** — at most one merge request is in review at a time, whatever `wip` says
-   (owner ruling 1, stated in `CLAUDE.md`'s `loop-mode-contract` block, which is the surface that
+   (owner ruling 1, stated in the root brief's (`AGENTS.md`) `loop-mode-contract` block, which is the surface that
    reaches the orchestrator). **Isolation is a `git worktree` per slice**, which is what ruling 4
    re-permits. **Nothing enforces any of it**: `wip-guard.sh` is deleted and `gh pr create` is
    allowlisted in both settings layers, so an (N+1)th PR executes silently.
