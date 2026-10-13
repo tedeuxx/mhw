@@ -1,0 +1,15 @@
+{
+  "$schema": "./mcp-servers.schema.json",
+  "version": 1,
+  "servers": {
+    "chrome-devtools": {
+      "description": "ADR-0038 (Issue #174). A browser for product-lead's read-only sweep, bounded by origin. The shell reads HARNESS_SWEEP_ORIGIN when the server starts, from the environment the harness gives it, which carries the project's settings env. With no value the origin is the discard port, so the browser reaches nothing. The package is pinned to one exact version and fetched with install scripts off.",
+      "command": "/bin/sh",
+      "args": [
+        "-c",
+        "o=$HARNESS_SWEEP_ORIGIN; [ -n \"$o\" ] || o='http://127.0.0.1:9/*'; exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --isolated --channel stable --viewport 1280x800 --no-usage-statistics --no-performance-crux --allowedUrlPattern \"$o\""
+      ],
+      "surfaces": ["claude-code"]
+    }
+  }
+}

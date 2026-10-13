@@ -11,6 +11,15 @@
                                   (JSON surfaces only; a backup is kept)
     --source=FILE                 the definition (default: <data dir>/local-overlay/mcp-servers.json)
     --surfaces=a,b                restrict to these surfaces: codex, claude-code, claude-desktop, kiro
+    mcp_render.py --policy --mode=install|check|dry-run|uninstall [--stamp=S]
+                                  the policy servers (ADR-0038): global/mcp/policy-servers.json, tracked,
+                                  rendered by global/install.sh on every mhw install. Each change is printed
+                                  old -> new; the previous file is kept as <config>.pmhwc-mcp-policy-backup
+                                  (0600); uninstall removes them. The local definition's servers are never
+                                  touched by this mode, and a name in both is refused by the default mode.
+
+The policy servers are the one tracked definition: they hold no secret and no owner value, and the
+renderer refuses a policy server that names one. JSON surfaces only (Codex is refused there).
 
 The definition lives only in the untracked local overlay, outside every repository: server names,
 commands, args and non-secret environment values. A credential is never in it. A server that needs one
@@ -27,6 +36,7 @@ import errno
 import json
 import os
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -48,6 +58,9 @@ BLOCK_END = "# <<< %s (mcp servers)" % MARKER_ID
 SURFACES = ("codex", "claude-code", "claude-desktop", "kiro")
 HERE = os.path.dirname(os.path.abspath(__file__))
 LAUNCHER_SRC = os.path.join(HERE, "mcp-launch.sh")
+POLICY_SRC = os.path.join(HERE, "policy-servers.json")
+POLICY_BACKUP = ".pmhwc-mcp-policy-backup"
+BACKUP = ".pmhwc-backup"
 
 SOURCE_KEYS = {"$schema", "version", "servers"}
 SERVER_KEYS = {"description", "command", "args", "env", "secrets", "surfaces", "not_secret"}
@@ -531,13 +544,13 @@ def json_plan(data, want, managed_before, adopt):
 # ------------------------------------------------------------------------------------------ writing
 
 
-def atomic_write(path, text, backup):
+def atomic_write(path, text, backup, suffix=BACKUP):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     mode = 0o600
     if os.path.exists(path):
         mode = os.stat(path).st_mode & 0o7777
         if backup:
-            private_copy(path, path + ".pmhwc-backup")
+            private_copy(path, path + suffix)
     tmp = "%s.new.%d" % (path, os.getpid())
     try:
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
@@ -722,10 +735,30 @@ def load_manifest():
     surfaces = m.get("surfaces", {}) if isinstance(m, dict) else None
     if not isinstance(surfaces, dict) or not all(isinstance(v, list) for v in surfaces.values()):
         raise Refuse(3, "the managed-server manifest %s has an unexpected shape" % manifest_path())
-    stamps = m.get("stamps", {})
-    if not isinstance(stamps, dict) or not all(isinstance(v, str) for v in stamps.values()):
-        raise Refuse(3, "the managed-server manifest %s has an unexpected shape" % manifest_path())
+    for key, kind in (("stamps", str), ("policy_stamps", str), ("policy", list)):
+        v = m.get(key, {})
+        if not isinstance(v, dict) or not all(isinstance(x, kind) for x in v.values()):
+            raise Refuse(3, "the managed-server manifest %s has an unexpected shape" % manifest_path())
     return m.get("surfaces", {})
+
+
+def load_manifest_doc():
+    """The whole manifest (validated by load_manifest): the local definition's names and stamps, and the
+    policy servers' own (ADR-0038), kept apart so neither mode removes the other's servers."""
+    load_manifest()
+    try:
+        with open(manifest_path(), encoding="utf-8") as fh:
+            return json.load(fh)
+    except FileNotFoundError:
+        return {}
+
+
+def write_manifest(doc):
+    out = {"version": 1}
+    for key in ("surfaces", "stamps", "policy", "policy_stamps"):
+        if doc.get(key) or key in ("surfaces", "stamps"):
+            out[key] = doc.get(key, {})
+    atomic_write(manifest_path(), json.dumps(out, indent=2) + "\n", backup=False)
 
 
 def load_stamps():
@@ -750,6 +783,10 @@ def render(mode, source, surfaces, adopt):
         raise Refuse(2, "%s is inside a git work tree and not ignored, so it could be committed. The definition "
                         "lives only in the untracked local overlay" % source)
     doc = load_source(source)
+    shared = sorted(set(doc["servers"]) & set(load_policy()["servers"]))
+    if shared:
+        raise Refuse(2, "server(s) %s are policy servers (global/mcp/policy-servers.json, ADR-0038), rendered by "
+                        "mhw install; remove them from the local definition %s" % (", ".join(shared), source))
     stamp = provenance()
     print("SOURCE  %s" % stamp)
     managed = load_manifest()
@@ -791,9 +828,142 @@ def render(mode, source, surfaces, adopt):
             print("NOTE    %s: an env: secret depends on this app passing that variable to the launcher; "
                   "only Codex is told to (env_vars)" % surface)
     if mode == "install" and (new_manifest != managed or new_stamps != stamps):
-        atomic_write(manifest_path(), json.dumps({"version": 1, "surfaces": new_manifest, "stamps": new_stamps},
-                                                 indent=2) + "\n", backup=False)
+        mdoc = load_manifest_doc()
+        mdoc.update({"surfaces": new_manifest, "stamps": new_stamps})
+        write_manifest(mdoc)
     return run.status
+
+
+# ---------------------------------------------------------------------------------- policy servers
+
+
+def load_policy(path=POLICY_SRC):
+    """The tracked policy servers (ADR-0038). Refuse(2) when the file is invalid, or a server names a secret,
+    an owner value or a surface this mode does not render."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except (OSError, ValueError) as e:
+        raise Refuse(2, "cannot read the policy MCP servers %s: %s" % (path, e))
+    errs = validate(doc, platform="linux")  # a policy server carries no secret, so keychain rules never apply
+    for name, s in (doc.get("servers") or {}).items() if isinstance(doc, dict) else ():
+        if not isinstance(s, dict):
+            continue
+        if s.get("secrets") or s.get("not_secret"):
+            errs.append("policy server %r: a tracked server may not name a secret" % name)
+        if "surfaces" not in s:
+            errs.append("policy server %r: \"surfaces\" must be stated" % name)
+        elif "codex" in s.get("surfaces", []):
+            errs.append("policy server %r: the Codex surface is not rendered for policy servers" % name)
+    if errs:
+        raise Refuse(2, "invalid policy MCP servers %s:\n  - %s" % (path, "\n  - ".join(errs)))
+    return doc
+
+
+def describe(e):
+    """One server entry as a command line, for an old -> new line. An entry that looks like it carries a
+    credential (which only a hand edit can put there) is named, never shown; env values are never shown."""
+    if e is None:
+        return "absent"
+    if not isinstance(e, dict):
+        return "present (not an object)"
+    parts = [p for p in [e.get("command", "")] + list(e.get("args", [])) if isinstance(p, str)]
+    flags = [m.group(1) for m in (ARG_FLAG_RE.match(p) for p in parts) if m]
+    if any(looks_like_credential_value(p) for p in parts) or any(CRED_RE.search(f) for f in flags):
+        return "present (not shown: it looks like it carries a credential)"
+    text = shlex.join(str(p) for p in parts)
+    if e.get("env"):
+        text += " (env: %d value(s), not shown)" % len(e["env"])
+    return text
+
+
+def render_policy(mode, stamp=None, path=POLICY_SRC):
+    """Render, check, preview or remove the policy servers in each JSON surface they name -> exit code."""
+    if sys.platform == "win32":
+        print("SKIP    policy MCP servers (ADR-0038): not rendered on Windows")
+        return 0
+    doc = load_policy(path)
+    stamp = stamp or provenance()
+    mdoc = load_manifest_doc()
+    pol, pstamps = dict(mdoc.get("policy", {})), dict(mdoc.get("policy_stamps", {}))
+    status = 0
+    for surface in (s for s in SURFACES if s != "codex"):
+        want = {} if mode == "uninstall" else desired(doc, surface, launcher=None)
+        before = pol.get(surface, [])
+        if not want and not before:
+            continue
+        target = surface_target(surface)
+        if target is None:
+            print("SKIP    %s: no published app for this OS" % surface)
+            continue
+        cfg, installed_dir = target
+        if not os.path.isdir(installed_dir) and not os.path.exists(cfg):
+            print("SKIP    %s: not installed (%s absent)" % (surface, installed_dir))
+            continue
+        try:
+            with open(cfg, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except FileNotFoundError:
+            data = {}
+        except (OSError, ValueError) as e:
+            print("REFUSE  %s: not readable JSON (%s); left untouched" % (cfg, type(e).__name__), file=sys.stderr)
+            status = max(status, 3)
+            continue
+        current = data.get("mcpServers", {}) if isinstance(data, dict) else None
+        if not isinstance(current, dict):
+            print("REFUSE  %s: not a JSON object with an mcpServers object; left untouched" % cfg, file=sys.stderr)
+            status = max(status, 3)
+            continue
+        hand = [n for n in want if n in current and n not in before and current[n] != want[n]]
+        if hand:
+            print("REFUSE  %s: server(s) %s already exist and were not written by mhw (by hand, or by "
+                  "`claude mcp add`). Remove them, then re-run; nothing was written" % (cfg, ", ".join(hand)),
+                  file=sys.stderr)
+            status = max(status, 3)
+            continue
+        changes = [(n, current.get(n), want.get(n)) for n in sorted(set(want) | set(before))
+                   if current.get(n) != want.get(n)]
+        what = "; ".join("%s %s -> %s" % (n, describe(o), describe(w)) for n, o, w in changes)
+        if not changes:
+            if want and pstamps.get(surface) != stamp:
+                if mode == "check":
+                    print("STAMP   %s: policy MCP server(s) match, but recorded under (%s) and the source is (%s)"
+                          % (cfg, pstamps.get(surface, "none"), stamp))
+                    status = max(status, 1)
+                    continue
+                if mode == "dry-run":
+                    print("WOULD RECORD %s's policy stamp (%s) in %s" % (cfg, stamp, manifest_path()))
+                    continue
+            print("OK      %s: %d policy MCP server(s) (ADR-0038)" % (cfg, len(want)))
+        elif mode == "check":
+            print("DRIFT   %s: install would change %s (policy MCP servers, ADR-0038)" % (cfg, what))
+            status = max(status, 1)
+            continue
+        elif mode == "dry-run":
+            print("WOULD CHANGE %s: %s (policy MCP servers; backup %s%s)" % (cfg, what, os.path.basename(cfg),
+                                                                          POLICY_BACKUP))
+            continue
+        else:
+            new = json_plan(data, want, before, adopt=True)  # hand-configured names were refused above
+            existed = os.path.exists(cfg)
+            atomic_write(cfg, json.dumps(new, indent=2, ensure_ascii=False) + "\n", backup=True, suffix=POLICY_BACKUP)
+            print("CHANGED %s: %s (policy MCP servers, ADR-0038%s)" % (
+                cfg, what, "; previous file kept as %s%s" % (cfg, POLICY_BACKUP) if existed else ""))
+        if mode in ("install", "uninstall"):
+            if want:
+                pol[surface], pstamps[surface] = sorted(want), stamp
+            else:
+                pol.pop(surface, None)
+                pstamps.pop(surface, None)
+    if mode in ("install", "uninstall") and (pol != mdoc.get("policy", {}) or
+                                             pstamps != mdoc.get("policy_stamps", {})):
+        mdoc.update({"policy": pol, "policy_stamps": pstamps})
+        if any(mdoc.get(k) for k in ("surfaces", "stamps", "policy", "policy_stamps")):
+            write_manifest(mdoc)
+        elif os.path.exists(manifest_path()):
+            os.remove(manifest_path())
+            print("REMOVED %s (it recorded only the policy MCP servers)" % manifest_path())
+    return status
 
 
 # --------------------------------------------------------------------------------------------- scan
@@ -849,7 +1019,8 @@ def scan(surfaces):
                     found += 1
                     print("%s\ttemp\t%s\t-\ta leftover temporary copy of the config (delete it)" % (
                         surface, os.path.join(folder, f)))
-        for path, kind in ((target[0], "config"), (target[0] + ".pmhwc-backup", "backup")):
+        for path, kind in ((target[0], "config"), (target[0] + BACKUP, "backup"),
+                           (target[0] + POLICY_BACKUP, "backup")):
             if not os.path.exists(path):
                 continue
             try:
@@ -881,7 +1052,29 @@ def scan(surfaces):
 # --------------------------------------------------------------------------------------------- main
 
 
+def policy_main(argv):
+    mode, stamp = "install", None
+    for a in argv:
+        if a == "--policy":
+            continue
+        if a in ("--mode=install", "--mode=check", "--mode=dry-run", "--mode=uninstall"):
+            mode = a.split("=", 1)[1]
+        elif a.startswith("--stamp=") and len(a) > len("--stamp="):
+            stamp = a[len("--stamp="):]
+        else:
+            print("usage: mcp_render.py --policy --mode=install|check|dry-run|uninstall [--stamp=S]",
+                  file=sys.stderr)
+            return 2
+    try:
+        return render_policy(mode, stamp)
+    except Refuse as e:
+        print(str(e), file=sys.stderr)
+        return e.code
+
+
 def main(argv):
+    if "--policy" in argv:
+        return policy_main(argv)
     mode, adopt, source, surfaces = "install", False, None, list(SURFACES)
     for a in argv:
         if a in ("--dry-run", "--check", "--scan"):

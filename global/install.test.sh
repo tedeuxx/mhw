@@ -1146,6 +1146,34 @@ else
   echo "SKIP  python3 has no tomllib (3.11+): the MCP removal is refused there, not tested here"
 fi
 
+# 19b. the policy MCP server (ADR-0038, Issue #174): install writes chrome-devtools into the Claude Code user
+# configuration (~/.claude.json), prints old -> new and keeps an 0600 backup; uninstall removes it and
+# keeps the owner's own servers. Per-case semantics: global/mcp/mcp_render_test.py, class Policy.
+hp="$base/home-mcp-policy"; mkdir -p "$hp/.claude"
+printf '%s\n' '{"numStartups": 2, "mcpServers": {"mine": {"command": "/bin/echo"}}}' > "$hp/.claude.json"
+chmod 644 "$hp/.claude.json"
+pol_seed=$(cksum < "$hp/.claude.json")
+HOME="$hp" sh "$inst" > "$base/mcp-p1.out" 2>&1; expect "install with an existing ~/.claude.json" 0 $?
+if grep -qF "CHANGED $hp/.claude.json: chrome-devtools absent -> /bin/sh -c " "$base/mcp-p1.out" \
+   && [ "$(jq -r '.mcpServers["chrome-devtools"].args[1]' "$hp/.claude.json" | grep -cF "o='http://127.0.0.1:9/*'")" -eq 1 ] \
+   && [ "$(jq -r '.mcpServers.mine.command' "$hp/.claude.json")" = /bin/echo ] \
+   && [ "$(cksum < "$hp/.claude.json.pmhwc-mcp-policy-backup")" = "$pol_seed" ]; then
+  ok "install renders chrome-devtools with the discard-port default, prints old -> new, keeps a backup"
+else
+  ko "the policy MCP server was not rendered as expected"; cat "$base/mcp-p1.out"
+fi
+m=$(stat -c %a "$hp/.claude.json.pmhwc-mcp-policy-backup" 2>/dev/null || stat -f %Lp "$hp/.claude.json.pmhwc-mcp-policy-backup")
+if [ "$m" = 600 ]; then ok "the policy MCP backup is owner-only"; else ko "the policy MCP backup is $m"; fi
+HOME="$hp" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the policy MCP server is rendered" 0 $?
+HOME="$hp" sh "$inst" --uninstall > "$base/mcp-p2.out" 2>&1; expect "uninstall after the policy MCP server" 0 $?
+if [ "$(jq '.mcpServers | has("chrome-devtools")' "$hp/.claude.json")" = false ] \
+   && [ "$(jq -r '.mcpServers.mine.command' "$hp/.claude.json")" = /bin/echo ] \
+   && grep -q "CHANGED $hp/.claude.json: chrome-devtools .* -> absent" "$base/mcp-p2.out"; then
+  ok "uninstall removes chrome-devtools only and prints old -> absent"
+else
+  ko "uninstall left the policy MCP server: $(jq -c '.mcpServers' "$hp/.claude.json")"
+fi
+
 # 20. uninstall after a default install removes exactly the start-up block it wrote: the owner's ~/.zshrc,
 # seeded before, comes back byte for byte.
 hu="$base/home-uninstall-rc"; mkdir -p "$hu"

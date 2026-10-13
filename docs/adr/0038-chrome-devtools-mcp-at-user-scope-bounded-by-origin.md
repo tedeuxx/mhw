@@ -1,0 +1,173 @@
+# ADR-0038: A `chrome-devtools` MCP server at Claude Code user scope, bounded by origin
+
+- **Status:** proposed. The owner chose the scope (user scope) on
+  [Issue #174](https://github.com/tedeuxx/mhw/issues/174), 2026-10-13. The rest of this record, the
+  pinned version, the supply-chain posture and the launch form, waits for his ratification.
+- **Date:** 2026-10-13
+- **Deciders:** the owner (the scope); written by the implementing agent
+- **Issues:** [#174](https://github.com/tedeuxx/mhw/issues/174)
+- **Amends:** [ADR-0017](0017-single-source-mcp-with-secret-indirection.md), whose definition "lives
+  only in the untracked local overlay". This record adds one tracked definition beside it, for servers
+  that carry no secret and no owner value.
+
+## Context and problem
+
+The `tadeumendonca-skills` plugin was the only source of a `chrome-devtools` MCP server, in its
+`.mcp.json`. Since tadeumendonca-io#725 disabled the plugin, `product-lead`'s `mcp__chrome-devtools`
+grant and the `/sprint-review` live sweep reach no server in any project. The owner was offered three
+paths: local scope in tadeumendonca-io, user scope, or keep it off. He chose **user scope**.
+
+The server adds a new dependency (a third-party npm package fetched at launch) and a new tool class (a
+real browser driven by an agent), so a record is owed (ADR-0001 significance gate).
+
+The bound is an origin: `--allowedUrlPattern` makes the browser refuse a navigation or a subresource
+outside the pattern (the package's own `--help` text, version 1.8.0). tadeumendonca-io declares the
+origin in its tracked `.claude/settings.json`, under `env.HARNESS_SWEEP_ORIGIN`. The plugin passed it as
+`--allowedUrlPattern ${HARNESS_SWEEP_ORIGIN:-http://127.0.0.1:9/*}`.
+
+### What was measured, and why the plugin's argument form is not reused
+
+Claude Code 2.1.296, macOS, a throwaway HOME, a trusted throwaway project whose `.claude/settings.json`
+sets `HARNESS_SWEEP_ORIGIN`, the variable unset in the launching shell. Two recorder "servers" printed
+the arguments and the environment they were started with: one at user scope (`~/.claude.json`), one at
+project scope (`.mcp.json`), both with the plugin's `${HARNESS_SWEEP_ORIGIN:-…}` argument. A headless
+session start (`claude -p`, not logged in; the servers start before the login check) gave:
+
+| Server | `--allowedUrlPattern` received | `HARNESS_SWEEP_ORIGIN` in its environment |
+| --- | --- | --- |
+| user scope, `${…}` argument | `http://127.0.0.1:9/*` (the default) | the project's value |
+| project scope, `${…}` argument | `http://127.0.0.1:9/*` (the default) | the project's value |
+| user scope, the shell form below | the project's value | the project's value |
+
+Calibrations: with the variable set in the launching shell, both `${…}` forms received it; in a
+project with no settings `env`, the shell form received the default. `claude mcp get` lists the
+top-level `mcpServers` entry of `~/.claude.json` as "Scope: User config".
+
+So **a project's settings `env` reaches the server's environment, and does not reach a `${VAR}` in the
+server's arguments**, at either scope: Claude Code expands the arguments before it applies the settings
+`env`. With the plugin's form the browser would be bound to the discard port in tadeumendonca-io too.
+That matches `/sprint-review`'s own record (three closes without a sweep, sprint-02 to sprint-04) and
+its step 0 probe (2.1.283, the default observed). The owner ruled out a shell profile as the carrier on
+tadeumendonca-skills#525: the bound must come from the project's tracked configuration.
+
+## Decision drivers
+
+- Fail closed: a project that declares no origin gets an origin that reaches nothing.
+- The origin comes from the consuming project's tracked configuration, not from the owner's shell.
+- Native first and one route: Claude Code's own user-level MCP configuration, written by the existing
+  MCP renderer (ADR-0017), not a parallel mechanism.
+- The server name `chrome-devtools`, so the tools are `mcp__chrome-devtools__*`, which is
+  `product-lead`'s grant.
+- Every write is backed up owner-only, printed old -> new, and removed on uninstall.
+- Report each claim at its evidence level.
+
+## Considered options
+
+1. **User scope, the shell reads the origin at launch (chosen).** `mhw install` writes the server into
+   `~/.claude.json` from a tracked `global/mcp/policy-servers.json`. The command is `/bin/sh -c`, and
+   the script sets the origin from `HARNESS_SWEEP_ORIGIN`, or `http://127.0.0.1:9/*` when that is unset
+   or empty, then `exec`s `npx`. The script carries no `${`, so Claude Code expands nothing; the shell
+   reads the variable from the environment the harness gave the server, which carries the project's
+   settings `env`. After `exec` the process table shows the `npm exec chrome-devtools-mcp@1.8.0 …
+   --allowedUrlPattern <value>` line that `/sprint-review` step 0 reads. *Trade-off:* the server is
+   defined in every project, and in every project but one it starts a browser that can reach nothing;
+   the launch needs `/bin/sh`, so it is not portable to Windows as written.
+2. **User scope with the plugin's `${HARNESS_SWEEP_ORIGIN:-…}` argument.** The exact shape the Issue
+   named. *Rejected on the measurement above:* it would always pass the default in tadeumendonca-io, so
+   it delivers a server that can never sweep unless the owner exports the variable in his shell, which
+   he ruled out.
+3. **Local scope in tadeumendonca-io (the strongest rejected alternative).** A `.mcp.json` in the one
+   project that needs the browser, so no other project gets a browser server at all. *Trade-off:* the
+   smallest reach, and the origin could be written there directly. *Rejected by the owner*, who chose
+   user scope on #174. Two facts weigh on it and are recorded so the choice stays reviewable: the
+   measurement shows a project-scope `${…}` argument would not have read the settings `env` either, so
+   that path would have needed the literal origin or the same shell form; and it puts a workstation
+   control (the pinned package and its flags) into a product repository, outside this repository's
+   install and uninstall.
+4. **Keep it off.** No browser for any agent. *Rejected by the owner:* the sweep and the grant are
+   wanted.
+
+## Decision outcome
+
+Option 1.
+
+- **Definition.** `global/mcp/policy-servers.json`, tracked, in the ADR-0017 schema. The renderer
+  refuses a policy server that names a secret, one without an explicit `surfaces` list, and one for
+  Codex. One server: `chrome-devtools`, surface `claude-code`.
+- **Package and posture.** `chrome-devtools-mcp@1.8.0`, pinned to that exact version (the version the
+  plugin ran and `product-lead`'s excluded-tool list was written against; the registry's latest on
+  2026-10-13 is 1.10.1). It is fetched by `npx --ignore-scripts -y`: install scripts do not run, and
+  npm checks the tarball against the registry's integrity hash
+  (`sha512-Wrm9z0/5WbVs778apjWgYRkpe9bvYQWjK2zVRwqoPAtz1IHQ5+GvotM07UGXJcfrA0rj6Gt1Pnn5+w/Tf1nU4w==`,
+  `npm view chrome-devtools-mcp@1.8.0 dist.integrity`). Flags, as the plugin: `--isolated` (a
+  temporary profile, none of the owner's sessions), `--channel stable`, `--viewport 1280x800`,
+  `--no-usage-statistics`, `--no-performance-crux`, `--allowedUrlPattern <origin>`. The flags were
+  checked against the pinned version's `--help`.
+- **Route.** `global/mcp/mcp_render.py --policy --mode=install|check|dry-run|uninstall`, called by
+  `global/install.sh` (its `mcp_step`) on every `mhw install`, `mhw check` and `mhw uninstall`. The
+  previous `~/.claude.json` is kept as `~/.claude.json.pmhwc-mcp-policy-backup`, owner-only (0600). Each
+  change is printed `chrome-devtools <old> -> <new>`. The names it wrote are recorded under `policy` in
+  the renderer's manifest, apart from the local definition's, so neither mode removes the other's
+  servers, and a local definition that reuses a policy name is refused. A same-named server that mhw
+  did not write is refused (exit 3), never overwritten. `--scan` also reads the new backup.
+- **Coverage, harness × OS.**
+
+  | Agent harness | macOS | Linux | Windows |
+  | --- | --- | --- | --- |
+  | Claude Code CLI | written and tested | written and tested (the same code; not run on Linux here) | not rendered: `install.ps1` does not call it, and the launch needs `/bin/sh` |
+  | Codex | not rendered (a declared gap) | not rendered | not rendered |
+  | Kiro CLI, Kiro IDE | not rendered (a declared gap) | not rendered | not rendered |
+  | Claude desktop, ChatGPT desktop | not rendered | not rendered | not rendered |
+
+## Consequences
+
+Good:
+
+- The grant `product-lead` already carries reaches a server again, in every project, through the
+  workstation's own install, check and uninstall.
+- A project with no declared origin gets a browser bound to the discard port. A declared origin reaches
+  the server from the project's tracked settings, by the measurement above.
+- The version is pinned and install scripts are off, so a new release of the package is not taken
+  silently.
+
+Bad:
+
+- **A new third-party dependency, fetched at every first launch.** The package and its dependencies run
+  as the owner, drive a real Chrome, and are not vendored. Only the top-level version is pinned: its
+  transitive dependencies resolve from the registry with no lockfile, and the integrity hash is trust on
+  first use of the registry itself. A compromised registry or dependency is outside this control.
+- **A browser server in every project.** In each project but tadeumendonca-io it starts, if an agent
+  calls it, a browser that can reach nothing. Its tools are visible to every agent whose tool list does
+  not exclude them; the main session included.
+- **The origin is only as narrow as the project declares.** A project whose settings `env` sets a wide
+  pattern gets a wide browser. The bound is the project's to choose.
+- **Writing `~/.claude.json` while Claude Code runs.** ADR-0017 records that a running Claude Code
+  session rewrites that file; an install made while one runs may be overwritten. Not measured here; the
+  instruction is the fresh-session rule (ADR-0022): install last, then restart.
+- **The measurement is one build.** A later Claude Code may apply the settings `env` before it expands
+  arguments, which is harmless here, or start expanding `$VAR` without braces. That second change would
+  also rewrite the script's `$o`, and the browser could then be launched with an empty pattern, whose
+  effect in the package is not measured: that direction is not known to fail closed. Re-measure on
+  every new build with the step 0 probe; a probe line with an empty value is a stop.
+
+## Evidence level, and what is not measured
+
+- **Written and tested** here: `global/mcp/mcp_render_test.py` (class `Policy`: install, check, dry-run,
+  uninstall, the backup's mode, a hand-written server refused, the local definition and the policy
+  apart, and the launch script run with a fake `npx` for no value, an empty value, a value and a value
+  with shell text in it); `global/install.test.sh` section 19b (a throwaway HOME through `install.sh`).
+  `./mhw install --yes --no-admin` and `./mhw uninstall --yes` were run in a throwaway HOME.
+- **Measured** (recorder servers, 2.1.296, as above): the expansion order, and that the shell form
+  carries the project's value. The real package was not launched by Claude Code in that measurement.
+- **Not installed** on the reference machine. **Not loaded and not enforced**: that needs, in a fresh
+  session on the reference machine after `mhw install`, a canary from `product-lead` in
+  tadeumendonca-io: `navigate_page` to the declared origin succeeds, a navigation outside it is refused,
+  and `/sprint-review` step 0 prints the declared origin.
+
+## Links
+
+- [Issue #174](https://github.com/tedeuxx/mhw/issues/174); tadeumendonca-io#725 (the plugin disabled).
+- ADR-0017 (the MCP renderer), ADR-0022 (fresh session after a configuration change), ADR-0029 (the
+  provenance stamp, recorded per surface for the policy servers too), ADR-0032 (the working method:
+  `method/agents/product-lead.md`, `method/commands/sprint-review.md`).
+- `global/mcp/policy-servers.json`, `global/mcp/mcp_render.py`, `global/install.sh`.
