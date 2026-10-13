@@ -175,13 +175,24 @@ if [ "$overlay_floor" != /dev/null ]; then
   missing=0
   for b in main master; do
     for form in "git push -u origin $b" "git push origin $b" "git push origin $b:$b" "git push origin HEAD:$b" \
-                "git push --set-upstream origin $b" "git push -u origin HEAD:$b"; do
+                "git push --set-upstream origin $b" "git push -u origin HEAD:$b" \
+                "git push origin +$b" "git push origin refs/heads/$b" "git push origin HEAD:refs/heads/$b"; do
       n=$(jq --arg f "$form " '[.permissions.deny[] | select(startswith("Bash(")) | sub("^Bash\\("; "") | sub(":\\*\\)$"; "")
             | select(. as $p | $f | startswith($p + " "))] | length' "$s")
       [ "$n" -ge 1 ] || { missing=1; echo "  no deny rule for: $form"; }
     done
   done
   if [ "$missing" -eq 0 ]; then ok "every trunk-push form has a deny rule beside the allow list"; else ko "a trunk-push form has no deny rule"; fi
+  # Calibrated the other way (#130): a feature-branch push, and a branch whose name only starts with the
+  # trunk's, match no deny rule.
+  hit=0
+  for form in "git push -u origin feat/x" "git push origin feat/x" "git push origin main-fix" "git push origin mainline" \
+              "git push origin +feat/x" "git push origin refs/heads/feat/x"; do
+    n=$(jq --arg f "$form " '[.permissions.deny[] | select(startswith("Bash(")) | sub("^Bash\\("; "") | sub(":\\*\\)$"; "")
+          | select(. as $p | $f | startswith($p + " "))] | length' "$s")
+    [ "$n" -eq 0 ] || { hit=1; echo "  a deny rule matches a feature push: $form"; }
+  done
+  if [ "$hit" -eq 0 ]; then ok "a feature-branch push matches no deny rule"; else ko "a feature-branch push is denied"; fi
 fi
 
 # 5. Invalid or floor-overlapping entries stop the run before anything is written.
@@ -322,11 +333,17 @@ if [ -n "$cx" ] && [ -x "$cx" ]; then
   done < "$base/floor.words"
   if [ "$overlay_floor" != /dev/null ]; then
     for b in main master; do
-      for form in "git push -u origin $b" "git push origin $b:$b" "git push -u origin HEAD:$b" "git push --set-upstream origin $b"; do
+      for form in "git push -u origin $b" "git push origin $b:$b" "git push -u origin HEAD:$b" "git push --set-upstream origin $b" \
+                  "git push origin +$b" "git push origin HEAD:refs/heads/$b"; do
         # shellcheck disable=SC2086
         d=$(HOME="$base/cx" CODEX_HOME="$base/cx" "$cx" execpolicy check -r "$r1" -r "$r2" -- $form 2>/dev/null | jq -r .decision)
         [ "$d" = forbidden ] || { bad=1; echo "  trunk form not forbidden: $form ($d)"; }
       done
+    done
+    for form in "git push origin main-fix" "git push -u origin feat/x" "git push origin +feat/x"; do
+      # shellcheck disable=SC2086
+      d=$(HOME="$base/cx" CODEX_HOME="$base/cx" "$cx" execpolicy check -r "$r1" -r "$r2" -- $form 2>/dev/null | jq -r '.decision // "none"')
+      [ "$d" != forbidden ] || { bad=1; echo "  feature push forbidden: $form"; }
     done
   fi
   # The wide tier's escaping options are forbidden while their command is allowed.
