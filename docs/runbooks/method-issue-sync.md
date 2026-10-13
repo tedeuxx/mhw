@@ -7,12 +7,10 @@ format, and the two stay in sync. The weekly -skills sprint drains the twins and
 amendment). The workflow is
 [`.github/workflows/method-issue-sync.yml`](../../.github/workflows/method-issue-sync.yml).
 
-**Evidence level:** written and tested (structure and the sync script, against a stub `gh`). **Ran three
-times, and failed each time before any write to tadeumendonca-skills; no twin was created** (see *Canary
-history*). The latest fix, [#167](https://github.com/tedeuxx/mhw/pull/167), is written and tested, and
-its permission rule is measured locally on Claude Code 2.1.296; it has not run on `main` yet. GitHub runs
-`issues` and `workflow_dispatch` workflows from the default branch, so the next canary needs the release
-candidate carrying #167 on `main`.
+**Evidence level:** written and tested (structure and the sync script, against a stub `gh`), and
+**measured end to end on `main`** by canary 4 (2026-10-12, v5.5.3): the twin was created, linked and
+closed (see *Canary history*). The three canaries before it failed before any write to
+tadeumendonca-skills. GitHub runs `issues` and `workflow_dispatch` workflows from the default branch.
 
 ## What it does
 
@@ -129,6 +127,11 @@ Not mirrored:
   stderr; the runner log does not show that line). Since #167 the rule is `Edit(//<runner.temp>/method-sync/**)`
   with the Edit tool itself still disallowed; measured locally, it lets Write create a file there and
   denies the sibling `method-sync-input`, a `../` traversal into it and the cwd, without `--add-dir`.
+- **Canary 4 2026-10-12: passed.** On v5.5.3 (carrying #167), mhw#162: run 38324740491 created
+  tadeumendonca-skills#564, authored by `app/tedeuxx-mhw-mirror` (so `TWIN_AUTHOR` is confirmed),
+  `verify` passed (OPEN) and the back-link was posted by `github-actions`; closing mhw#162 started run
+  38324871241, which closed the twin, `verify` passed (CLOSED) and the back-link was not posted again.
+  `final-line` reported `permission_denials: 0` both times.
 
 ## Cost
 
