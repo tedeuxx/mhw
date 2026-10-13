@@ -20,9 +20,11 @@ def allowed_roots():
     except OSError:
         top = ""
     candidates = [top] if top else []
-    candidates.append(tempfile.gettempdir())
-    if os.path.isdir("/tmp"):
-        candidates.append("/tmp")
+    # The temporary directories are confinement ROOTS for reading an input the caller wrote; nothing is created,
+    # written or executed there by this module.
+    candidates.append(tempfile.gettempdir())  # NOSONAR python:S5443 - a read-confinement root; nothing is written or executed there
+    if os.path.isdir("/tmp"):  # NOSONAR python:S5443 - same: a read-confinement root, checked by realpath and commonpath
+        candidates.append("/tmp")  # NOSONAR python:S5443 - same: a read-confinement root, checked by realpath and commonpath
     for candidate in candidates:
         real = os.path.realpath(candidate)
         if real not in roots:

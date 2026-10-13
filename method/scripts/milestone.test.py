@@ -214,9 +214,39 @@ class MilestoneRoutes(unittest.TestCase):
                     self.assertIn("outside the repository work tree and the temporary directory", result.stderr)
                     self.assertNotIn("POST", self.log.read_text() if self.log.exists() else "")
 
+    def test_confinement_is_by_path_component_and_follows_symlinks(self):
+        """The lens on #170: a sibling whose name merely starts with an allowed root, and a symlink inside an
+        allowed root that points out of it, are both refused."""
+        if os.path.realpath(self.base).startswith(os.path.realpath("/tmp") + os.sep):
+            self.skipTest("the test directory is under /tmp, an allowed root; set TMPDIR elsewhere for this case")
+        root = self.base / "tmpx"
+        sibling = self.base / "tmpxX"
+        root.mkdir()
+        sibling.mkdir()
+        (root / "ok.txt").write_text("ok\n")
+        (sibling / "evil.txt").write_text("evil\n")
+        (root / "out.txt").symlink_to(Path("/etc/hosts"))
+        environment = dict(self.environment, TMPDIR=str(root))
+        cases = [(root / "ok.txt", True), (sibling / "evil.txt", False), (root / "out.txt", False)]
+        for path, accepted in cases:
+            with self.subTest(path=str(path)):
+                if self.log.exists():
+                    self.log.unlink()
+                result = subprocess.run(
+                    [sys.executable, str(ROOT / "scripts" / "milestone-create.py"), "sprint-10", "--repo", "owner/repo",
+                     "--description-file", str(path)],
+                    capture_output=True, text=True, check=False, env=environment, cwd=str(root))
+                if accepted:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("outside the repository work tree and the temporary directory", result.stderr)
+                    self.assertNotIn("POST", self.log.read_text() if self.log.exists() else "")
+
     def test_repository_and_number_are_validated_before_gh(self):
         """mhw #170 (Sonar S8705): nothing shaped like a flag reaches the gh argv."""
-        for repo in ("--jq", "-Xowner/repo", "owner", "owner/repo/extra", "owner/repo;id", "owner repo"):
+        for repo in ("--jq", "-Xowner/repo", "owner", "owner/repo/extra", "owner/repo;id", "owner repo",
+                     "../x", "./x", "owner/..", "owner/."):
             with self.subTest(repo=repo):
                 if self.log.exists():
                     self.log.unlink()

@@ -17,7 +17,9 @@ class MilestoneError(Exception):
 
 
 def run_gh(arguments):
-    result = subprocess.run(["gh", *arguments], capture_output=True, text=True, check=False)
+    # A list argv with no shell. The repository and the number are validated by check_repo and check_number
+    # before any call; every other value travels inside "-f key=value", never as an argument of its own.
+    result = subprocess.run(["gh", *arguments], capture_output=True, text=True, check=False)  # NOSONAR pythonsecurity:S8705 - argv list, no shell; repo and number validated by check_repo/check_number, values only inside -f key=value
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
         raise MilestoneError(f"gh failed: {detail}")
@@ -25,7 +27,7 @@ def run_gh(arguments):
 
 
 def check_repo(repo):
-    if not REPO_RE.fullmatch(repo or "") or repo.startswith("-"):
+    if not REPO_RE.fullmatch(repo or "") or repo.startswith("-") or any(set(p) == {"."} for p in repo.split("/")):
         raise MilestoneError("the repository must be <owner>/<repo>, letters, digits, '.', '_' and '-' only")
     return repo
 
