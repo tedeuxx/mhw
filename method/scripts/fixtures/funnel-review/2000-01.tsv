@@ -1,0 +1,17 @@
+# FIXTURE — synthetic. Every number here is invented and names no real property, post or reader.
+# It exists so `scripts/funnel-review.test.sh` can exercise the analysis half with no network and no
+# credential. The period is 2000-01 so it can never collide with a real one.
+#
+# The parsing contract is POSITIONAL, at column 0, exactly as `cadence-rite:`, `invocable:` and
+# `purpose:` already are in this repository — and for the same measured reason: a token that can also
+# occur inside wrapped prose is not a declaration, a position is.
+#
+#   collected: yes|no <reason or provenance>
+#   figure: <surface> <metric> <value> <sample-size>
+
+collected: yes 2000-01-31 read by hand from the owner's authenticated browser (synthetic fixture)
+
+figure: ga4 sessions 100 100
+figure: ga4 article-reads 40 100
+figure: linkedin impressions 200 3
+figure: linkedin reactions 2 3

@@ -79,7 +79,7 @@ survives as the question **planning** asks.
 **The loop mode is `scrum` or `kanban`, it lives in `docs/loop-mode.md`, and it is READ before the pool
 predicate rather than after it.** The record, its history and the per-mode predicates in full are that
 file; the contract that governs what a mode may vary is the `<!-- loop-mode-contract -->` block in
-`CLAUDE.md`. Read the value with one command:
+the root brief (`AGENTS.md`), or the record it links to. Read the value with one command:
 
 ```
 grep -m1 '^loop-mode: ' docs/loop-mode.md
@@ -247,7 +247,7 @@ The owner's rule, in his words:
 > *"todas pendencias HITL devem ser zeradas no momento da invocacao do comando"*
 
 **If any exists, the drain does not enter.** It surfaces what is missing — **one thing at a time**, never
-as a list — and waits. The canonical form is the root `CLAUDE.md` block delimited by
+as a list — and waits. The canonical form is the root brief's (`AGENTS.md`) block delimited by
 `<!-- hitl-escalation-format -->`: rule 1 applies to decisions and owner actions, and remaining asks
 stay pending for their own later activation rather than moving into prose.
 
@@ -371,7 +371,7 @@ Follow `/agents-configuration`. Nothing here relaxes it:
 - **Record explicit worklog events when #499's contract is in use:** implementation start freezes the
   estimate and provenance; a checkpoint or handoff records the new segment; an outcome names accepted,
   reopened or non-delivery state with public evidence. Prepare the canonical body with
-  `scripts/worklog.py prepare-event` and publish only through the existing file-backed Issue-comment
+  `{{method-scripts}}/worklog.py prepare-event` and publish only through the existing file-backed Issue-comment
   route. This is an instruction, not automatic capture; unknown runtime or plugin evidence stays
   unknown, and `dispatch-metrics` remains a separate instrument.
 - `product-lead` on reader-facing copy, long-form prose included — it holds the copy lens since
@@ -560,8 +560,8 @@ hook receives one `cwd` while an iteration is two milestone objects in two repos
 comparison for slice C is clock versus nothing, not clock versus boundary.**
 
 **On the FIRST stop condition only** — the entry snapshot exhausted — **run
-`/tadeumendonca-skills:sprint-review <iteration>`, then
-`/tadeumendonca-skills:sprint-retrospective <iteration>`.** Not on a boundary event, and not when the owner
+`/sprint-review <iteration>`, then
+`/sprint-retrospective <iteration>`.** Not on a boundary event, and not when the owner
 interrupts: neither of those is the end of an iteration, and a rite fired on a stall would report on an
 iteration nobody finished.
 
@@ -589,7 +589,7 @@ reads like a description of something that already runs.
 
 ### The handoff after the ceremonies has an object too — `/sprint-planning` (#378)
 
-**The planning handoff below is no longer a phrase.** `/tadeumendonca-skills:sprint-planning
+**The planning handoff below is no longer a phrase.** `/sprint-planning
 <iteration>` assembles the next iteration's candidates — the eligible unmilestoned work in both
 repositories plus the proposals the two closing rites just produced — has them ranked by a context
 that did not run this drain, and presents them to the owner **one item at a time**.

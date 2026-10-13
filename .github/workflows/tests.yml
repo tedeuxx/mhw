@@ -76,7 +76,10 @@ jobs:
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py \
             global/private_copy.py global/private_copy_test.py \
-            .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py
+            .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py \
+            method/scripts/milestone_common.py method/scripts/milestone-create.py method/scripts/milestone-read.py \
+            method/scripts/milestone-update.py method/scripts/milestone-close.py method/scripts/milestone.test.py \
+            method/scripts/worklog.py method/scripts/worklog.test.py method/scripts/confine.py
       - name: node syntax check of the npm launcher, alias and postinstall (Issue #68)
         run: |
           node --version
@@ -215,6 +218,14 @@ jobs:
         run: python3 -B global/prerequisites_test.py
       # Issue #62, ADR-0032 2026-10-12 amendment: the method backlog sync. The workflow's structure (parsed
       # with the runner's ruby) and the agent's only route to GitHub, against a stub gh on PATH; no network.
+      # #170: the scripts the moved rites run, with their own suites (moved from the plugin with them).
+      - name: method scripts suites (milestone, worklog, funnel-review)
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          python3 -B method/scripts/milestone.test.py
+          python3 -B method/scripts/worklog.test.py
+          bash method/scripts/funnel-review.test.sh
       - name: method issue sync suite
         env:
           TMPDIR: ${{ runner.temp }}

@@ -1,0 +1,87 @@
+{
+  "snapshot": {
+    "schema_version": 1,
+    "sprint": "sprint-fixture",
+    "timezone": "UTC",
+    "starts_at": "2026-09-01T00:00:00Z",
+    "ends_at": "2026-09-08T00:00:00Z",
+    "repositories": [
+      {"repository": "acme/skills", "milestone_number": 3},
+      {"repository": "acme/site", "milestone_number": 9}
+    ],
+    "counting_units": [
+      {"issue": "acme/skills#7", "planned_points": 8, "work_type": "loop", "parent": null},
+      {"issue": "acme/site#7", "planned_points": 5, "work_type": "product", "parent": null},
+      {"issue": "acme/site#8", "planned_points": 3, "work_type": "product", "parent": null}
+    ]
+  },
+  "events": [
+    {
+      "schema_version": 1, "event_id": "skills-7-start", "issue": "acme/skills#7",
+      "timestamp": "2026-09-01T10:00:00Z", "event_type": "implementation_start", "stage": "build",
+      "run_id": "run-a", "attempt_id": "attempt-a", "attribution": {
+        "harness": "Claude Code", "runtime_version": "2.1.267", "plugin": {"version": "2.0.70", "source_revision": "aaaaaaa"},
+        "persona": "agents-lead", "provenance": "observed"
+      }, "revision": {"repository": "acme/skills", "branch": "feat/7", "commit": "aaaaaaa"},
+      "evidence": ["https://example.test/pr/1"], "handoff": {"state": "active", "to": null},
+      "frozen_estimate": {"points": 8, "provenance": "intake median", "commitment_points": 8}
+    },
+    {
+      "schema_version": 1, "event_id": "skills-7-handoff", "issue": "acme/skills#7",
+      "timestamp": "2026-09-02T10:00:00Z", "event_type": "handoff", "stage": "review",
+      "run_id": "run-b", "attempt_id": "attempt-b", "predecessor_event_id": "skills-7-start",
+      "attribution": {"harness": "Codex", "runtime_version": "unknown", "plugin": {"version": "2.0.71", "source_revision": "bbbbbbb"}, "persona": "quality-assurance", "provenance": "declared"},
+      "revision": {"repository": "acme/skills", "branch": "feat/7", "commit": "bbbbbbb"},
+      "evidence": ["https://example.test/pr/1#review"], "handoff": {"state": "handed_off", "to": "quality-assurance"}
+    },
+    {
+      "schema_version": 1, "event_id": "skills-7-accepted", "issue": "acme/skills#7",
+      "timestamp": "2026-09-03T10:00:00Z", "event_type": "outcome", "stage": "complete",
+      "run_id": "run-b", "attempt_id": "attempt-b", "attribution": {"harness": "Codex", "runtime_version": "unknown", "plugin": {"version": "2.0.71", "source_revision": "bbbbbbb"}, "persona": "quality-assurance", "provenance": "declared"},
+      "revision": {"repository": "acme/skills", "branch": "feat/7", "commit": "bbbbbbb"},
+      "evidence": ["https://example.test/pr/1#gate"], "handoff": {"state": "complete", "to": null},
+      "outcome": "accepted", "completion_sprint": "sprint-fixture", "acceptance_evidence": ["gatekeeper verdict"]
+    },
+    {
+      "schema_version": 1, "event_id": "site-7-start", "issue": "acme/site#7",
+      "timestamp": "2026-09-01T11:00:00Z", "event_type": "implementation_start", "stage": "build",
+      "run_id": "run-c", "attempt_id": "attempt-c", "attribution": {"harness": "Kiro", "runtime_version": "1.0.437", "plugin": {"version": "2.0.70", "source_revision": "ccccccc"}, "persona": "developer", "provenance": "observed"},
+      "revision": {"repository": "acme/site", "branch": "feat/7", "commit": "ccccccc"},
+      "evidence": ["https://example.test/pr/2"], "handoff": {"state": "active", "to": null},
+      "frozen_estimate": {"points": 5, "provenance": "intake median", "commitment_points": 5}
+    },
+    {
+      "schema_version": 1, "event_id": "site-7-accepted", "issue": "acme/site#7",
+      "timestamp": "2026-09-04T11:00:00Z", "event_type": "outcome", "stage": "complete",
+      "run_id": "run-c", "attempt_id": "attempt-c", "attribution": {"harness": "Kiro", "runtime_version": "1.0.437", "plugin": {"version": "2.0.70", "source_revision": "ccccccc"}, "persona": "quality-assurance", "provenance": "observed"},
+      "revision": {"repository": "acme/site", "branch": "feat/7", "commit": "ccccccc"},
+      "evidence": ["https://example.test/pr/2#gate"], "handoff": {"state": "complete", "to": null},
+      "outcome": "accepted", "completion_sprint": "sprint-fixture", "acceptance_evidence": ["gatekeeper verdict"]
+    },
+    {
+      "schema_version": 1, "event_id": "site-8-start", "issue": "acme/site#8",
+      "timestamp": "2026-09-02T11:00:00Z", "event_type": "implementation_start", "stage": "build",
+      "run_id": "run-d", "attempt_id": "attempt-d", "attribution": {"harness": "unknown", "runtime_version": "unknown", "plugin": {"version": "unknown", "source_revision": "unknown"}, "persona": "developer", "provenance": "unknown"},
+      "revision": {"repository": "acme/site", "branch": "feat/8", "commit": "unknown"},
+      "evidence": [], "handoff": {"state": "active", "to": null},
+      "frozen_estimate": {"points": 3, "provenance": "intake median", "commitment_points": 3}
+    },
+    {
+      "schema_version": 1, "event_id": "site-8-accepted", "issue": "acme/site#8",
+      "timestamp": "2026-09-05T11:00:00Z", "event_type": "outcome", "stage": "complete",
+      "run_id": "run-d", "attempt_id": "attempt-d", "attribution": {"harness": "unknown", "runtime_version": "unknown", "plugin": {"version": "unknown", "source_revision": "unknown"}, "persona": "quality-assurance", "provenance": "unknown"},
+      "revision": {"repository": "acme/site", "branch": "feat/8", "commit": "unknown"},
+      "evidence": ["https://example.test/pr/3#gate"], "handoff": {"state": "complete", "to": null},
+      "outcome": "accepted", "completion_sprint": "sprint-fixture", "acceptance_evidence": ["gatekeeper verdict"]
+    },
+    {
+      "schema_version": 1, "event_id": "site-8-reopened", "issue": "acme/site#8",
+      "timestamp": "2026-09-06T11:00:00Z", "event_type": "outcome", "stage": "reopened",
+      "run_id": "run-e", "attempt_id": "attempt-e", "resume_of_event_id": "site-8-accepted",
+      "attribution": {"harness": "unknown", "runtime_version": "unknown", "plugin": {"version": "unknown", "source_revision": "unknown"}, "persona": "quality-assurance", "provenance": "unknown"},
+      "revision": {"repository": "acme/site", "branch": "feat/8", "commit": "unknown"},
+      "evidence": ["https://example.test/issues/8"], "handoff": {"state": "reopened", "to": "developer"},
+      "outcome": "reopened"
+    }
+  ]
+}
