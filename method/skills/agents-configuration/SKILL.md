@@ -196,7 +196,7 @@ promoted. Full branching diagrams and per-environment topology live in `/scm`, a
 | **`gitflow-multi-env`** | The repo deploys to **more than one environment** and carries an integration branch. | Two hops: PR → integration branch → staging, then a promotion PR → release branch → production behind manual approval. |
 | **`trunk-single-env`** | The repo has **one long-lived branch (`main`) and one destination** — a single deployed environment, or a consumed artifact released deliberately. | One hop: PR → `main` → deploy/release. |
 
-**How to tell**, in order of authority: the repo's `CLAUDE.md` states the model outright; otherwise
+**How to tell**, in order of authority: the repo's root brief (`AGENTS.md`) states the model outright; otherwise
 look for an integration branch (`develop`) on the remote and more than one environment in CI. **If
 both signals are absent, it is `trunk-single-env`.**
 
@@ -207,7 +207,7 @@ independent: either model runs under either mode. A mode names a widely-known ag
 exactly two things — **what the container MEANS, and which ceremonies run at its edges.**
 
 **Two artifacts carry it and neither is this file.** The **contract** — what a mode may vary and what it
-may never touch — is the `<!-- loop-mode-contract -->` block in `CLAUDE.md` at each repository's root.
+may never touch — is the `<!-- loop-mode-contract -->` block in each repository's root brief (`AGENTS.md`), or the record it links to.
 The **record** — which value is in force — is `docs/loop-mode.md`, which carries the value, the closed
 enum, the back-dated start and both pool predicates in full. **This section is a POINTER plus the
 minimum a dispatched persona needs, and it is deliberately not a copy of either.** The contract's
@@ -355,12 +355,13 @@ the `new-issue.md` branch **exist and say this** (the plugin's `inventory-counts
 nothing could assert that anyone obeyed them.
 
 **These rows route INTAKE. The REVIEW chain is routed too, and its operative wording is NOT here (#393).**
-It lives in `CLAUDE.md` at each repository's root, as one table: `loop` → one lens pass plus the gate ·
+It lives in each repository's root brief (`AGENTS.md`), as one table: `loop` → one lens pass plus the gate ·
 `product` → the full chain · `content` → the content pair plus the gate. **This paragraph is a pointer
 and nothing else** — it names the rows without stating their conditions, and the conditions are the
 rule. The carrier is a root brief rather than this skill because the actor that selects a review chain
 is the **orchestrator**, and a nonce probe (#409, re-measured on #393 against build `2.1.263`) shows a
-skill body does not reach it while a root `CLAUDE.md` does — while every persona that loads *this* file
+skill body does not reach it while a root brief does (that probe measured the vendor-named root brief of the time; since ADR-0037 of the
+workstation repository the root brief is `AGENTS.md`, which the harness loads natively) — while every persona that loads *this* file
 is a dispatchee, and a dispatchee cannot select its own dispatch. **Do not copy the table here.** One
 rule in two wordings with no canonical home is exactly #329, where the operative copy ended up in the
 surface nobody read.
@@ -601,11 +602,11 @@ gh issue list --repo <owner>/<repo> --state all --limit 200 --json number,milest
 
 There is no `gh milestone` subcommand, and `state` is not among `gh issue list --json`'s available
 fields, so ~~**no command available to this loop can read whether a milestone is open or closed.**~~
-**Struck 2026-09-29 (#537): `python3 scripts/milestone-read.py` reads the milestone endpoint directly,
+**Struck 2026-09-29 (#537): `python3 {{method-scripts}}/milestone-read.py` reads the milestone endpoint directly,
 including an empty milestone, and returns state plus open and closed counts.**
 ~~Creating one and closing one are both owner acts in the browser.~~ **Struck first for creation at
-#375 and completely at #537:** `scripts/milestone-create.py` creates and
-`scripts/milestone-close.py` closes. Neither act is handed to the owner.
+#375 and completely at #537:** `{{method-scripts}}/milestone-create.py` creates and
+`{{method-scripts}}/milestone-close.py` closes. Neither act is handed to the owner.
 
 **Why that does not send the object back to the table, which is the honest form of this answer:** rule 1
 never reads `state`. The predicate above derives the active iteration from *items*, so the one attribute
@@ -625,7 +626,7 @@ scrum»* — and creation had **no route at all**: `gh milestone` does not exist
 (`gh milestone --help` → `unknown command "milestone" for "gh"`), so rule 5f's prescribed remedy
 (*"use the gh subcommand for the act instead"*) is **unexecutable**, not merely inconvenient.
 
-**The route is `scripts/milestone-create.py`, and it is an EXPLOITATION rather than a design.** It
+**The route is `{{method-scripts}}/milestone-create.py`, and it is an EXPLOITATION rather than a design.** It
 reaches the write API because **neither the settings matcher nor `permission-guard.sh` looks inside a
 script** — the same blindness that makes `python3 -c "…gh api -X POST…"` a back door, measured against
 the live guard. **So nothing here may claim the raw-API route is closed**, and the floor entry the
@@ -1571,7 +1572,7 @@ over real iterations, which is his decision and not a build's.
 
 1. ~~**A WORKLOG does not exist.** He named *«metricas e worklog»*; the metrics half is
    `dispatch-metrics-stop.sh` and the worklog half has no equivalent in this tree.~~ **Struck
-   2026-09-23 (#499): a host-neutral, explicit worklog now exists at `scripts/worklog.py`, with its
+   2026-09-23 (#499): a host-neutral, explicit worklog now exists at `{{method-scripts}}/worklog.py`, with its
    contract in `docs/worklog/`.** It has no automatic producer and does not read the metrics hook.
    **Do not read native usage reporting as the worklog:** they are separate instruments.
 2. **The mapping from a story point to tokens and hours does not exist.** The worklog uses frozen
@@ -1816,7 +1817,7 @@ action before ending the turn, or say plainly that there is none.
    **The bound is now `wip:` in `docs/loop-mode.md`, read from the record and never assumed** — it is
    `2` at the time of writing, and a value read from a file is the point. **Development parallelises;
    THE REVIEW GATE DOES NOT** — at most one merge request is in review at a time, whatever `wip` says
-   (owner ruling 1, stated in `CLAUDE.md`'s `loop-mode-contract` block, which is the surface that
+   (owner ruling 1, stated in the root brief's (`AGENTS.md`) `loop-mode-contract` block, which is the surface that
    reaches the orchestrator). **Isolation is a `git worktree` per slice**, which is what ruling 4
    re-permits. **Nothing enforces any of it**: `wip-guard.sh` is deleted and `gh pr create` is
    allowlisted in both settings layers, so an (N+1)th PR executes silently.

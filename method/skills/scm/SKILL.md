@@ -26,7 +26,7 @@ and its analysis tool) and `provisioning` (infrastructure state and the pipeline
 ## Pick the model first
 
 Determine the repo's loop model (`/agents-configuration`) before configuring protection or writing a
-single allow or deny entry. **How to tell:** the repo's `CLAUDE.md` states it. Otherwise, count
+single allow or deny entry. **How to tell:** the repo's root brief (`AGENTS.md`) states it. Otherwise, count
 environments: more than one → `gitflow-multi-env`; one (or none, for a consumed artifact) →
 `trunk-single-env`.
 
@@ -145,7 +145,7 @@ is decoration; retired schemes (`type:`/`priority:`/`phase:`) stay retired.
 prefix tells a reader detached from the other repositories that they are one system.
 
 **Language:** everything published on the forge is in **English** — descriptions, READMEs, `docs/`,
-`CLAUDE.md`, commit and pull-request text, Issues.
+`AGENTS.md`, commit and pull-request text, Issues.
 
 ## The permission floor for forge acts — the tolerance test
 

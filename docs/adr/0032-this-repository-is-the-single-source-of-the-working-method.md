@@ -316,6 +316,46 @@ login `TWIN_AUTHOR` assumed, now confirmed), `verify` passed (OPEN) and the back
 `github-actions`. Run 38324871241, on closing mhw#162, closed the twin, `verify` passed (CLOSED) and the
 back-link was not posted again. The weekly regeneration does not exist yet.
 
+## Amendment 2026-10-12: the four rites move into `method/` before #130 (#130)
+
+Status unchanged (proposed). *What moved* above left the sprint and funnel rites out of the set, while
+the method's own briefs (`scrum-master`, `autonomy`, `agents-configuration` and others) kept pointing to
+them, so uninstalling the plugin (#130) would have left those pointers naming commands that no longer
+exist on the workstation. The owner, 2026-10-12, recorded on
+[#130](https://github.com/tedeuxx/mhw/issues/130#issuecomment-6136293979), chose **"Mover para o
+method/"** over retiring them or postponing #130, and made two preconditions of #130: the four rites
+in `method/`, and the root-brief rename to `AGENTS.md` (ADR-0037) applied across `method/`.
+
+- **Moved:** `sprint-planning`, `sprint-review`, `sprint-retrospective` and `funnel-review`, from the
+  plugin's `commands/` at its `main` commit `4882b911`, into `method/commands/`. They render like every
+  other command: Claude Code commands, Codex skills with implicit invocation off, Kiro skills. The
+  method now holds 11 commands.
+- **Adapted as at seeding, and nothing else:** the method's front-matter shape (`name`, `description`,
+  `purpose`, `argument-hint`, quoted); the retired-plugin-hooks note at the top; the plugin's namespaced
+  invocations (`/tadeumendonca-skills:<name>`) made bare in `autonomy` (the rite bodies carried none). Their
+  text is otherwise the plugin's, including the plugin-hook descriptions the note qualifies.
+- **Their scripts moved with them** (the lens and the gate on #170): the `milestone-*` family with
+  `milestone_common.py`, `worklog.py`, and `funnel-review.sh`, from the plugin's `scripts/` at the same
+  commit, into `method/scripts/` with their tests and fixtures (and the worklog contract the worklog test
+  reads, in `method/scripts/worklog-contract/`). The render installs the scripts, never a test, to one
+  user-level directory for every agent harness,
+  `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/method/scripts/`, with
+  the managed-by line after the shebang; `{{method-scripts}}` in a rendered body becomes that directory, so
+  a rite runs them from any repository, and a `{{method-scripts}}/<name>` naming no script stops the
+  render. Adapted: `funnel-review.sh` defaults its root to the working directory's repository instead of
+  its own place, and its test drops the two arms that fired the plugin's `cadence-notice` hook, which the
+  method does not carry. Where these scripts first met a SonarCloud gate (the gate on #170, N1): a new
+  `confine.py` resolves a path and refuses one outside the current work tree or the temporary directory,
+  and `milestone_common.text_from_file` (a description is published) and `worklog.load` (what it loads
+  becomes a published comment) read only through it; `milestone_common` validates the repository as
+  `<owner>/<repo>` and the number as a positive integer before any `gh` call; the worklog's private-path
+  regex carries a reasoned `NOSONAR` (it refuses `/tmp/`, it opens nothing); the render installs the
+  scripts `0700`. Each has a test. Not moved: the worklog contract's place in a consuming repository
+  (`docs/worklog/`), which the rites still name.
+- **The rename:** every reference in `method/` to a project's root brief now names `AGENTS.md`;
+  harness-path class lists, dated measurements and history keep the vendor-named file where it is a
+  fact about a path or the past.
+
 ## Amendment 2026-10-13: the installer retires the plugin with the method (#130)
 
 Status unchanged (proposed). #130 was an owner action, *uninstall the plugin*, with three preconditions:
@@ -343,7 +383,8 @@ tadeumendonca-skills. Since this amendment the uninstall is installer work, in t
 **The opt-in stays, and the passage above is not struck.** Making the method default-on would let a
 routine `mhw install` or `mhw update` retire the plugin; the cutover stays the owner's deliberate act,
 `mhw install --method` in a fresh session (ADR-0022), as #130 frames it. The rites and their scripts
-(#170) must be on `main` before that act, which this amendment does not decide. Turning `--method` on
+(#170, the amendment above) are on `rc/next`; they reach `main` with the release candidate,
+which must carry both before that act. Turning `--method` on
 by default is a one-line change once the canary has passed.
 
 ## Links

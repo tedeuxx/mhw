@@ -14,7 +14,7 @@ Write the **effective** agent harness setup of the current project, the one a se
 runs with, as a requirements document.
 
 1. **Read what is in effect**, layer by layer, and note where each part comes from: the user-level brief,
-   the project brief (`AGENTS.md`, `CLAUDE.md`, steering), the settings and permission layers, agents,
+   the project brief (`AGENTS.md`, or a vendor-named brief where a project still has one, steering), the settings and permission layers, agents,
    skills, commands, hooks, MCP server names, and the delivery route. Where the project offers a runtime
    summary command, use its output.
 2. **Write** `docs/<git-repo-name>-product-requirements-document-agent-harness-setup.md`, following

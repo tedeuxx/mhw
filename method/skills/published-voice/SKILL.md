@@ -408,7 +408,7 @@ inference is distinguished from one that needs validation. There is no autonomou
 unlike a `safe`-class code change elsewhere in this loop. A draft is always pending review, full stop.
 
 **Practical test for "is this his, or am I inventing it":** if you cannot point to where in the source
-material (an ADR, a `CLAUDE.md` passage, a transcript, a prior published piece, an explicit answer he
+material (an ADR, an `AGENTS.md` passage, a transcript, a prior published piece, an explicit answer he
 gave) a claim, a number or a stance comes from, it does not go in the draft as his. Cut it, flag it as a
 question back to him, or — if the piece genuinely needs connective framing that carries no claim of its
 own (a transition, a structural device) — that is craft, not sourcing, and is free to supply.
