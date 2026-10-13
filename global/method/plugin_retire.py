@@ -15,7 +15,8 @@ What it changes, at user scope only:
                  any scope still uses it.
     Codex        ${CODEX_HOME:-~/.codex}/config.toml: the [plugins."tadeumendonca-skills@<marketplace>"] table
                  and the [marketplaces.<marketplace>] table, and nothing else in the file (verified with
-                 tomllib; without it a file naming the plugin is refused, not edited blind).
+                 tomllib; without it a file naming the plugin is refused, not edited blind). The plugin set
+                 as inline or dotted keys rather than its own table is refused too: edit it by hand.
 Project-scope installs (a project's .claude/settings.json, a scope "project" install record) are REPORTED,
 never touched: each repository changes its own settings through its own pull request.
 
@@ -30,6 +31,8 @@ symbolic link is written through. A file that is not valid JSON or TOML is REFUS
 
 Uninstall restores what install removed, from those backups: the removed keys, records and tables that are
 absent now are put back, and nothing else is changed. It is idempotent.
+
+--home, when given, must name an existing directory, or nothing runs (exit 2).
 
 Exit codes, as install.sh: 0 ok · 1 the plugin is still present (--check) · 2 usage · 3 a file this script
 must not edit (unreadable, malformed, or an edit that would not verify).
@@ -55,6 +58,7 @@ except ImportError:  # Python < 3.11
 PLUGIN = "tadeumendonca-skills"
 BACKUP = ".pmhwc-plugin-backup"
 HEADER_RE = re.compile(r"\s*\[")
+REFUSE_LINE = "REFUSE  %s: %s"
 
 
 class Refuse(Exception):
@@ -156,13 +160,9 @@ def codex_tables(text):
                  for m in markets]
     drop, labels = set(), []
     for i, line in enumerate(lines):
-        label = None
-        if plugin_re.match(line):
-            label = line.strip()
-        elif any(r.match(line) for r in market_re):
-            label = line.strip()
-        if label is None:
+        if not (plugin_re.match(line) or any(r.match(line) for r in market_re)):
             continue
+        label = line.strip()
         j = i + 1
         while j < len(lines) and not HEADER_RE.match(lines[j]):
             j += 1
@@ -182,6 +182,11 @@ def plan_codex(text):
     except tomllib.TOMLDecodeError as e:
         raise Refuse("not valid TOML (%s); left untouched" % e)
     lines, drop, labels, markets = codex_tables(text)
+    found = [k for k in (old.get("plugins") or {}) if plugin_key(k)]
+    unmatched = [k for k in found if k.split("@", 1)[1] not in markets]
+    if unmatched:
+        raise Refuse("it configures %s in a form other than its own [plugins.\"...\"] table (inline or dotted "
+                     "keys); edit it by hand; nothing written" % ", ".join(sorted(unmatched)))
     if not labels:
         return text, []
     new_text = "".join(l for i, l in enumerate(lines) if i not in drop)
@@ -241,77 +246,92 @@ def report(mode, path, changes):
     return 0
 
 
+def apply(mode, path, changes, new_text):
+    """Report the changes and, on install, write them. -> the exit status they contribute."""
+    status = report(mode, path, changes)
+    if mode == "install":
+        write(path, new_text)
+    return status
+
+
+def retire_settings(mode, path):
+    """-> (status, the plugin's marketplaces named in the settings)."""
+    doc = read_json(path)
+    if doc is None:
+        return 0, []
+    new, changes, markets = plan_settings(doc)
+    if not changes:
+        print("OK      %s: the %s plugin is not enabled at user scope" % (path, PLUGIN))
+        return 0, markets
+    return apply(mode, path, changes, dump(new)), markets
+
+
+def retire_installed(mode, path):
+    """-> (status, the plugin's marketplaces named in the records, marketplaces still used by any record)."""
+    doc = read_json(path)
+    if doc is None:
+        return 0, [], []
+    new, changes, project, still = plan_installed(doc)
+    markets = marketplaces_of(doc.get("plugins", {}) or {})
+    status = apply(mode, path, changes, dump(new)) if changes else 0
+    if project:
+        shown = ", ".join(where for _, where in project[:5]) + (", ..." if len(project) > 5 else "")
+        print("NOTE    %s: %d project-scope install(s) of the %s plugin left untouched; each belongs to "
+              "its repository's own pull request: %s" % (path, len(project), PLUGIN, shown))
+    if not changes and not project:
+        print("OK      %s: no install record of the %s plugin" % (path, PLUGIN))
+    return status, markets, still
+
+
+def retire_markets(mode, path, markets, still):
+    doc = read_json(path)
+    if doc is None or not markets:
+        return 0
+    new, changes, kept = plan_markets(doc, markets, still)
+    status = apply(mode, path, changes, dump(new)) if changes else 0
+    for name in kept:
+        print("NOTE    %s: the %s marketplace is kept: a project-scope install still uses it" % (path, name))
+    return status
+
+
+def retire_codex(mode, path):
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return 0
+    except (OSError, UnicodeDecodeError) as e:
+        raise Refuse("unreadable (%s); left untouched" % e.__class__.__name__)
+    new_text, changes = plan_codex(text)
+    if not changes:
+        print("OK      %s: the %s plugin is not configured" % (path, PLUGIN))
+        return 0
+    return apply(mode, path, changes, new_text)
+
+
+def guarded(path, step):
+    """Run one file's step; a refusal leaves that file untouched and makes the run exit 3."""
+    try:
+        return step()
+    except Refuse as e:
+        print(REFUSE_LINE % (path, e))
+        return None
+
+
 def retire(mode):
     p = paths()
     status = 0
-    markets = []
-    # Claude Code settings.
-    try:
-        doc = read_json(p["settings"])
-        if doc is not None:
-            new, changes, markets = plan_settings(doc)
-            if changes:
-                status = max(status, report(mode, p["settings"], changes))
-                if mode == "install":
-                    write(p["settings"], dump(new))
-            else:
-                print("OK      %s: the %s plugin is not enabled at user scope" % (p["settings"], PLUGIN))
-    except Refuse as e:
-        print("REFUSE  %s: %s" % (p["settings"], e))
-        status = 3
-    # Install records.
+    got = guarded(p["settings"], lambda: retire_settings(mode, p["settings"]))
+    status, markets = (3, []) if got is None else got
+    got = guarded(p["installed"], lambda: retire_installed(mode, p["installed"]))
     still = []
-    try:
-        doc = read_json(p["installed"])
-        if doc is not None:
-            new, changes, project, still = plan_installed(doc)
-            markets = sorted(set(markets) | set(marketplaces_of(doc.get("plugins", {}) or {})))
-            if changes:
-                status = max(status, report(mode, p["installed"], changes))
-                if mode == "install":
-                    write(p["installed"], dump(new))
-            if project:
-                shown = ", ".join(path for _, path in project[:5]) + (", ..." if len(project) > 5 else "")
-                print("NOTE    %s: %d project-scope install(s) of the %s plugin left untouched; each belongs to "
-                      "its repository's own pull request: %s" % (p["installed"], len(project), PLUGIN, shown))
-            if not changes and not project:
-                print("OK      %s: no install record of the %s plugin" % (p["installed"], PLUGIN))
-    except Refuse as e:
-        print("REFUSE  %s: %s" % (p["installed"], e))
+    if got is None:
         status = 3
-    # Marketplaces.
-    try:
-        doc = read_json(p["markets"])
-        if doc is not None and markets:
-            new, changes, kept = plan_markets(doc, markets, still)
-            if changes:
-                status = max(status, report(mode, p["markets"], changes))
-                if mode == "install":
-                    write(p["markets"], dump(new))
-            for name in kept:
-                print("NOTE    %s: the %s marketplace is kept: a project-scope install still uses it" % (p["markets"], name))
-    except Refuse as e:
-        print("REFUSE  %s: %s" % (p["markets"], e))
-        status = 3
-    # Codex.
-    try:
-        try:
-            text = p["codex"].read_text(encoding="utf-8")
-        except FileNotFoundError:
-            text = None
-        except (OSError, UnicodeDecodeError) as e:
-            raise Refuse("unreadable (%s); left untouched" % e.__class__.__name__)
-        if text is not None:
-            new_text, changes = plan_codex(text)
-            if changes:
-                status = max(status, report(mode, p["codex"], changes))
-                if mode == "install":
-                    write(p["codex"], new_text)
-            else:
-                print("OK      %s: the %s plugin is not configured" % (p["codex"], PLUGIN))
-    except Refuse as e:
-        print("REFUSE  %s: %s" % (p["codex"], e))
-        status = 3
+    else:
+        status, markets, still = max(status, got[0]), sorted(set(markets) | set(got[1])), got[2]
+    for path, step in ((p["markets"], lambda: retire_markets(mode, p["markets"], markets, still)),
+                       (p["codex"], lambda: retire_codex(mode, p["codex"]))):
+        got = guarded(path, step)
+        status = 3 if got is None else max(status, got)
     return status
 
 
@@ -326,7 +346,7 @@ def restore_json(path, merge):
         old = read_json(backup) or {}
         cur = read_json(path)
     except Refuse as e:
-        print("REFUSE  %s: %s" % (path, e))
+        print(REFUSE_LINE % (path, e))
         return 3
     cur = {} if cur is None else cur
     new, restored = merge(old, copy.deepcopy(cur))
@@ -397,6 +417,13 @@ def merge_markets_for(names):
     return merge
 
 
+def separator(text):
+    """What goes between a file's text and appended tables: nothing for an empty file, else one blank line."""
+    if not text:
+        return ""
+    return "\n" if text.endswith("\n") else "\n\n"
+
+
 def restore_codex(path):
     backup = Path(str(path) + BACKUP)
     if not backup.is_file():
@@ -412,8 +439,7 @@ def restore_codex(path):
         print("OK      %s: nothing of the %s plugin to restore" % (path, PLUGIN))
         return 0
     add = "".join(lines[idx] for idx in sorted(drop))
-    sep = "" if not cur_text else ("\n" if cur_text.endswith("\n") else "\n\n")
-    new_text = cur_text + sep + add
+    new_text = cur_text + separator(cur_text) + add
     if tomllib is not None:
         try:
             tomllib.loads(new_text)
@@ -423,7 +449,7 @@ def restore_codex(path):
     if path.exists():
         write(path, new_text, backup=False)
     else:
-        path.write_text(new_text, encoding="utf-8")
+        path.write_text(new_text, encoding="utf-8")  # NOSONAR pythonsecurity:S2083 - the path is <home>/.codex/config.toml or $CODEX_HOME/config.toml; --home is the installer's own argument (throwaway homes in tests), refused by main() unless it is an existing directory, and the text is the plugin's own tables from this file's backup
     print("RESTORED %s: %s (from %s%s)" % (path, "; ".join("%s absent -> present" % l for l in missing), path.name, BACKUP))
     return 0
 
@@ -450,7 +476,11 @@ def main(argv):
         if arg.startswith("--mode="):
             mode = arg[len("--mode="):]
         elif arg.startswith("--home="):
-            method_render.HOME_OVERRIDE = arg[len("--home="):]
+            home = arg[len("--home="):]
+            if not home or not os.path.isdir(home):
+                print("plugin_retire: --home must name an existing directory", file=sys.stderr)
+                return 2
+            method_render.HOME_OVERRIDE = home
         elif arg == "--opt-in":
             opt_in = True
         else:

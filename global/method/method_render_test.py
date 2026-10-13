@@ -416,6 +416,26 @@ class ThroughTheInstaller(unittest.TestCase):
         self.assertTrue(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"],
                         "uninstall restores the plugin it removed")
 
+    def test_a_failed_render_never_retires_the_plugin(self):
+        """#130: install.sh --method with a render that refuses leaves the plugin enabled and writes no backup,
+        so a session is never left with neither copy."""
+        h = Home()
+        settings = h.p(".claude/settings.json")
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(json.dumps({"enabledPlugins": {"tadeumendonca-skills@tadeumendonca": True}}) + "\n",
+                            encoding="utf-8")
+        foreign = h.p(".claude/agents/developer.md")
+        foreign.parent.mkdir(parents=True, exist_ok=True)
+        foreign.write_text("the owner's own developer agent, not managed by the method\n", encoding="utf-8")
+        inst = REPO / "global" / "install.sh"
+        p = subprocess.run(["sh", str(inst), "--method"], env=h.env, capture_output=True, text=True)
+        self.assertNotEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("REFUSE", p.stdout + p.stderr)
+        self.assertIs(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"], True,
+                      "a failed render leaves the plugin enabled")
+        self.assertFalse(list(Path(h.root).rglob("*.pmhwc-plugin-backup")), "nothing was retired, so no backup")
+        self.assertEqual(foreign.read_text(), "the owner's own developer agent, not managed by the method\n")
+
 
 def parse_toml(text):
     try:

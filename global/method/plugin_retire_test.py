@@ -251,6 +251,55 @@ class Retire(unittest.TestCase):
         self.assertNotIn(KEY, h.read("settings")["enabledPlugins"])
         self.assertFalse((h.root / "not-this-one").exists())
 
+    def test_uninstall_restores_only_the_plugin_from_the_settings_backup(self):
+        # The owner disables another plugin after the cutover: uninstall must not bring it back from the backup.
+        h = Home()
+        h.run("install")
+        settings = h.read("settings")
+        del settings["enabledPlugins"]["other@vendor"]
+        h.write("settings", settings)
+        code, out = h.run("uninstall", opt_in=False)
+        self.assertEqual(code, 0, out)
+        enabled = h.read("settings")["enabledPlugins"]
+        self.assertIs(enabled[KEY], True)
+        self.assertNotIn("other@vendor", enabled, "a restore puts back the plugin only")
+
+    def test_a_codex_plugin_in_inline_or_dotted_form_is_refused(self):
+        for form in ('[plugins]\n"tadeumendonca-skills@tadeumendonca" = { enabled = true }\n',
+                     'plugins."tadeumendonca-skills@tadeumendonca".enabled = true\n'):
+            with self.subTest(form=form):
+                h = Home(plugin=False)
+                text = form + "\n" + h.p("codex").read_text(encoding="utf-8")
+                h.p("codex").write_text(text, encoding="utf-8")
+                for mode, want in (("check", 3), ("install", 3)):
+                    code, out = h.run(mode)
+                    if tomllib is None:
+                        self.assertIn("needs Python 3.11+", out)
+                    else:
+                        self.assertEqual(code, want, out)
+                        self.assertIn("in a form other than its own", out)
+                self.assertEqual(h.p("codex").read_text(encoding="utf-8"), text)
+                self.assertFalse(Path(str(h.p("codex")) + ".pmhwc-plugin-backup").exists())
+
+    def test_a_home_that_is_not_an_existing_directory_is_refused_before_any_write(self):
+        h = Home()
+        before = h.snapshot()
+        missing = h.root / "no-such-home"
+        afile = h.root / "a-file"
+        afile.write_text("x", encoding="utf-8")
+        for home in (missing, afile, ""):
+            for mode in ("install", "uninstall"):
+                with self.subTest(home=str(home), mode=mode):
+                    p = subprocess.run([sys.executable, "-B", str(SCRIPT), "--mode=" + mode, "--opt-in",
+                                        "--home=%s" % home],
+                                       env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(h.root)},
+                                       capture_output=True, text=True)
+                    self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+                    self.assertIn("--home must name an existing directory", p.stderr)
+        self.assertFalse(missing.exists())
+        self.assertEqual(h.snapshot(), before)
+        self.assertFalse(list(h.root.rglob("*.pmhwc-plugin-backup")))
+
     def test_status_reports_duplicate_until_the_plugin_is_retired(self):
         h = Home()
         probe = ("import sys; sys.path.insert(0, %r); import workstation as w; "

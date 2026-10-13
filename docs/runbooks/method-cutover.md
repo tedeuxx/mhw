@@ -30,6 +30,21 @@ run on the reference machine.
 2. **Verify, in a fresh Claude Code, Codex and Kiro session:**
    - the agents are listed once, under their bare names (Claude Code `/agents`), not twice;
    - `mhw status` shows the method line with **no DUPLICATE**.
+
+   **That holds at user scope only.** A project that still installs or enables the plugin keeps it in
+   its own sessions, so the method appears twice there. The install does not touch those projects. To
+   find them:
+   - `mhw check` prints a `NOTE … N project-scope install(s)` line (the first five paths) from
+     `~/.claude/plugins/installed_plugins.json`. The full list:
+     `jq -r '.plugins["tadeumendonca-skills@tadeumendonca"][]? | select(.scope=="project") | .projectPath' ~/.claude/plugins/installed_plugins.json`
+   - `mhw status --project=<repository>` shows DUPLICATE for a repository whose own `.claude/settings.json`
+     enables the plugin. It does not read the install records.
+
+   Records whose `projectPath` is a session scratchpad or a removed worktree (under the temporary
+   directory, or a `.claude/worktrees/…` path that no longer exists) point at no project, so they are
+   safe to remove. Use `claude plugin uninstall tadeumendonca-skills@tadeumendonca --scope project` run in
+   that directory while it exists, or delete the record from the file. A real repository (for example
+   tadeumendonca-io, or the tadeumendonca-skills checkout) changes its own settings in its own pull request.
 3. **Canary:** in a Claude Code session, type `/autonomy` with no argument: it prints its help and does
    nothing. Confirm it is the method's copy: `head -3 ~/.claude/commands/autonomy.md` carries the
    `managed-by: personal-multi-harness-workstation-configuration; source: method/commands/autonomy.md` line.

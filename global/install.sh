@@ -963,6 +963,7 @@ method_step() {
   # always run it (uninstall restores what install removed, from its backups).
   case $mode in
     install|dry-run) [ "$method_rc" -eq 0 ] || return 0 ;;
+    *) ;;
   esac
   # shellcheck disable=SC2086
   python3 -B "$script_dir/method/plugin_retire.py" "--mode=$mode" $method_optin || raise $?
