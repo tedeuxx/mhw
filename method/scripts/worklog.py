@@ -12,6 +12,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # confine.py ships beside this file (mhw #170)
+from confine import confined  # noqa: E402
+
 EVENT_MARKER = "<!-- worklog-event:v1 -->"
 # An envelope is the marker ALONE ON ITS OWN LINE, which is how prepare-event emits it (#515). A marker quoted
 # inside a sentence — `the <!-- worklog-event:v1 --> marker opens an event` — is prose, not an envelope, and
@@ -34,7 +37,7 @@ PRIVATE_EVIDENCE = re.compile(r"(?:^|[\s`])(?:/Users/|/private/tmp/|file://|\.br
 # is stricter: it matches anywhere in a token, case-insensitively, and covers the other spellings of a
 # machine-local location. It is a string check — copied private CONTENT carries none of these and passes.
 STRICT_PRIVATE = re.compile(
-    r"/tmp/|~/|/var/folders/|/home/|/Users/|/private/|file://|\.brand(?![A-Za-z0-9_-])|\b[A-Za-z]:\\", re.I)
+    r"/tmp/|~/|/var/folders/|/home/|/Users/|/private/|file://|\.brand(?![A-Za-z0-9_-])|\b[A-Za-z]:\\", re.I)  # NOSONAR python:S5443 - a regex literal that REFUSES machine-local paths in published text; it opens no directory
 # Continuity between sessions (#514). `next_act` is the one free-text field a resuming session acts on,
 # so it is bounded: one line, public, at most FREE_TEXT_LIMIT characters, STRICT_PRIVATE everywhere it
 # appears (it has no retained history to protect). The same bound applies to each evidence entry, but
@@ -56,8 +59,14 @@ def digest(value: Any) -> str:
 
 
 def load(path: str) -> Any:
+    # mhw #170 (Sonar S8707): prepare-event and report turn what they load into a published comment, so only a
+    # file under the current work tree or the temporary directory is read.
     try:
-        return json.loads(Path(path).read_text(encoding="utf-8"))
+        real = confined(path)
+    except ValueError as exc:
+        raise ContractError(str(exc)) from exc
+    try:
+        return json.loads(Path(real).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ContractError(f"cannot read JSON {path}: {exc}") from exc
 

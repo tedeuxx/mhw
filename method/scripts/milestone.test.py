@@ -184,6 +184,56 @@ class MilestoneRoutes(unittest.TestCase):
         self.assertNotEqual(failed.returncode, 0)
         self.assertIn("stub gh failure", failed.stderr)
 
+    def test_description_file_is_confined_to_the_work_tree_or_temp(self):
+        """mhw #170 (Sonar S8707): the description is published, so the file it comes from is confined."""
+        inside_tree = ROOT / "scripts" / "fixtures" / "worklog" / "scenario.json"
+        temp_file = self.base / "description.txt"
+        temp_file.write_text("ok\n")
+        outside = Path("/").resolve()
+        cases = [
+            # (path, working directory, accepted?)
+            (temp_file, self.base, True),
+            (inside_tree, ROOT, True),
+            (inside_tree, outside, False),  # the same file, from outside its work tree and outside temp
+            (Path("/etc/hosts"), ROOT, False),
+            (Path(os.path.expanduser("~/.ssh/config")), ROOT, False),
+            (self.base / ".." / ".." / ".." / ".." / ".." / "etc" / "hosts", self.base, False),
+        ]
+        for path, cwd, accepted in cases:
+            with self.subTest(path=str(path), cwd=str(cwd)):
+                if self.log.exists():
+                    self.log.unlink()
+                result = subprocess.run(
+                    [sys.executable, str(ROOT / "scripts" / "milestone-create.py"), "sprint-09", "--repo", "owner/repo",
+                     "--description-file", str(path)],
+                    capture_output=True, text=True, check=False, env=self.environment, cwd=str(cwd))
+                if accepted:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("outside the repository work tree and the temporary directory", result.stderr)
+                    self.assertNotIn("POST", self.log.read_text() if self.log.exists() else "")
+
+    def test_repository_and_number_are_validated_before_gh(self):
+        """mhw #170 (Sonar S8705): nothing shaped like a flag reaches the gh argv."""
+        for repo in ("--jq", "-Xowner/repo", "owner", "owner/repo/extra", "owner/repo;id", "owner repo"):
+            with self.subTest(repo=repo):
+                if self.log.exists():
+                    self.log.unlink()
+                result = self.run_route("milestone-read.py", 7, "--repo=" + repo, check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("<owner>/<repo>", result.stderr)
+                self.assertFalse(self.log.exists(), "gh was called with an invalid repository")
+        for number in (0, -1):
+            with self.subTest(number=number):
+                if self.log.exists():
+                    self.log.unlink()
+                result = self.run_route("milestone-read.py", number, "--repo", "owner/repo", check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("positive integer", result.stderr)
+                self.assertFalse(self.log.exists(), "gh was called with an invalid number")
+        self.assertEqual(self.run_route("milestone-read.py", 7, "--repo", "owner/repo").returncode, 0)
+
     def test_route_surfaces_and_inline_description_absence(self):
         update = (ROOT / "scripts/milestone-update.py").read_text()
         create = (ROOT / "scripts/milestone-create.py").read_text()

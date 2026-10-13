@@ -462,7 +462,7 @@ def process(run, mode, path, text, fmt, stamp):
     else:
         write_atomic(path, text)
         if fmt == "script":
-            os.chmod(path, 0o755)
+            os.chmod(path, 0o700)
         print("%s %s (%s)" % ("RESTAMPED" if restamp else "WROTE  ", path, stamp))
 
 

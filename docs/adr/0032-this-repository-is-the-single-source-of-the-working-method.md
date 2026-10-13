@@ -344,7 +344,13 @@ in `method/`, and the root-brief rename to `AGENTS.md` (ADR-0037) applied across
   a rite runs them from any repository, and a `{{method-scripts}}/<name>` naming no script stops the
   render. Adapted: `funnel-review.sh` defaults its root to the working directory's repository instead of
   its own place, and its test drops the two arms that fired the plugin's `cadence-notice` hook, which the
-  method does not carry. Not moved: the worklog contract's place in a consuming repository
+  method does not carry. Where these scripts first met a SonarCloud gate (the gate on #170, N1): a new
+  `confine.py` resolves a path and refuses one outside the current work tree or the temporary directory,
+  and `milestone_common.text_from_file` (a description is published) and `worklog.load` (what it loads
+  becomes a published comment) read only through it; `milestone_common` validates the repository as
+  `<owner>/<repo>` and the number as a positive integer before any `gh` call; the worklog's private-path
+  regex carries a reasoned `NOSONAR` (it refuses `/tmp/`, it opens nothing); the render installs the
+  scripts `0700`. Each has a test. Not moved: the worklog contract's place in a consuming repository
   (`docs/worklog/`), which the rites still name.
 - **The rename:** every reference in `method/` to a project's root brief now names `AGENTS.md`;
   harness-path class lists, dated measurements and history keep the vendor-named file where it is a

@@ -79,7 +79,7 @@ jobs:
             .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py \
             method/scripts/milestone_common.py method/scripts/milestone-create.py method/scripts/milestone-read.py \
             method/scripts/milestone-update.py method/scripts/milestone-close.py method/scripts/milestone.test.py \
-            method/scripts/worklog.py method/scripts/worklog.test.py
+            method/scripts/worklog.py method/scripts/worklog.test.py method/scripts/confine.py
       - name: node syntax check of the npm launcher, alias and postinstall (Issue #68)
         run: |
           node --version

@@ -240,6 +240,7 @@ class MethodScripts(unittest.TestCase):
             path = self.dir / name
             self.assertTrue(path.is_file(), name)
             self.assertTrue(path.stat().st_mode & stat.S_IXUSR, "%s is not executable" % name)
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode) & 0o077, 0, "%s is open to group or others" % name)
             lines = path.read_text(encoding="utf-8").split("\n")
             marked = [i for i, l in enumerate(lines[:3]) if "managed-by: personal-multi-harness-workstation-configuration; source: method/scripts/" + name in l]
             self.assertEqual(len(marked), 1, name)

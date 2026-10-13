@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -939,6 +940,24 @@ class WorklogTest(unittest.TestCase):
         self.assertIn({"if": {"required": ["next_act"]},
                        "then": {"properties": {"event_type": {"enum": sorted(worklog.CONTINUITY_TYPES)}}}},
                       schema["allOf"])
+
+    def test_inputs_are_confined_to_the_work_tree_or_temp(self):
+        """mhw #170 (Sonar S8707): what `load` reads can become a published comment, so a path outside the
+        work tree and the temporary directory is refused before it is read."""
+        script = str(ROOT / "scripts/worklog.py")
+        for path in ("/etc/hosts", os.path.expanduser("~/.ssh/config"),
+                     str(Path(tempfile.gettempdir()) / ".." / ".." / ".." / ".." / "etc" / "hosts")):
+            with self.subTest(path=path):
+                result = subprocess.run([sys.executable, "-B", script, "prepare-event", path], capture_output=True,
+                                        text=True, cwd=str(ROOT))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("outside the repository work tree and the temporary directory", result.stderr)
+        with tempfile.TemporaryDirectory() as folder:
+            inside = Path(folder) / "not-json.json"
+            inside.write_text("{", encoding="utf-8")
+            result = subprocess.run([sys.executable, "-B", script, "prepare-event", str(inside)], capture_output=True,
+                                    text=True, cwd=str(ROOT))
+            self.assertNotIn("outside the repository work tree", result.stderr, "a temp file is read, then fails as JSON")
 
 
 if __name__ == "__main__":

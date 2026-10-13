@@ -2,8 +2,14 @@
 """Shared GitHub milestone transport for the reviewed tracker routes (#537)."""
 
 import json
+import re
 import subprocess
 from pathlib import Path
+
+from confine import confined
+
+# mhw #170 (Sonar S8705): a repository or a number shaped like a flag never reaches the gh argv.
+REPO_RE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 
 
 class MilestoneError(Exception):
@@ -18,13 +24,25 @@ def run_gh(arguments):
     return result.stdout
 
 
+def check_repo(repo):
+    if not REPO_RE.fullmatch(repo or "") or repo.startswith("-"):
+        raise MilestoneError("the repository must be <owner>/<repo>, letters, digits, '.', '_' and '-' only")
+    return repo
+
+
+def check_number(number):
+    if type(number) is not int or number < 1:
+        raise MilestoneError("the milestone number must be a positive integer")
+    return number
+
+
 def resolve_repo(repo):
     if repo:
-        return repo
+        return check_repo(repo)
     value = run_gh(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]).strip()
     if not value:
         raise MilestoneError("gh returned an empty repository; pass --repo <owner>/<repo>")
-    return value
+    return check_repo(value)
 
 
 def parse_json(raw, operation):
@@ -38,7 +56,7 @@ def parse_json(raw, operation):
 
 
 def read_milestone(repo, number):
-    raw = run_gh(["api", f"repos/{repo}/milestones/{number}"])
+    raw = run_gh(["api", f"repos/{check_repo(repo)}/milestones/{check_number(number)}"])
     value = parse_json(raw, "reading the milestone")
     required = ("number", "title", "description", "state", "open_issues", "closed_issues")
     missing = [field for field in required if field not in value]
@@ -48,15 +66,21 @@ def read_milestone(repo, number):
 
 
 def update_milestone(repo, number, **fields):
-    arguments = ["api", f"repos/{repo}/milestones/{number}", "-X", "PATCH"]
+    arguments = ["api", f"repos/{check_repo(repo)}/milestones/{check_number(number)}", "-X", "PATCH"]
     for key, value in fields.items():
         arguments.extend(["-f", f"{key}={value}"])
     return parse_json(run_gh(arguments), "updating the milestone")
 
 
 def text_from_file(path, purpose):
+    # mhw #170 (Sonar S8707): the text is posted to the forge, so only a file under the current work tree or
+    # the temporary directory is read.
     try:
-        value = Path(path).read_text(encoding="utf-8")
+        real = confined(path)
+    except ValueError as error:
+        raise MilestoneError(f"{purpose} file: {error}") from error
+    try:
+        value = Path(real).read_text(encoding="utf-8")
     except OSError as error:
         raise MilestoneError(f"cannot read {purpose} file {path}: {error}") from error
     # A text file normally carries one terminal LF while GitHub's description value does not.
