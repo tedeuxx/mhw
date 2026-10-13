@@ -105,9 +105,10 @@ asking and open the Issue.
 time**, and **no multiple choice**. A questionnaire is not an interview — four questions in one message is
 a form, and offering options to pick from decides the answer for him.
 
-**This is the interview half of rule 5 of the HITL escalation format, and the canonical statement of that
-rule is the root brief's (`AGENTS.md`) *The HITL escalation format* section — not this paragraph** (#409). It is cited here
-rather than restated independently, because the rule governs the orchestrator and the root brief is the only
+**This is the interview half of the HITL escalation format, and the canonical statement of that rule is
+the workstation's user-level brief, *Escalating to the owner*, with the owner's limits in his overlay
+— not this paragraph** (#409). It is cited here
+rather than restated independently, because the rule governs the orchestrator and a brief is the only
 surface measured to reach it; three surfaces each stating a rule with no canonical home is drift this
 repository has already paid for. **What is local here is the application, not the rule:** an interview
 takes no options, and an escalation always does.

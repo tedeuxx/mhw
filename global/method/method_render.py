@@ -20,6 +20,12 @@ Carriers (ADR-0027 matrix, ADR-0032):
     Kiro         ~/.kiro/agents/<n>.json (tools, excludedTools, preloaded skills as files; no allowedTools,
                  so nothing is auto-approved: Kiro carries no deny floor),
                  ~/.kiro/skills/<n>/SKILL.md, and each command as a skill (a slash command in CLI and IDE)
+    Scripts      the executables the rites run (method/scripts/*.py and *.sh, never a *.test.* file), one
+                 copy for every agent harness, in ${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-
+                 workstation-configuration/method/scripts/ (with --home, always under that home's
+                 .local/share). In a rendered body, {{method-scripts}} becomes that directory, so a rite
+                 runs them from any repository (#170); a {{method-scripts}}/<name> naming no script stops
+                 the render.
 
 Every rendered file carries the managed-by line with the stamp, "source: method/...", in its own
 format's comment (Markdown front matter, TOML, YAML) or, in the Kiro agent JSON, as the first line of its
@@ -47,6 +53,9 @@ KIRO_TOOLS = {"Read": "read", "Grep": "read", "Glob": "read", "Write": "write", 
               "Bash": "shell", "WebFetch": "web", "WebSearch": "web"}
 WRITING_TOOLS = {"Write", "Edit", "Bash"}
 DESCRIPTION_MAX = 1024  # Agent Skills standard limit, read by Codex and Kiro
+SCRIPTS_TOKEN = "{{method-scripts}}"
+SCRIPT_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]*\.(?:py|sh)")
+TOKEN_REF_RE = re.compile(re.escape(SCRIPTS_TOKEN) + r"/([A-Za-z0-9_.-]+)")
 
 
 class SourceError(Exception):
@@ -162,6 +171,34 @@ def load(source):
     if not skills or not agents or not commands:
         raise SourceError("method/ must hold agents, skills and commands")
     return skills, agents, commands
+
+
+def load_scripts(source):
+    """name -> text for the executables the rites run: method/scripts/*.py and *.sh, tests excluded."""
+    scripts = {}
+    base = source / "scripts"
+    if base.is_dir():
+        for path in sorted(base.iterdir()):
+            if path.is_file() and SCRIPT_NAME_RE.fullmatch(path.name) and ".test." not in path.name:
+                scripts[path.name] = path.read_text(encoding="utf-8")
+    return scripts
+
+
+def resolve_scripts(text, where, scripts, directory):
+    """Replace {{method-scripts}} with the installed directory; every name it prefixes must be a script."""
+    for name in TOKEN_REF_RE.findall(text):
+        if name not in scripts:
+            raise SourceError("%s: %s/%s names no file in method/scripts/" % (where, SCRIPTS_TOKEN, name))
+    return text.replace(SCRIPTS_TOKEN, str(directory))
+
+
+def script_file(name, text, stamp):
+    """The script with the managed-by line as a comment: after a shebang, or first."""
+    line = "# " + marker("method/scripts/" + name, stamp)
+    if text.startswith("#!"):
+        first, _, rest = text.partition("\n")
+        return first + "\n" + line + "\n" + rest
+    return line + "\n" + text
 
 
 # --------------------------------------------------------------------------------------------------
@@ -290,14 +327,24 @@ HOME_OVERRIDE = None  # --home=DIR (install.ps1 passes the profile directory, so
 def homes():
     home = Path(HOME_OVERRIDE or os.environ.get("HOME") or Path.home()).absolute()
     codex = Path(os.environ.get("CODEX_HOME") or home / ".codex").absolute()
-    return {"claude": home / ".claude", "codex": codex, "agents": home / ".agents", "kiro": home / ".kiro"}
+    data = Path(os.environ.get("XDG_DATA_HOME") or home / ".local" / "share") if not HOME_OVERRIDE \
+        else home / ".local" / "share"
+    scripts = data.absolute() / "personal-multi-harness-workstation-configuration" / "method" / "scripts"
+    return {"claude": home / ".claude", "codex": codex, "agents": home / ".agents", "kiro": home / ".kiro",
+            "scripts": scripts}
 
 
-def targets(skills, agents, commands, stamp):
+def targets(skills, agents, commands, stamp, scripts=None):
     """[(path, text, format)] for every file the method renders."""
     h = homes()
     kiro_skills = h["kiro"] / "skills"
+    scripts = scripts or {}
     out = []
+    for group in (skills, commands, agents):
+        for item in group.values():
+            item["body"] = resolve_scripts(item["body"], item["where"], scripts, h["scripts"])
+    for name, text in scripts.items():
+        out.append((h["scripts"] / name, script_file(name, text, stamp), "script"))
     for name, s in skills.items():
         text = skill_md(name, s["description"], s["purpose"], s["body"], s["where"], stamp)
         out.append((h["claude"] / "skills" / name / "SKILL.md", text, "md"))
@@ -321,7 +368,8 @@ def candidate_files():
     patterns = [(h["claude"] / "agents", "*.md"), (h["claude"] / "commands", "*.md"),
                 (h["claude"] / "skills", "*/SKILL.md"), (h["agents"] / "skills", "*/SKILL.md"),
                 (h["agents"] / "skills", "*/agents/openai.yaml"), (h["codex"] / "agents", "*.toml"),
-                (h["kiro"] / "agents", "*.json"), (h["kiro"] / "skills", "*/SKILL.md")]
+                (h["kiro"] / "agents", "*.json"), (h["kiro"] / "skills", "*/SKILL.md"),
+                (h["scripts"], "*")]
     found = []
     for base, pattern in patterns:
         if base.is_dir():
@@ -413,6 +461,8 @@ def process(run, mode, path, text, fmt, stamp):
                                                        re.search(r"source: (\S+);", text).group(1)))
     else:
         write_atomic(path, text)
+        if fmt == "script":
+            os.chmod(path, 0o755)
         print("%s %s (%s)" % ("RESTAMPED" if restamp else "WROTE  ", path, stamp))
 
 
@@ -474,7 +524,8 @@ def main(argv):
         return 2
     try:
         skills, agents, commands = load(source)
-        wanted = targets(skills, agents, commands, stamp)
+        scripts = load_scripts(source)
+        wanted = targets(skills, agents, commands, stamp, scripts)
     except SourceError as error:
         print("REFUSE  the working method: %s; nothing of it was written" % error, file=sys.stderr)
         return 2
@@ -494,7 +545,8 @@ def main(argv):
             print("REMOVED %s (no longer in method/)" % path)
     print("METHOD  installed: %d agents, %d skills, %d commands from method/ into Claude Code (agents, skills, commands), "
           "Codex (custom agents without a tool list, skills; commands as skills with implicit invocation off) "
-          "and Kiro (agents, skills; commands as skills)" % (len(agents), len(skills), len(commands)))
+          "and Kiro (agents, skills; commands as skills); %d scripts in %s"
+          % (len(agents), len(skills), len(commands), len(scripts), homes()["scripts"]))
     return run.status
 
 

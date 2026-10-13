@@ -45,6 +45,8 @@ def source_agents():
 
 
 SKILLS = sorted(p.parent.name for p in (SOURCE / "skills").glob("*/SKILL.md"))
+SCRIPTS = sorted(mr.load_scripts(SOURCE))
+SCRIPTS_DIR = ".local/share/personal-multi-harness-workstation-configuration/method/scripts"
 COMMANDS = sorted(p.stem for p in (SOURCE / "commands").glob("*.md"))
 AGENTS = source_agents()
 
@@ -83,6 +85,7 @@ class Home:
                     ".agents/skills/%s/agents/openai.yaml" % c, ".kiro/skills/%s/SKILL.md" % c]
         for a in AGENTS:
             out += [".claude/agents/%s.md" % a, ".codex/agents/%s.toml" % a, ".kiro/agents/%s.json" % a]
+        out += ["%s/%s" % (SCRIPTS_DIR, s) for s in SCRIPTS]
         return out
 
 

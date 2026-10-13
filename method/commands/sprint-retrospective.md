@@ -13,8 +13,11 @@ argument-hint: "[iteration] (defaults to the active iteration)"
 > where the workstation installed it: the **deny floor** (native deny rules by command prefix), and
 > **each agent's own tool list**, which is native in Claude Code and Kiro and an instruction in Codex. The
 > session checks that replaced the plugin's reporting hooks are in `agents-configuration`, *Session-start
-> and end-of-turn checks*. Where this text invokes a command as `/tadeumendonca-skills:<name>`, that was
-> the plugin's namespaced name; the method installs it as `/<name>`, and this copy says so.
+> and end-of-turn checks*.
+>
+> **The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
+> directory the method installs them to, the same for every agent harness, so the rite runs them from
+> any repository.
 
 Run the retrospective rite for the iteration named by `$ARGUMENTS` (default: the active iteration,
 derived from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
@@ -58,7 +61,7 @@ iteration question being load-bearing:**
 
 **Why not "the sprint ended".** ~~No command available to this loop can read whether a milestone is
 open or closed; the iteration's close is a click in a browser.~~ **Struck 2026-09-29 (#537):
-`python3 scripts/milestone-read.py` reads state and `python3 scripts/milestone-close.py` closes it.**
+`python3 {{method-scripts}}/milestone-read.py` reads state and `python3 {{method-scripts}}/milestone-close.py` closes it.**
 The close is still not the trigger: snapshot exhaustion fires the rites first, and closing the
 milestone is an output after those rites have run.
 

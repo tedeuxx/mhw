@@ -98,9 +98,10 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$ROOT" ]; then
-  here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  ROOT="$(git -C "$here" rev-parse --show-toplevel 2>/dev/null || true)"
-  [ -n "$ROOT" ] || ROOT="$(cd "$here/.." && pwd)"
+  # mhw #170: the method installs this script at user level, outside any repository, so the default root
+  # is the repository of the WORKING DIRECTORY (the one the rite runs in), never the script's own place.
+  ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  [ -n "$ROOT" ] || ROOT="$(pwd)"
 fi
 
 STORE="$ROOT/docs/funnel-review"

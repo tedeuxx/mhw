@@ -327,31 +327,10 @@ else
   bad "ceiling default — it asserts a bound it cannot know:$unk_problems" "a fail-open default publishes a positive claim about a surface nothing here recognises"
 fi
 
-# ── 10 · the cadence carrier NAMES this rite — fired, not read ────────────────────────────────────
-# #401's criterion 4. Asserted by running `cadence-notice.sh` against a throwaway repository carrying
-# THIS repository's real `docs/loop-cadence.md`, rather than by grepping the record — a declaration
-# the carrier cannot parse would pass a grep and fail in the session.
-cad="$ROOT/hooks/scripts/cadence-notice.sh"
-if [ ! -r "$cad" ] || [ ! -r "$RECORD" ]; then
-  bad "cadence — the carrier or the record is unreadable" "this assertion did NOT run"
-else
-  repo="$work/cadrepo"
-  mkdir -p "$repo/docs"
-  git -C "$repo" init -q 2>/dev/null
-  git -C "$repo" config user.email t@example.invalid
-  git -C "$repo" config user.name Tester
-  cp "$RECORD" "$repo/docs/loop-cadence.md"
-  printf 'seed\n' > "$repo/README.md"
-  git -C "$repo" add -A >/dev/null 2>&1
-  git -C "$repo" commit -q -m seed >/dev/null 2>&1
-  cad_out="$(printf '{"hook_event_name":"SessionStart","cwd":"%s","session_id":"t"}' "$repo" \
-             | bash "$cad" 2>/dev/null || true)"
-  if printf '%s' "$cad_out" | grep -q '/funnel-review'; then
-    ok "cadence — the carrier names /funnel-review in its notice, fired against the real record"
-  else
-    bad "cadence — the carrier does not name /funnel-review" "the record's cadence-rite line is missing or in a shape the carrier cannot parse; a grep of the record would not have caught the second"
-  fi
-fi
+# ── 10 · (removed in mhw, #170) ────────────────────────────────────────────────────────────────
+# The plugin's arm fired its `cadence-notice.sh` hook against the plugin's `docs/loop-cadence.md`.
+# The workstation method carries no hooks (hooks only for existential risk), so there is no carrier
+# here to fire; the rite's cadence is the retrospective's, by instruction.
 
 # ── 12 · the candidate-rule shape rides only on the branch that has findings (#473) ──────────────
 if printf '%s' "$ran_out" | grep -q '^    Candidate rule: ' \
@@ -364,37 +343,8 @@ else
       "a not-collected report carries no findings, so it cannot carry a candidate either"
 fi
 
-# ── 13 · the carrier's ran-marker IS the literal this script prints — fired end to end (#473) ────
-# The record declares a marker; this script produces the literal. Nothing else ties the two, so a
-# rename on either side would leave the carrier dating nothing, forever, with both suites green. This
-# arm lands a report THIS SCRIPT wrote into a throwaway repository beside the REAL record, fires the
-# carrier, and reads what it says — once for a collected period and once for a not-collected one,
-# so the arm can fail in both directions.
-cad_marker_run() {   # $1 fixture period · $2 repo dir
-  mkdir -p "$2/docs/funnel-review"
-  git -C "$2" init -q 2>/dev/null
-  git -C "$2" config user.email t@example.invalid
-  git -C "$2" config user.name Tester
-  cp "$RECORD" "$2/docs/loop-cadence.md"
-  run "$1" > "$2/docs/funnel-review/$1.md"
-  git -C "$2" add -A >/dev/null 2>&1
-  git -C "$2" commit -q -m report >/dev/null 2>&1
-  printf '{"hook_event_name":"SessionStart","cwd":"%s","session_id":"t"}' "$2" \
-    | bash "$cad" 2>/dev/null || true
-}
-if [ ! -r "$cad" ] || [ ! -r "$RECORD" ]; then
-  bad "cadence marker — the carrier or the record is unreadable" "this assertion did NOT run"
-else
-  ran_cad="$(cad_marker_run 2000-02 "$work/cadran")"
-  nc_cad="$(cad_marker_run 2000-03 "$work/cadnc")"
-  if printf '%s' "$ran_cad" | grep -q 'last landed a file carrying FUNNEL-REVIEW-RAN' \
-     && printf '%s' "$nc_cad" | grep -q 'has NEVER landed a file carrying FUNNEL-REVIEW-RAN'; then
-    ok "cadence marker — a report this script wrote on RAN is dated by the carrier; one it wrote on NOT-COLLECTED is not"
-  else
-    bad "cadence marker — the record's ran-marker and this script's RAN literal no longer meet" \
-        "ran: ${ran_cad:0:160} | not-collected: ${nc_cad:0:160}"
-  fi
-fi
+# ── 13 · (removed in mhw, #170) ────────────────────────────────────────────────────────────────
+# The plugin's arm checked its cadence hook dates a RAN report. No hook here; see arm 10.
 
 # ── 14 · the planning queue reads COLUMN-0 candidates, and a generated report holds none (#473) ────
 # The owner ruled that candidates queue in their reports and are ruled at /sprint-planning, which reads
@@ -428,6 +378,28 @@ if [ -z "$q_missing" ]; then
   ok "candidate queue — the selector this arm calibrates is published verbatim in both rites"
 else
   bad "candidate queue — a rite no longer publishes the calibrated selector verbatim" "missing in:$q_missing"
+fi
+
+# ── 15 · with no --root, the root is the WORKING DIRECTORY's repository (mhw #170) ───────────────
+# The method installs this script at user level, outside any repository. A default keyed on the
+# script's own place would report on no repository at all, or on the wrong one; this arm runs a COPY of
+# the script from outside every repository, with the working directory inside a throwaway one, and
+# reads the commit line back.
+mkdir -p "$work/elsewhere" "$work/consumer/docs/funnel-review/collected"
+cp "$SCRIPT" "$work/elsewhere/funnel-review.sh"
+git -C "$work/consumer" init -q 2>/dev/null
+git -C "$work/consumer" config user.email t@example.invalid
+git -C "$work/consumer" config user.name Tester
+printf 'seed\n' > "$work/consumer/README.md"
+git -C "$work/consumer" add -A >/dev/null 2>&1
+git -C "$work/consumer" commit -q -m seed >/dev/null 2>&1
+consumer_sha="$(git -C "$work/consumer" rev-parse HEAD)"
+cwd_out="$( cd "$work/consumer" && export PATH="$work/bin:$PATH"; bash "$work/elsewhere/funnel-review.sh" 2999-99 2>&1 )"
+if printf '%s' "$cwd_out" | grep -qx "commit: $consumer_sha"; then
+  ok "default root — an installed copy reports on the working directory's repository"
+else
+  bad "default root — the report is not about the working directory's repository" \
+      "expected commit $consumer_sha, got: $(printf '%s' "$cwd_out" | grep '^commit:' | head -1)"
 fi
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"

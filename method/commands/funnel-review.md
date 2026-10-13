@@ -13,8 +13,11 @@ argument-hint: "[period] (defaults to the active iteration)"
 > where the workstation installed it: the **deny floor** (native deny rules by command prefix), and
 > **each agent's own tool list**, which is native in Claude Code and Kiro and an instruction in Codex. The
 > session checks that replaced the plugin's reporting hooks are in `agents-configuration`, *Session-start
-> and end-of-turn checks*. Where this text invokes a command as `/tadeumendonca-skills:<name>`, that was
-> the plugin's namespaced name; the method installs it as `/<name>`, and this copy says so.
+> and end-of-turn checks*.
+>
+> **The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
+> directory the method installs them to, the same for every agent harness, so the rite runs them from
+> any repository.
 
 Run the funnel review for the period named by `$ARGUMENTS` (default: the active iteration, derived
 from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
@@ -43,7 +46,7 @@ not a posture that could be tightened later — it is what makes the rite admiss
 
 **It is NOT a generator of work.** The prototype produced three tracked items from one sitting; a
 rite producing three items per period is a machine for generating work, which is the failure this
-loop names first. **The cap is two findings**, declared as a number in `scripts/funnel-review.sh` and
+loop names first. **The cap is two findings**, declared as a number in `{{method-scripts}}/funnel-review.sh` and
 printed into every report.
 
 **It is NOT a publisher of unbounded numbers.** Every figure ships with its sample size and the
@@ -254,7 +257,7 @@ What would settle it is one dispatch attempting the act and reporting what came 
 ### 2 · Analyse — no network, no credential, against the committed file
 
 ```
-bash scripts/funnel-review.sh <period>
+bash {{method-scripts}}/funnel-review.sh <period>
 ```
 
 It reads the collection file and the prior period's, prints each figure with its sample size and its
@@ -293,7 +296,7 @@ Evidence: <each `figure:` line it rests on, quoted verbatim from collected/<peri
 - **The not-collected branch carries none**, because it carries no findings section at all.
 - **`Candidate rule:` and `Evidence:` are written at COLUMN 0**, exactly as above. The position is
   what `/sprint-planning` reads the queue by (step 4), and it is also what keeps the shape that
-  `scripts/funnel-review.sh` prints as guidance from counting as a candidate. The script indents that
+  `{{method-scripts}}/funnel-review.sh` prints as guidance from counting as a candidate. The script indents that
   template by four spaces, so a report that keeps the template as written contains no phantom open
   candidate.
 

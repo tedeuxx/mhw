@@ -590,7 +590,7 @@ class WorklogTest(unittest.TestCase):
                 worklog.validate_snapshot(value)
 
     def test_live_correction_segments_and_markdown_are_auditable(self):
-        snapshot = json.loads((ROOT / "docs/planning/sprint-03.worklog.json").read_text())
+        snapshot = json.loads((ROOT / "scripts/fixtures/worklog/sprint-03.worklog.json").read_text())
         published = [
             (5804402298, "2026-09-23T23:04:31Z", "published-5804402298.md"),
             (5804452881, "2026-09-23T23:09:16Z", "published-5804452881.md"),
@@ -861,7 +861,7 @@ class WorklogTest(unittest.TestCase):
     def test_readme_resume_command_agrees_with_the_report(self):
         # #514 lens B3: the published resume command must return the next_act of the report's effective
         # set — superseded events dropped, ordered by the effective event's timestamp, not comment position.
-        readme = (ROOT / "docs/worklog/README.md").read_text()
+        readme = (ROOT / "scripts/worklog-contract/README.md").read_text()
         match = re.search(r"--json comments --jq '(.*?)'\n```", readme, re.S)
         self.assertIsNotNone(match, "resume command not found in docs/worklog/README.md")
         jq_filter = match.group(1)
@@ -923,7 +923,7 @@ class WorklogTest(unittest.TestCase):
                     self.assertEqual(expected[name], result.stdout.strip())
 
     def test_schema_documents_the_continuity_field(self):
-        schema = json.loads((ROOT / "docs/worklog/event.schema.json").read_text())
+        schema = json.loads((ROOT / "scripts/worklog-contract/event.schema.json").read_text())
         field = schema["properties"]["next_act"]
         # The schema carries the strict next_act filter too, spelled without flags. Checked by behaviour,
         # against the same spellings the code is tested with, rather than by comparing strings.

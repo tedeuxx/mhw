@@ -13,8 +13,14 @@ argument-hint: "<iteration> (the title of the iteration being composed)"
 > where the workstation installed it: the **deny floor** (native deny rules by command prefix), and
 > **each agent's own tool list**, which is native in Claude Code and Kiro and an instruction in Codex. The
 > session checks that replaced the plugin's reporting hooks are in `agents-configuration`, *Session-start
-> and end-of-turn checks*. Where this text invokes a command as `/tadeumendonca-skills:<name>`, that was
-> the plugin's namespaced name; the method installs it as `/<name>`, and this copy says so.
+> and end-of-turn checks*.
+>
+> **The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
+> directory the method installs them to, the same for every agent harness, so the rite runs them from
+> any repository.
+>
+> **Not shipped by this method:** `scripts/milestone-create.sh` and `scripts/milestone-update.sh`,
+> the plugin's retired predecessors of the Python routes, named below only as history.
 
 Run the planning rite for the iteration named by `$ARGUMENTS`.
 
@@ -139,7 +145,7 @@ prompt whose justification was in question no longer fires.
 (`bash scripts/milestone-create.sh …`) still prompts — because `scripts/` matches no `allow` entry in
 either settings layer, which is **an absence, not a control**: an unrelated `allow` entry added later
 removes it silently and nothing would say so.~~ **Struck 2026-09-29 (#537): creation is now
-`python3 scripts/milestone-create.py …`; the existing `python3` permission reaches it without a prompt
+`python3 {{method-scripts}}/milestone-create.py …`; the existing `python3` permission reaches it without a prompt
 for the orchestrator and for every Bash-holding persona. No settings entry was added.** Step 4a carries
 the operative call.
 
@@ -336,8 +342,8 @@ against the head guard, same payloads, one per line:
 
 ```
 [scrum-master] gh issue edit 5 --repo o/r --milestone "s2"      -> NO decision from any layer
-[scrum-master] python3 scripts/milestone-create.py "s2" --repo o/r -> reachable if the profile held Bash
-[scrum-master] python3 scripts/milestone-update.py 2  --repo o/r   -> reachable if the profile held Bash
+[scrum-master] python3 {{method-scripts}}/milestone-create.py "s2" --repo o/r -> reachable if the profile held Bash
+[scrum-master] python3 {{method-scripts}}/milestone-update.py 2  --repo o/r   -> reachable if the profile held Bash
 ```
 
 **The paragraph below already argued that the surviving layer is the one doing the work, and that
@@ -477,8 +483,10 @@ which is the strictest reading of the standing rule it has ever satisfied; it is
 form that broke it.
 
 **That paragraph is this rite's APPLICATION of rule 5 of the HITL escalation format; the canonical
-statement of the rule is rule 5 of `AGENTS.md`'s *When you interrupt the owner*** (#409; until #562,
-*The HITL escalation format* section of the vendor-named root brief of the time). It is left standing
+statement of the rule is the workstation's user-level brief, *Escalating to the owner* (rule 3: a
+decision gets a structured picker of at most four options), with the owner's limits in his overlay**
+(#409; in the plugin it was rule 5 of the plugin repository's root brief, and until #562 a section of its
+vendor-named predecessor). It is left standing
 verbatim rather than replaced by a bare pointer for two reasons: a gate arm in
 `hooks/scripts/inventory-counts.test.sh` pins its opening clause as a literal, and it is the one place
 the two rules are shown colliding on a concrete act. **It is not an independent source** — if it ever
@@ -566,7 +574,7 @@ here is the pool he ruled out* — and stop; the rulings are the product of that
 FILE first — `Write` it to the session scratchpad — and the file's PATH is what the command carries:**
 
 ```
-python3 scripts/milestone-create.py "<iteration>" --repo <owner>/<repo> --description-file <path>
+python3 {{method-scripts}}/milestone-create.py "<iteration>" --repo <owner>/<repo> --description-file <path>
 ```
 
 **The ordered body NEVER travels as a shell argument, and this is a production rule rather than a style
@@ -593,7 +601,7 @@ Three things make it sharper here than the general shape:
   file-only input remains the safe default.
 
 **The inline `--description <text>` form is REMOVED from the script, not left beside the file route.**
-Measured at head: `python3 scripts/milestone-create.py "probe" --description "x"` → `unrecognized arguments:
+Measured at head: `python3 {{method-scripts}}/milestone-create.py "probe" --description "x"` → `unrecognized arguments:
 --description`, exit 2. Keeping both would have fixed this caller and not the script — a later caller
 picks the convenient spelling, which is the whole reason `/shell`'s rule is written without exceptions.
 
@@ -610,8 +618,8 @@ may claim the raw-API route is closed.**
 description to separate scratchpad files, then run the best-effort stale-read check and update:
 
 ```
-python3 scripts/milestone-read.py <number> --repo <owner>/<repo>
-python3 scripts/milestone-update.py <number> --repo <owner>/<repo> \
+python3 {{method-scripts}}/milestone-read.py <number> --repo <owner>/<repo>
+python3 {{method-scripts}}/milestone-update.py <number> --repo <owner>/<repo> \
   --expect-file <prior-path> --description-file <new-path>
 ```
 
@@ -717,7 +725,7 @@ Write it only after the whole composition is confirmed. Its stable sprint key ma
 repository/milestone numbers and counted Issues; matching milestone titles is insufficient. Preserve
 the commitment estimate and provenance. A boundary the owner did not set is `null`, never inferred
 from the first implementation timestamp or a milestone date. This artifact activates no observer:
-the acting contexts still prepare explicit events, and `scripts/worklog.py` only reads retained files.
+the acting contexts still prepare explicit events, and `{{method-scripts}}/worklog.py` only reads retained files.
 
 ## Step 6 — report the pendency the drain will refuse on, and do not resolve it
 
@@ -753,8 +761,8 @@ a known next act instead of a surprise at the drain's door.
   review.
 - ~~**It does not close an iteration.** No command available to this loop can read whether a milestone
   is open or closed; closing is a click in a browser.~~ **Struck 2026-09-29 (#537).** Read state with
-  `python3 scripts/milestone-read.py`; after the closing rites, close with
-  `python3 scripts/milestone-close.py`. Neither act is handed to the owner.
+  `python3 {{method-scripts}}/milestone-read.py`; after the closing rites, close with
+  `python3 {{method-scripts}}/milestone-close.py`. Neither act is handed to the owner.
 - **It does not judge the work.** Whether a slice is correct is `quality-assurance`'s, whether an order
   serves the owner's objective is `product-lead`'s.
 

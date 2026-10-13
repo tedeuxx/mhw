@@ -26,6 +26,9 @@ skills:
 > package publishing, `terraform apply`/`destroy`, `sudo`), and **each agent's own tool list**, which is
 > native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
 > plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
+>
+> **Not shipped by this method:** `scripts/codex-hook-adapter.py`, a plugin file named below only
+> as a member of a path list.
 
 ## What you already have loaded, and what was withheld
 

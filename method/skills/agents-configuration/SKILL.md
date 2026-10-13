@@ -602,11 +602,11 @@ gh issue list --repo <owner>/<repo> --state all --limit 200 --json number,milest
 
 There is no `gh milestone` subcommand, and `state` is not among `gh issue list --json`'s available
 fields, so ~~**no command available to this loop can read whether a milestone is open or closed.**~~
-**Struck 2026-09-29 (#537): `python3 scripts/milestone-read.py` reads the milestone endpoint directly,
+**Struck 2026-09-29 (#537): `python3 {{method-scripts}}/milestone-read.py` reads the milestone endpoint directly,
 including an empty milestone, and returns state plus open and closed counts.**
 ~~Creating one and closing one are both owner acts in the browser.~~ **Struck first for creation at
-#375 and completely at #537:** `scripts/milestone-create.py` creates and
-`scripts/milestone-close.py` closes. Neither act is handed to the owner.
+#375 and completely at #537:** `{{method-scripts}}/milestone-create.py` creates and
+`{{method-scripts}}/milestone-close.py` closes. Neither act is handed to the owner.
 
 **Why that does not send the object back to the table, which is the honest form of this answer:** rule 1
 never reads `state`. The predicate above derives the active iteration from *items*, so the one attribute
@@ -626,7 +626,7 @@ scrum»* — and creation had **no route at all**: `gh milestone` does not exist
 (`gh milestone --help` → `unknown command "milestone" for "gh"`), so rule 5f's prescribed remedy
 (*"use the gh subcommand for the act instead"*) is **unexecutable**, not merely inconvenient.
 
-**The route is `scripts/milestone-create.py`, and it is an EXPLOITATION rather than a design.** It
+**The route is `{{method-scripts}}/milestone-create.py`, and it is an EXPLOITATION rather than a design.** It
 reaches the write API because **neither the settings matcher nor `permission-guard.sh` looks inside a
 script** — the same blindness that makes `python3 -c "…gh api -X POST…"` a back door, measured against
 the live guard. **So nothing here may claim the raw-API route is closed**, and the floor entry the
@@ -1572,7 +1572,7 @@ over real iterations, which is his decision and not a build's.
 
 1. ~~**A WORKLOG does not exist.** He named *«metricas e worklog»*; the metrics half is
    `dispatch-metrics-stop.sh` and the worklog half has no equivalent in this tree.~~ **Struck
-   2026-09-23 (#499): a host-neutral, explicit worklog now exists at `scripts/worklog.py`, with its
+   2026-09-23 (#499): a host-neutral, explicit worklog now exists at `{{method-scripts}}/worklog.py`, with its
    contract in `docs/worklog/`.** It has no automatic producer and does not read the metrics hook.
    **Do not read native usage reporting as the worklog:** they are separate instruments.
 2. **The mapping from a story point to tokens and hours does not exist.** The worklog uses frozen
