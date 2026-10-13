@@ -316,6 +316,36 @@ login `TWIN_AUTHOR` assumed, now confirmed), `verify` passed (OPEN) and the back
 `github-actions`. Run 38324871241, on closing mhw#162, closed the twin, `verify` passed (CLOSED) and the
 back-link was not posted again. The weekly regeneration does not exist yet.
 
+## Amendment 2026-10-13: the installer retires the plugin with the method (#130)
+
+Status unchanged (proposed). #130 was an owner action, *uninstall the plugin*, with three preconditions:
+the method installed, `mhw status` naming the DUPLICATE, and the deprecation shipped in
+tadeumendonca-skills. Since this amendment the uninstall is installer work, in the method's own step.
+
+- **`mhw install --method` retires the plugin at user scope** (`global/method/plugin_retire.py`), right
+  after the method renders and never after a failed render, so a session is not left with neither copy:
+  Claude Code's `enabledPlugins` entry and the marketplace's `extraKnownMarketplaces` entry in
+  `~/.claude/settings.json`, the plugin's scope `user` install records, and its marketplace once no
+  record of any scope still uses it; Codex's `[plugins."tadeumendonca-skills@…"]` and
+  `[marketplaces.…]` tables, verified with `tomllib`. Each changed file is first copied to
+  `<file>.pmhwc-plugin-backup` (0600), and each change prints as old -> absent.
+- **Project scopes are reported, never touched**: a scope `project` install record, or a project's own
+  `.claude/settings.json`, changes through that repository's pull request.
+- **Not `claude plugin uninstall` / `codex plugin remove`**, though those are the native mechanisms: both
+  also delete the plugin's cache, which an offline `mhw uninstall` could not bring back. The script edits
+  the records those CLIs write; the cache directories stay, unused.
+- **`mhw uninstall` restores** what install removed, from those backups, and nothing else; it is
+  idempotent. Windows (`install.ps1 -Method`) runs the same step; it has no uninstall, so the backups
+  are the restore route there.
+- **`mhw status`** keeps its method line: DUPLICATE while the plugin is enabled in the user settings, the
+  workspace's settings or Codex, none after.
+
+**The opt-in stays, and the passage above is not struck.** Making the method default-on would let a
+routine `mhw install` or `mhw update` retire the plugin; the cutover stays the owner's deliberate act,
+`mhw install --method` in a fresh session (ADR-0022), as #130 frames it. The rites and their scripts
+(#170) must be on `main` before that act, which this amendment does not decide. Turning `--method` on
+by default is a one-line change once the canary has passed.
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)

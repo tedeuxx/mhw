@@ -151,7 +151,15 @@ foreach ($f in Targets $h) { Check "written: $($f.Substring($h.Length + 1))" (Te
 $hm = Join-Path $Base 'home-method'; New-Item -ItemType Directory -Force -Path $hm | Out-Null
 # Off by default (until the plugin cutover, #63 #64): a plain install writes no method file.
 Check 'method: a plain install renders no agent' (-not (Test-Path -LiteralPath (Join-Path $h '.claude\agents\developer.md')))
+# #130: the plugin enabled at user scope before -Method; the method step retires it, with a backup.
+New-Item -ItemType Directory -Force -Path (Join-Path $hm '.claude') | Out-Null
+[System.IO.File]::WriteAllText((Join-Path $hm '.claude\settings.json'), '{ "enabledPlugins": { "tadeumendonca-skills@tadeumendonca": true, "a@b": true } }', (New-Object System.Text.UTF8Encoding $false))
 $mout = Run $hm @('-Method'); Expect 'install with the working method (-Method)' 0 $script:rc
+$retired = Get-Content -LiteralPath (Join-Path $hm '.claude\settings.json') -Raw | ConvertFrom-Json
+Check 'method: the tadeumendonca-skills plugin is retired at user scope, the other plugin kept, a backup left' (
+    (-not $retired.enabledPlugins.PSObject.Properties['tadeumendonca-skills@tadeumendonca']) -and
+    ($retired.enabledPlugins.'a@b' -eq $true) -and
+    (Test-Path -LiteralPath (Join-Path $hm '.claude\settings.json.pmhwc-plugin-backup') -PathType Leaf))
 Check 'method: the METHOD summary line is printed' ([bool]($mout | Where-Object { $_ -like 'METHOD  installed: *agents*skills*commands*' }))
 $ccAgent = Join-Path $hm '.claude\agents\developer.md'
 Check 'method: Claude Code agent keeps its tool list and stamp' (

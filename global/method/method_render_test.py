@@ -386,6 +386,31 @@ class ThroughTheInstaller(unittest.TestCase):
         self.assertFalse(h.p(".claude/agents/developer.md").exists())
         self.assertFalse(h.p(".codex/agents/developer.toml").exists())
 
+    def test_the_installer_retires_the_plugin_with_the_method_and_uninstall_restores_it(self):
+        """#130: install.sh --method takes the tadeumendonca-skills plugin out of the user settings, after the
+        method rendered; a plain install leaves it; uninstall puts it back."""
+        h = Home()
+        settings = h.p(".claude/settings.json")
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(json.dumps({"enabledPlugins": {"tadeumendonca-skills@tadeumendonca": True}}) + "\n",
+                            encoding="utf-8")
+        inst = REPO / "global" / "install.sh"
+        p = subprocess.run(["sh", str(inst)], env=h.env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"],
+                        "a plain install, without the method, leaves the plugin")
+        p = subprocess.run(["sh", str(inst), "--method"], env=h.env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("METHOD  installed: ", p.stdout)
+        self.assertIn("enabledPlugins.tadeumendonca-skills@tadeumendonca true -> absent", p.stdout)
+        self.assertNotIn("tadeumendonca-skills@tadeumendonca", json.loads(settings.read_text()).get("enabledPlugins", {}))
+        p = subprocess.run(["sh", str(inst), "--check"], env=h.env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        p = subprocess.run(["sh", str(inst), "--uninstall"], env=h.env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"],
+                        "uninstall restores the plugin it removed")
+
 
 def parse_toml(text):
     try:

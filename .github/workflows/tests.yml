@@ -72,6 +72,7 @@ jobs:
             global/scan.py global/scan_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
+            global/method/plugin_retire.py global/method/plugin_retire_test.py \
             global/models/model_defaults.py global/models/model_defaults_test.py \
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py \
@@ -191,6 +192,11 @@ jobs:
         run: python3 -B global/kiro/kiro_permissions_test.py "$RUNNER_TEMP/kiro-permissions"
       # Issues #71-#75: the five workflow commands render on all three agent harnesses with their required
       # sections, Codex implicit invocation off; the handover sanitisation check on a synthetic fixture.
+      # Issue #130: the plugin retired at user scope with the method, in throwaway HOMEs only.
+      - name: plugin retirement suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/method/plugin_retire_test.py "$RUNNER_TEMP/plugin-retire"
       - name: workflow-commands suite
         env:
           TMPDIR: ${{ runner.temp }}

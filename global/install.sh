@@ -954,7 +954,18 @@ method_step() {
     return 0
   fi
   # shellcheck disable=SC2086 # $method_optin is empty or the single word --opt-in
-  python3 -B "$script_dir/method/method_render.py" "--mode=$mode" "--stamp=$stamp" $method_optin || raise $?
+  method_rc=0
+  python3 -B "$script_dir/method/method_render.py" "--mode=$mode" "--stamp=$stamp" $method_optin || method_rc=$?
+  [ "$method_rc" -eq 0 ] || raise "$method_rc"
+  # The cutover (#130): once the method is installed, the tadeumendonca-skills plugin leaves the user-level
+  # configuration (global/method/plugin_retire.py; project scopes are reported, not touched). Install never
+  # retires it after a failed render, so a session is not left with neither copy; check and uninstall
+  # always run it (uninstall restores what install removed, from its backups).
+  case $mode in
+    install|dry-run) [ "$method_rc" -eq 0 ] || return 0 ;;
+  esac
+  # shellcheck disable=SC2086
+  python3 -B "$script_dir/method/plugin_retire.py" "--mode=$mode" $method_optin || raise $?
 }
 # The session-start default model and reasoning effort per agent harness (ADR-0007, ADR-0035), from
 # the overlay's model-defaults.json, written into each harness's own user-level key by
