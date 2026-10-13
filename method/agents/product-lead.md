@@ -93,7 +93,7 @@ everything but this one exception.
 
 `new-issue` is a **command** (`commands/new-issue.md`, it carries `argument-hint`), not a skill — and a
 command is never associated with any profile's `skills:` list, per this repo's own command-vs-skill
-distinction (root `CLAUDE.md`). Commands are human-typed, not preloaded.
+distinction (the root brief, `AGENTS.md`). Commands are human-typed, not preloaded.
 
 `new-issue` is still yours and deliberately **not** `tech-lead`'s: the Issue description is one artifact,
 you draft its shape, and the form of a well-posed Issue is what you and `tech-lead` are jointly judged on
@@ -129,7 +129,7 @@ changed — the error ran conservative, which is why it survived a tree-wide swe
 site. **The rule above does not move, and the reason is that it never rested on the ignore status:** an
 ignore stops a **commit** and reaches no **paste** into an Issue body, a PR comment or a verdict — and
 a paste is the route your output actually takes. **The canonical statement of this fact is the plugin
-repo's `CLAUDE.md`, in its scratch-taxonomy section**; this line is a pointer at it.
+repo's root brief (`AGENTS.md`), in its rules on scratch and private material**; this line is a pointer at it.
 
 ---
 

@@ -151,7 +151,15 @@ foreach ($f in Targets $h) { Check "written: $($f.Substring($h.Length + 1))" (Te
 $hm = Join-Path $Base 'home-method'; New-Item -ItemType Directory -Force -Path $hm | Out-Null
 # Off by default (until the plugin cutover, #63 #64): a plain install writes no method file.
 Check 'method: a plain install renders no agent' (-not (Test-Path -LiteralPath (Join-Path $h '.claude\agents\developer.md')))
+# #130: the plugin enabled at user scope before -Method; the method step retires it, with a backup.
+New-Item -ItemType Directory -Force -Path (Join-Path $hm '.claude') | Out-Null
+[System.IO.File]::WriteAllText((Join-Path $hm '.claude\settings.json'), '{ "enabledPlugins": { "tadeumendonca-skills@tadeumendonca": true, "a@b": true } }', (New-Object System.Text.UTF8Encoding $false))
 $mout = Run $hm @('-Method'); Expect 'install with the working method (-Method)' 0 $script:rc
+$retired = Get-Content -LiteralPath (Join-Path $hm '.claude\settings.json') -Raw | ConvertFrom-Json
+Check 'method: the tadeumendonca-skills plugin is retired at user scope, the other plugin kept, a backup left' (
+    (-not $retired.enabledPlugins.PSObject.Properties['tadeumendonca-skills@tadeumendonca']) -and
+    ($retired.enabledPlugins.'a@b' -eq $true) -and
+    (Test-Path -LiteralPath (Join-Path $hm '.claude\settings.json.pmhwc-plugin-backup') -PathType Leaf))
 Check 'method: the METHOD summary line is printed' ([bool]($mout | Where-Object { $_ -like 'METHOD  installed: *agents*skills*commands*' }))
 $ccAgent = Join-Path $hm '.claude\agents\developer.md'
 Check 'method: Claude Code agent keeps its tool list and stamp' (
@@ -165,6 +173,17 @@ $kAgent = Get-Content -LiteralPath (Join-Path $hm '.kiro\agents\developer.json')
 Check 'method: Kiro agent keeps its tool list and auto-approves nothing' (
     ((@($kAgent.tools) -join ',') -ceq 'read,write,shell') -and (-not $kAgent.PSObject.Properties['allowedTools']))
 $null = Run $hm @('-Check'); Expect 'check is clean with the working method installed' 0 $script:rc
+# #130: a failed render never retires the plugin. A file not managed by the method at one of its targets
+# makes the render refuse; the plugin stays enabled and no backup is written.
+$hf = Join-Path $Base 'home-method-refused'; New-Item -ItemType Directory -Force -Path (Join-Path $hf '.claude\agents') | Out-Null
+[System.IO.File]::WriteAllText((Join-Path $hf '.claude\settings.json'), '{ "enabledPlugins": { "tadeumendonca-skills@tadeumendonca": true } }', (New-Object System.Text.UTF8Encoding $false))
+[System.IO.File]::WriteAllText((Join-Path $hf '.claude\agents\developer.md'), "the owner's own agent`n", (New-Object System.Text.UTF8Encoding $false))
+$null = Run $hf @('-Method')
+Check 'method: a failed render exits non-zero' ($script:rc -ne 0)
+$kept = Get-Content -LiteralPath (Join-Path $hf '.claude\settings.json') -Raw | ConvertFrom-Json
+Check 'method: a failed render leaves the plugin enabled and writes no plugin backup' (
+    ($kept.enabledPlugins.'tadeumendonca-skills@tadeumendonca' -eq $true) -and
+    (-not (Test-Path -LiteralPath (Join-Path $hf '.claude\settings.json.pmhwc-plugin-backup'))))
 $kiro = @(Get-Content -LiteralPath (Join-Path $h '.kiro\steering\workstation-global-brief.md') -TotalCount 3)
 Check 'kiro file opens with inclusion: always front matter' ($kiro[0] -ceq '---' -and $kiro[1] -ceq 'inclusion: always' -and $kiro[2] -ceq '---')
 $claudeMd = Join-Path $h '.claude\CLAUDE.md'

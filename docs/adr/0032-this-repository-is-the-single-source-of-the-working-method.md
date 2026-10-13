@@ -17,7 +17,8 @@ The owner's working method (agents, skills and slash commands) lived in the `tad
 plugin. The plugin reached Claude Code natively, Codex through a plugin that also registered hooks,
 and Kiro through a generated Power whose loader reads skills only, so Kiro never received the agents.
 The approved plan (#52) moves the method into this repository's user layer, renders it natively into
-all three agent harnesses, and later regenerates the plugin from here (#62).
+all three agent harnesses, and later regenerates the plugin from here ~~(#62)~~. *(Struck 2026-10-12,
+#63: #62 became the Issue sync; the weekly tadeumendonca-skills sprint regenerates the plugin.)*
 
 The owner's rulings on #61 that bound this record:
 
@@ -45,7 +46,8 @@ The owner's rulings on #61 that bound this record:
    the source; `global/method/method_render.py` writes each agent harness's user-level carrier;
    `install.sh` calls it with its own mode and stamp. *Trade-off:* the method's text is carried as it
    stood in the plugin, so passages that describe the plugin's own files and hooks are now stale
-   descriptions (see Consequences); and the plugin stays a second copy until #62 regenerates it.
+   descriptions (see Consequences); and the plugin stays a second copy until ~~#62~~ *(struck 2026-10-12,
+   #63: the weekly tadeumendonca-skills sprint)* regenerates it.
 2. **Keep the plugin as the source and install its packages per agent harness** (Claude Code plugin,
    Codex plugin, Kiro Power). *Trade-off:* no copy, but Kiro gets no agents (its Power loader reads
    skills only), the Codex package registers hooks the hook budget retires, and the method keeps living
@@ -241,7 +243,9 @@ Issues/backlog"*. He agreed ("de acordo") to the mechanism below the same day.
   gets the twin's link once. Runbook: [`docs/runbooks/method-issue-sync.md`](../runbooks/method-issue-sync.md).
 - **The adaptation to plugin files is done by the -skills sprint**, which is weekly and scheduled later.
   Nothing in this repository writes plugin files. Until that sprint runs, `method/` here and the plugin
-  can diverge; the twins are the record of what is owed.
+  can diverge; the twins are the record of what is owed. *(Amended 2026-10-12, #63: that sprint
+  regenerates the plugin from `method/` here; it does not author the method there. See the amendment of
+  that date on #63.)*
 
 **New third-party action.** `anthropics/claude-code-action`, pinned by commit (v1.0.248, the commit `v1`
 points at, verified with `git ls-remote` on 2026-10-12), joins `actions/create-github-app-token`
@@ -283,6 +287,105 @@ outside the agent's Write directory; the scrub stays on.)* *(Added 2026-10-12: a
 (observed). Claude Code matches file writes against `Edit(path)` rules only, so the `Write(path)` rule
 granted nothing (measured locally on 2.1.296; inferred on the runner). #167, written and tested and not
 run on `main`, grants the directory with an `Edit(path)` rule and keeps the Edit tool disallowed.)*
+
+## Amendment 2026-10-12: the workstation is the single source; the plugin is a generated distribution nobody installs (#63)
+
+Status unchanged (proposed). The owner, 2026-10-12, recorded on #63: *"a ideia é que ninguem use o skills
+depois de migrar para o mhw"*, confirmed ("siga") after the orchestrator restated it. An earlier comment
+on #63 the same day framed the choice as the plugin's files staying authored in tadeumendonca-skills;
+that framing was withdrawn.
+
+**Decision.**
+
+- **The workstation is the single source of the method**: `method/` here, installed with
+  `mhw install --method`. #130 then removes the plugin from the workstation.
+- **The plugin is a generated distribution that nobody installs.** tadeumendonca-skills becomes a mirror:
+  it receives method Issues through the sync, and a weekly sprint there regenerates the mirrored version
+  from `method/` here. Scheduling that sprint is later work.
+- **Demands enter as mhw Issues labelled `method`**, mirrored to tadeumendonca-skills as twin Issues by
+  `.github/workflows/method-issue-sync.yml` (the amendment of this date on #62).
+- tadeumendonca-skills carries a deprecation notice in its README and AGENTS.md and an ADR there pointing
+  here. Its duplicate protections are removed only after the deny-floor slice ships, as #63 states.
+
+**Not changed by this amendment.** The installer and the opt-in passages above (*Carrier map*,
+`method/README.md`) are the next slice, with #130.
+
+**Evidence, 2026-10-12.** The sync works end to end on `main` (v5.5.3), *measured*: canary 4 on mhw#162.
+Run 38324740491 created the twin tadeumendonca-skills#564, authored by `app/tedeuxx-mhw-mirror` (the
+login `TWIN_AUTHOR` assumed, now confirmed), `verify` passed (OPEN) and the back-link was posted by
+`github-actions`. Run 38324871241, on closing mhw#162, closed the twin, `verify` passed (CLOSED) and the
+back-link was not posted again. The weekly regeneration does not exist yet.
+
+## Amendment 2026-10-12: the four rites move into `method/` before #130 (#130)
+
+Status unchanged (proposed). *What moved* above left the sprint and funnel rites out of the set, while
+the method's own briefs (`scrum-master`, `autonomy`, `agents-configuration` and others) kept pointing to
+them, so uninstalling the plugin (#130) would have left those pointers naming commands that no longer
+exist on the workstation. The owner, 2026-10-12, recorded on
+[#130](https://github.com/tedeuxx/mhw/issues/130#issuecomment-6136293979), chose **"Mover para o
+method/"** over retiring them or postponing #130, and made two preconditions of #130: the four rites
+in `method/`, and the root-brief rename to `AGENTS.md` (ADR-0037) applied across `method/`.
+
+- **Moved:** `sprint-planning`, `sprint-review`, `sprint-retrospective` and `funnel-review`, from the
+  plugin's `commands/` at its `main` commit `4882b911`, into `method/commands/`. They render like every
+  other command: Claude Code commands, Codex skills with implicit invocation off, Kiro skills. The
+  method now holds 11 commands.
+- **Adapted as at seeding, and nothing else:** the method's front-matter shape (`name`, `description`,
+  `purpose`, `argument-hint`, quoted); the retired-plugin-hooks note at the top; the plugin's namespaced
+  invocations (`/tadeumendonca-skills:<name>`) made bare in `autonomy` (the rite bodies carried none). Their
+  text is otherwise the plugin's, including the plugin-hook descriptions the note qualifies.
+- **Their scripts moved with them** (the lens and the gate on #170): the `milestone-*` family with
+  `milestone_common.py`, `worklog.py`, and `funnel-review.sh`, from the plugin's `scripts/` at the same
+  commit, into `method/scripts/` with their tests and fixtures (and the worklog contract the worklog test
+  reads, in `method/scripts/worklog-contract/`). The render installs the scripts, never a test, to one
+  user-level directory for every agent harness,
+  `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/method/scripts/`, with
+  the managed-by line after the shebang; `{{method-scripts}}` in a rendered body becomes that directory, so
+  a rite runs them from any repository, and a `{{method-scripts}}/<name>` naming no script stops the
+  render. Adapted: `funnel-review.sh` defaults its root to the working directory's repository instead of
+  its own place, and its test drops the two arms that fired the plugin's `cadence-notice` hook, which the
+  method does not carry. Where these scripts first met a SonarCloud gate (the gate on #170, N1): a new
+  `confine.py` resolves a path and refuses one outside the current work tree or the temporary directory,
+  and `milestone_common.text_from_file` (a description is published) and `worklog.load` (what it loads
+  becomes a published comment) read only through it; `milestone_common` validates the repository as
+  `<owner>/<repo>` and the number as a positive integer before any `gh` call; the worklog's private-path
+  regex carries a reasoned `NOSONAR` (it refuses `/tmp/`, it opens nothing); the render installs the
+  scripts `0700`. Each has a test. Not moved: the worklog contract's place in a consuming repository
+  (`docs/worklog/`), which the rites still name.
+- **The rename:** every reference in `method/` to a project's root brief now names `AGENTS.md`;
+  harness-path class lists, dated measurements and history keep the vendor-named file where it is a
+  fact about a path or the past.
+
+## Amendment 2026-10-13: the installer retires the plugin with the method (#130)
+
+Status unchanged (proposed). #130 was an owner action, *uninstall the plugin*, with three preconditions:
+the method installed, `mhw status` naming the DUPLICATE, and the deprecation shipped in
+tadeumendonca-skills. Since this amendment the uninstall is installer work, in the method's own step.
+
+- **`mhw install --method` retires the plugin at user scope** (`global/method/plugin_retire.py`), right
+  after the method renders and never after a failed render, so a session is not left with neither copy:
+  Claude Code's `enabledPlugins` entry and the marketplace's `extraKnownMarketplaces` entry in
+  `~/.claude/settings.json`, the plugin's scope `user` install records, and its marketplace once no
+  record of any scope still uses it; Codex's `[plugins."tadeumendonca-skills@…"]` and
+  `[marketplaces.…]` tables, verified with `tomllib`. Each changed file is first copied to
+  `<file>.pmhwc-plugin-backup` (0600), and each change prints as old -> absent.
+- **Project scopes are reported, never touched**: a scope `project` install record, or a project's own
+  `.claude/settings.json`, changes through that repository's pull request.
+- **Not `claude plugin uninstall` / `codex plugin remove`**, though those are the native mechanisms: both
+  also delete the plugin's cache, which an offline `mhw uninstall` could not bring back. The script edits
+  the records those CLIs write; the cache directories stay, unused.
+- **`mhw uninstall` restores** what install removed, from those backups, and nothing else; it is
+  idempotent. Windows (`install.ps1 -Method`) runs the same step; it has no uninstall, so the backups
+  are the restore route there.
+- **`mhw status`** keeps its method line: DUPLICATE while the plugin is enabled in the user settings, the
+  workspace's settings or Codex, none after.
+
+**The opt-in stays, and the passage above is not struck.** Making the method default-on would let a
+routine `mhw install` or `mhw update` retire the plugin; the cutover stays the owner's deliberate act,
+`mhw install --method` in a fresh session (ADR-0022), as #130 frames it. The rites and their scripts
+(#170, the amendment above) are on `rc/next`; they reach `main` with the release candidate,
+which must carry both before that act. Turning `--method` on
+by default is a one-line change once the canary has passed.
 
 ## Links
 

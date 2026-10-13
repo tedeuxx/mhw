@@ -660,8 +660,9 @@ def method_text(m):
     text = "installed in the user layer"
     if m["duplicate"]:
         text += ("; DUPLICATE: the %s plugin is also enabled in %s, so every agent, skill and command appears "
-                 "twice and its hooks refuse the bare-named agents; disable one of the two"
-                 % (METHOD_PLUGIN, " and ".join(m["duplicate"])))
+                 "twice and its hooks refuse the bare-named agents; %s install --method retires it at user "
+                 "scope (#130), and a project that enables it changes its own settings"
+                 % (METHOD_PLUGIN, " and ".join(m["duplicate"]), CMD))
     return text
 
 

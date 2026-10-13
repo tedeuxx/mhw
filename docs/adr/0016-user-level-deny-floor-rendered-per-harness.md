@@ -489,6 +489,28 @@ not read the file. ~~This amendment is proposed until the owner ratifies ADR-003
 2026-10-11: the owner ratified ADR-0036, so this amendment is accepted with it.)* The *written and
 tested* status of the Kiro floor does not make it *installed*.
 
+## Amendment 2026-10-12: the trunk-push spellings, measured on the installed floor (#130)
+
+Uninstalling the plugin (#130) removes its guard, which refused a direct push to the trunk. The owner
+chose a floor rule ([#130](https://github.com/tedeuxx/mhw/issues/130#issuecomment-6136477441), *"Regra no
+piso"*). **The rule was already there**: the owner overlay (`overlay/deny-floor.conf`) has carried the
+trunk-push forms since the 2026-10-05 amendment (with #83's `-u`/`--set-upstream` and `main:main` forms),
+and it is installed on the reference machine (v5.4.0). Measured 2026-10-12 against the installed files,
+Codex with `codex execpolicy check` and Claude Code by the token-bounded prefix rule over the installed
+deny list:
+
+| | spellings |
+| --- | --- |
+| denied on both | `git push origin main`, `… master`, `… HEAD:main`, `… main:main`, `-u origin main`, `--set-upstream origin master`, `origin main --tags`, `origin :main`, `origin --delete main`, `git push --all` |
+| open on both, and a prefix cannot reach them | `git push` and `git push origin` with the trunk checked out, `git -C <dir> push origin main`, `git push upstream main`, `git push -q origin main`, `git -c a=b push origin main` |
+| open on both, and a prefix can reach them: **added** | `git push origin +main` (a forced push of the trunk), `… refs/heads/main`, `… HEAD:refs/heads/main`, and the same for `master` |
+| open on both, as they must be | `git push origin feat/x`, `-u origin feat/x`, `origin main-fix`, `origin mainline` |
+
+The six added entries render like every other one (Claude Code, Codex, Kiro, and the admin layer). The
+installer suite asserts the new forms denied and, calibrated the other way, a feature-branch push and a
+branch whose name only starts with `main` matching no rule. On Kiro the word-boundary behaviour is *read
+from the bundle*, not measured. Version cut: **patch** (an incremental change to an existing control).
+
 ## Links
 
 - Issue #4. ADR-0002 (cut policy), ADR-0003 (Kiro access), ADR-0010 (rendering, managed-file marker),
