@@ -104,8 +104,10 @@ class SourceShape(unittest.TestCase):
                                          "engineering-standards", "definition-of-ready", "definition-of-done",
                                          "quality-gates", "published-voice", "scm", "ci", "provisioning",
                                          "planning-poker", "code-review", "content-publishing"]))
+        # The four rites moved at #130 (owner, 2026-10-12).
         self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-idea", "idea-to-issues", "handover", "what-else",
-                                           "blueprint"]))
+                                           "blueprint", "sprint-planning", "sprint-review", "sprint-retrospective",
+                                           "funnel-review"]))
 
     def test_planning_poker_no_longer_says_reference_pattern_only(self):
         fields, _ = mr.split_front_matter((SOURCE / "skills/planning-poker/SKILL.md").read_text(encoding="utf-8"), "pp")

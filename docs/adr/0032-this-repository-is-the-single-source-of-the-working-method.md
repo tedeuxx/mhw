@@ -316,6 +316,28 @@ login `TWIN_AUTHOR` assumed, now confirmed), `verify` passed (OPEN) and the back
 `github-actions`. Run 38324871241, on closing mhw#162, closed the twin, `verify` passed (CLOSED) and the
 back-link was not posted again. The weekly regeneration does not exist yet.
 
+## Amendment 2026-10-12: the four rites move into `method/` before #130 (#130)
+
+Status unchanged (proposed). *What moved* above left the sprint and funnel rites out of the set, while
+the method's own briefs (`scrum-master`, `autonomy`, `agents-configuration` and others) kept pointing to
+them, so uninstalling the plugin (#130) would have left those pointers naming commands that no longer
+exist on the workstation. The owner, 2026-10-12, recorded on
+[#130](https://github.com/tedeuxx/mhw/issues/130#issuecomment-6136293979), chose **"Mover para o
+method/"** over retiring them or postponing #130, and made two preconditions of #130: the four rites
+in `method/`, and the root-brief rename to `AGENTS.md` (ADR-0037) applied across `method/`.
+
+- **Moved:** `sprint-planning`, `sprint-review`, `sprint-retrospective` and `funnel-review`, from the
+  plugin's `commands/` at its `main` commit `4882b911`, into `method/commands/`. They render like every
+  other command: Claude Code commands, Codex skills with implicit invocation off, Kiro skills. The
+  method now holds 11 commands.
+- **Adapted as at seeding, and nothing else:** the method's front-matter shape (`name`, `description`,
+  `purpose`, `argument-hint`, quoted); the retired-plugin-hooks note at the top; the plugin's namespaced
+  invocations (`/tadeumendonca-skills:<name>`) made bare in the rites and in `autonomy`. Their text is
+  otherwise the plugin's, including the plugin-hook descriptions the note qualifies.
+- **The rename:** every reference in `method/` to a project's root brief now names `AGENTS.md`;
+  harness-path class lists, dated measurements and history keep the vendor-named file where it is a
+  fact about a path or the past.
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)

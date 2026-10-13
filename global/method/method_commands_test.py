@@ -39,6 +39,15 @@ REQUIRED = {
     "what-else": SHARED + ["## The anchored objective", "## Read the bus", "## The answer"],
     "blueprint": SHARED + ["## export", "## import", "## Alignment interview"],
 }
+# The four rites moved from the plugin at #130 (owner, 2026-10-12). They keep the plugin's text, so they are
+# held to the headings that carry each rite, not to the workflow commands' "never" section.
+RITES = {
+    "sprint-planning": ["## The trigger", "## What this rite does NOT do", "## What nothing enforces, said before any green is read"],
+    "sprint-review": ["## The trigger, and where it sits among the three rites", "## What this rite cannot see"],
+    "sprint-retrospective": ["## The trigger", "## What this cannot catch"],
+    "funnel-review": ["## The steps", "## What this rite cannot see"],
+}
+RETIRED_NOTE = "> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).**"
 # Phrases that carry the behaviour the Issues require, beyond the headings.
 PHRASES = {
     "new-idea": ["product-requirements-document-<subject>.md", "recommended answer", "Mermaid"],
@@ -113,6 +122,77 @@ class Commands(unittest.TestCase):
 
     def test_rendered_commands_carry_no_secret_or_personal_data(self):
         for name in REQUIRED:
+            for harness, path in carriers(self.home, name).items():
+                self.assertEqual(guard.find_spans(path.read_text(encoding="utf-8")), [], (name, harness))
+
+
+class Rites(unittest.TestCase):
+    """#130: the four rites render for every agent harness method/ targets, in the method's shape."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.home = Path(tempfile.mkdtemp(prefix="home-", dir=BASE))
+        cls.code, cls.out = render(cls.home)
+
+    def test_render_succeeds(self):
+        self.assertEqual(self.code, 0, self.out)
+
+    def test_every_rite_is_in_every_carrier(self):
+        for name in RITES:
+            for harness, path in carriers(self.home, name).items():
+                self.assertTrue(path.is_file(), "%s missing in %s" % (name, harness))
+
+    def test_codex_keeps_implicit_invocation_off(self):
+        for name in RITES:
+            policy = self.home / ".agents" / "skills" / name / "agents" / "openai.yaml"
+            self.assertIn("\npolicy:\n  allow_implicit_invocation: false\n", policy.read_text(encoding="utf-8"), name)
+
+    def test_invocation_names_and_front_matter(self):
+        for name in RITES:
+            c = carriers(self.home, name)
+            head = c["claude"].read_text(encoding="utf-8").split("\n---\n", 1)[0]
+            self.assertIn("argument-hint:", head, name)
+            self.assertIn("Owner-typed command $%s" % name, c["codex"].read_text(encoding="utf-8"), name)
+            self.assertIn("Owner-typed command /%s" % name, c["kiro"].read_text(encoding="utf-8"), name)
+            source = (REPO / "method" / "commands" / (name + ".md")).read_text(encoding="utf-8")
+            front = source.split("\n---\n", 1)[0]
+            for key in ("name", "description", "purpose", "argument-hint"):
+                self.assertRegex(front, r'(?m)^%s: "' % key, (name, key))
+            self.assertIn('name: "%s"' % name, front)
+
+    def test_headings_and_retired_note_reach_every_carrier(self):
+        missing = []
+        for name, headings in RITES.items():
+            for harness, path in carriers(self.home, name).items():
+                text = path.read_text(encoding="utf-8")
+                lines = text.split("\n")
+                missing += ["%s/%s: %s" % (name, harness, h) for h in headings if h not in lines]
+                if RETIRED_NOTE not in text:
+                    missing.append("%s/%s: the retired-hooks note" % (name, harness))
+        self.assertEqual(missing, [])
+
+    def test_no_plugin_namespaced_invocation_or_root_claude_brief(self):
+        for name in RITES:
+            text = (REPO / "method" / "commands" / (name + ".md")).read_text(encoding="utf-8")
+            body = text.split(RETIRED_NOTE, 1)[1].split("\n\n", 1)[1]
+            self.assertNotRegex(body, r"/tadeumendonca-skills:[a-z]", name)
+        autonomy = (REPO / "method" / "commands" / "autonomy.md").read_text(encoding="utf-8")
+        self.assertNotRegex(autonomy, r"/tadeumendonca-skills:(sprint|funnel)", "autonomy")
+
+    def test_pointers_to_the_rites_resolve(self):
+        import re
+        unresolved = []
+        for path in sorted((REPO / "method").rglob("*.md")):
+            text = path.read_text(encoding="utf-8")
+            for name in set(re.findall(r"commands/(sprint-planning|sprint-review|sprint-retrospective|funnel-review)\.md", text)) | \
+                    set(re.findall(r"`/(sprint-planning|sprint-review|sprint-retrospective|funnel-review)\b", text)):
+                if not (REPO / "method" / "commands" / (name + ".md")).is_file():
+                    unresolved.append("%s -> %s" % (path.relative_to(REPO), name))
+        self.assertEqual(unresolved, [])
+        self.assertTrue(any((REPO / "method" / "commands" / (n + ".md")).is_file() for n in RITES))
+
+    def test_rendered_rites_carry_no_secret_or_personal_data(self):
+        for name in RITES:
             for harness, path in carriers(self.home, name).items():
                 self.assertEqual(guard.find_spans(path.read_text(encoding="utf-8")), [], (name, harness))
 

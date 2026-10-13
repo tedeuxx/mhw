@@ -560,8 +560,8 @@ hook receives one `cwd` while an iteration is two milestone objects in two repos
 comparison for slice C is clock versus nothing, not clock versus boundary.**
 
 **On the FIRST stop condition only** — the entry snapshot exhausted — **run
-`/tadeumendonca-skills:sprint-review <iteration>`, then
-`/tadeumendonca-skills:sprint-retrospective <iteration>`.** Not on a boundary event, and not when the owner
+`/sprint-review <iteration>`, then
+`/sprint-retrospective <iteration>`.** Not on a boundary event, and not when the owner
 interrupts: neither of those is the end of an iteration, and a rite fired on a stall would report on an
 iteration nobody finished.
 
@@ -589,7 +589,7 @@ reads like a description of something that already runs.
 
 ### The handoff after the ceremonies has an object too — `/sprint-planning` (#378)
 
-**The planning handoff below is no longer a phrase.** `/tadeumendonca-skills:sprint-planning
+**The planning handoff below is no longer a phrase.** `/sprint-planning
 <iteration>` assembles the next iteration's candidates — the eligible unmilestoned work in both
 repositories plus the proposals the two closing rites just produced — has them ranked by a context
 that did not run this drain, and presents them to the owner **one item at a time**.
