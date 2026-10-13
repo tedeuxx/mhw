@@ -265,6 +265,13 @@ terminal, the steps are:
 6. Delete the backups and leftover temporary copies that still hold plaintext values (`--scan` lists
    them), and rotate those credentials.
 
+## Amendment 2026-10-13: one tracked definition beside the local one ([ADR-0038](0038-chrome-devtools-mcp-at-user-scope-bounded-by-origin.md))
+
+The definition is no longer only in the untracked local overlay. `global/mcp/policy-servers.json` is tracked and holds
+servers that carry no secret and no owner value (today `chrome-devtools`, Claude Code only). `mcp_render.py --policy`
+renders it on every `mhw install`, records its names apart in the manifest, and refuses a local definition that reuses
+one of them. The local definition, its secret indirection and its owner-run install are unchanged.
+
 ## Links
 
 - Issue #8. ADR-0003 (h4: connectors are cloud-side). ADR-0006 (surfaces; this record discharges its

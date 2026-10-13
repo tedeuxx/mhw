@@ -927,6 +927,202 @@ class Scan(unittest.TestCase):
         self.assertIn("owner-run only", p.stderr)
 
 
+POLICY_STAMP = "release: v0.0.0-test; commit: synthetic"
+
+
+def policy(home, mode, *extra, env=None):
+    return run(home, "--policy", "--mode=" + mode, "--stamp=" + POLICY_STAMP, *extra, env=env)
+
+
+def policy_entry():
+    return r.entry("claude-code", r.load_policy()["servers"]["chrome-devtools"], None)
+
+
+def r_manifest(home):
+    return os.path.join(data(home), "mcp-managed.json")
+
+
+class Policy(unittest.TestCase):
+    """ADR-0038 (Issue #174): the tracked policy servers, rendered by mhw install into the Claude Code user
+    configuration (~/.claude.json), old -> new, with a 0600 backup, and removed on uninstall."""
+
+    def test_the_policy_file_pins_the_package_and_fails_closed(self):
+        doc = r.load_policy()
+        self.assertEqual(sorted(doc["servers"]), ["chrome-devtools"],
+                         "the name chrome-devtools gives mcp__chrome-devtools__*, product-lead's grant")
+        s = doc["servers"]["chrome-devtools"]
+        self.assertEqual(s["surfaces"], ["claude-code"])
+        self.assertEqual(s["command"], "/bin/sh")
+        script = s["args"][1]
+        self.assertRegex(script, r"exec npx --ignore-scripts -y chrome-devtools-mcp@[0-9]+\.[0-9]+\.[0-9]+ ",
+                         "the package is pinned to one exact version, fetched with install scripts off")
+        self.assertIn("--allowedUrlPattern \"$o\"", script)
+        self.assertIn("o='http://127.0.0.1:9/*'", script, "the fail-closed default: the discard port")
+        # Measured on Claude Code 2.1.296 (ADR-0038): a ${VAR} in a server's args is expanded from the
+        # process environment before a project's settings env is applied, so it would always give the
+        # default. The shell expands it at launch instead, so no ${ may reach the harness.
+        self.assertNotIn("${", json.dumps(s))
+
+    def test_the_launch_script_binds_the_declared_origin_or_the_discard_port(self):
+        d = os.path.join(BASE, "policy-fake-npx")
+        os.makedirs(d, exist_ok=True)
+        log = os.path.join(d, "argv.txt")
+        npx = os.path.join(d, "npx")
+        with open(npx, "w") as fh:
+            fh.write('#!/bin/sh\nfor a in "$@"; do printf "%%s\\n" "$a"; done > "%s"\n' % log)
+        os.chmod(npx, 0o700)
+        e = policy_entry()
+        cases = ((None, "http://127.0.0.1:9/*"), ("", "http://127.0.0.1:9/*"),
+                 ("https://site.example/*", "https://site.example/*"),
+                 ("https://a.example/* ; touch x", "https://a.example/* ; touch x"),
+                 ("http://localhost:4321/*", "http://localhost:4321/*"),
+                 # A dash-led value would be read as a flag and leave the allow list empty; a value that
+                 # is not an http(s) URL is not an origin. Both fall back to the discard port (QA A1).
+                 ("--remote-debugging-port=9222", "http://127.0.0.1:9/*"),
+                 ("-x", "http://127.0.0.1:9/*"),
+                 ("site.example/*", "http://127.0.0.1:9/*"),
+                 ("file:///etc/*", "http://127.0.0.1:9/*"),
+                 (" https://lead-space.example/*", "http://127.0.0.1:9/*"))
+        for value, bound in cases:
+            env = {"PATH": d + os.pathsep + "/usr/bin:/bin"}
+            if value is not None:
+                env["HARNESS_SWEEP_ORIGIN"] = value
+            p = subprocess.run([e["command"]] + e["args"], env=env, capture_output=True, text=True, cwd=d)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            argv = read(log).splitlines()
+            self.assertEqual(argv[-2:], ["--allowedUrlPattern", bound], value)
+            self.assertIn("chrome-devtools-mcp@", " ".join(argv))
+        self.assertFalse(os.path.exists(os.path.join(d, "x")), "the origin is one argument, never shell text")
+
+    def test_install_writes_old_to_new_keeps_a_private_backup_and_uninstall_removes(self):
+        h = mk_home("home-policy")
+        cfg = targets(h)["claude-code"]
+        with open(cfg, "w") as fh:
+            json.dump({"numStartups": 7, "mcpServers": {"mine": {"command": "/bin/echo"}}}, fh)
+        os.chmod(cfg, 0o644)
+        seed = read(cfg)
+        p = policy(h, "check")
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("DRIFT", p.stdout)
+        p = policy(h, "install")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("CHANGED %s: chrome-devtools absent -> /bin/sh -c " % cfg, p.stdout)
+        self.assertIn("chrome-devtools-mcp@", p.stdout)
+        got = jload(cfg)
+        self.assertEqual(got["mcpServers"]["chrome-devtools"], policy_entry())
+        self.assertEqual(got["mcpServers"]["mine"], {"command": "/bin/echo"})
+        self.assertEqual(got["numStartups"], 7)
+        backup = cfg + r.POLICY_BACKUP
+        self.assertEqual(read(backup), seed)
+        self.assertEqual(stat.S_IMODE(os.stat(backup).st_mode), 0o600)
+        self.assertEqual(stat.S_IMODE(os.stat(cfg).st_mode), 0o644, "the config keeps its own mode")
+        before = fingerprint(h)
+        p = policy(h, "install")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("OK ", p.stdout)
+        self.assertEqual(fingerprint(h), before, "a second install changes nothing")
+        self.assertEqual(policy(h, "check").returncode, 0)
+        p = run(h, "--policy", "--mode=check", "--stamp=release: other; commit: other")
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("STAMP", p.stdout)
+        p = policy(h, "uninstall")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn(" -> absent", p.stdout)
+        got = jload(cfg)
+        self.assertNotIn("chrome-devtools", got["mcpServers"])
+        self.assertEqual(got["mcpServers"]["mine"], {"command": "/bin/echo"})
+        self.assertFalse(os.path.exists(r_manifest(h)), "a manifest that recorded only the policy goes")
+        self.assertEqual(policy(h, "uninstall").returncode, 0, "uninstall twice is a no-op")
+
+    def test_dry_run_writes_nothing(self):
+        h = mk_home("home-policy-dry")
+        before = fingerprint(h)
+        p = policy(h, "dry-run")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("WOULD CHANGE", p.stdout)
+        self.assertEqual(fingerprint(h), before)
+
+    def test_a_surface_that_is_not_installed_is_skipped(self):
+        h = os.path.join(BASE, "home-policy-none")
+        os.makedirs(h, exist_ok=True)
+        p = policy(h, "install")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("SKIP", p.stdout)
+        self.assertFalse(os.path.exists(os.path.join(h, ".claude.json")))
+
+    def test_a_hand_server_of_the_same_name_is_refused_and_untouched(self):
+        h = mk_home("home-policy-hand")
+        cfg = targets(h)["claude-code"]
+        with open(cfg, "w") as fh:
+            json.dump({"mcpServers": {"chrome-devtools": {"command": "npx", "args": ["chrome-devtools-mcp@latest"]}}},
+                      fh)
+        seed = read(cfg)
+        p = policy(h, "install")
+        self.assertEqual(p.returncode, 3)
+        self.assertIn("not written by mhw", p.stderr)
+        self.assertEqual(read(cfg), seed)
+        self.assertFalse(os.path.exists(cfg + r.POLICY_BACKUP))
+
+    def test_the_local_definition_and_the_policy_never_remove_each_other(self):
+        h = mk_home("home-policy-both")
+        cfg = targets(h)["claude-code"]
+        write_source(h, source_doc())
+        p = run(h, "--surfaces=claude-code")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(policy(h, "install").returncode, 0)
+        p = run(h, "--surfaces=claude-code")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        names = set(jload(cfg)["mcpServers"])
+        self.assertTrue({"chrome-devtools", "fake-plain", "fake-secret"} <= names, names)
+        self.assertEqual(run(h, "--check", "--surfaces=claude-code").returncode, 0)
+        self.assertEqual(policy(h, "check").returncode, 0)
+        self.assertEqual(policy(h, "uninstall").returncode, 0)
+        names = set(jload(cfg)["mcpServers"])
+        self.assertNotIn("chrome-devtools", names)
+        self.assertTrue({"fake-plain", "fake-secret"} <= names, names)
+        self.assertTrue(os.path.exists(r_manifest(h)), "the local definition's record stays")
+        self.assertEqual(run(h, "--check", "--surfaces=claude-code").returncode, 0)
+
+    def test_the_local_definition_may_not_redefine_a_policy_server(self):
+        h = mk_home("home-policy-clash")
+        write_source(h, source_doc({"chrome-devtools": {"command": "/bin/echo"}}))
+        p = run(h, "--surfaces=claude-code")
+        self.assertEqual(p.returncode, 2)
+        self.assertIn("policy servers", p.stderr)
+
+    def test_a_policy_server_that_names_a_secret_or_codex_is_refused(self):
+        d = os.path.join(BASE, "policy-invalid")
+        os.makedirs(d, exist_ok=True)
+        for bad in ({"command": "x", "surfaces": ["claude-code"], "secrets": {"A_TOKEN": "env:B"}},
+                    {"command": "x", "surfaces": ["codex"]},
+                    {"command": "x"}):
+            path = os.path.join(d, "p.json")
+            with open(path, "w") as fh:
+                json.dump({"version": 1, "servers": {"s": bad}}, fh)
+            with self.assertRaises(r.Refuse):
+                r.load_policy(path)
+
+    def test_describe_shows_a_command_line_and_hides_what_looks_like_a_credential(self):
+        self.assertEqual(r.describe(None), "absent")
+        self.assertEqual(r.describe({"command": "/bin/echo", "args": ["a b"]}), "/bin/echo 'a b'")
+        self.assertEqual(r.describe({"command": "x", "env": {"A": "secret-value"}}), "x (env: 1 value(s), not shown)")
+        value = "synthetic-" + secrets.token_hex(8)
+        token = "gh" + "p_" + "Z" * 36
+        for e in ({"command": "x", "args": ["--api-key", value]},
+                  {"command": "x", "args": ["--password=" + value]},
+                  {"command": "x", "args": [token]},
+                  {"command": "x", "args": ["https://u:" + value + "@h/"]}):
+            got = r.describe(e)
+            self.assertEqual(got, "present (not shown: it looks like it carries a credential)", e)
+            self.assertNotIn(value, got)
+            self.assertNotIn(token, got)
+
+    def test_bad_policy_arguments_are_a_usage_error(self):
+        h = mk_home("home-policy-usage")
+        for args in (("--policy", "--mode=report"), ("--policy", "--stamp="), ("--policy", "--adopt")):
+            self.assertEqual(run(h, *args).returncode, 2, args)
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.exit("usage: mcp_render_test.py <empty-or-new base directory>")

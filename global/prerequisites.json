@@ -144,7 +144,7 @@
     {"id": "chrome-devtools-mcp", "name": "chrome-devtools-mcp with Google Chrome", "category": "local-tool",
      "required": "optional", "lanes": {"content": "optional"},
      "presence": {"kind": "manual"},
-     "manual": "Optional browser MCP; Google Chrome plus the MCP server rendered by ADR-0017"},
+     "manual": "Optional browser MCP; Google Chrome and Node.js (npx), plus the chrome-devtools server mhw install renders (ADR-0038)"},
     {"id": "container-runtime", "name": "Docker or Podman", "category": "local-tool",
      "required": "optional", "lanes": {"workstation": "optional"},
      "presence": {"commands": ["docker", "podman"]}, "version": {"args": ["--version"]},
