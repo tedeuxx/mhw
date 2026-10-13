@@ -65,8 +65,8 @@ tadeumendonca-skills#525: the bound must come from the project's tracked configu
 
 1. **User scope, the shell reads the origin at launch (chosen).** `mhw install` writes the server into
    `~/.claude.json` from a tracked `global/mcp/policy-servers.json`. The command is `/bin/sh -c`, and
-   the script sets the origin from `HARNESS_SWEEP_ORIGIN`, or `http://127.0.0.1:9/*` when that is unset
-   or empty, then `exec`s `npx`. The script carries no `${`, so Claude Code expands nothing; the shell
+   the script sets the origin from `HARNESS_SWEEP_ORIGIN`, or `http://127.0.0.1:9/*` when that is unset,
+   empty or does not begin `http://` or `https://` (see "The scheme guard" below), then `exec`s `npx`. The script carries no `${`, so Claude Code expands nothing; the shell
    reads the variable from the environment the harness gave the server, which carries the project's
    settings `env`. After `exec` the process table shows the `npm exec chrome-devtools-mcp@1.8.0 …
    --allowedUrlPattern <value>` line that `/sprint-review` step 0 reads. *Trade-off:* the server is
@@ -132,10 +132,14 @@ Good:
 
 Bad:
 
-- **A new third-party dependency, fetched at every first launch.** The package and its dependencies run
-  as the owner, drive a real Chrome, and are not vendored. Only the top-level version is pinned: its
-  transitive dependencies resolve from the registry with no lockfile, and the integrity hash is trust on
-  first use of the registry itself. A compromised registry or dependency is outside this control.
+- **A new third-party dependency, fetched at every first launch.** The package runs as the owner, drives
+  a real Chrome, and is not vendored. The package has no runtime dependencies at 1.8.0 (its code is
+  bundled, and its two peer dependencies are optional, so npm installs none). The integrity hash
+  therefore covers all the code that runs, but it is trust on first use of the registry itself, and a
+  later version may add dependencies. Measured 2026-10-13: `npm view chrome-devtools-mcp@1.8.0
+  dependencies peerDependencies peerDependenciesMeta --json` shows no `dependencies` and both peers
+  `optional`; `npm install --dry-run --ignore-scripts chrome-devtools-mcp@1.8.0` reports "added 1
+  package". A compromised registry is outside this control.
 - **A browser server in every project.** In each project but tadeumendonca-io it starts, if an agent
   calls it, a browser that can reach nothing. Its tools are visible to every agent whose tool list does
   not exclude them; the main session included.
@@ -154,8 +158,9 @@ Bad:
 
 - **Written and tested** here: `global/mcp/mcp_render_test.py` (class `Policy`: install, check, dry-run,
   uninstall, the backup's mode, a hand-written server refused, the local definition and the policy
-  apart, and the launch script run with a fake `npx` for no value, an empty value, a value and a value
-  with shell text in it); `global/install.test.sh` section 19b (a throwaway HOME through `install.sh`).
+  apart, `describe` hiding a credential-looking entry, and the launch script run with a fake `npx` for
+  no value, an empty value, an http and an https value, a value with shell text in it, two dash-led
+  values, a bare host, a `file:` URL and a value with a leading space); `global/install.test.sh` section 19b (a throwaway HOME through `install.sh`).
   `./mhw install --yes --no-admin` and `./mhw uninstall --yes` were run in a throwaway HOME.
 - **Measured** (recorder servers, 2.1.296, as above): the expansion order, and that the shell form
   carries the project's value. The real package was not launched by Claude Code in that measurement.
@@ -163,6 +168,21 @@ Bad:
   session on the reference machine after `mhw install`, a canary from `product-lead` in
   tadeumendonca-io: `navigate_page` to the declared origin succeeds, a navigation outside it is refused,
   and `/sprint-review` step 0 prints the declared origin.
+
+### The scheme guard (QA advisory A1 on PR #175)
+
+The launch script keeps the value only when it begins `http://` or `https://`; anything else, including
+an empty value, becomes the discard port. Without the guard, a dash-led value such as
+`--remote-debugging-port=9222` would be passed where the pattern goes and would likely be parsed by the
+package as a flag, leaving no allow list. The value stays one quoted argument, so shell text in it is
+never run. Tested with a fake `npx` (mutation-checked: with the guard removed, the test goes red), and
+re-measured under Claude Code 2.1.296 with a recorder server: the project's `https://` value arrived,
+and a project with none got the discard port.
+
+**What the guard does not validate.** It checks the scheme prefix only. A wide pattern still passes:
+`https://*`, `http://*/*` or a pattern for any host the project names is accepted as written, and the
+package's own URL-pattern parsing then decides what it allows. Whether a malformed pattern after the
+prefix fails closed in the package is not measured. The bound is as narrow as the project declares.
 
 ## Links
 

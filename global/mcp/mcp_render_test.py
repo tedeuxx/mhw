@@ -974,7 +974,15 @@ class Policy(unittest.TestCase):
         e = policy_entry()
         cases = ((None, "http://127.0.0.1:9/*"), ("", "http://127.0.0.1:9/*"),
                  ("https://site.example/*", "https://site.example/*"),
-                 ("https://a.example/* ; touch x", "https://a.example/* ; touch x"))
+                 ("https://a.example/* ; touch x", "https://a.example/* ; touch x"),
+                 ("http://localhost:4321/*", "http://localhost:4321/*"),
+                 # A dash-led value would be read as a flag and leave the allow list empty; a value that
+                 # is not an http(s) URL is not an origin. Both fall back to the discard port (QA A1).
+                 ("--remote-debugging-port=9222", "http://127.0.0.1:9/*"),
+                 ("-x", "http://127.0.0.1:9/*"),
+                 ("site.example/*", "http://127.0.0.1:9/*"),
+                 ("file:///etc/*", "http://127.0.0.1:9/*"),
+                 (" https://lead-space.example/*", "http://127.0.0.1:9/*"))
         for value, bound in cases:
             env = {"PATH": d + os.pathsep + "/usr/bin:/bin"}
             if value is not None:
@@ -1093,6 +1101,21 @@ class Policy(unittest.TestCase):
                 json.dump({"version": 1, "servers": {"s": bad}}, fh)
             with self.assertRaises(r.Refuse):
                 r.load_policy(path)
+
+    def test_describe_shows_a_command_line_and_hides_what_looks_like_a_credential(self):
+        self.assertEqual(r.describe(None), "absent")
+        self.assertEqual(r.describe({"command": "/bin/echo", "args": ["a b"]}), "/bin/echo 'a b'")
+        self.assertEqual(r.describe({"command": "x", "env": {"A": "secret-value"}}), "x (env: 1 value(s), not shown)")
+        value = "synthetic-" + secrets.token_hex(8)
+        token = "gh" + "p_" + "Z" * 36
+        for e in ({"command": "x", "args": ["--api-key", value]},
+                  {"command": "x", "args": ["--password=" + value]},
+                  {"command": "x", "args": [token]},
+                  {"command": "x", "args": ["https://u:" + value + "@h/"]}):
+            got = r.describe(e)
+            self.assertEqual(got, "present (not shown: it looks like it carries a credential)", e)
+            self.assertNotIn(value, got)
+            self.assertNotIn(token, got)
 
     def test_bad_policy_arguments_are_a_usage_error(self):
         h = mk_home("home-policy-usage")

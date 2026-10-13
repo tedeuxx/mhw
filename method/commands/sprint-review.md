@@ -87,7 +87,8 @@ engineered.
 
 **Run this first, in the session that will dispatch, before the route generator runs and before any
 persona is dispatched.** The browser this rite drives is bounded by `--allowedUrlPattern`, with the
-value of `HARNESS_SWEEP_ORIGIN` or, when that is unset or empty, `http://127.0.0.1:9/*`. ~~`.mcp.json`'s
+value of `HARNESS_SWEEP_ORIGIN` or, when that is unset, empty or not an `http://` or `https://` value,
+`http://127.0.0.1:9/*`. ~~`.mcp.json`'s
 `--allowedUrlPattern ${HARNESS_SWEEP_ORIGIN:-http://127.0.0.1:9/*}`~~ *(struck 2026-10-13, mhw#174: the
 server is no longer the plugin's `.mcp.json`. The workstation renders it into the Claude Code user
 configuration, and its shell reads the variable when the server starts, so a project's settings `env`
