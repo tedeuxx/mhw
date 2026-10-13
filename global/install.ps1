@@ -499,6 +499,14 @@ function Invoke-Method {
     $a = @("--mode=$mode", "--stamp=$stamp", "--home=$home_")
     if ($Method) { $a += '--opt-in' }
     Invoke-PyStep 'the working method (method\)' 'method\method_render.py' $a
+    # The cutover (#130): with the method installed, the tadeumendonca-skills plugin leaves the user-level
+    # configuration, the same step install.sh runs; never after a failed render. Windows has no uninstall,
+    # so the restore route there is the .pmhwc-plugin-backup copy beside each changed file.
+    if ($LASTEXITCODE -eq 0 -or $mode -eq 'check') {
+        $r = @("--mode=$mode", "--home=$home_")
+        if ($Method) { $r += '--opt-in' }
+        Invoke-PyStep 'the retired plugin' 'method\plugin_retire.py' $r
+    }
 }
 Invoke-Method
 
