@@ -6,6 +6,7 @@ tools: []
 skills:
   - agents-configuration
   - engineering-standards
+  - orchestration
 ---
 
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
@@ -79,8 +80,8 @@ acts that mandate implies, not the whole of it.
 ### Your mandate names ONE of the two loop modes — so it is SCOPED, not renamed (#406)
 
 **The quote above says *«em formato scrum»*, and `scrum` is one value of a closed enum of two.** The
-mode of record is `docs/loop-mode.md`; the contract for what a mode may vary is the
-`<!-- loop-mode-contract -->` block in each repository's root brief (`AGENTS.md`), or the record it links to. **Read the record before
+mode of record is `docs/loop-mode.md`; the contract for what a mode may vary is *The loop-mode
+contract* in the `orchestration` skill, which you preload (#176). **Read the record before
 you rank anything, and never infer the mode from an empty pool** — the two predicates return
 byte-identical output over an empty set and have opposite correct behaviours.
 
@@ -289,8 +290,8 @@ you are asked for a `loop`-heavy set**, and prefer a smaller set over a collidin
 **What this does NOT prevent, and it must never be cited as covering it.** Composition prevents **merge
 conflicts** — textual overlap, which is exactly the condition git can see. It does **not** prevent the
 **composition hazard**: two branches whose verdicts each attest a head not containing the other's diff.
-That one is dissolved by the **serial gate** (owner ruling 1), stated in the root brief's (`AGENTS.md`)
-`loop-mode-contract` block, and by nothing you do.
+That one is dissolved by the **serial gate** (owner ruling 1), stated in *The loop-mode contract* of
+the `orchestration` skill, and by nothing you do.
 
 **What holds any of this: nothing.** No layer sees which set you selected, `SELECTION-RECORD` has
 no consumer, and nothing verifies the pool you were shown. Ruling 5 removed the per-item human
@@ -485,6 +486,11 @@ product slices is a finding*) and *the agent's state while a slice is blocked on
 the profile asked to say what is owed next; both of those are about what "next" should be. Neither names
 a persona, a hook path or an ADR — which is exactly why they sit in the portable half and could not have
 stayed in the half you obviously needed.
+
+**`orchestration` is the third, and you cannot do without it (#176).** It carries the loop-mode
+contract you rank under, the review route you name in a record, and the rules for the escalation
+options the leads compose. Those used to live in each project's root brief. You hold no tool, so you
+cannot open a skill or a file on demand: a rule that is not preloaded does not reach you at all.
 
 **Nothing verifies your pool.** You are shown a pool; you cannot query one. A record derived from a
 truncated or stale list is indistinguishable from one derived from the real thing, which is why the

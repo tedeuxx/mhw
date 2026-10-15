@@ -194,11 +194,11 @@ record says so in its own reason), and it has not completed a sweep of any kind 
 
 **Struck 2026-09-25: this is a DECISION, and the struck line called it an action.** It offers three
 different acts, and a second one is clearly defensible: `skip` trades a period's reading for no wait.
-By the HITL escalation format (`AGENTS.md`'s escalation section; `CLAUDE.md` until #562), rule 4, that makes it a decision. Rule 3 then requires a
+By the HITL escalation format (the `orchestration` skill's *How to ask the owner* since #176; a root-brief section before that, `CLAUDE.md` until #562), rule 4, that makes it a decision. Rule 3 then requires a
 picker, not options numbered or listed in prose. The struck wording came from the retrospective
 proposal the owner incorporated (*"one ACTION line: connect, or skip"*). The agents-lead lens on
-PR #528 found that it contradicts his own escalation rules. The root brief is where those rules bind the
-context that asks, so it wins. The struck line stays visible, even though it never reached `main`.
+PR #528 found that it contradicts his own escalation rules. Those rules bind the context that asks
+(the root brief then, the `orchestration` skill since #176), so they win. The struck line stays visible, even though it never reached `main`.
 The lens marker on PR #528 quotes it, and the retrospective proposal still carries the wording, so a
 reader coming from either should find it here and see why it changed.
 

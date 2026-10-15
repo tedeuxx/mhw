@@ -106,7 +106,8 @@ class SourceShape(unittest.TestCase):
         self.assertEqual(SKILLS, sorted(["agents-configuration", "shell", "documentation-standard",
                                          "engineering-standards", "definition-of-ready", "definition-of-done",
                                          "quality-gates", "published-voice", "scm", "ci", "provisioning",
-                                         "planning-poker", "code-review", "content-publishing"]))
+                                         "planning-poker", "code-review", "content-publishing",
+                                         "orchestration"]))
         # The four rites moved at #130 (owner, 2026-10-12).
         self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-idea", "idea-to-issues", "handover", "what-else",
                                            "blueprint", "sprint-planning", "sprint-review", "sprint-retrospective",
@@ -191,6 +192,137 @@ class CapabilitySkills(unittest.TestCase):
             _, _, _, rest, _ = capability_parts(name)
             leaks = [line for line in rest if re.search(pattern, line)]
             self.assertEqual(leaks, [], "%s: tool-specific text outside its tool section" % name)
+
+
+# Issue #176 (owner, 2026-10-13: "Mover pro mhw"): the review routing, the loop-mode contract and the ask
+# rules live in the method's `orchestration` skill, not in a project's root brief. These assert the rules
+# are WRITTEN there and that nothing in method/ still sends a reader to a project's copy; nothing here can
+# assert that a session follows them.
+ORCHESTRATION = SOURCE / "skills" / "orchestration" / "SKILL.md"
+ROOT_BRIEF_BLOCKS = re.compile(r"loop-mode-contract|hitl-escalation-format|review-chain-routing")
+CONSUMER_WORDS = re.compile(r"tadeumendonca|tedeuxx|apps/fed|\.brand/|-io\b", re.IGNORECASE)
+# The prose forms the pointers took before #176, when they sent a reader to a project's root brief.
+ROOT_BRIEF_PROSE = re.compile(r"root brief's \(`AGENTS\.md`\)|each repository's root brief \(`AGENTS\.md`\)"
+                              r"|the root brief \(`AGENTS\.md`\), or the record|`AGENTS\.md`'s escalation section"
+                              r"|`AGENTS\.md` wins|The root brief is where those rules bind")
+# Every pointer site #176 wrote: ten repointed from a root brief, one added (new-issue.md). Per site:
+# (file under method/, stable text of the pointer's paragraph, the pointer itself, the skill section it names)
+FORMER_POINTERS = (
+    ("commands/autonomy.md", "it lives in `docs/loop-mode.md`, and it is READ before the pool predicate",
+     "the `orchestration` skill's *The loop-mode contract* section", "The loop-mode contract"),
+    ("commands/autonomy.md", "surfaces what is missing",
+     "the `orchestration` skill's *How to ask the owner* section", "How to ask the owner"),
+    ("commands/funnel-review.md", "rule 4, that makes it a decision",
+     "the `orchestration` skill's *How to ask the owner*", "How to ask the owner"),
+    ("commands/funnel-review.md", "PR #528 found that it contradicts his own escalation rules",
+     "(the root brief then, the `orchestration` skill since #176), so they win", "How to ask the owner"),
+    # Added by #176, not repointed: before it this site named only the user-level brief.
+    ("commands/new-issue.md", "This is the interview half of the HITL escalation format",
+     "the method's `orchestration` skill, *How to ask the owner*", "How to ask the owner"),
+    ("commands/sprint-planning.md", "It is not an independent source",
+     "the `orchestration` skill's *How to ask the owner*", "How to ask the owner"),
+    ("agents/scrum-master.md", "and `scrum` is one value of a closed enum of two",
+     "*The loop-mode contract* in the `orchestration` skill", "The loop-mode contract"),
+    ("agents/scrum-master.md", "two branches whose verdicts each attest a head",
+     "*The loop-mode contract* of the `orchestration` skill", "The loop-mode contract"),
+    ("skills/agents-configuration/SKILL.md", "Two artifacts carry it and neither is this file.",
+     "*The loop-mode contract* in the `orchestration` skill", "The loop-mode contract"),
+    ("skills/agents-configuration/SKILL.md", "These rows route INTAKE. The REVIEW chain is routed too",
+     "It lives in the `orchestration` skill, *Review is routed by type*", "Review is routed by type"),
+    ("skills/agents-configuration/SKILL.md", "THE REVIEW GATE DOES NOT",
+     "*The loop-mode contract* of the `orchestration` skill", "The loop-mode contract"),
+)
+
+
+def unstruck_paragraphs(path):
+    """Blank-line paragraphs, whitespace-flattened, with `~~struck~~` spans removed."""
+    return [re.sub(r"~~.*?~~", "", " ".join(p.split())) for p in path.read_text(encoding="utf-8").split("\n\n")]
+
+
+def orchestration_section(heading, flat=True):
+    """One `## heading` section of the skill; whitespace-flattened unless flat=False, so a rewrap is no red."""
+    text = ORCHESTRATION.read_text(encoding="utf-8")
+    start = text.index("\n## " + heading + "\n")
+    end = text.find("\n## ", start + 1)
+    section = text[start:end if end != -1 else len(text)]
+    return " ".join(section.split()) if flat else section
+
+
+class OrchestrationOwnsTheBlocks(unittest.TestCase):
+    def test_no_method_file_points_at_a_root_brief_block(self):
+        hits = []
+        for path in sorted(SOURCE.rglob("*.md")):
+            for n, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
+                if ROOT_BRIEF_BLOCKS.search(line):
+                    hits.append("%s:%d" % (path.relative_to(REPO), n))
+        self.assertEqual(hits, [], "a method file still names a root-brief block")
+
+    def test_the_review_route_has_one_row_per_type_and_keeps_the_gate(self):
+        section = orchestration_section("Review is routed by type")
+        for row in ("| `loop` | one `agents-lead` lens pass, plus the gate |",
+                    "| `product` | the leads' lenses as the change warrants, plus the gate |",
+                    "| `content` | `content-writer` drafts, `content-reviewer` repairs the draft in place "
+                    "(two rounds at most), plus the gate |"):
+            self.assertIn(row, section)
+        for clause in ("The gate runs on every merge request, under both of its lenses.",
+                       "never removes a hold and never changes a verdict literal",
+                       "The reader-facing copy criterion fires whatever the type.",
+                       "No rule keys on a round count.",
+                       "`loop` by `agents-lead` alone, `content` by `product-lead` alone"):
+            self.assertIn(clause, section)
+
+    def test_the_loop_mode_contract_keeps_every_untouchable(self):
+        section = orchestration_section("The loop-mode contract")
+        for clause in ("never a permission rule", "the permission floor", "the gate and its lenses",
+                       "head-scoped verdicts", "only-the-owner-opens-work", "(`sp:N` in both modes)",
+                       "the routing labels or the container's existence", "`content` has no second mode",
+                       "never on an empty pool", "Development parallelises; review does not.",
+                       "Rebase onto the current trunk before the gate.", "`docs/loop-mode.md`",
+                       "this contract wins"):
+            self.assertIn(clause, section)
+
+    def test_how_to_ask_carries_the_five_rules(self):
+        self.assertEqual(re.findall(r"(?m)^(\d)\. \*\*", orchestration_section("How to ask the owner", flat=False)),
+                         ["1", "2", "3", "4", "5"])
+        section = orchestration_section("How to ask the owner")
+        for clause in ("One owner ask per activation or message.", "Never move the remainder into a prose or numbered list",
+                       "the context lives in the options", "four is a ceiling",
+                       "is an order and a link, not a question", "An interview takes no options; an escalation always does.",
+                       "Do not rebuild it."):
+            self.assertIn(clause, section)
+
+    def test_the_skill_names_no_consumer(self):
+        leaks = [line for line in ORCHESTRATION.read_text(encoding="utf-8").split("\n") if CONSUMER_WORDS.search(line)]
+        self.assertEqual(leaks, [])
+
+    def test_every_former_pointer_names_the_skill(self):
+        # Per pointer, not per file: a file with two pointers must not stay green when one of them goes back
+        # to a root brief while the other still names the skill. The anchor is stable text of the pointer's
+        # own paragraph; struck spans are removed first, so a struck pointer does not count.
+        for rel, anchor, pointer, heading in FORMER_POINTERS:
+            self.assertIn("\n## " + heading + "\n", ORCHESTRATION.read_text(encoding="utf-8"), heading)
+            paragraphs = [p for p in unstruck_paragraphs(SOURCE / rel) if anchor in p]
+            self.assertEqual(len(paragraphs), 1, "%s: anchor %r" % (rel, anchor))
+            self.assertIn(pointer, paragraphs[0], "%s: the pointer at %r no longer names the skill" % (rel, anchor))
+
+    def test_no_method_file_keeps_a_root_brief_pointer_in_prose(self):
+        hits = []
+        for path in sorted(SOURCE.rglob("*.md")):
+            for paragraph in unstruck_paragraphs(path):
+                hits += ["%s: %s" % (path.relative_to(REPO), m) for m in ROOT_BRIEF_PROSE.findall(paragraph)]
+        self.assertEqual(hits, [], "a method file still points at a root brief for an orchestration rule")
+
+    def test_the_description_carries_the_trigger(self):
+        # Under the owner's "Sob demanda" ruling the description is the only route by which the main session
+        # loads this skill, so its trigger clause is pinned.
+        fields, _ = mr.split_front_matter(ORCHESTRATION.read_text(encoding="utf-8"), "orchestration")
+        self.assertIn("Use before dispatching a review, before any pool query or rite, and before any question, "
+                      "decision or action you put to the owner.", fields["description"])
+
+    def test_the_tool_less_profile_and_the_lens_preload_it(self):
+        for name in ("scrum-master", "agents-lead"):
+            self.assertIn("orchestration", AGENTS[name]["skills"], name)
+
 
 class Render(unittest.TestCase):
     @classmethod

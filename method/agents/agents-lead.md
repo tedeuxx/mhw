@@ -11,6 +11,7 @@ skills:
   - shell
   - scm
   - ci
+  - orchestration
 ---
 
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
@@ -26,7 +27,14 @@ skills:
 > native in Claude Code and Kiro and an instruction in Codex. The session checks that replaced the
 > plugin's reporting hooks are in `agents-configuration`, *Session-start and end-of-turn checks*.
 
-## Your `skills:` list carries seven entries — most are exceptions to a rule stated below
+## Your `skills:` list carries eight entries — most are exceptions to a rule stated below
+
+**`orchestration` is the eighth (#176), on the same trade as `scm` and `ci`.** It is the review route
+whose `loop` row is your own lens, the loop-mode contract a mechanism must be reviewed against before it
+is written, and the ask rules your verdicts feed. Those rules moved out of each project's root brief into
+the method, so they are now part of your object, and you would otherwise review changes to them without
+having them in hand. The cost is the frozen snapshot reason 2 below names; if the installed skill and
+the source disagree, the source wins and you say so.
 
 **`definition-of-ready` is the sixth and it arrived at #380, for one reason and not a general one: you
 are the SOLE closer of the `loop` lane's description** (`agents-configuration`'s `filed → description

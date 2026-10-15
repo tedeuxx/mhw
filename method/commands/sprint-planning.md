@@ -490,7 +490,8 @@ vendor-named predecessor). It is left standing
 verbatim rather than replaced by a bare pointer for two reasons: a gate arm in
 `hooks/scripts/inventory-counts.test.sh` pins its opening clause as a literal, and it is the one place
 the two rules are shown colliding on a concrete act. **It is not an independent source** — if it ever
-disagrees with `AGENTS.md`, `AGENTS.md` wins and this paragraph is the defect.
+disagrees with the user-level brief or the `orchestration` skill's *How to ask the owner* (#176),
+they win and this paragraph is the defect.
 
 ### 3c · recompose, and the loop terminates at TWO activations
 
