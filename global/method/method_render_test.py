@@ -205,6 +205,7 @@ CONSUMER_WORDS = re.compile(r"tadeumendonca|tedeuxx|apps/fed|\.brand/|-io\b", re
 ROOT_BRIEF_PROSE = re.compile(r"root brief's \(`AGENTS\.md`\)|each repository's root brief \(`AGENTS\.md`\)"
                               r"|the root brief \(`AGENTS\.md`\), or the record|`AGENTS\.md`'s escalation section"
                               r"|`AGENTS\.md` wins|The root brief is where those rules bind")
+# Every pointer site #176 wrote: ten repointed from a root brief, one added (new-issue.md). Per site:
 # (file under method/, stable text of the pointer's paragraph, the pointer itself, the skill section it names)
 FORMER_POINTERS = (
     ("commands/autonomy.md", "it lives in `docs/loop-mode.md`, and it is READ before the pool predicate",
@@ -213,6 +214,9 @@ FORMER_POINTERS = (
      "the `orchestration` skill's *How to ask the owner* section", "How to ask the owner"),
     ("commands/funnel-review.md", "rule 4, that makes it a decision",
      "the `orchestration` skill's *How to ask the owner*", "How to ask the owner"),
+    ("commands/funnel-review.md", "PR #528 found that it contradicts his own escalation rules",
+     "(the root brief then, the `orchestration` skill since #176), so they win", "How to ask the owner"),
+    # Added by #176, not repointed: before it this site named only the user-level brief.
     ("commands/new-issue.md", "This is the interview half of the HITL escalation format",
      "the method's `orchestration` skill, *How to ask the owner*", "How to ask the owner"),
     ("commands/sprint-planning.md", "It is not an independent source",

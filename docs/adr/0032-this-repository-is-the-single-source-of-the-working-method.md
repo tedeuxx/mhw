@@ -434,14 +434,17 @@ skill's ask rules agree with them and add the interview rule and the list rule.
 markers, when a routing row, a contract untouchable or one of the five ask rules is missing, when the
 skill names a consuming project, when either preload is dropped, or when the description loses the
 trigger clause that is the main session's only route to the skill. The pointers are checked one by one:
-each of the ten former pointer sites, across six files, is found by stable text of its own paragraph,
+each of the eleven pointer sites this change wrote, across six files (ten repointed from a root brief,
+and one in `new-issue.md` that it added), is found by stable text of its own paragraph,
 and the test fails when that paragraph, struck spans removed, no longer names the skill and the section,
 or when the named section is missing from the skill. A second check fails when any file under `method/`
 keeps one of the pre-move root-brief phrasings outside a struck span. A pointer written anywhere else, in
 new wording, is not checked. 13 mutations of the subject files turned it red, and the unmutated copy
 stayed green; a review round then found a per-file check that stayed green when one of a file's two
 pointers went back to the root brief, and 7 further mutations, those two included, turned the per-pointer
-checks red and recovered on restore.
+checks red and recovered on restore. A second round found the eleventh site, `funnel-review.md`'s
+precedence sentence, missing from the list, so rewording it back to the root brief stayed green; with
+it added, 3 further mutations of that sentence turned the per-pointer check red and recovered on restore.
 Rendered into a throwaway home: `METHOD  installed: 8 agents, 15 skills, 11 commands`. Claude Code
 2.1.301's headless `init`, run in that home, lists `orchestration` in `skills` (*measured*). Codex was
 not on this machine's path, so its listing from `~/.agents/skills` is *documented* (measured for the

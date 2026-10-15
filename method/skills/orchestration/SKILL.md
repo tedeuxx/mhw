@@ -111,5 +111,6 @@ how this loop applies it is in `agents-configuration`.
 
 **Nothing mechanical. All three sections are instructions**, held by review: no hook, permission rule
 or check reads a route, a mode or the form of a question. A test in the repository that renders this
-method asserts that this skill carries them, that each former pointer to them in a method file now
-names this skill, and that none keeps the old root-brief wording. It asserts the rules are *written*, never that a session followed them.
+method asserts that this skill carries them, that each of the eleven pointer sites the move wrote in
+method files (ten repointed from a root brief, one added) names this skill, and that none keeps the old
+root-brief wording. A pointer written elsewhere, in new wording, is not checked. It asserts the rules are *written*, never that a session followed them.
