@@ -78,8 +78,9 @@ survives as the question **planning** asks.
 
 **The loop mode is `scrum` or `kanban`, it lives in `docs/loop-mode.md`, and it is READ before the pool
 predicate rather than after it.** The record, its history and the per-mode predicates in full are that
-file; the contract that governs what a mode may vary is the `<!-- loop-mode-contract -->` block in
-the root brief (`AGENTS.md`), or the record it links to. Read the value with one command:
+file; the contract that governs what a mode may vary is the `orchestration` skill's *The loop-mode
+contract* section (it moved there from each project's root brief, #176). Read the value with one
+command:
 
 ```
 grep -m1 '^loop-mode: ' docs/loop-mode.md
@@ -247,9 +248,10 @@ The owner's rule, in his words:
 > *"todas pendencias HITL devem ser zeradas no momento da invocacao do comando"*
 
 **If any exists, the drain does not enter.** It surfaces what is missing — **one thing at a time**, never
-as a list — and waits. The canonical form is the root brief's (`AGENTS.md`) block delimited by
-`<!-- hitl-escalation-format -->`: rule 1 applies to decisions and owner actions, and remaining asks
-stay pending for their own later activation rather than moving into prose.
+as a list — and waits. The canonical form is the `orchestration` skill's *How to ask the owner*
+section (#176; it replaces a root-brief block that no longer exists): rule 1 applies to decisions and
+owner actions, and remaining asks stay pending for their own later activation rather than moving into
+prose.
 
 **The classes, and what queries each:**
 

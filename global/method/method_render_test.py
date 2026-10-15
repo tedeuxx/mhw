@@ -106,7 +106,8 @@ class SourceShape(unittest.TestCase):
         self.assertEqual(SKILLS, sorted(["agents-configuration", "shell", "documentation-standard",
                                          "engineering-standards", "definition-of-ready", "definition-of-done",
                                          "quality-gates", "published-voice", "scm", "ci", "provisioning",
-                                         "planning-poker", "code-review", "content-publishing"]))
+                                         "planning-poker", "code-review", "content-publishing",
+                                         "orchestration"]))
         # The four rites moved at #130 (owner, 2026-10-12).
         self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-idea", "idea-to-issues", "handover", "what-else",
                                            "blueprint", "sprint-planning", "sprint-review", "sprint-retrospective",
@@ -191,6 +192,82 @@ class CapabilitySkills(unittest.TestCase):
             _, _, _, rest, _ = capability_parts(name)
             leaks = [line for line in rest if re.search(pattern, line)]
             self.assertEqual(leaks, [], "%s: tool-specific text outside its tool section" % name)
+
+
+# Issue #176 (owner, 2026-10-13: "Mover pro mhw"): the review routing, the loop-mode contract and the ask
+# rules live in the method's `orchestration` skill, not in a project's root brief. These assert the rules
+# are WRITTEN there and that nothing in method/ still sends a reader to a project's copy; nothing here can
+# assert that a session follows them.
+ORCHESTRATION = SOURCE / "skills" / "orchestration" / "SKILL.md"
+ROOT_BRIEF_BLOCKS = re.compile(r"loop-mode-contract|hitl-escalation-format|review-chain-routing")
+CONSUMER_WORDS = re.compile(r"tadeumendonca|tedeuxx|apps/fed|\.brand/|-io\b", re.IGNORECASE)
+
+
+def orchestration_section(heading, flat=True):
+    """One `## heading` section of the skill; whitespace-flattened unless flat=False, so a rewrap is no red."""
+    text = ORCHESTRATION.read_text(encoding="utf-8")
+    start = text.index("\n## " + heading + "\n")
+    end = text.find("\n## ", start + 1)
+    section = text[start:end if end != -1 else len(text)]
+    return " ".join(section.split()) if flat else section
+
+
+class OrchestrationOwnsTheBlocks(unittest.TestCase):
+    def test_no_method_file_points_at_a_root_brief_block(self):
+        hits = []
+        for path in sorted(SOURCE.rglob("*.md")):
+            for n, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
+                if ROOT_BRIEF_BLOCKS.search(line):
+                    hits.append("%s:%d" % (path.relative_to(REPO), n))
+        self.assertEqual(hits, [], "a method file still names a root-brief block")
+
+    def test_the_review_route_has_one_row_per_type_and_keeps_the_gate(self):
+        section = orchestration_section("Review is routed by type")
+        for row in ("| `loop` | one `agents-lead` lens pass, plus the gate |",
+                    "| `product` | the leads' lenses as the change warrants, plus the gate |",
+                    "| `content` | `content-writer` drafts, `content-reviewer` repairs the draft in place "
+                    "(two rounds at most), plus the gate |"):
+            self.assertIn(row, section)
+        for clause in ("The gate runs on every merge request, under both of its lenses.",
+                       "never removes a hold and never changes a verdict literal",
+                       "The reader-facing copy criterion fires whatever the type.",
+                       "No rule keys on a round count.",
+                       "`loop` by `agents-lead` alone, `content` by `product-lead` alone"):
+            self.assertIn(clause, section)
+
+    def test_the_loop_mode_contract_keeps_every_untouchable(self):
+        section = orchestration_section("The loop-mode contract")
+        for clause in ("never a permission rule", "the permission floor", "the gate and its lenses",
+                       "head-scoped verdicts", "only-the-owner-opens-work", "(`sp:N` in both modes)",
+                       "the routing labels or the container's existence", "`content` has no second mode",
+                       "never on an empty pool", "Development parallelises; review does not.",
+                       "Rebase onto the current trunk before the gate.", "`docs/loop-mode.md`",
+                       "this contract wins"):
+            self.assertIn(clause, section)
+
+    def test_how_to_ask_carries_the_five_rules(self):
+        self.assertEqual(re.findall(r"(?m)^(\d)\. \*\*", orchestration_section("How to ask the owner", flat=False)),
+                         ["1", "2", "3", "4", "5"])
+        section = orchestration_section("How to ask the owner")
+        for clause in ("One owner ask per activation or message.", "Never move the remainder into a prose or numbered list",
+                       "the context lives in the options", "four is a ceiling",
+                       "is an order and a link, not a question", "An interview takes no options; an escalation always does.",
+                       "Do not rebuild it."):
+            self.assertIn(clause, section)
+
+    def test_the_skill_names_no_consumer(self):
+        leaks = [line for line in ORCHESTRATION.read_text(encoding="utf-8").split("\n") if CONSUMER_WORDS.search(line)]
+        self.assertEqual(leaks, [])
+
+    def test_every_former_pointer_names_the_skill(self):
+        for rel in ("commands/autonomy.md", "commands/funnel-review.md", "commands/sprint-planning.md",
+                    "agents/scrum-master.md", "skills/agents-configuration/SKILL.md"):
+            self.assertIn("`orchestration` skill", (SOURCE / rel).read_text(encoding="utf-8"), rel)
+
+    def test_the_tool_less_profile_and_the_lens_preload_it(self):
+        for name in ("scrum-master", "agents-lead"):
+            self.assertIn("orchestration", AGENTS[name]["skills"], name)
+
 
 class Render(unittest.TestCase):
     @classmethod

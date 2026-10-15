@@ -387,6 +387,58 @@ routine `mhw install` or `mhw update` retire the plugin; the cutover stays the o
 which must carry both before that act. Turning `--method` on
 by default is a one-line change once the canary has passed.
 
+## Amendment 2026-10-15: the method owns the review route, the loop-mode contract and the ask rules (#176)
+
+Status unchanged (proposed). At 5.6.0 the method treated three blocks of a consuming project's root
+brief as canonical: the review-chain routing table, the loop-mode contract (`<!-- loop-mode-contract
+-->`) and *How to ask*. `autonomy` also pointed at a `<!-- hitl-escalation-format -->` delimiter that
+no root brief carries any more. Neither `AGENTS.md` nor `global/AGENTS.md` here carries that content, so
+a project removing its blocks would have left pointers that fail when followed. The owner ruled on
+tadeumendonca-io#715 on 2026-10-13: *"Mover pro mhw"*.
+
+**Decision.**
+
+- **A new skill, `method/skills/orchestration/SKILL.md`, is the only canonical home** of the three
+  rules. It has three sections: *Review is routed by type*, *The loop-mode contract* and *How to ask the
+  owner*. It is written with generic placeholders and names no consuming project. Each project keeps
+  its mode record in `docs/loop-mode.md`; the contract wins over a record that disagrees with it.
+- **Every pointer is repointed** to it: `autonomy`, `funnel-review`, `sprint-planning`, `new-issue`,
+  `scrum-master` and `agents-configuration`.
+- **Preloads:** `scrum-master` (it holds no tool, so it cannot open a skill on demand) and
+  `agents-lead` (the `loop` row is its own lens). The method's skill count is 15.
+
+**Why a separate skill and not a section of `agents-configuration`.** The rules are applied by the main
+session, and a skill body does not reach a main session on its own: the main session sees the name and
+description and loads the body when it chooses (measured for a skill body on Claude Code 2.1.263 in the
+plugin's #409). `agents-configuration` is the largest skill in the set; a small skill with a sharp
+description is what a main session can afford to load before every review dispatch, pool query and ask.
+
+**Rejected:** the user-level brief, `global/AGENTS.md`. It does reach every main session natively on all
+three agent harnesses, but it is the firewall (ADR-0014) and is loaded in every project, including ones
+that do not run this loop. Its *Escalating to the owner* rules stay where they are, as the floor; the
+skill's ask rules agree with them and add the interview rule and the list rule.
+
+**Consequences.**
+
+- Good: a consuming project can delete the three blocks without leaving a dangling method pointer.
+- Good: one wording per rule, in the source every project installs.
+- Bad: **reachability gets weaker for the main session.** A root brief loads with every session; the
+  skill is loaded only when the main session follows its description, which is an instruction and
+  not a load the agent harness performs. A project may keep a one-line pointer to the skill in its
+  root brief. Restating the rules there would bring back the drift this move removes.
+- Bad: until the owner installs a release carrying this skill, a project that has already deleted its
+  blocks has neither copy on the reference machine.
+
+**Evidence, 2026-10-15.** *Written and tested.* `global/method/method_render_test.py` gained
+`OrchestrationOwnsTheBlocks`. It fails when any file under `method/` names one of the three block
+markers, when a routing row, a contract untouchable or one of the five ask rules is missing, when the
+skill names a consuming project, when a former pointer does not name the skill, or when either preload
+is dropped. 13 mutations of the subject files turned it red, and the unmutated copy stayed green.
+Rendered into a throwaway home: `METHOD  installed: 8 agents, 15 skills, 11 commands`. Claude Code
+2.1.301's headless `init`, run in that home, lists `orchestration` in `skills` (*measured*). Codex was
+not on this machine's path, so its listing from `~/.agents/skills` is *documented* (measured for the
+other skills on 0.160.0, above). Kiro is *documented*. Nothing is installed on the reference machine.
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)

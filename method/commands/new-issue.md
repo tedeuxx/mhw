@@ -106,7 +106,8 @@ time**, and **no multiple choice**. A questionnaire is not an interview — four
 a form, and offering options to pick from decides the answer for him.
 
 **This is the interview half of the HITL escalation format, and the canonical statement of that rule is
-the workstation's user-level brief, *Escalating to the owner*, with the owner's limits in his overlay
+the workstation's user-level brief, *Escalating to the owner*, with the owner's limits in his overlay,
+and the method's `orchestration` skill, *How to ask the owner*, whose rule 5 is this one (#176)
 — not this paragraph** (#409). It is cited here
 rather than restated independently, because the rule governs the orchestrator and a brief is the only
 surface measured to reach it; three surfaces each stating a rule with no canonical home is drift this
