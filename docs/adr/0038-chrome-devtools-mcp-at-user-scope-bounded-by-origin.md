@@ -1,10 +1,14 @@
 # ADR-0038: A `chrome-devtools` MCP server at Claude Code user scope, bounded by origin
 
-- **Status:** proposed. The owner chose the scope (user scope) on
+- **Status:** ~~proposed. The owner chose the scope (user scope) on
   [Issue #174](https://github.com/tedeuxx/mhw/issues/174), 2026-10-13. The rest of this record, the
-  pinned version, the supply-chain posture and the launch form, waits for his ratification.
+  pinned version, the supply-chain posture and the launch form, waits for his ratification.~~ accepted
+  (2026-10-15, the owner's ratification of the whole record, recorded on
+  [Issue #174](https://github.com/tedeuxx/mhw/issues/174#issuecomment-6202190001); see the amendment
+  "accepted" below)
 - **Date:** 2026-10-13
-- **Deciders:** the owner (the scope); written by the implementing agent
+- **Deciders:** ~~the owner (the scope); written by the implementing agent~~ the owner (the scope on
+  2026-10-13; the whole record on 2026-10-15); written by the implementing agent
 - **Issues:** [#174](https://github.com/tedeuxx/mhw/issues/174)
 - **Amends:** [ADR-0017](0017-single-source-mcp-with-secret-indirection.md), whose definition "lives
   only in the untracked local overlay". This record adds one tracked definition beside it, for servers
@@ -183,6 +187,16 @@ and a project with none got the discard port.
 `https://*`, `http://*/*` or a pattern for any host the project names is accepted as written, and the
 package's own URL-pattern parsing then decides what it allows. Whether a malformed pattern after the
 prefix fails closed in the package is not measured. The bound is as narrow as the project declares.
+
+## Amendment 2026-10-15: accepted ([Issue #174](https://github.com/tedeuxx/mhw/issues/174#issuecomment-6202190001))
+
+The owner ratified this record on 2026-10-15, in the session that ran the canary, in his words:
+*"ratificar a ADR-0038"*. The ratification covers the whole record: the scope he had already chosen,
+and the pinned version, the supply-chain posture and the launch form that waited for him. It is
+recorded on Issue #174. The status moves from proposed to accepted.
+
+Accepting the decision does not change the evidence levels above. They stay as written until a slice
+records a measurement against them.
 
 ## Links
 
