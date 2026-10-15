@@ -201,6 +201,38 @@ class CapabilitySkills(unittest.TestCase):
 ORCHESTRATION = SOURCE / "skills" / "orchestration" / "SKILL.md"
 ROOT_BRIEF_BLOCKS = re.compile(r"loop-mode-contract|hitl-escalation-format|review-chain-routing")
 CONSUMER_WORDS = re.compile(r"tadeumendonca|tedeuxx|apps/fed|\.brand/|-io\b", re.IGNORECASE)
+# The prose forms the pointers took before #176, when they sent a reader to a project's root brief.
+ROOT_BRIEF_PROSE = re.compile(r"root brief's \(`AGENTS\.md`\)|each repository's root brief \(`AGENTS\.md`\)"
+                              r"|the root brief \(`AGENTS\.md`\), or the record|`AGENTS\.md`'s escalation section"
+                              r"|`AGENTS\.md` wins|The root brief is where those rules bind")
+# (file under method/, stable text of the pointer's paragraph, the pointer itself, the skill section it names)
+FORMER_POINTERS = (
+    ("commands/autonomy.md", "it lives in `docs/loop-mode.md`, and it is READ before the pool predicate",
+     "the `orchestration` skill's *The loop-mode contract* section", "The loop-mode contract"),
+    ("commands/autonomy.md", "surfaces what is missing",
+     "the `orchestration` skill's *How to ask the owner* section", "How to ask the owner"),
+    ("commands/funnel-review.md", "rule 4, that makes it a decision",
+     "the `orchestration` skill's *How to ask the owner*", "How to ask the owner"),
+    ("commands/new-issue.md", "This is the interview half of the HITL escalation format",
+     "the method's `orchestration` skill, *How to ask the owner*", "How to ask the owner"),
+    ("commands/sprint-planning.md", "It is not an independent source",
+     "the `orchestration` skill's *How to ask the owner*", "How to ask the owner"),
+    ("agents/scrum-master.md", "and `scrum` is one value of a closed enum of two",
+     "*The loop-mode contract* in the `orchestration` skill", "The loop-mode contract"),
+    ("agents/scrum-master.md", "two branches whose verdicts each attest a head",
+     "*The loop-mode contract* of the `orchestration` skill", "The loop-mode contract"),
+    ("skills/agents-configuration/SKILL.md", "Two artifacts carry it and neither is this file.",
+     "*The loop-mode contract* in the `orchestration` skill", "The loop-mode contract"),
+    ("skills/agents-configuration/SKILL.md", "These rows route INTAKE. The REVIEW chain is routed too",
+     "It lives in the `orchestration` skill, *Review is routed by type*", "Review is routed by type"),
+    ("skills/agents-configuration/SKILL.md", "THE REVIEW GATE DOES NOT",
+     "*The loop-mode contract* of the `orchestration` skill", "The loop-mode contract"),
+)
+
+
+def unstruck_paragraphs(path):
+    """Blank-line paragraphs, whitespace-flattened, with `~~struck~~` spans removed."""
+    return [re.sub(r"~~.*?~~", "", " ".join(p.split())) for p in path.read_text(encoding="utf-8").split("\n\n")]
 
 
 def orchestration_section(heading, flat=True):
@@ -260,9 +292,28 @@ class OrchestrationOwnsTheBlocks(unittest.TestCase):
         self.assertEqual(leaks, [])
 
     def test_every_former_pointer_names_the_skill(self):
-        for rel in ("commands/autonomy.md", "commands/funnel-review.md", "commands/sprint-planning.md",
-                    "agents/scrum-master.md", "skills/agents-configuration/SKILL.md"):
-            self.assertIn("`orchestration` skill", (SOURCE / rel).read_text(encoding="utf-8"), rel)
+        # Per pointer, not per file: a file with two pointers must not stay green when one of them goes back
+        # to a root brief while the other still names the skill. The anchor is stable text of the pointer's
+        # own paragraph; struck spans are removed first, so a struck pointer does not count.
+        for rel, anchor, pointer, heading in FORMER_POINTERS:
+            self.assertIn("\n## " + heading + "\n", ORCHESTRATION.read_text(encoding="utf-8"), heading)
+            paragraphs = [p for p in unstruck_paragraphs(SOURCE / rel) if anchor in p]
+            self.assertEqual(len(paragraphs), 1, "%s: anchor %r" % (rel, anchor))
+            self.assertIn(pointer, paragraphs[0], "%s: the pointer at %r no longer names the skill" % (rel, anchor))
+
+    def test_no_method_file_keeps_a_root_brief_pointer_in_prose(self):
+        hits = []
+        for path in sorted(SOURCE.rglob("*.md")):
+            for paragraph in unstruck_paragraphs(path):
+                hits += ["%s: %s" % (path.relative_to(REPO), m) for m in ROOT_BRIEF_PROSE.findall(paragraph)]
+        self.assertEqual(hits, [], "a method file still points at a root brief for an orchestration rule")
+
+    def test_the_description_carries_the_trigger(self):
+        # Under the owner's "Sob demanda" ruling the description is the only route by which the main session
+        # loads this skill, so its trigger clause is pinned.
+        fields, _ = mr.split_front_matter(ORCHESTRATION.read_text(encoding="utf-8"), "orchestration")
+        self.assertIn("Use before dispatching a review, before any pool query or rite, and before any question, "
+                      "decision or action you put to the owner.", fields["description"])
 
     def test_the_tool_less_profile_and_the_lens_preload_it(self):
         for name in ("scrum-master", "agents-lead"):
