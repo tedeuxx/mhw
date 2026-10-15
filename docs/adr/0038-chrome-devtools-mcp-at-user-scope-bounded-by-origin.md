@@ -168,10 +168,22 @@ Bad:
   `./mhw install --yes --no-admin` and `./mhw uninstall --yes` were run in a throwaway HOME.
 - **Measured** (recorder servers, 2.1.296, as above): the expansion order, and that the shell form
   carries the project's value. The real package was not launched by Claude Code in that measurement.
-- **Not installed** on the reference machine. **Not loaded and not enforced**: that needs, in a fresh
+- ~~**Not installed** on the reference machine. **Not loaded and not enforced**: that needs, in a fresh
   session on the reference machine after `mhw install`, a canary from `product-lead` in
   tadeumendonca-io: `navigate_page` to the declared origin succeeds, a navigation outside it is refused,
-  and `/sprint-review` step 0 prints the declared origin.
+  and `/sprint-review` step 0 prints the declared origin.~~ **Canary run on 2026-10-15** (recorded on
+  [Issue #174](https://github.com/tedeuxx/mhw/issues/174#issuecomment-6202067041); a fresh Claude Code
+  2.1.301 session in tadeumendonca-io, workstation v5.7.0):
+  - **Loaded:** the session's tool list carries the `mcp__chrome-devtools__*` tools, and the server
+    process carries the bound (`--allowedUrlPattern https://tadeumendonca.io/*` in its arguments).
+  - **Enforced for the origin bound**, in that session, through `product-lead`'s grant: a navigation to
+    the declared origin succeeded and one to example.com was refused. The error text does not name the
+    flag, so attributing the refusal to `--allowedUrlPattern` is inference from the server's arguments,
+    not read from the error.
+  - `/sprint-review` step 0 printed the declared origin and proceeded.
+  - **Not measured:** the persona's tool exclusions (`evaluate_script`, `fill`, `type_text` and the
+    rest); Codex and Kiro (not rendered); and which of the host's servers the session owns, since `ps`
+    showed two bound servers on the host and cannot say which one this session reaches.
 
 ### The scheme guard (QA advisory A1 on PR #175)
 
@@ -195,8 +207,9 @@ The owner ratified this record on 2026-10-15, in the session that ran the canary
 and the pinned version, the supply-chain posture and the launch form that waited for him. It is
 recorded on Issue #174. The status moves from proposed to accepted.
 
-Accepting the decision does not change the evidence levels above. They stay as written until a slice
-records a measurement against them.
+Accepting the decision does not change the evidence levels above. ~~They stay as written until a slice
+records a measurement against them.~~ They come from the canary of 2026-10-15, recorded separately on
+Issue #174, not from the ratification.
 
 ## Links
 
