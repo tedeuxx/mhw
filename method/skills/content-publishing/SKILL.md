@@ -500,8 +500,8 @@ mechanism is the consuming product's to build; this section is what the lane doe
 does until it exists.
 
 **Why steps 7 to 9 cannot carry a correction.** The hold is per piece, never per revision: the build
-holds one text per piece, and the flag decides whether that text is public. Three of the readers in
-step 7 turn the flag on a live piece into an unpublication (read in the consuming product's code by the
+holds one text per piece, and the flag decides whether that text is public. Three readers of the flag
+turn the flag on a live piece into an unpublication (read in the consuming product's code by the
 #180 intake, not run in a browser):
 
 - **The public enumeration** drops a flagged piece, so the live article leaves the index, the feed and
@@ -520,7 +520,7 @@ front matter stays the published piece's, so the address, the title and the shar
 Under the preview parameter the piece's own URLs, every edition and the neutral share address, render
 the revision with a marker that says it is a pending revision. Without the parameter, everyone reads the
 published text. Nothing is prerendered from a revision and nothing is indexed while one is rendered.
-Where the consuming product keeps the revision files and how its release lines read are in that
+Where the consuming product keeps the revision files and how its release lines read belong in that
 product's own author guide and decision record; this method does not restate them.
 
 **The sequence, and it is two merges:**

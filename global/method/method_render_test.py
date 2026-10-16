@@ -340,6 +340,9 @@ CONTENT_PUBLISHING = SOURCE / "skills" / "content-publishing" / "SKILL.md"
 # An instruction that routes the owner's read to an Artifact: a read verb followed, in the same sentence, by
 # "as an Artifact", or an Artifact "for him/the owner to read". "Artifact" is case-sensitive on purpose: the
 # lower-case word is this method's generic "artifact of record".
+# Out of scope: the owner's separate standing rule that closing-rite results reach him as a Claude Artifact.
+# If a method file ever writes that rule down and this pattern turns red on it, exempt that file or section
+# here BY NAME. Never reword the owner's rule to get past the pattern.
 ARTIFACT_READ = re.compile(r"(?i:\b(?:validat|read|review|approv|check)\w*)\b[^.]{0,120}?"
                            r"(?i:\bas an? (?:rendered |claude )?)Artifact\b"
                            r"|\bArtifact\b[^.]{0,40}(?i:\bfor (?:him|the owner) to (?:read|validate|review)\b)")
