@@ -125,7 +125,6 @@ or check reads a route, a mode or the form of a question. A test in the reposito
 method asserts that this skill carries them, that each of the eleven pointer sites the move wrote in
 method files (ten repointed from a root brief, one added) names this skill, and that none keeps the old
 root-brief wording. A pointer written elsewhere, in new wording, is not checked. The same test asserts
-that the owner-read sentence is identical in its three copies and that no method file carries either
-phrasing its pattern recognises: a verb of reading, review or approval followed in the same sentence by
-*as an* and then the word Artifact, or the word Artifact followed by *for him* or *for the owner* and a
-verb of reading. Other phrasings that send his read to an Artifact pass. It asserts the rules are *written*, never that a session followed them.
+that the owner-read sentence is identical in its three copies and that no method file matches the
+pattern `ARTIFACT_READ` in that test, which recognises two phrasings of an Artifact for the owner's
+read. Other phrasings pass. It asserts the rules are *written*, never that a session followed them.

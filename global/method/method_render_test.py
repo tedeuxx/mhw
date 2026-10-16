@@ -337,8 +337,10 @@ OWNER_READ = ("The owner reads a piece in the application's preview mode before 
 OWNER_READ_SURFACES = ["agents/product-lead.md", "skills/content-publishing/SKILL.md",
                        "skills/orchestration/SKILL.md"]
 CONTENT_PUBLISHING = SOURCE / "skills" / "content-publishing" / "SKILL.md"
-# An instruction that routes the owner's read to an Artifact: a read verb followed, in the same sentence, by
-# "as an Artifact", or an Artifact "for him/the owner to read". "Artifact" is case-sensitive on purpose: the
+# An instruction that routes the owner's read to an Artifact. Two alternatives: a word starting validat,
+# read, review, approv or check, then at most 120 characters with no full stop, then "as a"/"as an" with an
+# optional "rendered"/"Claude" before "Artifact"; or "Artifact", then at most 40 characters with no full
+# stop, then "for him"/"for the owner" "to read/validate/review". "Artifact" is case-sensitive on purpose: the
 # lower-case word is this method's generic "artifact of record".
 # Out of scope: the owner's separate standing rule that closing-rite results reach him as a Claude Artifact.
 # If a method file ever writes that rule down and this pattern turns red on it, exempt that file or section
