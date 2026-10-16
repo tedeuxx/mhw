@@ -246,8 +246,12 @@ class MethodScripts(unittest.TestCase):
             self.assertEqual(len(marked), 1, name)
             del lines[marked[0]]
             self.assertEqual("\n".join(lines), src.read_text(encoding="utf-8"), "%s differs from its source" % name)
-        installed = sorted(p.name for p in self.dir.iterdir())
+        installed = sorted(p.name for p in self.dir.iterdir() if p.is_file())
         self.assertEqual(installed, sorted(self.source), "no test file or fixture is installed")
+        # The one directory: the store contract a rite names (#181); no fixtures, no worklog contract.
+        directories = sorted(p.relative_to(self.dir).as_posix() for p in self.dir.rglob("*") if p.is_file()
+                             and p.parent != self.dir)
+        self.assertEqual(directories, ["funnel-review-contract/README.md"])
 
     def test_rendered_paths_to_scripts_exist(self):
         """Table over every rendered carrier: each path into the installed directory names a file there,
@@ -260,7 +264,7 @@ class MethodScripts(unittest.TestCase):
         for path in rendered:
             text = path.read_text(encoding="utf-8")
             self.assertNotIn(TOKEN, text, path)
-            for name in re.findall(re.escape(prefix) + r"([A-Za-z0-9_.-]+)", text):
+            for name in re.findall(re.escape(prefix) + r"([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)", text):
                 refs += 1
                 if not (self.dir / name).is_file():
                     missing.append("%s -> %s" % (path.relative_to(self.home), name))
@@ -276,9 +280,9 @@ class MethodScripts(unittest.TestCase):
         for md in method_markdown():
             text = md.read_text(encoding="utf-8")
             rel = md.relative_to(REPO)
-            for name in re.findall(re.escape(TOKEN) + r"/([A-Za-z0-9_.-]+)", text):
+            for name in re.findall(re.escape(TOKEN) + r"/([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)", text):
                 tokens += 1
-                if name not in self.source:
+                if name not in self.source and not ("/" in name and (REPO / "method" / "scripts" / name).is_file()):
                     problems.append("%s: %s/%s is not in method/scripts/" % (rel, TOKEN, name))
             listed = not_shipped(text)
             for name in SCRIPT_SELECTOR.findall(text):

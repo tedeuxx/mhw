@@ -236,7 +236,8 @@ settle it; this slice did not have one.
 
 **The output of this step is a file, not a paragraph:**
 `docs/funnel-review/collected/<period>.tsv` in the consuming repository, in the contract the method
-ships at `method/scripts/funnel-review-contract/README.md` (#181). Until #181 this sentence pointed
+installs beside its scripts, `{{method-scripts}}/funnel-review-contract/README.md` (#181; its source
+is `method/scripts/funnel-review-contract/README.md`). Until #181 this sentence pointed
 at a README inside the store, and that README lived only in the deprecated plugin's own store, which
 a rite installed from the method cannot read. The store is the consuming
 repository's; a store kept in another repository before #181 stays there, as history, and the

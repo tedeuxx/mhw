@@ -7,9 +7,11 @@ it did not carry. The store itself belongs to the **consuming repository**: `doc
 that repository's root. New periods are collected and reported there; a store kept elsewhere stays
 where it is, as history.
 
-**The render installs the script and not this file**, exactly as it treats the worklog contract
-beside it: the render takes the top-level `*.py` and `*.sh` files of `method/scripts/` and no
-directory. Read this file in the method's source.
+**The render installs this file beside the script**, at
+`funnel-review-contract/README.md` in the installed scripts directory, because the rite names it
+through the scripts-directory token and the render installs a document a rite names. A session running the installed rite in a consuming repository reads it there. The worklog
+contract beside it is not installed: no rite names it, and its only reader is a test in this
+source tree.
 
 ## Two files per period, and they are different kinds of thing
 

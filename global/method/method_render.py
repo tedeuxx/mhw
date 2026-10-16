@@ -25,7 +25,11 @@ Carriers (ADR-0027 matrix, ADR-0032):
                  workstation-configuration/method/scripts/ (with --home, always under that home's
                  .local/share). In a rendered body, {{method-scripts}} becomes that directory, so a rite
                  runs them from any repository (#170); a {{method-scripts}}/<name> naming no script stops
-                 the render.
+                 the render. A Markdown document one directory down (method/scripts/<dir>/<name>.md, such
+                 as a store contract) is installed beside the scripts only when a rendered body names it
+                 as {{method-scripts}}/<dir>/<name>.md, so a rite carries the contract its driver reads
+                 (#181); a document no body names, such as a contract only a test reads, stays in the
+                 source.
 
 Every rendered file carries the managed-by line with the stamp, "source: method/...", in its own
 format's comment (Markdown front matter, TOML, YAML) or, in the Kiro agent JSON, as the first line of its
@@ -55,7 +59,8 @@ WRITING_TOOLS = {"Write", "Edit", "Bash"}
 DESCRIPTION_MAX = 1024  # Agent Skills standard limit, read by Codex and Kiro
 SCRIPTS_TOKEN = "{{method-scripts}}"
 SCRIPT_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]*\.(?:py|sh)")
-TOKEN_REF_RE = re.compile(re.escape(SCRIPTS_TOKEN) + r"/([A-Za-z0-9_.-]+)")
+TOKEN_REF_RE = re.compile(re.escape(SCRIPTS_TOKEN) + r"/([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)")
+DOCUMENT_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]*/[A-Za-z0-9_][A-Za-z0-9_.-]*\.md")
 
 
 class SourceError(Exception):
@@ -184,12 +189,35 @@ def load_scripts(source):
     return scripts
 
 
-def resolve_scripts(text, where, scripts, directory):
-    """Replace {{method-scripts}} with the installed directory; every name it prefixes must be a script."""
+def load_documents(source):
+    """name -> text for the Markdown documents one directory down: method/scripts/<dir>/<name>.md.
+    Only the ones a rendered body names are installed (targets)."""
+    documents = {}
+    base = source / "scripts"
+    if base.is_dir():
+        for path in sorted(base.glob("*/*.md")):
+            name = path.relative_to(base).as_posix()
+            if path.is_file() and not path.is_symlink() and DOCUMENT_NAME_RE.fullmatch(name):
+                documents[name] = path.read_text(encoding="utf-8")
+    return documents
+
+
+def resolve_scripts(text, where, scripts, directory, documents=None, used=None):
+    """Replace {{method-scripts}} with the installed directory; every name it prefixes must be a script,
+    or a document in method/scripts/<dir>/, which is then recorded in `used` so it is installed."""
+    documents = documents or {}
     for name in TOKEN_REF_RE.findall(text):
-        if name not in scripts:
+        if name in documents:
+            if used is not None:
+                used.add(name)
+        elif name not in scripts:
             raise SourceError("%s: %s/%s names no file in method/scripts/" % (where, SCRIPTS_TOKEN, name))
     return text.replace(SCRIPTS_TOKEN, str(directory))
+
+
+def document_file(name, text, stamp):
+    """The document with the managed-by line as an HTML comment first (invisible when rendered)."""
+    return "<!-- %s -->\n" % marker("method/scripts/" + name, stamp) + text
 
 
 def script_file(name, text, stamp):
@@ -334,17 +362,21 @@ def homes():
             "scripts": scripts}
 
 
-def targets(skills, agents, commands, stamp, scripts=None):
+def targets(skills, agents, commands, stamp, scripts=None, documents=None):
     """[(path, text, format)] for every file the method renders."""
     h = homes()
     kiro_skills = h["kiro"] / "skills"
     scripts = scripts or {}
+    documents = documents or {}
+    used = set()
     out = []
     for group in (skills, commands, agents):
         for item in group.values():
-            item["body"] = resolve_scripts(item["body"], item["where"], scripts, h["scripts"])
+            item["body"] = resolve_scripts(item["body"], item["where"], scripts, h["scripts"], documents, used)
     for name, text in scripts.items():
         out.append((h["scripts"] / name, script_file(name, text, stamp), "script"))
+    for name in sorted(used):
+        out.append((h["scripts"] / name, document_file(name, documents[name], stamp), "doc"))
     for name, s in skills.items():
         text = skill_md(name, s["description"], s["purpose"], s["body"], s["where"], stamp)
         out.append((h["claude"] / "skills" / name / "SKILL.md", text, "md"))
@@ -369,7 +401,7 @@ def candidate_files():
                 (h["claude"] / "skills", "*/SKILL.md"), (h["agents"] / "skills", "*/SKILL.md"),
                 (h["agents"] / "skills", "*/agents/openai.yaml"), (h["codex"] / "agents", "*.toml"),
                 (h["kiro"] / "agents", "*.json"), (h["kiro"] / "skills", "*/SKILL.md"),
-                (h["scripts"], "*")]
+                (h["scripts"], "*"), (h["scripts"], "*/*.md")]
     found = []
     for base, pattern in patterns:
         if base.is_dir():
@@ -525,7 +557,7 @@ def main(argv):
     try:
         skills, agents, commands = load(source)
         scripts = load_scripts(source)
-        wanted = targets(skills, agents, commands, stamp, scripts)
+        wanted = targets(skills, agents, commands, stamp, scripts, load_documents(source))
     except SourceError as error:
         print("REFUSE  the working method: %s; nothing of it was written" % error, file=sys.stderr)
         return 2

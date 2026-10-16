@@ -41,7 +41,8 @@
 #     wrote a file is invisible to it.
 #
 # Contract: prints the report body on stdout, exits 0. Exits 2 only on a caller error (no period).
-# The collection file it reads is declared in method/scripts/funnel-review-contract/README.md (#181).
+# The collection file it reads is declared in funnel-review-contract/README.md, installed beside this
+# script (#181; source: method/scripts/funnel-review-contract/README.md).
 #
 # Usage: bash scripts/funnel-review.sh <period> [--root <dir>]
 

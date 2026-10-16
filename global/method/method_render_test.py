@@ -47,6 +47,8 @@ def source_agents():
 SKILLS = sorted(p.parent.name for p in (SOURCE / "skills").glob("*/SKILL.md"))
 SCRIPTS = sorted(mr.load_scripts(SOURCE))
 SCRIPTS_DIR = ".local/share/personal-multi-harness-workstation-configuration/method/scripts"
+# Stated, not derived from the renderer: the documents a rite names and the render installs (#181).
+DOCUMENTS = ["funnel-review-contract/README.md"]
 COMMANDS = sorted(p.stem for p in (SOURCE / "commands").glob("*.md"))
 AGENTS = source_agents()
 
@@ -86,6 +88,7 @@ class Home:
         for a in AGENTS:
             out += [".claude/agents/%s.md" % a, ".codex/agents/%s.toml" % a, ".kiro/agents/%s.json" % a]
         out += ["%s/%s" % (SCRIPTS_DIR, s) for s in SCRIPTS]
+        out += ["%s/%s" % (SCRIPTS_DIR, d) for d in DOCUMENTS]
         return out
 
 
@@ -567,20 +570,30 @@ class Render(unittest.TestCase):
             self.assertFalse(h.p(rel).exists(), rel)
         self.assertTrue(other.exists() and owner.exists())
 
-    def test_the_store_contracts_ship_in_the_source_and_render_alike(self):
-        # Issue #181 AC1: the funnel-review store contract moved into method/, beside the worklog contract.
-        # Both are the same kind of file and get the same treatment: in the source, never rendered (the
-        # render takes the top-level scripts only), and no method file still names the consumer store's
-        # README as the contract.
-        contracts = {"worklog-contract": "README.md", "funnel-review-contract": "README.md"}
+    def test_the_store_contract_ships_with_the_installed_rite(self):
+        # Issue #181 AC1: the funnel-review store contract is read at run time by the rite's driver in a
+        # consuming repository, so it is installed beside the scripts, and the rendered rite names a path
+        # that exists there. The worklog contract is read only by a test in this source tree: it stays in
+        # the source and is not installed. No method file still names the consumer store's README as the
+        # contract.
         scripts = self.h.p(SCRIPTS_DIR)
-        for directory, readme in contracts.items():
-            self.assertTrue((SOURCE / "scripts" / directory / readme).is_file(), directory)
+        for directory in ("worklog-contract", "funnel-review-contract"):
+            self.assertTrue((SOURCE / "scripts" / directory / "README.md").is_file(), directory)
             self.assertFalse(any(directory in name for name in SCRIPTS), directory)
-            self.assertFalse((scripts / directory).exists(), "%s was rendered" % directory)
+        self.assertFalse((scripts / "worklog-contract").exists(), "the worklog contract was installed")
+        installed = scripts / "funnel-review-contract" / "README.md"
+        self.assertTrue(installed.is_file(), "the funnel-review contract was not installed")
+        lines = installed.read_text(encoding="utf-8").split("\n")
+        self.assertIn(MARKER, lines[0])
+        self.assertIn("source: method/scripts/funnel-review-contract/README.md", lines[0])
+        self.assertEqual("\n".join(lines[1:]), (SOURCE / "scripts" / "funnel-review-contract" / "README.md")
+                         .read_text(encoding="utf-8"))
         self.assertTrue((scripts / "funnel-review.sh").is_file())
         rite = (SOURCE / "commands" / "funnel-review.md").read_text(encoding="utf-8")
-        self.assertIn("`method/scripts/funnel-review-contract/README.md`", rite)
+        self.assertIn("`{{method-scripts}}/funnel-review-contract/README.md`", rite)
+        for rendered in (".claude/commands/funnel-review.md", ".agents/skills/funnel-review/SKILL.md",
+                         ".kiro/skills/funnel-review/SKILL.md"):
+            self.assertIn("`%s`" % installed, self.h.p(rendered).read_text(encoding="utf-8"), rendered)
         old = "docs/funnel-review/" + "README.md"
         named = [str(p.relative_to(REPO)) for p in sorted(SOURCE.rglob("*")) if p.is_file()
                  and p.suffix in (".md", ".sh", ".py", ".tsv") and old in p.read_text(encoding="utf-8")]
