@@ -255,6 +255,22 @@ class RiteCadenceTest(unittest.TestCase):
         finally:
             target.chmod(0o600)
 
+    def test_an_option_like_value_is_refused_before_git_runs(self):
+        # A RAN report at --output=x would be dated if the root were passed through as a path.
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        for argv in (["--", "--output=x", RAN], ["--", "-p", RAN], ["--repo=-p", "docs/funnel-review", RAN],
+                     ["--", "docs/funnel-review", "-" + RAN]):
+            result = self.run_script(*argv)
+            self.assertEqual(result.returncode, 1, (argv, result.stderr))
+            self.assertEqual(result.stdout, "", argv)
+            self.assertIn("rite-cadence: refusing ", result.stderr, argv)
+            self.assertIn("may not begin with '-'", result.stderr, argv)
+        # Without the "--" separator the parser itself refuses them as unknown options.
+        for argv in (["--output=x", RAN], ["-p", RAN]):
+            result = self.run_script(*argv)
+            self.assertNotEqual(result.returncode, 0, argv)
+            self.assertEqual(result.stdout, "", argv)
+
     def test_an_empty_marker_is_a_usage_error(self):
         result = self.run_script("docs/funnel-review", " ")
         self.assertEqual(result.returncode, 2)

@@ -15,6 +15,9 @@ Prints one line and exits 0:
     <root>: never changed
 Exits 1 when git fails (not a repository, no git), so a failure never reads as "never".
 Exits 2 on a usage error. Every date is the commit's author date.
+Exits 1, running no git, when --repo, <root> or <marker> begins with '-': git is always run from an
+argument list (no shell), the repository goes to -C as an absolute path and every path follows `--`,
+so no value given here can reach git as an option.
 
 It reports and fires nothing. It is not a hook and nothing runs it but the session.
 
@@ -36,6 +39,7 @@ passed to git literally, so `[ab].md` names that file only.
 """
 
 import argparse
+import os
 import subprocess
 import sys
 
@@ -164,6 +168,16 @@ def last_marker_commit(repo, paths, marker):
     return best[1], best[2]
 
 
+def refuse_option_like(arguments):
+    """Exit 1 when a value could be read as an option, so no argument reaches git as a flag."""
+    for label, value in (("--repo", arguments.repo), ("root", arguments.root),
+                         ("marker", arguments.marker)):
+        if value is not None and (value.startswith("-") or "\0" in value):
+            print("rite-cadence: refusing %s %r: a value may not begin with '-'" % (label, value),
+                  file=sys.stderr)
+            raise SystemExit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Date a rite by its ran-marked artifacts.")
     parser.add_argument("--repo", default=".", help="the repository (default: the current directory)")
@@ -172,8 +186,9 @@ def main():
     arguments = parser.parse_args()
     if arguments.marker is not None and not arguments.marker.strip():
         parser.error("marker must not be empty")
+    refuse_option_like(arguments)
 
-    top = git(arguments.repo, "rev-parse", "--show-toplevel").decode("utf-8").strip()
+    top = git(os.path.abspath(arguments.repo), "rev-parse", "--show-toplevel").decode("utf-8").strip()
 
     if arguments.marker is None:
         listed = git(top, "ls-files", "-z", "--", arguments.root).decode("utf-8")
