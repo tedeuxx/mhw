@@ -1632,8 +1632,17 @@ below were hooks that reported; they are now steps you run yourself.** By this l
    and name any whose newest gate verdict is `REQUEST-CHANGES`, or names a head the PR no longer points
    at. An inherited queue is told, not remembered.
 2. **The workstation version key.** The user brief carries this check; follow it there.
-3. **The rite cadence.** Where the repository keeps rite artifacts, say how long since each artifact
-   root last changed (`git log -1 --format=%cs -- <root>`). Report it; it fires nothing.
+3. **The rite cadence.** Where the repository keeps rite artifacts, say how long since each rite last
+   ran. ~~say how long since each artifact root last changed (`git log -1 --format=%cs -- <root>`)~~
+   *(struck 2026-10-16, #128: dating the root also dates scaffolding, so a README or a report saying
+   nothing was collected reads as a run.)* **Where a rite declares a ran-marker, date only the tracked
+   files under its root that carry that marker as a whole line, and where none does, report that the
+   rite never landed a file carrying it.** `/funnel-review`'s ran-marker is `FUNNEL-REVIEW-RAN`; a
+   `FUNNEL-REVIEW-NOT-COLLECTED` report is not a run. Run
+   `python3 {{method-scripts}}/rite-cadence.py --repo <repo> <root> <marker>`: it prints
+   `<root>: last ran <date> (<commit>)`, or `<root>: never landed a file carrying <marker>`, and exits 1
+   when git fails, so a failure never reads as *never*. For a rite that declares no marker, omit it and
+   the root is dated as before. Report it; it fires nothing, and nothing runs it but you.
 4. **Finished worktrees.** `git worktree list`, and name each whose branch is merged and so removable.
    Report; remove one only as part of the work it belongs to.
 5. **Tooling.** If `git`, `gh` or `jq` is missing, say so before the first command that needs it.
