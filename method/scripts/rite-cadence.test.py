@@ -260,6 +260,19 @@ class RiteCadenceTest(unittest.TestCase):
         self.git("add", "--", str(self.store / "sprint-02.md"))
         self.assertNever(self.run_script("docs/funnel-review", RAN))
 
+    def test_a_dangling_head_is_a_git_failure_not_never(self):
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        ref = subprocess.run(["git", "-C", str(self.repo), "symbolic-ref", "HEAD"], env=self.env,
+                             check=True, capture_output=True, text=True).stdout.strip()
+        ref_file = self.repo / ".git" / ref
+        self.assertTrue(ref_file.is_file(), "the fixture needs a loose branch ref to overwrite")
+        ref_file.write_text("1" * 40 + "\n", encoding="utf-8")
+        for args in (("docs/funnel-review", RAN), ("docs/funnel-review",)):
+            result = self.run_script(*args)
+            self.assertEqual(result.returncode, 1, (args, result.stdout, result.stderr))
+            self.assertEqual(result.stdout, "", args)
+            self.assertEqual(result.stderr, "rite-cadence: HEAD names no readable commit\n", args)
+
     @unittest.skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
                      "file modes do not make a file unreadable here")
     def test_an_unreadable_working_copy_does_not_hide_a_committed_run(self):

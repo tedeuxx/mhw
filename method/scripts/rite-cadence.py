@@ -47,7 +47,9 @@ it in place (a CRLF-to-LF normalisation, or a reorder that moves the line: one r
 A report that loses the marker and regains it is dated by the commit that regained it: that is the
 commit that put the current marker line there. Reports are diffed as text whatever their attributes
 say. Merge commits are not read (the commit that authored the line is), and renames are not followed
-(a renamed report is dated by the rename).
+(a renamed report is dated by the rename). In a shallow clone, a report whose marker was added
+before the shallow boundary is dated by the boundary commit, which is too recent; nothing here
+detects that.
 """
 
 import argparse
@@ -78,11 +80,20 @@ def git(cwd, *args, data=None):
 
 
 def head_exists(top):
-    """True when HEAD names a commit; False in a repository with no commit yet."""
+    """True when HEAD names a commit; False when HEAD is unborn (no commit yet).
+
+    Only an unborn HEAD reads as "no commit": `rev-parse --verify HEAD` fails there and nowhere
+    else. A HEAD that names an object the store cannot read as a commit (a dangling ref) is a git
+    failure, raised, so it exits 1 rather than reading as "never".
+    """
     try:
-        git(top, "rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+        git(top, "rev-parse", "--verify", "--quiet", "HEAD")
     except GitError:
         return False
+    try:
+        git(top, "rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+    except GitError as error:
+        raise GitError("rite-cadence: HEAD names no readable commit") from error
     return True
 
 
