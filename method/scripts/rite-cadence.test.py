@@ -347,6 +347,31 @@ class RiteCadenceTest(unittest.TestCase):
         self.git("commit", "-q", "-m", "merge", date="2026-04-04")
         self.assertEqual(self.assertAsStruck("docs/funnel-review"), "2026-04-04")
 
+    def test_no_marker_reads_a_glob_character_in_the_root_literally(self):
+        # docs/f[q] as a pattern matches the sibling docs/fq and not itself; read literally it is
+        # only itself. The sibling is changed later, so the two readings give different dates.
+        for directory, text, date in (("f[q]", "a\n", "2026-01-01"), ("fq", "b\n", "2026-03-03")):
+            path = self.repo / "docs" / directory / "a.md"
+            path.parent.mkdir()
+            path.write_text(text, encoding="utf-8")
+            self.git("add", "--", str(path))
+            self.git("commit", "-q", "-m", "add " + directory, date=date)
+        self.assertIn("docs/f[q]: last changed 2026-01-01 (", self.run_script("docs/f[q]").stdout)
+
+    def test_a_ran_report_merged_with_no_ff_is_dated_by_the_commit_that_authored_it(self):
+        # Every slice into an integration branch lands this way. The merge's first-parent diff adds the
+        # marker line too, and the merge is the newer author date, so reading it would date the merge.
+        self.git("commit", "-q", "--allow-empty", "-m", "base", date="2026-01-01")
+        self.git("checkout", "-q", "-b", "slice")
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        authored = self.short_head()
+        self.git("checkout", "-q", "-")
+        self.git("commit", "-q", "--allow-empty", "-m", "trunk moves", date="2026-04-04")
+        self.git("merge", "-q", "--no-ff", "--no-edit", "slice", date="2026-05-05")
+        self.assertEqual(self.run_script("docs/funnel-review", RAN).stdout,
+                         "docs/funnel-review: last ran 2026-03-03 (%s), dated by files carrying %s\n"
+                         % (authored, RAN))
+
     def test_a_root_is_a_literal_path_matched_by_whole_components(self):
         self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
         for root in ("docs/*", "docs/funnel"):
