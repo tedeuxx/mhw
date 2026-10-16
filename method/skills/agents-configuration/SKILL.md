@@ -1644,8 +1644,11 @@ below were hooks that reported; they are now steps you run yourself.** By this l
    `FUNNEL-REVIEW-NOT-COLLECTED` report is not a run. Run
    `python3 {{method-scripts}}/rite-cadence.py --repo <repo> <root> <marker>`: it prints
    `<root>: last ran <date> (<commit>)`, or `<root>: never landed a file carrying <marker>`, and exits 1
-   when git fails, so a failure never reads as *never*. For a rite that declares no marker, omit it and
-   the root is dated as before. Report it; it fires nothing, and nothing runs it but you.
+   when git fails, so a failure never reads as *never*. For a rite that declares no marker, omit it:
+   the root is dated as the struck command dated it, by the committer date of the newest commit that
+   touched a path under it (a deletion included), except that the root is read as a literal path, never
+   as a pattern. Only the ran-marker path reads the author date. Report it; it fires nothing, and
+   nothing runs it but you.
 4. **Finished worktrees.** `git worktree list`, and name each whose branch is merged and so removable.
    Report; remove one only as part of the work it belongs to.
 5. **Tooling.** If `git`, `gh` or `jq` is missing, say so before the first command that needs it.

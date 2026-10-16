@@ -60,6 +60,21 @@ class RiteCadenceTest(unittest.TestCase):
         return subprocess.run([sys.executable, "-B", str(SCRIPT), *args], cwd=cwd or str(self.repo),
                               env=self.env, capture_output=True, text=True)
 
+    def struck_command(self, root):
+        """What the struck check-3 command printed, with the short commit the script also prints."""
+        return subprocess.run(["git", "-C", str(self.repo), "log", "-1", "--format=%cs %h", "--", root],
+                              env=self.env, check=True, capture_output=True, text=True).stdout.strip()
+
+    def assertAsStruck(self, root):
+        struck = self.struck_command(root)
+        self.assertTrue(struck, "the fixture must give the struck command a date")
+        date, _, commit = struck.partition(" ")
+        result = self.run_script(root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "%s: last changed %s (%s), no ran-marker declared\n"
+                         % (root, date, commit))
+        return date
+
     def short_head(self):
         return subprocess.run(["git", "-C", str(self.repo), "rev-parse", "--short", "HEAD"], env=self.env,
                               check=True, capture_output=True, text=True).stdout.strip()
@@ -172,8 +187,9 @@ class RiteCadenceTest(unittest.TestCase):
         self.commit("a.md", "plain\n", "2026-08-08")
         self.assertIn("last ran 2026-01-20 (", self.run_script("docs/funnel-review", RAN).stdout)
 
-    def test_the_date_is_the_author_date_in_iso_form(self):
-        # Author and committer dates differ, so a committer-date reading cannot pass.
+    def test_a_run_is_dated_by_author_date_and_a_change_by_committer_date(self):
+        # Author and committer dates differ: the marker path reads the author date, and the no-marker
+        # path reads the committer date, as the struck `git log -1 --format=%cs -- <root>` did.
         (self.store / "sprint-02.md").write_text("%s\n" % RAN, encoding="utf-8")
         self.git("add", "--", str(self.store / "sprint-02.md"))
         env = dict(self.env, GIT_AUTHOR_DATE="2026-03-03T12:00:00+00:00",
@@ -185,7 +201,7 @@ class RiteCadenceTest(unittest.TestCase):
                          "docs/funnel-review: last ran 2026-03-03 (%s), dated by files carrying %s\n"
                          % (commit, RAN))
         self.assertEqual(self.run_script("docs/funnel-review").stdout,
-                         "docs/funnel-review: last changed 2026-03-03 (%s), no ran-marker declared\n"
+                         "docs/funnel-review: last changed 2026-01-01 (%s), no ran-marker declared\n"
                          % commit)
 
     def test_rewriting_the_commit_later_does_not_move_the_date(self):
@@ -255,21 +271,130 @@ class RiteCadenceTest(unittest.TestCase):
         finally:
             target.chmod(0o600)
 
-    def test_an_option_like_value_is_refused_before_git_runs(self):
-        # A RAN report at --output=x would be dated if the root were passed through as a path.
+    def test_an_option_like_value_is_a_literal_path_and_never_a_git_option(self):
+        # No argument reaches git's command line, so after "--" a root spelled like an option is the
+        # path of that name. Had "--output=x" reached `git log` as an option it would write a file x.
+        odd = self.repo / "--output=x"
+        odd.mkdir()
+        (odd / "r.md").write_text("%s\n-%s\n" % (RAN, RAN), encoding="utf-8")
+        self.git("add", "--", str(odd / "r.md"))
+        self.git("commit", "-q", "-m", "odd", date="2026-03-03")
+        result = self.run_script("--", "--output=x", RAN)
+        self.assertEqual(result.stdout, "--output=x: last ran 2026-03-03 (%s), dated by files carrying %s\n"
+                         % (self.short_head(), RAN), result.stderr)
+        self.assertIn("--output=x: last changed 2026-03-03 (", self.run_script("--", "--output=x").stdout)
+        self.assertIn("last ran 2026-03-03 (", self.run_script("--", "--output=x", "-" + RAN).stdout)
+        self.assertEqual(self.run_script("--", "-p", RAN).stdout, "-p: never landed a file carrying %s\n" % RAN)
+        self.assertFalse((self.repo / "x").exists())
+        # Without "--" the parser refuses them as unknown options: a usage error.
+        for argv in (["--output=x", RAN], ["-p", RAN], ["--repo", str(self.repo), "-r", RAN]):
+            result = self.run_script(*argv)
+            self.assertEqual(result.returncode, 2, argv)
+            self.assertEqual(result.stdout, "", argv)
+        # A repository spelled like an option is a directory of that name, and there is none here.
+        result = self.run_script("--repo=-p", "docs/funnel-review", RAN)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("rite-cadence: not a directory: ", result.stderr)
+
+    def test_a_root_that_is_not_a_repository_path_is_a_usage_error(self):
         self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
-        for argv in (["--", "--output=x", RAN], ["--", "-p", RAN], ["--repo=-p", "docs/funnel-review", RAN],
-                     ["--", "docs/funnel-review", "-" + RAN]):
-            result = self.run_script(*argv)
-            self.assertEqual(result.returncode, 1, (argv, result.stderr))
-            self.assertEqual(result.stdout, "", argv)
-            self.assertIn("rite-cadence: refusing ", result.stderr, argv)
-            self.assertIn("may not begin with '-'", result.stderr, argv)
-        # Without the "--" separator the parser itself refuses them as unknown options.
-        for argv in (["--output=x", RAN], ["-p", RAN]):
-            result = self.run_script(*argv)
-            self.assertNotEqual(result.returncode, 0, argv)
-            self.assertEqual(result.stdout, "", argv)
+        for root in ("", "/docs/funnel-review", "../x", "docs/../.."):
+            result = self.run_script("--", root, RAN)
+            self.assertEqual(result.returncode, 2, (root, result.stderr))
+            self.assertEqual(result.stdout, "", root)
+
+    def test_no_marker_dates_a_rebased_commit_as_the_struck_command_did(self):
+        # The newest commit by git log's order was authored 03-01 and committed 09-09; another was
+        # authored 09-01. The struck command printed 09-09, the committer date of the first.
+        self.commit("README.md", "x\n", "2026-01-01")
+        self.commit("a.md", "a\n", "2026-09-01")
+        (self.store / "b.md").write_text("b\n", encoding="utf-8")
+        self.git("add", "--", str(self.store / "b.md"))
+        env = dict(self.env, GIT_AUTHOR_DATE="2026-03-01T12:00:00+00:00",
+                   GIT_COMMITTER_DATE="2026-09-09T12:00:00+00:00")
+        subprocess.run(["git", "-C", str(self.repo), "commit", "-q", "-m", "rebased"], env=env, check=True,
+                       capture_output=True)
+        self.assertEqual(self.assertAsStruck("docs/funnel-review"), "2026-09-09")
+
+    def test_no_marker_dates_a_deletion_as_the_struck_command_did(self):
+        self.commit("README.md", "x\n", "2026-01-01")
+        self.git("rm", "-q", "--", str(self.store / "README.md"))
+        self.git("commit", "-q", "-m", "gone", date="2026-05-05")
+        self.assertEqual(self.assertAsStruck("docs/funnel-review"), "2026-05-05")
+
+    def test_no_marker_dates_the_first_commit_whatever_log_show_root_says(self):
+        # With log.showRoot off, `git log` prints no file list for the first commit unless asked.
+        self.git("config", "log.showRoot", "false")
+        self.commit("README.md", "x\n", "2026-01-01")
+        self.assertEqual(self.assertAsStruck("docs/funnel-review"), "2026-01-01")
+
+    def test_no_marker_dates_a_file_only_a_merge_added_as_the_struck_command_did(self):
+        (self.repo / "base.md").write_text("x\n", encoding="utf-8")
+        self.git("add", "base.md")
+        self.git("commit", "-q", "-m", "base", date="2026-01-01")
+        self.git("checkout", "-q", "-b", "side")
+        (self.repo / "side.md").write_text("s\n", encoding="utf-8")
+        self.git("add", "side.md")
+        self.git("commit", "-q", "-m", "side", date="2026-02-02")
+        self.git("checkout", "-q", "-")
+        (self.repo / "main.md").write_text("m\n", encoding="utf-8")
+        self.git("add", "main.md")
+        self.git("commit", "-q", "-m", "main", date="2026-03-03")
+        self.git("merge", "-q", "--no-commit", "side")
+        (self.store / "merged.md").write_text("only the merge adds this\n", encoding="utf-8")
+        self.git("add", "--", str(self.store / "merged.md"))
+        self.git("commit", "-q", "-m", "merge", date="2026-04-04")
+        self.assertEqual(self.assertAsStruck("docs/funnel-review"), "2026-04-04")
+
+    def test_a_root_is_a_literal_path_matched_by_whole_components(self):
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        for root in ("docs/*", "docs/funnel"):
+            self.assertEqual(self.run_script(root, RAN).stdout,
+                             "%s: never landed a file carrying %s\n" % (root, RAN))
+            self.assertEqual(self.run_script(root).stdout, "%s: never changed\n" % root)
+        if os.name != "nt":
+            star = self.repo / "docs" / "*"
+            star.mkdir()
+            (star / "r.md").write_text("%s\n" % RAN, encoding="utf-8")
+            self.git("add", "--", str(star / "r.md"))
+            self.git("commit", "-q", "-m", "star", date="2026-06-06")
+            self.assertIn("docs/*: last ran 2026-06-06 (", self.run_script("docs/*", RAN).stdout)
+        self.assertIn("last ran 2026-03-03 (", self.run_script("docs/funnel-review/", RAN).stdout)
+        self.assertIn("last ran 2026-03-03 (", self.run_script("./docs//funnel-review", RAN).stdout)
+
+    @unittest.skipIf(os.name == "nt", "symlinks need privileges here")
+    def test_a_symlink_whose_target_is_the_marker_is_not_a_run(self):
+        os.symlink(RAN, str(self.store / "link.md"))
+        self.git("add", "--", str(self.store / "link.md"))
+        self.git("commit", "-q", "-m", "link", date="2026-03-03")
+        self.assertNever(self.run_script("docs/funnel-review", RAN))
+
+    def test_a_submodule_under_the_root_is_skipped(self):
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        # A gitlink names a commit of another repository: it is not in this object store.
+        self.git("update-index", "--add", "--cacheinfo", "160000,%s,docs/funnel-review/sub" % ("1" * 40))
+        self.git("commit", "-q", "-m", "submodule", date="2026-04-04")
+        result = self.run_script("docs/funnel-review", RAN)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("last ran 2026-03-03 (", result.stdout)
+
+    def test_a_blob_missing_from_the_store_is_a_clean_git_failure(self):
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        oid = subprocess.run(["git", "-C", str(self.repo), "rev-parse", "HEAD:docs/funnel-review/sprint-02.md"],
+                             env=self.env, check=True, capture_output=True, text=True).stdout.strip()
+        (self.repo / ".git" / "objects" / oid[:2] / oid[2:]).unlink()
+        result = self.run_script("docs/funnel-review", RAN)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr, "rite-cadence: git cat-file could not read blob %s\n" % oid)
+
+    def test_a_report_marked_minus_diff_is_still_read(self):
+        (self.repo / ".gitattributes").write_text("*.md -diff\n", encoding="utf-8")
+        self.git("add", ".gitattributes")
+        self.git("commit", "-q", "-m", "attributes", date="2026-01-01")
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        self.assertIn("last ran 2026-03-03 (", self.run_script("docs/funnel-review", RAN).stdout)
 
     def test_an_empty_marker_is_a_usage_error(self):
         result = self.run_script("docs/funnel-review", " ")
