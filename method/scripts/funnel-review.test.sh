@@ -485,6 +485,55 @@ else
       "a figure that may include the owner's own sessions must say so where it is read"
 fi
 
+# ── 18b · a valid state with a missing part, and a four-part metric, are not declarations (#181) ─────
+# Table-driven. Each row is one collection file written into its own throwaway root, so no reserved
+# fixture name is used and no row is another row's prior period. A row reads: the label, what the
+# report must show (`undeclared` in the header, or `no-caveat` on the named figure while a three-part
+# control in the same file keeps its caveat), and the collection lines. These runs come after arm 7,
+# so the no-network arm does not cover them; they reach for nothing the earlier runs did not.
+rows=(
+  "a valid state with no effective date|undeclared|internal-traffic: active"
+  "a valid state with a date but no <how>|undeclared|internal-traffic: active 2000-08-15"
+  "a four-part metric <metric>:<piece>:<language>:extra|no-caveat|figure: ga4 reads:piece-a:en:extra 4 6"
+)
+row_problems=""
+row_n=0
+for row in "${rows[@]}"; do
+  row_n=$((row_n + 1))
+  label="${row%%|*}"; rest_row="${row#*|}"
+  expect="${rest_row%%|*}"; body="${rest_row#*|}"
+  row_root="$work/rows/$row_n"
+  mkdir -p "$row_root/docs/funnel-review/collected"
+  printf 'collected: yes 2000-10-31 synthetic row\n%s\nfigure: ga4 reads:piece-a:en 4 6\n' "$body" \
+    > "$row_root/docs/funnel-review/collected/row.tsv"
+  row_out="$( export PATH="$work/bin:$PATH"; bash "$SCRIPT" row --root "$row_root" 2>&1 )"
+  case "$expect" in
+    undeclared)
+      header "$row_out" | grep -q '^internal-traffic: UNDECLARED' \
+        || row_problems="$row_problems
+    row $row_n ($label): the header did not print UNDECLARED"
+      ;;
+    no-caveat)
+      metric="$(printf '%s' "$body" | awk '{print $3}')"
+      printf '%s\n' "$row_out" | grep -qF "ga4 · $metric " \
+        || row_problems="$row_problems
+    row $row_n ($label): the figure was not printed, so its missing caveat proves nothing"
+      printf '%s\n' "$row_out" | grep -F "ga4 · $metric " | grep -q 'locale-caveat:' \
+        && row_problems="$row_problems
+    row $row_n ($label): a four-part metric carried the language caveat"
+      printf '%s\n' "$row_out" | grep -F 'ga4 · reads:piece-a:en ' | grep -q 'locale-caveat:' \
+        || row_problems="$row_problems
+    row $row_n ($label): the three-part control in the same file lost its caveat"
+      ;;
+  esac
+done
+if [ -z "$row_problems" ]; then
+  ok "incomplete declarations — a state with no date or no <how> prints UNDECLARED; a four-part metric carries no language caveat"
+else
+  bad "incomplete declarations — a partial line was read as a declaration:$row_problems" \
+      "the contract requires the date and the <how>, and declares only the three-part metric spelling"
+fi
+
 # ── 19 · the store contract ships with the method, and the rite cites it (#181) ─────────────────────
 contract="$HERE/funnel-review-contract/README.md"
 ct_problems=""
