@@ -1635,9 +1635,11 @@ below were hooks that reported; they are now steps you run yourself.** By this l
 3. **The rite cadence.** Where the repository keeps rite artifacts, say how long since each rite last
    ran. ~~say how long since each artifact root last changed (`git log -1 --format=%cs -- <root>`)~~
    *(struck 2026-10-16, #128: dating the root also dates scaffolding, so a README or a report saying
-   nothing was collected reads as a run.)* **Where a rite declares a ran-marker, date only the tracked
-   files under its root that carry that marker as a whole line, and where none does, report that the
-   rite never landed a file carrying it.** `/funnel-review`'s ran-marker is `FUNNEL-REVIEW-RAN`; a
+   nothing was collected reads as a run.)* **Where a rite declares a ran-marker, consider only the
+   tracked files under its root that carry that marker as a whole line, and date them by the latest
+   commit that added the marker line, not by their last edit** (a `Ruled:` line written into a report
+   at planning is not a run). **Where no such commit exists, report that the rite never landed a file
+   carrying it.** `/funnel-review`'s ran-marker is `FUNNEL-REVIEW-RAN`; a
    `FUNNEL-REVIEW-NOT-COLLECTED` report is not a run. Run
    `python3 {{method-scripts}}/rite-cadence.py --repo <repo> <root> <marker>`: it prints
    `<root>: last ran <date> (<commit>)`, or `<root>: never landed a file carrying <marker>`, and exits 1
