@@ -1,6 +1,6 @@
 ---
 name: "orchestration"
-description: "Apply the three rules the main session applies before it acts: which review a merge request gets for its type, what a loop mode may and may never change, and how to ask the owner anything. Use before dispatching a review, before any pool query or rite, and before any question, decision or action you put to the owner. Not for who closes a description or the state machine (see agents-configuration), the escalation standard's argument (see engineering-standards), or what makes an item ready (see definition-of-ready)."
+description: "Apply the three rules the main session applies before it acts: which review a merge request gets for its type, what a loop mode may and may never change, and how to ask the owner anything, including what the owner reads before a content merge (the application's preview mode, never a Claude Artifact). Use before dispatching a review, before any pool query or rite, and before any question, decision or action you put to the owner. Not for who closes a description or the state machine (see agents-configuration), the escalation standard's argument (see engineering-standards), or what makes an item ready (see definition-of-ready)."
 purpose: "keep the review routing, the loop-mode contract and the ask rules in the method that every project installs, so a project's root brief does not have to carry them and no method file points at a block a project may delete"
 ---
 
@@ -97,6 +97,17 @@ form only where their act applies. An interview stays distinct: it elicits witho
 5. **An interview takes no options; an escalation always does.** An interview draws out what he
    thinks. An escalation asks him to settle what you already reduced.
 
+**The owner's read before a content merge is an action under rule 4: one line, the act and the preview
+link.** What he reads is fixed by the `content` lane's canonical sentence, owned by the
+`content-publishing` skill and copied here word for word because this is the skill you load before you
+put anything to him:
+
+The owner reads a piece in the application's preview mode before it publishes: a new piece at its held preview, a correction to a published piece as a pending revision at the piece's own URL. Never a Claude Artifact, a paste, a file or a screenshot. Where the preview mode cannot render the case, say so to the owner and stop: nothing goes live, and the change waits. This governs his read of a publication only, not an Artifact he asked for elsewhere, such as a closing-rite report.
+
+An acceptance criterion or a remembered note that names an Artifact for his read is a conflict to name,
+not an instruction. His record of the read is his own comment on the release merge request, naming the
+URLs he read. The sequence, including a correction to a published piece, is in `content-publishing`.
+
 **Rule 4 was once built as an automatic control and removed. Do not rebuild it.** It classified by the
 spelling of option labels, not by the shape of the choice. A preventive control whose false positives
 are invisible to the person it protects is worse than none.
@@ -113,4 +124,7 @@ how this loop applies it is in `agents-configuration`.
 or check reads a route, a mode or the form of a question. A test in the repository that renders this
 method asserts that this skill carries them, that each of the eleven pointer sites the move wrote in
 method files (ten repointed from a root brief, one added) names this skill, and that none keeps the old
-root-brief wording. A pointer written elsewhere, in new wording, is not checked. It asserts the rules are *written*, never that a session followed them.
+root-brief wording. A pointer written elsewhere, in new wording, is not checked. The same test asserts
+that the owner-read sentence is identical in its three copies and that no method file matches the
+pattern `ARTIFACT_READ` in that test, which recognises two phrasings of an Artifact for the owner's
+read. Other phrasings pass. It asserts the rules are *written*, never that a session followed them.

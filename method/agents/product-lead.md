@@ -350,6 +350,22 @@ assume the gate moved rather than that it closed.
 - **Your veto everywhere else is untouched and unnarrowed** — a reader-facing `product` diff, a claim
   `-skills` publishes, any external surface. One lane moved, not the mandate.
 
+**The owner-read criterion you write at `content` intake names the preview mode (mhw#180).** You write
+the acceptance criterion that says what the owner reads before a piece publishes, and you do not load
+the skill that governs it (`content-publishing`). That gap is how one intake named an
+Artifact as the surface of his read on a correction to a published article, and how the writer, the
+gate's delivery lens and the main session then followed the criterion instead of the lane. So the
+lane's canonical sentence is copied here word for word, and the criterion you write follows it:
+
+The owner reads a piece in the application's preview mode before it publishes: a new piece at its held preview, a correction to a published piece as a pending revision at the piece's own URL. Never a Claude Artifact, a paste, a file or a screenshot. Where the preview mode cannot render the case, say so to the owner and stop: nothing goes live, and the change waits. This governs his read of a publication only, not an Artifact he asked for elsewhere, such as a closing-rite report.
+
+- **A new piece:** the criterion names the held preview and the release merge request, and his comment
+  on that merge request naming the preview URLs he read as the record.
+- **A correction to a published piece:** the criterion names the pending revision, the two merges, and
+  the same comment on the release merge request. If the consuming product cannot render a pending
+  revision yet, the criterion says the correction waits; do not write a fallback into it. The detail
+  is `content-publishing`'s section *A correction to an already-published piece*; read it on demand.
+
 **What is genuinely gone, said plainly rather than softened:** on a `content`-typed item you return no
 copy verdict, `quality-assurance` relays none, and **your Checks do not run on that draft at any point**.
 `content-reviewer` repairs what its two grounds reach; the four classes its rulers do not reach —

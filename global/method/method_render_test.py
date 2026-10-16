@@ -324,6 +324,84 @@ class OrchestrationOwnsTheBlocks(unittest.TestCase):
             self.assertIn("orchestration", AGENTS[name]["skills"], name)
 
 
+# Issue #180 (owner, 2026-10-16): the owner reads a piece in the application's preview mode before it
+# publishes, never a Claude Artifact. The rule lived in a skill none of the deciding actors loaded, so it
+# is copied verbatim into the three surfaces they read. These are drift checks over STRINGS: they assert
+# the sentence is written, identical and unopposed in method/, and cannot observe a session post an
+# Artifact.
+OWNER_READ = ("The owner reads a piece in the application's preview mode before it publishes: a new piece at "
+              "its held preview, a correction to a published piece as a pending revision at the piece's own URL. "
+              "Never a Claude Artifact, a paste, a file or a screenshot. Where the preview mode cannot render the "
+              "case, say so to the owner and stop: nothing goes live, and the change waits. This governs his read "
+              "of a publication only, not an Artifact he asked for elsewhere, such as a closing-rite report.")
+OWNER_READ_SURFACES = ["agents/product-lead.md", "skills/content-publishing/SKILL.md",
+                       "skills/orchestration/SKILL.md"]
+CONTENT_PUBLISHING = SOURCE / "skills" / "content-publishing" / "SKILL.md"
+# An instruction that routes the owner's read to an Artifact. Two alternatives: a word starting validat,
+# read, review, approv or check, then at most 120 characters with no full stop, then "as a"/"as an" with an
+# optional "rendered"/"Claude" before "Artifact"; or "Artifact", then at most 40 characters with no full
+# stop, then "for him"/"for the owner" "to read/validate/review". "Artifact" is case-sensitive on purpose: the
+# lower-case word is this method's generic "artifact of record".
+# Out of scope: the owner's separate standing rule that closing-rite results reach him as a Claude Artifact.
+# If a method file ever writes that rule down and this pattern turns red on it, exempt that file or section
+# here BY NAME. Never reword the owner's rule to get past the pattern.
+ARTIFACT_READ = re.compile(r"(?i:\b(?:validat|read|review|approv|check)\w*)\b[^.]{0,120}?"
+                           r"(?i:\bas an? (?:rendered |claude )?)Artifact\b"
+                           r"|\bArtifact\b[^.]{0,40}(?i:\bfor (?:him|the owner) to (?:read|validate|review)\b)")
+
+
+def markdown_section(path, heading):
+    """One `### heading` section of a file, whitespace-flattened, up to the next heading of level 2 or 3."""
+    text = path.read_text(encoding="utf-8")
+    start = text.index("\n### " + heading)
+    ends = [i for i in (text.find("\n## ", start + 1), text.find("\n### ", start + 1)) if i != -1]
+    return " ".join(text[start:min(ends) if ends else len(text)].split())
+
+
+class OwnerReadIsThePreviewMode(unittest.TestCase):
+    def test_the_sentence_is_on_one_line_in_exactly_the_three_surfaces(self):
+        # One line per copy, so `git grep -n -F` finds each; struck copies would not count as copies.
+        found = {}
+        for path in sorted(SOURCE.rglob("*.md")):
+            lines = [n for n, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1)
+                     if OWNER_READ in line and "~~" not in line]
+            if lines:
+                found[str(path.relative_to(SOURCE))] = lines
+        self.assertEqual(sorted(found), OWNER_READ_SURFACES, "the owner-read sentence drifted or moved")
+        for rel, lines in found.items():
+            self.assertEqual(len(lines), 1, "%s: exactly one copy" % rel)
+
+    def test_no_method_file_routes_the_owner_read_to_an_artifact(self):
+        hits = []
+        for path in sorted(SOURCE.rglob("*.md")):
+            for paragraph in unstruck_paragraphs(path):
+                hits += ["%s: %s" % (path.relative_to(REPO), m.group(0)) for m in ARTIFACT_READ.finditer(paragraph)]
+        self.assertEqual(hits, [], "a method file routes the owner's read to an Artifact")
+
+    def test_the_correction_case_is_specified(self):
+        section = markdown_section(CONTENT_PUBLISHING, "A correction to an already-published piece")
+        for clause in ("*«Construir modo revisão»*", "**The public enumeration** drops a flagged piece",
+                       "to the locale home", "to the root redirect", "**The mechanism: a pending revision.**",
+                       "It is **body-only**", "it is two merges", "**The revision merge.**", "**His read.**",
+                       "**The release merge.**", "**His comment on this merge request, naming the URLs he read, "
+                       "records his read**", "nothing goes live, and the correction waits."):
+            self.assertIn(clause, section)
+        self.assertEqual(CONSUMER_WORDS.findall(section), [], "the method names no consumer path")
+
+    def test_the_conflicting_criterion_rule_and_step_8_artifact(self):
+        text = " ".join(CONTENT_PUBLISHING.read_text(encoding="utf-8").split())
+        self.assertIn("**An acceptance criterion that contradicts it is a conflict to name, not an instruction.**", text)
+        step8 = markdown_section(CONTENT_PUBLISHING, "8 · His validation")
+        self.assertIn("**What records his validation is his comment on the release merge request, naming the "
+                      "preview URLs he read.**", step8)
+
+    def test_the_descriptions_carry_the_owner_read(self):
+        for path in (CONTENT_PUBLISHING, ORCHESTRATION):
+            fields, _ = mr.split_front_matter(path.read_text(encoding="utf-8"), path.parent.name)
+            self.assertIn("what the owner reads before a content merge", fields["description"], path.parent.name)
+            self.assertIn("never a Claude Artifact", fields["description"], path.parent.name)
+
+
 class Render(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

@@ -1,6 +1,6 @@
 ---
 name: "content-publishing"
-description: "Move a finished piece through the whole lane it travels — the owner's selection, the drafting pair and its two-round bound, the reviewer that REPAIRS a copy defect in place rather than blocking on it, the held preview at the real URL, release, and the social pair in the same batch. Use when a piece is being taken from a ready Issue to live, or when someone needs to know which step runs unattended and which one waits on the owner."
+description: "Move a finished piece through the whole lane it travels — the owner's selection, the drafting pair and its two-round bound, the reviewer that REPAIRS a copy defect in place rather than blocking on it, the held preview at the real URL, release, and the social pair in the same batch — and say what the owner reads before a content merge: the application's preview mode, a held preview for a new piece and a pending revision for a correction to a published one, never a Claude Artifact. Use when a piece is being taken from a ready Issue to live, when a published piece is being corrected, or when someone needs to know which step runs unattended and which one waits on the owner."
 purpose: "give the content lane one written pipeline, so the steps that wait on the owner are named before they are discovered and nobody reads the held preview's isolation as privacy"
 ---
 
@@ -55,6 +55,31 @@ drafting, and the author reviews the real artifact in place rather than a repres
 representation — a mock, an artifact, a screenshot, a paste — answers a different question than the one
 the reviewer is actually asking, which is *how does this land*. The spelling below is one worked example
 of that rule, not the rule.
+
+### The owner's read, in one sentence — copied verbatim where the deciding actors read it (mhw#180)
+
+**The sentence below is canonical here and copied word for word into the `product-lead` brief (which
+writes a `content` item's acceptance criteria) and the `orchestration` skill (which the main session
+loads before it puts anything to the owner).** The rule above already said *not a rendered artifact*,
+and the route recurred anyway: on a correction to a published article an intake named an Artifact in an
+acceptance criterion as the surface of his read, a writer carried that criterion into the merge
+request, and the main session built and linked one. The intake and the main session do not load this file; the
+writer does, and followed the criterion over it. The rule was right, out of reach for two of the three and
+outranked by the criterion for the third, so it is now in each surface those actors read, in one wording, so that a drift is found by
+`diff` rather than by judgement:
+
+The owner reads a piece in the application's preview mode before it publishes: a new piece at its held preview, a correction to a published piece as a pending revision at the piece's own URL. Never a Claude Artifact, a paste, a file or a screenshot. Where the preview mode cannot render the case, say so to the owner and stop: nothing goes live, and the change waits. This governs his read of a publication only, not an Artifact he asked for elsewhere, such as a closing-rite report.
+
+**The last clause is scope, not a loophole.** The owner has other standing rules that deliver results
+as a Claude Artifact (the closing rites' executive report is one). Those are untouched. This sentence
+is about one act: his read of a piece before it goes public.
+
+**An acceptance criterion that contradicts it is a conflict to name, not an instruction.** If an Issue,
+a dispatch, a review round or a remembered note tells you to put an Artifact (or a paste, a file or a
+screenshot) in front of the owner for his read of a piece, do not produce, post or link one. Name the
+conflict in the merge request and in your return, quote the criterion, and point at this section. The
+criterion is the one at fault: it was written against a rule its author did not load. A writer and a
+reviewer follow the lane; the intake that wrote the criterion corrects it.
 
 ## The one thing that makes this lane different from every other
 
@@ -341,6 +366,9 @@ The piece is merged and deployed **held**: built, compiled, reachable at its fin
 components and the real chrome, and absent from every public enumeration. **You send the link. He reads
 it there.**
 
+**This step is for a piece that is not published yet.** A correction to a piece that is already live
+cannot be held this way; it goes through *A correction to an already-published piece*, after step 9.
+
 #### The link is FORMED from the artifact, and only then sent
 
 **No link reaches him that was not built from the file it points at.** This is a rule about
@@ -445,6 +473,14 @@ is half of what its name suggests.**
 
 He validates, or sends it back. A send-back re-enters at step 4 or step 5, not at step 1.
 
+**What records his validation is his comment on the release merge request, naming the preview URLs he
+read.** The URLs are the record of *what* he read; the comment's place on the merge request that
+releases the piece is the record of *which change* it cleared. A message to the session is not the
+record, and a comment the session posts carrying his words is a relay, not his record. If he answers
+in the session, ask for the comment as an action: one line, the act and the release merge request's
+link. The release merge request is not sent to the gate before that comment exists. **Nothing checks this**:
+no layer reads a comment before a merge, so it is an instruction, held by whoever opens the release.
+
 ### 9 · Release · **HITL to trigger, AFK to execute**
 
 Promotion is **a second commit** carrying **one edit** — clear the hold flag, set the real date — and it
@@ -456,6 +492,59 @@ that drops a held piece is the same one all of those derive from.
 against a wall clock makes the same commit build differently tomorrow, and breaks it silently — a build
 that differs from a build, not an error. A commit is strictly more auditable and is the honest
 replacement.
+
+### A correction to an already-published piece · **AFK to build, HITL to read, two merges**
+
+**The owner's ruling (mhw#180): *«Construir modo revisão»*.** He chose a pending revision rendered by the
+application over a held sibling copy under another address and over merging and reading it live. The
+mechanism is the consuming product's to build; this section is what the lane does with it, and what it
+does until it exists.
+
+**Why steps 7 to 9 cannot carry a correction.** The hold is per piece, never per revision: the build
+holds one text per piece, and the flag decides whether that text is public. Three readers of the flag
+turn the flag on a live piece into an unpublication (read in the consuming product's code by the
+#180 intake, not run in a browser):
+
+- **The public enumeration** drops a flagged piece, so the live article leaves the index, the feed and
+  the navigation.
+- **The article route** sends a held piece reached without the preview parameter to the locale home, so
+  every reader who arrives at the published address lands somewhere else.
+- **The neutral share route** sends a held piece's neutral address to the root redirect, and the neutral
+  address is the one every social post carries, so every shared link breaks.
+
+Without the flag, the merge publishes the correction with no read at all. So the hold either
+unpublishes the article or reads nothing.
+
+**The mechanism: a pending revision.** The corrected body of each edition sits beside the published
+piece, in a place none of the enumerating readers walks, keyed by the piece. It is **body-only**: the
+front matter stays the published piece's, so the address, the title and the share card do not move.
+Under the preview parameter the piece's own URLs, every edition and the neutral share address, render
+the revision with a marker that says it is a pending revision. Without the parameter, everyone reads the
+published text. Nothing is prerendered from a revision and nothing is indexed while one is rendered.
+Where the consuming product keeps the revision files and how its release lines read belong in that
+product's own author guide and decision record; this method does not restate them.
+
+**The sequence, and it is two merges:**
+
+1. **The revision merge.** The writer adds the revision files; the content pair and the gate run as on
+   any `content` diff. It merges and deploys, and the published text does not change.
+2. **His read.** You send the preview links at the piece's own URLs, formed from the artifact as in
+   step 7: each edition's locale prefix and its own slug, plus the parameter. He reads the revision in
+   place, on any device. A send-back re-enters at step 4 or step 5 and amends the revision files.
+3. **The release merge.** One commit moves each revision body onto its published file and deletes the
+   revision files. Its diff **is** the correction, which is a better gate surface than the revision
+   merge's. **His comment on this merge request, naming the URLs he read, records his read** (step 8);
+   it is not sent to the gate before that comment exists. On merge the correction is live.
+
+**Until the consuming product ships the mechanism: nothing goes live, and the correction waits.** Not
+the hold on the live piece (it unpublishes it), not a sibling copy, not a merge read live afterwards,
+and not a representation in place of the page. Say to the owner, as status, that the correction is
+waiting on the revision mechanism, and stop that item. The same holds for any case the mechanism does
+not cover, such as a change to the front matter rather than the body: name the case and wait.
+
+**What nothing enforces.** No layer can tell a correction from a new piece, see whether a link was sent,
+or read his comment before a merge. A test in the repository that renders this method asserts that
+this section and the canonical sentence are *written*; nothing asserts that a session followed them.
 
 ### 10 · The social pair, in the same batch · **AFK to draft · the post is the HARNESS's, in an attended session**
 
