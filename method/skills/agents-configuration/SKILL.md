@@ -1632,8 +1632,25 @@ below were hooks that reported; they are now steps you run yourself.** By this l
    and name any whose newest gate verdict is `REQUEST-CHANGES`, or names a head the PR no longer points
    at. An inherited queue is told, not remembered.
 2. **The workstation version key.** The user brief carries this check; follow it there.
-3. **The rite cadence.** Where the repository keeps rite artifacts, say how long since each artifact
-   root last changed (`git log -1 --format=%cs -- <root>`). Report it; it fires nothing.
+3. **The rite cadence.** Where the repository keeps rite artifacts, say how long since each rite last
+   ran. ~~say how long since each artifact root last changed (`git log -1 --format=%cs -- <root>`)~~
+   *(struck 2026-10-16, #128: dating the root also dates scaffolding, so a README or a report saying
+   nothing was collected reads as a run.)* **Where a rite declares a ran-marker, consider only the
+   files under its root whose committed content at `HEAD` carries that marker as a whole line, and
+   date them by the author date of the latest commit that added more marker lines to one of them than
+   it removed, not by their last edit** (a `Ruled:` line written into a report at planning is not a
+   run, and neither is a line-ending or reordering rewrite; an uncommitted change counts for nothing). **Where no such commit exists, report that the rite never landed a file
+   carrying it.** `/funnel-review`'s ran-marker is `FUNNEL-REVIEW-RAN`; a
+   `FUNNEL-REVIEW-NOT-COLLECTED` report is not a run. Run
+   `python3 {{method-scripts}}/rite-cadence.py --repo <repo> <root> <marker>`: it prints
+   `<root>: last ran <date> (<commit>)`, or `<root>: never landed a file carrying <marker>`, and exits 1
+   on a git error or when `HEAD` names no readable commit (a dangling or malformed branch ref), so
+   those do not read as *never*; only a branch with no commit yet does (measured on git 2.52.0 only).
+   For a rite that declares no marker, omit it:
+   the root is dated as the struck command dated it, by the committer date of the newest commit that
+   touched a path under it (a deletion included), except that the root is read as a literal path, never
+   as a pattern. Only the ran-marker path reads the author date. Report it; it fires nothing, and
+   nothing runs it but you.
 4. **Finished worktrees.** `git worktree list`, and name each whose branch is merged and so removable.
    Report; remove one only as part of the work it belongs to.
 5. **Tooling.** If `git`, `gh` or `jq` is missing, say so before the first command that needs it.
