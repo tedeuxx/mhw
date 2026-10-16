@@ -507,7 +507,7 @@ contract is installed, or when a rendered carrier names a path that does not exi
 directory deep included. Mutations of `method_render.py` (no document emitted, no `*/*.md` in
 `candidate_files`, an unstamped document, every document installed) each turned a suite red and
 recovered on restore. `test_the_installed_document_is_not_executable` fails when the installed
-document carries any execute bit (calibrated by chmodding documents `0700` in the source), and
+document carries any execute bit (calibrated by making `method_render.py` chmod documents `0700`), and
 `test_a_document_through_a_symbolic_link_stops_the_render` fails when a named document that is a
 symbolic link, or sits in a symlinked directory, is installed (calibrated by removing each of the two
 checks in `load_documents`, one at a time; each turned only its own case red). Not run on Windows.
