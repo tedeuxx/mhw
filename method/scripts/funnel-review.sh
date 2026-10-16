@@ -41,6 +41,8 @@
 #     wrote a file is invisible to it.
 #
 # Contract: prints the report body on stdout, exits 0. Exits 2 only on a caller error (no period).
+# The collection file it reads is declared in funnel-review-contract/README.md, installed beside this
+# script (#181; source: method/scripts/funnel-review-contract/README.md).
 #
 # Usage: bash scripts/funnel-review.sh <period> [--root <dir>]
 
@@ -82,6 +84,44 @@ ceiling_for() {
   esac
 }
 
+# The language caveat (#181). A figure qualified per piece AND per language — the metric spelled
+# `<metric>:<piece>:<language>` — carries it beside its consent ceiling. The language a figure is
+# attributed to is often set by the address the reader arrived on, so a link pinned to one language
+# moves the figure without any reader choosing that language. A whole-site figure is unqualified and
+# carries no caveat; the qualifier is the only signal, so an unsplit figure is not caught (see the
+# rite's own "What nothing enforces").
+LOCALE_CAVEAT='locale-caveat: a link pinned to one language sets this value by the link, not by the reader'
+caveat_for() {
+  case "$1" in
+    *:*:*:*) : ;;                               # more than three parts is not the declared spelling
+    ?*:?*:?*) printf ' · %s' "$LOCALE_CAVEAT" ;;
+  esac
+}
+
+# The internal-traffic states (#181), a closed set. The declaration is the collection file's own
+# column-0 line, printed verbatim; anything else — an absent line, a state outside the set, or a line
+# missing its effective date or its <how> — prints the UNDECLARED line, so a figure that may include
+# the owner's own sessions says so where it is read rather than by silence.
+INTERNAL_UNDECLARED="internal-traffic: UNDECLARED — figures may include the owner's own sessions"
+internal_traffic_line() {
+  local decl="" state="" date="" how=""
+  [ -r "$1" ] && decl="$(sed -nE 's/^internal-traffic:[[:space:]]+(.+)$/\1/p' "$1" | head -1)"
+  read -r state date how <<< "$decl"
+  case "$state" in
+    none|testing-excluded-by-query|active)
+      if [ -n "$date" ] && [ -n "$how" ]; then
+        printf 'internal-traffic: %s' "$decl"
+        return
+      fi ;;
+  esac
+  if [ -n "$decl" ]; then
+    printf '%s (the file declares %s, which is not <none|testing-excluded-by-query|active> <effective-date> <how>)' \
+      "$INTERNAL_UNDECLARED" "'$decl'"
+  else
+    printf '%s' "$INTERNAL_UNDECLARED"
+  fi
+}
+
 period="${1:-}"
 if [ -z "$period" ]; then
   printf 'usage: funnel-review.sh <period> [--root <dir>]\n' >&2
@@ -117,7 +157,8 @@ sha="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 printf '# %s — funnel review\n\n' "$period"
 printf 'commit: %s\n' "$sha"
 printf 'collection: %s\n' "${collection#"$ROOT"/}"
-printf 'cap: %s findings, the ceiling and not a quota\n\n' "$MAX_FINDINGS"
+printf 'cap: %s findings, the ceiling and not a quota\n' "$MAX_FINDINGS"
+printf '%s\n\n' "$(internal_traffic_line "$collection")"
 
 # ── the NOT-COLLECTED branch ─────────────────────────────────────────────────────────────────────
 # Reached two ways, and both are reported with their reason: no collection file at all, or a file
@@ -208,7 +249,13 @@ while IFS= read -r line; do
 
   delta="no prior period on record"
   if [ -n "$prior" ]; then
-    pv="$(sed -nE "s/^figure:[[:space:]]+$surface[[:space:]]+$metric[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+).*$/\1 \2/p" "$COLLECTED_DIR/$prior.tsv" 2>/dev/null | head -1)"
+    # LITERAL comparison of surface and metric (#181). The lookup used to interpolate both into a
+    # regular expression, so a metric carrying `.` matched a different metric and took its value as
+    # the baseline. ENVIRON rather than `awk -v`, because `-v` interprets backslash escapes.
+    pv="$(FR_SURFACE="$surface" FR_METRIC="$metric" awk '
+      /^figure:[[:space:]]/ && $2 == ENVIRON["FR_SURFACE"] && $3 == ENVIRON["FR_METRIC"] && NF >= 5 {
+        print $4, $5; exit
+      }' "$COLLECTED_DIR/$prior.tsv" 2>/dev/null)"
     if [ -n "$pv" ]; then
       # shellcheck disable=SC2086   # splitting is wanted; globbing is off (`set -f` above)
       set -- $pv
@@ -218,7 +265,7 @@ while IFS= read -r line; do
     fi
   fi
 
-  printf -- '- %s · %s = %s · n=%s · %s · %s\n' "$surface" "$metric" "$value" "$n" "$delta" "$(ceiling_for "$surface")"
+  printf -- '- %s · %s = %s · n=%s · %s · %s\n' "$surface" "$metric" "$value" "$n" "$delta" "$(ceiling_for "$surface")$(caveat_for "$metric")"
   figures=$((figures + 1))
 done <<EOF
 $(grep -E '^figure:[[:space:]]' "$collection" 2>/dev/null || true)

@@ -235,15 +235,48 @@ settle it; this slice did not have one.
 ### 1 · Collect — where the authenticated browser is, and nowhere else
 
 **The output of this step is a file, not a paragraph:**
-`docs/funnel-review/collected/<period>.tsv`, in the contract `docs/funnel-review/README.md` declares.
+`docs/funnel-review/collected/<period>.tsv` in the consuming repository, in the contract the method
+installs beside its scripts, `{{method-scripts}}/funnel-review-contract/README.md` (#181; its source
+is `method/scripts/funnel-review-contract/README.md`). Until #181 this sentence pointed
+at a README inside the store, and that README lived only in the deprecated plugin's own store, which
+a rite installed from the method cannot read. The store is the consuming
+repository's; a store kept in another repository before #181 stays there, as history, and the
+baseline restarts in the consumer's.
+
+**Read the consumer's declarations first.** Beside its store, the consuming repository declares what
+this rite must not name: the analytics dimensions that carry the **piece** and the **language** of a
+read, how an edition's key is derived from them, the name of its internal-traffic marking and filter,
+and the saved reports the driver may read. If a declaration is missing, collect what does not need it
+and say in the collection file what could not be split.
 
 Read, for the period:
 
 - **the site's own analytics** — sessions, the acquisition split, the landing pages, and every funnel
   event the site declares. Read the event names out of the consuming repository rather than typing a
   list here: a list rots, and the declared set is in that repo's own analytics module;
+- **every per-piece read and engagement figure, per piece × per language**, using the per-piece and
+  per-language dimensions the consuming repository declares. Group editions by the key that repository
+  derives. Write each one with the qualified metric spelling `<metric>:<piece>:<language>`; whole-site
+  figures stay unqualified. The script prints a language caveat on every qualified figure, because a
+  link pinned to one language sets that value by the link, not by the reader. **A neutral share
+  address**, one that carries no language of its own, **stays a page-path figure**: it is reported
+  under its path, never assigned a language;
 - **the post metrics** for each piece published in the period — impressions, reactions, comments;
 - **nothing else.** X analytics are out of scope by name; they were not read even in the prototype.
+
+**Declare the internal-traffic state; never leave it to be assumed.** The collection file carries one
+column-0 line, `internal-traffic: <none|testing-excluded-by-query|active> <effective-date> <how>`, and
+the report header prints it. A file without it prints an UNDECLARED line saying the figures may
+include the owner's own sessions. By the state of the property's internal-traffic filter:
+
+- **in Testing** — exclude marked traffic in every query, declare `testing-excluded-by-query`, **and**
+  collect the count of marked sessions in the window as a `figure:` line of its own. That count is the
+  calibration figure: it says how much the exclusion removed;
+- **Active** — declare `active` with the date it took effect. From then on the property drops marked
+  sessions before any query sees them, so **the calibration count can no longer be observed**. A
+  window that starts before the effective date is **only partly filtered**: say so in the report, and
+  do not compare it with a fully filtered period as if the two were alike;
+- **no marking exists** — declare `none`, and read every figure as including the owner's own sessions.
 
 **Write `collected: no <reason>` and stop when the browser is not authenticated.** That is the
 honest output of a step that could not run, and it is what makes the not-collected literal reachable.
@@ -415,6 +448,17 @@ refuses to print a figure that arrived without one.
 - **Nothing observes whether a piece improved after a candidate became a rule.** No layer reads a
   draft against a prior one, and at these sample sizes a movement in the next period is not evidence
   of a cause. A later period's funnel is what there is, and this rite already says it cannot attribute.
+- **Nothing checks that a figure was actually split (#181).** The script prints the language caveat
+  on every figure spelled `<metric>:<piece>:<language>` and on nothing else, so a per-piece figure
+  collected unsplit, under a whole-site name, prints as a whole-site figure with no caveat and no
+  warning.
+- **Nothing checks that the declared internal-traffic state is true (#181).** The header prints what
+  the collection file declares. A file that says `testing-excluded-by-query` over queries that
+  excluded nothing reads exactly like one whose queries did.
+- **The calibration count disappears once the filter is Active (#181).** While the filter is in
+  Testing, the count of marked sessions says how much the exclusion removed. Once it is Active the
+  property no longer keeps those sessions, so nothing can be counted, and from then on there is no
+  figure that shows the exclusion is working.
 - **`hooks/scripts/inventory-counts.test.sh` asserts this file's rules are WRITTEN.** It cannot
   assert that a session obeyed any of them, and no arm anywhere claims otherwise.
 

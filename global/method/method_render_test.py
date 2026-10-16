@@ -47,6 +47,8 @@ def source_agents():
 SKILLS = sorted(p.parent.name for p in (SOURCE / "skills").glob("*/SKILL.md"))
 SCRIPTS = sorted(mr.load_scripts(SOURCE))
 SCRIPTS_DIR = ".local/share/personal-multi-harness-workstation-configuration/method/scripts"
+# Stated, not derived from the renderer: the documents a rite names and the render installs (#181).
+DOCUMENTS = ["funnel-review-contract/README.md"]
 COMMANDS = sorted(p.stem for p in (SOURCE / "commands").glob("*.md"))
 AGENTS = source_agents()
 
@@ -86,6 +88,7 @@ class Home:
         for a in AGENTS:
             out += [".claude/agents/%s.md" % a, ".codex/agents/%s.toml" % a, ".kiro/agents/%s.json" % a]
         out += ["%s/%s" % (SCRIPTS_DIR, s) for s in SCRIPTS]
+        out += ["%s/%s" % (SCRIPTS_DIR, d) for d in DOCUMENTS]
         return out
 
 
@@ -566,6 +569,62 @@ class Render(unittest.TestCase):
         for rel in h.all_targets():
             self.assertFalse(h.p(rel).exists(), rel)
         self.assertTrue(other.exists() and owner.exists())
+
+    def test_the_store_contract_ships_with_the_installed_rite(self):
+        # Issue #181 AC1: the funnel-review store contract is read at run time by the rite's driver in a
+        # consuming repository, so it is installed beside the scripts, and the rendered rite names a path
+        # that exists there. The worklog contract is read only by a test in this source tree: it stays in
+        # the source and is not installed. No method file still names the consumer store's README as the
+        # contract.
+        scripts = self.h.p(SCRIPTS_DIR)
+        for directory in ("worklog-contract", "funnel-review-contract"):
+            self.assertTrue((SOURCE / "scripts" / directory / "README.md").is_file(), directory)
+            self.assertFalse(any(directory in name for name in SCRIPTS), directory)
+        self.assertFalse((scripts / "worklog-contract").exists(), "the worklog contract was installed")
+        installed = scripts / "funnel-review-contract" / "README.md"
+        self.assertTrue(installed.is_file(), "the funnel-review contract was not installed")
+        lines = installed.read_text(encoding="utf-8").split("\n")
+        self.assertIn(MARKER, lines[0])
+        self.assertIn("source: method/scripts/funnel-review-contract/README.md", lines[0])
+        self.assertEqual("\n".join(lines[1:]), (SOURCE / "scripts" / "funnel-review-contract" / "README.md")
+                         .read_text(encoding="utf-8"))
+        self.assertTrue((scripts / "funnel-review.sh").is_file())
+        rite = (SOURCE / "commands" / "funnel-review.md").read_text(encoding="utf-8")
+        self.assertIn("`{{method-scripts}}/funnel-review-contract/README.md`", rite)
+        for rendered in (".claude/commands/funnel-review.md", ".agents/skills/funnel-review/SKILL.md",
+                         ".kiro/skills/funnel-review/SKILL.md"):
+            self.assertIn("`%s`" % installed, self.h.p(rendered).read_text(encoding="utf-8"), rendered)
+        old = "docs/funnel-review/" + "README.md"
+        named = [str(p.relative_to(REPO)) for p in sorted(SOURCE.rglob("*")) if p.is_file()
+                 and p.suffix in (".md", ".sh", ".py", ".tsv") and old in p.read_text(encoding="utf-8")]
+        self.assertEqual(named, [], "a method file still names the consumer store's README as the contract")
+
+    def test_the_installed_document_is_not_executable(self):
+        # ADR-0032, amendment 2026-10-16: the 0700 chmod stays scoped to scripts.
+        installed = self.h.p(SCRIPTS_DIR) / "funnel-review-contract" / "README.md"
+        self.assertEqual(installed.stat().st_mode & 0o111, 0, oct(installed.stat().st_mode))
+
+    def test_a_document_through_a_symbolic_link_stops_the_render(self):
+        # ADR-0032, amendment 2026-10-16: a named document that is a symbolic link, or sits in a symlinked
+        # directory, is not loaded, so the body naming it stops the render with nothing written.
+        outside = Path(tempfile.mkdtemp(prefix="outside-", dir=BASE))
+        (outside / "README.md").write_text("# outside\n", encoding="utf-8")
+        for case in ("file", "directory"):
+            h = Home()
+            src = Path(tempfile.mkdtemp(prefix="link-source-", dir=BASE)) / "method"
+            shutil.copytree(SOURCE, src)
+            if case == "file":
+                (src / "scripts" / "linked").mkdir()
+                (src / "scripts" / "linked" / "README.md").symlink_to(outside / "README.md")
+            else:
+                (src / "scripts" / "linked").symlink_to(outside, target_is_directory=True)
+            rite = src / "commands" / "funnel-review.md"
+            rite.write_text(rite.read_text(encoding="utf-8") + "\nSee `{{method-scripts}}/linked/README.md`.\n",
+                            encoding="utf-8")
+            code, out = h.run("--mode=install", "--source=%s" % src)
+            self.assertEqual(code, 2, (case, out))
+            self.assertIn("linked/README.md names no file", out, case)
+            self.assertEqual([p for p in h.root.rglob("*") if p.is_file()], [], case)
 
     def test_a_source_agent_without_tools_is_refused(self):
         h = Home()
