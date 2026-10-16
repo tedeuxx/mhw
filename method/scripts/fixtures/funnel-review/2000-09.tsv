@@ -1,0 +1,11 @@
+# FIXTURE — synthetic. Every number is invented and names no real property, post or reader.
+#
+# An internal-traffic line whose state is outside the closed set (#181). It must be reported as
+# UNDECLARED, exactly as an absent line is, and never printed as if it were a declaration.
+#
+# See method/scripts/funnel-review-contract/README.md for the parsing contract.
+
+collected: yes 2000-09-30 synthetic fixture — do not read as a measurement of anything
+internal-traffic: probably-filtered 2000-09-01 a guess (synthetic)
+
+figure: ga4 sessions 16 16
