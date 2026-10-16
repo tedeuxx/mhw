@@ -79,16 +79,27 @@ that under the lighter mode no rite runs at a boundary at all, so the anchor wou
 something that does not currently happen. That is a decision about the mode, not about this rite, and
 nothing here resolves it.
 
-**The clock NOTICES this rite and cannot fire it.** ~~`docs/loop-cadence.md` carries~~
+~~**The clock carrier NOTICES this rite and cannot fire it.**~~ **The clock NOTICES this rite and
+cannot fire it.** ~~`docs/loop-cadence.md` carries~~
 ~~`cadence-rite: docs/funnel-review /funnel-review here`, so `hooks/scripts/cadence-notice.sh` — a~~
 ~~`SessionStart` hook — reports how long since a report last landed in the store.~~
 ~~`cadence-rite: docs/funnel-review /funnel-review here FUNNEL-REVIEW-RAN`, so~~
 ~~`hooks/scripts/cadence-notice.sh` — a `SessionStart` hook — reports how long since a report carrying~~
-~~`FUNNEL-REVIEW-RAN` last landed in the store.~~ *(Both forms are the plugin's. The first was struck
-there at #473 because it dated the newest commit under the root, so a README and two reports that
-each say `FUNNEL-REVIEW-NOT-COLLECTED` read as this rite's freshness while it had never read the
-funnel once. The second is struck here, 2026-10-16, #128: this method ships neither that record nor
-that hook, and registers no hook at all.)*
+~~`FUNNEL-REVIEW-RAN` last landed in the store.~~ ~~**Struck and narrowed at #473, because the struck
+form was false in the direction that hides absence:** the carrier dated the newest commit under the
+root, so a README and two reports that each say `FUNNEL-REVIEW-NOT-COLLECTED` were reported as this
+rite's freshness while it had never read the funnel once. It now dates **only a tracked file carrying
+the marker as a whole line** — *ran and found nothing* counts, *never read anything* does not — and
+until one lands the notice says *"has NEVER landed a file carrying FUNNEL-REVIEW-RAN"*. The mechanism
+is `docs/loop-cadence.md`'s *optional FOURTH token*. **Noticing is not firing: a hook cannot
+dispatch.** And no interval is decided anywhere — the record ships with `cadence-interval-days`
+undeclared and the carrier refuses to conclude rather than defaulting, which stays true until the
+owner declares one.~~ *(Struck 2026-10-16, #128. The carrier record `docs/loop-cadence.md`, its
+fourth token and its `cadence-interval-days` field, and the `cadence-notice.sh` hook are all the
+plugin's; this method ships none of them and registers no hook at all. The #473 narrowing described
+above stays true of the plugin, and its rule, that only a file carrying the marker counts, is carried
+by session check 3 below. The original wording is in the plugin's `commands/funnel-review.md` at
+`4882b911`.)*
 
 **In this method the clock is session check 3** in `agents-configuration`, *Session-start and
 end-of-turn checks*. It is an instruction the session follows, not a hook. The check runs
@@ -144,12 +155,20 @@ Step 0 states, per host, what is established.
 ## The containment is STATED, not implied — ~~measured, at head~~ at this method's real level
 
 ~~**No hook in this plugin observes the browser route.** Every registered hook sits on one of three
-explicit matchers or on an unfiltered event, and a browser-extension act is none of them.~~ *(Struck
-2026-10-16, #128. It was measured over the plugin's hook registry, which this method does not ship.
-The three command blocks that measured it are removed rather than struck, because a fenced command
-cannot carry a strike and would read as one to run here; they are in the plugin's
-`commands/funnel-review.md` at `4882b911`, this text's source. The plugin's `mcp-guard.sh`
-measurement that followed them is struck below.)*
+explicit matchers or on an unfiltered event, and a browser-extension act is none of them:~~
+
+~~**Both figures are true and they answer different questions** — 16 registrations across 15 distinct
+scripts, because `preflight.sh` is registered twice. Publish whichever you mean, with its selector.~~
+
+~~**And no registered hook reaches an external surface of its own:**~~
+
+*(Struck 2026-10-16, #128. These three passages were measured over the plugin's hook registry, which
+this method does not ship. Two fenced blocks are removed rather than struck, because a fenced command
+cannot carry a strike and would read as one to run here: the block after the first passage, three
+`jq` reads of `hooks/hooks.json` (its matchers, 16 registrations, 15 distinct scripts), and the block
+after the third, a `curl`/`wget`/`nc` search over the registered scripts (no output) with its `gh`
+calibration (11). Both are in the plugin's `commands/funnel-review.md` at `4882b911`, this text's
+source. The plugin's `mcp-guard.sh` measurement that followed them is struck below.)*
 
 **No hook observes the browser route, because this method registers no hook.** The workstation's
 rule is hooks only for existential risk, and the method's tree carries no hook registry:
@@ -167,8 +186,9 @@ nothing would notice a fabricated collection file.
 persona* can reach in this plugin is `product-lead`'s read-only `chrome-devtools` subset, and
 `hooks/scripts/mcp-guard.sh` denies it to every other persona by default — measured, same payload
 shape, only the `agent_type` varying: `product-lead` + `navigate_page` draws no decision, and
-`quality-assurance` + the same tool comes back denied with *"holds no MCP grant"*.~~ *(Struck
-2026-10-16, #128: that guard is the plugin's and does not run here.)*
+`quality-assurance` + the same tool comes back denied with *"holds no MCP grant"*. That guard is
+**not** what contains this rite's route; it contains a different one, and saying so is the point.~~
+*(Struck 2026-10-16, #128: that guard is the plugin's and does not run here.)*
 
 **What limits a different surface, and it is each agent's own tool list.** `product-lead` is the
 only agent whose `tools:` line names the shipped `chrome-devtools` server (`grep -n '^tools:'
@@ -197,15 +217,17 @@ route is not reachable on this host, the picker below is asked on this host.
 
 | host | the route | the check, and how settled it is |
 |---|---|---|
-| **Claude Code** | the Claude in Chrome extension, driven by the session that holds it | one read-only call to the extension. **Measured failure form:** *"Browser extension is not connected"* — the exact text the plugin's store records in `docs/funnel-review/collected/sprint-04.tsv`. **One collection file declares a read** from the root session through this extension: the plugin's store, `collected/sprint-05.tsv`, reported as `FUNNEL-REVIEW-RAN` in `docs/funnel-review/sprint-05.md`, committed 2026-10-10. No collection file in that store declares a dispatched persona as its collector |
+| **Claude Code** | the Claude in Chrome extension, driven by the session that holds it | one read-only call to the extension. **Measured failure form:** *"Browser extension is not connected"* — the exact text ~~`docs/funnel-review/collected/sprint-04.tsv` records~~ the plugin's store records in `docs/funnel-review/collected/sprint-04.tsv`. **One collection file declares a read** from the root session through this extension: the plugin's store, `collected/sprint-05.tsv`, reported as `FUNNEL-REVIEW-RAN` in `docs/funnel-review/sprint-05.md`, committed 2026-10-10. No collection file in that store declares a read by a dispatched persona (`collected/sprint-02.tsv`, written by one, collected nothing) |
 | **Codex** | its native Chrome carrier. The probe of 2026-09-30 ([#128, probe](https://github.com/tedeuxx/mhw/issues/128#issuecomment-6099743491); [#128, correction](https://github.com/tedeuxx/mhw/issues/128#issuecomment-6099743514)), from the **root session**: carrier reachable, **observed**; the authenticated analytics tab discovered, **observed**; its content read, **not observed** (each bounded read timed out). From a **dispatched persona**: **not observed**, per the correction, which supersedes the probe's dispatched-persona lines | none that has passed — treat the route as **not reachable** until one attempt reads an analytics surface's content and says so. The probe proves only its bounded failures, not that the page is unreadable from Codex; the probe records that a clean attempt must let the collector own the tab first |
 | **Kiro** | not measured | treat as not reachable |
-| **any other host** | not measured | treat as not reachable |
+| **any other host** | ~~unmeasured~~ not measured | treat as not reachable |
 
 ~~**Codex** · **not established.** Its extension browser drove the production site for the sprint-03
 sweep (`-io` `docs/iteration-sweep/sprint-03.md`), unauthenticated; whether that browser carries the
-owner's analytics login is **unmeasured**.~~ *(The Codex row before 2026-10-16, #128. The 2026-09-30
-probe replaced its last clause; the sweep clause is not re-verified here.)*
+owner's analytics login is **unmeasured** · none that can pass today — treat the route as **not
+reachable** until one attempt reads an analytics surface and says so.~~ *(The Codex row before
+2026-10-16, #128. The 2026-09-30 probe replaced its last clause; the sweep clause is not re-verified
+here.)*
 
 **The shipped `chrome-devtools` server is NOT this route on any host**, and must not be tried as a
 fallback: it holds no authenticated session to any analytics or post-metrics surface (the sprint-04
@@ -251,10 +273,11 @@ Each option states its consequence, and that consequence is the whole preamble:*
 
 **What this check does NOT establish, said so it is not over-read.** It proves reachability for the
 context that ran it — the one holding ~~the extension~~ the host's browser route. **Whether a
-dispatched subagent can drive that route is still ~~unmeasured~~ not established on any host** (per the
+dispatched subagent can drive ~~that extension~~ that route is still ~~unmeasured~~ not established on any host** (per the
 correction cited in the table, the traced Codex dispatch made no browser call), which is why step 1 below says collection happens wherever the
-browser is reachable rather than *"in the driver"*. One attempt with the extension connected would
-settle it; this slice did not have one.
+browser is reachable rather than *"in the driver"*. ~~One attempt with the extension connected would
+settle it; this slice did not have one.~~ One attempt on a host, with that host's route connected,
+would settle it for that host.
 
 ### 1 · Collect — where the authenticated browser is, and nowhere else
 
