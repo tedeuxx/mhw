@@ -341,8 +341,9 @@ in `method/`, and the root-brief rename to `AGENTS.md` (ADR-0037) applied across
   user-level directory for every agent harness,
   `${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-workstation-configuration/method/scripts/`, with
   the managed-by line after the shebang; `{{method-scripts}}` in a rendered body becomes that directory, so
-  a rite runs them from any repository, and a `{{method-scripts}}/<name>` naming no script stops the
-  render. Adapted: `funnel-review.sh` defaults its root to the working directory's repository instead of
+  a rite runs them from any repository, ~~and a `{{method-scripts}}/<name>` naming no script stops the
+  render~~ *(struck 2026-10-16, #181: a name that resolves to a document one directory down is installed
+  instead; see the amendment of that date)*. Adapted: `funnel-review.sh` defaults its root to the working directory's repository instead of
   its own place, and its test drops the two arms that fired the plugin's `cadence-notice` hook, which the
   method does not carry. Where these scripts first met a SonarCloud gate (the gate on #170, N1): a new
   `confine.py` resolves a path and refuses one outside the current work tree or the temporary directory,
@@ -449,6 +450,62 @@ Rendered into a throwaway home: `METHOD  installed: 8 agents, 15 skills, 11 comm
 2.1.301's headless `init`, run in that home, lists `orchestration` in `skills` (*measured*). Codex was
 not on this machine's path, so its listing from `~/.agents/skills` is *documented* (measured for the
 other skills on 0.160.0, above). Kiro is *documented*. Nothing is installed on the reference machine.
+
+## Amendment 2026-10-16: a rite's store contract is installed beside the scripts (#181)
+
+Status unchanged (proposed). Refs [#181](https://github.com/tedeuxx/mhw/issues/181),
+[PR #183](https://github.com/tedeuxx/mhw/pull/183). The 2026-10-12 amendment said the render installs
+the scripts and that a `{{method-scripts}}/<name>` naming no script stops the render. `funnel-review`
+writes its store against a contract, `method/scripts/funnel-review-contract/README.md`, and the rite
+named that contract by a path relative to this repository's checkout. A session in a consuming
+repository cannot resolve that path, so the installed rite could not reach the contract its own driver
+writes against.
+
+**Decision.** `{{method-scripts}}/<name>` resolves to one of two kinds of file:
+
+- **A script** at `method/scripts/<name>`, installed as before.
+- **A Markdown document** at `method/scripts/<dir>/<name>.md`, exactly one directory down. It is
+  installed beside the scripts, at `<scripts>/<dir>/<name>.md`, **when, and only when, a rendered body
+  names it** as `{{method-scripts}}/<dir>/<name>.md`. It is installed non-executable (the `0700` chmod
+  stays scoped to scripts), with the managed-by line as an HTML comment on line 1 and the source body
+  unchanged below it. A document no body names stays source-only: `method/scripts/worklog-contract/`,
+  whose only reader is a test in the source tree, is not installed.
+- **Any other name still stops the render**, with nothing written: a name matching neither a script nor
+  a named document, a deeper path, a hidden directory, a symbolic link, or a `..` segment.
+- **Uninstall and `--mode=check` STALE detection see the document** (`candidate_files` reads
+  `<scripts>/*/*.md`), and touch only files carrying this method's managed-by line. An emptied
+  document directory is pruned on uninstall.
+
+**Why.** An installed rite must reach the store contract its driver writes against, from any
+repository. Installing the document through the token the rite already uses keeps one path rule for
+everything a rite runs or reads, and installing only what a body names keeps the installed set derived
+from the bodies rather than from a list.
+
+**Rejected:** keep the contract in the source and name the checkout path. It costs nothing to render,
+but every consuming session reads a path that does not exist on its machine. **Rejected:** install
+every document under `method/scripts/`. It needs no naming rule, but it ships files no installed rite
+reads, the worklog contract among them.
+
+**Consequences.**
+
+- Good: the rendered `funnel-review` names an installed path that exists, on Claude Code, Codex and Kiro.
+- Good: a future rite can ship a contract by naming it, with no renderer change.
+- Bad: the scripts directory now holds a second class of file, and a document's name is a rendered
+  path, so renaming one is a change to every body that names it.
+- Bad, on the transition: uninstalling with a v5.7.0 renderer leaves the contract file behind, because
+  that renderer's `candidate_files` does not look one directory down; the file is inert and stamped,
+  and the next install or uninstall with a renderer carrying this amendment removes it.
+
+**Evidence, 2026-10-16.** *Written and tested.* `global/method/method_render_test.py`'s
+`test_the_store_contract_ships_with_the_installed_rite` fails when the funnel-review contract is not
+installed, not stamped, or not byte-identical to its source below the marker, when the worklog
+contract is installed, or when a rendered carrier names a path that does not exist;
+`global/method/method_commands_test.py` checks every rendered path into the scripts directory, one
+directory deep included. Mutations of `method_render.py` (no document emitted, no `*/*.md` in
+`candidate_files`, an unstamped document, every document installed) each turned a suite red and
+recovered on restore. Nothing asserts the document's mode: making it `0700` left every suite green,
+so *non-executable* is measured (`-rw-r--r--` in a throwaway home), not tested. Not run on Windows.
+Nothing is installed on the reference machine.
 
 ## Links
 
