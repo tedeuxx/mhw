@@ -1,0 +1,16 @@
+# FIXTURE — synthetic. Every number is invented and names no real property, post or reader.
+#
+# Two probes (#181):
+#
+#   * the PRIOR half of the literal-lookup probe. Its only metric is `readXdepth`. In 2000-07 the
+#     metric is `read.depth`; read as a regular expression, `.` matches the `X`, so a regex lookup
+#     reports this file's value as 2000-07's baseline. Read literally, 2000-07's metric was not
+#     measured here, and the report must say so.
+#   * the `none` state of the internal-traffic declaration.
+#
+# See method/scripts/funnel-review-contract/README.md for the parsing contract.
+
+collected: yes 2000-06-30 synthetic fixture — do not read as a measurement of anything
+internal-traffic: none 2000-06-01 no internal-traffic marking exists on the property (synthetic)
+
+figure: ga4 readXdepth 7 50

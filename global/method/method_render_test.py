@@ -567,6 +567,25 @@ class Render(unittest.TestCase):
             self.assertFalse(h.p(rel).exists(), rel)
         self.assertTrue(other.exists() and owner.exists())
 
+    def test_the_store_contracts_ship_in_the_source_and_render_alike(self):
+        # Issue #181 AC1: the funnel-review store contract moved into method/, beside the worklog contract.
+        # Both are the same kind of file and get the same treatment: in the source, never rendered (the
+        # render takes the top-level scripts only), and no method file still names the consumer store's
+        # README as the contract.
+        contracts = {"worklog-contract": "README.md", "funnel-review-contract": "README.md"}
+        scripts = self.h.p(SCRIPTS_DIR)
+        for directory, readme in contracts.items():
+            self.assertTrue((SOURCE / "scripts" / directory / readme).is_file(), directory)
+            self.assertFalse(any(directory in name for name in SCRIPTS), directory)
+            self.assertFalse((scripts / directory).exists(), "%s was rendered" % directory)
+        self.assertTrue((scripts / "funnel-review.sh").is_file())
+        rite = (SOURCE / "commands" / "funnel-review.md").read_text(encoding="utf-8")
+        self.assertIn("`method/scripts/funnel-review-contract/README.md`", rite)
+        old = "docs/funnel-review/" + "README.md"
+        named = [str(p.relative_to(REPO)) for p in sorted(SOURCE.rglob("*")) if p.is_file()
+                 and p.suffix in (".md", ".sh", ".py", ".tsv") and old in p.read_text(encoding="utf-8")]
+        self.assertEqual(named, [], "a method file still names the consumer store's README as the contract")
+
     def test_a_source_agent_without_tools_is_refused(self):
         h = Home()
         src = Path(tempfile.mkdtemp(prefix="bad-source-", dir=BASE)) / "method"

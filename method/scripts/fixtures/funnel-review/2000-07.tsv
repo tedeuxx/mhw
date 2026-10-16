@@ -1,0 +1,20 @@
+# FIXTURE — synthetic. Every number is invented and names no real property, post or reader.
+#
+# Three probes (#181):
+#
+#   * the CURRENT half of the literal-lookup probe. `read.depth` must not find 2000-06's `readXdepth`
+#     as its baseline; it was not measured there.
+#   * the language caveat. `reads:piece-a:en` is qualified per piece and per language, so its line
+#     carries the caveat; `sessions` is a whole-site figure, unqualified, so its line does not.
+#   * the `testing-excluded-by-query` state of the internal-traffic declaration, with the count of
+#     marked sessions collected as a calibration figure.
+#
+# See method/scripts/funnel-review-contract/README.md for the parsing contract.
+
+collected: yes 2000-07-31 synthetic fixture — do not read as a measurement of anything
+internal-traffic: testing-excluded-by-query 2000-07-01 the query excludes marked sessions while the filter is in Testing (synthetic)
+
+figure: ga4 read.depth 9 60
+figure: ga4 sessions 20 20
+figure: ga4 reads:piece-a:en 4 6
+figure: ga4 internal-marked-sessions 3 23

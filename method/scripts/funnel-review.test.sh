@@ -59,6 +59,13 @@ ran_out="$(run 2000-02)"
 nc_out="$(run 2000-03)"
 absent_out="$(run 2999-99)"
 first_out="$(run 2000-01)"
+# #181: the internal-traffic states (2000-06 none, 2000-07 testing, 2000-08 active, 2000-09 outside the
+# closed set), the language caveat and the literal lookup (2000-07 against 2000-06). Run here so the
+# no-network arm covers them too.
+none_out="$(run 2000-06)"
+testing_out="$(run 2000-07)"
+active_out="$(run 2000-08)"
+bogus_out="$(run 2000-09)"
 
 # The glob probe's run happens HERE, with the other four, so that the no-network assertion below
 # covers it too — it is the run most likely to reach for something, since it is the only one executed
@@ -212,7 +219,7 @@ fi
 if [ -n "$net_problems" ]; then
   bad "no network — the analysis half reached an external surface" "$net_problems"
 elif [ -s "$work/calls" ]; then
-  ok "no network — five runs, one of them from a foreign working directory, made zero calls to curl/wget/gh/nc/ssh/open/osascript (recorder proven live by a direct invocation)"
+  ok "no network — nine runs, one of them from a foreign working directory, made zero calls to curl/wget/gh/nc/ssh/open/osascript (recorder proven live by a direct invocation)"
 else
   bad "no network — the recorder never records" "the emptiness above proves nothing; this is the vacuity case, not a pass"
 fi
@@ -400,6 +407,107 @@ if printf '%s' "$cwd_out" | grep -qx "commit: $consumer_sha"; then
 else
   bad "default root — the report is not about the working directory's repository" \
       "expected commit $consumer_sha, got: $(printf '%s' "$cwd_out" | grep '^commit:' | head -1)"
+fi
+
+# ── 16 · the prior-period lookup matches surface and metric LITERALLY (#181) ────────────────────────
+# The lookup used to interpolate the metric into a regular expression, so a metric carrying `.` matched
+# a different metric in the prior period and published that metric's value as this one's baseline.
+# 2000-06 measures only `readXdepth`; 2000-07 measures `read.depth`. The CONTROL proves the trap is
+# live: read as a regular expression, the metric does match the prior line.
+lit_ctl="$(grep -cE '^figure:[[:space:]]+ga4[[:space:]]+read.depth[[:space:]]' "$FIXTURES/2000-06.tsv" || true)"
+if [ "$lit_ctl" != "1" ]; then
+  bad "literal lookup — the control does not match, so the probe is not live (control: '$lit_ctl')" \
+      "the fixture no longer carries a metric a regex reading would confuse; this assertion did NOT run"
+elif printf '%s' "$testing_out" | grep 'ga4 · read.depth' | grep -q 'not measured in 2000-06' \
+     && ! printf '%s' "$testing_out" | grep 'ga4 · read.depth' | grep -q 'prior 2000-06 = 7'; then
+  ok "literal lookup — a metric carrying '.' does not take another metric's value as its baseline (regex control proven live)"
+else
+  bad "literal lookup — the baseline of one metric was read from another" \
+      "$(printf '%s' "$testing_out" | grep 'ga4 · read.depth')"
+fi
+
+# ── 17 · a figure qualified by language carries the language caveat, and only such a figure (#181) ──
+# `<metric>:<piece>:<language>` is the qualified spelling. A link pinned to one language sets that
+# value by the link, not by the reader, so the caveat rides on the line, beside the consent ceiling.
+caveat='locale-caveat: a link pinned to one language sets this value by the link, not by the reader'
+cav_problems=""
+printf '%s' "$testing_out" | grep 'ga4 · reads:piece-a:en ' | grep -qF -- "$caveat" \
+  || cav_problems="$cav_problems
+    the language-qualified figure did not carry the caveat"
+printf '%s' "$testing_out" | grep 'ga4 · reads:piece-a:en ' | grep -q 'consent-ceiling:' \
+  || cav_problems="$cav_problems
+    the language-qualified figure lost its consent ceiling"
+printf '%s' "$testing_out" | grep -q 'ga4 · sessions ' \
+  || cav_problems="$cav_problems
+    the unqualified figure was not printed, so its absence of a caveat proves nothing"
+printf '%s' "$testing_out" | grep 'ga4 · sessions ' | grep -q 'locale-caveat:' \
+  && cav_problems="$cav_problems
+    a whole-site, unqualified figure carried the language caveat"
+if [ -z "$cav_problems" ]; then
+  ok "language caveat — present on a <metric>:<piece>:<language> figure, absent on an unqualified one"
+else
+  bad "language caveat — the per-language bound is missing or misplaced:$cav_problems" \
+      "a per-language figure read off a pinned link measures the link, and the line must say so where it is quoted"
+fi
+
+# ── 18 · the internal-traffic state is DECLARED in the header, or the header says it is not (#181) ──
+# Three declared states, an absent line, and a line outside the closed set. Each is read off the
+# report header, i.e. above the RAN/NOT-COLLECTED literal.
+header() { printf '%s\n' "$1" | sed -n '1,/^FUNNEL-REVIEW-/p'; }
+undeclared="internal-traffic: UNDECLARED — figures may include the owner's own sessions"
+it_problems=""
+header "$none_out" | grep -qx 'internal-traffic: none 2000-06-01 no internal-traffic marking exists on the property (synthetic)' \
+  || it_problems="$it_problems
+    the 'none' declaration was not printed verbatim in the header"
+header "$testing_out" | grep -qx 'internal-traffic: testing-excluded-by-query 2000-07-01 the query excludes marked sessions while the filter is in Testing (synthetic)' \
+  || it_problems="$it_problems
+    the 'testing-excluded-by-query' declaration was not printed verbatim in the header"
+header "$active_out" | grep -qx 'internal-traffic: active 2000-08-15 the property'"'"'s data filter excludes marked sessions (synthetic)' \
+  || it_problems="$it_problems
+    the 'active' declaration was not printed verbatim in the header"
+header "$ran_out" | grep -qxF -- "$undeclared" \
+  || it_problems="$it_problems
+    a collection file with no internal-traffic line did not print the UNDECLARED line in the header"
+header "$bogus_out" | grep -qF -- "$undeclared" \
+  || it_problems="$it_problems
+    a state outside the closed set was not reported as UNDECLARED"
+header "$bogus_out" | grep -qx 'internal-traffic: probably-filtered.*' \
+  && it_problems="$it_problems
+    a state outside the closed set was printed as if it were a declaration"
+for o in "$none_out" "$testing_out" "$active_out"; do
+  header "$o" | grep -q 'UNDECLARED' && it_problems="$it_problems
+    a declared state was ALSO reported as UNDECLARED"
+done
+if [ -z "$it_problems" ]; then
+  ok "internal traffic — none, testing-excluded-by-query and active print verbatim in the header; an absent or unknown state prints UNDECLARED"
+else
+  bad "internal traffic — the filter state is assumed rather than declared:$it_problems" \
+      "a figure that may include the owner's own sessions must say so where it is read"
+fi
+
+# ── 19 · the store contract ships with the method, and the rite cites it (#181) ─────────────────────
+contract="$HERE/funnel-review-contract/README.md"
+ct_problems=""
+[ -r "$contract" ] || ct_problems="$ct_problems
+    $contract is missing"
+grep -qF 'method/scripts/funnel-review-contract/README.md' "$CMD" \
+  || ct_problems="$ct_problems
+    the rite does not cite the contract"
+# Spelled in two halves so that AC1's own check, a git grep for the whole string under method/, can
+# return nothing while this arm still looks for it.
+grep -qF 'docs/funnel-review/README''.md' "$CMD" \
+  && ct_problems="$ct_problems
+    the rite still names the consumer store's README as the contract"
+for lit in 'collected:' 'figure:' 'internal-traffic:' 'locale-caveat:' '<metric>:<piece>:<language>' \
+           'testing-excluded-by-query' 'UNDECLARED' '2000-01'; do
+  grep -qF -- "$lit" "$contract" 2>/dev/null || ct_problems="$ct_problems
+    the contract does not declare '$lit'"
+done
+if [ -z "$ct_problems" ]; then
+  ok "contract — method/scripts/funnel-review-contract/README.md declares every line the script reads, and the rite cites it"
+else
+  bad "contract — the parsing contract is missing, incomplete or not cited:$ct_problems" \
+      "a store whose contract lives only in a deprecated repository has no contract an installed rite can read"
 fi
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
