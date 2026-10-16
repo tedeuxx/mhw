@@ -60,6 +60,10 @@ class RiteCadenceTest(unittest.TestCase):
         return subprocess.run([sys.executable, "-B", str(SCRIPT), *args], cwd=cwd or str(self.repo),
                               env=self.env, capture_output=True, text=True)
 
+    def short_head(self):
+        return subprocess.run(["git", "-C", str(self.repo), "rev-parse", "--short", "HEAD"], env=self.env,
+                              check=True, capture_output=True, text=True).stdout.strip()
+
     def assertNever(self, result):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "docs/funnel-review: never landed a file carrying %s\n" % RAN)
@@ -168,15 +172,15 @@ class RiteCadenceTest(unittest.TestCase):
         self.commit("a.md", "plain\n", "2026-08-08")
         self.assertIn("last ran 2026-01-20 (", self.run_script("docs/funnel-review", RAN).stdout)
 
-    def test_the_date_is_the_committer_date_in_iso_form(self):
+    def test_the_date_is_the_author_date_in_iso_form(self):
+        # Author and committer dates differ, so a committer-date reading cannot pass.
         (self.store / "sprint-02.md").write_text("%s\n" % RAN, encoding="utf-8")
         self.git("add", "--", str(self.store / "sprint-02.md"))
-        env = dict(self.env, GIT_AUTHOR_DATE="2026-01-01T12:00:00+00:00",
-                   GIT_COMMITTER_DATE="2026-03-03T12:00:00+00:00")
+        env = dict(self.env, GIT_AUTHOR_DATE="2026-03-03T12:00:00+00:00",
+                   GIT_COMMITTER_DATE="2026-01-01T12:00:00+00:00")
         subprocess.run(["git", "-C", str(self.repo), "commit", "-q", "-m", "ran"], env=env, check=True,
                        capture_output=True)
-        commit = subprocess.run(["git", "-C", str(self.repo), "rev-parse", "--short", "HEAD"],
-                                env=self.env, check=True, capture_output=True, text=True).stdout.strip()
+        commit = self.short_head()
         self.assertEqual(self.run_script("docs/funnel-review", RAN).stdout,
                          "docs/funnel-review: last ran 2026-03-03 (%s), dated by files carrying %s\n"
                          % (commit, RAN))
@@ -184,14 +188,70 @@ class RiteCadenceTest(unittest.TestCase):
                          "docs/funnel-review: last changed 2026-03-03 (%s), no ran-marker declared\n"
                          % commit)
 
+    def test_rewriting_the_commit_later_does_not_move_the_date(self):
+        # An amend (as a rebase or cherry-pick does) keeps the author date and sets a new committer date.
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        env = dict(self.env, GIT_COMMITTER_DATE="2026-09-09T12:00:00+00:00")
+        subprocess.run(["git", "-C", str(self.repo), "commit", "-q", "--amend", "--no-edit"], env=env,
+                       check=True, capture_output=True)
+        self.assertIn("last ran 2026-03-03 (%s)" % self.short_head(),
+                      self.run_script("docs/funnel-review", RAN).stdout)
+
+    def test_a_crlf_to_lf_normalisation_does_not_move_the_date(self):
+        self.commit("sprint-02.md", "# sprint-02\r\n%s\r\nbody\r\n" % RAN, "2026-03-03")
+        self.commit("sprint-02.md", "# sprint-02\n%s\nbody\n" % RAN, "2026-06-06")
+        self.assertIn("last ran 2026-03-03 (", self.run_script("docs/funnel-review", RAN).stdout)
+
+    def test_a_reorder_that_moves_the_marker_line_does_not_move_the_date(self):
+        self.commit("sprint-02.md", "# sprint-02\n%s\n\nfirst\nsecond\n" % RAN, "2026-03-03")
+        self.commit("sprint-02.md", "# sprint-02\n\nfirst\nsecond\n%s\n" % RAN, "2026-06-06")
+        self.assertIn("last ran 2026-03-03 (", self.run_script("docs/funnel-review", RAN).stdout)
+
+    def test_the_latest_date_wins_when_history_order_differs(self):
+        # The newer commit in history carries the older author date, so the first add found is wrong.
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-05-05")
+        self.commit("sprint-03.md", "%s\n" % RAN, "2026-02-02")
+        self.assertIn("last ran 2026-05-05 (", self.run_script("docs/funnel-review", RAN).stdout)
+
+    def test_each_file_of_a_commit_is_counted_on_its_own(self):
+        # One commit removes a marker line from one report (which keeps another) and adds one to a
+        # second report. Summed across files that is zero; per file the second report is a net add.
+        self.commit("sprint-02.md", "%s\nbody\n%s\n" % (RAN, RAN), "2026-03-03")
+        (self.store / "sprint-02.md").write_text("%s\nbody\n" % RAN, encoding="utf-8")
+        (self.store / "sprint-03.md").write_text("%s\n" % RAN, encoding="utf-8")
+        self.git("add", "--", str(self.store))
+        self.git("commit", "-q", "-m", "both", date="2026-06-06")
+        self.assertIn("last ran 2026-06-06 (", self.run_script("docs/funnel-review", RAN).stdout)
+
+    def test_a_withdrawn_marker_restored_only_in_the_working_copy_or_index_is_not_dated(self):
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        self.commit("sprint-02.md", "withdrawn\n", "2026-04-04")
+        self.assertNever(self.run_script("docs/funnel-review", RAN))
+        (self.store / "sprint-02.md").write_text("%s\n" % RAN, encoding="utf-8")
+        self.assertNever(self.run_script("docs/funnel-review", RAN))
+        self.git("add", "--", str(self.store / "sprint-02.md"))
+        self.assertNever(self.run_script("docs/funnel-review", RAN))
+
+    def test_a_committed_marker_deleted_only_in_the_working_copy_is_still_dated(self):
+        self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+        (self.store / "sprint-02.md").write_text("withdrawn\n", encoding="utf-8")
+        self.assertIn("last ran 2026-03-03 (", self.run_script("docs/funnel-review", RAN).stdout)
+        (self.store / "sprint-02.md").unlink()
+        self.assertIn("last ran 2026-03-03 (", self.run_script("docs/funnel-review", RAN).stdout)
+
+    def test_a_repository_with_no_commit_is_never(self):
+        (self.store / "sprint-02.md").write_text("%s\n" % RAN, encoding="utf-8")
+        self.git("add", "--", str(self.store / "sprint-02.md"))
+        self.assertNever(self.run_script("docs/funnel-review", RAN))
+
     @unittest.skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
                      "file modes do not make a file unreadable here")
-    def test_an_unreadable_file_does_not_count(self):
+    def test_an_unreadable_working_copy_does_not_hide_a_committed_run(self):
         self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
         target = self.store / "sprint-02.md"
         target.chmod(0)
         try:
-            self.assertNever(self.run_script("docs/funnel-review", RAN))
+            self.assertIn("last ran 2026-03-03 (", self.run_script("docs/funnel-review", RAN).stdout)
         finally:
             target.chmod(0o600)
 

@@ -6,7 +6,7 @@ Usage: rite-cadence.py [--repo DIR] <root> [marker]
 Session check 3 of agents-configuration reports how long since each rite last ran. Dating the root
 (`git log -1 -- <root>`) also dates scaffolding: a README, or a report saying nothing was collected,
 reads as a run. So when a rite declares a ran-marker (for /funnel-review, FUNNEL-REVIEW-RAN), only
-tracked files under the root that carry the marker as a whole line are dated.
+files under the root whose committed content carries the marker as a whole line are dated.
 
 Prints one line and exits 0:
     <root>: last ran <YYYY-MM-DD> (<short commit>), dated by files carrying <marker>
@@ -14,21 +14,25 @@ Prints one line and exits 0:
     <root>: last changed <YYYY-MM-DD> (<short commit>), no ran-marker declared
     <root>: never changed
 Exits 1 when git fails (not a repository, no git), so a failure never reads as "never".
-Exits 2 on a usage error.
+Exits 2 on a usage error. Every date is the commit's author date.
 
 It reports and fires nothing. It is not a hook and nothing runs it but the session.
 
-Which files count: tracked files under the root whose working copy carries the marker as a whole line
-(a CR ending a CRLF line is ignored). An unreadable file does not count.
+Which files count: files under the root in the commit HEAD names whose committed content (the HEAD
+blob) carries the marker as a whole line (a CR ending a CRLF line is ignored). The working copy and
+the index play no part either way: a marker only there dates nothing, and a committed marker that
+the working copy has deleted still counts. A repository with no commit yet has no such file.
 
-Which commit dates them: the latest commit (by committer date) whose diff ADDED the marker as a whole
-line to one of those files, matched with the same CR-only strip. A later edit that leaves the marker
-line alone, such as the `Ruled:` line /sprint-planning writes into a RAN report, does not move the
-date; nor does a commit that only removes the marker. A report that loses the marker and regains it
-is dated by the commit that regained it: that is the commit that put the current marker line there.
-A marker present only in the working copy, or only staged, dates nothing. Merge commits are not
-read (the commit that authored the line is), renames are not followed (a renamed report is dated by
-the rename), and file names are passed to git literally, so `[ab].md` names that file only.
+Which commit dates them: the latest commit, by author date, that in one of those files ADDS more
+whole-line marker lines than it removes (matched with the same CR-only strip). Author date is kept by
+a rebase, a cherry-pick and an amend, so moving a report's commit does not move its date. A later
+edit that leaves the marker line alone, such as the `Ruled:` line /sprint-planning writes into a RAN
+report, does not move the date; nor does a commit that only removes the marker, nor one that rewrites
+it in place (a CRLF-to-LF normalisation, or a reorder that moves the line: one removed, one added).
+A report that loses the marker and regains it is dated by the commit that regained it: that is the
+commit that put the current marker line there. Merge commits are not read (the commit that authored
+the line is), renames are not followed (a renamed report is dated by the rename), and file names are
+passed to git literally, so `[ab].md` names that file only.
 """
 
 import argparse
@@ -53,22 +57,62 @@ def git(repo, *args):
     return done.stdout
 
 
-def carries(path, marker):
-    """True when one line of the file is exactly the marker (CR of a CRLF line ignored)."""
-    try:
-        with open(path, "rb") as stream:
-            data = stream.read()
-    except OSError:
-        return False
+def carries(data, marker):
+    """True when one line of the content is exactly the marker (CR of a CRLF line ignored)."""
     wanted = marker.encode("utf-8")
     return any(line.rstrip(b"\r") == wanted for line in data.split(b"\n"))
 
 
+def head_exists(repo):
+    """True when HEAD names a commit; False in a repository with no commit yet."""
+    try:
+        git(repo, "rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+    except GitError:
+        return False
+    return True
+
+
+def committed_with_marker(repo, root, marker):
+    """Files under the root whose blob in HEAD carries the marker as a whole line."""
+    if not head_exists(repo):
+        return []
+    listed = git(repo, "--literal-pathspecs", "ls-tree", "-r", "-z", "HEAD", "--", root)
+    entries = []
+    for record in listed.split(b"\0"):
+        if not record:
+            continue
+        meta, _, name = record.partition(b"\t")
+        _mode, kind, oid = meta.split(b" ")
+        if kind == b"blob":
+            entries.append((oid, name.decode("utf-8", "surrogateescape")))
+    if not entries:
+        return []
+    try:
+        done = subprocess.run(["git", "-C", repo, "cat-file", "--batch"], capture_output=True,
+                              input=b"".join(oid + b"\n" for oid, _ in entries))
+    except OSError as error:
+        raise GitError("rite-cadence: git could not run: %s" % error) from error
+    if done.returncode != 0:
+        raise GitError("rite-cadence: git cat-file failed: %s"
+                       % done.stderr.decode("utf-8", "replace").strip())
+    out = done.stdout
+    found = []
+    offset = 0
+    for _oid, name in entries:
+        header_end = out.index(b"\n", offset)
+        size = int(out[offset:header_end].split(b" ")[2])
+        body = out[header_end + 1:header_end + 1 + size]
+        offset = header_end + 1 + size + 1
+        if carries(body, marker):
+            found.append(name)
+    return found
+
+
 def last_commit(repo, paths):
-    """(date, short commit) of the last commit touching any of the paths, or None."""
+    """(author date, short commit) of the last commit touching any of the paths, or None."""
     if not paths:
         return None
-    out = git(repo, "--literal-pathspecs", "log", "-1", "--format=%cs %h", "--", *paths)
+    out = git(repo, "--literal-pathspecs", "log", "-1", "--format=%as %h", "--", *paths)
     out = out.decode("utf-8").strip()
     if not out:
         return None
@@ -77,28 +121,44 @@ def last_commit(repo, paths):
 
 
 def last_marker_commit(repo, paths, marker):
-    """(date, short commit) of the latest commit that added the marker line to one of the paths."""
+    """(date, short commit) of the latest commit, by author date, that adds more marker lines than it
+    removes in one of the paths."""
     if not paths:
         return None
     out = git(repo, "--literal-pathspecs", "log", "-p", "--unified=0", "--no-color", "--no-ext-diff",
-              "--no-textconv", "--no-renames", "--diff-merges=off", "--format=%x00%ct %cs %h",
+              "--no-textconv", "--no-renames", "--diff-merges=off", "--format=%x00%at %as %h",
               "--", *paths)
     wanted = marker.encode("utf-8")
     best = None
     current = None
     in_hunk = False
+    added = removed = 0
+
+    def settle():
+        # One file of one commit is finished: it counts only on a net add.
+        nonlocal best
+        if current is not None and added > removed and (best is None or current[0] > best[0]):
+            best = current
+
     for line in out.split(b"\n"):
         if line.startswith(b"\0"):
+            settle()
             stamp, date, commit = line[1:].decode("utf-8").split(" ")
             current = (int(stamp), date, commit)
             in_hunk = False
+            added = removed = 0
         elif line.startswith(b"diff --git "):
+            settle()
             in_hunk = False
+            added = removed = 0
         elif line.startswith(b"@@"):
             in_hunk = True
-        elif in_hunk and line.startswith(b"+") and line[1:].rstrip(b"\r") == wanted:
-            if current is not None and (best is None or current[0] > best[0]):
-                best = current
+        elif in_hunk and line[:1] in (b"+", b"-") and line[1:].rstrip(b"\r") == wanted:
+            if line.startswith(b"+"):
+                added += 1
+            else:
+                removed += 1
+    settle()
     if best is None:
         return None
     return best[1], best[2]
@@ -114,18 +174,17 @@ def main():
         parser.error("marker must not be empty")
 
     top = git(arguments.repo, "rev-parse", "--show-toplevel").decode("utf-8").strip()
-    listed = git(top, "ls-files", "-z", "--", arguments.root).decode("utf-8")
-    files = [name for name in listed.split("\0") if name]
 
     if arguments.marker is None:
-        found = last_commit(top, files)
+        listed = git(top, "ls-files", "-z", "--", arguments.root).decode("utf-8")
+        found = last_commit(top, [name for name in listed.split("\0") if name])
         if found:
             print("%s: last changed %s (%s), no ran-marker declared" % (arguments.root, found[0], found[1]))
         else:
             print("%s: never changed" % arguments.root)
         return
 
-    files = [name for name in files if carries(top + "/" + name, arguments.marker)]
+    files = committed_with_marker(top, arguments.root, arguments.marker)
     found = last_marker_commit(top, files, arguments.marker)
     if found:
         print("%s: last ran %s (%s), dated by files carrying %s"
