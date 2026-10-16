@@ -405,8 +405,12 @@ grep -nE '^(Candidate rule|Evidence|Ruled):' docs/funnel-review/*.md
 
 A separate queue file would be a second copy of each candidate. Nothing would keep the copy
 aligned with the report, which is the drift this repository keeps paying for. **At the time of
-writing that command prints nothing.** Both reports in the store are `FUNNEL-REVIEW-NOT-COLLECTED`,
-so no candidate has ever been proposed. The zero is real, not a dead pattern:
+writing that command prints nothing.** ~~Both reports in the store are `FUNNEL-REVIEW-NOT-COLLECTED`,
+so no candidate has ever been proposed.~~ *(Struck 2026-10-16, #128: the store gained a RAN report.)*
+As of 2026-10-10 the plugin's store held three reports: two `FUNNEL-REVIEW-NOT-COLLECTED` (sprint-02,
+sprint-04) and one `FUNNEL-REVIEW-RAN` (sprint-05) with no `Candidate rule:` line, so that command
+still printed nothing there. As of 2026-10-16 the consuming repository's `main` holds no file under
+`docs/funnel-review/`, so its store has not run. The zero is real, not a dead pattern:
 the `candidate queue` arms of `scripts/funnel-review.test.sh` append a column-0 candidate to a report
 the script wrote and assert the selector finds it.
 
