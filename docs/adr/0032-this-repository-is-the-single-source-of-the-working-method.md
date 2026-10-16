@@ -471,7 +471,10 @@ writes against.
   unchanged below it. A document no body names stays source-only: `method/scripts/worklog-contract/`,
   whose only reader is a test in the source tree, is not installed.
 - **Any other name still stops the render**, with nothing written: a name matching neither a script nor
-  a named document, a deeper path, a hidden directory, a symbolic link, or a `..` segment.
+  a named document, a deeper path, a hidden directory, a `..` segment, or a document that is a symbolic
+  link or sits in a directory that is one. Such a document is not loaded, so the body naming it fails
+  as naming no file; the parent directory is checked because the `*/*.md` glob follows a symlinked
+  directory.
 - **Uninstall and `--mode=check` STALE detection see the document** (`candidate_files` reads
   `<scripts>/*/*.md`), and touch only files carrying this method's managed-by line. An emptied
   document directory is pruned on uninstall.
@@ -503,8 +506,11 @@ contract is installed, or when a rendered carrier names a path that does not exi
 `global/method/method_commands_test.py` checks every rendered path into the scripts directory, one
 directory deep included. Mutations of `method_render.py` (no document emitted, no `*/*.md` in
 `candidate_files`, an unstamped document, every document installed) each turned a suite red and
-recovered on restore. Nothing asserts the document's mode: making it `0700` left every suite green,
-so *non-executable* is measured (`-rw-r--r--` in a throwaway home), not tested. Not run on Windows.
+recovered on restore. `test_the_installed_document_is_not_executable` fails when the installed
+document carries any execute bit (calibrated by chmodding documents `0700` in the source), and
+`test_a_document_through_a_symbolic_link_stops_the_render` fails when a named document that is a
+symbolic link, or sits in a symlinked directory, is installed (calibrated by removing each of the two
+checks in `load_documents`, one at a time; each turned only its own case red). Not run on Windows.
 Nothing is installed on the reference machine.
 
 ## Links

@@ -599,6 +599,33 @@ class Render(unittest.TestCase):
                  and p.suffix in (".md", ".sh", ".py", ".tsv") and old in p.read_text(encoding="utf-8")]
         self.assertEqual(named, [], "a method file still names the consumer store's README as the contract")
 
+    def test_the_installed_document_is_not_executable(self):
+        # ADR-0032, amendment 2026-10-16: the 0700 chmod stays scoped to scripts.
+        installed = self.h.p(SCRIPTS_DIR) / "funnel-review-contract" / "README.md"
+        self.assertEqual(installed.stat().st_mode & 0o111, 0, oct(installed.stat().st_mode))
+
+    def test_a_document_through_a_symbolic_link_stops_the_render(self):
+        # ADR-0032, amendment 2026-10-16: a named document that is a symbolic link, or sits in a symlinked
+        # directory, is not loaded, so the body naming it stops the render with nothing written.
+        outside = Path(tempfile.mkdtemp(prefix="outside-", dir=BASE))
+        (outside / "README.md").write_text("# outside\n", encoding="utf-8")
+        for case in ("file", "directory"):
+            h = Home()
+            src = Path(tempfile.mkdtemp(prefix="link-source-", dir=BASE)) / "method"
+            shutil.copytree(SOURCE, src)
+            if case == "file":
+                (src / "scripts" / "linked").mkdir()
+                (src / "scripts" / "linked" / "README.md").symlink_to(outside / "README.md")
+            else:
+                (src / "scripts" / "linked").symlink_to(outside, target_is_directory=True)
+            rite = src / "commands" / "funnel-review.md"
+            rite.write_text(rite.read_text(encoding="utf-8") + "\nSee `{{method-scripts}}/linked/README.md`.\n",
+                            encoding="utf-8")
+            code, out = h.run("--mode=install", "--source=%s" % src)
+            self.assertEqual(code, 2, (case, out))
+            self.assertIn("linked/README.md names no file", out, case)
+            self.assertEqual([p for p in h.root.rglob("*") if p.is_file()], [], case)
+
     def test_a_source_agent_without_tools_is_refused(self):
         h = Home()
         src = Path(tempfile.mkdtemp(prefix="bad-source-", dir=BASE)) / "method"

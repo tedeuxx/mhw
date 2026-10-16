@@ -191,13 +191,16 @@ def load_scripts(source):
 
 def load_documents(source):
     """name -> text for the Markdown documents one directory down: method/scripts/<dir>/<name>.md.
-    Only the ones a rendered body names are installed (targets)."""
+    Only the ones a rendered body names are installed (targets). A document that is a symbolic link, or
+    sits in a directory that is one, is not loaded, so a body naming it stops the render (glob follows a
+    symlinked directory, so the parent is checked too)."""
     documents = {}
     base = source / "scripts"
     if base.is_dir():
         for path in sorted(base.glob("*/*.md")):
             name = path.relative_to(base).as_posix()
-            if path.is_file() and not path.is_symlink() and DOCUMENT_NAME_RE.fullmatch(name):
+            if (path.is_file() and not path.is_symlink() and not path.parent.is_symlink()
+                    and DOCUMENT_NAME_RE.fullmatch(name)):
                 documents[name] = path.read_text(encoding="utf-8")
     return documents
 
