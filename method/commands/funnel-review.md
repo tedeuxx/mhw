@@ -60,7 +60,7 @@ ceiling that bounds it, or it is printed as unusable and not as a figure.
 > deveria ser feita no momento da sprint retrospective acho.»*
 
 So this rite runs **at the moment `/sprint-retrospective` runs**, and the iteration length he named is
-**one week**. It declares no interval of its own~~, and `docs/loop-cadence.md` carries no per-rite
+**one week**. It declares no interval of its own ~~, and `docs/loop-cadence.md` carries no per-rite
 interval field~~ — a second interval axis with one member would be a configuration surface with no
 reader. *(Struck 2026-10-16, #128: that record was the plugin's; this method ships none, and nothing
 here declares an interval for any rite.)*
