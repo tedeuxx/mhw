@@ -147,7 +147,7 @@ def file_diffs(out):
     commit = None
     lines = []
     for line in out.split(b"\n"):
-        if line.startswith(b"\0") or line.startswith(b"diff --git "):
+        if line.startswith((b"\0", b"diff --git ")):
             if commit is not None:
                 yield commit, lines
             lines = []
