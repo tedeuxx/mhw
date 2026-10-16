@@ -60,9 +60,10 @@ ceiling that bounds it, or it is printed as unusable and not as a figure.
 > deveria ser feita no momento da sprint retrospective acho.»*
 
 So this rite runs **at the moment `/sprint-retrospective` runs**, and the iteration length he named is
-**one week**. It declares no interval of its own, and `docs/loop-cadence.md` carries no per-rite
-interval field — a second interval axis with one member would be a configuration surface with no
-reader.
+**one week**. It declares no interval of its own~~, and `docs/loop-cadence.md` carries no per-rite
+interval field~~ — a second interval axis with one member would be a configuration surface with no
+reader. *(Struck 2026-10-16, #128: that record was the plugin's; this method ships none, and nothing
+here declares an interval for any rite.)*
 
 **It is a fourth rite, not a fourth step of the retrospective.** The retrospective consults each
 persona that ran, in isolation, about the **method**; this reads the **audience**. Neither finds the
@@ -78,21 +79,29 @@ that under the lighter mode no rite runs at a boundary at all, so the anchor wou
 something that does not currently happen. That is a decision about the mode, not about this rite, and
 nothing here resolves it.
 
-**The clock carrier NOTICES this rite and cannot fire it.** `docs/loop-cadence.md` carries
-~~`cadence-rite: docs/funnel-review /funnel-review here`, so `hooks/scripts/cadence-notice.sh` — a
-`SessionStart` hook — reports how long since a report last landed in the store.~~
-`cadence-rite: docs/funnel-review /funnel-review here FUNNEL-REVIEW-RAN`, so
-`hooks/scripts/cadence-notice.sh` — a `SessionStart` hook — reports how long since a report carrying
-`FUNNEL-REVIEW-RAN` last landed in the store. **Struck and narrowed at #473, because the struck form
-was false in the direction that hides absence:** the carrier dated the newest commit under the root,
-so a README and two reports that each say `FUNNEL-REVIEW-NOT-COLLECTED` were reported as this rite's
-freshness while it had never read the funnel once. It now dates **only a tracked file carrying the
-marker as a whole line** — *ran and found nothing* counts, *never read anything* does not — and until
-one lands the notice says *"has NEVER landed a file carrying FUNNEL-REVIEW-RAN"*. The mechanism is
-`docs/loop-cadence.md`'s *optional FOURTH token*. **Noticing is not firing: a hook cannot dispatch.**
-And no interval is decided anywhere — the record ships with
-`cadence-interval-days` undeclared and the carrier refuses to conclude rather than defaulting, which
-stays true until the owner declares one.
+**The clock NOTICES this rite and cannot fire it.** ~~`docs/loop-cadence.md` carries~~
+~~`cadence-rite: docs/funnel-review /funnel-review here`, so `hooks/scripts/cadence-notice.sh` — a~~
+~~`SessionStart` hook — reports how long since a report last landed in the store.~~
+~~`cadence-rite: docs/funnel-review /funnel-review here FUNNEL-REVIEW-RAN`, so~~
+~~`hooks/scripts/cadence-notice.sh` — a `SessionStart` hook — reports how long since a report carrying~~
+~~`FUNNEL-REVIEW-RAN` last landed in the store.~~ *(Both forms are the plugin's. The first was struck
+there at #473 because it dated the newest commit under the root, so a README and two reports that
+each say `FUNNEL-REVIEW-NOT-COLLECTED` read as this rite's freshness while it had never read the
+funnel once. The second is struck here, 2026-10-16, #128: this method ships neither that record nor
+that hook, and registers no hook at all.)*
+
+**In this method the clock is session check 3** in `agents-configuration`, *Session-start and
+end-of-turn checks*. It is an instruction the session follows, not a hook. The check runs
+`python3 {{method-scripts}}/rite-cadence.py --repo <repo> docs/funnel-review FUNNEL-REVIEW-RAN`, which
+considers only the files under the store whose committed content at `HEAD` carries
+`FUNNEL-REVIEW-RAN` as a whole line, and dates them by the author date of the latest commit that added
+more of those lines to one of them than it removed. It prints
+`docs/funnel-review: last ran <date> (<commit>), dated by files carrying FUNNEL-REVIEW-RAN`, or
+`docs/funnel-review: never landed a file carrying FUNNEL-REVIEW-RAN` while there is none, and it exits
+1 on a git failure, so a failure does not read as *never*. So *ran and found nothing* counts, and a
+README or a `FUNNEL-REVIEW-NOT-COLLECTED` report does not. **Noticing is not firing:** the check
+reports and dispatches nothing, and it runs only when a session runs it. It decides no interval
+either: it prints a date, and nothing in this method says how old is too old.
 
 ## The route is the owner's own authenticated browser — and there is no credential
 
@@ -101,10 +110,20 @@ stays true until the owner declares one.
 > *«hoje o chrome do host esta autenticado. o claude in chrome consegue acessar.»*
 
 He was offered two routes — an attended fetch he drives by hand, or a read credential held by the
-harness — and took neither. **The harness holds no credential of its own and will not.** Claude in
+harness — and took neither. **The harness holds no credential of its own and will not.** ~~Claude in
 Chrome drives a session that is already authenticated as him; nothing is stored and nothing is
-granted to this plugin. The examination a harness-held credential would have owed is therefore **not
-owed**, because there is no credential surface to examine.
+granted to this plugin.~~ The host's authenticated-browser capability drives a browser session that
+is already authenticated as him; nothing is stored and nothing is granted to this method. The
+examination a harness-held credential would have owed is therefore **not owed**, because there is no
+credential surface to examine.
+
+**The route is a capability, not a product.** His 2026-09-10 sentence names the carrier of the host
+he was on. His ruling of 2026-09-30
+([#128](https://github.com/tedeuxx/mhw/issues/128#issuecomment-6099743451)) makes browser collection
+a capability requirement that each supported host resolves through its own native carrier, with
+evidence at the real runtime boundary. Where a host does not carry it yet, the gap is stated and the
+rite records its honest state on that host; the procedure does not send the work to another host.
+Step 0 states, per host, what is established.
 
 **Two consequences, and the second is this rite's sharpest property.**
 
@@ -122,67 +141,71 @@ owed**, because there is no credential surface to examine.
    `scripts/funnel-review.test.sh` runs both branches in one pass and asserts each prints its own
    literal and **not** the other's.
 
-## The containment is STATED, not implied — measured, at head
+## The containment is STATED, not implied — ~~measured, at head~~ at this method's real level
 
-**No hook in this plugin observes the browser route.** Every registered hook sits on one of three
-explicit matchers or on an unfiltered event, and a browser-extension act is none of them:
+~~**No hook in this plugin observes the browser route.** Every registered hook sits on one of three
+explicit matchers or on an unfiltered event, and a browser-extension act is none of them.~~ *(Struck
+2026-10-16, #128. It was measured over the plugin's hook registry, which this method does not ship.
+The three command blocks that measured it are removed rather than struck, because a fenced command
+cannot carry a strike and would read as one to run here; they are in the plugin's
+`commands/funnel-review.md` at `4882b911`, this text's source. The plugin's `mcp-guard.sh`
+measurement that followed them is struck below.)*
 
-```
-jq -r '[.hooks|to_entries[]|.value[]|.matcher // "none"]|unique|join(" ")' hooks/hooks.json
-# -> AskUserQuestion Bash mcp__.* none
-
-jq -r '[.hooks|to_entries[]|.value[]|.hooks[]|.command]|length' hooks/hooks.json          # -> 16
-jq -r '[.hooks|to_entries[]|.value[]|.hooks[]|.command]|unique|length' hooks/hooks.json   # -> 15
-```
-
-**Both figures are true and they answer different questions** — 16 registrations across 15 distinct
-scripts, because `preflight.sh` is registered twice. Publish whichever you mean, with its selector.
-
-**And no registered hook reaches an external surface of its own:**
-
-```
-jq -r '.hooks|to_entries[]|.value[]|.hooks[]|.command' hooks/hooks.json \
-  | sed 's|.*/hooks/scripts/|hooks/scripts/|; s|"$||' | sort -u \
-  | xargs grep -nE '(^|[^[:alnum:]_])(curl|wget|nc)[[:space:]]' | grep -vE ':[0-9]+:[[:space:]]*#'
-# -> no output
-
-# CALIBRATION — the same pipeline, a token that IS present in those files:
-jq -r '.hooks|to_entries[]|.value[]|.hooks[]|.command' hooks/hooks.json \
-  | sed 's|.*/hooks/scripts/|hooks/scripts/|; s|"$||' | sort -u \
-  | xargs grep -lE '(^|[^[:alnum:]_])gh[[:space:]]' | wc -l
-# -> 11
-```
+**No hook observes the browser route, because this method registers no hook.** The workstation's
+rule is hooks only for existential risk, and the method's tree carries no hook registry:
+`git ls-files | grep -c hooks.json` prints `0` in the method's source repository. What the
+workstation does install is the deny floor, and it is not a browser control: its rules are shell
+command patterns and credential file paths (the `cmd`, `glob` and `file` lines of
+`global/deny-floor.conf` there). A browser act is neither a shell command nor a file access, so no
+floor rule names it.
 
 **So reads and writes travel the same ungated road**, and that is a fact this rite carries rather
 than a boundary it implies. Nothing verifies that the rite ran, nothing verifies what it read, and
 nothing would notice a fabricated collection file.
 
-**What IS mechanical, and it is a different surface entirely.** The only browser a *dispatched
+~~**What IS mechanical, and it is a different surface entirely.** The only browser a *dispatched
 persona* can reach in this plugin is `product-lead`'s read-only `chrome-devtools` subset, and
 `hooks/scripts/mcp-guard.sh` denies it to every other persona by default — measured, same payload
 shape, only the `agent_type` varying: `product-lead` + `navigate_page` draws no decision, and
-`quality-assurance` + the same tool comes back denied with *"holds no MCP grant"*. That guard is
-**not** what contains this rite's route; it contains a different one, and saying so is the point.
+`quality-assurance` + the same tool comes back denied with *"holds no MCP grant"*.~~ *(Struck
+2026-10-16, #128: that guard is the plugin's and does not run here.)*
+
+**What limits a different surface, and it is each agent's own tool list.** `product-lead` is the
+only agent whose `tools:` line names the shipped `chrome-devtools` server (`grep -n '^tools:'
+agents/*.md` in the method), and its brief records that the input-carrying tools are excluded
+natively in Claude Code and Kiro and by instruction in Codex. That list limits the shipped server;
+it is **not** what contains this rite's route, which is the host's authenticated browser, and the
+root session that usually holds that browser is bound by no agent's tool list.
 
 ## The steps
 
 ### 0 · Before anything is dispatched — is the owner's authenticated browser reachable on THIS host? (#473)
 
-**Every record this store holds is `FUNNEL-REVIEW-NOT-COLLECTED`, and both times the rite learned the
-browser was missing only after its driver had been dispatched** (`docs/funnel-review/sprint-02.md`,
+**~~Every record this store holds is~~ The plugin's store held two records before 2026-10-10, both
+`FUNNEL-REVIEW-NOT-COLLECTED`, and both times the rite learned the browser was missing only after its
+driver had been dispatched** (`docs/funnel-review/sprint-02.md`,
 `docs/funnel-review/sprint-04.md`; the sprint-03+04 retrospective's `product-lead` finding 2, carried
 onto #473 and incorporated by the owner — *«pode incorpora-los e estima-los»*, 2026-09-24). So the
 context that is about to run this rite checks the route **first**, and a dispatch that can only write
 the not-collected literal is not made.
 
-**Stated per host, because the route is a property of the host and not of this rite.** *"Claude in
-Chrome"* is one host's name for it; it does not exist on the other.
+**Stated per host, because the route is a property of the host and not of this rite.** ~~*"Claude in
+Chrome"* is one host's name for it; it does not exist on the other.~~ Each host carries the
+capability through its own native carrier, or does not carry it yet; *"Claude in Chrome"* is Claude
+Code's carrier and names nothing on another host. No row below is a substitute for another: when the
+route is not reachable on this host, the picker below is asked on this host.
 
 | host | the route | the check, and how settled it is |
 |---|---|---|
-| **Claude Code** | the Claude in Chrome extension, driven by the session that holds it | one read-only call to the extension. **Measured failure form:** *"Browser extension is not connected"* — the exact text `docs/funnel-review/collected/sprint-04.tsv` records |
-| **Codex** | **not established.** Its extension browser drove the production site for the sprint-03 sweep (`-io` `docs/iteration-sweep/sprint-03.md`), unauthenticated; whether that browser carries the owner's analytics login is **unmeasured** | none that can pass today — treat the route as **not reachable** until one attempt reads an analytics surface and says so |
-| **any other host** | unmeasured | treat as not reachable |
+| **Claude Code** | the Claude in Chrome extension, driven by the session that holds it | one read-only call to the extension. **Measured failure form:** *"Browser extension is not connected"* — the exact text the plugin's store records in `docs/funnel-review/collected/sprint-04.tsv`. **One collection file declares a read** from the root session through this extension: the plugin's store, `collected/sprint-05.tsv`, reported as `FUNNEL-REVIEW-RAN` in `docs/funnel-review/sprint-05.md`, committed 2026-10-10. No collection file in that store declares a dispatched persona as its collector |
+| **Codex** | its native Chrome carrier. The probe of 2026-09-30 ([#128, probe](https://github.com/tedeuxx/mhw/issues/128#issuecomment-6099743491); [#128, correction](https://github.com/tedeuxx/mhw/issues/128#issuecomment-6099743514)), from the **root session**: carrier reachable, **observed**; the authenticated analytics tab discovered, **observed**; its content read, **not observed** (each bounded read timed out). From a **dispatched persona**: **not observed**, per the correction, which supersedes the probe's dispatched-persona lines | none that has passed — treat the route as **not reachable** until one attempt reads an analytics surface's content and says so. The probe proves only its bounded failures, not that the page is unreadable from Codex; the probe records that a clean attempt must let the collector own the tab first |
+| **Kiro** | not measured | treat as not reachable |
+| **any other host** | not measured | treat as not reachable |
+
+~~**Codex** · **not established.** Its extension browser drove the production site for the sprint-03
+sweep (`-io` `docs/iteration-sweep/sprint-03.md`), unauthenticated; whether that browser carries the
+owner's analytics login is **unmeasured**.~~ *(The Codex row before 2026-10-16, #128. The 2026-09-30
+probe replaced its last clause; the sweep clause is not re-verified here.)*
 
 **The shipped `chrome-devtools` server is NOT this route on any host**, and must not be tried as a
 fallback: it holds no authenticated session to any analytics or post-metrics surface (the sprint-04
@@ -227,8 +250,9 @@ Each option states its consequence, and that consequence is the whole preamble:*
   carries.
 
 **What this check does NOT establish, said so it is not over-read.** It proves reachability for the
-context that ran it — the one holding the extension. **Whether a dispatched subagent can drive that
-extension is still unmeasured**, which is why step 1 below says collection happens wherever the
+context that ran it — the one holding ~~the extension~~ the host's browser route. **Whether a
+dispatched subagent can drive that route is still ~~unmeasured~~ not established on any host** (per the
+correction cited in the table, the traced Codex dispatch made no browser call), which is why step 1 below says collection happens wherever the
 browser is reachable rather than *"in the driver"*. One attempt with the extension connected would
 settle it; this slice did not have one.
 
@@ -282,8 +306,8 @@ include the owner's own sessions. By the state of the property's internal-traffi
 honest output of a step that could not run, and it is what makes the not-collected literal reachable.
 Do not guess a number, do not carry one forward from the prior period, and do not omit the file.
 
-**Whether a dispatched subagent can drive the Claude in Chrome extension at all is UNMEASURED — that
-is a hypothesis, in those words**, and this rite is shaped so the answer does not matter: collection
+**Whether a dispatched subagent can drive ~~the Claude in Chrome extension~~ the host's authenticated
+browser at all is UNMEASURED — that is a hypothesis, in those words**, and this rite is shaped so the answer does not matter: collection
 happens wherever the authenticated browser is reachable, and every step after it needs no browser.
 What would settle it is one dispatch attempting the act and reporting what came back.
 
@@ -393,10 +417,15 @@ he names. The `published-voice` edit then goes through the normal lane like any 
 ruler.
 
 Nothing here files an Issue and nothing here changes anything. **Only the owner opens work** — and
-this is already mechanical rather than promised: `hooks/scripts/permission-guard.sh`, registered on
-`PreToolUse` against the `Bash` matcher, denies `gh issue create` to every subagent but `developer`
-(rule 5c), and denies this rite's driver three subcommands by name (rule 5e). Read that as three subcommands, not as *"every public surface"*: `gh pr create`, `gh pr edit`
-and a `git push` are untouched by it.
+~~this is already mechanical rather than promised: `hooks/scripts/permission-guard.sh`, registered on~~
+~~`PreToolUse` against the `Bash` matcher, denies `gh issue create` to every subagent but `developer`~~
+~~(rule 5c), and denies this rite's driver three subcommands by name (rule 5e). Read that as three subcommands, not as *"every public surface"*: `gh pr create`, `gh pr edit`~~
+~~and a `git push` are untouched by it.~~ *(Struck 2026-10-16, #128: that guard is the plugin's and
+does not run here.)* In this method it is an **instruction**, the one `agents-configuration` states
+under *Review does not open work*: a dispatched agent other than `developer` does not run
+`gh issue create`. No method layer holds it. The deny floor carries no `gh issue` prefix, and an agent's
+tool list cannot split `Bash` by subcommand, so nothing in this rite's driver's tool list, which
+grants `Bash`, keeps it from the command; it is told not to run it.
 
 ## The questions this rite answers — the corpus, and what it costs
 
@@ -424,8 +453,8 @@ refuses to print a figure that arrived without one.
 ## What nothing enforces, said before any green is read
 
 - **Nothing fires this.** `/sprint-retrospective` names the moment; that is an instruction in a
-  command file. The clock carrier reports that the artifact is stale, one session late, and **cannot
-  dispatch** — noticing is not firing, and the two words must not be collapsed.
+  command file. ~~The clock carrier reports that the artifact is stale, one session late~~ Session
+  check 3 reports when the rite last ran, when a session runs the check, and **cannot dispatch** — noticing is not firing, and the two words must not be collapsed.
 - **Nothing observes that it ran, or that it read anything.** A collection file asserting
   `collected: yes` with invented numbers produces a byte-identical run to one read off a live
   console. Nothing in this harness can tell them apart, and no layer could: the browser act reaches
@@ -459,13 +488,20 @@ refuses to print a figure that arrived without one.
   Testing, the count of marked sessions says how much the exclusion removed. Once it is Active the
   property no longer keeps those sessions, so nothing can be counted, and from then on there is no
   figure that shows the exclusion is working.
-- **`hooks/scripts/inventory-counts.test.sh` asserts this file's rules are WRITTEN.** It cannot
-  assert that a session obeyed any of them, and no arm anywhere claims otherwise.
+- ~~**`hooks/scripts/inventory-counts.test.sh` asserts this file's rules are WRITTEN.** It cannot~~
+  ~~assert that a session obeyed any of them, and no arm anywhere claims otherwise.~~ *(Struck
+  2026-10-16, #128: that suite is the plugin's.)* **What reads this file's text in the method's source
+  repository is narrow, and it reads strings.** `global/method/method_commands_test.py` asserts that
+  it carries the headings `## The steps` and `## What this rite cannot see`. `scripts/funnel-review.test.sh`
+  asserts that it carries no verdict literal and no decision field, that it publishes the
+  candidate-queue selector verbatim, and that it cites the store contract. Other suites there check
+  every method file for pointers, mentions and rendering. None asserts that a session obeyed any rule
+  here.
 
 **By this loop's own test — *would something stop me, or only my memory?* — this rite is an
 instruction.** What it changes is that the analysis is repeatable, the baseline has a home, and the
-two states that used to look identical now print different strings — and, since #473, that the clock
-counts only the second of them, and that a finding has a written shape by which it can reach the
+two states that used to look identical now print different strings — and, since #473 in the plugin
+and #128 here, that the clock counts only the second of them, and that a finding has a written shape by which it can reach the
 owner as a candidate rule.
 
 ## What this rite cannot see
