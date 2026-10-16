@@ -63,8 +63,9 @@ writes a `content` item's acceptance criteria) and the `orchestration` skill (wh
 loads before it puts anything to the owner).** The rule above already said *not a rendered artifact*,
 and the route recurred anyway: on a correction to a published article an intake named an Artifact in an
 acceptance criterion as the surface of his read, a writer carried that criterion into the merge
-request, and the main session built and linked one. None of the three loaded this file. The rule was right and out
-of reach, so it is now in each surface those actors read, in one wording, so that a drift is found by
+request, and the main session built and linked one. The intake and the main session do not load this file; the
+writer does, and followed the criterion over it. The rule was right, out of reach for two of the three and
+outranked by the criterion for the third, so it is now in each surface those actors read, in one wording, so that a drift is found by
 `diff` rather than by judgement:
 
 The owner reads a piece in the application's preview mode before it publishes: a new piece at its held preview, a correction to a published piece as a pending revision at the piece's own URL. Never a Claude Artifact, a paste, a file or a screenshot. Where the preview mode cannot render the case, say so to the owner and stop: nothing goes live, and the change waits. This governs his read of a publication only, not an Artifact he asked for elsewhere, such as a closing-rite report.
