@@ -1644,7 +1644,9 @@ below were hooks that reported; they are now steps you run yourself.** By this l
    `FUNNEL-REVIEW-NOT-COLLECTED` report is not a run. Run
    `python3 {{method-scripts}}/rite-cadence.py --repo <repo> <root> <marker>`: it prints
    `<root>: last ran <date> (<commit>)`, or `<root>: never landed a file carrying <marker>`, and exits 1
-   when git fails, so a failure never reads as *never*. For a rite that declares no marker, omit it:
+   on a git error or when `HEAD` names no readable commit (a dangling or malformed branch ref), so
+   those do not read as *never*; only a branch with no commit yet does (measured on git 2.52.0 only).
+   For a rite that declares no marker, omit it:
    the root is dated as the struck command dated it, by the committer date of the newest commit that
    touched a path under it (a deletion included), except that the root is read as a literal path, never
    as a pattern. Only the ran-marker path reads the author date. Report it; it fires nothing, and

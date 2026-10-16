@@ -273,6 +273,52 @@ class RiteCadenceTest(unittest.TestCase):
             self.assertEqual(result.stdout, "", args)
             self.assertEqual(result.stderr, "rite-cadence: HEAD names no readable commit\n", args)
 
+    def test_a_malformed_branch_ref_is_a_git_failure_and_an_orphan_branch_is_never(self):
+        # A malformed ref fails `rev-parse --verify HEAD` exactly as an unborn HEAD does; only the
+        # unborn case may read as "never". Measured on git 2.52.0.
+        def loose(text):
+            def mutate(ref):
+                (self.repo / ".git" / ref).write_text(text, encoding="utf-8")
+            return mutate
+
+        def packed(extra, main_line=None):
+            def mutate(ref):
+                self.git("pack-refs", "--all")
+                packed_refs = self.repo / ".git" / "packed-refs"
+                self.assertFalse((self.repo / ".git" / ref).exists(), "the ref must be packed only")
+                text = packed_refs.read_text(encoding="utf-8")
+                if main_line is not None:
+                    text = "# pack-refs with: peeled fully-peeled sorted \n%s %s\n" % (main_line, ref)
+                packed_refs.write_text(text + extra, encoding="utf-8")
+            return mutate
+
+        def orphan(ref):
+            self.git("checkout", "-q", "--orphan", "other")
+
+        cases = [("empty loose ref", loose(""), 1), ("loose ref zzz", loose("zzz\n"), 1),
+                 ("garbage packed-refs line", packed("garbage line\n"), 1),
+                 ("packed branch ref zzz", packed("", main_line="zzz"), 1),
+                 ("orphan branch", orphan, 0)]
+        for name, mutate, code in cases:
+            with self.subTest(name):
+                self.tearDown()
+                self.setUp()
+                self.commit("sprint-02.md", "%s\n" % RAN, "2026-03-03")
+                ref = subprocess.run(["git", "-C", str(self.repo), "symbolic-ref", "HEAD"], env=self.env,
+                                     check=True, capture_output=True, text=True).stdout.strip()
+                mutate(ref)
+                for args in (("docs/funnel-review", RAN), ("docs/funnel-review",)):
+                    result = self.run_script(*args)
+                    self.assertEqual(result.returncode, code, (name, args, result.stdout, result.stderr))
+                    if code:
+                        self.assertEqual(result.stdout, "", (name, args))
+                        self.assertEqual(result.stderr, "rite-cadence: HEAD names no readable commit\n",
+                                         (name, args))
+                    elif len(args) == 2:
+                        self.assertNever(result)
+                    else:
+                        self.assertEqual(result.stdout, "docs/funnel-review: never changed\n", result.stderr)
+
     @unittest.skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
                      "file modes do not make a file unreadable here")
     def test_an_unreadable_working_copy_does_not_hide_a_committed_run(self):

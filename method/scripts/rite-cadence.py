@@ -13,8 +13,9 @@ Prints one line and exits 0:
     <root>: never landed a file carrying <marker>
     <root>: last changed <YYYY-MM-DD> (<short commit>), no ran-marker declared
     <root>: never changed
-Exits 1 when git fails (not a repository, no git, an object missing from the store), so a failure
-never reads as "never". Exits 2 on a usage error: an unknown option, an empty marker, or a root that
+Exits 1 when git fails (not a repository, no git, an object missing from the store) or HEAD names no
+readable commit (a dangling or malformed branch ref), so those failures do not read as "never"; only
+an unborn HEAD (a branch with no commit yet) reads as "never". Exits 2 on a usage error: an unknown option, an empty marker, or a root that
 is empty, absolute or outside the repository. A value beginning with '-' is an unknown option unless
 it follows `--`, where it is a literal path or marker like any other.
 
@@ -82,13 +83,21 @@ def git(cwd, *args, data=None):
 def head_exists(top):
     """True when HEAD names a commit; False when HEAD is unborn (no commit yet).
 
-    Only an unborn HEAD reads as "no commit": `rev-parse --verify HEAD` fails there and nowhere
-    else. A HEAD that names an object the store cannot read as a commit (a dangling ref) is a git
-    failure, raised, so it exits 1 rather than reading as "never".
+    "No commit" needs two signals: `rev-parse --verify HEAD` fails AND `symbolic-ref -q HEAD`
+    still resolves HEAD to a branch name. The first also fails on a malformed branch ref (an empty
+    loose ref file, a loose or packed ref holding text that is no object id, a garbage line in
+    packed-refs); there `symbolic-ref` fails too, so that is raised as a git failure. A HEAD that
+    names an object the store cannot read as a commit (a dangling ref, a tree, a blob) is raised as
+    well. Both exit 1 rather than reading as "never". Measured on git 2.52.0 only: other git builds,
+    Windows and reftable repositories are not measured.
     """
     try:
         git(top, "rev-parse", "--verify", "--quiet", "HEAD")
     except GitError:
+        try:
+            git(top, "symbolic-ref", "-q", "HEAD")
+        except GitError as error:
+            raise GitError("rite-cadence: HEAD names no readable commit") from error
         return False
     try:
         git(top, "rev-parse", "--verify", "--quiet", "HEAD^{commit}")
