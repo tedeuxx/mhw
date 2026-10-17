@@ -211,6 +211,30 @@ Accepting the decision does not change the evidence levels above. ~~They stay as
 records a measurement against them.~~ They come from the canary of 2026-10-15, recorded separately on
 Issue #174, not from the ratification.
 
+## Amendment 2026-10-17: a dedicated workspace for a local admin origin
+
+The owner needed the browser on a device's admin page on his private LAN (a home router), from a
+session started in his home directory. The navigation was refused: that session declares no origin,
+so the discard-port default applied. That is this record working as designed, not a defect.
+
+He was offered three paths: a dedicated workspace only, the same plus this amendment, or a LAN origin
+in the user-scope default. He chose **a dedicated workspace, recorded here**. The user-scope default
+stays the discard port; fail-closed is unchanged.
+
+- **The pattern.** A task that needs the browser on a local origin outside any product repository gets
+  its own directory, whose `.claude/settings.json` sets `env.HARNESS_SWEEP_ORIGIN` to that one origin
+  and nothing wider. The session that does the task starts in that directory. No file in this
+  repository changes for it.
+- **Not the home directory.** A session started in the home directory reads `~/.claude/settings.json`
+  as its user settings, so an origin set there would reach every project. The pattern needs a
+  subdirectory.
+- **Rejected: a LAN origin in the user-scope default.** It would let every agent in every project
+  reach the device's admin page, which is the reach this record's first driver exists to deny.
+- **Evidence level.** Written. The mechanism is the one measured above (a project's settings `env`
+  reaches the server's environment); the session that loads the dedicated workspace has not yet been
+  run at the time of writing. ADR-0022 applies: start a fresh session in that directory before relying
+  on it.
+
 ## Links
 
 - [Issue #174](https://github.com/tedeuxx/mhw/issues/174); tadeumendonca-io#725 (the plugin disabled).
