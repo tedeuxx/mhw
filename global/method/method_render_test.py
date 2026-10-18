@@ -112,7 +112,7 @@ class SourceShape(unittest.TestCase):
                                          "planning-poker", "code-review", "content-publishing",
                                          "orchestration"]))
         # The four rites moved at #130 (owner, 2026-10-12).
-        self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-idea", "idea-to-issues", "handover", "what-else",
+        self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-idea", "idea-to-issues", "what-else",
                                            "blueprint", "sprint-planning", "sprint-review", "sprint-retrospective",
                                            "funnel-review"]))
 
@@ -476,7 +476,10 @@ class Render(unittest.TestCase):
             self.assertIn("\npolicy:\n  allow_implicit_invocation: false\n", yaml_text)
             self.assertIn("Owner-typed command $%s" % c, self.h.p(".agents/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
             self.assertIn("Owner-typed command /%s" % c, self.h.p(".kiro/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
-            self.assertIn("argument-hint:", "\n".join(front_matter(self.h.p(".claude/commands/%s.md" % c))))
+            # #196: argument-hint only on the plugin standard's allowlisted owner-typed commands.
+            hinted = c not in ("idea-to-issues", "new-idea", "what-else")
+            head = "\n".join(front_matter(self.h.p(".claude/commands/%s.md" % c)))
+            (self.assertIn if hinted else self.assertNotIn)("argument-hint:", head, c)
 
     def test_skill_front_matter_is_what_codex_and_kiro_read(self):
         for s in SKILLS + COMMANDS:

@@ -1,6 +1,6 @@
 ---
 name: "quality-gates"
-description: "Apply THIS loop's CI/CD gate policy — the gate table per loop model, the merge-class rules, and the thresholds (lint/typecheck zero, coverage ≥85%, contract/E2E, dependency + secret scanning, SAST), and the static-analysis quality gate (setup, analysis mode, CI step, gate wiring, new-code thresholds). Use when calibrating gates, deciding who merges a class, or diagnosing a red quality gate. Not for the criteria that make a slice complete (see definition-of-done), the pre-merge pass (see code-review), or workflow wiring (see ci)."
+description: "Apply THIS loop's CI/CD gate policy — the gate table per loop model, merge-class rules, thresholds (lint/typecheck zero, coverage ≥85%, contract/E2E, dependency and secret scanning, SAST) and the static-analysis gate (setup, mode, CI step, new-code thresholds). Use when calibrating gates, deciding who merges a class, or diagnosing a red quality gate. Not for what makes a slice complete (see definition-of-done), the pre-merge pass (see code-review), or workflow wiring (see ci)."
 purpose: "state the CI/CD gates this loop runs and where each sits, so a merge decision rests on mechanical checks rather than on impression"
 ---
 

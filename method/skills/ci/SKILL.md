@@ -1,6 +1,6 @@
 ---
 name: "ci"
-description: "Wire continuous integration for a `<project>` repo — workflows, required checks, runners, pinned actions, short-lived cloud credentials, the secrets standard, the version and release workflows, and the AI review workflows. Use when writing or changing a workflow, making a check required, granting a pipeline a cloud role, or a required check never reports. Not for branching or the release flow's rules (see scm), the gate thresholds or the analysis tool (see quality-gates), or infrastructure state (see provisioning)."
+description: "Wire continuous integration for a `<project>` repo — workflows, required checks, runners, pinned actions, short-lived cloud credentials, the secrets standard, version and release workflows, AI review. Use when writing or changing a workflow, making a check required, granting a pipeline a cloud role, or a required check never reports. Not for branching or release rules (see scm), gate thresholds or the analysis tool (see quality-gates), or infrastructure state (see provisioning)."
 purpose: "hold the pipeline wiring, so every gate the loop relies on actually runs, reports, and blocks"
 ---
 

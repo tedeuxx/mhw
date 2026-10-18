@@ -1,6 +1,6 @@
 ---
 name: "scm"
-description: "Run source control for a `<project>` repo — repositories, pull requests, merge commits only, the PR-only path to main, the integration branch rc/next, labels, the numeric SemVer release flow, the repository-settings standard, the agent permission floor for forge acts, and the AI assistant app. Use when cutting a branch, opening or merging a PR, labelling, cutting a release, checking repository settings, or deciding whether a forge act may run. Not for workflow wiring (see ci), the quality gate (see quality-gates), infrastructure state (see provisioning), or the state machine (see agents-configuration)."
+description: "Run source control for a `<project>` repo — PRs, merge commits only, PR-only path to main, rc/next integration, labels, numeric SemVer releases, repo settings, the forge-act permission floor, the AI assistant app. Use when branching, opening or merging a PR, labelling, releasing, checking repo settings, or deciding if a forge act may run. Not for workflow wiring (see ci), the quality gate (see quality-gates), infrastructure (see provisioning), or the state machine (see agents-configuration)."
 purpose: "hold the path a change takes into the trunk, so every change reaches main through a reviewed pull request and lands as a real merge commit"
 ---
 

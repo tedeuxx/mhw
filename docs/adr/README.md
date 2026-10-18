@@ -45,7 +45,7 @@ Each is raised one at a time, when a slice reaches it.
 | [0012](0012-operational-judgement-delegated-to-the-harness.md) | Operational judgement delegated to the agent harness | accepted; the operating rule proposed |
 | [0013](0013-hitl-escalation-calibration.md) | Escalation calibration; the picker guard removed | accepted; the guard removed 2026-10-05 |
 | [0014](0014-purpose-boundary-firewall-vs-plugin.md) | This repository is the firewall, the plugin the way of working | accepted; reversed in part by the proposed 0032 |
-| [0015](0015-master-of-first-principles-ethical-locks-on-own-aims.md) | Ethical locks on the owner's own aims | accepted framing; locks pending an interview |
+| [0015](0015-master-of-first-principles-ethical-locks-on-own-aims.md) | Ethical locks on the owner's own aims | accepted; first concrete lock ratified 2026-10-17 |
 | [0016](0016-user-level-deny-floor-rendered-per-harness.md) | The deny floor, rendered per agent harness | accepted; the admin-layer amendment proposed |
 | [0017](0017-single-source-mcp-with-secret-indirection.md) | One MCP definition, credentials from the OS secret store | proposed |
 | [0018](0018-portable-personal-profile-and-unified-harness-management.md) | Portable personal profile (the owner overlay) | proposed design |

@@ -1,6 +1,6 @@
 ---
 name: "content-publishing"
-description: "Move a finished piece through the whole lane it travels — the owner's selection, the drafting pair and its two-round bound, the reviewer that REPAIRS a copy defect in place rather than blocking on it, the held preview at the real URL, release, and the social pair in the same batch — and say what the owner reads before a content merge: the application's preview mode, a held preview for a new piece and a pending revision for a correction to a published one, never a Claude Artifact. Use when a piece is being taken from a ready Issue to live, when a published piece is being corrected, or when someone needs to know which step runs unattended and which one waits on the owner."
+description: "Move a finished piece through its whole lane — the owner's selection, the drafting pair and its two-round bound, the reviewer that REPAIRS a copy defect in place, the held preview, release, the social pair — and say what the owner reads before a content merge: the preview mode (held preview or pending revision), never a Claude Artifact. Use when taking a piece from a ready Issue to live, correcting a published piece, or asking which step runs unattended and which waits on the owner."
 purpose: "give the content lane one written pipeline, so the steps that wait on the owner are named before they are discovered and nobody reads the held preview's isolation as privacy"
 ---
 
