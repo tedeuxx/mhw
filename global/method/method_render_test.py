@@ -650,11 +650,11 @@ class HarnessToken(unittest.TestCase):
                "body": "\nThis copy is for {{agent-harness}}.\n"}
 
     def test_each_writer_substitutes_its_own_harness(self):
-        self.assertIn("This copy is for claude-code.", mr.claude_command(self.COMMAND, "x", STAMP, "claude-code"))
+        self.assertIn("This copy is for claude-code.", mr.claude_command(self.COMMAND, STAMP, "claude-code"))
         self.assertIn("This copy is for codex.", mr.command_as_skill(self.COMMAND, "x", "$x", STAMP, "codex"))
         self.assertIn("This copy is for kiro.", mr.command_as_skill(self.COMMAND, "x", "/x", STAMP, "kiro"))
         with self.assertRaises(mr.SourceError):
-            mr.claude_command(self.COMMAND, "x", STAMP, "claude")
+            mr.claude_command(self.COMMAND, STAMP, "claude")
 
     def test_the_rendered_carriers_differ_only_where_the_token_was(self):
         h = Home()

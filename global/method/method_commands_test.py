@@ -435,6 +435,22 @@ class Handoff(unittest.TestCase):
             self.assertNotIn("someone", out.stderr, label)
         self.assertEqual(run_launch_line(self.script, "claude", PROMPT, BASE).returncode, 2)
 
+    def test_a_prompt_file_outside_the_allowed_roots_is_refused(self):
+        """Sonar S8707 on #198: the path is resolved and confined, so `..` cannot walk out of the temporary
+        directory, a directory is not read, and an oversized file is refused; nothing reaches stdout."""
+        inside = Path(tempfile.mkdtemp(prefix="prompt-", dir=BASE))
+        traversal = str(inside) + "/.." * 40 + "/etc/hosts"
+        big = inside / "big.txt"
+        big.write_text("/goal x\n" + ("y" * 200 + "\n") * 400, encoding="utf-8")
+        for label, path, needle in (("traversal", traversal, "outside the repository work tree"),
+                                    ("directory", str(inside), "not a regular file"),
+                                    ("size", str(big), "over 65536 bytes")):
+            out = subprocess.run([sys.executable, "-B", str(self.script), "codex", path], capture_output=True,
+                                 text=True)
+            self.assertEqual(out.returncode, 1, label)
+            self.assertEqual(out.stdout, "", label)
+            self.assertIn(needle, out.stderr, label)
+
     def test_the_prompt_template_carries_no_secret_or_personal_data(self):
         text = (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")
         template = re.search(r"## The prompt\n.*?```\n(.*?)```", text, re.S).group(1)

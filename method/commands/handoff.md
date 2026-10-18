@@ -65,7 +65,9 @@ open pull requests and Issues the objective mentions instead.
 2. Run `python3 {{method-scripts}}/launch-line.py {{agent-harness}} <that file>`. It quotes the prompt for
    a POSIX shell (zsh, bash), deterministically, and prints the line that opens this agent harness with
    it. It refuses a prompt whose first line does not open with `/goal`, a line over 280 characters, or a
-   machine-local path; fix the prompt and run it again. Never quote the prompt by hand.
+   machine-local path; fix the prompt and run it again. It reads the file only when it resolves under
+   the system temporary directory or the current work tree, is a regular file and holds at most 64 KiB.
+   Never quote the prompt by hand.
 3. Print, inline, in this order: the prompt as filled, then the script's output, exactly as printed.
    The owner pastes the launch line into a terminal; where the output carries a line for an IDE, that
    line tells him what to do there instead.

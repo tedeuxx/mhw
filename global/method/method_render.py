@@ -278,7 +278,7 @@ def for_harness(body, harness):
     return body.replace(HARNESS_TOKEN, harness)
 
 
-def claude_command(c, name, stamp, harness):
+def claude_command(c, stamp, harness):
     head = ["---", "# " + marker(c["where"], stamp), "description: " + q(c["description"])]
     if c["hint"]:
         head.append("argument-hint: " + q(c["hint"]))
@@ -407,11 +407,12 @@ def targets(skills, agents, commands, stamp, scripts=None, documents=None):
         out.append((h["agents"] / "skills" / name / "SKILL.md", text, "md"))
         out.append((kiro_skills / name / "SKILL.md", text, "md"))
     for name, c in commands.items():
-        out.append((h["claude"] / "commands" / (name + ".md"), claude_command(c, name, stamp, "claude-code"), "md"))
-        out.append((h["agents"] / "skills" / name / "SKILL.md",
-                    command_as_skill(c, name, "$" + name, stamp, "codex"), "md"))
-        out.append((h["agents"] / "skills" / name / "agents" / "openai.yaml", codex_policy(c["where"], stamp), "md"))
-        out.append((kiro_skills / name / "SKILL.md", command_as_skill(c, name, "/" + name, stamp, "kiro"), "md"))
+        out.extend([
+            (h["claude"] / "commands" / (name + ".md"), claude_command(c, stamp, "claude-code"), "md"),
+            (h["agents"] / "skills" / name / "SKILL.md", command_as_skill(c, name, "$" + name, stamp, "codex"), "md"),
+            (h["agents"] / "skills" / name / "agents" / "openai.yaml", codex_policy(c["where"], stamp), "md"),
+            (kiro_skills / name / "SKILL.md", command_as_skill(c, name, "/" + name, stamp, "kiro"), "md"),
+        ])
     for name, a in agents.items():
         out.append((h["claude"] / "agents" / (name + ".md"), claude_agent(a, name, stamp), "md"))
         out.append((h["codex"] / "agents" / (name + ".toml"), codex_agent(a, name, stamp), "md"))
