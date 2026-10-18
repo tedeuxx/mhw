@@ -3,6 +3,11 @@
 
 Raw vendor bytes exist only in this short-lived process. The parent receives either an exact safe
 projection or no output and a non-zero exit. This helper deliberately writes no diagnostics.
+
+Exit ``UNREACHABLE`` (3) means only that the vendor command exited non-zero and wrote nothing to stdout,
+which is what Codex CLI 0.163.0 does on macOS when no managed daemon is running (measured 2026-10-18:
+exit 1, 0 bytes of stdout). The vendor's stderr is still never read. The parent decides between "not
+running" and "alive but unreachable" with its own process check; this bit alone decides nothing.
 """
 import json
 import re
@@ -13,6 +18,7 @@ import sys
 
 VENDOR_FIELDS = frozenset(("status", "backend", "managedCodexPath", "managedCodexVersion",
                            "socketPath", "cliVersion", "appServerVersion"))
+UNREACHABLE = 3
 SAFE_FIELDS = ("status", "backend", "managedCodexVersion", "cliVersion", "appServerVersion")
 VERSION = re.compile(
     r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?"
@@ -49,7 +55,7 @@ def main(argv):
     except (OSError, subprocess.SubprocessError):
         return 1
     if vendor.returncode != 0:
-        return 1
+        return UNREACHABLE if not (vendor.stdout or b"").strip() else 1
     safe = project(vendor.stdout)
     if safe is None:
         return 1
