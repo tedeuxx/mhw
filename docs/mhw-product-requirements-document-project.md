@@ -362,7 +362,8 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
   2.1.289 and enabled as a feature in Codex 0.160.0 (measured), documented for the Kiro CLI; none was
   exercised ([enforcement matrix](#10-native-enforcement-matrix)). The instruction is the user brief's
   section *Session goal anchor*; ~~`/handover` tells a child session to anchor its objective the same way.~~
-  (`/handover` was removed at [#196](https://github.com/tedeuxx/mhw/issues/196); `/handoff`, [#198](https://github.com/tedeuxx/mhw/issues/198), replaces it.)
+  (`/handover` was removed at [#196](https://github.com/tedeuxx/mhw/issues/196); `/handoff`, [#198](https://github.com/tedeuxx/mhw/issues/198), replaces it:
+  the prompt it prints opens with the native `/goal`, so the fresh session anchors the same objective.)
   `/what-else` is [#74](https://github.com/tedeuxx/mhw/issues/74). This continues
   [#11](https://github.com/tedeuxx/mhw/issues/11).
 
@@ -371,6 +372,10 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
 - ~~`/handover`: branches a focused child session, which anchors its objective with the native `/goal`
   where it exists, and brings its result back through a return prompt
   ([#73](https://github.com/tedeuxx/mhw/issues/73)).~~ Command removed at [#196](https://github.com/tedeuxx/mhw/issues/196); `/handoff`, [#198](https://github.com/tedeuxx/mhw/issues/198), replaces it.
+- `/handoff`: prints a prompt and the shell line that open a fresh session continuing this one, with the
+  objective, the anchored Issue, its revision, handoff state and next act re-derived from the tracker. It
+  posts nothing and launches nothing (owner, 2026-10-18: print only, never publish)
+  ([#198](https://github.com/tedeuxx/mhw/issues/198)).
 - `/blueprint`: exports a project's effective agent harness setup as a requirements document, or imports
   one after an alignment interview ([#75](https://github.com/tedeuxx/mhw/issues/75)).
 - `agents-configuration` is the rulebook behind every step: which agent acts, with which skills and
@@ -503,7 +508,7 @@ workstation follows them ([#69](https://github.com/tedeuxx/mhw/issues/69)).
 - **Families read alike:** `/new-idea` and `/new-issue`; `/idea-to-issues`.
 - **Checked against this line:** `/handover`, `/blueprint` and `/breaking-glass` all fit, because teams
   already say them (owner, 2026-10-05). (`/breaking-glass` was later removed, ADR-0028, and `/handover`
-  at #196.)
+  at #196; `/handoff`, #198, is the same everyday word.)
 
 ### Documents
 
@@ -592,6 +597,7 @@ a technology stack; **Reference** holds unused patterns.
 | 6 | `/what-else` ([#74](https://github.com/tedeuxx/mhw/issues/74)) | Restates the session's objective and answers what is still missing: what is done (with its evidence), what is left, what is blocked on the owner (that ask first) and the next step. | user | The owner can check at any moment how far the session is from its goal. |
 | 7 | `/blueprint` ([#75](https://github.com/tedeuxx/mhw/issues/75)) | `export` writes the project's effective agent harness configuration as a requirements document; `import` brings one into another project. | user | Carries a project's setup to other projects. The text it exports, and the text it accepts, is a requirements document in the [5a](#5a-documentation-standards-user-layer-every-repository) format: target behaviour and why, in English, with Mermaid diagrams, named `<repo>-product-requirements-document-*`. Import applies nothing before an expectation-alignment interview with the person running the session. |
 | 8 | ~~`/breaking-glass`~~ | ~~Prints the `sudo` line that switches a hook layer off, with expiry~~ Removed ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)): the [runbook](runbooks/breaking-glass.md) gives the `sudo` route | user | ~~Exists only if the paste prompt hook stays ([4a](#4a-hook-budget), #58).~~ No expiring waiver is allowed; `install-managed.sh --uninstall` already prints the removal line. |
+| 9 | `/handoff` ([#198](https://github.com/tedeuxx/mhw/issues/198)) | Prints a prompt and the shell line that open a fresh session continuing this one: the objective (opened with `/goal`), the anchored Issue with its revision, handoff state and next act re-derived from the tracker. With no Issue anchored it still prints, from the objective. The launch line is quoted by a script and matches the agent harness the copy was rendered for; the Kiro copy adds the IDE case, which has no launch line. | user | A heavy session continues in a clean one without losing its anchor. It prints only and posts nothing (owner, 2026-10-18); every field is one line of at most 280 characters with no machine-local path, under the worklog continuity contract. |
 
 Not in the command set, because they were never designed for the owner's use of the loop: sprint
 planning, sprint retrospective, sprint review, funnel review, and session start and finish commands.
@@ -620,6 +626,12 @@ it is a skill. One source text per command is rendered into each format.
   still works and gives the same `/name`. If it is ever removed, the same text moves to
   `~/.claude/skills/` with no change in how the owner types it.
 - **Same pattern for every command:** Claude Code and Kiro use `/name`; Codex uses `$name`.
+- **Text that differs per agent harness:** one source text per command still holds. Where a command must
+  name its own agent harness, its body carries the token `{{agent-harness}}`, which the renderer replaces
+  in each carrier with `claude-code`, `codex` or `kiro` ([#198](https://github.com/tedeuxx/mhw/issues/198)).
+  `/handoff` uses it to print the right launch line: `claude '…'`, `codex '…'` or `kiro-cli chat '…'`,
+  taken from each CLI's `--help` (documented, none launched). The Kiro copy serves the IDE too, which has
+  no launch line, so it also says to paste the prompt into a new chat there.
 - **Arguments:** commands work with free text after the name, so nothing depends on syntax that Codex
   lacks.
 - **Gaps:** the Codex desktop app's syntax is not documented; Kiro Web has no user-level files; Codex
@@ -865,6 +877,7 @@ The matrix itself, with its findings against this document, is
 | [#83](https://github.com/tedeuxx/mhw/issues/83) | Pre-authorisation tiers ([4b](#4b-pre-authorisation-for-autonomy-user-layer-behind-the-managed-barrier)) | minor | admin install first |
 | [#89](https://github.com/tedeuxx/mhw/issues/89) | Prerequisites, check-only ([9c](#9c-prerequisites-declared-and-checked-never-applied)) | minor | none |
 | [#97](https://github.com/tedeuxx/mhw/issues/97) | Capability skills `scm`, `ci`, `quality-gates`, `provisioning` | minor | install |
+| [#198](https://github.com/tedeuxx/mhw/issues/198) | Command `/handoff` (print only) | minor | install |
 
 The release column is the part each slice would cut on its own. Since 2026-10-05 a slice cuts no
 release: it merges into `rc/next`, and the release-candidate pull request cuts one release for all of
