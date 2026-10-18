@@ -194,8 +194,9 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/kiro/kiro_permissions_test.py "$RUNNER_TEMP/kiro-permissions"
-      # Issues #71-#75: the five workflow commands render on all three agent harnesses with their required
-      # sections, Codex implicit invocation off; the handover sanitisation check on a synthetic fixture.
+      # Issues #71-#75: the workflow commands render on all three agent harnesses with their required
+      # sections, Codex implicit invocation off (four since #196 removed /handover); the sanitisation
+      # check on a synthetic fixture, kept after that removal because it never reads the command file.
       # Issue #130: the plugin retired at user scope with the method, in throwaway HOMEs only.
       - name: plugin retirement suite
         env:
