@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Sanitized health and install-boundary lifecycle for the native Codex daemon.
 
-Only metadata that cannot reveal session contents is retained: version/status fields, a process id and
-age, the inherited launchd soft descriptor limit, and aggregate descriptor counts by type. Raw daemon
+Only metadata that cannot reveal session contents is retained: version/status fields, kernel-backed
+role identities and ages, and aggregate descriptor counts by type. Raw daemon
 version bytes are consumed only by a short-lived local sanitizer; this parent receives only its safe
 projection. Neither process emits vendor path fields, process arguments, lsof names, stderr or
 exception text.
@@ -12,13 +12,14 @@ and ``daemon restart`` commands; it never creates a launch agent, socket or proc
 never starts a daemon that is not running.
 
 Since Issue #210 two states no longer fail ``mhw install``: a daemon that is not running, and low or
-unreadable descriptor headroom. The first is not a fault. The second is reported as DRIFT by status and
-check and is advisory at install, which neither restarts for it nor changes any limit: a restart cannot
-raise an inherited soft limit (measured on the reference machine: 317 descriptors right after a native
-restart, against a soft limit of 256). The descriptor exhaustion itself is Issue #200's.
+unreadable descriptor headroom. The first is not a fault. Per-role ``RLIMIT_NOFILE`` is not available
+through an unprivileged public macOS interface, so this module reports live headroom as unavailable and
+never substitutes launchd's global default or another process's limit. Install neither restarts for it
+nor changes any limit. The descriptor exhaustion itself is Issue #200's.
 """
 from dataclasses import dataclass, field
 import json
+import time
 from pathlib import Path
 import platform
 import re
@@ -34,21 +35,36 @@ _VERSION = re.compile(
     r"([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)"
     r"(?![0-9A-Za-z.+-])"
 )
-_AGE = re.compile(r"[0-9:-]+")
 _FD = re.compile(r"f([0-9]+)[A-Za-z]*")
 _TYPE = re.compile(r"t([A-Za-z0-9_]+)")
-_REQUIRED = ("status", "backend", "managedCodexVersion", "cliVersion", "appServerVersion")
+_VERSION_FIELDS = ("status", "backend", "managedCodexVersion", "cliVersion", "appServerVersion")
+_IDENTITY_FIELDS = (
+    "peerPid", "peerPpid", "peerStartSec", "peerStartUsec",
+    "sessionHostPid", "sessionHostStartSec", "sessionHostStartUsec",
+    "executorPid", "executorStartSec", "executorStartUsec",
+)
+_REQUIRED = _VERSION_FIELDS + _IDENTITY_FIELDS
 _SANITIZER = str(Path(__file__).with_name("daemon_version_sanitizer.py"))
 _UNREACHABLE = 3  # The sanitizer's exit when the vendor command failed with empty stdout.
 NOT_RUNNING = "not running"
 ALIVE_UNREACHABLE = "daemon control unreachable while a managed process runs"
-# A restart can resolve these: the lifecycle process is missing or ambiguous.
-_REPAIRABLE = frozenset(("managed process missing", "managed process ambiguous"))
-# These only make descriptor headroom unknown. No install action depends on headroom, so they never block.
-_ADVISORY = frozenset(("descriptor tools unavailable", "descriptor aggregate unavailable",
-                       "descriptor aggregate unreadable", "launchd limit unavailable",
-                       "launchd limit unreadable"))
-_HEADROOM_ADVICE = "advisory: mhw install does not change descriptor headroom"
+_HEADROOM_UNAVAILABLE = "per-role RLIMIT/headroom unavailable on macOS without root; no global or substitute limit used"
+
+
+@dataclass
+class Role:
+    name: str
+    pid: int
+    start_sec: int
+    start_usec: int
+    age_seconds: Optional[int] = None
+    fd_total: Optional[int] = None
+    fd_frontier: Optional[int] = None
+    fd_types: Dict[str, int] = field(default_factory=dict)
+
+    @property
+    def identity(self):
+        return self.pid, self.start_sec, self.start_usec
 
 
 @dataclass
@@ -65,7 +81,9 @@ class Snapshot:
     age: str = "unknown"
     fd_total: Optional[int] = None
     fd_types: Dict[str, int] = field(default_factory=dict)
-    soft_limit: Optional[int] = None  # None means unavailable, -1 means unlimited.
+    peer: Optional[Role] = None
+    session_host: Optional[Role] = None
+    executor: Optional[Role] = None
     errors: List[str] = field(default_factory=list)
 
     @property
@@ -82,11 +100,7 @@ class Snapshot:
 
     @property
     def headroom(self):
-        if self.fd_total is None or self.soft_limit is None:
-            return None
-        if self.soft_limit < 0:
-            return -1
-        return self.soft_limit - self.fd_total
+        return None
 
 def _call(runner, argv, timeout=10):
     """A command result or None. Raw failures are deliberately discarded, never surfaced."""
@@ -100,29 +114,6 @@ def _call(runner, argv, timeout=10):
 def _version(text):
     hit = _VERSION.search(text or "")
     return hit.group(1) if hit else "unknown"
-
-
-def _managed_processes(pid_text, ps, runner):
-    """Resolve safe PID/PPID/age fields. ``pgrep`` sees arguments; this process never captures them."""
-    found = []
-    pids = []
-    for line in (pid_text or "").splitlines():
-        value = line.strip()
-        if not value.isdigit():
-            return []
-        pid = int(value)
-        if pid not in pids:
-            pids.append(pid)
-    for pid in pids:
-        details = _call(runner, [ps, "-p", str(pid), "-o", "pid=,ppid=,etime="])
-        if details is None or details.returncode != 0:
-            continue
-        hit = re.fullmatch(r"\s*([0-9]+)\s+([0-9]+)\s+(\S+)\s*", details.stdout or "")
-        if not hit or int(hit.group(1)) != pid:
-            continue
-        age = hit.group(3) if _AGE.fullmatch(hit.group(3)) else "unknown"
-        found.append((pid, int(hit.group(2)), age))
-    return found
 
 
 def _fd_totals(text):
@@ -141,17 +132,8 @@ def _fd_totals(text):
     totals = {}
     for kind in by_fd.values():
         totals[kind] = totals.get(kind, 0) + 1
-    return len(by_fd), totals
-
-
-def _soft_limit(text):
-    hit = re.search(r"(?:^|\s)maxfiles\s+(\S+)", text or "")
-    if not hit:
-        return None
-    value = hit.group(1).lower()
-    if value == "unlimited":
-        return -1
-    return int(value) if value.isdigit() else None
+    frontier = max(by_fd) + 1 if by_fd else 0
+    return len(by_fd), frontier, totals
 
 
 _MANAGED = r"(^|/)codex app-server .*--managed-daemon"
@@ -178,7 +160,54 @@ def _unreachable(snap, resolver, runner):
     return snap
 
 
-def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
+def _projection(runner):
+    version = _call(runner, [sys.executable, "-B", _SANITIZER])
+    if version is None:
+        return None, "daemon metadata unavailable"
+    if version.returncode == _UNREACHABLE:
+        return _UNREACHABLE, None
+    if version.returncode != 0:
+        return None, "daemon metadata unavailable"
+    try:
+        doc = json.loads(version.stdout)
+    except (TypeError, ValueError):
+        return None, "daemon metadata unreadable"
+    if not isinstance(doc, dict) or set(doc) != set(_REQUIRED):
+        return None, "daemon metadata incomplete"
+    if any(not isinstance(doc.get(field), str) for field in _VERSION_FIELDS):
+        return None, "daemon metadata incomplete"
+    for field in _IDENTITY_FIELDS:
+        value = doc.get(field)
+        if value is not None:
+            if not isinstance(value, int) or isinstance(value, bool):
+                return None, "daemon metadata incomplete"
+            minimum = 0 if field.endswith("Ppid") or field.endswith("Usec") else 1
+            if value < minimum:
+                return None, "daemon metadata incomplete"
+    return doc, None
+
+
+def _role(doc, name, pid_field, start_prefix):
+    values = (doc[pid_field], doc[start_prefix + "StartSec"], doc[start_prefix + "StartUsec"])
+    if all(value is None for value in values):
+        return None
+    if any(value is None for value in values):
+        return None
+    return Role(name, *values)
+
+
+def _collect_role(role, lsof, runner, now):
+    files = _call(runner, [lsof, "-nP", "-p", str(role.pid), "-Fft"])
+    if files is None or files.returncode != 0:
+        return "descriptor aggregate unavailable for %s" % role.name
+    role.fd_total, role.fd_frontier, role.fd_types = _fd_totals(files.stdout)
+    if role.fd_total == 0:
+        return "descriptor aggregate unreadable for %s" % role.name
+    role.age_seconds = max(0, int(now) - role.start_sec)
+    return None
+
+
+def inspect(system=None, resolver=shutil.which, runner=subprocess.run, clock=time.time):
     """Inspect the daemon; raw version JSON is confined to the local sanitizer child."""
     snap = Snapshot()
     if (system or platform.system()) != "Darwin":
@@ -199,20 +228,11 @@ def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
 
     # The child is the privacy boundary: raw vendor JSON exists only there. This parent captures only
     # its exact safe projection, or no output on schema/type/vendor drift.
-    version = _call(runner, [sys.executable, "-B", _SANITIZER])
-    if version is not None and version.returncode == _UNREACHABLE:
+    doc, error = _projection(runner)
+    if doc == _UNREACHABLE:
         return _unreachable(snap, resolver, runner)
-    if version is None or version.returncode != 0:
-        snap.errors.append("daemon metadata unavailable")
-        return snap
-    try:
-        doc = json.loads(version.stdout)
-    except (TypeError, ValueError):
-        snap.errors.append("daemon metadata unreadable")
-        return snap
-    if (not isinstance(doc, dict) or set(doc) != set(_REQUIRED) or
-            any(not isinstance(doc.get(k), str) for k in _REQUIRED)):
-        snap.errors.append("daemon metadata incomplete")
+    if error:
+        snap.errors.append(error)
         return snap
     snap.status = doc["status"]
     snap.backend = doc["backend"]
@@ -226,44 +246,50 @@ def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
     if snap.backend != "pid":
         snap.errors.append("unsupported daemon backend")
         return snap
-
-    ps = resolver("ps")
-    pgrep = resolver("pgrep")
-    if not ps or not pgrep:
-        snap.errors.append("process tools unavailable")
+    snap.peer = _role(doc, "native socket peer", "peerPid", "peer")
+    snap.session_host = _role(doc, "session host", "sessionHostPid", "sessionHost")
+    snap.executor = _role(doc, "executor child", "executorPid", "executor")
+    if not snap.peer:
+        snap.errors.append("native socket peer unavailable")
+    if not snap.session_host or not snap.executor:
+        snap.errors.append("session-host/executor lineage unavailable")
+    if snap.errors:
         return snap
-    processes = _call(runner, [pgrep, "-f", _MANAGED])
-    if processes is None or processes.returncode not in (0, 1):
-        snap.errors.append("managed process unreadable")
-        return snap
-    matches = _managed_processes(processes.stdout if processes.returncode == 0 else "", ps, runner)
-    if not matches:
-        snap.errors.append("managed process missing")
-        return snap
-    if len(matches) != 1:
-        snap.errors.append("managed process ambiguous")
-        return snap
-    snap.pid, _ppid, snap.age = matches[0]
-
+    snap.pid = snap.peer.pid
     lsof = resolver("lsof")
-    launchctl = resolver("launchctl")
-    if not lsof or not launchctl:
+    if not lsof:
         snap.errors.append("descriptor tools unavailable")
         return snap
-    files = _call(runner, [lsof, "-nP", "-p", str(snap.pid), "-Fft"])
-    if files is None or files.returncode != 0:
-        snap.errors.append("descriptor aggregate unavailable")
-    else:
-        snap.fd_total, snap.fd_types = _fd_totals(files.stdout)
-        if snap.fd_total == 0:
-            snap.errors.append("descriptor aggregate unreadable")
-    limits = _call(runner, [launchctl, "limit", "maxfiles"])
-    if limits is None or limits.returncode != 0:
-        snap.errors.append("launchd limit unavailable")
-    else:
-        snap.soft_limit = _soft_limit(limits.stdout)
-        if snap.soft_limit is None:
-            snap.errors.append("launchd limit unreadable")
+    unique = {}
+    for role in (snap.peer, snap.session_host, snap.executor):
+        unique.setdefault(role.identity, role)
+    now = clock()
+    for role in unique.values():
+        failure = _collect_role(role, lsof, runner, now)
+        if failure:
+            snap.errors.append(failure)
+    # Equal roles share the same measured aggregate, but equality is an observation, never an
+    # assumption. Copy only after identities matched exactly.
+    for role in (snap.peer, snap.session_host, snap.executor):
+        measured = unique[role.identity]
+        role.age_seconds = measured.age_seconds
+        role.fd_total = measured.fd_total
+        role.fd_frontier = measured.fd_frontier
+        role.fd_types = dict(measured.fd_types)
+    after, after_error = _projection(runner)
+    if after_error or after == _UNREACHABLE:
+        snap.errors.append("role identity revalidation unavailable")
+        return snap
+    before_identity = tuple(doc[field] for field in _IDENTITY_FIELDS)
+    after_identity = tuple(after[field] for field in _IDENTITY_FIELDS)
+    before_lifecycle = tuple(doc[field] for field in _VERSION_FIELDS)
+    after_lifecycle = tuple(after[field] for field in _VERSION_FIELDS)
+    if before_identity != after_identity:
+        snap.errors.append("role identity changed during collection")
+    if before_lifecycle != after_lifecycle:
+        snap.errors.append("lifecycle projection changed during collection")
+    snap.fd_total, snap.fd_types = snap.peer.fd_total, dict(snap.peer.fd_types)
+    snap.age = "%ds" % snap.peer.age_seconds if snap.peer.age_seconds is not None else "unknown"
     return snap
 
 
@@ -272,14 +298,10 @@ def _versions(snap):
         snap.binary_version, snap.cli_version, snap.managed_version, snap.app_server_version)
 
 
-def _descriptor_text(snap):
-    if snap.fd_total is None or snap.soft_limit is None:
-        return "descriptor headroom unavailable"
-    limit = "unlimited" if snap.soft_limit < 0 else str(snap.soft_limit)
-    headroom = "unlimited" if snap.headroom == -1 else str(snap.headroom)
-    kinds = ", ".join("%s %d" % item for item in sorted(snap.fd_types.items())) or "none"
-    return "numeric FDs %d/%s; headroom %s (required %d); types %s" % (
-        snap.fd_total, limit, headroom, SAFE_HEADROOM, kinds)
+def _role_text(role):
+    kinds = ", ".join("%s %d" % item for item in sorted(role.fd_types.items())) or "none"
+    return "%s pid %d age %ss: numeric FDs %d; allocation frontier %d; types %s" % (
+        role.name, role.pid, role.age_seconds, role.fd_total, role.fd_frontier, kinds)
 
 
 def result(snap, prefix="CODEX   "):
@@ -292,22 +314,26 @@ def result(snap, prefix="CODEX   "):
         return 1, [prefix + "DRIFT: version skew; " + _versions(snap) +
                    "; run mhw install at a session boundary"]
     if snap.errors:
-        advice = (_HEADROOM_ADVICE if all(e in _ADVISORY for e in snap.errors)
-                  else "run mhw install at a session boundary")
-        return 1, [prefix + "DRIFT: " + ", ".join(snap.errors) + "; " + advice]
+        return 1, [prefix + "DRIFT: " + ", ".join(snap.errors) +
+                   "; retry from one normal Codex session; install will not change ambiguous role evidence"]
     if snap.status == NOT_RUNNING:
         return 0, [prefix + "OK: daemon not running (no managed process, control unreachable); CLI %s; "
                    "headroom not applicable" % snap.binary_version]
     if snap.status != "running":
         return 0, [prefix + "OK: daemon %s (backend %s); %s; headroom not applicable" % (
             snap.status, snap.backend, _versions(snap))]
-    if snap.headroom is None:
-        return 1, [prefix + "DRIFT: descriptor headroom unavailable; " + _HEADROOM_ADVICE]
-    if snap.headroom != -1 and snap.headroom < SAFE_HEADROOM:
-        return 1, [prefix + "DRIFT: unsafe descriptor headroom; " + _descriptor_text(snap) +
-                   "; " + _HEADROOM_ADVICE]
-    return 0, [prefix + "OK: daemon running (backend %s, pid %d, age %s); %s; %s" % (
-        snap.backend, snap.pid, snap.age, _versions(snap), _descriptor_text(snap))]
+    equal = []
+    if snap.peer.identity == snap.session_host.identity:
+        equal.append("peer=session host")
+    if snap.peer.identity == snap.executor.identity:
+        equal.append("peer=executor")
+    if snap.session_host.identity == snap.executor.identity:
+        equal.append("session host=executor")
+    relation = "; measured equality " + ", ".join(equal) if equal else "; roles distinct"
+    roles = "; ".join(_role_text(role) for role in
+                      (snap.peer, snap.session_host, snap.executor))
+    return 0, [prefix + "OK: daemon running (backend %s); %s%s; %s; %s" % (
+        snap.backend, _versions(snap), relation, roles, _HEADROOM_UNAVAILABLE)]
 
 
 def report(system=None, resolver=shutil.which, runner=subprocess.run, prefix="CODEX   "):
@@ -315,15 +341,13 @@ def report(system=None, resolver=shutil.which, runner=subprocess.run, prefix="CO
 
 
 def _action(snap):
-    """What install would do: 'update', 'restart', 'refuse' or None. Headroom never selects an action."""
+    """What install would do: update version skew, refuse ambiguity, or leave state unchanged."""
     if not snap.supported or not snap.available:
         return None
     if snap.version_skew:
         return "update"
-    if any(e not in _REPAIRABLE and e not in _ADVISORY for e in snap.errors):
+    if snap.errors:
         return "refuse"
-    if snap.status == "running" and any(e in _REPAIRABLE for e in snap.errors):
-        return "restart"
     return None
 
 
@@ -335,19 +359,22 @@ def plan(system=None, resolver=shutil.which, runner=subprocess.run, prefix="CODE
 
 
 def install(system=None, resolver=shutil.which, runner=subprocess.run):
-    """Align or restart through the supported native lifecycle only when versions or the lifecycle
-    process need it. A daemon that is not running is left alone, and headroom is advisory (#210)."""
+    """Align through the supported native lifecycle only on version skew.
+
+    A stopped daemon is left alone. Role ambiguity and unstable identity refuse rather than selecting
+    restart, and unavailable headroom never selects an action (#200, #210).
+    """
     before = inspect(system=system, resolver=resolver, runner=runner)
     action = _action(before)
     if action is None:
-        # Clean, not applicable, not running, or only advisory headroom DRIFT: never an install failure.
+        # Clean, not applicable or not running: no native lifecycle action.
         return 0, result(before)[1]
     if action == "refuse":
         return 1, ["REFUSE  Codex managed daemon: metadata evidence is incomplete; nothing changed"]
     codex = resolver("codex")
     if action == "update":
         command = [codex, "app-server", "daemon", "update", "--from-cli", "--yes"]
-    else:
+    else:  # Defensive: _action currently has no restart-producing state.
         command = [codex, "app-server", "daemon", "restart"]
 
     changed = _call(runner, command, timeout=60)
@@ -359,5 +386,5 @@ def install(system=None, resolver=shutil.which, runner=subprocess.run):
     if _action(after) is not None:
         return 1, ["REFUSE  Codex managed daemon: native %s did not produce the required sanitized postcondition"
                    % action]
-    return 0, ["CHANGED Codex managed daemon: native %s completed; package versions aligned and lifecycle "
-               "process resolved" % action] + result(after)[1]
+    return 0, ["CHANGED Codex managed daemon: native %s completed; package versions aligned and roles "
+               "resolved" % action] + result(after)[1]

@@ -63,21 +63,34 @@ Option 1.
 
 - macOS only: other operating systems and a missing Codex CLI are clean, explicit skips.
 - The CLI binary version must equal the daemon metadata's CLI, managed-package and app-server versions.
-- A running daemon must resolve to exactly one native `app-server --managed-daemon` process.
+- ~~A running daemon must resolve to exactly one native `app-server --managed-daemon` process.~~
+  The v6.0.1 canary falsified that argv signature. A running daemon now resolves the exact AF_UNIX
+  peer through Darwin `LOCAL_PEERPID`/`LOCAL_PEERCRED`, binds PID to `proc_bsdinfo` start identity,
+  resolves the authenticated peer's exact PID/UID/start identity on the bounded executor lineage as
+  the session host for this runtime, and revalidates all identities after collecting metrics. A
+  process-name predicate is only an unambiguous fallback. Equality between roles is reported only
+  when the kernel identities match.
 - Safe headroom is 64 descriptors: the measured 48-descriptor old-package burst plus 16 descriptors of
   margin. Unlimited is accepted; ~~unavailable evidence fails closed~~ unavailable descriptor evidence is
   DRIFT for status and check and advisory at install (2026-10-18 amendment).
+  ~~The live per-role limit must be used to pass or fail that threshold.~~ On the owner's explicit
+  exception for #200, unprivileged macOS provides no public API for another process's
+  `RLIMIT_NOFILE`; status therefore reports per-role limit/headroom as unavailable and check neither
+  passes nor fails from a launchd global or another process's limit. The calibration remains recorded,
+  not asserted against a substitute subject.
 - Inspection requests `lsof -Fft` only. It never requests `n` fields, and output is reduced to numeric
   descriptor and type counts before formatting. The local daemon-version sanitizer consumes the raw
   vendor JSON, validates its exact schema, types, status/backend vocabulary and version formats, and
-  writes only status, backend and three version fields. Raw bytes and path fields are never retained,
+  writes only status, backend, three version fields, and fixed numeric PID/start metadata for the
+  socket peer, session host and executor child. Raw bytes and path fields are never retained,
   interpreted or emitted outside that child; its stderr and the vendor command's stderr go directly
   to `DEVNULL`. The sanitizer accepts no arguments and resolves `codex` internally from `PATH`, so the
   mhw parent supplies neither an executable nor a vendor path to the boundary.
-- On skew, install runs `codex app-server daemon update --from-cli --yes`. When versions are aligned but
-  ~~headroom is unsafe or~~ the lifecycle process is stale/ambiguous, it runs the native daemon restart.
-  It then re-inspects and requires aligned versions ~~and safe headroom~~ and one resolved lifecycle
-  process (2026-10-18 amendment).
+- On skew, install runs `codex app-server daemon update --from-cli --yes`. ~~When versions are aligned
+  but headroom is unsafe or the lifecycle process is stale/ambiguous, it runs the native daemon
+  restart.~~ Since the role-aware amendment, missing, ambiguous or changing identity refuses change;
+  incomplete evidence never selects restart. It then re-inspects and requires aligned versions and
+  stable resolved roles. A stopped daemon remains untouched (#210).
 - The lifecycle step runs last and is skipped when any earlier install step failed or remains pending.
   The install preview states that daemon-backed Codex work will end at this boundary.
 - `mhw uninstall` does not alter the vendor daemon or package.
@@ -95,26 +108,30 @@ Bad and residual:
 
 - The vendor still owns session unsubscribe and daemon health reporting. A future aligned release may
   regress; the headroom check detects the approach to exhaustion but cannot repair a vendor leak.
-- PID discovery delegates the process-argument match to `pgrep`; mhw captures only candidate PIDs, then
-  asks `ps` only for PID, parent PID and age. A vendor change to that signature will fail closed until
-  adapted.
+- ~~PID discovery delegates the process-argument match to `pgrep`.~~ The exact live peer is
+  kernel-authenticated. `pgrep` remains only in #210's two-signal stopped-daemon branch: a positive
+  result says merely "something managed may still be alive" and is never process identity.
 - Update/restart can interrupt every session attached to the managed daemon. That is why install names
   the effect before confirmation and performs it last.
 - The 64-descriptor threshold is calibrated to this incident, not a vendor guarantee.
 
 ## Evidence level and installation handoff
 
-The carrier and its fake-daemon tests are **written and tested**. The tests cover aligned state, skew,
-unsafe headroom, missing/ambiguous lifecycle processes, malformed private output, the child sanitizer's
-allowlist and schema/type/extra-field refusals, native update, native restart, suppressed failures and
-failed postconditions. The real native update is deliberately not run while this implementation
-session depends on the live daemon.
+The role-aware carrier and its fake-daemon tests are **written and tested**. They cover aligned state,
+skew, kernel peer credential/UID/PID/start predicates, zero/foreign/reused peer identity, missing,
+multiple, cycling and changing host lineage, PID/start revalidation after metrics, aggregate FD
+totals/types/frontier without targets, malformed private output, exact schema/type/extra-field
+refusals, native version update, suppressed failures and failed postconditions. No live lifecycle
+change is run while this implementation session depends on the daemon.
 
-The reference machine remains **measured-drifted**, not corrected: CLI 0.163.0; managed package and
-app-server 0.160.0; soft limit 256. Installation is last. A genuinely fresh, normal daemon-backed Codex
-session must then verify aligned versions, safe initial headroom, repeated thread creation/closure,
-post-close cleanup and absence of accumulation before the correction is described as installed and
-enforced.
+The reference machine now reports workstation **v7.0.1 installed**, commit
+`8c4f4b7401794dccd36322036ea43a17baca4186`, and its global brief is **loaded** in the current fresh
+Codex session (2026-10-18). That release does not contain this branch's role-aware correction, which is
+therefore **written and tested only, not installed or enforced**. A consumer-like candidate copy and a
+genuinely fresh normal daemon-backed Codex session must still verify aligned versions, stable resolved
+roles, a low aggregate baseline, repeated thread/executor creation and closure, post-close quiescence,
+no positive retained FD slope and no `os error 24`. Per the amendment below, live per-role
+`RLIMIT_NOFILE`/headroom remains explicitly unavailable rather than inferred.
 
 ## Amendment 2026-10-18: a stopped daemon and low headroom do not fail install
 
@@ -154,8 +171,35 @@ Decision:
   on evidence it cannot read.
 
 Consequences: `mhw install` completes on the reference machine in both measured states, once the
-other steps pass; `mhw check` still exits non-zero on low headroom, so check and install can disagree
-by design. The exhaustion itself stays #200's, and nothing here raises a limit.
+other steps pass. ~~`mhw check` still exits non-zero on low headroom, so check and install can disagree
+by design.~~ The later role-aware amendment records why live headroom cannot be decided from the
+available unprivileged evidence. The exhaustion itself stays #200's, and nothing here raises a limit.
+
+## Amendment 2026-10-18: role-aware identity and the per-role limit exception
+
+The released argv predicate reported the managed process missing while the vendor projection was
+running and aligned. The intake also established that lifecycle control, AF_UNIX peer, session host and
+executor child are roles, not synonyms. The correction authenticates the vendor-reported socket peer
+with Darwin peer credentials, binds each role to PID plus kernel start time, and treats that exact peer
+identity as the session host when it occurs on the stable executor ancestry. This remains deterministic
+with multiple processes named Codex; the name predicate is used only when it has one candidate. The
+correction collects only aggregate numeric descriptor totals/types and age, and revalidates identities
+after collection. A broken, cycling, multiply-valid or changing lineage and any PID/start change
+refuse. Descriptor targets, arguments, executable paths, environment and vendor stderr never cross the
+sanitizer boundary.
+
+One original acceptance predicate is unavailable on the selected platform without privilege:
+unprivileged Darwin exposes another process's PID, PPID, UID, start identity and open-file count via
+public libproc structures, but not its `RLIMIT_NOFILE`; Python has no `resource.prlimit`, `ps`'s `lim`
+is a memory limit, and `launchctl procinfo <pid>` requires root. The native Codex version and redacted
+Doctor projections expose no per-role file limit either. The owner accepted proceeding without that
+test only. The implementation therefore reports live per-role `RLIMIT/headroom unavailable`, never
+reads `launchctl limit maxfiles`, and cannot pass or fail check from a global or descendant limit.
+Every other identity, stability, aggregate-metric, privacy and lifecycle predicate remains.
+
+This amendment changes no limit, hook, paste wrapper or uninstall behavior. Install updates only on
+version skew, leaves a stopped daemon alone, never restarts for descriptor state, and refuses role
+ambiguity rather than guessing.
 
 ## Links
 

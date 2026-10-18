@@ -14,7 +14,8 @@ from codex import daemon_version_sanitizer as sanitizer
 
 class Fake:
     def __init__(self, states, fd_count=20, soft=256, processes=1, command_codes=None,
-                 unreachable=False, missing=()):
+                 unreachable=False, missing=(), lineage=True, identity_shift=False,
+                 lifecycle_shift=False):
         self.states = list(states)
         self.unreachable = unreachable  # The sanitizer's exit 3: vendor failed with empty stdout.
         self.missing = set(missing)
@@ -25,6 +26,10 @@ class Fake:
         self.calls = []
         self.call_options = []
         self.state = 0
+        self.lineage = lineage
+        self.identity_shift = identity_shift
+        self.lifecycle_shift = lifecycle_shift
+        self.sanitizer_reads = 0
 
     def resolve(self, name):
         return None if name in self.missing else "/fake/" + name
@@ -44,6 +49,23 @@ class Fake:
             doc.pop("binary", None)
             doc.pop("managedCodexPath", None)
             doc.pop("socketPath", None)
+            running = doc["status"] == "running"
+            shift = 1 if self.identity_shift and self.sanitizer_reads % 2 else 0
+            if self.lifecycle_shift and self.sanitizer_reads % 2:
+                doc["appServerVersion"] = "0.164.0"
+            doc.update({
+                "peerPid": 400 + shift if running else None,
+                "peerPpid": 1 if running else None,
+                "peerStartSec": 100 if running else None,
+                "peerStartUsec": 10 if running else None,
+                "sessionHostPid": 500 if running and self.lineage else None,
+                "sessionHostStartSec": 110 if running and self.lineage else None,
+                "sessionHostStartUsec": 11 if running and self.lineage else None,
+                "executorPid": 600 if running and self.lineage else None,
+                "executorStartSec": 120 if running and self.lineage else None,
+                "executorStartUsec": 12 if running and self.lineage else None,
+            })
+            self.sanitizer_reads += 1
             out = json.dumps(doc)
         elif key in (("app-server", "daemon", "update", "--from-cli", "--yes"),
                      ("app-server", "daemon", "restart")):
@@ -54,13 +76,9 @@ class Fake:
             out = "".join("%d\n" % (400 + i) for i in range(self.processes))
             if not out:
                 code = 1
-        elif argv[0].endswith("ps"):
-            out = "%s 1 00:12\n" % argv[2]
         elif argv[0].endswith("lsof"):
-            out = "p400\n" + "".join("f%du\nt%s\n" % (i, "PIPE" if i % 2 else "REG")
+            out = "p%s\n" % argv[3] + "".join("f%du\nt%s\n" % (i, "PIPE" if i % 2 else "REG")
                                       for i in range(self.fd_count))
-        elif argv[0].endswith("launchctl"):
-            out = "maxfiles %s unlimited\n" % self.soft
         else:
             out = ""
         return subprocess.CompletedProcess(argv, code, stdout=out,
@@ -85,22 +103,30 @@ class Inspection(unittest.TestCase):
             self.assertIs(options.get("stderr"), subprocess.DEVNULL)
             self.assertNotIn("capture_output", options)
 
-    def test_aligned_running_daemon_has_sanitized_headroom(self):
+    def test_aligned_running_daemon_has_sanitized_role_metrics_without_headroom_claim(self):
         fake = Fake([state()], fd_count=20)
         snapshot = daemon.inspect(system="Darwin", resolver=fake.resolve, runner=fake)
         code, lines = daemon.result(snapshot)
         text = "\n".join(lines)
         self.assertEqual(code, 0, text)
-        self.assertIn("headroom 236 (required 64)", text)
+        self.assertIn("per-role RLIMIT/headroom unavailable", text)
+        self.assertIn("native socket peer pid 400", text)
+        self.assertIn("session host pid 500", text)
+        self.assertIn("executor child pid 600", text)
+        self.assertNotIn("headroom 236", text)
         self.assertIn("PIPE 10, REG 10", text)
         self.assertNotIn("/private", text)
         self.assertNotIn("credential", text)
         self.assertNotIn(("app-server", "daemon", "version"), fake.calls)
         sanitizer_calls = [call for call in fake.calls if call and call[0] == "-B"]
-        self.assertEqual(len(sanitizer_calls), 1)
-        self.assertEqual(len(sanitizer_calls[0]), 2)  # -B and the fixed sanitizer path; no vendor path.
+        self.assertEqual(len(sanitizer_calls), 2)  # Initial identity plus post-metric revalidation.
+        self.assertTrue(all(len(call) == 2 for call in sanitizer_calls))
         self.assertNotIn("/private", repr(vars(snapshot)))
         self.assertFalse(hasattr(snapshot, "socket_path"))
+        lsof_calls = [call for call in fake.calls if call and call[0] == "-nP"]
+        self.assertEqual(len(lsof_calls), 3)
+        self.assertTrue(all(call[-1] == "-Fft" for call in lsof_calls))
+        self.assertTrue(all("n" not in call[-1] for call in lsof_calls))
 
     def test_version_skew_is_drift(self):
         fake = Fake([state(managed="0.160.0", app="0.160.0")])
@@ -121,33 +147,32 @@ class Inspection(unittest.TestCase):
         self.assertEqual(code, 0, lines)
         self.assertEqual(lines[0].count(version), 4)
 
-    def test_unsafe_headroom_is_drift(self):
+    def test_large_fd_total_is_reported_without_global_limit_substitution(self):
         fake = Fake([state()], fd_count=210)
         code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
-        self.assertEqual(code, 1)
-        self.assertIn("unsafe descriptor headroom", lines[0])
-        self.assertIn("headroom 46", lines[0])
+        self.assertEqual(code, 0)
+        self.assertIn("numeric FDs 210", lines[0])
+        self.assertIn("headroom unavailable", lines[0])
+        self.assertNotIn("headroom 46", lines[0])
 
-    def test_lifecycle_carrier_drift_is_named_without_arguments(self):
-        fake = Fake([state()], processes=2)
+    def test_role_identity_change_during_collection_is_drift(self):
+        fake = Fake([state()], identity_shift=True)
         code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
         self.assertEqual(code, 1)
-        self.assertIn("managed process ambiguous", lines[0])
+        self.assertIn("role identity changed during collection", lines[0])
         self.assertNotIn("--managed-daemon", lines[0])
 
-    def test_invalid_pid_output_is_not_a_lifecycle_carrier(self):
-        fake = Fake([state()])
-        original = fake.__call__
-
-        def unrelated(argv, **kwargs):
-            if argv[0].endswith("pgrep"):
-                text = "/private/value-that-is-not-a-pid\n"
-                return subprocess.CompletedProcess(argv, 0, stdout=text, stderr="")
-            return original(argv, **kwargs)
-
-        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=unrelated)
+    def test_lifecycle_projection_change_during_collection_is_drift(self):
+        fake = Fake([state()], lifecycle_shift=True)
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
         self.assertEqual(code, 1)
-        self.assertIn("managed process missing", lines[0])
+        self.assertIn("lifecycle projection changed during collection", lines[0])
+
+    def test_missing_session_lineage_refuses(self):
+        fake = Fake([state()], lineage=False)
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 1)
+        self.assertIn("session-host/executor lineage unavailable", lines[0])
 
     def test_stopped_daemon_needs_no_descriptor_read(self):
         fake = Fake([state(status="stopped")])
@@ -173,7 +198,8 @@ class Inspection(unittest.TestCase):
         fake = Malformed([state()])
         code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
         self.assertEqual(code, 1)
-        self.assertEqual(lines, ["CODEX   DRIFT: daemon metadata unreadable; run mhw install at a session boundary"])
+        self.assertIn("daemon metadata unreadable", lines[0])
+        self.assertIn("install will not change ambiguous role evidence", lines[0])
 
 
 class Lifecycle(unittest.TestCase):
@@ -184,44 +210,43 @@ class Lifecycle(unittest.TestCase):
         self.assertIn(("app-server", "daemon", "update", "--from-cli", "--yes"), fake.calls)
         self.assertIn("native update completed", lines[0])
 
-    # Issue #210: low headroom is advisory at install and never triggers the interrupting restart.
+    # Issue #210 plus #200's accepted exception: an unavailable role limit never selects restart.
     def native_changes(self, fake):
         return [call for call in fake.calls
                 if call[:2] == ("app-server", "daemon") and call[2:3] != ("version",)]
 
-    def test_low_headroom_is_advisory_and_never_restarts(self):
-        # The measured case: 317 numeric descriptors against an inherited soft limit of 256.
+    def test_large_fd_total_without_role_limit_never_restarts(self):
         fake = Fake([state()], fd_count=317, soft=256)
         code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
         self.assertEqual(code, 0, lines)
         self.assertEqual(self.native_changes(fake), [])
-        self.assertIn("DRIFT: unsafe descriptor headroom", lines[0])
-        self.assertIn("headroom -61", lines[0])
-        self.assertIn("advisory: mhw install does not change descriptor headroom", lines[0])
+        self.assertIn("numeric FDs 317", lines[0])
+        self.assertIn("RLIMIT/headroom unavailable", lines[0])
+        self.assertNotIn("headroom -61", lines[0])
 
-    def test_low_headroom_stays_drift_for_status_and_check(self):
-        fake = Fake([state()], fd_count=317, soft=256)
+    def test_status_does_not_pass_or_fail_from_substitute_limit(self):
+        fake = Fake([state()], fd_count=317, soft=1)
         code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
-        self.assertEqual(code, 1)
-        self.assertIn("advisory", lines[0])
+        self.assertEqual(code, 0)
+        self.assertIn("headroom unavailable", lines[0])
+        self.assertNotIn("headroom -", lines[0])
 
-    def test_unreadable_headroom_is_advisory_at_install(self):
-        for missing in (("lsof",), ("launchctl",)):
-            with self.subTest(missing=missing):
-                fake = Fake([state()], missing=missing)
-                rcode, rlines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
-                self.assertEqual(rcode, 1)
-                self.assertIn("descriptor tools unavailable; advisory", rlines[0])
-                fake = Fake([state()], missing=missing)
-                code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
-                self.assertEqual(code, 0, lines)
-                self.assertEqual(self.native_changes(fake), [])
+    def test_unreadable_role_metrics_refuse_without_native_change(self):
+        fake = Fake([state()], missing=("lsof",))
+        rcode, rlines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(rcode, 1)
+        self.assertIn("descriptor tools unavailable", rlines[0])
+        fake = Fake([state()], missing=("lsof",))
+        code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 1, lines)
+        self.assertEqual(self.native_changes(fake), [])
 
-    def test_unlimited_soft_limit_is_safe(self):
+    def test_launchctl_is_never_consulted_for_a_substitute_limit(self):
         fake = Fake([state()], fd_count=900, soft="unlimited")
         code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
         self.assertEqual(code, 0, lines)
-        self.assertIn("headroom unlimited", lines[0])
+        self.assertIn("headroom unavailable", lines[0])
+        self.assertFalse([call for call in fake.calls if call and call[0] == "limit"])
 
     def test_skew_with_low_headroom_still_updates_and_succeeds(self):
         fake = Fake([state(managed="0.160.0", app="0.160.0"), state()], fd_count=317, soft=256)
@@ -230,26 +255,14 @@ class Lifecycle(unittest.TestCase):
         self.assertEqual(self.native_changes(fake),
                          [("app-server", "daemon", "update", "--from-cli", "--yes")])
         self.assertIn("native update completed", lines[0])
-        self.assertIn("DRIFT: unsafe descriptor headroom", lines[1])
+        self.assertIn("RLIMIT/headroom unavailable", lines[1])
 
-    def test_missing_lifecycle_process_still_uses_native_restart(self):
-        fake = Fake([state(), state()], processes=0)
-        original = fake.__call__
-
-        def moving(argv, **kwargs):
-            result = original(argv, **kwargs)
-            if tuple(argv[1:]) == ("app-server", "daemon", "restart") and result.returncode == 0:
-                fake.processes = 1
-            return result
-        code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=moving)
-        self.assertEqual(code, 0, lines)
-        self.assertEqual(self.native_changes(fake), [("app-server", "daemon", "restart")])
-
-    def test_restart_that_leaves_the_process_missing_fails_closed(self):
-        fake = Fake([state(), state()], processes=0)
+    def test_missing_lineage_refuses_and_never_restarts(self):
+        fake = Fake([state()], lineage=False)
         code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
         self.assertEqual(code, 1)
-        self.assertIn("did not produce", lines[0])
+        self.assertIn("nothing changed", lines[0])
+        self.assertEqual(self.native_changes(fake), [])
 
     # Issue #210: a daemon that is not running is not an install failure, and is never started.
     def test_not_running_daemon_is_clean_and_untouched(self):
@@ -295,7 +308,7 @@ class Lifecycle(unittest.TestCase):
             (Fake([state()], fd_count=317), None),
             (Fake([state()], unreachable=True, processes=0), None),
             (Fake([state(managed="0.160.0", app="0.160.0")]), "update"),
-            (Fake([state()], processes=2), "restart"),
+            (Fake([state()], lineage=False), "refuse"),
             (Fake([state()], unreachable=True, processes=1), "refuse"),
         ]
         for fake, expected in cases:
@@ -334,6 +347,160 @@ class Lifecycle(unittest.TestCase):
 
 
 class SanitizerBoundary(unittest.TestCase):
+    class LocalSocket:
+        def __init__(self, pid=400, uid=None, groups=1):
+            self.pid = pid
+            self.uid = os.getuid() if uid is None else uid
+            self.groups = groups
+
+        def settimeout(self, _timeout):
+            pass
+
+        def connect(self, _path):
+            pass
+
+        def getsockopt(self, _level, option, _size):
+            if option == sanitizer.LOCAL_PEERPID:
+                import struct
+                return struct.pack("@i", self.pid)
+            import struct
+            return struct.pack("@IIh", sanitizer.XUCRED_VERSION, self.uid, self.groups) + b"\0" * 64
+
+        def close(self):
+            pass
+
+    def test_kernel_peer_requires_same_uid_positive_pid_and_start_identity(self):
+        identity = lambda pid: {"pid": pid, "ppid": 1, "uid": os.getuid(),
+                                "startSec": 100, "startUsec": 10,
+                                "comm": b"codex", "name": b"codex"}
+        found = sanitizer.peer_identity("/private/not-emitted",
+                                        socket_factory=lambda *_: self.LocalSocket(),
+                                        identity=identity)
+        self.assertEqual(set(found), {"pid", "ppid", "uid", "startSec", "startUsec"})
+        for sock in (self.LocalSocket(pid=0), self.LocalSocket(uid=os.getuid() + 1)):
+            with self.subTest(pid=sock.pid, uid_matches=sock.uid == os.getuid()):
+                self.assertIsNone(sanitizer.peer_identity(
+                    "/private/not-emitted", socket_factory=lambda *_args, sock=sock: sock,
+                    identity=identity))
+        reads = []
+        def reused(pid):
+            reads.append(pid)
+            value = identity(pid)
+            return dict(value, startSec=100 + len(reads))
+        self.assertIsNone(sanitizer.peer_identity(
+            "/private/not-emitted", socket_factory=lambda *_: self.LocalSocket(), identity=reused))
+
+    def test_lineage_refuses_zero_multiple_and_cycles(self):
+        def roles(graph):
+            return sanitizer.lineage_roles(identity=lambda pid: graph.get(pid), current_pid=30)
+
+        base = {
+            30: {"pid": 30, "ppid": 20, "uid": os.getuid(), "startSec": 3, "startUsec": 0,
+                 "comm": b"python", "name": b"python"},
+            20: {"pid": 20, "ppid": 1, "uid": os.getuid(), "startSec": 2, "startUsec": 0,
+                 "comm": b"codex", "name": b"codex"},
+            1: {"pid": 1, "ppid": 0, "uid": 0, "startSec": 1, "startUsec": 0,
+                "comm": b"launchd", "name": b"launchd"},
+        }
+        self.assertEqual(roles(base)["sessionHostPid"], 20)
+        no_host = {pid: dict(value, comm=b"python", name=b"python")
+                   for pid, value in base.items()}
+        self.assertIsNone(roles(no_host))
+        multiple = dict(base)
+        multiple[1] = dict(multiple[1], comm=b"codex", name=b"codex")
+        self.assertIsNone(roles(multiple))
+        foreign = dict(base)
+        foreign[20] = dict(foreign[20], uid=os.getuid() + 1)
+        self.assertIsNone(roles(foreign))
+        cycle = dict(base)
+        cycle[20] = dict(cycle[20], ppid=30)
+        self.assertIsNone(roles(cycle))
+        moving = dict(base)
+        moving[30] = dict(moving[30], ppid=25)
+        moving[25] = {"pid": 25, "ppid": 20, "uid": os.getuid(), "startSec": 25,
+                      "startUsec": 0, "comm": b"python", "name": b"python"}
+        reads = []
+        def changed(pid):
+            value = moving.get(pid)
+            if pid == 25:
+                reads.append(pid)
+                return dict(value, startSec=value["startSec"] + (1 if len(reads) > 1 else 0))
+            return value
+        self.assertIsNone(sanitizer.lineage_roles(identity=changed, current_pid=30))
+
+    def test_lineage_uses_exact_peer_among_two_codex_ancestors(self):
+        uid = os.getuid()
+        graph = {
+            30: {"pid": 30, "ppid": 20, "uid": uid, "startSec": 3, "startUsec": 3,
+                 "comm": b"python", "name": b"python"},
+            20: {"pid": 20, "ppid": 10, "uid": uid, "startSec": 2, "startUsec": 2,
+                 "comm": b"codex", "name": b"codex"},
+            10: {"pid": 10, "ppid": 1, "uid": uid, "startSec": 1, "startUsec": 1,
+                 "comm": b"codex", "name": b"codex"},
+            1: {"pid": 1, "ppid": 0, "uid": 0, "startSec": 1, "startUsec": 0,
+                "comm": b"launchd", "name": b"launchd"},
+        }
+        peer = {"pid": 20, "ppid": 10, "uid": uid, "startSec": 2, "startUsec": 2}
+        roles = sanitizer.lineage_roles(peer=peer, identity=lambda pid: graph.get(pid),
+                                        current_pid=30)
+        self.assertEqual(roles["sessionHostPid"], peer["pid"])
+        self.assertEqual(roles["sessionHostStartSec"], peer["startSec"])
+        self.assertEqual(roles["sessionHostStartUsec"], peer["startUsec"])
+
+    def test_lineage_refuses_peer_pid_with_mismatched_start(self):
+        uid = os.getuid()
+        graph = {
+            30: {"pid": 30, "ppid": 20, "uid": uid, "startSec": 3, "startUsec": 0,
+                 "comm": b"python", "name": b"python"},
+            20: {"pid": 20, "ppid": 1, "uid": uid, "startSec": 2, "startUsec": 0,
+                 "comm": b"codex", "name": b"codex"},
+            1: {"pid": 1, "ppid": 0, "uid": 0, "startSec": 1, "startUsec": 0,
+                "comm": b"launchd", "name": b"launchd"},
+        }
+        peer = {"pid": 20, "ppid": 1, "uid": uid, "startSec": 999, "startUsec": 0}
+        self.assertIsNone(sanitizer.lineage_roles(
+            peer=peer, identity=lambda pid: graph.get(pid), current_pid=30))
+
+    def test_lineage_revalidates_stable_exact_peer_ancestry(self):
+        uid = os.getuid()
+        graph = {
+            30: {"pid": 30, "ppid": 20, "uid": uid, "startSec": 3, "startUsec": 0,
+                 "comm": b"python", "name": b"python"},
+            20: {"pid": 20, "ppid": 1, "uid": uid, "startSec": 2, "startUsec": 0,
+                 "comm": b"codex", "name": b"codex"},
+            1: {"pid": 1, "ppid": 0, "uid": 0, "startSec": 1, "startUsec": 0,
+                "comm": b"launchd", "name": b"launchd"},
+        }
+        reads = {pid: 0 for pid in graph}
+        def stable(pid):
+            reads[pid] += 1
+            return graph.get(pid)
+        peer = {"pid": 20, "ppid": 1, "uid": uid, "startSec": 2, "startUsec": 0}
+        roles = sanitizer.lineage_roles(peer=peer, identity=stable, current_pid=30)
+        self.assertEqual(roles["sessionHostPid"], 20)
+        self.assertTrue(all(count >= 2 for count in reads.values()))
+
+    def test_running_projection_exports_only_fixed_role_metadata(self):
+        document = state()
+        document.pop("binary")
+        raw = json.dumps(document).encode()
+        peer = {"pid": 400, "ppid": 1, "uid": os.getuid(), "startSec": 100, "startUsec": 10}
+        roles = {"sessionHostPid": 500, "sessionHostStartSec": 110,
+                 "sessionHostStartUsec": 11, "executorPid": 600,
+                 "executorStartSec": 120, "executorStartUsec": 12}
+        safe = sanitizer.project(raw, peer_lookup=lambda _path: peer,
+                                 roles_lookup=lambda _peer: roles)
+        self.assertEqual(set(safe), set(daemon._REQUIRED))
+        self.assertNotIn("managedCodexPath", safe)
+        self.assertNotIn("socketPath", safe)
+        self.assertNotIn("SoftLimit", repr(safe))
+        bad_roles = dict(roles, futurePrivatePath=1)
+        self.assertIsNone(sanitizer.project(raw, peer_lookup=lambda _path: peer,
+                                            roles_lookup=lambda _peer: bad_roles))
+        bad_peer = dict(peer, pid=0)
+        self.assertIsNone(sanitizer.project(raw, peer_lookup=lambda _path: bad_peer,
+                                            roles_lookup=lambda _peer: roles))
+
     def vendor(self, document):
         temp = tempfile.TemporaryDirectory(prefix="mhw-codex-sanitizer-")
         self.addCleanup(temp.cleanup)
@@ -366,7 +533,7 @@ class SanitizerBoundary(unittest.TestCase):
         self.assertEqual(result.stderr, "")
 
     def test_raw_sensitive_fields_never_cross_the_child_boundary(self):
-        document = state()
+        document = state(status="stopped")
         document.pop("binary")
         result = self.run_boundary(document)
         self.assertEqual(result.returncode, 0)
@@ -379,7 +546,7 @@ class SanitizerBoundary(unittest.TestCase):
 
     def test_complete_version_suffix_crosses_the_boundary_unchanged(self):
         version = "0.163.0-rc.1+vendor.2"
-        document = state(cli=version, managed=version, app=version)
+        document = state(cli=version, managed=version, app=version, status="stopped")
         document.pop("binary")
         result = self.run_boundary(document)
         self.assertEqual(result.returncode, 0)

@@ -155,8 +155,9 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
-      # Issue #200, ADR-0039: sanitized fake-daemon inspection, version/headroom drift and native
-      # install-boundary update/restart. It never reaches a runner daemon or reads descriptor targets.
+      # Issue #200, ADR-0039: sanitized fake-daemon inspection, kernel-backed role identity,
+      # PID/start revalidation, aggregate descriptor metrics and native version update. It never
+      # reaches a runner daemon, reads descriptor targets or substitutes a global/process limit.
       - name: Codex managed-daemon lifecycle suite
         run: python3 -B global/codex/daemon_runtime_test.py
       # ADR-0035 decision 7: mhw scan, the outbound scan, in throwaway git repositories and HOMEs, on
