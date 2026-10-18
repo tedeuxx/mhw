@@ -776,7 +776,7 @@ later discussion ([#68](https://github.com/tedeuxx/mhw/issues/68)).~~
     (flag added 2026-10-06), or
     `#semver:^X.Y.Z`. Nothing is published to the npm registry; `package.json` is `private`.
   - The package exposes ~~the `workstation` command~~ the `mhw` command (renamed 2026-10-06;
-    `workstation` stays a deprecated alias for one minor). On macOS and Linux it runs ~~`./workstation`~~
+    ~~`workstation` stays a deprecated alias for one minor~~; the alias was removed in v7, #206). On macOS and Linux it runs ~~`./workstation`~~
     `./mhw`; on Windows a small Node launcher runs `install.ps1`.
   - The npm version follows `.bumpversion.toml`, so the git tag stays the one release source.
   - The provenance stamp holds without `.git`: GitHub's archive fills in `.workstation-archive`
@@ -819,7 +819,8 @@ this way needs. By his decision of 2026-10-05, the release candidate carries it 
   missing, authenticated or not, and drift from the preferred settings (for example the GitHub merge
   standard: merge commits on, squash off). A missing required item exits non-zero.
 - **Never applied by the check.** Applying settings to real accounts comes after the owner tests the
-  release candidate; the one existing apply route, `github-repo-settings.sh --apply`, is his act.
+  release candidate; the one existing apply route, ~~`github-repo-settings.sh --apply`~~ `gh repo edit` with the three
+  merge flags (the script was removed, #206), is his act.
 - **GitHub only** for code hosting ([2](#2-goals-and-principles-from-the-owner), principle 10).
 - Details: [`docs/prerequisites.md`](prerequisites.md).
 

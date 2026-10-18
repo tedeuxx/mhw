@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Regression tests for the npm package mhw (Issue #68, ADR-0034): the mhw launcher and its deprecated
-workstation alias, the postinstall that installs nothing (Issue #113), the archive provenance stamp read when
+"""Regression tests for the npm package mhw (Issue #68, ADR-0034): the mhw launcher (its deprecated
+workstation alias was removed in v7, Issue #206), the postinstall that installs nothing (Issue #113), the archive provenance stamp read when
 there is no .git, npm-mode status and update. Throwaway HOMEs, npm prefixes, caches and admin roots
 only; never a registry, never a real configuration, never sudo.
 
@@ -34,7 +34,6 @@ NPM = shutil.which("npm")
 GIT = shutil.which("git")
 POSIX_JQ = os.name == "posix" and bool(shutil.which("jq"))
 GLOB = "v[0-9]*.[0-9]*.[0-9]*"
-ALIAS = "`workstation` is renamed `mhw`; the alias will be removed in the next major"
 LEGACY = "personal-multi-harness-workstation-configuration"
 
 
@@ -137,19 +136,15 @@ class Launcher(Base):
         self.assertIn("mhw: unknown subcommand no-such-subcommand", p.stderr)
 
     @unittest.skipUnless(os.name == "posix", "needs a POSIX sh")
-    def test_both_names_resolve_and_the_alias_prints_one_line(self):
-        # The npm bin and the repository entry point: workstation behaves exactly as mhw, plus one notice
-        # on stderr and nothing else.
-        for args in (["--help"], ["no-such-subcommand"], ["update", "main"]):
+    def test_the_workstation_alias_is_gone(self):
+        # Issue #206: the alias promised for removal at the next major is removed, at the repository entry
+        # point and as an npm bin; mhw itself prints no rename notice.
+        self.assertFalse((ROOT / "workstation").exists())
+        self.assertFalse((ROOT / "bin" / "workstation.js").exists())
+        for args in (["--help"], ["no-such-subcommand"]):
             with self.subTest(args=args):
-                code, out, err = self.run_bin("mhw.js", args)
-                acode, aout, aerr = self.run_bin("workstation.js", args)
-                self.assertEqual((acode, aout), (code, out))
-                self.assertEqual(aerr, ALIAS + "\n" + err)
+                _, _, err = self.run_bin("mhw.js", args)
                 p = subprocess.run(["sh", str(ROOT / "mhw")] + args, capture_output=True, text=True)
-                q = subprocess.run(["sh", str(ROOT / "workstation")] + args, capture_output=True, text=True)
-                self.assertEqual((q.returncode, q.stdout), (p.returncode, p.stdout))
-                self.assertEqual(q.stderr, ALIAS + "\n" + p.stderr)
                 self.assertNotIn("renamed", err + p.stderr)
 
     @unittest.skipUnless(os.name == "posix", "the PowerShell stub is a POSIX script")
@@ -169,7 +164,6 @@ class Launcher(Base):
                          (0, base + ["-Method", "-Overlay", "none"], ""))
         self.assertEqual(run("check"), (0, base + ["-Check"], ""))
         self.assertEqual(run("status"), (0, base + ["-Check"], ""))
-        self.assertEqual(run("status", name="workstation.js"), (0, base + ["-Check"], ALIAS + "\n"))
         for args in (("install", "--admin"), ("uninstall",), ("check", "--method"), ("install", "--overlay=")):
             code, out, err = run(*args)
             self.assertEqual((code, out), (2, []), args)
@@ -202,7 +196,7 @@ class Launcher(Base):
         self.assertIs(package["private"], True)
         self.assertEqual(package["name"], "mhw")
         self.assertEqual(package["description"], "multi-harness managed workstation")
-        self.assertEqual(package["bin"], {"mhw": "bin/mhw.js", "workstation": "bin/workstation.js"})
+        self.assertEqual(package["bin"], {"mhw": "bin/mhw.js"})
         self.assertNotIn("dependencies", package)
         # One lifecycle script. Any script makes npm 11 prepare a git install in a temporary clone that
         # it links into the global prefix (measured); bin/postinstall.js undoes that link (Prepare).
@@ -335,13 +329,15 @@ class PackAndInstall(Base):
         (tree / "overlay" / "x.local.json").write_text("{}", encoding="utf-8")
         with tarfile.open(self.pack(tree)) as t:
             names = {n[len("package/"):] for n in t.getnames()}
-        for needed in ("mhw", "workstation", ".bumpversion.toml", ".workstation-archive", "bin/mhw.js",
-                       "bin/workstation.js", "bin/postinstall.js",
+        for needed in ("mhw", ".bumpversion.toml", ".workstation-archive", "bin/mhw.js", "bin/postinstall.js",
                        "global/workstation.py", "global/owner_actions.py", "global/install.sh",
                        "global/install-managed.sh", "global/install.ps1", "global/AGENTS.md",
                        "global/deny-floor.conf", "overlay/profile.json", "package.json"):
             self.assertIn(needed, names)
         self.assertFalse([n for n in names if n.endswith(("_test.py", ".test.sh", ".test.ps1", ".test.stub"))])
+        for gone in ("workstation", "bin/workstation.js", "global/github-repo-settings.sh",
+                     "global/method/plugin_retire.py", "global/mcp/mcp_retire.py"):   # Issue #206
+            self.assertNotIn(gone, names)
         self.assertFalse([n for n in names if n.startswith(("docs/", "workspace/", ".github/", ".git/"))])
         # A local overlay MCP definition (untracked, ADR-0017) must never ride into a package.
         self.assertNotIn("overlay/mcp-servers.json", names)
@@ -387,9 +383,7 @@ class PackAndInstall(Base):
         self.assertIn("  source           %s (this package)" % ws.short_stamp(stamp), p.stdout)
         self.assertNotIn(ws.NOT_RUN, p.stdout)
         self.assertNotIn("  npm  ", p.stdout)
-        q = self.cmd(d, env, "workstation", "status", "--project=" + str(d / "proj"))
-        self.assertEqual((q.returncode, q.stderr), (0, ALIAS + "\n"))
-        self.assertIn("  source           %s (this package)" % ws.short_stamp(stamp), q.stdout)
+        self.assertFalse((d / "prefix" / "bin" / "workstation").exists(), "Issue #206: no workstation bin")
         # mhw update runs npm itself (a stand-in here: no network), then the new package's install.
         log = d / "npm-args"
         fake = d / "fake-npm"
@@ -508,17 +502,12 @@ class PackAndInstall(Base):
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("up")
         self.assertEqual(self.npm(d, env, "install", "-g", "--offline", str(old_tgz)).returncode, 0)
-        # From a tarball, one step fails loudly and changes nothing: npm refuses to take over another
-        # package's bin. (From GitHub it succeeds: the git preparation's inner install --force takes the
-        # bin over and keeps the old package, measured with npm 11.13.0; the --force case below is that state.)
+        # Since Issue #206 mhw has no workstation bin, so nothing collides: npm installs it beside the old
+        # package, which keeps its own workstation bin, and status names the one to remove.
         p = self.npm(d, env, "install", "-g", "--offline", str(tgz))
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("EEXIST", p.stdout + p.stderr)
-        self.assertFalse((d / "prefix" / "lib" / "node_modules" / "mhw").exists())
-        self.assertIsNone(self.brief(d))
-        # Forced past it, both packages stay installed and status names the one to remove.
-        p = self.npm(d, env, "install", "-g", "--offline", "--force", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue((d / "prefix" / "lib" / "node_modules" / "mhw").is_dir())
+        self.assertTrue((d / "prefix" / "lib" / "node_modules" / LEGACY).is_dir())
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
         self.assertIn("  npm              the v4.1.0 package (the name before mhw) is still installed beside mhw; "
                       "remove the v4.1.0 package first: `npm uninstall -g %s`, then run mhw update" % LEGACY, p.stdout)
@@ -533,9 +522,10 @@ class PackAndInstall(Base):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertEqual(self.cmd(d, env, "mhw", "install", "--yes").returncode, 0)
         self.assertIn("; %s;" % expected_stamp(), self.brief(d))
-        p = self.cmd(d, env, "workstation", "status", "--project=" + str(d / "proj"))
-        self.assertEqual((p.returncode, p.stderr), (0, ALIAS + "\n"))
+        p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
+        self.assertEqual(p.returncode, 0, p.stderr)
         self.assertNotIn("still installed beside mhw", p.stdout)
+        self.assertFalse((d / "prefix" / "bin" / "workstation").exists())
 
 
 if __name__ == "__main__":

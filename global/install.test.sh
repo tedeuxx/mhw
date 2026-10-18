@@ -1120,31 +1120,22 @@ else
   ko "uninstall and the retired entries: $(jq -c '.permissions.allow' "$ha/.claude/settings.json")"
 fi
 
-# 19. the MCP servers the policy retired (Issue #145, ADR-0035 decision 2): aws-api leaves the Codex user
-# configuration, with a backup; nothing else in the file changes and no server content is printed.
-# Per-case semantics: global/mcp/mcp_retire_test.py.
-if python3 -c 'import tomllib' 2>/dev/null; then
-  hc="$base/home-mcp-retired"; mkdir -p "$hc/.codex"
-  canary="canary-""value-""7311"
-  printf '%s\n' 'approval_policy = "on-request"' '' '[mcp_servers.aws-api]' 'command = "uvx"' '' '[mcp_servers.aws-api.env]' \
-    "AWS_PROFILE = \"$canary\"" '' '[mcp_servers.keep]' 'command = "keep"' > "$hc/.codex/config.toml"
-  chmod 600 "$hc/.codex/config.toml"
-  mcp_seed=$(cksum < "$hc/.codex/config.toml")
-  HOME="$hc" sh "$inst" --check > "$base/mcp-r1.out" 2>&1; expect "check reports the retired MCP server" 1 $?
-  HOME="$hc" sh "$inst" > "$base/mcp-r2.out" 2>&1; expect "install removes the retired MCP server" 0 $?
-  if ! grep -q 'aws-api' "$hc/.codex/config.toml" && grep -qxF '[mcp_servers.keep]' "$hc/.codex/config.toml" \
-     && grep -qxF 'approval_policy = "on-request"' "$hc/.codex/config.toml" \
-     && [ "$(cksum < "$hc/.codex/config.toml.pmhwc-mcp-backup")" = "$mcp_seed" ] \
-     && grep -qF "CHANGED $hc/.codex/config.toml: mcp_servers.aws-api present -> absent" "$base/mcp-r2.out"; then
-    ok "install removes aws-api only, keeps a backup and prints present -> absent"
-  else
-    ko "the retired MCP server was not removed cleanly"; cat "$hc/.codex/config.toml"
-  fi
-  if grep -q "$canary" "$base/mcp-r1.out" "$base/mcp-r2.out"; then ko "a server value was printed"; else ok "no MCP server value is printed"; fi
-  HOME="$hc" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the MCP server leaves" 0 $?
+# 19. the retired-server removal is gone (Issue #206; it was #145, ADR-0035 decision 2): install no
+# longer edits a hand-written aws-api table in the Codex user configuration, writes no MCP backup and
+# prints nothing about it. Removing a leftover table is a manual step.
+hc="$base/home-mcp-retired"; mkdir -p "$hc/.codex"
+canary="canary-""value-""7311"
+printf '%s\n' 'approval_policy = "on-request"' '' '[mcp_servers.aws-api]' 'command = "uvx"' '' '[mcp_servers.aws-api.env]' \
+  "AWS_PROFILE = \"$canary\"" '' '[mcp_servers.keep]' 'command = "keep"' > "$hc/.codex/config.toml"
+chmod 600 "$hc/.codex/config.toml"
+HOME="$hc" sh "$inst" > "$base/mcp-r2.out" 2>&1; expect "install runs with an aws-api table present" 0 $?
+if grep -qxF '[mcp_servers.aws-api]' "$hc/.codex/config.toml" && grep -qxF '[mcp_servers.keep]' "$hc/.codex/config.toml" \
+   && [ ! -e "$hc/.codex/config.toml.pmhwc-mcp-backup" ] && ! grep -q 'aws-api' "$base/mcp-r2.out"; then
+  ok "install leaves the aws-api table alone and writes no MCP backup"
 else
-  echo "SKIP  python3 has no tomllib (3.11+): the MCP removal is refused there, not tested here"
+  ko "install still edits the retired MCP server"; cat "$base/mcp-r2.out"
 fi
+if grep -q "$canary" "$base/mcp-r2.out"; then ko "a server value was printed"; else ok "no MCP server value is printed"; fi
 
 # 19b. the policy MCP server (ADR-0038, Issue #174): install writes chrome-devtools into the Claude Code user
 # configuration (~/.claude.json), prints old -> new and keeps an 0600 backup; uninstall removes it and
@@ -1185,13 +1176,10 @@ HOME="$hu" sh "$inst" --uninstall > "$base/uninstall-rc.out" 2>&1; expect "unins
 if [ "$(cksum < "$hu/.zshrc")" = "$zsum" ]; then ok "uninstall gives the owner's .zshrc back byte for byte"; else ko "uninstall left .zshrc: $(cat "$hu/.zshrc")"; fi
 
 # 21. every backup of a harness config the installer writes is owner-only (0600), whatever the original's
-# mode, and the retired MCP server leaves config.toml before the model defaults back it up, so no
-# backup but the MCP one holds the server (PR #146 QA advisory).
+# mode (PR #146 QA advisory).
 hb2="$base/home-backups"; mkdir -p "$hb2/.claude" "$hb2/.codex"
-canary2="canary-""value-""5150"
 printf '%s\n' '{"model": "owner-model", "permissions": {"allow": ["Bash(find:*)"]}}' > "$hb2/.claude/settings.json"
-printf '%s\n' 'model_reasoning_effort = "high"' '' '[mcp_servers.aws-api]' 'command = "uvx"' '' '[mcp_servers.aws-api.env]' \
-  "AWS_PROFILE = \"$canary2\"" > "$hb2/.codex/config.toml"
+printf '%s\n' 'model_reasoning_effort = "high"' > "$hb2/.codex/config.toml"
 printf 'export MINE=1\n' > "$hb2/.zshrc"
 chmod 644 "$hb2/.claude/settings.json" "$hb2/.codex/config.toml" "$hb2/.zshrc"
 HOME="$hb2" sh "$inst" --overlay="$repo_overlay" > "$base/backups.out" 2>&1; expect "install over 0644 harness configs" 0 $?
@@ -1202,13 +1190,9 @@ for b in $backups; do
   m=$(stat -c %a "$b" 2>/dev/null || stat -f %Lp "$b")
   [ "$m" = 600 ] || wide="$wide ${b#"$hb2"/}=$m"
 done
-# settings.json (merge, models, allow), config.toml (mcp, models) and .zshrc: six backups.
-if [ "$nb" -eq 6 ] && [ -z "$wide" ]; then ok "all $nb backups of harness configs are 0600"; else ko "backups not owner-only ($nb found):$wide"; fi
-if grep -q "$canary2" "$hb2/.codex/config.toml.pmhwc-mcp-backup" && ! grep -q "aws-api" "$hb2/.codex/config.toml.pmhwc-models-backup"; then
-  ok "only the MCP backup holds the retired server; the models backup is taken after it left"
-else
-  ko "the models backup of config.toml still holds the retired server"
-fi
+# settings.json (merge, models, allow), config.toml (models) and .zshrc: five backups (the MCP removal
+# backup went with mcp_retire.py, Issue #206).
+if [ "$nb" -eq 5 ] && [ -z "$wide" ]; then ok "all $nb backups of harness configs are 0600"; else ko "backups not owner-only ($nb found):$wide"; fi
 
 # 22. the uninstall backup of ~/.claude/settings.json is owner-only too (PR #148 QA advisory A1): the
 # file is 0644 and no earlier backup is there, so only the uninstall copy decides the mode.
@@ -1226,7 +1210,8 @@ else
   ko "the uninstall backup is $ub_mode"
 fi
 
-# 23. the README states each of the four #145 behaviours (PR #148 QA blocker B1): one row per behaviour, the
+# 23. the README states each #145 behaviour still carried (PR #148 QA blocker B1; the aws-api removal left
+# with Issue #206): one row per behaviour, the
 # phrase the README must carry. A behaviour the README stops naming turns this red.
 readme="$(cd "$(dirname "$0")/.." && pwd)/README.md"
 while IFS='|' read -r what needle; do
@@ -1235,10 +1220,6 @@ while IFS='|' read -r what needle; do
 done <<'EOF'
 model pins written over any value|install writes the pin over any value
 model value restored on uninstall|uninstall restores the value it replaced
-aws-api removed from Codex|`mhw install` removes the `aws-api`
-aws-api listed in retired-servers.conf|`global/mcp/retired-servers.conf`
-aws-api restore route|`config.toml.pmhwc-mcp-backup`, owner-only (0600)
-aws-api not re-added|uninstall does not re-add the server
 find and awk allows removed|install also removes the user-level `Bash(find:*)` and `Bash(awk:*)`
 paste wrapper block written|one marked block that sources it in the start-up file
 paste wrapper block removed on uninstall|`mhw uninstall` removes exactly

@@ -22,7 +22,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 INSTALL_SH = HERE / "install.sh"
 SHARED = HERE / "private_copy.py"
-USERS = ("kiro/kiro_permissions.py", "mcp/mcp_render.py", "mcp/mcp_retire.py", "models/model_defaults.py")
+USERS = ("kiro/kiro_permissions.py", "mcp/mcp_render.py", "models/model_defaults.py")
 _ROOT = Path(sys.argv.pop(1)) if len(sys.argv) > 1 else None
 if _ROOT is not None:
     _ROOT.mkdir(parents=True, exist_ok=True)

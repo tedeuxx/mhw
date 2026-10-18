@@ -434,8 +434,8 @@ clean but locked worktree; `git push --follow-tags` is denied even where no rele
   merge does not change.
 - **`global/github-repo-settings.json`** declares the standard: `allow_merge_commit: true`,
   `allow_squash_merge: false`, and `allow_rebase_merge: false` (a rebase merge also rewrites the
-  branch's commits and leaves no merge commit). **`global/github-repo-settings.sh --check|--apply
-  OWNER/REPO`** reads or applies it with `gh api`; a setting it cannot read (a token without admin
+  branch's commits and leaves no merge commit). ~~**`global/github-repo-settings.sh --check|--apply
+  OWNER/REPO`**~~ *(removed 2026-10-18, see that amendment)* reads or applies it with `gh api`; a setting it cannot read (a token without admin
   rights) counts as a difference, never as a match. Tested against a stub `gh`
   (`global/github-repo-settings.test.sh`, in CI). **Not applied to any repository by this change**:
   applying it is the owner's act, and the floor itself denies `gh api --method PATCH` to agents.
@@ -510,6 +510,29 @@ The six added entries render like every other one (Claude Code, Codex, Kiro, and
 installer suite asserts the new forms denied and, calibrated the other way, a feature-branch push and a
 branch whose name only starts with `main` matching no rule. On Kiro the word-boundary behaviour is *read
 from the bundle*, not measured. Version cut: **patch** (an incremental change to an existing control).
+
+## Amendment 2026-10-18: the merge-standard check uses `gh` natively (Issue #206)
+
+Status unchanged. The owner's decision on Issue #206 (*"Os 4 agora"*) removes
+`global/github-repo-settings.sh` and its stub suite. The standard itself,
+`global/github-repo-settings.json`, is unchanged, and so is the rule that nothing an agent runs applies it.
+
+- **Check.** `./mhw check` (`global/prerequisites.py`) reads the three settings with one read-only
+  `gh repo view OWNER/REPO --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed` and compares
+  them with the standard. The verdict is the same closed set as the script's: every setting equal is ok;
+  a different setting is drift; a field absent or not a boolean reads `unknown` and is drift, never a
+  match; a read that fails is not checked. Tested against a stub `gh` in `global/prerequisites_test.py`;
+  each new branch was mutation-checked on a scratch copy.
+- **What changed in what a token can read.** The script's note that a token without admin rights reads
+  none of the settings was true of the REST `repos/OWNER/REPO` response it used. The GraphQL fields
+  `gh repo view` reads were returned for a public repository the token could only read (measured,
+  2026-10-18), so the check now reports a value where the script reported a difference.
+- **Apply.** The owner's act is `gh repo edit OWNER/REPO --enable-merge-commit
+  --enable-squash-merge=false --enable-rebase-merge=false`, named in the prerequisite's manual step and
+  in the `scm` skill. `gh repo edit` is not in the deny floor (only its `--visibility` form is), so
+  holding it back from agents is an instruction, not a control. The removed script's `--apply` was
+  behind the floor's `gh api --method PATCH` deny; the native command is not. *Accepted cost:* an agent
+  that runs it is stopped by nothing mechanical.
 
 ## Links
 

@@ -31,7 +31,7 @@ printf '%s\\n' "$*" >> "$STUB_LOG"
 case "$1 $2" in
   "--version "*) echo "gh version 2.40.1 (2024-01-01)"; exit 0 ;;
   "auth status") echo "${FAKE_GH_MSG:-Logged in to github.com account} $FAKE_LOGIN"; exit "${FAKE_GH_AUTH:-0}" ;;
-  "api "*) cat "$STUB_REPO"; exit 0 ;;
+  "repo view") [ -n "${FAKE_VIEW_FAIL:-}" ] && { cat "$STUB_REPO"; exit 1; }; cat "$STUB_REPO"; exit 0 ;;
 esac
 exit 3
 """
@@ -75,8 +75,8 @@ class Base(unittest.TestCase):
                 os.symlink(real, self.bin / tool)
         self.log = self.base / "gh.log"
         self.repo = self.base / "repo.json"
-        self.repo.write_text(json.dumps({"allow_merge_commit": True, "allow_squash_merge": False,
-                                         "allow_rebase_merge": False}), encoding="utf-8")
+        self.repo.write_text(json.dumps({"mergeCommitAllowed": True, "squashMergeAllowed": False,
+                                         "rebaseMergeAllowed": False}), encoding="utf-8")
         self.env = {"PATH": str(self.bin), "HOME": str(self.base / "home"), "STUB_LOG": str(self.log),
                     "STUB_REPO": str(self.repo), "FAKE_LOGIN": LOGIN, "WORKSTATION_OVERLAY": str(self.overlay)}
 
@@ -259,12 +259,11 @@ class Presence(Base):
         self.assertRegex(out, r"(?m)^ABSENT  terraform \[optional; required for site\]")
 
 
-@unittest.skipUnless(os.name == "posix" and shutil.which("sh") and shutil.which("jq"), "needs sh and jq")
+@unittest.skipUnless(os.name == "posix" and shutil.which("sh"), "needs sh")
 class GitHub(Base):
     def setUp(self):
         super().setUp()
         self.shim("gh", GH_SHIM)
-        os.symlink(shutil.which("jq"), self.bin / "jq")
         self.declare([GH_ITEM])
         self.overlay_file({"github_repos": ["owner-x/repo-y"]})
         # Never the real GitHub: a refused loopback port unless a test starts a server.
@@ -279,18 +278,47 @@ class GitHub(Base):
         self.assertRegex(out, r"(?m)^OK      gh \[required\]: present \(gh 2\.40\.1\) · authenticated · "
                               r"merge settings match the standard \(owner-x/repo-y\)$")
         self.assertNotIn(LOGIN, out)
-        self.assertIn("api repos/owner-x/repo-y", self.calls())
+        self.assertIn("repo view owner-x/repo-y --json mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed",
+                      self.calls())
 
     def test_squash_on_is_drift_and_never_applied(self):
-        self.repo.write_text(json.dumps({"allow_merge_commit": True, "allow_squash_merge": True,
-                                         "allow_rebase_merge": False}), encoding="utf-8")
+        self.repo.write_text(json.dumps({"mergeCommitAllowed": True, "squashMergeAllowed": True,
+                                         "rebaseMergeAllowed": False}), encoding="utf-8")
         code, out = self.check()
         self.assertEqual(code, 0, out)
         self.assertRegex(out, r"(?m)^DRIFT   gh \[required\]: .*drift owner-x/repo-y: "
                               r"allow_squash_merge=true \(standard: false\) -> STEP-gh$")
         self.assertNotIn("PATCH", self.calls())
         self.assertNotIn("--method", self.calls())
-        self.assertTrue(json.loads(self.repo.read_text(encoding="utf-8"))["allow_squash_merge"])
+        self.assertNotIn("repo edit", self.calls())
+        self.assertTrue(json.loads(self.repo.read_text(encoding="utf-8"))["squashMergeAllowed"])
+
+    def test_an_unreadable_repository_is_not_credited(self):
+        # #206: gh repo view failing (no such repository, no access) is unchecked, never ok or drift, even
+        # when it printed a document that would match.
+        self.env["FAKE_VIEW_FAIL"] = "1"
+        code, out = self.check()
+        self.assertEqual(code, 0, out)
+        self.assertRegex(out, r"(?m)^OK      gh \[required\]: .*merge settings not checked "
+                              r"\(owner-x/repo-y not readable with this login\)$")
+        self.assertNotIn("match the standard", out)
+
+    def test_an_absent_or_non_boolean_field_reads_unknown_and_is_drift(self):
+        # #206: the closed-set verdict of the removed script: a value it cannot read is never credited.
+        self.repo.write_text(json.dumps({"mergeCommitAllowed": True, "squashMergeAllowed": None}),
+                             encoding="utf-8")
+        code, out = self.check()
+        self.assertEqual(code, 0, out)
+        self.assertRegex(out, r"(?m)^DRIFT   gh \[required\]: .*drift owner-x/repo-y: "
+                              r"allow_rebase_merge=unknown \(standard: false\); "
+                              r"allow_squash_merge=unknown \(standard: false\) -> STEP-gh$")
+
+    def test_the_standard_is_the_closed_set(self):
+        # #206: the standard file names exactly the three settings gh repo view reads.
+        self.assertEqual([k for k, _, _ in pq.repo_standard()],
+                         ["allow_merge_commit", "allow_rebase_merge", "allow_squash_merge"])
+        self.assertEqual([w for _, _, w in pq.repo_standard()], [True, False, False])
+        self.assertFalse((HERE / "github-repo-settings.sh").exists())
 
     def test_unauthenticated(self):
         self.env.update({"FAKE_GH_AUTH": "1", "FAKE_GH_MSG": "You are not logged into any GitHub hosts."})
@@ -299,7 +327,7 @@ class GitHub(Base):
         self.assertRegex(out, r"(?m)^NOAUTH  gh \[required\]: present \(gh 2\.40\.1\) · not authenticated · "
                               r"merge settings not checked \(credential not available\) -> STEP-gh$")
         self.assertNotIn(LOGIN, out)
-        self.assertNotIn("api ", self.calls())
+        self.assertNotIn("repo view", self.calls())
 
     def test_offline_is_not_checked_and_reachable_failure_is_noauth(self):
         # Offline, gh auth status fails like a rejected token (measured): not a claim of no login.

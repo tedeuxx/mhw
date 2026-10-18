@@ -12,8 +12,7 @@
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
 # <CODEX_HOME>\rules\workstation-deny-floor.rules and, through global\kiro\kiro_permissions.py, into
 # %USERPROFILE%\.kiro\settings\permissions.yaml (ADR-0036). Since Issue #145 it also does what install.sh does
-# since v5.2.0, through the same Python scripts where there is one: the retired MCP servers leave the Codex
-# config (global\mcp\mcp_retire.py), the session-start model and effort are pinned
+# since v5.2.0, through the same Python scripts where there is one: the session-start model and effort are pinned
 # (global\models\model_defaults.py), and the retired find and awk allows leave permissions.allow. Those
 # steps need Python 3.9 or later; without it each prints SKIP and the run exits 2. The escalation rules
 # (ADR-0013) are instructions on every OS; the HITL picker guard hook was never ported here and is removed
@@ -435,9 +434,8 @@ function Invoke-Kiro {
 }
 Invoke-Kiro
 
-# Issue #145, as install.sh does since v5.2.0. The retired MCP servers (ADR-0035 decision 2: aws-api) leave
-# the Codex user configuration, before the model defaults back that file up (PR #146 QA advisory).
-Invoke-PyStep 'the retired MCP servers' 'mcp\mcp_retire.py' @("--mode=$mode")
+# Issue #145, as install.sh does since v5.2.0. (The retired-server removal, mcp_retire.py, was removed in
+# v7, Issue #206.)
 # The session-start default model and reasoning effort (ADR-0007, ADR-0035) from the overlay's
 # model-defaults.json: Claude Code model and effortLevel, Codex model and model_reasoning_effort, Kiro CLI
 # chat.defaultModel. The pinned value is written over any value, reported old -> new, with a backup.
@@ -499,14 +497,7 @@ function Invoke-Method {
     $a = @("--mode=$mode", "--stamp=$stamp", "--home=$home_")
     if ($Method) { $a += '--opt-in' }
     Invoke-PyStep 'the working method (method\)' 'method\method_render.py' $a
-    # The cutover (#130): with the method installed, the tadeumendonca-skills plugin leaves the user-level
-    # configuration, the same step install.sh runs; never after a failed render. Windows has no uninstall,
-    # so the restore route there is the .pmhwc-plugin-backup copy beside each changed file.
-    if ($LASTEXITCODE -eq 0 -or $mode -eq 'check') {
-        $r = @("--mode=$mode", "--home=$home_")
-        if ($Method) { $r += '--opt-in' }
-        Invoke-PyStep 'the retired plugin' 'method\plugin_retire.py' $r
-    }
+    # The plugin cutover step (plugin_retire.py, #130) was removed in v7 (Issue #206), as in install.sh.
 }
 Invoke-Method
 

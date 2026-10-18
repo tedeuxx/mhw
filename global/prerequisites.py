@@ -12,7 +12,8 @@ xcode-select its path query. No probe runs an agent harness in any mode but `--v
 reach a model. Every child runs with PROBE_ENV, which turns off the auto-install and update checks
 the tools we probe are known to perform (a tfenv shim installs a missing Terraform otherwise,
 measured). Account probes: `gh auth status` (a network call; its output names the account and is only
-classified, never printed); global/github-repo-settings.sh --check; and HTTPS GETs that send a token
+classified, never printed); `gh repo view OWNER/REPO --json mergeCommitAllowed,squashMergeAllowed,
+rebaseMergeAllowed`, compared with global/github-repo-settings.json; and HTTPS GETs that send a token
 only when it is already in the environment (SONAR_TOKEN, TFC_API_TOKEN), plus a SonarCloud project
 lookup when the overlay names a project key. A credential is never read from anywhere but the
 environment, never printed and never written.
@@ -42,7 +43,10 @@ import urllib.request
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 DECLARATION = HERE / "prerequisites.json"
-REPO_SETTINGS = HERE / "github-repo-settings.sh"
+REPO_STANDARD = HERE / "github-repo-settings.json"
+# The merge standard's keys (the REST names it declares) -> the fields `gh repo view --json` reads them by.
+GH_FIELDS = {"allow_merge_commit": "mergeCommitAllowed", "allow_squash_merge": "squashMergeAllowed",
+             "allow_rebase_merge": "rebaseMergeAllowed"}
 OVERLAY_FILE = "prerequisites.local.json"
 SONAR_URL = "https://sonarcloud.io"
 TFC_URL = "https://app.terraform.io"
@@ -200,15 +204,6 @@ def probe(argv):
     return p.returncode, ((p.stdout or "") + (p.stderr or "")).strip()
 
 
-def probe_lines(argv):
-    try:
-        p = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT * 2, stdin=subprocess.DEVNULL,
-                           env=dict(os.environ, **PROBE_ENV))
-    except (OSError, subprocess.TimeoutExpired):
-        return 124, []
-    return p.returncode, ((p.stdout or "") + (p.stderr or "")).splitlines()
-
-
 def base_url(env_name, default):
     value = os.environ.get(env_name, "")
     if not value:
@@ -342,7 +337,42 @@ def check_auth(item, present_path):
     return ("ok", "authenticated ($%s)" % auth["env"]) if valid else ("no", "not authenticated ($%s rejected)" % auth["env"])
 
 
-def check_preferred(item, auth_state, overlay):
+def repo_standard():
+    """-> [(standard key, gh field, wanted bool)] from global/github-repo-settings.json (ADR-0016)."""
+    try:
+        settings = json.loads(REPO_STANDARD.read_text(encoding="utf-8"))["settings"]
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        raise DeclarationError("%s not read (%s)" % (REPO_STANDARD.name, e.__class__.__name__))
+    if not isinstance(settings, dict) or not settings or \
+            any(k not in GH_FIELDS or not isinstance(v, bool) for k, v in settings.items()):
+        raise DeclarationError("%s holds a setting outside the closed set" % REPO_STANDARD.name)
+    return [(k, GH_FIELDS[k], settings[k]) for k in sorted(settings)]
+
+
+def repo_settings(gh_path, repo, standard):
+    """-> (state, text) for one repository: ok, drift or unchecked. One read-only `gh repo view --json`
+    (Issue #206 replaced global/github-repo-settings.sh with it); never an edit. A value that is absent or
+    not a boolean reads `unknown` and is drift, never credited, as the script did."""
+    fields = ",".join(field for _, field, _ in standard)
+    code, out = probe([gh_path, "repo", "view", repo, "--json", fields])
+    try:
+        doc = json.loads(out) if code == 0 else None
+    except ValueError:
+        doc = None
+    if not isinstance(doc, dict):
+        return ("unchecked", "merge settings not checked (%s not readable with this login)" % repo)
+    diffs = []
+    for key, field, want in standard:
+        have = doc.get(field)
+        if have is not want:
+            shown = str(have).lower() if isinstance(have, bool) else "unknown"
+            diffs.append("%s=%s (standard: %s)" % (key, shown, str(want).lower()))
+    if diffs:
+        return ("drift", "drift %s: %s" % (repo, "; ".join(diffs)))
+    return ("ok", "merge settings match the standard (%s)" % repo)
+
+
+def check_preferred(item, auth_state, overlay, gh_path=None):
     """-> list of (state, text). state: ok, drift, unchecked."""
     preferred = item.get("preferred")
     if preferred is None:
@@ -350,22 +380,16 @@ def check_preferred(item, auth_state, overlay):
     if preferred["kind"] == "github-repo-settings":
         if auth_state != "ok":
             return [("unchecked", "merge settings " + NOT_AVAILABLE)]
+        if not gh_path:
+            return [("unchecked", "merge settings not checked (gh missing)")]
+        try:
+            standard = repo_standard()
+        except DeclarationError as e:
+            return [("unchecked", "merge settings not checked (%s)" % e)]
         repos = overlay["github_repos"] or [r for r in [origin_repo()] if r]
         if not repos:
             return [("unchecked", "merge settings not checked (no GitHub origin and none in the overlay)")]
-        out = []
-        for repo in repos:
-            code, lines = probe_lines(["sh", str(REPO_SETTINGS), "--check", repo])
-            diffs = [re.sub(r"^DIFF\s+\S+\s+", "", ln) for ln in lines if ln.startswith("DIFF")]
-            if code == 0:
-                out.append(("ok", "merge settings match the standard (%s)" % repo))
-            elif diffs:
-                out.append(("drift", "drift %s: %s" % (repo, "; ".join(diffs))))
-            elif any(ln.startswith("UNREADABLE") for ln in lines):
-                out.append(("unchecked", "merge settings not checked (%s not readable with this login)" % repo))
-            else:
-                out.append(("unchecked", "merge settings not checked (exit %d)" % code))
-        return out
+        return [repo_settings(gh_path, repo, standard) for repo in repos]
     keys = overlay["sonar_projects"]
     if not keys:
         return [("unchecked", "project not checked (no project key in the overlay)")]
@@ -408,7 +432,7 @@ def evaluate(item, overlay, system=None):
     if state != "missing":
         auth_state, auth_text = check_auth(item, path)
         drift = version_drift(item, found) if state == "present" else None
-        prefs = check_preferred(item, auth_state, overlay)
+        prefs = check_preferred(item, auth_state, overlay, path)
     parts += [auth_text] if auth_text else []
     parts += [drift] if drift else []
     parts += [t for _, t in prefs]
