@@ -6,7 +6,8 @@
 Renders method/ into one throwaway HOME (BASE_DIR, default a new directory under TMPDIR) and asserts, per
 command and per agent harness, that the command is present in that harness's native carrier, that the
 Codex skill keeps implicit invocation off, and that every required section of the command reaches the
-rendered text. It also checks a synthetic session-handover prompt's sanitisation against the
+rendered text. For /handoff (#198) it runs the installed launch-line script with the harness each
+carrier names and checks the line it prints. It also checks a synthetic session-handover prompt's sanitisation against the
 workstation's paste-filter detector (#73; the /handover command itself was removed at #196). Nothing outside BASE_DIR is written.
 """
 
@@ -39,6 +40,7 @@ REQUIRED = {
                                 "## Opening the Issues"],
     "what-else": SHARED + ["## The anchored objective", "## Read the bus", "## The answer"],
     "blueprint": SHARED + ["## export", "## import", "## Alignment interview"],
+    "handoff": SHARED + ["## When to use", "## Build the prompt", "## The prompt", "## Print it"],
 }
 # The four rites moved from the plugin at #130 (owner, 2026-10-12). They keep the plugin's text, so they are
 # held to the headings that carry each rite, not to the workflow commands' "never" section.
@@ -56,6 +58,8 @@ PHRASES = {
     "what-else": ["native goal command (`/goal`)", "gh pr list --state open", "owner decisions"],
     "blueprint": ["product-requirements-document-agent-harness-setup.md", "Mermaid",
                   "Nothing is changed before the alignment interview is complete"],
+    "handoff": ["re-derive the state from the tracker", "It prints only", "launch-line.py",
+                "at most 280 characters", "Then stop working in this session"],
 }
 
 
@@ -349,6 +353,94 @@ class RootBriefRename(unittest.TestCase):
                     unlisted.append("%s:%d %s" % (rel, n, line.strip()[:120]))
         self.assertEqual(unlisted, [])
         self.assertEqual(len(found), len(CLAUDE_MD_ALLOWED), "an allowlisted line is gone; shrink the list")
+
+
+LAUNCH_PREFIX = {"claude-code": "claude '", "codex": "codex '", "kiro": "kiro-cli chat '"}
+IDE_PHRASE = "# Kiro IDE: there is no launch line"
+TOKEN_RE = re.compile(r"\{\{[a-z][a-z-]*\}\}")
+# A prompt the template could produce, with the two characters that break a hand-quoted line: a single
+# quote and a newline. Built from public, synthetic values.
+PROMPT = ("/goal ship the owner's handoff command\n"
+          "Continue owner/repo#12 in this fresh session; the session that printed this prompt stops now.\n"
+          "Next act: run the suite; it's green when 'OK' prints.\n"
+          "Before acting, re-derive the state from the tracker: gh issue view 12 --repo owner/repo --comments.")
+
+
+def run_launch_line(script, harness, prompt, base):
+    f = Path(tempfile.mkdtemp(prefix="prompt-", dir=base)) / "prompt.txt"
+    f.write_text(prompt, encoding="utf-8")
+    return subprocess.run([sys.executable, "-B", str(script), harness, str(f)], capture_output=True, text=True)
+
+
+class Handoff(unittest.TestCase):
+    """#198: each carrier of /handoff names its own agent harness, the installed launch-line script prints
+    that harness's launch line and no other, the line is valid shell that carries the prompt exactly, and
+    no rendering token survives anywhere."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.home = Path(tempfile.mkdtemp(prefix="home-", dir=BASE))
+        cls.code, cls.out = render(cls.home)
+        cls.script = cls.home / SCRIPTS_REL / "launch-line.py"
+
+    def test_render_succeeds(self):
+        self.assertEqual(self.code, 0, self.out)
+
+    def test_each_carrier_prints_only_its_own_launch_line(self):
+        expected = {"claude": "claude-code", "codex": "codex", "kiro": "kiro"}
+        for carrier, path in carriers(self.home, "handoff").items():
+            named = set(re.findall(r"launch-line\.py (\S+) ", path.read_text(encoding="utf-8")))
+            self.assertEqual(named, {expected[carrier]}, carrier)
+            out = run_launch_line(self.script, expected[carrier], PROMPT, BASE)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            self.assertTrue(out.stdout.startswith(LAUNCH_PREFIX[expected[carrier]]), (carrier, out.stdout[:40]))
+            for other, prefix in LAUNCH_PREFIX.items():
+                if other != expected[carrier]:
+                    self.assertFalse(re.search(r"(?m)^" + re.escape(prefix), out.stdout), (carrier, other))
+            (self.assertIn if carrier == "kiro" else self.assertNotIn)(IDE_PHRASE, out.stdout, carrier)
+
+    def test_no_rendering_token_survives(self):
+        left = []
+        for root in (".claude", ".agents", ".kiro", ".codex"):
+            for p in (self.home / root).rglob("*"):
+                if p.is_file() and TOKEN_RE.search(p.read_text(encoding="utf-8")):
+                    left.append(str(p.relative_to(self.home)))
+        self.assertEqual(left, [])
+
+    def test_the_line_is_shell_and_carries_the_prompt_exactly(self):
+        out = run_launch_line(self.script, "claude-code", PROMPT, BASE)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        line = out.stdout.rstrip("\n")
+        self.assertIn("'", PROMPT)
+        self.assertIn("\n", PROMPT)
+        shells = ["sh"] + (["zsh"] if shutil.which("zsh") else [])
+        for shell in shells:
+            p = subprocess.run([shell, "-n", "-c", line], capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, (shell, p.stderr))
+            # Replace the command with printf: what reaches the agent harness is exactly the prompt.
+            p = subprocess.run([shell, "-c", "printf %s " + line[len("claude "):]], capture_output=True, text=True)
+            self.assertEqual(p.stdout, PROMPT, shell)
+        kiro = run_launch_line(self.script, "kiro", PROMPT, BASE).stdout
+        for shell in shells:
+            self.assertEqual(subprocess.run([shell, "-n", "-c", kiro]).returncode, 0, shell)
+
+    def test_unsafe_prompts_are_refused_without_echo(self):
+        local = "/Use" + "rs/someone/notes.txt"
+        cases = {"no goal": "Continue owner/repo#12.", "long": "/goal " + "x" * 300,
+                 "local path": "/goal fix it\nEvidence: " + local, "empty": "\n"}
+        for label, prompt in cases.items():
+            out = run_launch_line(self.script, "codex", prompt, BASE)
+            self.assertEqual(out.returncode, 1, label)
+            self.assertEqual(out.stdout, "", label)
+            self.assertNotIn("someone", out.stderr, label)
+        self.assertEqual(run_launch_line(self.script, "claude", PROMPT, BASE).returncode, 2)
+
+    def test_the_prompt_template_carries_no_secret_or_personal_data(self):
+        text = (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")
+        template = re.search(r"## The prompt\n.*?```\n(.*?)```", text, re.S).group(1)
+        self.assertTrue(template.startswith("/goal "))
+        self.assertEqual(guard.find_spans(template), [])
+        self.assertEqual(guard.find_spans(PROMPT), [])
 
 
 class HandoverSanitisation(unittest.TestCase):
