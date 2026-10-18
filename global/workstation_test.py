@@ -150,10 +150,58 @@ class CodexDaemonIntegration(unittest.TestCase):
     def test_install_plan_and_conversation_name_the_daemon_boundary(self):
         with mock.patch.object(ws, "run", return_value=(0, ["OK      user"])), \
              mock.patch.object(ws, "admin_installed", return_value=False), \
-             mock.patch.object(ws, "codex_daemon_report", return_value=(1, ["CODEX   DRIFT: version skew"])):
+             mock.patch.object(ws, "codex_daemon_plan",
+                               return_value=("update", 1, ["CODEX   DRIFT: version skew"])):
             plan = ws.install_plan(admin_wanted=False)
-        self.assertTrue(plan["codex"])
+        self.assertEqual(plan["codex"], "update")
         self.assertIn("ends daemon-backed Codex work", "\n".join(ws.plan_lines(plan)))
+
+    # Issue #210: headroom DRIFT is advisory; it is not a planned change and does not fail install.
+    def test_headroom_drift_is_not_a_planned_change(self):
+        advisory = ["CODEX   DRIFT: unsafe descriptor headroom; advisory: mhw install does not change "
+                    "descriptor headroom"]
+        with mock.patch.object(ws, "run", return_value=(0, ["OK      user"])), \
+             mock.patch.object(ws, "admin_installed", return_value=False), \
+             mock.patch.object(ws, "codex_daemon_plan", return_value=(None, 1, advisory)):
+            plan = ws.install_plan(admin_wanted=False)
+        self.assertIsNone(plan["codex"])
+        self.assertEqual(plan["codex_advisory"], advisory)
+        self.assertEqual(ws.plan_lines(plan), [])
+
+    def test_not_running_daemon_is_neither_a_change_nor_an_advisory(self):
+        with mock.patch.object(ws, "run", return_value=(0, ["OK      user"])), \
+             mock.patch.object(ws, "admin_installed", return_value=False), \
+             mock.patch.object(ws, "codex_daemon_plan",
+                               return_value=(None, 0, ["CODEX   OK: daemon not running"])):
+            plan = ws.install_plan(admin_wanted=False)
+        self.assertIsNone(plan["codex"])
+        self.assertEqual(plan["codex_advisory"], [])
+
+    def test_refused_daemon_metadata_is_named_without_an_interruption_promise(self):
+        plan = {"user": 0, "admin": "skipped", "admin_count": 0, "codex": "refuse"}
+        text = "\n".join(ws.plan_lines(plan))
+        self.assertIn("changes nothing", text)
+        self.assertNotIn("ends daemon-backed Codex work", text)
+
+    def test_install_with_headroom_advisory_succeeds_and_names_it(self):
+        advisory = ["CODEX   DRIFT: unsafe descriptor headroom; advisory: mhw install does not change "
+                    "descriptor headroom"]
+        for user in (0, 1):
+            with self.subTest(user_changes=user):
+                plan = {"user": user, "admin": "skipped", "admin_count": 0, "codex": None,
+                        "codex_advisory": advisory}
+                out = io.StringIO()
+                with mock.patch.object(ws, "install_plan", return_value=plan), \
+                     mock.patch.object(ws, "run", return_value=(0, ["OK      settings"])), \
+                     mock.patch.object(ws, "admin_installed", return_value=False), \
+                     mock.patch.object(ws, "admin_present", return_value=False), \
+                     mock.patch.object(ws, "codex_daemon_install") as lifecycle, \
+                     contextlib.redirect_stdout(out):
+                    code = ws.cmd_install(yes=True, no_admin=True)
+                self.assertEqual(code, 0, out.getvalue())
+                lifecycle.assert_not_called()
+                self.assertIn("unsafe descriptor headroom", out.getvalue())
+                self.assertNotIn("Installation incomplete", out.getvalue())
 
     def test_check_propagates_daemon_drift(self):
         out = io.StringIO()

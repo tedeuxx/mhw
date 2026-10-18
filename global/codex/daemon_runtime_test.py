@@ -13,8 +13,11 @@ from codex import daemon_version_sanitizer as sanitizer
 
 
 class Fake:
-    def __init__(self, states, fd_count=20, soft=256, processes=1, command_codes=None):
+    def __init__(self, states, fd_count=20, soft=256, processes=1, command_codes=None,
+                 unreachable=False, missing=()):
         self.states = list(states)
+        self.unreachable = unreachable  # The sanitizer's exit 3: vendor failed with empty stdout.
+        self.missing = set(missing)
         self.fd_count = fd_count
         self.soft = soft
         self.processes = processes
@@ -24,7 +27,7 @@ class Fake:
         self.state = 0
 
     def resolve(self, name):
-        return "/fake/" + name
+        return None if name in self.missing else "/fake/" + name
 
     def __call__(self, argv, **kwargs):
         key = tuple(argv[1:])
@@ -33,6 +36,9 @@ class Fake:
         code = self.command_codes.get(key, 0)
         if key == ("--version",):
             out = "codex-cli %s\n" % self.states[self.state]["binary"]
+        elif (len(argv) == 3 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py")
+              and self.unreachable):
+            return subprocess.CompletedProcess(argv, 3, stdout="", stderr="")
         elif len(argv) == 3 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
             doc = dict(self.states[self.state])
             doc.pop("binary", None)
@@ -178,17 +184,125 @@ class Lifecycle(unittest.TestCase):
         self.assertIn(("app-server", "daemon", "update", "--from-cli", "--yes"), fake.calls)
         self.assertIn("native update completed", lines[0])
 
-    def test_low_headroom_uses_native_restart(self):
-        fake = Fake([state(), state()], fd_count=210)
+    # Issue #210: low headroom is advisory at install and never triggers the interrupting restart.
+    def native_changes(self, fake):
+        return [call for call in fake.calls
+                if call[:2] == ("app-server", "daemon") and call[2:3] != ("version",)]
+
+    def test_low_headroom_is_advisory_and_never_restarts(self):
+        # The measured case: 317 numeric descriptors against an inherited soft limit of 256.
+        fake = Fake([state()], fd_count=317, soft=256)
+        code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(self.native_changes(fake), [])
+        self.assertIn("DRIFT: unsafe descriptor headroom", lines[0])
+        self.assertIn("headroom -61", lines[0])
+        self.assertIn("advisory: mhw install does not change descriptor headroom", lines[0])
+
+    def test_low_headroom_stays_drift_for_status_and_check(self):
+        fake = Fake([state()], fd_count=317, soft=256)
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 1)
+        self.assertIn("advisory", lines[0])
+
+    def test_unreadable_headroom_is_advisory_at_install(self):
+        for missing in (("lsof",), ("launchctl",)):
+            with self.subTest(missing=missing):
+                fake = Fake([state()], missing=missing)
+                rcode, rlines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+                self.assertEqual(rcode, 1)
+                self.assertIn("descriptor tools unavailable; advisory", rlines[0])
+                fake = Fake([state()], missing=missing)
+                code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
+                self.assertEqual(code, 0, lines)
+                self.assertEqual(self.native_changes(fake), [])
+
+    def test_unlimited_soft_limit_is_safe(self):
+        fake = Fake([state()], fd_count=900, soft="unlimited")
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 0, lines)
+        self.assertIn("headroom unlimited", lines[0])
+
+    def test_skew_with_low_headroom_still_updates_and_succeeds(self):
+        fake = Fake([state(managed="0.160.0", app="0.160.0"), state()], fd_count=317, soft=256)
+        code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(self.native_changes(fake),
+                         [("app-server", "daemon", "update", "--from-cli", "--yes")])
+        self.assertIn("native update completed", lines[0])
+        self.assertIn("DRIFT: unsafe descriptor headroom", lines[1])
+
+    def test_missing_lifecycle_process_still_uses_native_restart(self):
+        fake = Fake([state(), state()], processes=0)
         original = fake.__call__
+
         def moving(argv, **kwargs):
             result = original(argv, **kwargs)
             if tuple(argv[1:]) == ("app-server", "daemon", "restart") and result.returncode == 0:
-                fake.fd_count = 20
+                fake.processes = 1
             return result
         code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=moving)
         self.assertEqual(code, 0, lines)
-        self.assertIn(("app-server", "daemon", "restart"), fake.calls)
+        self.assertEqual(self.native_changes(fake), [("app-server", "daemon", "restart")])
+
+    def test_restart_that_leaves_the_process_missing_fails_closed(self):
+        fake = Fake([state(), state()], processes=0)
+        code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 1)
+        self.assertIn("did not produce", lines[0])
+
+    # Issue #210: a daemon that is not running is not an install failure, and is never started.
+    def test_not_running_daemon_is_clean_and_untouched(self):
+        fake = Fake([state()], unreachable=True, processes=0)
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 0, lines)
+        self.assertIn("OK: daemon not running", lines[0])
+        self.assertFalse([call for call in fake.calls if call[:2] == ("-nP", "-p")])
+        fake = Fake([state()], unreachable=True, processes=0)
+        code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(self.native_changes(fake), [])
+
+    def test_unreachable_control_with_a_live_process_is_not_called_stopped(self):
+        fake = Fake([state()], unreachable=True, processes=1)
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 1)
+        self.assertIn(daemon.ALIVE_UNREACHABLE, lines[0])
+        fake = Fake([state()], unreachable=True, processes=1)
+        code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 1)
+        self.assertIn("nothing changed", lines[0])
+        self.assertEqual(self.native_changes(fake), [])
+
+    def test_unreachable_control_without_a_process_check_is_not_called_stopped(self):
+        fake = Fake([state()], unreachable=True, missing=("pgrep",))
+        code, lines = daemon.install(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 1)
+        self.assertIn("nothing changed", lines[0])
+        fake = Fake([state()], unreachable=True)
+        original = fake.__call__
+
+        def broken(argv, **kwargs):
+            if argv[0].endswith("pgrep"):
+                return subprocess.CompletedProcess(argv, 2, stdout="", stderr="")
+            return original(argv, **kwargs)
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=broken)
+        self.assertEqual(code, 1)
+        self.assertIn("managed process unreadable", lines[0])
+
+    def test_plan_names_an_action_only_when_install_would_act(self):
+        cases = [
+            (Fake([state()], fd_count=317), None),
+            (Fake([state()], unreachable=True, processes=0), None),
+            (Fake([state(managed="0.160.0", app="0.160.0")]), "update"),
+            (Fake([state()], processes=2), "restart"),
+            (Fake([state()], unreachable=True, processes=1), "refuse"),
+        ]
+        for fake, expected in cases:
+            with self.subTest(expected=expected):
+                action, _code, _lines = daemon.plan(system="Darwin", resolver=fake.resolve, runner=fake)
+                self.assertEqual(action, expected)
+                self.assertEqual(self.native_changes(fake), [])
 
     def test_native_failure_suppresses_vendor_output(self):
         command = ("app-server", "daemon", "update", "--from-cli", "--yes")
@@ -272,6 +386,34 @@ class SanitizerBoundary(unittest.TestCase):
         safe = json.loads(result.stdout)
         for field in ("managedCodexVersion", "cliVersion", "appServerVersion"):
             self.assertEqual(safe[field], version)
+
+    def failing_vendor(self, stdout):
+        temp = tempfile.TemporaryDirectory(prefix="mhw-codex-sanitizer-")
+        self.addCleanup(temp.cleanup)
+        path = Path(temp.name) / "codex"
+        path.write_text("#!/bin/sh\nprintf '%s' '" + stdout + "'\n"
+                        "printf '%s\\n' 'Error: failed to connect to /private/socket' >&2\nexit 1\n",
+                        encoding="utf-8")
+        path.chmod(0o700)
+        env = dict(os.environ)
+        env["PATH"] = str(path.parent) + os.pathsep + env.get("PATH", "")
+        return subprocess.run([sys.executable, "-B", str(Path(sanitizer.__file__))],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                              timeout=10, env=env)
+
+    def test_vendor_failure_with_empty_stdout_is_the_unreachable_exit(self):
+        # Measured on Codex CLI 0.163.0, macOS, daemon stopped: exit 1, 0 bytes of stdout.
+        result = self.failing_vendor("")
+        self.assertEqual(result.returncode, sanitizer.UNREACHABLE)
+        self.assertEqual(result.returncode, daemon._UNREACHABLE)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr, "")
+
+    def test_vendor_failure_with_output_is_not_the_unreachable_exit(self):
+        result = self.failing_vendor("partial")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr, "")
 
     def test_schema_type_and_extra_field_drift_fail_without_output(self):
         valid = state()

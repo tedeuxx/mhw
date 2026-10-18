@@ -8,7 +8,14 @@ projection. Neither process emits vendor path fields, process arguments, lsof na
 exception text.
 
 The native daemon remains the only daemon.  Install uses only Codex's own ``daemon update --from-cli``
-and ``daemon restart`` commands; it never creates a launch agent, socket or process of its own.
+and ``daemon restart`` commands; it never creates a launch agent, socket or process of its own, and it
+never starts a daemon that is not running.
+
+Since Issue #210 two states no longer fail ``mhw install``: a daemon that is not running, and low or
+unreadable descriptor headroom. The first is not a fault. The second is reported as DRIFT by status and
+check and is advisory at install, which neither restarts for it nor changes any limit: a restart cannot
+raise an inherited soft limit (measured on the reference machine: 317 descriptors right after a native
+restart, against a soft limit of 256). The descriptor exhaustion itself is Issue #200's.
 """
 from dataclasses import dataclass, field
 import json
@@ -32,6 +39,16 @@ _FD = re.compile(r"f([0-9]+)[A-Za-z]*")
 _TYPE = re.compile(r"t([A-Za-z0-9_]+)")
 _REQUIRED = ("status", "backend", "managedCodexVersion", "cliVersion", "appServerVersion")
 _SANITIZER = str(Path(__file__).with_name("daemon_version_sanitizer.py"))
+_UNREACHABLE = 3  # The sanitizer's exit when the vendor command failed with empty stdout.
+NOT_RUNNING = "not running"
+ALIVE_UNREACHABLE = "daemon control unreachable while a managed process runs"
+# A restart can resolve these: the lifecycle process is missing or ambiguous.
+_REPAIRABLE = frozenset(("managed process missing", "managed process ambiguous"))
+# These only make descriptor headroom unknown. No install action depends on headroom, so they never block.
+_ADVISORY = frozenset(("descriptor tools unavailable", "descriptor aggregate unavailable",
+                       "descriptor aggregate unreadable", "launchd limit unavailable",
+                       "launchd limit unreadable"))
+_HEADROOM_ADVICE = "advisory: mhw install does not change descriptor headroom"
 
 
 @dataclass
@@ -137,6 +154,30 @@ def _soft_limit(text):
     return int(value) if value.isdigit() else None
 
 
+_MANAGED = r"(^|/)codex app-server .*--managed-daemon"
+
+
+def _unreachable(snap, resolver, runner):
+    """The vendor command failed with no output. Not running only if no managed process exists either.
+
+    Two independent signals must agree: the control command could not reach a daemon, and ``pgrep``
+    finds no managed-daemon process (exit 1, its documented no-match code). A live process behind an
+    unreachable control socket is the inconsistent lifecycle Issue #200 recorded, and stays an error.
+    """
+    pgrep = resolver("pgrep")
+    if not pgrep:
+        snap.errors.append("process tools unavailable")
+        return snap
+    processes = _call(runner, [pgrep, "-f", _MANAGED])
+    if processes is None or processes.returncode not in (0, 1):
+        snap.errors.append("managed process unreadable")
+    elif processes.returncode == 1:
+        snap.status = NOT_RUNNING
+    else:
+        snap.errors.append(ALIVE_UNREACHABLE)
+    return snap
+
+
 def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
     """Inspect the daemon; raw version JSON is confined to the local sanitizer child."""
     snap = Snapshot()
@@ -159,6 +200,8 @@ def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
     # The child is the privacy boundary: raw vendor JSON exists only there. This parent captures only
     # its exact safe projection, or no output on schema/type/vendor drift.
     version = _call(runner, [sys.executable, "-B", _SANITIZER])
+    if version is not None and version.returncode == _UNREACHABLE:
+        return _unreachable(snap, resolver, runner)
     if version is None or version.returncode != 0:
         snap.errors.append("daemon metadata unavailable")
         return snap
@@ -186,12 +229,10 @@ def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
 
     ps = resolver("ps")
     pgrep = resolver("pgrep")
-    lsof = resolver("lsof")
-    launchctl = resolver("launchctl")
-    if not ps or not pgrep or not lsof or not launchctl:
-        snap.errors.append("descriptor tools unavailable")
+    if not ps or not pgrep:
+        snap.errors.append("process tools unavailable")
         return snap
-    processes = _call(runner, [pgrep, "-f", r"(^|/)codex app-server .*--managed-daemon"])
+    processes = _call(runner, [pgrep, "-f", _MANAGED])
     if processes is None or processes.returncode not in (0, 1):
         snap.errors.append("managed process unreadable")
         return snap
@@ -204,6 +245,11 @@ def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
         return snap
     snap.pid, _ppid, snap.age = matches[0]
 
+    lsof = resolver("lsof")
+    launchctl = resolver("launchctl")
+    if not lsof or not launchctl:
+        snap.errors.append("descriptor tools unavailable")
+        return snap
     files = _call(runner, [lsof, "-nP", "-p", str(snap.pid), "-Fft"])
     if files is None or files.returncode != 0:
         snap.errors.append("descriptor aggregate unavailable")
@@ -246,15 +292,20 @@ def result(snap, prefix="CODEX   "):
         return 1, [prefix + "DRIFT: version skew; " + _versions(snap) +
                    "; run mhw install at a session boundary"]
     if snap.errors:
-        return 1, [prefix + "DRIFT: " + ", ".join(snap.errors) + "; run mhw install at a session boundary"]
+        advice = (_HEADROOM_ADVICE if all(e in _ADVISORY for e in snap.errors)
+                  else "run mhw install at a session boundary")
+        return 1, [prefix + "DRIFT: " + ", ".join(snap.errors) + "; " + advice]
+    if snap.status == NOT_RUNNING:
+        return 0, [prefix + "OK: daemon not running (no managed process, control unreachable); CLI %s; "
+                   "headroom not applicable" % snap.binary_version]
     if snap.status != "running":
         return 0, [prefix + "OK: daemon %s (backend %s); %s; headroom not applicable" % (
             snap.status, snap.backend, _versions(snap))]
     if snap.headroom is None:
-        return 1, [prefix + "DRIFT: descriptor headroom unavailable; run mhw install at a session boundary"]
+        return 1, [prefix + "DRIFT: descriptor headroom unavailable; " + _HEADROOM_ADVICE]
     if snap.headroom != -1 and snap.headroom < SAFE_HEADROOM:
         return 1, [prefix + "DRIFT: unsafe descriptor headroom; " + _descriptor_text(snap) +
-                   "; run mhw install at a session boundary"]
+                   "; " + _HEADROOM_ADVICE]
     return 0, [prefix + "OK: daemon running (backend %s, pid %d, age %s); %s; %s" % (
         snap.backend, snap.pid, snap.age, _versions(snap), _descriptor_text(snap))]
 
@@ -263,28 +314,41 @@ def report(system=None, resolver=shutil.which, runner=subprocess.run, prefix="CO
     return result(inspect(system=system, resolver=resolver, runner=runner), prefix=prefix)
 
 
-def install(system=None, resolver=shutil.which, runner=subprocess.run):
-    """Align/restart through the supported native lifecycle, then require a healthy postcondition."""
-    before = inspect(system=system, resolver=resolver, runner=runner)
-    if not before.supported or not before.available:
-        return result(before)
-    codex = resolver("codex")
-    repairable = {"managed process missing", "managed process ambiguous"}
-    hard = [e for e in before.errors if e not in repairable]
+def _action(snap):
+    """What install would do: 'update', 'restart', 'refuse' or None. Headroom never selects an action."""
+    if not snap.supported or not snap.available:
+        return None
+    if snap.version_skew:
+        return "update"
+    if any(e not in _REPAIRABLE and e not in _ADVISORY for e in snap.errors):
+        return "refuse"
+    if snap.status == "running" and any(e in _REPAIRABLE for e in snap.errors):
+        return "restart"
+    return None
 
-    action = None
-    if before.version_skew:
-        action = "update"
+
+def plan(system=None, resolver=shutil.which, runner=subprocess.run, prefix="CODEX   "):
+    """Return ``(action, exit, lines)`` from one read-only inspection, for the install preview."""
+    snap = inspect(system=system, resolver=resolver, runner=runner)
+    code, lines = result(snap, prefix=prefix)
+    return _action(snap), code, lines
+
+
+def install(system=None, resolver=shutil.which, runner=subprocess.run):
+    """Align or restart through the supported native lifecycle only when versions or the lifecycle
+    process need it. A daemon that is not running is left alone, and headroom is advisory (#210)."""
+    before = inspect(system=system, resolver=resolver, runner=runner)
+    action = _action(before)
+    if action is None:
+        # Clean, not applicable, not running, or only advisory headroom DRIFT: never an install failure.
+        return 0, result(before)[1]
+    if action == "refuse":
+        return 1, ["REFUSE  Codex managed daemon: metadata evidence is incomplete; nothing changed"]
+    codex = resolver("codex")
+    if action == "update":
         command = [codex, "app-server", "daemon", "update", "--from-cli", "--yes"]
-    elif hard:
-        return 1, ["REFUSE  Codex managed daemon: metadata or descriptor evidence is incomplete; nothing changed"]
-    elif before.status == "running" and (before.headroom is None or
-                                          (before.headroom != -1 and before.headroom < SAFE_HEADROOM) or
-                                          before.errors):
-        action = "restart"
-        command = [codex, "app-server", "daemon", "restart"]
     else:
-        return result(before)
+        command = [codex, "app-server", "daemon", "restart"]
 
     changed = _call(runner, command, timeout=60)
     if changed is None or changed.returncode != 0:
@@ -292,9 +356,8 @@ def install(system=None, resolver=shutil.which, runner=subprocess.run):
                    "no other process was touched"
                    % action]
     after = inspect(system=system, resolver=resolver, runner=runner)
-    code, lines = result(after)
-    if code:
+    if _action(after) is not None:
         return 1, ["REFUSE  Codex managed daemon: native %s did not produce the required sanitized postcondition"
                    % action]
-    return 0, ["CHANGED Codex managed daemon: native %s completed; package versions aligned and descriptor headroom safe"
-               % action] + lines
+    return 0, ["CHANGED Codex managed daemon: native %s completed; package versions aligned and lifecycle "
+               "process resolved" % action] + result(after)[1]
