@@ -30,6 +30,10 @@ Carriers (ADR-0027 matrix, ADR-0032):
                  as {{method-scripts}}/<dir>/<name>.md, so a rite carries the contract its driver reads
                  (#181); a document no body names, such as a contract only a test reads, stays in the
                  source.
+    Harness      in a command body, {{agent-harness}} becomes the id of the agent harness that copy is for
+                 (claude-code, codex, kiro), so /handoff prints its own harness's launch line (#198). The
+                 Kiro copy serves the CLI and the IDE alike. In a skill or agent body the token stops the
+                 render.
 
 Every rendered file carries the managed-by line with the stamp, "source: method/...", in its own
 format's comment (Markdown front matter, TOML, YAML) or, in the Kiro agent JSON, as the first line of its
@@ -58,6 +62,11 @@ KIRO_TOOLS = {"Read": "read", "Grep": "read", "Glob": "read", "Write": "write", 
 WRITING_TOOLS = {"Write", "Edit", "Bash"}
 DESCRIPTION_MAX = 1024  # Agent Skills standard limit, read by Codex and Kiro
 SCRIPTS_TOKEN = "{{method-scripts}}"
+# A command's body may name the agent harness its copy is rendered for (#198): each carrier writer is passed
+# its harness explicitly and substitutes this token, so one source text yields three different copies. Only
+# a command body may carry it: a skill or an agent is one text for every harness, so there it stops the render.
+HARNESS_TOKEN = "{{agent-harness}}"
+HARNESSES = ("claude-code", "codex", "kiro")
 SCRIPT_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]*\.(?:py|sh)")
 TOKEN_REF_RE = re.compile(re.escape(SCRIPTS_TOKEN) + r"/([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)")
 DOCUMENT_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]*/[A-Za-z0-9_][A-Za-z0-9_.-]*\.md")
@@ -128,6 +137,8 @@ def load(source):
         fields, body = split_front_matter(path.read_text(encoding="utf-8"), where)
         if fields.get("name") != name or not NAME_RE.fullmatch(name) or len(name) > 64:
             raise SourceError("%s: name must equal the directory name (lowercase, hyphens, 64 at most)" % where)
+        if HARNESS_TOKEN in body:
+            raise SourceError("%s: %s is for command bodies only" % (where, HARNESS_TOKEN))
         skills[name] = {"description": need(fields, "description", where), "purpose": fields.get("purpose", ""),
                         "body": body, "where": where}
     for path in sorted((source / "commands").glob("*.md")):
@@ -147,6 +158,8 @@ def load(source):
         if "tools" not in fields:
             # Absence inherits every tool of the parent in Claude Code, so a missing key is refused.
             raise SourceError("%s: tools must be declared (an explicit [] for none)" % where)
+        if HARNESS_TOKEN in body:
+            raise SourceError("%s: %s is for command bodies only" % (where, HARNESS_TOKEN))
         raw = fields["tools"]
         tools = raw if isinstance(raw, list) else [t.strip() for t in raw.split(",") if t.strip()]
         for t in tools:
@@ -258,16 +271,24 @@ def command_preface(name, invoke):
             "text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\n" % invoke)
 
 
-def claude_command(c, name, stamp):
+def for_harness(body, harness):
+    """The command body for one agent harness: {{agent-harness}} becomes that harness's id."""
+    if harness not in HARNESSES:
+        raise SourceError("unknown agent harness %r" % (harness,))
+    return body.replace(HARNESS_TOKEN, harness)
+
+
+def claude_command(c, stamp, harness):
     head = ["---", "# " + marker(c["where"], stamp), "description: " + q(c["description"])]
     if c["hint"]:
         head.append("argument-hint: " + q(c["hint"]))
-    return "\n".join(head + ["---"]) + "\n" + c["body"]
+    return "\n".join(head + ["---"]) + "\n" + for_harness(c["body"], harness)
 
 
-def command_as_skill(c, name, invoke, stamp):
+def command_as_skill(c, name, invoke, stamp, harness):
     description = "Owner-typed command %s; run it only when the owner invokes it. %s" % (invoke, c["description"])
-    return skill_md(name, description, c["purpose"], "\n" + command_preface(name, invoke) + c["body"].lstrip("\n"),
+    body = for_harness(c["body"], harness)
+    return skill_md(name, description, c["purpose"], "\n" + command_preface(name, invoke) + body.lstrip("\n"),
                     c["where"], stamp)
 
 
@@ -386,10 +407,12 @@ def targets(skills, agents, commands, stamp, scripts=None, documents=None):
         out.append((h["agents"] / "skills" / name / "SKILL.md", text, "md"))
         out.append((kiro_skills / name / "SKILL.md", text, "md"))
     for name, c in commands.items():
-        out.append((h["claude"] / "commands" / (name + ".md"), claude_command(c, name, stamp), "md"))
-        out.append((h["agents"] / "skills" / name / "SKILL.md", command_as_skill(c, name, "$" + name, stamp), "md"))
-        out.append((h["agents"] / "skills" / name / "agents" / "openai.yaml", codex_policy(c["where"], stamp), "md"))
-        out.append((kiro_skills / name / "SKILL.md", command_as_skill(c, name, "/" + name, stamp), "md"))
+        out.extend([
+            (h["claude"] / "commands" / (name + ".md"), claude_command(c, stamp, "claude-code"), "md"),
+            (h["agents"] / "skills" / name / "SKILL.md", command_as_skill(c, name, "$" + name, stamp, "codex"), "md"),
+            (h["agents"] / "skills" / name / "agents" / "openai.yaml", codex_policy(c["where"], stamp), "md"),
+            (kiro_skills / name / "SKILL.md", command_as_skill(c, name, "/" + name, stamp, "kiro"), "md"),
+        ])
     for name, a in agents.items():
         out.append((h["claude"] / "agents" / (name + ".md"), claude_agent(a, name, stamp), "md"))
         out.append((h["codex"] / "agents" / (name + ".toml"), codex_agent(a, name, stamp), "md"))
