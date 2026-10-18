@@ -66,7 +66,8 @@ class Snapshot:
 def _call(runner, argv, timeout=10):
     """A command result or None. Raw failures are deliberately discarded, never surfaced."""
     try:
-        return runner(argv, capture_output=True, text=True, timeout=timeout)
+        return runner(argv, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                      text=True, timeout=timeout)
     except (OSError, subprocess.SubprocessError):
         return None
 

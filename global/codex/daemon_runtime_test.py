@@ -17,14 +17,16 @@ class Fake:
         self.processes = processes
         self.command_codes = command_codes or {}
         self.calls = []
+        self.call_options = []
         self.state = 0
 
     def resolve(self, name):
         return "/fake/" + name
 
-    def __call__(self, argv, **_kwargs):
+    def __call__(self, argv, **kwargs):
         key = tuple(argv[1:])
         self.calls.append(key)
+        self.call_options.append(kwargs)
         code = self.command_codes.get(key, 0)
         if key == ("--version",):
             out = "codex-cli %s\n" % self.states[self.state]["binary"]
@@ -62,6 +64,16 @@ def state(cli="0.163.0", managed="0.163.0", app="0.163.0", status="running", bac
 
 
 class Inspection(unittest.TestCase):
+    def test_every_probe_discards_stderr_without_materializing_it(self):
+        fake = Fake([state()])
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 0, lines)
+        self.assertTrue(fake.call_options)
+        for options in fake.call_options:
+            self.assertIs(options.get("stdout"), subprocess.PIPE)
+            self.assertIs(options.get("stderr"), subprocess.DEVNULL)
+            self.assertNotIn("capture_output", options)
+
     def test_aligned_running_daemon_has_sanitized_headroom(self):
         fake = Fake([state()], fd_count=20)
         code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
