@@ -250,8 +250,8 @@ merges the release-candidate pull request, installs it and runs the canary, in a
 The npm route ([ADR-0034](docs/adr/0034-npm-distribution-from-github-by-tag.md), Issue #68) is at the
 same level: *written and tested*, probed once from the branch into a throwaway npm prefix and HOME.
 Nothing is published to the npm registry, and no npm install exists on the reference machine.
-Since 2026-10-06 (ADR-0034 amendment) the package and command are `mhw` (`workstation` is a deprecated
-alias), and the npm line installs the user layer through a `postinstall`: *written and tested*, probed
+Since 2026-10-06 (ADR-0034 amendment) the package and command are `mhw` (~~`workstation` is a deprecated
+alias~~; the alias was removed in v7, Issue #206), and the npm line installs the user layer through a `postinstall`: *written and tested*, probed
 from GitHub at the branch head into throwaway prefixes and HOMEs with npm 11.13.0 (fresh, upgrade from
 v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on the reference machine.
 
@@ -267,17 +267,20 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   old -> new and records the replaced value, which uninstall restores. *Written and tested* in throwaway
   homes; not installed.
 - **Install applies every workstation setting itself** ([#145](https://github.com/tedeuxx/mhw/issues/145);
-  ADR-0035 amendment of 2026-10-11). Besides the model pins above, `mhw install` removes the `aws-api`
-  MCP server from the Codex user configuration (`global/mcp/mcp_retire.py`), removes the wildcard allows of
+  ADR-0035 amendment of 2026-10-11). Besides the model pins above, `mhw install` ~~removes the `aws-api`
+  MCP server from the Codex user configuration (`global/mcp/mcp_retire.py`),~~ removes the wildcard allows of
   `find` and `awk` (`Bash(x *)`, `Bash(x:*)`, `Bash(x*)`) from the Claude Code user allow list
   (`global/allow-retired.conf`), and adds the paste
   wrapper's block to `~/.zshrc` or `~/.bashrc` (on macOS also the bash login file, `~/.bash_profile` or
   `~/.bash_login`; never `~/.profile`). Each keeps a backup and prints old -> new; uninstall
-  removes the block and restores the model values, and the MCP and allow removals are restorable from
+  removes the block and restores the model values, and the ~~MCP and~~ allow removals are restorable from
   their backups. *Written and tested* in throwaway homes; **not installed** on the reference machine.
   ~~Windows (`install.ps1`) does none of the four.~~ *Amended 2026-10-11 (#145 follow-up):* `install.ps1`
-  does the MCP removal, the model pins and the allow removal, through the same scripts; the paste wrapper
-  cannot apply on Windows. *Written and CI-tested* on Windows; not installed anywhere.
+  does ~~the MCP removal,~~ the model pins and the allow removal, through the same scripts; the paste wrapper
+  cannot apply on Windows. *Written and CI-tested* on Windows; not installed anywhere. *Amended 2026-10-18
+  (Issue #206):* the `aws-api` removal (`mcp_retire.py`) and the plugin retirement (`plugin_retire.py`)
+  are removed from both installers; a leftover `aws-api` table or an enabled plugin is removed by hand,
+  and `mhw status` names the plugin.
 - **Outbound scan** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md) decision 7,
   slice F): `mhw scan` checks the files and commits a branch changed and prints `file:line`, the
   category and the length, never the text; the `outbound-scan` CI check runs it on every pull request.

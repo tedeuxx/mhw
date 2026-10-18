@@ -571,7 +571,8 @@ edit that would not parse (the parse guard needs Python 3.11+, as before).
 
 **3. Codex MCP (decision 2).** `global/mcp/mcp_render.py` (ADR-0017) owns only its managed block, and a
 hand-written `aws-api` table sits outside it, so reconciling through the renderer would not reach it. A
-targeted removal does: `global/mcp/mcp_retire.py`, run by `install.sh`, removes each server listed in
+targeted removal does: ~~`global/mcp/mcp_retire.py`, run by `install.sh`,~~ *(removed 2026-10-18,
+see that amendment)* removes each server listed in
 `global/mcp/retired-servers.conf` (only `aws-api`) from `${CODEX_HOME:-~/.codex}/config.toml`, table and
 sub-tables, nothing else. The result must parse (tomllib) and equal the original minus that server, or
 nothing is written; without tomllib a file naming the server is refused. No server content is ever
@@ -634,7 +635,7 @@ the retired server):
 
 | #145 item | `install.ps1` |
 | --- | --- |
-| Codex MCP: `aws-api` leaves `config.toml` | `global/mcp/mcp_retire.py`, unchanged |
+| Codex MCP: `aws-api` leaves `config.toml` | ~~`global/mcp/mcp_retire.py`, unchanged~~ removed 2026-10-18 (#206) |
 | Model and effort pins (Claude Code, Codex, Kiro CLI) | `global/models/model_defaults.py --home=%USERPROFILE%`, with the overlay's `model-defaults.json` |
 | Retired `find` and `awk` allows | in PowerShell, from `global/allow-retired.conf`: exactly the listed rules leave `permissions.allow`, backup `settings.json.pmhwc-allow-backup`, the same `CHANGED`, `DRIFT` and `WOULD CHANGE` lines |
 | Paste wrapper start-up block | **cannot apply**: the wrapper needs a POSIX pty and `/usr/bin/python3` (ADR-0011, ADR-0033). One `NOTE` line says so |
@@ -698,6 +699,24 @@ Issue #125 in [this comment](https://github.com/tedeuxx/mhw/issues/125#issuecomm
 *"ratified all eight ADR-0035 implementation amendments"*. The status moves from proposed to
 accepted. Nothing in the decisions or the amendments changes; the evidence levels stated in each
 amendment stay as written (most items are written and tested, not installed).
+
+## Amendment 2026-10-18: the one-shot removals leave the installer (Issue #206)
+
+Status unchanged (accepted). The owner's decision on Issue #206 (*"Os 4 agora"*) removes two install-time
+migrations this record and ADR-0032 added, and the retired-server policy file with them:
+
+- **Decision 2's `aws-api` removal.** `global/mcp/mcp_retire.py`, `global/mcp/retired-servers.conf` and
+  the suite are removed, with their calls in `install.sh` and `install.ps1`. Decision 2 itself stands:
+  cloud access goes through the CLI. Only the migration that took a hand-written `aws-api` table out of
+  the Codex configuration is gone, so a table still there is now removed by hand. An earlier
+  `config.toml.pmhwc-mcp-backup` stays the way back.
+- **The plugin retirement** (ADR-0032, 2026-10-13 amendment) is removed the same way.
+- **Item 6 of the #145 amendment** therefore names one suite fewer, and the Windows table's first row no
+  longer runs. `install.test.sh` and `install.test.ps1` now assert that an `aws-api` table is left alone
+  and that no MCP backup is written.
+- **Evidence.** On the reference machine the Codex user configuration carries no `aws-api` entry (the
+  owner's read-only check on #206). Replicator installs were not checked; the release notes ask them to
+  run `mhw status` and remove a leftover table by hand.
 
 ## Links
 

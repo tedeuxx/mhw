@@ -62,8 +62,8 @@ Option 1.
 
 - **Package:** `package.json` with `"private": true`, so `npm publish` refuses. It has no dependencies
   and ~~no lifecycle scripts~~ one lifecycle script, `postinstall` (2026-10-06 amendment). A `files`
-  allow list ships what install needs: ~~`workstation`~~ `mhw`, `workstation` (the deprecated alias),
-  `.bumpversion.toml`, `.workstation-archive`, `bin/workstation.js`, `global/` without its tests,
+  allow list ships what install needs: ~~`workstation`~~ `mhw`, ~~`workstation` (the deprecated alias),~~
+  `.bumpversion.toml`, `.workstation-archive`, ~~`bin/workstation.js`,~~ `global/` without its tests,
   `method/` and `overlay/`. An untracked `overlay/mcp-servers.json` and `*.local.json` are excluded by
   name. With `files` set, npm does not apply `.gitignore` (measured: removing the explicit exclusion
   ships the file).
@@ -294,6 +294,20 @@ reader had to copy a `sudo /bin/sh … --apply=… --sha256=…` line by hand, t
   it is unmeasured until the owner's install of the release.
 - Bad: two commands to install from npm (`npm install -g …`, `mhw install`), as with any tool whose setup
   needs the user's consent.
+
+## Amendment 2026-10-18: the `workstation` alias is removed (Issue #206)
+
+The 2026-10-06 amendment kept `workstation` as a deprecated alias of `mhw`, and both alias files said
+*"Removed in the next major release"*. v6.0.0 still shipped them. The owner's decision on Issue #206
+(*"Os 4 agora"*) removes the repository's `./workstation`, `bin/workstation.js` and the `workstation`
+entry of `package.json`'s `bin` and `files`. The cut is **major**: the `workstation` command stops working.
+
+- **Upgrade from v4.1.0.** That package still owns a `workstation` bin, but mhw no longer claims the
+  name, so `npm install -g` of mhw beside it no longer fails with `EEXIST`: both packages install, and
+  `mhw status` names the old one to remove (measured from a packed tarball, npm 11.13.0, in
+  `global/npm_package_test.py`). The documented route, removing the old package first, is unchanged.
+- **What stays.** The allow-list renderer still refuses to pre-authorise a `workstation` command,
+  because the v4.1.0 package can still put one on `PATH`.
 
 ## Links
 
