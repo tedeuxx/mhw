@@ -118,17 +118,25 @@ verified per project, this amendment is **written policy only**, not installed, 
 ## Consequences
 
 - **A lock on his own aims makes the firewall a two-sided control: it can refuse the owner.** To stay
-  usable, a refusal must reach him in a form he can answer. That is the human-in-the-loop escalation
+  usable, a refusal must reach him in a form he can answer. ~~That is the human-in-the-loop escalation
   of ADR-0013, which is in PR #2 and not yet merged. Until it lands, a refusal has no defined
-  escalation path.
+  escalation path.~~ **ADR-0013's PR #2 merged on 2026-10-01. Its escalation path is now defined in
+  the installed global brief as an instruction; whether a session loaded and followed it still needs
+  session evidence, and no hook enforces the path.**
 - ~~**Proposed (agent-written, awaiting owner ratification):**~~ **Accepted (owner, 2026-10-17): he can
-  change his principles only through the ADR process, never mid-session.** A principle he
+  change his principles only through the ADR process, never mid-session.** ~~A principle he
   wants to relax is amended or superseded by a record he ratifies. An instruction typed into a session
-  does not unlock it. This keeps a lock from being argued away under pressure, which is the point of
-  having one.
-- Bad: "enforced" is not yet true. The firewall's only installed control is a user-level instruction
+  does not unlock it.~~ **Changing a ratified lock requires a new ADR explicitly ratified by the owner.
+  An in-place amendment, session instruction, Issue comment, pull-request discussion or agent judgment
+  cannot change or unlock it.** This keeps a lock from being argued away under pressure, which is the
+  point of having one.
+- Bad: "enforced" is not yet true. ~~The firewall's only installed control is a user-level instruction
   (ADR-0010), and a project instruction can contradict it in every harness (ADR-0014). A lock written
-  into the global brief would be at the same level: **written, then installed**, not enforced.
+  into the global brief would be at the same level: **written, then installed**, not enforced.~~ **The
+  reference workstation now reports the managed layer and deny floor installed, the user layer
+  installed, and admin paste filters installed. Those are installation claims, not proof that this
+  lock is loaded or enforced. The concrete lock in this ADR remains written policy only until #192
+  delivers its carriers and they are separately installed, loaded and enforcement-measured.**
 - Bad: a lock is a judgement about intent. Unlike a secret or a client name, it has no string to match,
   so a mechanical check is unlikely. Most locks will probably stay at instruction level.
 - Bad: a false refusal costs the owner time on his own legitimate work. The interview must define each
