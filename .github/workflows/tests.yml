@@ -81,7 +81,8 @@ jobs:
             method/scripts/milestone_common.py method/scripts/milestone-create.py method/scripts/milestone-read.py \
             method/scripts/milestone-update.py method/scripts/milestone-close.py method/scripts/milestone.test.py \
             method/scripts/worklog.py method/scripts/worklog.test.py method/scripts/confine.py \
-            method/scripts/rite-cadence.py method/scripts/rite-cadence.test.py
+            method/scripts/rite-cadence.py method/scripts/rite-cadence.test.py \
+            method/scripts/launch-line.py
       - name: node syntax check of the npm launcher, alias and postinstall (Issue #68)
         run: |
           node --version
