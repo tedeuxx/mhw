@@ -65,7 +65,8 @@ Option 1.
 - The CLI binary version must equal the daemon metadata's CLI, managed-package and app-server versions.
 - A running daemon must resolve to exactly one native `app-server --managed-daemon` process.
 - Safe headroom is 64 descriptors: the measured 48-descriptor old-package burst plus 16 descriptors of
-  margin. Unlimited is accepted; unavailable evidence fails closed.
+  margin. Unlimited is accepted; ~~unavailable evidence fails closed~~ unavailable descriptor evidence is
+  DRIFT for status and check and advisory at install (2026-10-18 amendment).
 - Inspection requests `lsof -Fft` only. It never requests `n` fields, and output is reduced to numeric
   descriptor and type counts before formatting. The local daemon-version sanitizer consumes the raw
   vendor JSON, validates its exact schema, types, status/backend vocabulary and version formats, and
@@ -74,8 +75,9 @@ Option 1.
   to `DEVNULL`. The sanitizer accepts no arguments and resolves `codex` internally from `PATH`, so the
   mhw parent supplies neither an executable nor a vendor path to the boundary.
 - On skew, install runs `codex app-server daemon update --from-cli --yes`. When versions are aligned but
-  headroom is unsafe or the lifecycle process is stale/ambiguous, it runs the native daemon restart.
-  It then re-inspects and requires aligned versions and safe headroom.
+  ~~headroom is unsafe or~~ the lifecycle process is stale/ambiguous, it runs the native daemon restart.
+  It then re-inspects and requires aligned versions ~~and safe headroom~~ and one resolved lifecycle
+  process (2026-10-18 amendment).
 - The lifecycle step runs last and is skipped when any earlier install step failed or remains pending.
   The install preview states that daemon-backed Codex work will end at this boundary.
 - `mhw uninstall` does not alter the vendor daemon or package.
@@ -114,8 +116,50 @@ session must then verify aligned versions, safe initial headroom, repeated threa
 post-close cleanup and absence of accumulation before the correction is described as installed and
 enforced.
 
+## Amendment 2026-10-18: a stopped daemon and low headroom do not fail install
+
+[Issue #210](https://github.com/tedeuxx/mhw/issues/210). The owner's decision, for a patch release: a
+stopped daemon is not a failure of the install, and low descriptor headroom is reported as DRIFT by
+`mhw status` and `mhw check` and does not block `mhw install`.
+
+What failed, measured on the reference machine (Codex CLI 0.163.0, macOS): right after a native restart
+the daemon held 317 numeric descriptors against an inherited soft limit of 256, so the restart could
+never meet the headroom postcondition; and with the daemon stopped, `daemon version` failed and
+inspection recorded `daemon metadata unavailable`, which install refused as incomplete evidence. Both
+ended `Installation incomplete` with every other step applied.
+
+Decision:
+
+- **Not running is told apart from broken metadata by two independent signals.** The sanitizer still
+  never reads vendor stderr; it now exits 3 when the vendor command exits non-zero with empty stdout.
+  Only then does the parent ask `pgrep` for a managed-daemon process. No match (exit 1) is
+  `daemon not running`: OK for status and check, and install leaves it alone and starts nothing. A
+  match is `daemon control unreachable while a managed process runs`, the inconsistent lifecycle
+  #200 recorded: it stays an error and install changes nothing. A missing or failing `pgrep` stays an
+  error. *Evidence:* measured on this machine with the daemon stopped (vendor exit 1, 0 bytes of
+  stdout; sanitizer exit 3; `pgrep` exit 1; the read-only report prints `daemon not running`). The
+  alive-but-unreachable branch is tested against a fake, not measured.
+- **Headroom selects no install action.** Low headroom and unreadable descriptor evidence (`lsof` or
+  `launchctl` missing or unreadable) are DRIFT for status and check, worded as advisory, and install
+  neither restarts for them nor fails on them. The install preview does not list them as a change; it
+  prints them under an advisory heading. Rejected: keep the restart and accept low headroom after it.
+  A restart ends every daemon-backed session and, measured here, cannot raise an inherited soft limit;
+  it could only help an accumulation, which install cannot tell apart from a structural baseline
+  before interrupting. The owner can still restart natively himself.
+- **Version skew and an ambiguous or missing lifecycle process still act**, and their postcondition
+  is now "no further action needed": aligned versions and one resolved process, with headroom
+  reported but not required.
+- **Genuinely broken metadata still refuses install** (schema drift, unreadable versions, an
+  unsupported backend, the alive-but-unreachable case), so that an install never changes the daemon
+  on evidence it cannot read.
+
+Consequences: `mhw install` completes on the reference machine in both measured states, once the
+other steps pass; `mhw check` still exits non-zero on low headroom, so check and install can disagree
+by design. The exhaustion itself stays #200's, and nothing here raises a limit.
+
 ## Links
 
 - [Issue #200](https://github.com/tedeuxx/mhw/issues/200)
+- [Issue #210](https://github.com/tedeuxx/mhw/issues/210)
 - [ADR-0022](0022-restart-after-active-customization-changes.md)
 - [ADR-0027](0027-native-carrier-per-component-from-the-enforcement-matrix.md)
