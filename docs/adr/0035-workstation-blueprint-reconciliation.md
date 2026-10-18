@@ -490,6 +490,12 @@ commit-message path only, the name is scanned; only the vendor no-reply address 
 exempt. The key and the name stay in the scanned text, the line count is kept, and the exact trailer
 still gives no finding.*
 
+*Amended 2026-10-18 (#200): the required attribution can come from either installed agent vendor.
+The same exact, commit-message-only exception now also recognises OpenAI's vendor no-reply address in
+a `Co-Authored-By` trailer. Both addresses remain findings in the subject, body, another trailer or a
+file, and the attribution name remains scanned. This changes no detector and creates no general email
+allow list.*
+
 ## Amendment 2026-10-10: implementing decision 9 (owner-action queue)
 
 **1. The label.** `owner-action` exists in `tedeuxx/mhw`, described *"An action only the owner can

@@ -55,6 +55,7 @@ import subprocess
 import sys
 
 import owner_actions  # global/, beside this file (ADR-0035, decision 9)
+from codex import daemon_runtime
 
 NAME = "personal-multi-harness-workstation-configuration"
 MARKER = "managed-by: " + NAME
@@ -79,6 +80,19 @@ SOURCE_NAME = "this package" if CMD == "mhw" else "this checkout"
 LEGACY_PACKAGE = NAME
 # The one instruction for the upgrade from it, in status, check, the postinstall summary and the docs.
 UPGRADE_FIRST = "remove the v4.1.0 package first: `npm uninstall -g %s`" % LEGACY_PACKAGE
+
+
+def codex_daemon_report(prefix="CODEX   "):
+    """The native daemon is outside a throwaway managed root; integration tests must never touch it."""
+    if os.environ.get("WORKSTATION_MANAGED_ROOT"):
+        return 0, [prefix + "daemon lifecycle: not inspected under a test managed root"]
+    return daemon_runtime.report(prefix=prefix)
+
+
+def codex_daemon_install():
+    if os.environ.get("WORKSTATION_MANAGED_ROOT"):
+        return 0, ["CODEX   daemon lifecycle: not changed under a test managed root"]
+    return daemon_runtime.install()
 
 # ---------------------------------------------------------------------------------------------------
 # Version key (Issue #57): pure functions, no I/O.
@@ -1070,10 +1084,12 @@ def admin_supported():
 def install_plan(admin_wanted, user_wanted=True):
     """What `mhw install` would change, read-only: the user-layer targets that differ, and the admin
     layer's state ('current', 'absent', 'differs' or 'skipped')."""
-    plan = {"user": 0, "admin": "skipped", "admin_count": 0}
+    plan = {"user": 0, "admin": "skipped", "admin_count": 0, "codex": False}
     if user_wanted:
         code, lines = run(install_args(["--check", "--hooks=" + ("managed" if admin_installed() else "user")]))
         plan["user"] = issues(lines) or (1 if code else 0)
+        dcode, _ = codex_daemon_report()
+        plan["codex"] = dcode != 0
     if admin_wanted and admin_supported():
         if not admin_present():
             plan["admin"] = "absent"
@@ -1089,6 +1105,9 @@ def plan_lines(plan):
     if plan["user"]:
         out.append("Your settings in Claude Code, Codex and Kiro: %d file(s) to write (no password needed)"
                    % plan["user"])
+    if plan["codex"]:
+        out.append("Codex managed daemon: align its native package and restore safe descriptor headroom "
+                   "(ends daemon-backed Codex work at this explicit session boundary)")
     if plan["admin"] == "absent":
         out.append("System-wide protections that no session can switch off: install them "
                    "(needs your administrator password, once)")
@@ -1235,6 +1254,14 @@ def cmd_install(admin_only=False, method=False, verbose=False, yes=False, no_adm
         acode, alines = run(managed_args(["--check"]))
         if acode != 0 and plan["admin"] in ("absent", "differs") and not steps:
             failed.append("System-wide protections still differ in %d file(s)" % max(issues(alines), 1))
+    # The daemon lifecycle is deliberately last: its supported native update/restart may end this and
+    # every other daemon-backed Codex session. Never interrupt work when an earlier install step failed.
+    if plan["codex"] and not admin_only and not failed and not pending:
+        heading("Aligning the Codex managed daemon")
+        dcode, dlines = codex_daemon_install()
+        show(dlines, verbose)
+        if dcode != 0:
+            failed.append("Codex managed daemon (native lifecycle did not reach its sanitized postcondition)")
     print()
     if failed:
         print(_styled("31;1", "Installation incomplete:"))
@@ -1469,6 +1496,9 @@ def cmd_check(prerequisites_only=False):
             notes = npm_notes(source_stamp(), {h: s for h, p in brief_paths().items() if (s := stamp_in(p)) != "none"})
             for note in notes:
                 print("NPM     " + note, flush=True)
+        dcode, dlines = codex_daemon_report()
+        print("\n".join(dlines), flush=True)
+        code = max(code, dcode)
     # Issue #89: present or missing, authenticated or not, drift from the preferred settings. Read-only.
     import prerequisites
     pcode, lines = prerequisites.report()
@@ -1545,7 +1575,11 @@ def main(argv):
         return cmd_uninstall(verbose, yes)
     if command == "status":
         facts = gather(project)
-        for line in render_summary(facts) if summary and not verbose else render_status(facts, verbose):
+        lines = render_summary(facts) if summary and not verbose else render_status(facts, verbose)
+        if verbose:
+            _, daemon_lines = codex_daemon_report(prefix="  codex daemon    ")
+            lines.extend(daemon_lines)
+        for line in lines:
             print(line)
         return 0
     print("mhw: unknown subcommand %s (install, install --admin, status, check, scan, update, uninstall)"
