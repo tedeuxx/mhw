@@ -1,6 +1,6 @@
 ---
 name: "planning-poker"
-description: "Run a planning poker estimation round, or diagnose why one produced theater instead of signal. Use when the agents estimate an item's sp:N weight, each dispatched in isolation with the median recorded, when sizing backlog items with a team, choosing between group-consensus estimation and a single person's gut call, or explaining why a session's numbers don't influence anything downstream. The agents of this method use it to estimate (see agents-configuration, Estimation)."
+description: "Run a planning poker estimation round, or diagnose why one produced theater instead of signal. Use when the agents estimate an item's sp:N weight, each dispatched in isolation with the median recorded, when sizing backlog items with a team, choosing between group-consensus estimation and a single person's gut call, or explaining why a session's numbers don't influence anything downstream. The agents of this method use it to estimate, per its Estimation section (see agents-configuration)."
 purpose: "give the estimating agents one consensus-estimation method, and say plainly what it buys and when a ceremony is not worth running at all"
 ---
 

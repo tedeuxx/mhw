@@ -1,6 +1,6 @@
 ---
 name: "orchestration"
-description: "Apply the three rules the main session applies before it acts: which review a merge request gets for its type, what a loop mode may and may never change, and how to ask the owner anything, including what the owner reads before a content merge (the application's preview mode, never a Claude Artifact). Use before dispatching a review, before any pool query or rite, and before any question, decision or action you put to the owner. Not for who closes a description or the state machine (see agents-configuration), the escalation standard's argument (see engineering-standards), or what makes an item ready (see definition-of-ready)."
+description: "Apply three main-session rules — the review a merge request gets for its type, what a loop mode may never change, how to ask the owner, and what the owner reads before a content merge (preview mode, never a Claude Artifact). Use when routing or asking. Use before dispatching a review, before any pool query or rite, and before any question, decision or action you put to the owner. Not for the state machine (see agents-configuration) or escalation's argument (see engineering-standards)."
 purpose: "keep the review routing, the loop-mode contract and the ask rules in the method that every project installs, so a project's root brief does not have to carry them and no method file points at a block a project may delete"
 ---
 

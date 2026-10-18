@@ -1,8 +1,7 @@
 ---
 name: "what-else"
-description: "Answer what is left against the session's anchored objective: restate it (from the native /goal where the agent harness has one), read the session's Issues, open pull requests and recorded owner decisions on the issue tracker, and report what is done with evidence, what is left, what waits on the owner, and the next step. Use when the owner asks how far the session is from its goal. Read-only."
+description: "Answer what is left against the session's anchored objective: restate it (from the native /goal where the agent harness has one, or from the optional argument when none was anchored), read the session's Issues, open pull requests and recorded owner decisions on the issue tracker, and report what is done with evidence, what is left, what waits on the owner, and the next step. Use when the owner asks how far the session is from its goal. Read-only."
 purpose: "any session, in any agent harness, can recover and bound its own scope from the shared bus, so it neither drifts nor stops short without saying what is left"
-argument-hint: "<optional: the objective, if none was anchored>"
 ---
 
 Report what is left against this session's objective. `$ARGUMENTS`, when given, is the objective to
