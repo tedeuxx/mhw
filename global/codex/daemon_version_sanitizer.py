@@ -6,6 +6,7 @@ projection or no output and a non-zero exit. This helper deliberately writes no 
 """
 import json
 import re
+import shutil
 import subprocess
 import sys
 
@@ -35,10 +36,13 @@ def project(raw):
 
 
 def main(argv):
-    if len(argv) != 1:
+    if argv:
         return 2
+    codex = shutil.which("codex")
+    if not codex:
+        return 1
     try:
-        vendor = subprocess.run([argv[0], "app-server", "daemon", "version"],
+        vendor = subprocess.run([codex, "app-server", "daemon", "version"],
                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return 1

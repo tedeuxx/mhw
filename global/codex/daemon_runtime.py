@@ -154,7 +154,7 @@ def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
 
     # The child is the privacy boundary: raw vendor JSON exists only there. This parent captures only
     # its exact safe projection, or no output on schema/type/vendor drift.
-    version = _call(runner, [sys.executable, "-B", _SANITIZER, codex])
+    version = _call(runner, [sys.executable, "-B", _SANITIZER])
     if version is None or version.returncode != 0:
         snap.errors.append("daemon metadata unavailable")
         return snap

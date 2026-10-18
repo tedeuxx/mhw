@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -32,7 +33,7 @@ class Fake:
         code = self.command_codes.get(key, 0)
         if key == ("--version",):
             out = "codex-cli %s\n" % self.states[self.state]["binary"]
-        elif len(argv) == 4 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
+        elif len(argv) == 3 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
             doc = dict(self.states[self.state])
             doc.pop("binary", None)
             doc.pop("managedCodexPath", None)
@@ -89,6 +90,9 @@ class Inspection(unittest.TestCase):
         self.assertNotIn("/private", text)
         self.assertNotIn("credential", text)
         self.assertNotIn(("app-server", "daemon", "version"), fake.calls)
+        sanitizer_calls = [call for call in fake.calls if call and call[0] == "-B"]
+        self.assertEqual(len(sanitizer_calls), 1)
+        self.assertEqual(len(sanitizer_calls[0]), 2)  # -B and the fixed sanitizer path; no vendor path.
         self.assertNotIn("/private", repr(vars(snapshot)))
         self.assertFalse(hasattr(snapshot, "socket_path"))
 
@@ -144,7 +148,7 @@ class Inspection(unittest.TestCase):
     def test_malformed_vendor_output_never_echoes_it(self):
         class Malformed(Fake):
             def __call__(self, argv, **kwargs):
-                if len(argv) == 4 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
+                if len(argv) == 3 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
                     return subprocess.CompletedProcess(argv, 0, stdout="/private/owner prompt text", stderr="token=x")
                 return super().__call__(argv, **kwargs)
         fake = Malformed([state()])
@@ -191,7 +195,7 @@ class Lifecycle(unittest.TestCase):
     def test_unreadable_metadata_never_triggers_a_native_change(self):
         class Malformed(Fake):
             def __call__(self, argv, **kwargs):
-                if len(argv) == 4 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
+                if len(argv) == 3 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
                     return subprocess.CompletedProcess(argv, 0, stdout="not json", stderr="private")
                 return super().__call__(argv, **kwargs)
 
@@ -214,9 +218,25 @@ class SanitizerBoundary(unittest.TestCase):
         return path
 
     def run_boundary(self, document):
-        return subprocess.run([sys.executable, "-B", str(Path(sanitizer.__file__)),
-                               str(self.vendor(document))], stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE, text=True, timeout=10)
+        vendor = self.vendor(document)
+        env = dict(os.environ)
+        env["PATH"] = str(vendor.parent) + os.pathsep + env.get("PATH", "")
+        return subprocess.run([sys.executable, "-B", str(Path(sanitizer.__file__))],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                              timeout=10, env=env)
+
+    def test_external_executable_argument_is_refused_silently(self):
+        document = state()
+        document.pop("binary")
+        vendor = self.vendor(document)
+        env = dict(os.environ)
+        env["PATH"] = str(vendor.parent) + os.pathsep + env.get("PATH", "")
+        result = subprocess.run([sys.executable, "-B", str(Path(sanitizer.__file__)), str(vendor)],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                timeout=10, env=env)
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr, "")
 
     def test_raw_sensitive_fields_never_cross_the_child_boundary(self):
         document = state()

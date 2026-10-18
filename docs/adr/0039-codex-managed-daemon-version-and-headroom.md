@@ -70,7 +70,8 @@ Option 1.
   vendor JSON, validates its exact schema, types, status/backend vocabulary and version formats, and
   writes only status, backend and three version fields. Raw bytes and path fields are never retained,
   interpreted or emitted outside that child; its stderr and the vendor command's stderr go directly
-  to `DEVNULL`.
+  to `DEVNULL`. The sanitizer accepts no arguments and resolves `codex` internally from `PATH`, so the
+  mhw parent supplies neither an executable nor a vendor path to the boundary.
 - On skew, install runs `codex app-server daemon update --from-cli --yes`. When versions are aligned but
   headroom is unsafe or the lifecycle process is stale/ambiguous, it runs the native daemon restart.
   It then re-inspects and requires aligned versions and safe headroom.
