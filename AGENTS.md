@@ -14,7 +14,9 @@ whatever comes next). It is authored, not generated.
 
 This repository is the **master of first principles** for the owner as an individual interacting with
 his AI workstation. It protects him from third-party risk, and it also places **ethical locks on what he
-himself seeks to achieve**; the concrete locks are pending an interview with him
+himself seeks to achieve**. The first concrete lock — autonomy inside recoverable work, with blocking
+evidence at the STG/PROD delivery boundary and owner approval for high-risk PROD changes — was ratified
+on 2026-10-17
 ([ADR-0015](docs/adr/0015-master-of-first-principles-ethical-locks-on-own-aims.md)).
 
 ### Mission
