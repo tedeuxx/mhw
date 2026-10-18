@@ -34,7 +34,7 @@ jobs:
       - name: shellcheck (preinstalled on the runner image)
         run: |
           shellcheck --version
-          shellcheck -s sh mhw workstation global/install.sh global/install.test.sh \
+          shellcheck -s sh mhw global/install.sh global/install.test.sh \
             global/allow-list.sh global/allow-list.test.sh global/mcp/mcp-launch.sh
       # A workflow that is not valid YAML never loads: GitHub reports a "workflow file issue" on push
       # and no job runs, so nothing else in this file would notice (PR #141). Ruby and its bundled
@@ -65,7 +65,6 @@ jobs:
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
-            global/mcp/mcp_retire.py global/mcp/mcp_retire_test.py \
             global/kiro/kiro_permissions.py global/kiro/kiro_permissions_test.py \
             global/profile/profile.py global/profile/profile_test.py \
             global/codex/__init__.py global/codex/daemon_runtime.py \
@@ -74,7 +73,6 @@ jobs:
             global/scan.py global/scan_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
-            global/method/plugin_retire.py global/method/plugin_retire_test.py \
             global/models/model_defaults.py global/models/model_defaults_test.py \
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py \
@@ -83,12 +81,12 @@ jobs:
             method/scripts/milestone_common.py method/scripts/milestone-create.py method/scripts/milestone-read.py \
             method/scripts/milestone-update.py method/scripts/milestone-close.py method/scripts/milestone.test.py \
             method/scripts/worklog.py method/scripts/worklog.test.py method/scripts/confine.py \
-            method/scripts/rite-cadence.py method/scripts/rite-cadence.test.py
-      - name: node syntax check of the npm launcher, alias and postinstall (Issue #68)
+            method/scripts/rite-cadence.py method/scripts/rite-cadence.test.py \
+            method/scripts/launch-line.py
+      - name: node syntax check of the npm launcher and postinstall (Issue #68)
         run: |
           node --version
           node --check bin/mhw.js
-          node --check bin/workstation.js
           node --check bin/postinstall.js
 
   # Pure preference compilation: no harness installation, account calls or credential reads.
@@ -180,14 +178,6 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/models/model_defaults_test.py "$RUNNER_TEMP/model-defaults"
-      # Issue #145, ADR-0035 decision 2: the retired MCP servers (aws-api) leave the Codex user
-      # configuration, in throwaway HOMEs only; the edit is verified with tomllib, no server value printed.
-      - name: retired MCP servers suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: |
-          python3 --version
-          python3 -B global/mcp/mcp_retire_test.py "$RUNNER_TEMP/mcp-retire"
       # Issue #145: the one Python private_copy and install.sh's shell form, run on the same cases (both must
       # give a 0600 copy, unlink first, never write through a link); no Python step may define its own copy.
       - name: backup helper suite
@@ -201,13 +191,11 @@ jobs:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/kiro/kiro_permissions_test.py "$RUNNER_TEMP/kiro-permissions"
       # Issues #71-#75: the workflow commands render on all three agent harnesses with their required
-      # sections, Codex implicit invocation off (four since #196 removed /handover); the sanitisation
-      # check on a synthetic fixture, kept after that removal because it never reads the command file.
-      # Issue #130: the plugin retired at user scope with the method, in throwaway HOMEs only.
-      - name: plugin retirement suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: python3 -B global/method/plugin_retire_test.py "$RUNNER_TEMP/plugin-retire"
+      # sections, Codex implicit invocation off (four since #196 removed /handover, five with #198's
+      # /handoff); the sanitisation check on a synthetic fixture, kept after that removal because it never
+      # reads the command file. #198: each /handoff carrier names its own agent harness, the installed
+      # launch-line.py prints only that harness's line, the line parses under sh (and zsh where present)
+      # and carries the prompt exactly, and no rendering token survives.
       - name: workflow-commands suite
         env:
           TMPDIR: ${{ runner.temp }}
@@ -216,7 +204,7 @@ jobs:
       # git archive fills it in) is npm-packed and installed with npm install -g into a throwaway prefix
       # and cache; its postinstall installs the user layer in a throwaway HOME and admin root, also through
       # npm's git-dependency preparation (git+file://), with --ignore-scripts and as a local dependency;
-      # plus the launcher's Windows mapping with a stub PowerShell and the deprecated workstation alias.
+      # plus the launcher's Windows mapping with a stub PowerShell (the workstation alias left with #206).
       # The runner's preinstalled node and npm; nothing is fetched from or published to a registry.
       - name: npm package suite
         env:
@@ -246,8 +234,6 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B .github/scripts/method_issue_sync_test.py
-      - name: GitHub repository settings standard suite (stub gh on PATH; no network, never squash)
-        run: sh global/github-repo-settings.test.sh "$RUNNER_TEMP/repo-settings"
       # ADR-0011, the paste filter. It never reads or writes the system clipboard. Issue #58: the real
       # `security` binary and Security.framework run ONLY here, on the ephemeral macOS runner, through
       # this explicit opt-in; everywhere else (any developer machine) the suite uses
@@ -334,7 +320,7 @@ jobs:
       # Issue #68, ADR-0034: the npm package on Windows. git archive of HEAD (what GitHub serves, with
       # .workstation-archive filled in), npm pack, npm install -g into a throwaway prefix and cache; its
       # postinstall runs install.ps1 under ${{ matrix.ps }} against a throwaway USERPROFILE (set BEFORE
-      # npm runs), then mhw.cmd and the deprecated workstation.cmd alias. No registry is contacted.
+      # npm runs), then mhw.cmd; no workstation.cmd alias since #206. No registry is contacted.
       - name: npm package (npm install -g into a throwaway prefix; postinstall, then mhw under ${{ matrix.ps }})
         shell: pwsh
         env:
@@ -378,12 +364,7 @@ jobs:
           if (-not $brief.Contains("; release: ") -or -not $brief.Contains("; $stamp;")) { Fail "mhw install did not install the stamped brief: $brief" }
           & $mhw check
           if ($LASTEXITCODE) { Fail "mhw check exited $LASTEXITCODE" }
-          $alias = Join-Path $prefix 'workstation.cmd'
-          $notice = Join-Path $t 'alias.err'
-          & $alias check 2> $notice
-          if ($LASTEXITCODE) { Fail "workstation check (alias) exited $LASTEXITCODE" }
-          $err = Get-Content -LiteralPath $notice -Raw
-          if (-not $err.Contains('is renamed')) { Fail "the alias printed no rename notice: $err" }
+          if (Test-Path -LiteralPath (Join-Path $prefix 'workstation.cmd')) { Fail 'the removed workstation alias was installed (#206)' }
           $out = (& $mhw update v4.2.0) -join ' | '
           if ($LASTEXITCODE -or -not $out.Contains('npm install -g github:tedeuxx/mhw#v4.2.0')) { Fail "update: $out" }
           & $mhw uninstall 2>$null

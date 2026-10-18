@@ -2,12 +2,21 @@
 
 The working method moves from the `tadeumendonca-skills` plugin to this repository's user layer
 ([ADR-0032](../adr/0032-this-repository-is-the-single-source-of-the-working-method.md), 2026-10-13
-amendment). `mhw install --method` installs the method and, in the same step, retires the plugin at user
-scope. It is the owner's act, in a fresh session.
+amendment). `mhw install --method` installs the method ~~and, in the same step, retires the plugin at user
+scope~~. It is the owner's act, in a fresh session.
 
-**Evidence level:** written and tested in throwaway homes (`global/method/plugin_retire_test.py`, the
+*Amended 2026-10-18 ([#206](https://github.com/tedeuxx/mhw/issues/206)): the step that retired the
+plugin (`global/method/plugin_retire.py`) is removed. `mhw install --method` no longer edits any plugin
+record, and uninstall no longer restores one. Where `mhw status` still shows DUPLICATE, disable the
+plugin with the agent harness's own command (Claude Code `/plugin`; the Codex plugin commands; the Kiro
+Powers panel). Step 1's `CHANGED … -> absent` lines below no longer appear; the verification in step 2
+is unchanged.*
+
+**Evidence level:** ~~written and tested in throwaway homes (`global/method/plugin_retire_test.py`, the
 installer test in `global/method/method_render_test.py`, and `global/install.test.ps1` on Windows). Not
-run on the reference machine.
+run on the reference machine.~~ the removal of the step is tested in `global/method/method_render_test.py`
+and `global/install.test.ps1`. On the reference machine the plugin is not enabled (the owner's read-only
+check on #206).
 
 ## Before
 

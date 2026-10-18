@@ -363,7 +363,8 @@ Status unchanged (proposed). #130 was an owner action, *uninstall the plugin*, w
 the method installed, `mhw status` naming the DUPLICATE, and the deprecation shipped in
 tadeumendonca-skills. Since this amendment the uninstall is installer work, in the method's own step.
 
-- **`mhw install --method` retires the plugin at user scope** (`global/method/plugin_retire.py`), right
+- ~~**`mhw install --method` retires the plugin at user scope**~~ *(removed 2026-10-18, see that
+  amendment)* (`global/method/plugin_retire.py`), right
   after the method renders and never after a failed render, so a session is not left with neither copy:
   Claude Code's `enabledPlugins` entry and the marketplace's `extraKnownMarketplaces` entry in
   `~/.claude/settings.json`, the plugin's scope `user` install records, and its marketplace once no
@@ -512,6 +513,22 @@ document carries any execute bit (calibrated by making `method_render.py` chmod 
 symbolic link, or sits in a symlinked directory, is installed (calibrated by removing each of the two
 checks in `load_documents`, one at a time; each turned only its own case red). Not run on Windows.
 Nothing is installed on the reference machine.
+
+## Amendment 2026-10-18: the plugin retirement step is removed (Issue #206)
+
+Status unchanged (proposed). The owner's decision on Issue #206 (*"Os 4 agora"*) removes
+`global/method/plugin_retire.py`, its suite and its call in `install.sh` and `install.ps1`. The 2026-10-13
+amendment above was a one-shot migration for the cutover, and #130 is closed.
+
+- **What install does now.** `mhw install --method` renders the method and does not read or edit any
+  plugin record. `mhw status` still names a plugin left enabled beside the method (the `DUPLICATE`
+  state), which is how a replicator finds one. Disabling it is the agent harness's own act: Claude Code
+  `/plugin`, the Codex plugin commands, or the Kiro Powers panel.
+- **What is lost.** Uninstall no longer restores a plugin an earlier install retired. A
+  `<file>.pmhwc-plugin-backup` left by such an install stays on disk and is the way back by hand.
+- **Evidence.** On the reference machine the plugin is not enabled in the Claude Code user settings
+  (the owner's read-only check on #206). Replicator installs were not checked; the release notes ask
+  them to run `mhw status`.
 
 ## Links
 

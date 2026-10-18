@@ -151,15 +151,15 @@ foreach ($f in Targets $h) { Check "written: $($f.Substring($h.Length + 1))" (Te
 $hm = Join-Path $Base 'home-method'; New-Item -ItemType Directory -Force -Path $hm | Out-Null
 # Off by default (until the plugin cutover, #63 #64): a plain install writes no method file.
 Check 'method: a plain install renders no agent' (-not (Test-Path -LiteralPath (Join-Path $h '.claude\agents\developer.md')))
-# #130: the plugin enabled at user scope before -Method; the method step retires it, with a backup.
+# #206: the plugin cutover step is removed; a plugin enabled at user scope before -Method stays enabled.
 New-Item -ItemType Directory -Force -Path (Join-Path $hm '.claude') | Out-Null
 [System.IO.File]::WriteAllText((Join-Path $hm '.claude\settings.json'), '{ "enabledPlugins": { "tadeumendonca-skills@tadeumendonca": true, "a@b": true } }', (New-Object System.Text.UTF8Encoding $false))
 $mout = Run $hm @('-Method'); Expect 'install with the working method (-Method)' 0 $script:rc
-$retired = Get-Content -LiteralPath (Join-Path $hm '.claude\settings.json') -Raw | ConvertFrom-Json
-Check 'method: the tadeumendonca-skills plugin is retired at user scope, the other plugin kept, a backup left' (
-    (-not $retired.enabledPlugins.PSObject.Properties['tadeumendonca-skills@tadeumendonca']) -and
-    ($retired.enabledPlugins.'a@b' -eq $true) -and
-    (Test-Path -LiteralPath (Join-Path $hm '.claude\settings.json.pmhwc-plugin-backup') -PathType Leaf))
+$kept = Get-Content -LiteralPath (Join-Path $hm '.claude\settings.json') -Raw | ConvertFrom-Json
+Check 'method: the installer leaves the tadeumendonca-skills plugin enabled and writes no plugin backup' (
+    ($kept.enabledPlugins.'tadeumendonca-skills@tadeumendonca' -eq $true) -and
+    ($kept.enabledPlugins.'a@b' -eq $true) -and
+    (-not (Test-Path -LiteralPath (Join-Path $hm '.claude\settings.json.pmhwc-plugin-backup'))))
 Check 'method: the METHOD summary line is printed' ([bool]($mout | Where-Object { $_ -like 'METHOD  installed: *agents*skills*commands*' }))
 $ccAgent = Join-Path $hm '.claude\agents\developer.md'
 Check 'method: Claude Code agent keeps its tool list and stamp' (
@@ -173,17 +173,11 @@ $kAgent = Get-Content -LiteralPath (Join-Path $hm '.kiro\agents\developer.json')
 Check 'method: Kiro agent keeps its tool list and auto-approves nothing' (
     ((@($kAgent.tools) -join ',') -ceq 'read,write,shell') -and (-not $kAgent.PSObject.Properties['allowedTools']))
 $null = Run $hm @('-Check'); Expect 'check is clean with the working method installed' 0 $script:rc
-# #130: a failed render never retires the plugin. A file not managed by the method at one of its targets
-# makes the render refuse; the plugin stays enabled and no backup is written.
+# A file not managed by the method at one of its targets makes the render refuse, and the run exits non-zero.
 $hf = Join-Path $Base 'home-method-refused'; New-Item -ItemType Directory -Force -Path (Join-Path $hf '.claude\agents') | Out-Null
-[System.IO.File]::WriteAllText((Join-Path $hf '.claude\settings.json'), '{ "enabledPlugins": { "tadeumendonca-skills@tadeumendonca": true } }', (New-Object System.Text.UTF8Encoding $false))
 [System.IO.File]::WriteAllText((Join-Path $hf '.claude\agents\developer.md'), "the owner's own agent`n", (New-Object System.Text.UTF8Encoding $false))
 $null = Run $hf @('-Method')
 Check 'method: a failed render exits non-zero' ($script:rc -ne 0)
-$kept = Get-Content -LiteralPath (Join-Path $hf '.claude\settings.json') -Raw | ConvertFrom-Json
-Check 'method: a failed render leaves the plugin enabled and writes no plugin backup' (
-    ($kept.enabledPlugins.'tadeumendonca-skills@tadeumendonca' -eq $true) -and
-    (-not (Test-Path -LiteralPath (Join-Path $hf '.claude\settings.json.pmhwc-plugin-backup'))))
 $kiro = @(Get-Content -LiteralPath (Join-Path $h '.kiro\steering\workstation-global-brief.md') -TotalCount 3)
 Check 'kiro file opens with inclusion: always front matter' ($kiro[0] -ceq '---' -and $kiro[1] -ceq 'inclusion: always' -and $kiro[2] -ceq '---')
 $claudeMd = Join-Path $h '.claude\CLAUDE.md'
@@ -379,7 +373,7 @@ Expect 'stale compiled profile refused before installation' 1 $script:rc
 Check 'stale profile wrote no target' ((Count-Files $h) -eq 0)
 
 # 14. Issue #145: what install.sh does since v5.2.0, on Windows, with the repository overlay (it holds
-# model-defaults.json). The retired MCP server leaves the Codex config (only the MCP backup holds it), the
+# model-defaults.json). An aws-api MCP table stays in the Codex config (its removal left with Issue #206), the
 # model and effort pins are written over the owner's values, the retired find and awk allows leave
 # permissions.allow (the rest stays), and the Kiro floor is merged beside the owner's rule (ADR-0036).
 $pins = Get-Content -LiteralPath (Join-Path $repoOverlay 'model-defaults.json') -Raw | ConvertFrom-Json
@@ -402,17 +396,17 @@ Check 'the allow backup holds the retired entries' (
 Check 'the allow change is printed old -> new' ([bool]($out | Where-Object {
             $_ -clike 'CHANGED *settings.json: permissions.allow Bash(find:*) present -> absent; Bash(awk `*) present -> absent (retired, ADR-0035 decision 4;*' }))
 $toml = [System.IO.File]::ReadAllText($cf)
-Check 'the retired aws-api MCP server left config.toml; another server stays' (-not $toml.Contains('aws-api') -and $toml.Contains('[mcp_servers.keep-me]'))
+Check 'install leaves the aws-api MCP table alone and writes no MCP backup (#206)' (
+    $toml.Contains('[mcp_servers.aws-api]') -and $toml.Contains('[mcp_servers.keep-me]') -and -not (Test-Path -LiteralPath "$cf.pmhwc-mcp-backup"))
 Check 'Codex model and effort pinned' (
     $toml.Contains("model = `"$($pins.codex.model)`"") -and $toml.Contains("model_reasoning_effort = `"$($pins.codex.effort)`"") -and -not $toml.Contains('"high"'))
-Check 'only the MCP backup holds the retired server' (
-    [System.IO.File]::ReadAllText("$cf.pmhwc-mcp-backup").Contains($canary) -and -not [System.IO.File]::ReadAllText("$cf.pmhwc-models-backup").Contains('aws-api'))
+Check 'no MCP server value is printed' (-not [bool]($out | Where-Object { $_ -like "*$canary*" }))
 $kcli = Get-Content -LiteralPath (Join-Path $h '.kiro\settings\cli.json') -Raw | ConvertFrom-Json
 Check 'Kiro CLI default model pinned' ($kcli.'chat.defaultModel' -ceq $pins.'kiro-cli'.model)
 $ky = [System.IO.File]::ReadAllText($kf)
 Check 'the Kiro floor is merged beside the owner rule, with a backup' (
     $ky.Contains('"git *"') -and $ky.Contains('"sudo *"') -and $ky.Contains('"~/.ssh/id_*"') -and (Test-Path -LiteralPath "$kf.pmhwc-backup"))
-foreach ($b in @("$sf.pmhwc-backup", "$sf.pmhwc-allow-backup", "$sf.pmhwc-models-backup", "$cf.pmhwc-mcp-backup",
+foreach ($b in @("$sf.pmhwc-backup", "$sf.pmhwc-allow-backup", "$sf.pmhwc-models-backup",
                  "$cf.pmhwc-models-backup", "$kf.pmhwc-backup")) {
     Check "owner-only backup: $($b.Substring($h.Length + 1))" (Test-OwnerOnly $b)
 }

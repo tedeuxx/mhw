@@ -45,7 +45,7 @@
      "presence": {"commands": ["gh"]}, "version": {"args": ["--version"]},
      "auth": {"kind": "gh-auth-status"},
      "preferred": {"kind": "github-repo-settings"},
-     "manual": "Install gh (https://cli.github.com/) and run gh auth login; merge-setting drift: global/github-repo-settings.sh --apply OWNER/REPO is the owner's act"},
+     "manual": "Install gh (https://cli.github.com/) and run gh auth login; merge-setting drift: gh repo edit OWNER/REPO --enable-merge-commit --enable-squash-merge=false --enable-rebase-merge=false is the owner's act"},
     {"id": "sonarcloud", "name": "SonarCloud", "category": "free-account",
      "required": "optional", "lanes": {"delivery": "required", "site": "required"},
      "presence": {"kind": "account"},

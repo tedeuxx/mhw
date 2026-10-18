@@ -3,7 +3,8 @@
 The npm route ([ADR-0034](../adr/0034-npm-distribution-from-github-by-tag.md), Issue #68) installs a
 tagged release straight from this GitHub repository. Nothing is published to the npm registry, and the
 package is `private`, so `npm publish` refuses it. The package and its command are **`mhw`** (multi-harness
-managed workstation); `workstation` is a deprecated alias until the next major and prints one notice.
+managed workstation); ~~`workstation` is a deprecated alias until the next major and prints one notice.~~
+the deprecated `workstation` alias was removed in v7 ([#206](https://github.com/tedeuxx/mhw/issues/206)).
 Every installation on the owner's machine is his act, in a fresh session afterwards.
 
 The install line names this repository by its current name. It changes when the repository is renamed,
@@ -87,7 +88,9 @@ With `--ignore-scripts` (or `ignore-scripts=true` in an npmrc) nothing runs:
 ## Upgrade from v4.1.0
 
 v4.1.0's package was named `personal-multi-harness-workstation-configuration` with the bin `workstation`,
-and `mhw` keeps `workstation` as its alias, so npm refuses `mhw` while the old package owns that name.
+~~and `mhw` keeps `workstation` as its alias, so npm refuses `mhw` while the old package owns that name.~~
+*Since v7 (#206)* `mhw` has no `workstation` bin, so npm installs it beside the old package without
+`EEXIST` (measured from a packed tarball, npm 11.13.0); both then stay installed until you remove one.
 **remove the v4.1.0 package first: `npm uninstall -g personal-multi-harness-workstation-configuration`**, then install `mhw`:
 
 ```sh
@@ -97,8 +100,9 @@ mhw install
 ```
 
 The user layer stays in place throughout and `mhw install` then updates it.
-Do not use `--force`. v4.1.0's own `workstation update` prints an install line without this step; it fails
-the same way.
+~~Do not use `--force`. v4.1.0's own `workstation update` prints an install line without this step; it fails
+the same way.~~ *(Struck 2026-10-18, #206: nothing collides any more, so neither `--force` nor a failure
+applies; the old package is still removed first.)*
 
 ~~From GitHub the same npm line upgrades: the git preparation's `install --force` hands the `workstation`
 link to `mhw`, and the old package stays installed beside it (measured).~~ *(Struck 2026-10-06: measured

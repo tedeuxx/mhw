@@ -52,8 +52,13 @@ refused as an invalid declaration.
 - **GitHub:** `gh auth status`, which contacts GitHub. Its output names the account, so it is only
   classified, never printed. "Not logged in" reads `NOAUTH`. Any other failure triggers one tokenless
   GET of `https://api.github.com/zen`: unreachable reads `NOCHECK` (`GitHub unreachable`), reachable
-  reads `NOAUTH`. When authenticated, `global/github-repo-settings.sh --check OWNER/REPO` (the
-  no-squash standard, ADR-0016) for each repository in the overlay, or this checkout's `origin`.
+  reads `NOAUTH`. When authenticated, ~~`global/github-repo-settings.sh --check OWNER/REPO`~~ *(the
+  script was removed 2026-10-18, Issue #206)* one read-only
+  `gh repo view OWNER/REPO --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed`, compared
+  with `global/github-repo-settings.json` (the no-squash standard, ADR-0016) for each repository in the
+  overlay, or this checkout's `origin`. A setting that differs is `DRIFT`; one absent or not a boolean
+  reads `unknown` and is `DRIFT` too; a read that fails is `not checked`. The fix is the owner's
+  `gh repo edit OWNER/REPO --enable-merge-commit --enable-squash-merge=false --enable-rebase-merge=false`.
 - **SonarCloud:** with `SONAR_TOKEN` in the environment, a GET of `/api/authentication/validate`; with
   project keys in the overlay, a GET of `/api/components/show` per key (with the token if present).
 - **HCP Terraform:** with `TFC_API_TOKEN` in the environment, a GET of `/api/v2/account/details`.
@@ -83,6 +88,9 @@ valid and rejected tokens, unreachable service, an offline `gh`, a shim that ins
 switches are set, and the closed command table. Twenty-two source mutations of `prerequisites.py` and
 two of `cmd_check` each turned it red; the restored files stayed green. One read-only run on the reference
 machine (2026-10-05): `gh auth status` and the merge-settings `--check` of this repository both passed.
+*Amended 2026-10-18 (Issue #206):* the merge-settings read moved into `prerequisites.py`; its suite
+adds an unreadable repository and an absent field, and five source mutations of the new read each
+turned it red (one only after the stub learned to print a document on a failed read).
 The SonarCloud and HCP Terraform calls have not been run against the real services.
 
 ## Not covered

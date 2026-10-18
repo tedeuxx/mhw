@@ -8,20 +8,17 @@
     "url": "git+https://github.com/tedeuxx/mhw.git"
   },
   "bin": {
-    "mhw": "bin/mhw.js",
-    "workstation": "bin/workstation.js"
+    "mhw": "bin/mhw.js"
   },
   "scripts": {
     "postinstall": "node bin/postinstall.js"
   },
   "files": [
     "mhw",
-    "workstation",
     ".bumpversion.toml",
     ".workstation-archive",
     "bin/mhw.js",
     "bin/postinstall.js",
-    "bin/workstation.js",
     "global/",
     "!global/**/*_test.py",
     "!global/**/*.test.sh",

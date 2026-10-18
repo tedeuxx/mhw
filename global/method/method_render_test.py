@@ -112,9 +112,10 @@ class SourceShape(unittest.TestCase):
                                          "planning-poker", "code-review", "content-publishing",
                                          "orchestration"]))
         # The four rites moved at #130 (owner, 2026-10-12).
+        # #198 added /handoff.
         self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-idea", "idea-to-issues", "what-else",
                                            "blueprint", "sprint-planning", "sprint-review", "sprint-retrospective",
-                                           "funnel-review"]))
+                                           "funnel-review", "handoff"]))
 
     def test_planning_poker_no_longer_says_reference_pattern_only(self):
         fields, _ = mr.split_front_matter((SOURCE / "skills/planning-poker/SKILL.md").read_text(encoding="utf-8"), "pp")
@@ -477,7 +478,7 @@ class Render(unittest.TestCase):
             self.assertIn("Owner-typed command $%s" % c, self.h.p(".agents/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
             self.assertIn("Owner-typed command /%s" % c, self.h.p(".kiro/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
             # #196: argument-hint only on the plugin standard's allowlisted owner-typed commands.
-            hinted = c not in ("idea-to-issues", "new-idea", "what-else")
+            hinted = c not in ("idea-to-issues", "new-idea", "what-else", "handoff")
             head = "\n".join(front_matter(self.h.p(".claude/commands/%s.md" % c)))
             (self.assertIn if hinted else self.assertNotIn)("argument-hint:", head, c)
 
@@ -641,6 +642,43 @@ class Render(unittest.TestCase):
         self.assertEqual([p for p in h.root.rglob("*") if p.is_file()], [])
 
 
+class HarnessToken(unittest.TestCase):
+    """#198: {{agent-harness}} is substituted per carrier writer, with the harness passed explicitly, and
+    stops the render anywhere but a command body."""
+
+    COMMAND = {"description": "d", "purpose": "", "hint": "", "where": "method/commands/x.md",
+               "body": "\nThis copy is for {{agent-harness}}.\n"}
+
+    def test_each_writer_substitutes_its_own_harness(self):
+        self.assertIn("This copy is for claude-code.", mr.claude_command(self.COMMAND, STAMP, "claude-code"))
+        self.assertIn("This copy is for codex.", mr.command_as_skill(self.COMMAND, "x", "$x", STAMP, "codex"))
+        self.assertIn("This copy is for kiro.", mr.command_as_skill(self.COMMAND, "x", "/x", STAMP, "kiro"))
+        with self.assertRaises(mr.SourceError):
+            mr.claude_command(self.COMMAND, STAMP, "claude")
+
+    def test_the_rendered_carriers_differ_only_where_the_token_was(self):
+        h = Home()
+        self.assertEqual(h.run("--mode=install")[0], 0)
+        expected = {".claude/commands/handoff.md": "claude-code", ".agents/skills/handoff/SKILL.md": "codex",
+                    ".kiro/skills/handoff/SKILL.md": "kiro"}
+        for rel, harness in expected.items():
+            text = h.p(rel).read_text(encoding="utf-8")
+            self.assertNotIn(mr.HARNESS_TOKEN, text, rel)
+            self.assertIn("rendered for the agent harness `%s`" % harness, text, rel)
+
+    def test_the_token_in_a_skill_or_agent_body_stops_the_render(self):
+        for rel in ("skills/shell/SKILL.md", "agents/developer.md"):
+            src = Path(tempfile.mkdtemp(prefix="src-", dir=BASE)) / "method"
+            shutil.copytree(SOURCE, src)
+            f = src / rel
+            f.write_text(f.read_text(encoding="utf-8") + "\n{{agent-harness}}\n", encoding="utf-8")
+            h = Home()
+            code, out = h.run("--mode=install", "--source=" + str(src))
+            self.assertEqual(code, 2, out)
+            self.assertIn("{{agent-harness}} is for command bodies only", out)
+            self.assertEqual([p for p in h.root.rglob("*") if p.is_file()], [], rel)
+
+
 class ThroughTheInstaller(unittest.TestCase):
     """install.sh runs the method as its own step, with its own stamp; uninstall removes it."""
 
@@ -663,50 +701,23 @@ class ThroughTheInstaller(unittest.TestCase):
         self.assertFalse(h.p(".claude/agents/developer.md").exists())
         self.assertFalse(h.p(".codex/agents/developer.toml").exists())
 
-    def test_the_installer_retires_the_plugin_with_the_method_and_uninstall_restores_it(self):
-        """#130: install.sh --method takes the tadeumendonca-skills plugin out of the user settings, after the
-        method rendered; a plain install leaves it; uninstall puts it back."""
+    def test_the_installer_no_longer_edits_the_plugin_settings(self):
+        """#206: the plugin cutover step is removed. install.sh --method renders the method and leaves an
+        enabled tadeumendonca-skills plugin, and the file holding it, exactly as they were."""
         h = Home()
         settings = h.p(".claude/settings.json")
         settings.parent.mkdir(parents=True, exist_ok=True)
         settings.write_text(json.dumps({"enabledPlugins": {"tadeumendonca-skills@tadeumendonca": True}}) + "\n",
                             encoding="utf-8")
         inst = REPO / "global" / "install.sh"
-        p = subprocess.run(["sh", str(inst)], env=h.env, capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertTrue(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"],
-                        "a plain install, without the method, leaves the plugin")
         p = subprocess.run(["sh", str(inst), "--method"], env=h.env, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn("METHOD  installed: ", p.stdout)
-        self.assertIn("enabledPlugins.tadeumendonca-skills@tadeumendonca true -> absent", p.stdout)
-        self.assertNotIn("tadeumendonca-skills@tadeumendonca", json.loads(settings.read_text()).get("enabledPlugins", {}))
-        p = subprocess.run(["sh", str(inst), "--check"], env=h.env, capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        p = subprocess.run(["sh", str(inst), "--uninstall"], env=h.env, capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertTrue(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"],
-                        "uninstall restores the plugin it removed")
-
-    def test_a_failed_render_never_retires_the_plugin(self):
-        """#130: install.sh --method with a render that refuses leaves the plugin enabled and writes no backup,
-        so a session is never left with neither copy."""
-        h = Home()
-        settings = h.p(".claude/settings.json")
-        settings.parent.mkdir(parents=True, exist_ok=True)
-        settings.write_text(json.dumps({"enabledPlugins": {"tadeumendonca-skills@tadeumendonca": True}}) + "\n",
-                            encoding="utf-8")
-        foreign = h.p(".claude/agents/developer.md")
-        foreign.parent.mkdir(parents=True, exist_ok=True)
-        foreign.write_text("the owner's own developer agent, not managed by the method\n", encoding="utf-8")
-        inst = REPO / "global" / "install.sh"
-        p = subprocess.run(["sh", str(inst), "--method"], env=h.env, capture_output=True, text=True)
-        self.assertNotEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertIn("REFUSE", p.stdout + p.stderr)
+        self.assertNotIn("tadeumendonca-skills@tadeumendonca", p.stdout)
         self.assertIs(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"], True,
-                      "a failed render leaves the plugin enabled")
+                      "the installer no longer retires the plugin")
         self.assertFalse(list(Path(h.root).rglob("*.pmhwc-plugin-backup")), "nothing was retired, so no backup")
-        self.assertEqual(foreign.read_text(), "the owner's own developer agent, not managed by the method\n")
+        self.assertFalse((REPO / "global" / "method" / "plugin_retire.py").exists())
 
 
 def parse_toml(text):
