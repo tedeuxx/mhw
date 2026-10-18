@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """mhw, the one entry point of the multi-harness managed workstation (Issue #67), run through ./mhw in a
-checkout and as mhw after an npm install (Issue #68). ./workstation and the npm `workstation` command are
-its deprecated alias, until the next major.
+checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./workstation and the npm
+`workstation` command, was removed in v7 (Issue #206).
 
     ./mhw install [--yes] [--verbose]   say what will change, wait for RETURN, ask for the administrator
                                           password once (only when the admin layer changes), install the
@@ -1182,10 +1182,6 @@ def owner_steps(lines):
             which = "bash login start-up file" if "no bash login start-up file" in line else "shell start-up file"
             steps.append("mhw wrote no %s%s. To clean pasted text automatically, add this "
                          "line to yours:\n       %s" % (which, why, lines[i + 1].strip()))
-        # A retired MCP server rendered into the managed block comes from the owner's local MCP definition,
-        # so removing it there is his act; shown in plain install output, not only with --verbose.
-        if line.startswith("NOTE") and "the retired MCP server" in line and "in the managed block" in line:
-            steps.append(line[8:].strip())
         if line.startswith("RESTART REQUIRED") and "/hooks" in line:
             steps.append("In Codex, approve the mhw hooks once: type /hooks in a new session.")
     return steps

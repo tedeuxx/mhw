@@ -957,16 +957,8 @@ method_step() {
   method_rc=0
   python3 -B "$script_dir/method/method_render.py" "--mode=$mode" "--stamp=$stamp" $method_optin || method_rc=$?
   [ "$method_rc" -eq 0 ] || raise "$method_rc"
-  # The cutover (#130): once the method is installed, the tadeumendonca-skills plugin leaves the user-level
-  # configuration (global/method/plugin_retire.py; project scopes are reported, not touched). Install never
-  # retires it after a failed render, so a session is not left with neither copy; check and uninstall
-  # always run it (uninstall restores what install removed, from its backups).
-  case $mode in
-    install|dry-run) [ "$method_rc" -eq 0 ] || return 0 ;;
-    *) ;;
-  esac
-  # shellcheck disable=SC2086
-  python3 -B "$script_dir/method/plugin_retire.py" "--mode=$mode" $method_optin || raise $?
+  # The plugin cutover step (plugin_retire.py, #130) was removed in v7 (Issue #206): a plugin still
+  # enabled is reported by mhw status and disabled by hand with the agent harness's own command.
 }
 # The session-start default model and reasoning effort per agent harness (ADR-0007, ADR-0035), from
 # the overlay's model-defaults.json, written into each harness's own user-level key by
@@ -998,15 +990,14 @@ kiro_step() {
   python3 -B "$script_dir/kiro/kiro_permissions.py" "--mode=${1:-$mode}" "--stamp=$stamp" "--floor=$floor" \
     "--floor-from=$floor_from" ${2:+"$2"} || raise $?
 }
-# The MCP servers the policy retired (ADR-0035 decision 2: aws-api) leave the Codex user configuration
-# (Issue #145), through global/mcp/mcp_retire.py: a backup, old -> new, nothing else in the file changes.
+# The retired-server removal (mcp_retire.py, ADR-0035 decision 2, #145) was removed in v7 (Issue #206):
+# an aws-api table still in the Codex configuration is removed by hand.
 mcp_step() {
   if ! command -v python3 >/dev/null 2>&1; then
-    echo "SKIP    the retired MCP servers: python3 3.9 or later is required"
+    echo "SKIP    the policy MCP servers: python3 3.9 or later is required"
     raise 2
     return 0
   fi
-  python3 -B "$script_dir/mcp/mcp_retire.py" "--mode=$mode" || raise $?
   # The policy MCP servers (ADR-0038, Issue #174): chrome-devtools in the Claude Code user configuration
   # (~/.claude.json), bounded by origin. old -> new, a 0600 backup, removed on uninstall.
   python3 -B "$script_dir/mcp/mcp_render.py" --policy "--mode=$mode" "--stamp=$stamp" || raise $?
@@ -1093,7 +1084,6 @@ if [ -e "$clip_plist" ] || [ -L "$clip_plist" ]; then
 fi
 merge_settings
 kiro_step
-# The retired MCP servers leave config.toml before the model defaults back it up (PR #146 QA advisory).
 mcp_step
 models_step
 allow_step

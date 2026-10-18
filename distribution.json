@@ -69,7 +69,6 @@
         "global/owner_actions.py",
         "global/private_copy.py",
         "mhw",
-        "workstation",
         "bin/",
         "package.json",
         ".workstation-archive"
@@ -83,7 +82,7 @@
     {
       "id": "github-repo-settings",
       "layer": "user",
-      "paths": ["global/github-repo-settings.json", "global/github-repo-settings.sh"]
+      "paths": ["global/github-repo-settings.json"]
     },
     {
       "id": "model-defaults",

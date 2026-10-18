@@ -612,7 +612,7 @@ class EndToEnd(unittest.TestCase):
     """The real installers in a throwaway HOME and admin root: status must read their output right."""
 
     def run_ws(self, *args):
-        p = subprocess.run([str(ws.ROOT / "workstation")] + list(args), env=self.env, cwd=self.base,
+        p = subprocess.run([str(ws.ROOT / "mhw")] + list(args), env=self.env, cwd=self.base,
                            capture_output=True, text=True)
         return p.returncode, p.stdout
 
@@ -772,7 +772,7 @@ class StaleAdminLayer(unittest.TestCase):
                        % (ws.MARKER, bin_dir / "restart_guard.py"), encoding="utf-8")
 
     def run_ws(self, *args):
-        p = subprocess.run([str(ws.ROOT / "workstation")] + list(args) + ["--overlay=none"], env=self.env,
+        p = subprocess.run([str(ws.ROOT / "mhw")] + list(args) + ["--overlay=none"], env=self.env,
                            cwd=self.base, capture_output=True, text=True)
         return p.returncode, p.stdout + p.stderr
 
@@ -1042,7 +1042,7 @@ class UpdateAndUninstall(unittest.TestCase):
                     "WORKSTATION_MANAGED_ROOT": str(b / "root")}
 
     def ws(self, *args):
-        p = subprocess.run([str(self.clone / "workstation")] + list(args) + ["--overlay=none"], env=self.env,
+        p = subprocess.run([str(self.clone / "mhw")] + list(args) + ["--overlay=none"], env=self.env,
                            capture_output=True, text=True)
         return p.returncode, p.stdout + p.stderr
 
@@ -1284,13 +1284,6 @@ class OwnerSteps(unittest.TestCase):
         self.assertEqual(len(login), 1, login)
         self.assertIn("mhw wrote no bash login start-up file (for a bash login shell: only ~/.profile", login[0])
         self.assertNotIn("no shell start-up file", login[0])
-        # PR #146 QA advisory: a retired MCP server left in the managed block is a next step, so plain
-        # mhw install output shows it.
-        block = ws.owner_steps([
-            "NOTE    /h/.codex/config.toml: the retired MCP server aws-api is in the managed block, rendered "
-            "from the local MCP definition (ADR-0017); remove it there and re-run the renderer"])
-        self.assertEqual(len(block), 1, block)
-        self.assertIn("aws-api is in the managed block", block[0])
         self.assertEqual(ws.owner_steps(["OK      something"]), [])
 
     def test_sudo_never_runs_without_a_terminal(self):

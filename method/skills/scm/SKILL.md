@@ -245,10 +245,12 @@ Everything below is specific to GitHub and its CLI, `gh`. A tool switch replaces
 - **The repository setting is what refuses a squash whatever the spelling.** The standard is
   `global/github-repo-settings.json`: `allow_merge_commit: true`, `allow_squash_merge: false`,
   `allow_rebase_merge: false` (ADR-0016, 2026-10-05 amendment).
-  - Check: `global/github-repo-settings.sh --check OWNER/REPO` (read-only; a token without admin rights
-    reads none of them and exits 1). `./mhw check` covers it the same way.
-  - Apply: `global/github-repo-settings.sh --apply OWNER/REPO` — **the owner's act**, one PATCH of the
-    repository, then a check.
+  - Check: `gh repo view OWNER/REPO --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed`
+    (read-only; it read all three on a repository the token could only read, measured 2026-10-18).
+    `./mhw check` runs the same read against the standard and reports drift.
+  - Apply: `gh repo edit OWNER/REPO --enable-merge-commit --enable-squash-merge=false
+    --enable-rebase-merge=false` — **the owner's act**; then run the check again. (The wrapper script
+    that did both was removed, Issue #206.)
 
 ### Pull requests, labels and releases with `gh`
 - Open a slice with `gh pr create --base rc/next --body-file <file>` (the body always via

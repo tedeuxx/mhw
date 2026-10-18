@@ -6,7 +6,7 @@
 //   Windows:         runs global\install.ps1 (install, install --method, check, status = check) and
 //                    answers update itself; install --admin and uninstall do not exist there.
 // Standard library only, no runtime dependency. Interpreters are run by absolute path, never looked
-// up on PATH. bin/workstation.js is the deprecated alias; bin/postinstall.js reuses main().
+// up on PATH. bin/postinstall.js reuses main(). (The deprecated workstation alias was removed, Issue #206.)
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');

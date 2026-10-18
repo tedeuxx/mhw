@@ -3,7 +3,7 @@
 #   ./mhw install | install --admin | status [--verbose] | check | scan | update [vX.Y.Z] | uninstall
 # An npm install puts the same command on PATH as mhw (Issue #68, ADR-0034). The logic is
 # global/workstation.py; global/install.sh and global/install-managed.sh stay the internals.
-# Windows keeps global/install.ps1. ./workstation is the deprecated alias of this file.
+# Windows keeps global/install.ps1. (The deprecated ./workstation alias was removed, Issue #206.)
 dir=$(cd "$(dirname "$0")" && pwd)
 command -v python3 >/dev/null 2>&1 || { echo "mhw: python3 (3.9 or later) is required" >&2; exit 2; }
 exec python3 -B "$dir/global/workstation.py" "$@"

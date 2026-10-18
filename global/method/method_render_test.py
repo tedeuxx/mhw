@@ -663,50 +663,23 @@ class ThroughTheInstaller(unittest.TestCase):
         self.assertFalse(h.p(".claude/agents/developer.md").exists())
         self.assertFalse(h.p(".codex/agents/developer.toml").exists())
 
-    def test_the_installer_retires_the_plugin_with_the_method_and_uninstall_restores_it(self):
-        """#130: install.sh --method takes the tadeumendonca-skills plugin out of the user settings, after the
-        method rendered; a plain install leaves it; uninstall puts it back."""
+    def test_the_installer_no_longer_edits_the_plugin_settings(self):
+        """#206: the plugin cutover step is removed. install.sh --method renders the method and leaves an
+        enabled tadeumendonca-skills plugin, and the file holding it, exactly as they were."""
         h = Home()
         settings = h.p(".claude/settings.json")
         settings.parent.mkdir(parents=True, exist_ok=True)
         settings.write_text(json.dumps({"enabledPlugins": {"tadeumendonca-skills@tadeumendonca": True}}) + "\n",
                             encoding="utf-8")
         inst = REPO / "global" / "install.sh"
-        p = subprocess.run(["sh", str(inst)], env=h.env, capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertTrue(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"],
-                        "a plain install, without the method, leaves the plugin")
         p = subprocess.run(["sh", str(inst), "--method"], env=h.env, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn("METHOD  installed: ", p.stdout)
-        self.assertIn("enabledPlugins.tadeumendonca-skills@tadeumendonca true -> absent", p.stdout)
-        self.assertNotIn("tadeumendonca-skills@tadeumendonca", json.loads(settings.read_text()).get("enabledPlugins", {}))
-        p = subprocess.run(["sh", str(inst), "--check"], env=h.env, capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        p = subprocess.run(["sh", str(inst), "--uninstall"], env=h.env, capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertTrue(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"],
-                        "uninstall restores the plugin it removed")
-
-    def test_a_failed_render_never_retires_the_plugin(self):
-        """#130: install.sh --method with a render that refuses leaves the plugin enabled and writes no backup,
-        so a session is never left with neither copy."""
-        h = Home()
-        settings = h.p(".claude/settings.json")
-        settings.parent.mkdir(parents=True, exist_ok=True)
-        settings.write_text(json.dumps({"enabledPlugins": {"tadeumendonca-skills@tadeumendonca": True}}) + "\n",
-                            encoding="utf-8")
-        foreign = h.p(".claude/agents/developer.md")
-        foreign.parent.mkdir(parents=True, exist_ok=True)
-        foreign.write_text("the owner's own developer agent, not managed by the method\n", encoding="utf-8")
-        inst = REPO / "global" / "install.sh"
-        p = subprocess.run(["sh", str(inst), "--method"], env=h.env, capture_output=True, text=True)
-        self.assertNotEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertIn("REFUSE", p.stdout + p.stderr)
+        self.assertNotIn("tadeumendonca-skills@tadeumendonca", p.stdout)
         self.assertIs(json.loads(settings.read_text())["enabledPlugins"]["tadeumendonca-skills@tadeumendonca"], True,
-                      "a failed render leaves the plugin enabled")
+                      "the installer no longer retires the plugin")
         self.assertFalse(list(Path(h.root).rglob("*.pmhwc-plugin-backup")), "nothing was retired, so no backup")
-        self.assertEqual(foreign.read_text(), "the owner's own developer agent, not managed by the method\n")
+        self.assertFalse((REPO / "global" / "method" / "plugin_retire.py").exists())
 
 
 def parse_toml(text):
