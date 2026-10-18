@@ -2,19 +2,22 @@
 """Sanitized health and install-boundary lifecycle for the native Codex daemon.
 
 Only metadata that cannot reveal session contents is retained: version/status fields, a process id and
-age, the inherited launchd soft descriptor limit, and aggregate descriptor counts by type. In
-particular this module never emits the vendor command's path fields, process arguments, lsof names,
-stdout, stderr or exception text.
+age, the inherited launchd soft descriptor limit, and aggregate descriptor counts by type. Raw daemon
+version bytes are consumed only by a short-lived local sanitizer; this parent receives only its safe
+projection. Neither process emits vendor path fields, process arguments, lsof names, stderr or
+exception text.
 
 The native daemon remains the only daemon.  Install uses only Codex's own ``daemon update --from-cli``
 and ``daemon restart`` commands; it never creates a launch agent, socket or process of its own.
 """
 from dataclasses import dataclass, field
 import json
+from pathlib import Path
 import platform
 import re
 import shutil
 import subprocess
+import sys
 from typing import Dict, List, Optional
 
 
@@ -24,6 +27,7 @@ _AGE = re.compile(r"[0-9:-]+")
 _FD = re.compile(r"f([0-9]+)[A-Za-z]*")
 _TYPE = re.compile(r"t([A-Za-z0-9_]+)")
 _REQUIRED = ("status", "backend", "managedCodexVersion", "cliVersion", "appServerVersion")
+_SANITIZER = str(Path(__file__).with_name("daemon_version_sanitizer.py"))
 
 
 @dataclass
@@ -130,7 +134,7 @@ def _soft_limit(text):
 
 
 def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
-    """Inspect the macOS native daemon without reading a prompt, log, FD target or private path."""
+    """Inspect the daemon; raw version JSON is confined to the local sanitizer child."""
     snap = Snapshot()
     if (system or platform.system()) != "Darwin":
         snap.supported = False
@@ -148,7 +152,9 @@ def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
         if snap.binary_version == "unknown":
             snap.errors.append("CLI version unreadable")
 
-    version = _call(runner, [codex, "app-server", "daemon", "version"])
+    # The child is the privacy boundary: raw vendor JSON exists only there. This parent captures only
+    # its exact safe projection, or no output on schema/type/vendor drift.
+    version = _call(runner, [sys.executable, "-B", _SANITIZER, codex])
     if version is None or version.returncode != 0:
         snap.errors.append("daemon metadata unavailable")
         return snap
@@ -157,11 +163,10 @@ def inspect(system=None, resolver=shutil.which, runner=subprocess.run):
     except (TypeError, ValueError):
         snap.errors.append("daemon metadata unreadable")
         return snap
-    if not isinstance(doc, dict) or any(not isinstance(doc.get(k), str) for k in _REQUIRED):
+    if (not isinstance(doc, dict) or set(doc) != set(_REQUIRED) or
+            any(not isinstance(doc.get(k), str) for k in _REQUIRED)):
         snap.errors.append("daemon metadata incomplete")
         return snap
-
-    # managedCodexPath and socketPath deliberately have no read here. The whitelist is the privacy bound.
     snap.status = doc["status"]
     snap.backend = doc["backend"]
     snap.cli_version = _version(doc["cliVersion"])

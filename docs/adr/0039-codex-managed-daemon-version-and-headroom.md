@@ -34,8 +34,9 @@ processes inherit.
 
 - Keep Codex's managed daemon as the only daemon, socket and lifecycle owner.
 - Detect the version skew and unsafe headroom before the operating-system error.
-- Read and emit sanitized metadata only: status, backend, versions, PID, process age, limit and
-  aggregate descriptor counts by type; never paths, descriptor targets, prompts, logs or vendor errors.
+- Confine raw daemon-version bytes to a trusted, short-lived local sanitizer. Outside that boundary,
+  retain and emit only status, backend, versions, PID, process age, limit and aggregate descriptor
+  counts by type; never paths, descriptor targets, prompts, logs or vendor errors.
 - Make an interrupting update or restart explicit, and only at the final installation boundary.
 - Do not raise a global or process descriptor limit and do not add a hook.
 - Preserve other harnesses and leave uninstall from mhw unable to downgrade or stop vendor state.
@@ -65,7 +66,11 @@ Option 1.
 - Safe headroom is 64 descriptors: the measured 48-descriptor old-package burst plus 16 descriptors of
   margin. Unlimited is accepted; unavailable evidence fails closed.
 - Inspection requests `lsof -Fft` only. It never requests `n` fields, and output is reduced to numeric
-  descriptor and type counts before formatting. Vendor path fields and command output are discarded.
+  descriptor and type counts before formatting. The local daemon-version sanitizer consumes the raw
+  vendor JSON, validates its exact schema, types, status/backend vocabulary and version formats, and
+  writes only status, backend and three version fields. Raw bytes and path fields are never retained,
+  interpreted or emitted outside that child; its stderr and the vendor command's stderr go directly
+  to `DEVNULL`.
 - On skew, install runs `codex app-server daemon update --from-cli --yes`. When versions are aligned but
   headroom is unsafe or the lifecycle process is stale/ambiguous, it runs the native daemon restart.
   It then re-inspects and requires aligned versions and safe headroom.
@@ -96,9 +101,10 @@ Bad and residual:
 ## Evidence level and installation handoff
 
 The carrier and its fake-daemon tests are **written and tested**. The tests cover aligned state, skew,
-unsafe headroom, missing/ambiguous lifecycle processes, malformed private output, native update,
-native restart, suppressed failures and failed postconditions. The real native update is deliberately
-not run while this implementation session depends on the live daemon.
+unsafe headroom, missing/ambiguous lifecycle processes, malformed private output, the child sanitizer's
+allowlist and schema/type/extra-field refusals, native update, native restart, suppressed failures and
+failed postconditions. The real native update is deliberately not run while this implementation
+session depends on the live daemon.
 
 The reference machine remains **measured-drifted**, not corrected: CLI 0.163.0; managed package and
 app-server 0.160.0; soft limit 256. Installation is last. A genuinely fresh, normal daemon-backed Codex

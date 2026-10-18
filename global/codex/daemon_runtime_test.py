@@ -3,10 +3,12 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from codex import daemon_runtime as daemon
+from codex import daemon_version_sanitizer as sanitizer
 
 
 class Fake:
@@ -30,9 +32,11 @@ class Fake:
         code = self.command_codes.get(key, 0)
         if key == ("--version",):
             out = "codex-cli %s\n" % self.states[self.state]["binary"]
-        elif key == ("app-server", "daemon", "version"):
+        elif len(argv) == 4 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
             doc = dict(self.states[self.state])
             doc.pop("binary", None)
+            doc.pop("managedCodexPath", None)
+            doc.pop("socketPath", None)
             out = json.dumps(doc)
         elif key in (("app-server", "daemon", "update", "--from-cli", "--yes"),
                      ("app-server", "daemon", "restart")):
@@ -76,13 +80,17 @@ class Inspection(unittest.TestCase):
 
     def test_aligned_running_daemon_has_sanitized_headroom(self):
         fake = Fake([state()], fd_count=20)
-        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        snapshot = daemon.inspect(system="Darwin", resolver=fake.resolve, runner=fake)
+        code, lines = daemon.result(snapshot)
         text = "\n".join(lines)
         self.assertEqual(code, 0, text)
         self.assertIn("headroom 236 (required 64)", text)
         self.assertIn("PIPE 10, REG 10", text)
         self.assertNotIn("/private", text)
         self.assertNotIn("credential", text)
+        self.assertNotIn(("app-server", "daemon", "version"), fake.calls)
+        self.assertNotIn("/private", repr(vars(snapshot)))
+        self.assertFalse(hasattr(snapshot, "socket_path"))
 
     def test_version_skew_is_drift(self):
         fake = Fake([state(managed="0.160.0", app="0.160.0")])
@@ -136,7 +144,7 @@ class Inspection(unittest.TestCase):
     def test_malformed_vendor_output_never_echoes_it(self):
         class Malformed(Fake):
             def __call__(self, argv, **kwargs):
-                if tuple(argv[1:]) == ("app-server", "daemon", "version"):
+                if len(argv) == 4 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
                     return subprocess.CompletedProcess(argv, 0, stdout="/private/owner prompt text", stderr="token=x")
                 return super().__call__(argv, **kwargs)
         fake = Malformed([state()])
@@ -183,7 +191,7 @@ class Lifecycle(unittest.TestCase):
     def test_unreadable_metadata_never_triggers_a_native_change(self):
         class Malformed(Fake):
             def __call__(self, argv, **kwargs):
-                if tuple(argv[1:]) == ("app-server", "daemon", "version"):
+                if len(argv) == 4 and argv[1] == "-B" and argv[2].endswith("daemon_version_sanitizer.py"):
                     return subprocess.CompletedProcess(argv, 0, stdout="not json", stderr="private")
                 return super().__call__(argv, **kwargs)
 
@@ -192,6 +200,58 @@ class Lifecycle(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("nothing changed", lines[0])
         self.assertFalse([call for call in fake.calls if "update" in call or "restart" in call])
+
+
+class SanitizerBoundary(unittest.TestCase):
+    def vendor(self, document):
+        temp = tempfile.TemporaryDirectory(prefix="mhw-codex-sanitizer-")
+        self.addCleanup(temp.cleanup)
+        path = Path(temp.name) / "codex"
+        payload = json.dumps(document)
+        path.write_text("#!/bin/sh\nprintf '%s\\n' '" + payload.replace("'", "'\\''") + "'\n"
+                        "printf '%s\\n' 'private vendor error' >&2\n", encoding="utf-8")
+        path.chmod(0o700)
+        return path
+
+    def run_boundary(self, document):
+        return subprocess.run([sys.executable, "-B", str(Path(sanitizer.__file__)),
+                               str(self.vendor(document))], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, text=True, timeout=10)
+
+    def test_raw_sensitive_fields_never_cross_the_child_boundary(self):
+        document = state()
+        document.pop("binary")
+        result = self.run_boundary(document)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stderr, "")
+        safe = json.loads(result.stdout)
+        self.assertEqual(set(safe), set(daemon._REQUIRED))
+        self.assertNotIn("/private", result.stdout + result.stderr)
+        self.assertNotIn("managedCodexPath", result.stdout)
+        self.assertNotIn("socketPath", result.stdout)
+
+    def test_schema_type_and_extra_field_drift_fail_without_output(self):
+        valid = state()
+        valid.pop("binary")
+        cases = []
+        missing = dict(valid)
+        missing.pop("socketPath")
+        cases.append(missing)
+        wrong_type = dict(valid)
+        wrong_type["managedCodexPath"] = ["private"]
+        cases.append(wrong_type)
+        extra = dict(valid)
+        extra["futurePrivatePath"] = "/private/future"
+        cases.append(extra)
+        sensitive_safe_value = dict(valid)
+        sensitive_safe_value["status"] = "/private/escape"
+        cases.append(sensitive_safe_value)
+        for document in cases:
+            with self.subTest(keys=sorted(document)):
+                result = self.run_boundary(document)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+                self.assertEqual(result.stderr, "")
 
 
 if __name__ == "__main__":

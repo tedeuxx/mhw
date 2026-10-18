@@ -68,7 +68,8 @@ jobs:
             global/mcp/mcp_retire.py global/mcp/mcp_retire_test.py \
             global/kiro/kiro_permissions.py global/kiro/kiro_permissions_test.py \
             global/profile/profile.py global/profile/profile_test.py \
-            global/codex/__init__.py global/codex/daemon_runtime.py global/codex/daemon_runtime_test.py \
+            global/codex/__init__.py global/codex/daemon_runtime.py \
+            global/codex/daemon_version_sanitizer.py global/codex/daemon_runtime_test.py \
             global/workstation.py global/workstation_test.py \
             global/scan.py global/scan_test.py \
             global/method/method_render.py global/method/method_render_test.py \
