@@ -68,6 +68,8 @@ jobs:
             global/mcp/mcp_retire.py global/mcp/mcp_retire_test.py \
             global/kiro/kiro_permissions.py global/kiro/kiro_permissions_test.py \
             global/profile/profile.py global/profile/profile_test.py \
+            global/codex/__init__.py global/codex/daemon_runtime.py \
+            global/codex/daemon_version_sanitizer.py global/codex/daemon_runtime_test.py \
             global/workstation.py global/workstation_test.py \
             global/scan.py global/scan_test.py \
             global/method/method_render.py global/method/method_render_test.py \
@@ -155,6 +157,10 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
+      # Issue #200, ADR-0039: sanitized fake-daemon inspection, version/headroom drift and native
+      # install-boundary update/restart. It never reaches a runner daemon or reads descriptor targets.
+      - name: Codex managed-daemon lifecycle suite
+        run: python3 -B global/codex/daemon_runtime_test.py
       # ADR-0035 decision 7: mhw scan, the outbound scan, in throwaway git repositories and HOMEs, on
       # synthetic fixtures. Findings are reported by file:line, category and length, never the text.
       - name: outbound scan suite

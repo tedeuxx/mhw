@@ -59,9 +59,9 @@ HUNK = re.compile(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 # The attribution trailer the agent's own instructions require on every commit. In a commit message
 # only, this exact address in it is exempt; the key and the name stay in the scanned text (ADR-0035,
 # slice F).
-ATTRIBUTION_ADDRESS = "noreply" + "@" + "anthropic.com"
-ATTRIBUTION_TRAILER = re.compile(r"^(?i:co-authored-by):([^<>\n]*)<%s>[ \t]*$"
-                                 % re.escape(ATTRIBUTION_ADDRESS), re.MULTILINE)
+ATTRIBUTION_ADDRESSES = ("noreply" + "@" + "anthropic.com", "noreply" + "@" + "openai.com")
+ATTRIBUTION_TRAILER = re.compile(r"^(?i:co-authored-by):([^<>\n]*)<(?:%s)>[ \t]*$"
+                                 % "|".join(re.escape(a) for a in ATTRIBUTION_ADDRESSES), re.MULTILINE)
 
 
 def installed_config():

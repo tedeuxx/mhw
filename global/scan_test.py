@@ -199,14 +199,18 @@ class OutboundScan(unittest.TestCase):
     def test_attribution_trailer_exemption_is_exact(self):
         b = self.box
         vendor = "noreply" + "@" + "anthropic.com"
+        codex = "noreply" + "@" + "openai.com"
         e = lambda n: [("email", n)]  # noqa: E731
         rows = [
             ("exact trailer", "s\n\nb\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <%s>" % vendor, []),
+            ("exact Codex trailer", "s\n\nb\n\nCo-Authored-By: Codex <%s>" % codex, []),
             ("key in any case", "s\n\nco-authored-by: Claude <%s>\nCO-AUTHORED-BY: Claude <%s>  "
              % (vendor, vendor), []),
             ("address in the body", "s\n\nwrite to %s for help" % vendor, e(len(vendor))),
+            ("Codex address in the body", "s\n\nwrite to %s for help" % codex, e(len(codex))),
             ("address in the subject", "mail %s" % vendor, e(len(vendor))),
             ("address in another trailer", "s\n\nSigned-off-by: Claude <%s>" % vendor, e(len(vendor))),
+            ("Codex address in another trailer", "s\n\nSigned-off-by: Codex <%s>" % codex, e(len(codex))),
             ("trailer with no name", "s\n\nCo-Authored-By: <%s>" % vendor, e(len(vendor))),
             ("trailer with more after it", "s\n\nCo-Authored-By: Claude <%s> and more" % vendor,
              e(len(vendor))),
