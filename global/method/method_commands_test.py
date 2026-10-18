@@ -6,8 +6,8 @@
 Renders method/ into one throwaway HOME (BASE_DIR, default a new directory under TMPDIR) and asserts, per
 command and per agent harness, that the command is present in that harness's native carrier, that the
 Codex skill keeps implicit invocation off, and that every required section of the command reaches the
-rendered text. It also checks the handover prompt's sanitisation against a synthetic fixture with the
-workstation's paste-filter detector (#73). Nothing outside BASE_DIR is written.
+rendered text. It also checks a synthetic session-handover prompt's sanitisation against the
+workstation's paste-filter detector (#73; the /handover command itself was removed at #196). Nothing outside BASE_DIR is written.
 """
 
 import json
@@ -37,8 +37,6 @@ REQUIRED = {
     "new-idea": SHARED + ["## When to use", "## Steps", "## Interview rounds", "## The requirements document"],
     "idea-to-issues": SHARED + ["## When to use", "## Steps", "## Vertical slices", "## Definition of ready",
                                 "## Opening the Issues"],
-    "handover": SHARED + ["## When to use", "## Steps", "## Starting directory", "## Agent harness",
-                          "## Launch line", "## The handover prompt", "## The return prompt", "## Sanitised"],
     "what-else": SHARED + ["## The anchored objective", "## Read the bus", "## The answer"],
     "blueprint": SHARED + ["## export", "## import", "## Alignment interview"],
 }
@@ -55,8 +53,6 @@ RETIRED_NOTE = "> **Read this first: hooks named below are the retired plugin's,
 PHRASES = {
     "new-idea": ["product-requirements-document-<subject>.md", "recommended answer", "Mermaid"],
     "idea-to-issues": ["--body-file", "Blocked by #N", "definition-of-ready", "acceptance criteria"],
-    "handover": ["fresh worktree", "status --porcelain", "Claude Code", "Codex", "Kiro", "kiro-cli chat",
-                 "## Return to the parent session", "gh issue comment", "**Goal anchor**", "`/goal`"],
     "what-else": ["native goal command (`/goal`)", "gh pr list --state open", "owner decisions"],
     "blueprint": ["product-requirements-document-agent-harness-setup.md", "Mermaid",
                   "Nothing is changed before the alignment interview is complete"],
@@ -99,7 +95,10 @@ class Commands(unittest.TestCase):
     def test_invocation_names_per_harness(self):
         for name in REQUIRED:
             c = carriers(self.home, name)
-            self.assertIn("argument-hint:", c["claude"].read_text(encoding="utf-8").split("\n---\n", 1)[0], name)
+            # #196: argument-hint only on the plugin standard's allowlisted owner-typed commands (blueprint
+            # here); the other workflow commands fold the hint text into their description.
+            head = c["claude"].read_text(encoding="utf-8").split("\n---\n", 1)[0]
+            (self.assertIn if name == "blueprint" else self.assertNotIn)("argument-hint:", head, name)
             self.assertIn("Owner-typed command $%s" % name, c["codex"].read_text(encoding="utf-8"), name)
             self.assertIn("Owner-typed command /%s" % name, c["kiro"].read_text(encoding="utf-8"), name)
             for harness in ("codex", "kiro"):

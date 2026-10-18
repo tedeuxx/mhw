@@ -1,8 +1,7 @@
 ---
 name: "idea-to-issues"
-description: "Cut an agreed requirements document into vertical-slice GitHub Issues, each with acceptance criteria and its blocking order, each checked against the definition of ready. Use when a docs/<repo>-product-requirements-document-<subject>.md is agreed and the owner wants it tracked. Not for an idea still being decided (see new-idea) or a single request (see new-issue)."
+description: "Cut an agreed requirements document, named by its path or subject as the argument, into vertical-slice GitHub Issues, each with acceptance criteria and its blocking order, each checked against the definition of ready. Use when a docs/<repo>-product-requirements-document-<subject>.md is agreed and the owner wants it tracked. Not for an idea still being decided (see new-idea) or a single request (see new-issue)."
 purpose: "an agreed document becomes tracked scope the owner can sequence, so work never starts untracked"
-argument-hint: "<path to the requirements document, or its subject>"
 ---
 
 Cut the requirements document named by `$ARGUMENTS` into tracked Issues in the current repository.

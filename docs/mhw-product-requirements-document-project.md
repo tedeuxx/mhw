@@ -361,15 +361,16 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
 - **Evidence:** all three command-line agent harnesses have a native `/goal`: listed in Claude Code
   2.1.289 and enabled as a feature in Codex 0.160.0 (measured), documented for the Kiro CLI; none was
   exercised ([enforcement matrix](#10-native-enforcement-matrix)). The instruction is the user brief's
-  section *Session goal anchor*; `/handover` tells a child session to anchor its objective the same way.
+  section *Session goal anchor*; ~~`/handover` tells a child session to anchor its objective the same way.~~
+  (`/handover` was removed at [#196](https://github.com/tedeuxx/mhw/issues/196); `/handoff`, [#198](https://github.com/tedeuxx/mhw/issues/198), replaces it.)
   `/what-else` is [#74](https://github.com/tedeuxx/mhw/issues/74). This continues
   [#11](https://github.com/tedeuxx/mhw/issues/11).
 
 ### Around the main flow
 
-- `/handover`: branches a focused child session, which anchors its objective with the native `/goal`
+- ~~`/handover`: branches a focused child session, which anchors its objective with the native `/goal`
   where it exists, and brings its result back through a return prompt
-  ([#73](https://github.com/tedeuxx/mhw/issues/73)).
+  ([#73](https://github.com/tedeuxx/mhw/issues/73)).~~ Command removed at [#196](https://github.com/tedeuxx/mhw/issues/196); `/handoff`, [#198](https://github.com/tedeuxx/mhw/issues/198), replaces it.
 - `/blueprint`: exports a project's effective agent harness setup as a requirements document, or imports
   one after an alignment interview ([#75](https://github.com/tedeuxx/mhw/issues/75)).
 - `agents-configuration` is the rulebook behind every step: which agent acts, with which skills and
@@ -501,7 +502,8 @@ workstation follows them ([#69](https://github.com/tedeuxx/mhw/issues/69)).
   it.
 - **Families read alike:** `/new-idea` and `/new-issue`; `/idea-to-issues`.
 - **Checked against this line:** `/handover`, `/blueprint` and `/breaking-glass` all fit, because teams
-  already say them (owner, 2026-10-05). (`/breaking-glass` was later removed, ADR-0028.)
+  already say them (owner, 2026-10-05). (`/breaking-glass` was later removed, ADR-0028, and `/handover`
+  at #196.)
 
 ### Documents
 
@@ -586,7 +588,7 @@ a technology stack; **Reference** holds unused patterns.
 | 2 | `/new-idea` ([#71](https://github.com/tedeuxx/mhw/issues/71)) | Turns a new idea, or a plan to refine, into an agreed requirements document. Interviews the owner in rounds until every decision is settled: each round asks every question that is now answerable, each with a recommended answer; facts are looked up by the agent, decisions are his. Ends by writing the requirements document ([5a](#5a-documentation-standards-user-layer-every-repository)). | user | A plan reaches building only after shared understanding, and that understanding lands in the versioned document instead of staying in the chat. Concept from Matt Pocock's MIT-licensed skills (grilling and to-spec), adapted. |
 | 3 | `/idea-to-issues` ([#72](https://github.com/tedeuxx/mhw/issues/72)) | Breaks a requirements document into vertical slices, each a complete path through every layer, small enough for one fresh session and demonstrable alone; asks the owner about granularity and blocking order; opens one Issue per slice with acceptance criteria and blocked-by links. | user | Turns an agreed document into tracked scope he can sequence, so work never starts untracked. Concept from Matt Pocock's MIT-licensed to-tickets skill, adapted to GitHub Issues. |
 | 4 | `/new-issue` | Captures a request as an Issue after searching for an existing decision | user | Every request becomes tracked scope before work starts, in every repository. |
-| 5 | `/handover` ([#73](https://github.com/tedeuxx/mhw/issues/73)) | Writes a handover prompt the owner pastes to open a new session derived from the current one. That prompt instructs the new session to write a **return prompt** for the parent session when its objective is done. | user | Work branches into focused child sessions and comes back without losing context. Both prompts carry only the minimum context and are sanitised under the firewall rules. |
+| 5 | ~~`/handover`~~ ([#73](https://github.com/tedeuxx/mhw/issues/73)) | Removed ([#196](https://github.com/tedeuxx/mhw/issues/196)); `/handoff` ([#198](https://github.com/tedeuxx/mhw/issues/198)) replaces it. ~~Writes a handover prompt the owner pastes to open a new session derived from the current one. That prompt instructs the new session to write a **return prompt** for the parent session when its objective is done.~~ | user | ~~Work branches into focused child sessions and comes back without losing context. Both prompts carry only the minimum context and are sanitised under the firewall rules.~~ |
 | 6 | `/what-else` ([#74](https://github.com/tedeuxx/mhw/issues/74)) | Restates the session's objective and answers what is still missing: what is done (with its evidence), what is left, what is blocked on the owner (that ask first) and the next step. | user | The owner can check at any moment how far the session is from its goal. |
 | 7 | `/blueprint` ([#75](https://github.com/tedeuxx/mhw/issues/75)) | `export` writes the project's effective agent harness configuration as a requirements document; `import` brings one into another project. | user | Carries a project's setup to other projects. The text it exports, and the text it accepts, is a requirements document in the [5a](#5a-documentation-standards-user-layer-every-repository) format: target behaviour and why, in English, with Mermaid diagrams, named `<repo>-product-requirements-document-*`. Import applies nothing before an expectation-alignment interview with the person running the session. |
 | 8 | ~~`/breaking-glass`~~ | ~~Prints the `sudo` line that switches a hook layer off, with expiry~~ Removed ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)): the [runbook](runbooks/breaking-glass.md) gives the `sudo` route | user | ~~Exists only if the paste prompt hook stays ([4a](#4a-hook-budget), #58).~~ No expiring waiver is allowed; `install-managed.sh --uninstall` already prints the removal line. |
@@ -601,11 +603,11 @@ Publication follows the workspace brief and the delivery gate; no command is nee
 **native command file** wherever one exists and works on every surface of that agent harness. Otherwise
 it is a skill. One source text per command is rendered into each format.
 
-| Agent harness | Native carrier (user level) | How the owner invokes `/handover` | Arguments |
+| Agent harness | Native carrier (user level) | How the owner invokes `/new-issue` | Arguments |
 | --- | --- | --- | --- |
-| Claude Code | Command file `~/.claude/commands/handover.md` | `/handover fix the release script` | Yes (`$ARGUMENTS`) |
-| Kiro (CLI and IDE) | Skill `~/.kiro/skills/handover/SKILL.md`, a slash command in both | `/handover fix the release script` | Free text after the name; placeholder substitution is documented for the CLI only |
-| Codex (CLI and IDE) | Skill `~/.agents/skills/handover/`, with implicit invocation switched off so it behaves like a command | `$handover fix the release script`, or pick it from `/skills` | No documented syntax: the rest of the message is read as context |
+| Claude Code | Command file `~/.claude/commands/new-issue.md` | `/new-issue fix the release script` | Yes (`$ARGUMENTS`) |
+| Kiro (CLI and IDE) | Skill `~/.kiro/skills/new-issue/SKILL.md`, a slash command in both | `/new-issue fix the release script` | Free text after the name; placeholder substitution is documented for the CLI only |
+| Codex (CLI and IDE) | Skill `~/.agents/skills/new-issue/`, with implicit invocation switched off so it behaves like a command | `$new-issue fix the release script`, or pick it from `/skills` | No documented syntax: the rest of the message is read as context |
 
 - **Why Codex differs:** its native command file (custom prompts, `/prompts:name`) is deprecated by the
   vendor in favour of skills.
@@ -854,7 +856,7 @@ The matrix itself, with its findings against this document, is
 | [#69](https://github.com/tedeuxx/mhw/issues/69) | Documentation standard, workstation-wide ([5a](#5a-documentation-standards-user-layer-every-repository)) | minor | install |
 | [#71](https://github.com/tedeuxx/mhw/issues/71) | Command `/new-idea` | minor | none |
 | [#72](https://github.com/tedeuxx/mhw/issues/72) | Command `/idea-to-issues` | minor | none |
-| [#73](https://github.com/tedeuxx/mhw/issues/73) | Command `/handover` | minor | none |
+| [#73](https://github.com/tedeuxx/mhw/issues/73) | Command `/handover` (removed at #196) | minor | none |
 | [#74](https://github.com/tedeuxx/mhw/issues/74) | Command `/what-else` | minor | none |
 | [#75](https://github.com/tedeuxx/mhw/issues/75) | `/blueprint` reshaped: export and import as a requirements document | minor | none |
 | [#76](https://github.com/tedeuxx/mhw/issues/76) | Per-Issue agent harness consumption record (worklog) | minor | none |
