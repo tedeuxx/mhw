@@ -102,6 +102,19 @@ class Inspection(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("version skew", lines[0])
 
+    def test_version_suffix_mismatch_is_drift(self):
+        fake = Fake([state(cli="0.163.0-rc.1+vendor.2")])
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 1)
+        self.assertIn("version skew", lines[0])
+
+    def test_identical_version_suffixes_are_aligned(self):
+        version = "0.163.0-rc.1+vendor.2"
+        fake = Fake([state(cli=version, managed=version, app=version)])
+        code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(lines[0].count(version), 4)
+
     def test_unsafe_headroom_is_drift(self):
         fake = Fake([state()], fd_count=210)
         code, lines = daemon.report(system="Darwin", resolver=fake.resolve, runner=fake)
@@ -249,6 +262,16 @@ class SanitizerBoundary(unittest.TestCase):
         self.assertNotIn("/private", result.stdout + result.stderr)
         self.assertNotIn("managedCodexPath", result.stdout)
         self.assertNotIn("socketPath", result.stdout)
+
+    def test_complete_version_suffix_crosses_the_boundary_unchanged(self):
+        version = "0.163.0-rc.1+vendor.2"
+        document = state(cli=version, managed=version, app=version)
+        document.pop("binary")
+        result = self.run_boundary(document)
+        self.assertEqual(result.returncode, 0)
+        safe = json.loads(result.stdout)
+        for field in ("managedCodexVersion", "cliVersion", "appServerVersion"):
+            self.assertEqual(safe[field], version)
 
     def test_schema_type_and_extra_field_drift_fail_without_output(self):
         valid = state()

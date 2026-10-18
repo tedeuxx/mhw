@@ -33,7 +33,8 @@ processes inherit.
 ## Decision drivers
 
 - Keep Codex's managed daemon as the only daemon, socket and lifecycle owner.
-- Detect the version skew and unsafe headroom before the operating-system error.
+- Detect skew across complete validated version tokens, including prerelease/build suffixes, and
+  unsafe headroom before the operating-system error.
 - Confine raw daemon-version bytes to a trusted, short-lived local sanitizer. Outside that boundary,
   retain and emit only status, backend, versions, PID, process age, limit and aggregate descriptor
   counts by type; never paths, descriptor targets, prompts, logs or vendor errors.

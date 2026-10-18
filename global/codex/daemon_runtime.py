@@ -22,7 +22,11 @@ from typing import Dict, List, Optional
 
 
 SAFE_HEADROOM = 64
-_VERSION = re.compile(r"(?<![0-9])([0-9]+\.[0-9]+\.[0-9]+)(?![0-9])")
+_VERSION = re.compile(
+    r"(?<![0-9A-Za-z.+-])"
+    r"([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)"
+    r"(?![0-9A-Za-z.+-])"
+)
 _AGE = re.compile(r"[0-9:-]+")
 _FD = re.compile(r"f([0-9]+)[A-Za-z]*")
 _TYPE = re.compile(r"t([A-Za-z0-9_]+)")

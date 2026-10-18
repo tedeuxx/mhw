@@ -14,7 +14,9 @@ import sys
 VENDOR_FIELDS = frozenset(("status", "backend", "managedCodexPath", "managedCodexVersion",
                            "socketPath", "cliVersion", "appServerVersion"))
 SAFE_FIELDS = ("status", "backend", "managedCodexVersion", "cliVersion", "appServerVersion")
-VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?")
+VERSION = re.compile(
+    r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?"
+)
 
 
 def project(raw):
