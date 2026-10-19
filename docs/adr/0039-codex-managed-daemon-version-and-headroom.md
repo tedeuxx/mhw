@@ -21,7 +21,7 @@ manage Codex's daemon lifecycle.
 The bounded current review found:
 
 - Codex CLI, managed package and app-server aligned at 0.163.0;
-- Codex Doctor healthy;
+- Codex Doctor's installation, configuration and persistent app-server checks healthy;
 - the current session's soft descriptor limit at 4096, while launchd's default soft limit is 256;
 - no supported native Codex configuration setting for the managed daemon's descriptor limit.
 
@@ -100,8 +100,9 @@ commands are inherently unsafe. They are simply outside Issue #200 as the owner 
 
 ## Evidence level
 
-- **Measured, bounded on 2026-10-19:** Codex 0.163.0 version alignment; Doctor healthy; current session
-  soft descriptor limit 4096; launchd default soft limit 256.
+- **Measured, bounded on 2026-10-19:** Codex 0.163.0 version alignment; Doctor installation,
+  configuration and persistent app-server checks healthy; current session soft descriptor limit 4096;
+  launchd default soft limit 256.
 - **Reviewed:** no supported native Codex managed-daemon descriptor-limit setting was found.
 - **Written and tested in this correction:** permanent daemon inspection and install-time lifecycle
   actions are absent from `mhw`; unrelated workstation paths retain their existing behavior.
