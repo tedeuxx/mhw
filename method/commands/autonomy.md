@@ -762,12 +762,12 @@ cost.
 
 End the drain for the repo named after the mode (default: the current repo).
 
-## Ratified reading (B) — stop after the current slice
+## Ratified reading (B) — stop after ~~the current slice~~ the slices in flight
 
 The invariant mode `on` enforces does not bend for this mode either: **a slice is merged or it
 is not started.** So `off` does not cut a branch off mid-build to comply faster — it finishes
-whatever slice is already in flight, through its Definition of Done and its merge, exactly as mode `on`
-would have. What it changes is what happens **next**: do not pick up the next item in the
+~~whatever slice is already in flight~~ every slice already in flight, each through its Definition of
+Done and its merge, exactly as mode `on` would have. What it changes is what happens **next**: do not pick up the next item in the
 queue. Once ~~the in-flight slice reaches~~ every in-flight slice has reached a terminal state (merged,
 or closed per mode `on`'s own "when a slice hits an owner decision it did not expect" rule), stop.
 *(Plural since 2026-10-19, #216: with one issue per worktree and no count, several slices can be in
@@ -794,7 +794,8 @@ summary.
 
 ## The closing summary — required, posted as the final message
 
-Once the in-flight slice is settled, post a summary before ending the turn. This is what makes the
+Once ~~the in-flight slice is settled~~ every in-flight slice is settled, post a summary before
+ending the turn. This is what makes the
 off-switch an artifact rather than a mood — per mode `on`'s own reporting rule (state, not
 narration), reused here rather than restated differently:
 

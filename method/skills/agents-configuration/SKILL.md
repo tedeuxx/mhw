@@ -2185,7 +2185,9 @@ is reached. That is a moment problem, not a matcher problem; it is why the struc
 wrong to promise the gap away as a hook change, and it is the load-bearing reason the deletion is not
 a loss of protection.
 
-**So: WIP=1 is held by instruction and by nothing else.** By this loop's own test — *would something
+~~**So: WIP=1 is held by instruction and by nothing else.**~~ **So: WIP=1 was held by instruction
+and by nothing else, until #385 reversed it** (struck 2026-10-19, #216: the present tense outlived the
+rule). By this loop's own test — *would something
 stop me, or only my memory?* — **it is not engineered**, and the 2026-08-28 collision is what that
 costs when the memory is a fresh context that never had it. That sentence was true while the hook
 existed and is unchanged by its removal, which is the point: read WIP=1 as protecting the **working

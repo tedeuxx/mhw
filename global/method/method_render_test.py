@@ -299,6 +299,22 @@ class OrchestrationOwnsTheBlocks(unittest.TestCase):
                 hits += ["%s: %s" % (path.relative_to(REPO), m.group(0)) for m in field.finditer(paragraph)]
         self.assertEqual(hits, [], "a method file still names the retired wip count outside a struck span")
 
+    def test_autonomy_off_assumes_no_single_slice_in_flight(self):
+        # Issue #216: with no count, several slices can be in flight, so `/autonomy off` finishes all of
+        # them. Its table row, its ratified reading and its closing summary must not speak of ONE slice in
+        # flight. Struck spans are removed first, so the kept history does not count.
+        text = re.sub(r"~~.*?~~", "", (SOURCE / "commands" / "autonomy.md").read_text(encoding="utf-8"),
+                      flags=re.DOTALL)
+        row = re.search(r"(?m)^\| `off` \|.*$", text).group(0)
+        reading = text[text.index("\n## Ratified reading (B)"):text.index("\n## What this does NOT do")]
+        summary = text[text.index("\n## The closing summary"):]
+        summary = summary[:summary.index("\n\n", summary.index("\n\n") + 2)]
+        singular = re.compile(r"\b(?:the|whatever|this) (?:in-flight|current) slice\b|\bwhatever slice\b"
+                              r"|\bthe slice (?:is )?(?:already )?in flight\b|\bafter the current slice\b",
+                              re.IGNORECASE)
+        hits = [m.group(0) for part in (row, reading, summary) for m in singular.finditer(" ".join(part.split()))]
+        self.assertEqual(hits, [], "`/autonomy off` still assumes a single slice in flight")
+
     def test_how_to_ask_carries_the_five_rules(self):
         self.assertEqual(re.findall(r"(?m)^(\d)\. \*\*", orchestration_section("How to ask the owner", flat=False)),
                          ["1", "2", "3", "4", "5"])
