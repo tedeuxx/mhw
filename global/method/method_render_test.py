@@ -282,8 +282,22 @@ class OrchestrationOwnsTheBlocks(unittest.TestCase):
                        "the routing labels or the container's existence", "`content` has no second mode",
                        "never on an empty pool", "Development parallelises; review does not.",
                        "Rebase onto the current trunk before the gate.", "`docs/loop-mode.md`",
-                       "this contract wins"):
+                       "this contract wins", "One issue, one git worktree; no count bounds development.",
+                       "At most one merge request is in review at a time",
+                       "Remove a slice's worktree after its merge."):
             self.assertIn(clause, section)
+
+    def test_no_method_file_reads_the_retired_wip_count(self):
+        # Issue #216 (owner, 2026-10-19): the numeric work-in-progress ceiling is retired; development is
+        # one issue per git worktree, and only the review gate is serial. The record's field may still be
+        # NAMED inside a struck span (`~~...~~`, the struck-not-deleted convention), never outside one, so
+        # no live instruction can send a reader to read or apply the count.
+        field = re.compile(r"`wip:?`|\bwip: ?(?:\d|N\b)")
+        hits = []
+        for path in sorted(SOURCE.rglob("*.md")):
+            for paragraph in unstruck_paragraphs(path):
+                hits += ["%s: %s" % (path.relative_to(REPO), m.group(0)) for m in field.finditer(paragraph)]
+        self.assertEqual(hits, [], "a method file still names the retired wip count outside a struck span")
 
     def test_how_to_ask_carries_the_five_rules(self):
         self.assertEqual(re.findall(r"(?m)^(\d)\. \*\*", orchestration_section("How to ask the owner", flat=False)),

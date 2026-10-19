@@ -1261,7 +1261,8 @@ not.
      **What this class does NOT decide.** It decides only whether the marker is REQUIRED; it narrows
      neither of your lenses. And because `docs/**` is excluded in the plugin repository, two records
      that machinery reads need no lens marker there: `docs/loop-mode.md` — the mode record
-     `commands/autonomy.md` reads, including `wip:` — and `docs/loop-cadence.md`, which
+     `commands/autonomy.md` reads ~~, including `wip:`~~ (struck 2026-10-19, #216: the count is
+     retired and nothing reads it) — and `docs/loop-cadence.md`, which
      the plugin's session-start cadence notice parsed for its interval and its rites (in this method,
      `agents-configuration` session check 3). That follows from the ruling as given; both are named here so they read as known
      consequences, not oversights. That check reports and denies nothing, so a wrong value there costs
