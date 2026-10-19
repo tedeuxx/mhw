@@ -69,4 +69,4 @@ Each is raised one at a time, when a slice reaches it.
 | [0036](0036-kiro-shared-deny-floor-permissions-yaml.md) | Kiro IDE and Kiro CLI share one deny floor in the user-level `permissions.yaml` (2026-10-11) | ~~proposed~~ accepted 2026-10-11 |
 | [0037](0037-agents-md-is-the-only-root-brief.md) | `AGENTS.md` is the only root brief in every repository the owner authors; no `CLAUDE.md` (2026-10-11) | ~~proposed~~ accepted 2026-10-11 |
 | [0038](0038-chrome-devtools-mcp-at-user-scope-bounded-by-origin.md) | A `chrome-devtools` MCP server at Claude Code user scope, pinned, bounded by the project's declared origin (2026-10-13) | accepted 2026-10-15 |
-| [0039](0039-codex-managed-daemon-version-and-headroom.md) | Align the Codex managed daemon and check descriptor headroom (2026-10-18) | proposed |
+| [0039](0039-codex-managed-daemon-version-and-headroom.md) | Review Codex daemon descriptor configuration without managing it (2026-10-18) | proposed |
