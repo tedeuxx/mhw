@@ -60,8 +60,9 @@ re-derived: the help form does nothing at all, and a typo is refused by name.
 
 # Mode: `on`
 
-Drain the product backlog of the repo named after the mode (default: the current repo), one slice at a
-time, through the full dev-loop, without asking permission for anything in-pattern.
+Drain the product backlog of the repo named after the mode (default: the current repo), ~~one slice at a
+time~~ one issue per worktree with the review gate serial (struck 2026-10-19, #216), through the full
+dev-loop, without asking permission for anything in-pattern.
 
 **Done means: the drain's ENTRY SNAPSHOT of the active iteration's pool is exhausted** (#326, amended
 #338 — the iteration's pool grows while it drains, so the snapshot is what terminates and the iteration is

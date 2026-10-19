@@ -315,6 +315,19 @@ class OrchestrationOwnsTheBlocks(unittest.TestCase):
         hits = [m.group(0) for part in (row, reading, summary) for m in singular.finditer(" ".join(part.split()))]
         self.assertEqual(hits, [], "`/autonomy off` still assumes a single slice in flight")
 
+    def test_autonomy_on_drains_without_a_slice_count(self):
+        # Issue #216: `/autonomy on` drains one issue per worktree, with only the review gate serial. Its
+        # table row and the opening paragraph of `# Mode: on` must not drain "one slice at a time". Struck
+        # spans are removed and whitespace is collapsed first, so a phrase wrapped across lines is caught.
+        text = re.sub(r"~~.*?~~", "", (SOURCE / "commands" / "autonomy.md").read_text(encoding="utf-8"),
+                      flags=re.DOTALL)
+        row = re.search(r"(?m)^\| `on` \|.*$", text).group(0)
+        start = text.index("\n# Mode: `on`\n") + len("\n# Mode: `on`\n")
+        opening = text[start:text.index("\n\n", start + 2)]
+        count = re.compile(r"\bone (?:slice|issue|item|branch) at a time\b", re.IGNORECASE)
+        hits = [m.group(0) for part in (row, opening) for m in count.finditer(" ".join(part.split()))]
+        self.assertEqual(hits, [], "`/autonomy on` still drains one slice at a time")
+
     def test_how_to_ask_carries_the_five_rules(self):
         self.assertEqual(re.findall(r"(?m)^(\d)\. \*\*", orchestration_section("How to ask the owner", flat=False)),
                          ["1", "2", "3", "4", "5"])
