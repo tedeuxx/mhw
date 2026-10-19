@@ -43,8 +43,8 @@ The routing labels type an item by what it changes. Each type gets this chain:
 ## The loop-mode contract
 
 The **record** of which mode is in force is `docs/loop-mode.md` in each repository. It carries the
-value, the closed enum, the start date, the work-in-progress bound `wip:` and both pool predicates in
-full. **This section is the contract**: what a mode may vary and what it may never touch. Where a
+value, the closed enum, the start date ~~, the work-in-progress bound `wip:`~~ and both pool predicates
+in full. *(Struck 2026-10-19, #216: the record carries no development count any more; see rule 5.)* **This section is the contract**: what a mode may vary and what it may never touch. Where a
 record and this contract disagree, this contract wins and the disagreement is a finding.
 
 1. **A mode names a known agile method and fixes only what the iteration container means and which
@@ -62,9 +62,12 @@ record and this contract disagree, this contract wins and the disagreement is a 
    has no second mode.
 3. **A rite trigger keys on elapsed time, never on an empty pool.**
 4. **A mechanism that needs the mode is reviewed before it is written.**
-5. **Development parallelises; review does not.** At most one merge request is in review at a time,
-   whatever `wip:` says. The next goes to the gate only after the previous one merged or was sent
-   back.
+5. **Development parallelises; review does not.** **One issue, one git worktree; no count bounds
+   development.** Any number of eligible issues may be in development at once, each on its own branch
+   in its own worktree. At most one merge request is in review at a time ~~, whatever `wip:` says~~.
+   The next goes to the gate only after the previous one merged or was sent back. *(Struck 2026-10-19,
+   #216, the owner's decision: the numeric work-in-progress ceiling is retired; the serial gate is
+   not.)*
 6. **Rebase onto the current trunk before the gate.** Ask *has the trunk moved since the head I
    attested?*, not only *does a named branch overlap?*. The author resolves conflicts at merge-request
    time.

@@ -99,7 +99,7 @@ loop is the track record; overclaiming the agents is off-discipline.
 The loop is a product with three surfaces, and this discipline owns their **design**, not their
 execution. The fleet executes (the leads consolidate one demand → `developer` builds →
 `quality-assurance` gates it); `product-lead` guards that the flow is *honest* (tracked,
-WIP-respected). What has no other owner is the loop **as a system**:
+~~WIP-respected~~ one issue per worktree, the gate serial — struck 2026-10-19, #216). What has no other owner is the loop **as a system**:
 
 1. **Cadence & flow** — thin vertical slices bounded by file overlap, finish-through-merge. Not "is
    each slice tracked" (`product-lead`'s bookkeeping) but "is the loop *shaped* so work flows — is
@@ -851,8 +851,12 @@ Note what the eligibility clause does and does not buy there: #341 was
 clause covers an item that never entered; it does not cover one that entered and then stalled** — for
 that, the escape is the one `/autonomy on` already names (*"When a slice hits an owner decision it did
 not expect"*): write the question on the Issue, cut the slice to what can still finish, and move on.
-**WIP=1 is what turns the second case into a full stop**, and that is a deliberate cost of WIP=1, not a
-defect in this rule.
+~~**WIP=1 is what turns the second case into a full stop**, and that is a deliberate cost of WIP=1, not a
+defect in this rule.~~ **Struck 2026-10-19 (#216): WIP=1, and the numeric count that replaced it at #385,
+are both retired.** A stalled slice no longer holds back the next issue's development, which runs in
+its own worktree. **What still turns it into a stop is the serial review gate**: a merge request held
+for the owner at the gate keeps the next one out of review until it merges or is sent back, and that is
+a deliberate cost of the serial gate, not a defect in this rule.
 
 *Those two position numbers read `6` and `7` when this section was first written, and the correction is
 a demonstration of the next subsection rather than a typo.* The order of record — `5 #341`, `6 #337`,
@@ -1836,20 +1840,26 @@ action before ending the turn, or say plainly that there is none.
 
 1. **Plan-first**, then implement. Ask only on architecture / contracts / irreversible calls; decide
    autonomously on in-pattern implementation.
-2. **One thin vertical slice at a time**, end-to-end and reviewable. Keep it surgical; adjacent debt
+2. **One thin vertical slice ~~at a time~~ per issue**, end-to-end and reviewable. Keep it surgical; adjacent debt
    is **named, not refactored inline and not filed** — see *Review does not open work*.
    ~~**WIP=1 — one worktree, one in-flight branch, one open PR at a time, full stop, until formally
    reversed** (owner correction, 2026-08-13; see *WIP=1* below for the struck predecessor rule and
    why).~~ **REVERSED 2026-09-11 (#385) — this is the formal reversal that clause was waiting for**,
    and the strike lands here because this is the operative sentence a builder reads on every dispatch.
-   **The bound is now `wip:` in `docs/loop-mode.md`, read from the record and never assumed** — it is
-   `2` at the time of writing, and a value read from a file is the point. **Development parallelises;
-   THE REVIEW GATE DOES NOT** — at most one merge request is in review at a time, whatever `wip` says
+   ~~**The bound is now `wip:` in `docs/loop-mode.md`, read from the record and never assumed** — it is
+   `2` at the time of writing, and a value read from a file is the point.~~ **Struck 2026-10-19 (#216,
+   the owner's decision, recorded on that Issue): no
+   count bounds development. One issue, one git worktree, any number at once; remove a slice's
+   worktree after its merge.** **Development parallelises;
+   THE REVIEW GATE DOES NOT** — at most one merge request is in review at a time ~~, whatever `wip` says~~
    (owner ruling 1, stated in *The loop-mode contract* of the `orchestration` skill, which the
    orchestrator loads before it dispatches; until #176 a root-brief block carried it). **Isolation is a `git worktree` per slice**, which is what ruling 4
    re-permits. **Nothing enforces any of it**: `wip-guard.sh` is deleted and `gh pr create` is
-   allowlisted in both settings layers, so an (N+1)th PR executes silently.
-   **Integrate `main` before requesting review** if `main` has moved.
+   allowlisted in both settings layers, so nothing observes how many slices are open, and nothing
+   holds the serial gate either.
+   **Integrate the trunk before requesting review** if it has moved — rebase onto the current trunk
+   before the gate (*The loop-mode contract*, rule 6). ~~**Integrate `main` before requesting review** if
+   `main` has moved.~~
 3. **Develop locally**, against whatever backing services the repo actually has — see `/ci` and `/provisioning`.
 4. **Validate locally**: run the repo's **functional regression** and self-verify the gates (lint,
    typecheck, coverage). Report with the real output, never a claim.
@@ -1963,27 +1973,37 @@ with a new slice, not a long-lived hotfix branch.
 #381**, on the cut test above: every one of them is true of a project that never runs this loop, and
 none of them names a persona, a hook or an ADR of this one. Nothing was edited in the move.
 
-**What did NOT move is the WIP bound below, and that is the one place the split had to choose.**
-Principle #3 states that a bound exists; *what this loop's bound is*, the owner correction that
-produced it, what it protects and the measurement showing nothing enforces it are all local — they
-cite `wip-guard.sh`, this repository's own PRs and two dated incidents. So the principle is stated
-there once and the rule is stated here once, and neither file says *see the other one* for its own
-half.
+**What did NOT move is the ~~WIP bound~~ isolation-and-integration rule below, and that is the one
+place the split had to choose.** Principle #3 states that slices are isolated and integrated serially;
+*what this loop's rule is*, the owner corrections that produced it, what it protects and the
+measurement showing nothing enforces it are all local — they cite `wip-guard.sh`, this repository's
+own PRs and two dated incidents. So the principle is stated there once and the rule is stated here
+once, and neither file says *see the other one* for its own half. *(Reworded 2026-10-19, #216: there
+is no count left to call a bound.)*
 
-## WIP=1 — the struck exception, and why — ~~and the rule that replaced it~~ **REVERSED 2026-09-11 (#385)**
+## WIP=1 — the struck exception, and why — ~~and the rule that replaced it~~ **REVERSED 2026-09-11 (#385)** — **the count RETIRED 2026-10-19 (#216)**
 
-**READ THIS BEFORE THE SECTION: WIP=1 NO LONGER HOLDS.** The bound is `wip:` in `docs/loop-mode.md`
-(`2` at the time of writing), development parallelises on `git worktree`, and **the review gate stays
-serial at any value** (ADR-0002's thirty-fourth amendment; owner rulings, 2026-09-10). **Everything
+**READ THIS BEFORE THE SECTION: NO COUNT BOUNDS DEVELOPMENT.** ~~**WIP=1 NO LONGER HOLDS.** The bound
+is `wip:` in `docs/loop-mode.md` (`2` at the time of writing), development parallelises on
+`git worktree`, and **the review gate stays serial at any value** (ADR-0002's thirty-fourth amendment;
+owner rulings, 2026-09-10).~~ **Struck 2026-10-19 (#216).** The owner retired the numeric count that
+replaced WIP=1, choosing that over keeping the count or moving it to the gate, in his words as
+recorded on the Issue: *«o wip nao sei pq continua em pé. ja alinhamos paralelismo por issue baseado em git worktrees há algum tempo.»* **The rule now:
+one issue, one git worktree, any number at once; the review gate stays serial; rebase onto the
+current trunk before the gate; remove a slice's worktree after its merge** (*The loop-mode contract*
+in the `orchestration` skill, rules 5 to 7). The mode record no longer carries the count. The count
+had already drifted — one repository's record said `1` while two said `2` — and on 2026-10-19 a
+session held back a slice on the stale value (both as #216's body reports them), which is what a number nobody enforces costs. **Everything
 below is kept because it is the record of how the rule got there and what it was protecting**, and two
-parts of it outlived the reversal and are still load-bearing:
+parts of it outlived both reversals and are still load-bearing:
 
 - **the failure class it caught** — two slices in ONE checkout, and an uncommitted probe left applied
   to a shared tree — which is precisely what **a worktree per slice** now prevents by construction
   rather than by discipline. **The reversal does not reopen it; it closes it a different way.**
 - **the finding that nothing ever enforced WIP=1** (*`wip-guard.sh` did NOT enforce WIP=1*, below).
   That is why the reversal cost nothing to execute — there was no mechanism to dismantle — and it is
-  equally true of the new bound.
+  equally true of ~~the new bound~~ the numeric count that followed (#216 retired it with nothing to
+  dismantle either) and of the serial gate that remains.
 
 `engineering-standards`' principle #3 used to read, and this project's own struck-not-deleted
 convention keeps the old text visible rather than erasing it:
@@ -2165,13 +2185,21 @@ is reached. That is a moment problem, not a matcher problem; it is why the struc
 wrong to promise the gap away as a hook change, and it is the load-bearing reason the deletion is not
 a loss of protection.
 
-**So: WIP=1 is held by instruction and by nothing else.** By this loop's own test — *would something
+~~**So: WIP=1 is held by instruction and by nothing else.**~~ **So: WIP=1 was held by instruction
+and by nothing else, until #385 reversed it** (struck 2026-10-19, #216: the present tense outlived the
+rule). By this loop's own test — *would something
 stop me, or only my memory?* — **it is not engineered**, and the 2026-08-28 collision is what that
 costs when the memory is a fresh context that never had it. That sentence was true while the hook
 existed and is unchanged by its removal, which is the point: read WIP=1 as protecting the **working
 tree** from being two things at once, and note that the **merge queue** — which the hook did protect
 from stale overlapping branches — now has no mechanism either. Different objects, different moments,
 and since #383 neither of them has one.
+
+**Since #216 (2026-10-19) each object has its own instruction, and neither is a count.** The working
+tree is protected by **one issue, one worktree** — a slice never shares a checkout, which closes the
+2026-08-28 class by construction as long as the rule is followed. The merge queue is protected by the
+**serial gate and rebase-before-gate** — one merge request in review at a time, rebased onto the
+current trunk. Both are instructions; nothing enforces either.
 
 ## Using this skill
 

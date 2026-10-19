@@ -122,7 +122,7 @@ what to read, and the check list in `agents-configuration` is what the table is 
 
 | already held by a session check (formerly a plugin hook) | what it covers |
 |---|---|
-| ~~`wip-guard.sh`~~ | ~~a second concurrent slice, on file overlap, at `gh pr create`~~ — **REMOVED 2026-09-04 (#383). Nothing holds this now.** It is struck rather than deleted because its absence is a finding you may legitimately report: a second concurrent slice is bounded by the written WIP=1 policy alone |
+| ~~`wip-guard.sh`~~ | ~~a second concurrent slice, on file overlap, at `gh pr create`~~ — **REMOVED 2026-09-04 (#383). Nothing holds this now.** It is struck rather than deleted because its absence is a finding you may legitimately report: ~~a second concurrent slice is bounded by the written WIP=1 policy alone~~ — **struck 2026-10-19 (#216): concurrent slices are not bounded by any count; each issue has its own worktree, and only the review gate is serial** |
 | check 1 (formerly `session-wip.sh`) | the open-PR queue and the outstanding-verdict state, at session start |
 | check 6 (formerly `zombie-loop-detect.sh`) | an outstanding gate verdict on the current head, at turn end |
 | check 7 (formerly `premature-pr-link-detect.sh`) | a PR link handed to the owner before it is his act |
@@ -215,16 +215,23 @@ A record that hedges — *"either `developer` or `content-writer`, depending"* �
 back to the context whose bias this profile exists to displace, which is the whole of what you were
 dispatched to avoid.
 
-~~One record per dispatch of you carries ONE `### Selection` block.~~ **Struck 2026-09-11 (#385): at
-`wip: N` you emit up to N of them.** The struck reading is kept because it is what every record written
-before this slice meant, and because the anti-hedging rule above survives the change intact — what is
-forbidden is an *ambiguous* selection, never a *set* of unambiguous ones.
+~~One record per dispatch of you carries ONE `### Selection` block.~~ ~~**Struck 2026-09-11 (#385): at
+`wip: N` you emit up to N of them.**~~ **Struck 2026-10-19 (#216): no count bounds the set. You emit
+one `### Selection` block per item you can select and clear on the criteria below.** The struck
+readings are kept because they are what every record written before each slice meant, and because the
+anti-hedging rule above survives both changes intact — what is forbidden is an *ambiguous* selection,
+never a *set* of unambiguous ones.
 
-## Selecting a SET — what changes at `wip` > 1, and what does not (#385)
+## Selecting a SET — ~~what changes at `wip` > 1, and what does not (#385)~~ one issue, one worktree, no count (#216)
 
-**Read `docs/loop-mode.md`'s `wip:` line. It is the ceiling on how many `### Selection` blocks you
+~~**Read `docs/loop-mode.md`'s `wip:` line. It is the ceiling on how many `### Selection` blocks you
 emit** — never a target, and never a quota you pad to reach. **At `wip: 1` nothing below changes
-anything**: one block, exactly as before.
+anything**: one block, exactly as before.~~ **Struck 2026-10-19 (#216, the owner's decision): the
+record carries no development count, so there is no line to read and no ceiling to apply.** Each
+selected item becomes one issue in one git worktree, and any number of them may be in development at
+once. **What bounds the set now is the criteria below, never a number** — `non-collision:` first.
+**No count is a target either**: a set of one is a correct answer whenever only one item clears the
+criteria. **The review gate stays serial whatever the set's size** (*The loop-mode contract*, rule 5).
 
 **Each block is still a single unambiguous pair.** You are not selecting "a team"; you are selecting N
 independent next acts, each one of which would have been a legal record on its own. **A set of N
@@ -247,8 +254,9 @@ non-collision: <the files/areas this item is expected to touch, and why it does 
 *«o proprio planejamento de issues dentro do sprint pode ajudar a mitigar. responsabilidade do techlead
 e product lead junto ao scrum master»* — makes composition the preventive mitigation, and a criterion
 that is not written into the record is not a criterion. **An item you cannot clear on this criterion
-does not go into the set.** Selecting N-1 and saying why is a correct answer; selecting N by waving at
-the question is not.
+does not go into the set.** ~~Selecting N-1 and saying why is a correct answer; selecting N by waving at
+the question is not.~~ Leaving an item out and saying why is a correct answer; putting it in by waving
+at the question is not. *(Reworded 2026-10-19, #216: N was the retired count.)*
 
 **You are NOT solely accountable for it, and the brief says so because a record signed by one profile
 reads as one profile's judgement.** `tech-lead` and `product-lead` are accountable for the composition
