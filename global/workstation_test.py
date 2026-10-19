@@ -146,122 +146,6 @@ class StatusOutput(unittest.TestCase):
         self.assertEqual(ws.issues(lines), 4)
 
 
-class CodexDaemonIntegration(unittest.TestCase):
-    def test_install_plan_and_conversation_name_the_daemon_boundary(self):
-        with mock.patch.object(ws, "run", return_value=(0, ["OK      user"])), \
-             mock.patch.object(ws, "admin_installed", return_value=False), \
-             mock.patch.object(ws, "codex_daemon_plan",
-                               return_value=("update", 1, ["CODEX   DRIFT: version skew"])):
-            plan = ws.install_plan(admin_wanted=False)
-        self.assertEqual(plan["codex"], "update")
-        self.assertIn("ends daemon-backed Codex work", "\n".join(ws.plan_lines(plan)))
-
-    # Issue #210: headroom DRIFT is advisory; it is not a planned change and does not fail install.
-    def test_headroom_drift_is_not_a_planned_change(self):
-        advisory = ["CODEX   DRIFT: unsafe descriptor headroom; advisory: mhw install does not change "
-                    "descriptor headroom"]
-        with mock.patch.object(ws, "run", return_value=(0, ["OK      user"])), \
-             mock.patch.object(ws, "admin_installed", return_value=False), \
-             mock.patch.object(ws, "codex_daemon_plan", return_value=(None, 1, advisory)):
-            plan = ws.install_plan(admin_wanted=False)
-        self.assertIsNone(plan["codex"])
-        self.assertEqual(plan["codex_advisory"], advisory)
-        self.assertEqual(ws.plan_lines(plan), [])
-
-    def test_not_running_daemon_is_neither_a_change_nor_an_advisory(self):
-        with mock.patch.object(ws, "run", return_value=(0, ["OK      user"])), \
-             mock.patch.object(ws, "admin_installed", return_value=False), \
-             mock.patch.object(ws, "codex_daemon_plan",
-                               return_value=(None, 0, ["CODEX   OK: daemon not running"])):
-            plan = ws.install_plan(admin_wanted=False)
-        self.assertIsNone(plan["codex"])
-        self.assertEqual(plan["codex_advisory"], [])
-
-    def test_refused_daemon_metadata_is_named_without_an_interruption_promise(self):
-        plan = {"user": 0, "admin": "skipped", "admin_count": 0, "codex": "refuse"}
-        text = "\n".join(ws.plan_lines(plan))
-        self.assertIn("changes nothing", text)
-        self.assertNotIn("ends daemon-backed Codex work", text)
-
-    def test_install_with_headroom_advisory_succeeds_and_names_it(self):
-        advisory = ["CODEX   DRIFT: unsafe descriptor headroom; advisory: mhw install does not change "
-                    "descriptor headroom"]
-        for user in (0, 1):
-            with self.subTest(user_changes=user):
-                plan = {"user": user, "admin": "skipped", "admin_count": 0, "codex": None,
-                        "codex_advisory": advisory}
-                out = io.StringIO()
-                with mock.patch.object(ws, "install_plan", return_value=plan), \
-                     mock.patch.object(ws, "run", return_value=(0, ["OK      settings"])), \
-                     mock.patch.object(ws, "admin_installed", return_value=False), \
-                     mock.patch.object(ws, "admin_present", return_value=False), \
-                     mock.patch.object(ws, "codex_daemon_install") as lifecycle, \
-                     contextlib.redirect_stdout(out):
-                    code = ws.cmd_install(yes=True, no_admin=True)
-                self.assertEqual(code, 0, out.getvalue())
-                lifecycle.assert_not_called()
-                self.assertIn("unsafe descriptor headroom", out.getvalue())
-                self.assertNotIn("Installation incomplete", out.getvalue())
-
-    def test_check_propagates_daemon_drift(self):
-        out = io.StringIO()
-        with mock.patch.object(ws, "run", return_value=(0, ["OK      user"])), \
-             mock.patch.object(ws, "admin_installed", return_value=False), \
-             mock.patch.object(ws, "admin_present", return_value=False), \
-             mock.patch.object(ws, "npm_package", return_value=False), \
-             mock.patch.object(ws, "codex_daemon_report",
-                               return_value=(1, ["CODEX   DRIFT: unsafe descriptor headroom"])), \
-             mock.patch("prerequisites.report", return_value=(0, ["OK      prerequisites"])), \
-             contextlib.redirect_stdout(out):
-            code = ws.cmd_check()
-        self.assertEqual(code, 1)
-        self.assertIn("unsafe descriptor headroom", out.getvalue())
-
-    def test_install_runs_native_lifecycle_last(self):
-        events = []
-
-        def run_ok(_args, **_kwargs):
-            events.append("settings")
-            return 0, ["OK      settings"]
-
-        def daemon_install():
-            events.append("daemon")
-            return 0, ["CHANGED Codex managed daemon: native update completed"]
-
-        out = io.StringIO()
-        plan = {"user": 0, "admin": "skipped", "admin_count": 0, "codex": True}
-        with mock.patch.object(ws, "install_plan", return_value=plan), \
-             mock.patch.object(ws, "run", side_effect=run_ok), \
-             mock.patch.object(ws, "admin_installed", return_value=False), \
-             mock.patch.object(ws, "admin_present", return_value=False), \
-             mock.patch.object(ws, "codex_daemon_install", side_effect=daemon_install), \
-             contextlib.redirect_stdout(out):
-            code = ws.cmd_install(yes=True, no_admin=True)
-        self.assertEqual(code, 0, out.getvalue())
-        self.assertEqual(events[-1], "daemon")
-        self.assertIn("Aligning the Codex managed daemon", out.getvalue())
-
-    def test_failed_settings_never_interrupt_the_daemon(self):
-        plan = {"user": 1, "admin": "skipped", "admin_count": 0, "codex": True}
-        with mock.patch.object(ws, "install_plan", return_value=plan), \
-             mock.patch.object(ws, "run", return_value=(1, ["DRIFT   settings"])), \
-             mock.patch.object(ws, "admin_installed", return_value=False), \
-             mock.patch.object(ws, "admin_present", return_value=False), \
-             mock.patch.object(ws, "codex_daemon_install") as lifecycle, \
-             contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(ws.cmd_install(yes=True, no_admin=True), 1)
-        lifecycle.assert_not_called()
-
-    def test_verbose_status_adds_sanitized_daemon_line_only(self):
-        out = io.StringIO()
-        with mock.patch.object(ws, "gather", return_value=facts()), \
-             mock.patch.object(ws, "codex_daemon_report",
-                               return_value=(0, ["  codex daemon    OK: sanitized"])), \
-             contextlib.redirect_stdout(out):
-            self.assertEqual(ws.main(["status", "--verbose"]), 0)
-        self.assertIn("  codex daemon    OK: sanitized", out.getvalue())
-
-
 class RuntimeSummary(unittest.TestCase):
     """The session-start runtime summary (Issue #80): few lines, every item the brief names."""
 
@@ -899,9 +783,8 @@ class Overlay(unittest.TestCase):
 
     def test_overlay_travels_in_the_environment_not_argv(self):
         calls = []
-        real, daemon_report, saved = ws.run, ws.codex_daemon_report, os.environ.get(ws.OVERLAY_ENV)
+        real, saved = ws.run, os.environ.get(ws.OVERLAY_ENV)
         ws.run = lambda *a, **k: calls.append(a[0]) or (0, [])
-        ws.codex_daemon_report = lambda prefix="CODEX   ": (0, [prefix + "OK: fake daemon"])
         # The prerequisites section (#89) reads this machine's PATH; an empty declaration keeps it out.
         empty = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
         empty.write('{"lanes": {}, "items": []}')
@@ -912,7 +795,6 @@ class Overlay(unittest.TestCase):
             self.assertEqual(os.environ.get(ws.OVERLAY_ENV), "none")
         finally:
             ws.run = real
-            ws.codex_daemon_report = daemon_report
             os.environ.pop("WORKSTATION_PREREQUISITES", None)
             os.unlink(empty.name)
             if saved is None:

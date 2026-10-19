@@ -55,7 +55,6 @@ import subprocess
 import sys
 
 import owner_actions  # global/, beside this file (ADR-0035, decision 9)
-from codex import daemon_runtime
 
 NAME = "personal-multi-harness-workstation-configuration"
 MARKER = "managed-by: " + NAME
@@ -81,25 +80,6 @@ LEGACY_PACKAGE = NAME
 # The one instruction for the upgrade from it, in status, check, the postinstall summary and the docs.
 UPGRADE_FIRST = "remove the v4.1.0 package first: `npm uninstall -g %s`" % LEGACY_PACKAGE
 
-
-def codex_daemon_report(prefix="CODEX   "):
-    """The native daemon is outside a throwaway managed root; integration tests must never touch it."""
-    if os.environ.get("WORKSTATION_MANAGED_ROOT"):
-        return 0, [prefix + "daemon lifecycle: not inspected under a test managed root"]
-    return daemon_runtime.report(prefix=prefix)
-
-
-def codex_daemon_plan():
-    """``(action, exit, lines)``: the native action install would take, or None (Issue #210)."""
-    if os.environ.get("WORKSTATION_MANAGED_ROOT"):
-        return None, 0, ["CODEX   daemon lifecycle: not inspected under a test managed root"]
-    return daemon_runtime.plan()
-
-
-def codex_daemon_install():
-    if os.environ.get("WORKSTATION_MANAGED_ROOT"):
-        return 0, ["CODEX   daemon lifecycle: not changed under a test managed root"]
-    return daemon_runtime.install()
 
 # ---------------------------------------------------------------------------------------------------
 # Version key (Issue #57): pure functions, no I/O.
@@ -1091,16 +1071,10 @@ def admin_supported():
 def install_plan(admin_wanted, user_wanted=True):
     """What `mhw install` would change, read-only: the user-layer targets that differ, and the admin
     layer's state ('current', 'absent', 'differs' or 'skipped')."""
-    plan = {"user": 0, "admin": "skipped", "admin_count": 0, "codex": None, "codex_advisory": []}
+    plan = {"user": 0, "admin": "skipped", "admin_count": 0}
     if user_wanted:
         code, lines = run(install_args(["--check", "--hooks=" + ("managed" if admin_installed() else "user")]))
         plan["user"] = issues(lines) or (1 if code else 0)
-        # Issue #210: only a native action is a planned change. A daemon that is not running is clean, and
-        # descriptor headroom DRIFT is advisory: install reports it and never restarts for it.
-        action, dcode, dlines = codex_daemon_plan()
-        plan["codex"] = action
-        if action is None and dcode != 0:
-            plan["codex_advisory"] = dlines
     if admin_wanted and admin_supported():
         if not admin_present():
             plan["admin"] = "absent"
@@ -1116,11 +1090,6 @@ def plan_lines(plan):
     if plan["user"]:
         out.append("Your settings in Claude Code, Codex and Kiro: %d file(s) to write (no password needed)"
                    % plan["user"])
-    if plan["codex"] == "refuse":
-        out.append("Codex managed daemon: its metadata is incomplete; install reports it and changes nothing")
-    elif plan["codex"]:
-        out.append("Codex managed daemon: align its native package or resolve its lifecycle process "
-                   "(ends daemon-backed Codex work at this explicit session boundary)")
     if plan["admin"] == "absent":
         out.append("System-wide protections that no session can switch off: install them "
                    "(needs your administrator password, once)")
@@ -1210,14 +1179,6 @@ def next_steps(steps):
 FRESH = "Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings."
 
 
-def codex_advisory(plan):
-    """Descriptor headroom DRIFT, named at install without failing it (Issue #210; the cause is #200's)."""
-    if plan.get("codex_advisory"):
-        heading("Codex managed daemon: advisory, nothing changed")
-        for line in plan["codex_advisory"]:
-            print("    " + line, flush=True)
-
-
 def cmd_install(admin_only=False, method=False, verbose=False, yes=False, no_admin=False):
     version = package_version(ROOT) if npm_package() else "this checkout"
     asking = interactive()
@@ -1226,7 +1187,6 @@ def cmd_install(admin_only=False, method=False, verbose=False, yes=False, no_adm
     if not changes and not method:
         heading("mhw %s is already installed and up to date" % version.lstrip("v")
                 if npm_package() else "This workstation already matches this checkout")
-        codex_advisory(plan)
         next_steps(["Run `%s status` to see what is installed." % CMD])
         return 0
     heading("mhw %s will change this workstation:" % version.lstrip("v")
@@ -1272,16 +1232,6 @@ def cmd_install(admin_only=False, method=False, verbose=False, yes=False, no_adm
         acode, alines = run(managed_args(["--check"]))
         if acode != 0 and plan["admin"] in ("absent", "differs") and not steps:
             failed.append("System-wide protections still differ in %d file(s)" % max(issues(alines), 1))
-    # The daemon lifecycle is deliberately last: its supported native update/restart may end this and
-    # every other daemon-backed Codex session. Never interrupt work when an earlier install step failed.
-    if plan["codex"] and not admin_only and not failed and not pending:
-        heading("Aligning the Codex managed daemon")
-        dcode, dlines = codex_daemon_install()
-        show(dlines, verbose)
-        if dcode != 0:
-            failed.append("Codex managed daemon (metadata incomplete, or the native lifecycle did not reach "
-                          "its sanitized postcondition)")
-    codex_advisory(plan)
     print()
     if failed:
         print(_styled("31;1", "Installation incomplete:"))
@@ -1516,9 +1466,6 @@ def cmd_check(prerequisites_only=False):
             notes = npm_notes(source_stamp(), {h: s for h, p in brief_paths().items() if (s := stamp_in(p)) != "none"})
             for note in notes:
                 print("NPM     " + note, flush=True)
-        dcode, dlines = codex_daemon_report()
-        print("\n".join(dlines), flush=True)
-        code = max(code, dcode)
     # Issue #89: present or missing, authenticated or not, drift from the preferred settings. Read-only.
     import prerequisites
     pcode, lines = prerequisites.report()
@@ -1596,9 +1543,6 @@ def main(argv):
     if command == "status":
         facts = gather(project)
         lines = render_summary(facts) if summary and not verbose else render_status(facts, verbose)
-        if verbose:
-            _, daemon_lines = codex_daemon_report(prefix="  codex daemon    ")
-            lines.extend(daemon_lines)
         for line in lines:
             print(line)
         return 0
