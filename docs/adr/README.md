@@ -16,7 +16,7 @@ Each is raised one at a time, when a slice reaches it.
 1. **Ratify the proposed records** below, or the proposed parts of the partly accepted ones. The
    release candidate rests on proposed records: ~~ADR-0026 to ADR-0034 are all proposed.~~ ADR-0027
    to ADR-0034 are all proposed; ADR-0026 was accepted on 2026-10-11. ~~ADR-0038 (#174) is
-   proposed.~~ ADR-0038 (#174) was accepted on 2026-10-15. ADR-0039 (#200) is proposed.
+   proposed.~~ ADR-0038 (#174) was accepted on 2026-10-15. ADR-0039 (#200) is proposed. ADR-0040 (#219) is proposed.
 2. **The ten commandments** ([#77](https://github.com/tedeuxx/mhw/issues/77)):
    edit and ratify the draft in the requirements document, section 1c. Nothing is installed before that.
 3. **The cross-repository write credential** for the plugin mirror
@@ -70,3 +70,4 @@ Each is raised one at a time, when a slice reaches it.
 | [0037](0037-agents-md-is-the-only-root-brief.md) | `AGENTS.md` is the only root brief in every repository the owner authors; no `CLAUDE.md` (2026-10-11) | ~~proposed~~ accepted 2026-10-11 |
 | [0038](0038-chrome-devtools-mcp-at-user-scope-bounded-by-origin.md) | A `chrome-devtools` MCP server at Claude Code user scope, pinned, bounded by the project's declared origin (2026-10-13) | accepted 2026-10-15 |
 | [0039](0039-codex-managed-daemon-version-and-headroom.md) | Review Codex daemon descriptor configuration without managing it (2026-10-18) | proposed |
+| [0040](0040-mcp-active-set-native-switch-off-per-harness.md) | The MCP active set, turned off natively in each agent harness outside it (2026-10-24) | proposed |
