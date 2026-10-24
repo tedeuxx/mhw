@@ -1127,7 +1127,7 @@ def active_main(argv):
     import mcp_active  # beside this file; imported here, since it imports this module
     try:
         return mcp_active.main(mode, stamp, source)
-    except Refuse as e:
+    except (Refuse, mcp_active.r.Refuse) as e:  # run as a script, this file is __main__ and mcp_render apart
         print(str(e), file=sys.stderr)
         return e.code
 

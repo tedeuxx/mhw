@@ -278,16 +278,25 @@ def mcp_active_lines(f):
     for line in hits:
         if line.startswith("SKIP    MCP active set: "):
             return [head + line[len("SKIP    MCP active set: "):-len(" " + MCP_ACTIVE_TAG)]]
-    findings, drift = [], 0
+    findings, drift, unread = [], 0, []
     for line in hits:
         m = _MCP_ACTIVE_LINE.match(line)
         if m and m.group(1) in ("DRIFT", "REPORT", "ABSENT", "REFUSE"):
             findings.append("%s: %s" % (m.group(2), m.group(3)))
             drift += m.group(1) == "DRIFT"
+        elif m and m.group(1) == "SKIP" and not m.group(3).startswith("not installed"):
+            # An agent harness installed here whose files were not read (Codex without Python 3.11+): its
+            # servers are unknown, so the line must not read clean (#222 lens).
+            unread.append(m.group(2))
+            findings.append("%s: not read: %s" % (m.group(2), m.group(3)))
+    prefix = "not read for %s; " % ", ".join(unread) if unread else ""
     if not findings:
         return [head + "declared; nothing on outside the set and no set member missing"]
+    if len(findings) == len(unread):
+        return [head + "declared; " + prefix.rstrip("; ")] + [MCP_INDENT + x for x in findings]
     fix = "; %s turns off what is on outside the set in %d agent harness(es)" % (FIX, drift) if drift else ""
-    return [head + "%d finding(s)%s" % (len(findings), fix)] + [MCP_INDENT + x for x in findings]
+    count = len(findings) - len(unread)
+    return [head + "%s%d finding(s)%s" % (prefix, count, fix)] + [MCP_INDENT + x for x in findings]
 
 
 def models_text(f):

@@ -358,6 +358,21 @@ class ModelsLine(unittest.TestCase):
                                 "hand): synth-c (1)"])
         self.assertEqual(ws.issues(lines), 1, "only DRIFT is a target install fixes; ABSENT and REPORT are not")
 
+    def test_mcp_active_set_never_reads_clean_when_a_harness_was_not_read(self):
+        """#222 lens: Codex is skipped without Python 3.11+ (macOS ships 3.9), so its servers are unknown and the
+        line says so; an agent harness that is not installed is not a gap."""
+        tag = " (MCP active set)"
+        skip = "SKIP    codex: needs Python 3.11+ (tomllib) to edit config.toml (/h/.codex/config.toml)" + tag
+        absent = "SKIP    kiro: not installed (/h/.kiro absent)" + tag
+        ok = "OK      claude-code: nothing on outside the set (0 turned off by mhw) (/h/.claude/settings.json)" + tag
+        head, rest = self.mcp([skip, absent, ok])
+        self.assertEqual(head, "declared; not read for codex")
+        self.assertEqual(rest, ["codex: not read: needs Python 3.11+ (tomllib) to edit config.toml"])
+        self.assertEqual(self.mcp([absent, ok])[0], "declared; nothing on outside the set and no set member missing")
+        drift = "DRIFT   kiro: on outside the set: synth-b (1); install turns them off (/h/k.json)" + tag
+        head, _ = self.mcp([skip, drift])
+        self.assertTrue(head.startswith("not read for codex; 1 finding(s); "), head)
+
     SETTINGS = [("Claude Code", "user", "model", "claude-opus-5-5[1m]"),
                 ("Claude Code", "user", "effortLevel", "medium"),
                 ("Codex", "user", "model", "gpt-5.6-sol"), ("Codex", "user", "model_reasoning_effort", "high"),

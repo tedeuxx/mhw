@@ -20,11 +20,13 @@ Each change keeps the previous file as <config>.pmhwc-mcp-active-backup (0600); 
 recorded in the manifest (mcp-managed.json, "active"), so uninstall restores exactly that.
 """
 import copy
+import fnmatch
 import glob
 import json
 import os
 import re
 import sys
+from urllib.parse import urlsplit
 
 import mcp_render as r
 
@@ -53,8 +55,17 @@ class ActiveSet:
         connectors = doc["active_set"].get("connectors", {}) if self.declared else {}
         self.on = sorted(n for n, v in connectors.items() if v == "on")
         self.off = sorted(n for n, v in connectors.items() if v == "off")
-        policy = r.load_policy()["servers"]
+        policy_doc = r.load_policy()
+        policy = policy_doc["servers"]
         self.policy = {s: {n for n, v in policy.items() if s in v["surfaces"]} for s in r.SURFACES}
+        # name -> the Claude Code entries a kept server is rendered as: a set member (with the launcher for a
+        # secret-bearing one) and a policy server. A deny that matches one of these would block it too.
+        self.kept = {}
+        if self.declared:
+            for n, e in r.desired(doc, "claude-code", r.launcher_dest()).items():
+                self.kept.setdefault(n, []).append(e)
+        for n, e in r.desired(policy_doc, "claude-code", None).items():
+            self.kept.setdefault(n, []).append(e)
 
     def outside(self, surface, name):
         """True when a declared set leaves this server out and it is not exempt."""
@@ -259,9 +270,52 @@ def plugin_entry(server):
     return {"serverCommand": parts}
 
 
+def _host(url):
+    """The lower-cased host of a URL, or None when it has none."""
+    try:
+        host = urlsplit(url).hostname
+    except ValueError:
+        return None
+    return host.rstrip(".").lower() if host else None
+
+
+def _command(server):
+    command, args = server.get("command"), server.get("args", [])
+    if isinstance(command, str) and command and isinstance(args, list) and all(isinstance(a, str) for a in args):
+        return [command] + args
+    return None
+
+
+def deny_matches(entry, name, server):
+    """Whether a deniedMcpServers entry would block this server, read conservatively: a URL entry blocks
+    every server on its host (the documented match also folds case, the default port and, for a pattern
+    with no path, every path), and a command entry is compared with and without ${VAR} expanded."""
+    if not isinstance(entry, dict) or not isinstance(server, dict):
+        return False
+    if "serverName" in entry:
+        return entry["serverName"] == name
+    if "serverCommand" in entry:
+        cmd = _command(server)
+        return cmd is not None and entry["serverCommand"] in (cmd, [os.path.expandvars(p) for p in cmd])
+    url, pattern = server.get("url"), entry.get("serverUrl")
+    if not (isinstance(url, str) and isinstance(pattern, str)):
+        return False
+    if "*" in pattern:
+        return fnmatch.fnmatchcase(url.lower(), pattern.lower())
+    return _host(pattern) is not None and _host(pattern) == _host(url)
+
+
+def kept_servers(aset, user_servers):
+    """(name, server) for every server Claude Code keeps on: a set member or policy server as rendered and
+    as configured, and an exempt one as configured."""
+    kept = [(n, e) for n, entries in sorted(aset.kept.items()) for e in entries]
+    kept += [(n, s) for n, s in sorted(user_servers.items()) if not aset.outside("claude-code", n)]
+    return kept
+
+
 def wanted_denies(aset, user_servers, plugins):
-    """-> ([(entry, label)], [labels with no documented match])."""
-    want, stuck, seen = [], [], set()
+    """-> ([(entry, label)], [labels with no documented match], [labels that would block a kept server])."""
+    want, stuck, collide, seen = [], [], [], set()
 
     def add(entry, label):
         key = json.dumps(entry, sort_keys=True)
@@ -270,7 +324,8 @@ def wanted_denies(aset, user_servers, plugins):
             want.append((entry, label))
 
     if not aset.declared:
-        return want, stuck
+        return want, stuck, collide
+    kept = kept_servers(aset, user_servers)
     for n in sorted(user_servers):
         if aset.outside("claude-code", n):
             add({"serverName": n}, n)
@@ -278,11 +333,20 @@ def wanted_denies(aset, user_servers, plugins):
         entry = plugin_entry(server)
         if entry is None:
             stuck.append(label)
+        elif any(deny_matches(entry, n, s) for n, s in kept):
+            collide.append(label)  # "wherever it's defined": the deny would block the kept server too
         else:
             add(entry, label)
     for c in aset.off:
         add({"serverName": CONNECTOR + c}, CONNECTOR + c)
-    return want, stuck
+    return want, stuck, collide
+
+
+def blocked_members(aset, user_servers, entries):
+    """Set members and policy servers that one of these deny entries blocks (the owner's own included)."""
+    members = aset.servers | aset.policy["claude-code"]
+    return sorted({n for n, s in kept_servers(aset, user_servers) if n in members
+                   and any(deny_matches(e, n, s) for e in entries)})
 
 
 def plan_claude(data, want, prior):
@@ -298,10 +362,10 @@ def plan_claude(data, want, prior):
     record = [{"entry": e, "label": label} for e, label in want if e in ours or e not in denied]
     new = dict(data)
     entries = keep + [e for e, _ in add]
-    if entries or (denied and any(e not in ours for e in denied)):
+    if entries or "deniedMcpServers" in data:
+        # The key stays once present, empty or not: an owner's own [] is kept as written, and a list mhw
+        # emptied stays as [], which blocks nothing (the meaning is restored, not the absence of the key).
         new["deniedMcpServers"] = entries
-    else:
-        new.pop("deniedMcpServers", None)
     return new, add, gone, record
 
 
@@ -340,12 +404,14 @@ class Run:
             self.say("CHANGED", surface, text + ("; previous file kept as %s%s" % (cfg, BACKUP) if existed else ""),
                      cfg)
 
-    def absent(self, surface, cfg, missing, off_by_hand):
+    def absent(self, surface, cfg, missing, off_by_hand, blocked=()):
         if self.mode == "uninstall" or not self.aset.declared:
             return
         parts = (["set member(s) not configured: %s; render them with global/mcp/mcp_render.py" % names(missing)]
                  if missing else []) + (["set member(s) turned off outside mhw: %s" % names(off_by_hand)]
-                                        if off_by_hand else [])
+                                        if off_by_hand else []) + (
+            ["set member(s) blocked by a deniedMcpServers entry mhw did not write: %s" % names(blocked)]
+            if blocked else [])
         if parts:
             self.say("ABSENT", surface, "; ".join(parts), cfg)
 
@@ -447,7 +513,7 @@ class Run:
             return prior
         user_servers = user.get("mcpServers", {})
         user_servers = user_servers if isinstance(user_servers, dict) else {}
-        want, stuck = wanted_denies(self.aset, user_servers, plugin_servers(h))
+        want, stuck, collide = wanted_denies(self.aset, user_servers, plugin_servers(h))
         try:
             new, add, gone, record = plan_claude(data, want, prior)
         except r.Refuse as e:
@@ -457,7 +523,13 @@ class Run:
             self.say("REPORT", "claude-code", "on outside the set, a plugin server with no documented match (a ${VAR}, a "
                      "wildcard or a credential-looking value in its URL or command), so it is not denied: %s"
                      % names(stuck), cfg)
-        self.absent("claude-code", user_cfg, sorted(n for n in self.aset.servers if n not in user_servers), [])
+        if collide and self.mode != "uninstall":
+            self.say("REPORT", "claude-code", "on outside the set, a plugin server with the same command, or a URL on the "
+                     "same host, as a server kept on, so it is not denied (the deny would block both): %s"
+                     % names(collide), cfg)
+        blocked = blocked_members(self.aset, user_servers, new.get("deniedMcpServers", []))
+        self.absent("claude-code", user_cfg, sorted(n for n in self.aset.servers if n not in user_servers), [],
+                    blocked)
         if self.aset.on and self.mode != "uninstall":
             print("NOTE    claude-code: %d claude.ai connector(s) declared on; connectors are account-level, so "
                   "whether they are connected cannot be read here (%s) %s" % (len(self.aset.on), cfg, TAG))
