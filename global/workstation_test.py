@@ -368,6 +368,32 @@ class ModelsLine(unittest.TestCase):
         for bad in ("--mcp-connect=0", "--mcp-connect=x", "--mcp-connect=99999"):
             self.assertEqual(ws.main(["status", bad]), 2, bad)
 
+    def test_mcp_connect_status_exit_follows_the_check_and_the_default_timeout_is_30(self):
+        """#225 QA M17: status --mcp-connect returns 1 when the check reports a FAIL, 0 when all are OK."""
+        from unittest import mock
+        tag = " (MCP connect)"
+        calls = []
+
+        def fake_run(code, lines):
+            def run(args, capture=True):
+                calls.append(args)
+                return code, lines
+            return run
+
+        with mock.patch("builtins.print"):
+            with mock.patch.object(ws, "run", fake_run(1, ["FAIL    codex: s-b: fail: timeout" + tag])):
+                self.assertEqual(ws.mcp_connect_status(5), 1)
+            with mock.patch.object(ws, "run", fake_run(0, ["OK      codex: s-a: ok" + tag])):
+                self.assertEqual(ws.mcp_connect_status(5), 0)
+            self.assertIn("--timeout=5", calls[-1])
+            seen = []
+            with mock.patch.object(ws, "gather", lambda project: facts()), \
+                    mock.patch.object(ws, "mcp_connect_status", lambda t: seen.append(t) or 1):
+                self.assertEqual(ws.main(["status", "--mcp-connect"]), 1)
+                self.assertEqual(ws.main(["status", "--mcp-connect=7"]), 1)
+                self.assertEqual(ws.main(["status"]), 0, "never in the default status")
+        self.assertEqual(seen, [30, 7])
+
     def test_mcp_active_set_never_reads_clean_when_a_harness_was_not_read(self):
         """#222 lens: Codex is skipped without Python 3.11+ (macOS ships 3.9), so its servers are unknown and the
         line says so; an agent harness that is not installed is not a gap."""

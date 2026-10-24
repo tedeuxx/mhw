@@ -18,6 +18,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1445,6 +1446,14 @@ STUB_SERVER = r'''import json, os, sys, time
 mode, pidfile = sys.argv[1], sys.argv[2]
 open(pidfile, "w").write(str(os.getpid()))
 sys.stderr.write("STDERR-CANARY-" + os.environ.get("SYNTH_CANARY", "") + "\n"); sys.stderr.flush()
+if mode.startswith("fork-"):
+    import subprocess
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(600)"])
+    open(pidfile + ".child", "w").write(str(child.pid))
+    if mode == "fork-exit":
+        sys.exit(3)
+if mode == "argcheck" and (sys.argv[3:4] != ["expanded-value"] or os.environ.get("SYNTH_E") != "expanded-value"):
+    sys.exit(5)
 if mode == "exit":
     sys.exit(3)
 req = json.loads(sys.stdin.readline())
@@ -1479,6 +1488,7 @@ class _Stub:
 
             def answer(self):
                 stub.agents.append(self.headers.get("User-Agent", ""))
+                stub.headers.append(dict(self.headers.items()))
                 length = int(self.headers.get("Content-Length") or 0)
                 if length:
                     self.rfile.read(length)
@@ -1495,7 +1505,7 @@ class _Stub:
             do_POST = answer
             do_GET = answer
 
-        self.agents = []
+        self.agents, self.headers = [], []
         self.server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
         self.url = "http://127.0.0.1:%d" % self.server.server_address[1]
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
@@ -1606,6 +1616,67 @@ class Connect(unittest.TestCase):
         p = connect(h)
         self.assertEqual(p.returncode, 0)
         self.assertIn("SKIP    MCP connect: no active set is declared", p.stdout)
+
+    def _stub(self):
+        stub_py = os.path.join(BASE, "mcp_stub_server.py")
+        with open(stub_py, "w") as fh:
+            fh.write(STUB_SERVER)
+        return stub_py
+
+    def _dead(self, pidfile):
+        deadline = time.monotonic() + 5
+        while pid_alive(pidfile) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        return not pid_alive(pidfile)
+
+    def test_behaviour_table(self):
+        """#225 QA: one row per behaviour the amendment, the README row or the usage text states; each row fails
+        when that behaviour is removed from mcp_connect.py."""
+        import mcp_connect as c
+        from unittest import mock
+        stub_py = self._stub()
+        d = os.path.join(BASE, "connect-table")
+        os.makedirs(d, exist_ok=True)
+
+        def argv(mode, extra=()):
+            return [sys.executable, stub_py, mode, os.path.join(d, mode)] + list(extra)
+
+        rows = []
+        # M7, and the lens fix: the whole process group dies, on the answered and on the exited-first path.
+        for mode, want in (("fork-ok", "ok"), ("fork-exit", "fail: exited 3")):
+            got = c.probe_stdio(argv(mode), dict(os.environ), 10)
+            rows.append(("group killed, " + mode, (got, self._dead(os.path.join(d, mode) + ".child")), (want, True)))
+        # M12: ${VAR} in args and env is expanded for Claude Code and Kiro, and not for Codex (the control).
+        entry = {"command": sys.executable, "args": [stub_py, "argcheck", os.path.join(d, "argcheck"), "${SYNTH_X}"],
+                 "env": {"SYNTH_E": "${SYNTH_X}"}}
+        with mock.patch.dict(os.environ, {"SYNTH_X": "expanded-value"}):
+            for surface, want in (("claude-code", "ok"), ("kiro", "ok"), ("codex", "fail: exited 5")):
+                rows.append(("expansion, " + surface, c.probe(surface, entry, 10), want))
+        # M14: a default applies when the variable is unset.
+        rows.append(("default", c.expand("${SYNTH_UNSET_X:-value}", {}), "value"))
+        rows.append(("default, set wins", c.expand("${SYNTH_SET_X:-value}", {"SYNTH_SET_X": "mine"}), "mine"))
+        # M9: a member with enabled = false in Codex is not checked there; without tomllib Codex is unread.
+        h = mk_home("home-connect-table")
+        with open(targets(h)["codex"], "w") as fh:
+            fh.write('[mcp_servers.on-a]\ncommand = "/bin/echo"\n\n[mcp_servers.off-b]\nenabled = false\n'
+                     'command = "/bin/echo"\n')
+        with mock.patch.dict(os.environ, {"HOME": h}):
+            os.environ.pop("CODEX_HOME", None)
+            rows.append(("codex enabled = false", sorted(c.configured("codex")), ["on-a"]))
+            with mock.patch.object(c.r, "tomllib", None):
+                rows.append(("codex without tomllib", c.configured("codex"), None))
+        # The http probe sends no configured header (a header can carry a credential).
+        canary = "synthetic-" + secrets.token_hex(6)
+        stub = _Stub("x")
+        try:
+            got = c.probe("claude-code", {"type": "http", "url": stub.url + "/ok", "headers": {"X-Synth-Auth": canary}}, 5)
+        finally:
+            stub.close()
+        rows.append(("no configured header", (got, canary in json.dumps(stub.headers)), ("ok", False)))
+        rows.append(("default timeout", c.DEFAULT_TIMEOUT, 30))
+        for name, got, want in rows:
+            with self.subTest(row=name):
+                self.assertEqual(got, want)
 
     def test_connect_arguments(self):
         h = mk_home("home-connect-usage")

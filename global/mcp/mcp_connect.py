@@ -159,10 +159,15 @@ def _wait(p, deadline):
 
 
 def _stop(p):
-    if p.poll() is None:
-        try:
-            os.killpg(p.pid, 9)
-        except (OSError, AttributeError):
+    """Kill the server's whole process group, always: a leader that exited first can leave a child behind
+    in its group (start_new_session gave the group the leader's pid, which stays the group's id while a
+    member lives). An empty group is not an error."""
+    try:
+        os.killpg(p.pid, 9)
+    except (ProcessLookupError, PermissionError):
+        pass
+    except (OSError, AttributeError):
+        if p.poll() is None:
             p.kill()
     try:
         p.wait(timeout=5)
