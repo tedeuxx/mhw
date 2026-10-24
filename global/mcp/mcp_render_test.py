@@ -1359,6 +1359,21 @@ class ActiveSet(unittest.TestCase):
                 self.assertEqual(bool(written), denied, written)
                 self.assertEqual("as a server kept on" in p.stdout, not denied, p.stdout)
 
+    def test_deny_matches_expands_variables_and_wildcards(self):
+        """A6 (#222): a kept server written with ${VAR} still matches the expanded command, and a wildcard
+        serverUrl entry matches by pattern, case folded."""
+        import mcp_active
+        from unittest import mock
+        kept = {"command": "${SYNTH_MCP_DIR}/bin/x", "args": ["-q"]}
+        with mock.patch.dict(os.environ, {"SYNTH_MCP_DIR": "/synth"}):
+            self.assertTrue(mcp_active.deny_matches({"serverCommand": ["/synth/bin/x", "-q"]}, "k", kept))
+            self.assertFalse(mcp_active.deny_matches({"serverCommand": ["/other/bin/x", "-q"]}, "k", kept))
+        self.assertTrue(mcp_active.deny_matches({"serverCommand": ["${SYNTH_MCP_DIR}/bin/x", "-q"]}, "k", kept))
+        wild = {"serverUrl": "https://*.synth.example/*"}
+        self.assertTrue(mcp_active.deny_matches(wild, "k", {"url": "https://A.Synth.Example/mcp"}))
+        self.assertFalse(mcp_active.deny_matches(wild, "k", {"url": "https://other.example/mcp"}))
+        self.assertFalse(mcp_active.deny_matches(wild, "k", {"command": "/bin/echo"}))
+
     def test_check_names_a_set_member_an_owners_deny_entry_blocks(self):
         h = mk_home("home-active-blocked")
         write_source(h, {"version": 1, "active_set": {}, "servers": {"set-a": {"command": "/bin/cat", "args": ["-u"]}}})
