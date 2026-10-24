@@ -105,7 +105,7 @@ The set is the `servers` of the local definition, `active_set` opts in, and the 
 | Agent harness | Outside the set | The switch | Evidence |
 | --- | --- | --- | --- |
 | **Codex** | a `[mcp_servers.<name>]` table in `config.toml`, outside the renderer's managed block | `enabled = false` written on the table, carrying a `managed-by` comment; an `enabled = true` line is replaced and recorded. Every edit is proved with `tomllib` before writing. A server not written as its own table (an inline table under `[mcp_servers]`) is refused, exit 3, and the other agent harnesses still apply | documented (config reference: *"Disable an MCP server without removing its configuration"*); **probed**: codex-cli 0.163.0 lists the server `enabled: false` (`codex mcp list --json`, a throwaway `CODEX_HOME`, in the suite wherever `codex` is on `PATH`). Not measured: a signed-in session not starting it |
-| **Claude Code** | a server in `~/.claude.json` (user scope); a server a plugin provides, read from each installed plugin's `.mcp.json` or inline `plugin.json` (`installed_plugins.json`) and from `~/.claude/plugins/synced/*/*/.mcp.json`; a connector declared `off` | an entry appended to `deniedMcpServers` in `~/.claude/settings.json`: `serverName` for a user-scope server and for `claude.ai <Name>`; `serverUrl` (exact) or `serverCommand` for a plugin server. A plugin server whose URL or command carries `${…}`, a `*` or a credential-looking value is never copied into the settings; it is reported. The owner's own entries are kept | documented (settings reference: *"Claude Code refuses to load a matching server wherever it's defined, including plugin servers, … and the claude.ai connectors it fetches itself"*, *"Scope: Any file"*; managed MCP page: *`{ "serverName": "claude.ai Slack" }` blocks the Slack connector*). Not probed: `claude mcp` is in the owner's deny list and a headless session needs a login |
+| **Claude Code** | a server in `~/.claude.json` (user scope); a server a plugin provides, read from each installed plugin's `.mcp.json` or inline `plugin.json` (`installed_plugins.json`) and from `~/.claude/plugins/synced/*/*/.mcp.json`; a connector declared `off` | an entry appended to `deniedMcpServers` in `~/.claude/settings.json`: `serverName` for a user-scope server and for `claude.ai <Name>`; `serverUrl` (exact) or `serverCommand` for a plugin server. A plugin server whose URL or command carries `${…}`, a `*` or a credential-looking value is never copied into the settings; it is reported. **A plugin entry that would also match a server kept on** (a set member as configured or as rendered, the policy server, an exempt one: the same command, or a URL on the same host) is never written, because Claude Code refuses a matching server *wherever it's defined*; it is reported. A set member that an entry mhw did not write blocks is named (`ABSENT`). The owner's own entries are kept, and so is the key itself: an owner's `[]` stays as written, and a list mhw emptied is left as `[]`, which blocks nothing (the meaning is restored, not the absence of the key) | documented (settings reference: *"Claude Code refuses to load a matching server wherever it's defined, including plugin servers, … and the claude.ai connectors it fetches itself"*, *"Scope: Any file"*; managed MCP page: *`{ "serverName": "claude.ai Slack" }` blocks the Slack connector*). Not probed: `claude mcp` is in the owner's deny list and a headless session needs a login |
 | **Kiro** IDE and CLI | a server in `~/.kiro/settings/mcp.json` | `"disabled": true` on the entry; a `"disabled": false` is recorded and restored | documented ([Kiro MCP configuration](https://kiro.dev/docs/mcp/configuration/): *"disabled — Whether the server is disabled (default: false)"*). Not probed: kiro-cli 2.34.0 refuses `mcp list` in a throwaway HOME without a login |
 | **Claude desktop app** | a server in `claude_desktop_config.json` | **none: report only.** The file has no per-server switch, and its connectors are account-level | stated limit |
 
@@ -126,7 +126,16 @@ recorded nor turned back on.
 shows them under `mcp active set`: every server on outside the set (`DRIFT`, counted as a target
 `mhw install` fixes), every set member not configured or turned off by hand on an agent harness
 (`ABSENT`), and what has no switch (`REPORT`: the desktop app, and a plugin server with no documented
-match). Names and counts only.
+match). Names and counts only. An agent harness that is installed but was not read (Codex without
+Python 3.11+; `/usr/bin/python3` on the reference macOS is 3.9.6, measured 2026-10-24) makes the line say
+`not read for codex`, so it never reads clean.
+
+**`owner_act_refusal` is not applied**, as for `--policy`. The renderer's default mode refuses, inside an
+agent session, to write outside a throwaway HOME, because it is run standalone. `--active` runs as one
+step of `install.sh`, whose other steps (the brief, the deny floor, the models, the policy servers) carry
+no such guard; guarding this step alone would leave an agent-run install half applied rather than
+refused. So nothing mechanical stops an agent session from running it against the real HOME: that an
+install is the owner's act, from his own terminal, is an instruction, as for every other install step.
 
 ## Consequences
 
@@ -140,6 +149,13 @@ match). Names and counts only.
 
 ### Bad, and the limits
 
+- **Connection is not checked (follow-up, Issue #219 stays open for it).** The Issue's done-when asks
+  `mhw status` to name any server in the set that fails to connect. This slice does not build it:
+  status names what is configured, missing or blocked, never whether a server starts or answers.
+- **A plugin server that collides with a kept server stays on.** When its command, or its URL's host,
+  equals a kept server's, a deny would block both, so none is written and the server is reported. The
+  host test is deliberately wider than Claude Code's own match, so it reports more than it must rather
+  than block a kept server.
 - **Snapshot.** The switches are computed at install. A server a synced plugin adds afterwards loads
   until the next `mhw install`; `mhw status` names it meanwhile.
 - **Connectors are declared by hand and cannot be checked.** A connector the overlay does not name is
