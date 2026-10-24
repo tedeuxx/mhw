@@ -1123,6 +1123,320 @@ class Policy(unittest.TestCase):
             self.assertEqual(run(h, *args).returncode, 2, args)
 
 
+# ----------------------------------------------------------------------------- the MCP active set (#219)
+
+
+def active(home, mode, *extra, env=None):
+    return run(home, "--active", "--mode=" + mode, "--stamp=" + POLICY_STAMP, *extra, env=env)
+
+
+def write_json(path, doc):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as fh:
+        json.dump(doc, fh)
+
+
+ACTIVE_CODEX = """approval_policy = "on-request"
+
+[mcp_servers.set-a]
+command = "/bin/echo"
+
+[mcp_servers.out-b]
+command = "/bin/echo"
+
+[mcp_servers.out-b.env]
+SYNTH = "%s"
+
+[mcp_servers.out-c]
+enabled = true # kept as written
+command = "/bin/echo"
+
+[mcp_servers.own-off]
+enabled = false
+command = "/bin/echo"
+
+[mcp_servers.node_repl]
+command = "/bin/echo"
+"""
+
+
+def active_home(name, canary):
+    """A throwaway HOME with every kind of server the active set meets. Every name is synthetic; canary is a
+    generated value placed where a credential would sit, so a run can show it never prints one."""
+    h = mk_home(name)
+    t = targets(h)
+    write_source(h, {"version": 1, "servers": {"set-a": {"command": "/bin/echo"}},
+                     "active_set": {"connectors": {"Synth On": "on", "Synth Off": "off"}}})
+    with open(t["codex"], "w") as fh:
+        fh.write(ACTIVE_CODEX % canary)
+    write_json(t["kiro"], {"mcpServers": {"set-a": {"command": "/bin/echo"},
+                                          "out-k": {"command": "/bin/echo", "env": {"SYNTH": canary}},
+                                          "out-k2": {"command": "/bin/echo", "disabled": False},
+                                          "own-off": {"command": "/bin/echo", "disabled": True}}})
+    write_json(t["claude-code"], {"numStartups": 3, "mcpServers": {
+        "set-a": {"type": "stdio", "command": "/bin/echo"}, "out-u": {"type": "stdio", "command": "/bin/echo"},
+        "chrome-devtools": {"command": "/bin/sh"}, "claude-in-chrome": {"command": "/bin/echo"}}})
+    settings = os.path.join(h, ".claude", "settings.json")
+    write_json(settings, {"model": "synthetic", "deniedMcpServers": [{"serverName": "owners-own"}]})
+    synced = os.path.join(h, ".claude", "plugins", "synced", "src1", "plug1")
+    os.makedirs(synced)
+    write_json(os.path.join(synced, ".mcp.json"), {"mcpServers": {
+        "web": {"type": "http", "url": "https://synth.example/mcp"},
+        "varred": {"command": "${CLAUDE_PLUGIN_ROOT}/bin/x"},
+        "leaky": {"type": "http", "url": "https://synth.example/mcp?token=" + canary},
+        "envurl": {"type": "http", "url": "https://${SYNTH_HOST}/mcp"}}})
+    inst = os.path.join(h, ".claude", "plugins", "cache", "mkt", "plug2", "1.0.0")
+    os.makedirs(os.path.join(inst, ".claude-plugin"))
+    write_json(os.path.join(inst, ".claude-plugin", "plugin.json"),
+               {"name": "plug2", "mcpServers": {"local": {"command": "/bin/cat", "args": ["-u"]}}})
+    write_json(os.path.join(h, ".claude", "plugins", "installed_plugins.json"),
+               {"version": 2, "plugins": {"plug2@mkt": [{"installPath": inst, "scope": "user"}]}})
+    if DARWIN:
+        write_json(t["claude-desktop"], {"mcpServers": {"set-a": {"command": "/bin/echo"},
+                                                        "desk-out": {"command": "/bin/echo"}}})
+    return h, settings
+
+
+class ActiveSet(unittest.TestCase):
+    """Issue #219 (ADR-0041): every server outside the definition is turned off through each agent harness's
+    own switch once "active_set" is declared, and uninstall turns back on exactly what install turned off."""
+
+    def test_validation_parity_and_connectors(self):
+        base = {"version": 1, "servers": {"a": {"command": "x"}}}
+        self.assertEqual(r.validate(dict(base, active_set={})), [])
+        self.assertEqual(r.validate(dict(base, active_set={"connectors": {"Synth": "on", "Other": "off"}})), [])
+        narrow = {"version": 1, "servers": {"a": {"command": "x", "surfaces": ["codex", "claude-code"]}}}
+        self.assertEqual(r.validate(narrow), [], "without an active set, surfaces may stay narrow")
+        errs = r.validate(dict(narrow, active_set={}))
+        self.assertTrue(any("parity" in e for e in errs), errs)
+        wide = {"version": 1, "servers": {"a": {"command": "x", "surfaces": list(r.PARITY)}}, "active_set": {}}
+        self.assertEqual(r.validate(wide), [])
+        for bad in ([], {"connectors": []}, {"connectors": {"Synth": "maybe"}}, {"connectors": {" Synth": "on"}},
+                    {"connectors": {"": "on"}}, {"unknown": 1}, {"description": 3}):
+            self.assertTrue(r.validate(dict(base, active_set=bad)), bad)
+
+    def test_schema_documents_the_active_set(self):
+        schema = json.loads(read(SCHEMA))
+        self.assertEqual(set(schema["properties"]["active_set"]["properties"]), r.ACTIVE_KEYS)
+
+    def test_undeclared_turns_nothing_off(self):
+        h, _ = active_home("home-active-undeclared", "synthetic-" + secrets.token_hex(8))
+        write_source(h, {"version": 1, "servers": {"set-a": {"command": "/bin/echo"}}})
+        before = fingerprint(h)
+        for mode in ("check", "install"):
+            p = active(h, mode)
+            self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+            self.assertIn("SKIP    MCP active set: not declared", p.stdout)
+        self.assertEqual(fingerprint(h), before, "an undeclared set writes nothing")
+        os.remove(os.path.join(data(h), "local-overlay", "mcp-servers.json"))
+        before = fingerprint(h)
+        p = active(h, "install")
+        self.assertEqual(p.returncode, 0)
+        self.assertIn("no local MCP definition", p.stdout)
+        self.assertEqual(fingerprint(h), before)
+
+    def test_install_turns_off_check_is_clean_and_uninstall_restores(self):
+        canary = "synthetic-" + secrets.token_hex(12)
+        h, settings = active_home("home-active", canary)
+        t = targets(h)
+        seed = {k: read(v) for k, v in t.items()}
+        seed_settings = read(settings)
+        p = active(h, "check")
+        self.assertEqual(p.returncode, 1, p.stdout + p.stderr)
+        self.assertIn("DRIFT   codex: on outside the set: out-b, out-c (2)", p.stdout)
+        self.assertIn("DRIFT   kiro: on outside the set: out-k, out-k2 (2)", p.stdout)
+        self.assertIn("DRIFT   claude-code: on outside the set: out-u, plugin:plug2:local, plugin:plug1:web, "
+                      "claude.ai Synth Off (4)", p.stdout)
+        self.assertIn("plugin:plug1:varred, plugin:plug1:leaky, plugin:plug1:envurl (3)", p.stdout)
+        if DARWIN:
+            self.assertIn("REPORT  claude-desktop: ", p.stdout)
+            self.assertIn("desk-out (1)", p.stdout)
+        for kept in ("node_repl", "claude-in-chrome", "own-off", "chrome-devtools", "owners-own"):
+            self.assertNotIn(kept, p.stdout, "exempt, the owner's own or a policy server: never reported")
+        self.assertEqual({k: read(v) for k, v in t.items()}, seed, "check writes nothing")
+
+        p = active(h, "install")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertNotIn(canary, p.stdout + p.stderr, "no value is ever printed")
+        self.assertNotIn("synth.example", p.stdout + p.stderr, "no URL is ever printed")
+        codex = tload(t["codex"])["mcp_servers"]
+        self.assertEqual({n: s.get("enabled") for n, s in codex.items()},
+                         {"set-a": None, "out-b": False, "out-c": False, "own-off": False, "node_repl": None})
+        self.assertEqual(codex["out-b"]["env"], {"SYNTH": canary}, "the rest of the table is untouched")
+        kiro = jload(t["kiro"])["mcpServers"]
+        self.assertEqual({n: s.get("disabled") for n, s in kiro.items()},
+                         {"set-a": None, "out-k": True, "out-k2": True, "own-off": True})
+        self.assertEqual(jload(settings)["deniedMcpServers"], [
+            {"serverName": "owners-own"}, {"serverName": "out-u"}, {"serverCommand": ["/bin/cat", "-u"]},
+            {"serverUrl": "https://synth.example/mcp"}, {"serverName": "claude.ai Synth Off"}])
+        self.assertNotIn(canary, read(settings), "a credential-looking URL is never copied into the settings")
+        self.assertEqual(jload(settings)["model"], "synthetic")
+        self.assertEqual(read(t["claude-code"]), seed["claude-code"], "~/.claude.json is read, never written")
+        for path in (t["codex"], t["kiro"], settings):
+            mode = stat.S_IMODE(os.stat(path + ".pmhwc-mcp-active-backup").st_mode)
+            self.assertEqual(mode, 0o600, path)
+        p = active(h, "check")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertNotIn("DRIFT", p.stdout)
+        self.assertNotIn("CHANGED", active(h, "install").stdout, "a second install changes nothing")
+
+        p = active(h, "uninstall")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(read(t["codex"]), seed["codex"], "Codex: the edit is undone byte for byte")
+        self.assertEqual(jload(t["kiro"]), json.loads(seed["kiro"]))
+        self.assertEqual(jload(settings), json.loads(seed_settings), "only the owner's own deny entry stays")
+        self.assertFalse(os.path.exists(r_manifest(h)), "the manifest held only the active record")
+
+    def test_a_server_that_joins_the_set_or_an_undeclared_set_is_turned_back_on(self):
+        h, settings = active_home("home-active-join", "synthetic-" + secrets.token_hex(8))
+        t = targets(h)
+        seed_codex = read(t["codex"])
+        self.assertEqual(active(h, "install").returncode, 0)
+        write_source(h, {"version": 1, "active_set": {},
+                         "servers": {"set-a": {"command": "/bin/echo"}, "out-b": {"command": "/bin/echo"}}})
+        p = active(h, "install")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("CHANGED codex: turned back on out-b (1)", p.stdout)
+        self.assertIsNone(tload(t["codex"])["mcp_servers"]["out-b"].get("enabled"))
+        self.assertNotIn({"serverName": "claude.ai Synth Off"}, jload(settings)["deniedMcpServers"],
+                         "a connector no longer declared off is no longer denied")
+        write_source(h, {"version": 1, "servers": {"set-a": {"command": "/bin/echo"}}})
+        p = active(h, "install")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(read(t["codex"]), seed_codex, "an undeclared set restores what install turned off")
+        self.assertEqual(jload(settings)["deniedMcpServers"], [{"serverName": "owners-own"}])
+
+    def test_a_server_not_written_as_a_table_is_refused_and_the_rest_still_applies(self):
+        h, _ = active_home("home-active-inline", "synthetic-" + secrets.token_hex(8))
+        t = targets(h)
+        with open(t["codex"], "a") as fh:
+            fh.write("\n[mcp_servers]\ninline-x = { command = \"/bin/echo\" }\n")
+        p = active(h, "install")
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertIn("inline-x", p.stderr)
+        self.assertIsNone(tload(t["codex"])["mcp_servers"]["inline-x"].get("enabled"))
+        self.assertTrue(jload(t["kiro"])["mcpServers"]["out-k"]["disabled"], "the other agent harnesses still apply")
+
+    def test_policy_uninstall_keeps_the_active_record(self):
+        h, settings = active_home("home-active-policy", "synthetic-" + secrets.token_hex(8))
+        self.assertEqual(active(h, "install").returncode, 0)
+        self.assertEqual(policy(h, "uninstall").returncode, 0)
+        self.assertIn("active", jload(r_manifest(h)), "the policy mode never drops what the active set recorded")
+        self.assertEqual(active(h, "uninstall").returncode, 0)
+        self.assertEqual(jload(settings)["deniedMcpServers"], [{"serverName": "owners-own"}])
+
+    def test_a_plugin_deny_that_would_block_a_kept_server_is_reported_not_written(self):
+        """#222 (both reviews): Claude Code refuses a matching server "wherever it's defined", so a plugin
+        server whose command or URL host equals a kept one's is reported, never denied. Kept: a set member (as
+        configured and as rendered), the policy server, an exempt one; an unrelated plugin server is denied."""
+        policy_cmd = [policy_entry()["command"]] + policy_entry()["args"]
+        cases = (  # (plugin server, denied?)
+            ({"command": "/bin/cat", "args": ["-u"]}, False),                           # = set member, configured
+            ({"command": "/usr/bin/synth-rendered", "args": ["--x"]}, False),           # = set member, rendered only
+            ({"type": "http", "url": "https://SET.example:443/other"}, False),          # same host as a set member
+            ({"command": policy_cmd[0], "args": policy_cmd[1:]}, False),                # = the policy server
+            ({"command": "/bin/synth-chrome"}, False),                                  # = an exempt server
+            ({"command": "/bin/cat", "args": ["-n"]}, True),                            # unrelated command
+            ({"type": "http", "url": "https://other.example/mcp"}, True))               # unrelated host
+        for i, (server, denied) in enumerate(cases):
+            with self.subTest(case=i):
+                h = mk_home("home-active-collide-%d" % i)
+                write_json(targets(h)["claude-code"], {"mcpServers": {
+                    "set-a": {"type": "stdio", "command": "/bin/cat", "args": ["-u"]},
+                    "set-web": {"type": "http", "url": "https://set.example/mcp"},
+                    "claude-in-chrome": {"command": "/bin/synth-chrome"}}})
+                write_source(h, {"version": 1, "active_set": {}, "servers": {
+                    "set-a": {"command": "/bin/cat", "args": ["-u"]},
+                    "set-r": {"command": "/usr/bin/synth-rendered", "args": ["--x"]},
+                    "set-web": {"command": "/bin/echo"}}})
+                synced = os.path.join(h, ".claude", "plugins", "synced", "src", "plug")
+                os.makedirs(synced)
+                write_json(os.path.join(synced, ".mcp.json"), {"mcpServers": {"p": server}})
+                p = active(h, "install")
+                self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+                settings = os.path.join(h, ".claude", "settings.json")
+                written = jload(settings).get("deniedMcpServers", []) if os.path.exists(settings) else []
+                self.assertEqual(bool(written), denied, written)
+                self.assertEqual("as a server kept on" in p.stdout, not denied, p.stdout)
+
+    def test_deny_matches_expands_variables_and_wildcards(self):
+        """A6 (#222): a kept server written with ${VAR} still matches the expanded command, and a wildcard
+        serverUrl entry matches by pattern, case folded."""
+        import mcp_active
+        from unittest import mock
+        kept = {"command": "${SYNTH_MCP_DIR}/bin/x", "args": ["-q"]}
+        with mock.patch.dict(os.environ, {"SYNTH_MCP_DIR": "/synth"}):
+            self.assertTrue(mcp_active.deny_matches({"serverCommand": ["/synth/bin/x", "-q"]}, "k", kept))
+            self.assertFalse(mcp_active.deny_matches({"serverCommand": ["/other/bin/x", "-q"]}, "k", kept))
+        self.assertTrue(mcp_active.deny_matches({"serverCommand": ["${SYNTH_MCP_DIR}/bin/x", "-q"]}, "k", kept))
+        wild = {"serverUrl": "https://*.synth.example/*"}
+        self.assertTrue(mcp_active.deny_matches(wild, "k", {"url": "https://A.Synth.Example/mcp"}))
+        self.assertFalse(mcp_active.deny_matches(wild, "k", {"url": "https://other.example/mcp"}))
+        self.assertFalse(mcp_active.deny_matches(wild, "k", {"command": "/bin/echo"}))
+
+    def test_check_names_a_set_member_an_owners_deny_entry_blocks(self):
+        h = mk_home("home-active-blocked")
+        write_source(h, {"version": 1, "active_set": {}, "servers": {"set-a": {"command": "/bin/cat", "args": ["-u"]}}})
+        write_json(targets(h)["claude-code"], {"mcpServers": {"set-a": {"command": "/bin/cat", "args": ["-u"]}}})
+        write_json(os.path.join(h, ".claude", "settings.json"),
+                   {"deniedMcpServers": [{"serverCommand": ["/bin/cat", "-u"]}]})
+        p = active(h, "check")
+        self.assertIn("ABSENT  claude-code: set member(s) blocked by a deniedMcpServers entry mhw did not write: "
+                      "set-a (1)", p.stdout)
+
+    def test_an_owners_empty_deny_list_is_kept_on_uninstall(self):
+        h, settings = active_home("home-active-empty-deny", "synthetic-" + secrets.token_hex(8))
+        write_json(settings, {"deniedMcpServers": []})
+        self.assertEqual(active(h, "install").returncode, 0)
+        self.assertTrue(jload(settings)["deniedMcpServers"])
+        self.assertEqual(active(h, "uninstall").returncode, 0)
+        self.assertEqual(jload(settings), {"deniedMcpServers": []})
+
+    def test_a_server_in_the_managed_block_is_never_switched(self):
+        """A table inside the renderer's managed block (ADR-0017) is the renderer's: the active set leaves it."""
+        h, _ = active_home("home-active-block", "synthetic-" + secrets.token_hex(8))
+        t = targets(h)
+        with open(t["codex"], "a") as fh:
+            fh.write("\n%s\n[mcp_servers.rendered-z]\ncommand = \"/bin/echo\"\n%s\n" % (r.BLOCK_BEGIN, r.BLOCK_END))
+        p = active(h, "install")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertNotIn("rendered-z", p.stdout)
+        self.assertIsNone(tload(t["codex"])["mcp_servers"]["rendered-z"].get("enabled"))
+        self.assertFalse(tload(t["codex"])["mcp_servers"]["out-b"]["enabled"])
+
+    def test_a_committable_definition_is_refused(self):
+        if not shutil.which("git"):
+            self.skipTest("git not available")
+        h = mk_home("home-active-git")
+        repo = os.path.join(BASE, "an-active-git-repo")
+        shutil.rmtree(repo, ignore_errors=True)
+        os.makedirs(repo)
+        subprocess.run(["git", "init", "-q", repo], check=True)
+        src = os.path.join(repo, "mcp-servers.json")
+        write_json(src, {"version": 1, "servers": {}, "active_set": {}})
+        p = active(h, "check", "--source=" + src)
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertIn("could be committed", p.stderr)
+
+    def test_usage_errors(self):
+        h = mk_home("home-active-usage")
+        for args in (("--active", "--mode=report"), ("--active", "--stamp="), ("--active", "--adopt"),
+                     ("--active", "--policy", "--mode=check")):
+            self.assertEqual(run(h, *args).returncode, 2, args)
+
+    @unittest.skipUnless(shutil.which("codex"), "codex is not on PATH")
+    def test_codex_lists_the_server_as_disabled(self):
+        """Probed: Codex itself reads the switch (codex mcp list --json, in a throwaway CODEX_HOME)."""
+        h, _ = active_home("home-active-codex", "synthetic-" + secrets.token_hex(8))
+        self.assertEqual(active(h, "install").returncode, 0)
+        env = clean_env(h, CODEX_HOME=os.path.join(h, ".codex"))
+        p = subprocess.run(["codex", "mcp", "list", "--json"], env=env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        listed = {s["name"]: s["enabled"] for s in json.loads(p.stdout)}
+        self.assertEqual(listed, {"set-a": True, "out-b": False, "out-c": False, "own-off": False,
+                                  "node_repl": True})
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.exit("usage: mcp_render_test.py <empty-or-new base directory>")

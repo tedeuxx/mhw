@@ -98,7 +98,7 @@ def facts(**over):
 class StatusOutput(unittest.TestCase):
     def test_short_view(self):
         out = ws.render_status(facts())
-        self.assertLessEqual(len(out), 13)  # 13 since the models line (ADR-0035)
+        self.assertLessEqual(len(out), 14)  # 13 since the models line (ADR-0035), 14 since the MCP active set (#219)
         self.assertIn("  source           v3.1.0 @ aaaaaaa (this checkout)", out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: not installed", out)
         self.assertIn("  check            matches this checkout", out)
@@ -322,6 +322,56 @@ class Settings(unittest.TestCase):
 
 class ModelsLine(unittest.TestCase):
     """ADR-0035: status shows each harness's session-start model and effort against the policy."""
+
+    def mcp(self, lines):
+        out = ws.render_status(facts(user_lines=lines))
+        start = [i for i, line in enumerate(out) if line.startswith("  mcp active set   ")]
+        self.assertEqual(len(start), 1, out)
+        rest = [line for line in out[start[0] + 1:] if line.startswith(ws.MCP_INDENT + " ") is False
+                and line.startswith(ws.MCP_INDENT)]
+        return out[start[0]][19:], [line[19:] for line in rest]
+
+    def test_mcp_active_set_names_what_is_on_outside_and_what_is_missing(self):
+        """Issue #219: status names every server on outside the set and every set member missing, by name
+        and count, from the check's own lines; the file path and the tag are not repeated."""
+        tag = " (MCP active set)"
+        self.assertEqual(self.mcp([])[0], "not read (the check printed no MCP active-set line)")
+        skip = "SKIP    MCP active set: not declared in /d/mcp-servers.json (no \"active_set\"), so nothing is turned off"
+        self.assertEqual(self.mcp([skip + tag])[0],
+                         "not declared in /d/mcp-servers.json (no \"active_set\"), so nothing is turned off")
+        ok = ["OK      codex: nothing on outside the set (2 turned off by mhw) (/h/.codex/config.toml)" + tag]
+        self.assertEqual(self.mcp(ok), ("declared; nothing on outside the set and no set member missing", []))
+        lines = ok + [
+            "DRIFT   kiro: on outside the set: synth-b (1); install turns them off (/h/.kiro/settings/mcp.json)" + tag,
+            "ABSENT  claude-code: set member(s) not configured: synth-a (1); render them with "
+            "global/mcp/mcp_render.py (/h/.claude.json)" + tag,
+            "REPORT  claude-desktop: on outside the set, no native switch for one server (remove it by hand): "
+            "synth-c (1) (/h/Library/Application Support/Claude/claude_desktop_config.json)" + tag,
+            "NOTE    claude-code: 1 claude.ai connector(s) declared on (/h/.claude/settings.json)" + tag]
+        head, rest = self.mcp(lines)
+        self.assertEqual(head, "3 finding(s); %s turns off what is on outside the set in 1 agent harness(es)" % ws.FIX)
+        self.assertEqual(self.mcp(lines[2:4])[0], "2 finding(s)", "nothing for install to fix: no fix is named")
+        self.assertEqual(rest, ["kiro: on outside the set: synth-b (1); install turns them off",
+                                "claude-code: set member(s) not configured: synth-a (1); render them with "
+                                "global/mcp/mcp_render.py",
+                                "claude-desktop: on outside the set, no native switch for one server (remove it by "
+                                "hand): synth-c (1)"])
+        self.assertEqual(ws.issues(lines), 1, "only DRIFT is a target install fixes; ABSENT and REPORT are not")
+
+    def test_mcp_active_set_never_reads_clean_when_a_harness_was_not_read(self):
+        """#222 lens: Codex is skipped without Python 3.11+ (macOS ships 3.9), so its servers are unknown and the
+        line says so; an agent harness that is not installed is not a gap."""
+        tag = " (MCP active set)"
+        skip = "SKIP    codex: needs Python 3.11+ (tomllib) to edit config.toml (/h/.codex/config.toml)" + tag
+        absent = "SKIP    kiro: not installed (/h/.kiro absent)" + tag
+        ok = "OK      claude-code: nothing on outside the set (0 turned off by mhw) (/h/.claude/settings.json)" + tag
+        head, rest = self.mcp([skip, absent, ok])
+        self.assertEqual(head, "declared; not read for codex")
+        self.assertEqual(rest, ["codex: not read: needs Python 3.11+ (tomllib) to edit config.toml"])
+        self.assertEqual(self.mcp([absent, ok])[0], "declared; nothing on outside the set and no set member missing")
+        drift = "DRIFT   kiro: on outside the set: synth-b (1); install turns them off (/h/k.json)" + tag
+        head, _ = self.mcp([skip, drift])
+        self.assertTrue(head.startswith("not read for codex; 1 finding(s); "), head)
 
     SETTINGS = [("Claude Code", "user", "model", "claude-opus-5-5[1m]"),
                 ("Claude Code", "user", "effortLevel", "medium"),

@@ -272,6 +272,13 @@ servers that carry no secret and no owner value (today `chrome-devtools`, Claude
 renders it on every `mhw install`, records its names apart in the manifest, and refuses a local definition that reuses
 one of them. The local definition, its secret indirection and its owner-run install are unchanged.
 
+## Amendment 2026-10-24: the definition also names the MCP active set ([ADR-0041](0041-mcp-active-set-native-switch-off-per-harness.md))
+
+A definition that carries an `active_set` key makes its servers the MCP active set (Issue #219): `mcp_render.py
+--active`, run on every `mhw install`, turns off every other MCP server through each agent harness's own switch, and
+uninstall turns them back on. Under a declared set a server's `surfaces` must include Codex, Claude Code and Kiro
+(parity). Without the key, rendering is unchanged and nothing is turned off.
+
 ## Links
 
 - Issue #8. ADR-0003 (h4: connectors are cloud-side). ADR-0006 (surfaces; this record discharges its
