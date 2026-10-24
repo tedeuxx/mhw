@@ -12,7 +12,7 @@
     --source=FILE                 the definition (default: <data dir>/local-overlay/mcp-servers.json)
     --surfaces=a,b                restrict to these surfaces: codex, claude-code, claude-desktop, kiro
     mcp_render.py --active --mode=install|check|dry-run|uninstall [--stamp=S] [--source=FILE]
-                                  the MCP active set (Issue #219, ADR-0040, global/mcp/mcp_active.py): every
+                                  the MCP active set (Issue #219, ADR-0041, global/mcp/mcp_active.py): every
                                   server outside the local definition is turned off through each agent
                                   harness's own switch, once the definition declares "active_set"; uninstall
                                   turns back on what it turned off. Names only, never a value
@@ -1109,7 +1109,7 @@ def policy_main(argv):
 
 
 def active_main(argv):
-    """The MCP active set (Issue #219, ADR-0040): global/mcp/mcp_active.py, run through this renderer."""
+    """The MCP active set (Issue #219, ADR-0041): global/mcp/mcp_active.py, run through this renderer."""
     mode, stamp, source = "install", None, None
     for a in argv:
         if a == "--active":

@@ -272,7 +272,7 @@ servers that carry no secret and no owner value (today `chrome-devtools`, Claude
 renders it on every `mhw install`, records its names apart in the manifest, and refuses a local definition that reuses
 one of them. The local definition, its secret indirection and its owner-run install are unchanged.
 
-## Amendment 2026-10-24: the definition also names the MCP active set ([ADR-0040](0040-mcp-active-set-native-switch-off-per-harness.md))
+## Amendment 2026-10-24: the definition also names the MCP active set ([ADR-0041](0041-mcp-active-set-native-switch-off-per-harness.md))
 
 A definition that carries an `active_set` key makes its servers the MCP active set (Issue #219): `mcp_render.py
 --active`, run on every `mhw install`, turns off every other MCP server through each agent harness's own switch, and

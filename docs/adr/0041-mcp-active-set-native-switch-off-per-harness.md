@@ -1,4 +1,4 @@
-# ADR-0040: The MCP active set, turned off natively in each agent harness outside it
+# ADR-0041: The MCP active set, turned off natively in each agent harness outside it
 
 - **Status:** proposed. The owner took the five decisions it rests on in his interview of 2026-10-24
   ([Issue #219](https://github.com/tedeuxx/mhw/issues/219)); the mechanism below, its opt-in key and its

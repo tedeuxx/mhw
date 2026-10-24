@@ -1165,7 +1165,7 @@ else
   ko "uninstall left the policy MCP server: $(jq -c '.mcpServers' "$hp/.claude.json")"
 fi
 
-# 19c. the MCP active set (Issue #219, ADR-0040), through install.sh: undeclared, install turns nothing off;
+# 19c. the MCP active set (Issue #219, ADR-0041), through install.sh: undeclared, install turns nothing off;
 # declared, install turns off a Codex server outside the set, check is clean after it, and uninstall restores
 # the Codex configuration byte for byte. Per-case semantics: global/mcp/mcp_render_test.py, class ActiveSet.
 ha="$base/home-mcp-active"; mkdir -p "$ha/.codex" "$ha/.local/share/personal-multi-harness-workstation-configuration/local-overlay"

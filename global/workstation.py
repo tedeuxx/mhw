@@ -261,7 +261,7 @@ MODEL_KEYS = {"Claude Code": ("model", "effortLevel"), "Codex": ("model", "model
 MODELS_TAG = "(model defaults "
 
 
-# install.sh --check lines of the MCP active-set step (Issue #219, ADR-0040) end with this tag.
+# install.sh --check lines of the MCP active-set step (Issue #219, ADR-0041) end with this tag.
 MCP_ACTIVE_TAG = "(MCP active set)"
 _MCP_ACTIVE_LINE = re.compile(r"^([A-Z]+)\s+(\S+): (.*) \([^()]*\) \(MCP active set\)$")
 MCP_INDENT = " " * 19

@@ -1,4 +1,4 @@
-"""The MCP active set (Issue #219, ADR-0040): the servers of the local MCP definition are the set, and
+"""The MCP active set (Issue #219, ADR-0041): the servers of the local MCP definition are the set, and
 every other MCP server an agent harness would start is turned off through that harness's own switch.
 
     mcp_render.py --active --mode=install|check|dry-run|uninstall [--stamp=S] [--source=FILE]

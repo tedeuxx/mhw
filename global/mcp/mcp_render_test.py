@@ -1198,7 +1198,7 @@ def active_home(name, canary):
 
 
 class ActiveSet(unittest.TestCase):
-    """Issue #219 (ADR-0040): every server outside the definition is turned off through each agent harness's
+    """Issue #219 (ADR-0041): every server outside the definition is turned off through each agent harness's
     own switch once "active_set" is declared, and uninstall turns back on exactly what install turned off."""
 
     def test_validation_parity_and_connectors(self):
