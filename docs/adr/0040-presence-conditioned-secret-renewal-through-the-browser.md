@@ -1,11 +1,11 @@
 # ADR-0040: With the owner present, the agent may create or renew a secret through his browser
 
-- **Status:** proposed. The three decisions it records (D1, D2, D3) are the owner's own, given on
+- **Status:** proposed. The four decisions it records (D1 to D4) are the owner's own, given on
   [Issue #220](https://github.com/tedeuxx/mhw/issues/220) on 2026-10-24. The record waits for his
   ratification. **Its canary is owed, not passed**, so no part of this record may be read as a claim
   that a secret value stays out of the model's context.
 - **Date:** 2026-10-24
-- **Deciders:** the owner (D1, D2, D3); written by `agents-lead`
+- **Deciders:** the owner (D1 to D4); written by `agents-lead`
 - **Issue:** [#220](https://github.com/tedeuxx/mhw/issues/220)
 - **Amends:** [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md), the reason given for the
   floor row "Writing or deleting a secret": *"A secret is set by the human, never by an agent"*. See
@@ -44,6 +44,10 @@ is owed (ADR-0001 significance gate).
   Deleting or removing a secret is out of scope, and every other floor item stays as it is.
 - **D3, exposure:** *copy without reading*. The agent drives the whole flow and moves the value with
   copy and paste. It takes **no screenshot and no page read while the value is visible**.
+- **D4, auto mode** (raised by the gate on PR #221): *"Auto + seu turno"*. As recorded on the Issue:
+  *"An interactive session in auto mode counts as present when the owner's latest turn asked for this
+  specific act. Otherwise, auto mode stays away."* Evidence level: *"an instruction only. No native
+  prompt fires in auto mode."* In acceptance criterion 5 the away list drops plain "auto mode".
 
 ## Threat model
 
@@ -56,6 +60,7 @@ What the rule protects against, and what each threat costs:
 | The browser tool captures the screen on its own | Some browser tools return a screenshot after a click without being asked; the value would enter context even under D3 | **Nothing yet.** The canary must cover it (owner, D3) |
 | The agent reads the clipboard | A clipboard read (`pbpaste` or a tool equivalent) after the copy puts the value into context | Instruction: the agent never reads the clipboard while it holds a secret |
 | Scope creep | "Present" is read as a general licence for other floor items | D2: secrets only, create or renew only |
+| Auto mode taken as presence | In auto mode no native prompt fires, so an act runs with no human confirmation at the moment it happens | D4: auto counts as present only when his latest turn asked for this specific act; an instruction only, no layer checks it |
 | A stale or inferred presence | An old approval, or an owner turn about something else, is taken as presence | The away list: presence needs an owner turn that asks for this act, in this session |
 
 ## Decision drivers
@@ -115,11 +120,15 @@ browser**, driving the flow with Chrome DevTools or Claude in Chrome, on these c
 The owner is **away** in each of these, and the browser route is forbidden there, exactly as it is
 today:
 
-- auto mode or a bypass-permissions mode;
+- a bypass-permissions mode;
 - a headless run (`claude -p`, `codex exec` and the like);
 - a dispatched subagent (only the main session that talks to him may act);
 - a scheduled run or a cloud run;
-- a local interactive run in which his latest turn did not ask for this act.
+- any session, auto mode included, in which his latest turn did not ask for this specific act.
+
+An interactive session in **auto mode** is not on this list by itself: it counts as present when his
+latest turn asked for this specific act (D4). No native prompt fires there, so this is held by
+instruction only.
 
 The list is closed: a mode not on it is not thereby "present". Presence is the D1 condition holding,
 never the absence of an item on this list.
@@ -129,7 +138,7 @@ never the absence of an item on this list.
 | Part | Layer | Evidence level |
 | --- | --- | --- |
 | The Bash secret-store denies | Native deny rules from `global/deny-floor.conf`, four installed layers (ADR-0016) | Unchanged: installed and enforced as before |
-| Presence (D1) and the away list | **Instruction.** No layer observes whether the owner is watching | Written only |
+| Presence (D1, D4) and the away list | **Instruction.** No layer observes whether the owner is watching | Written only |
 | Scope (D2) | Instruction | Written only |
 | Copy without reading (D3) | Instruction | Written only; **the canary is owed** |
 | The browser route itself | Instruction. No deny entry matches a browser or MCP tool | Written only, as today |
@@ -169,7 +178,7 @@ it exists, is recorded as an amendment here.
 
 ## Links
 
-- Issue [#220](https://github.com/tedeuxx/mhw/issues/220), its intake and the owner's D1, D2 and D3.
+- Issue [#220](https://github.com/tedeuxx/mhw/issues/220), its intake and the owner's D1 to D4.
 - ADR-0016 (the deny floor), ADR-0035 (hooks only for existential risk), ADR-0038 (the
   `chrome-devtools` server bounded by origin).
 - tedeuxx/tadeumendonca-skills#576, tedeuxx/tadeumendonca-io#781.
