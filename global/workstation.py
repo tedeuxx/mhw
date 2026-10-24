@@ -216,6 +216,7 @@ def render_status(f, verbose=False):
         f["brief"], f["floor"], f["hooks"]))
     lines.append("  method           %s" % method_text(f.get("method")))
     lines.append("  models           %s" % models_text(f))
+    lines.extend(mcp_active_lines(f))
     if f.get("permissions"):
         lines.append("  permissions      %s" % f["permissions"])
     key = f["key"]
@@ -258,6 +259,35 @@ MODEL_KEYS = {"Claude Code": ("model", "effortLevel"), "Codex": ("model", "model
               "Kiro": ("chat.defaultModel",)}
 # install.sh --check lines of the model-defaults step (ADR-0035) carry this tag.
 MODELS_TAG = "(model defaults "
+
+
+# install.sh --check lines of the MCP active-set step (Issue #219, ADR-0040) end with this tag.
+MCP_ACTIVE_TAG = "(MCP active set)"
+_MCP_ACTIVE_LINE = re.compile(r"^([A-Z]+)\s+(\S+): (.*) \([^()]*\) \(MCP active set\)$")
+MCP_INDENT = " " * 19
+
+
+def mcp_active_lines(f):
+    """The MCP active set as install.sh --check reported it: every server on outside the set, every set
+    member missing on an agent harness, and what has no native switch. Names and counts only: the lines
+    carry no command, URL or other value."""
+    head = "  mcp active set   "
+    hits = [line for line in f.get("user_lines", []) if line.endswith(MCP_ACTIVE_TAG)]
+    if not hits:
+        return [head + "not read (the check printed no MCP active-set line)"]
+    for line in hits:
+        if line.startswith("SKIP    MCP active set: "):
+            return [head + line[len("SKIP    MCP active set: "):-len(" " + MCP_ACTIVE_TAG)]]
+    findings, drift = [], 0
+    for line in hits:
+        m = _MCP_ACTIVE_LINE.match(line)
+        if m and m.group(1) in ("DRIFT", "REPORT", "ABSENT", "REFUSE"):
+            findings.append("%s: %s" % (m.group(2), m.group(3)))
+            drift += m.group(1) == "DRIFT"
+    if not findings:
+        return [head + "declared; nothing on outside the set and no set member missing"]
+    fix = "; %s turns off what is on outside the set in %d agent harness(es)" % (FIX, drift) if drift else ""
+    return [head + "%d finding(s)%s" % (len(findings), fix)] + [MCP_INDENT + x for x in findings]
 
 
 def models_text(f):

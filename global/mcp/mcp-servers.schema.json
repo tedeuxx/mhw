@@ -13,6 +13,20 @@
       "type": "object",
       "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$" },
       "additionalProperties": { "$ref": "#/$defs/server" }
+    },
+    "active_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Issue #219 (ADR-0040). When present, the servers above are the MCP active set: mhw install turns off every other MCP server through each agent harness's own switch (Codex enabled = false, Claude Code deniedMcpServers, Kiro disabled), reports the Claude desktop app's, and uninstall turns back on what it turned off. Absent, nothing is turned off. With it, a server's surfaces must include codex, claude-code and kiro (parity), or be left out.",
+      "properties": {
+        "description": { "type": "string" },
+        "connectors": {
+          "type": "object",
+          "description": "claude.ai connector display name, as Claude Code lists it after the 'claude.ai ' prefix -> on (in the set) or off (denied in Claude Code as serverName 'claude.ai <Name>'). Connectors are account-level: no local file lists them, so only the ones named here are acted on.",
+          "propertyNames": { "minLength": 1, "maxLength": 128, "pattern": "^\\S(.*\\S)?$" },
+          "additionalProperties": { "enum": ["on", "off"] }
+        }
+      }
     }
   },
   "$defs": {

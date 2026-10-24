@@ -1165,6 +1165,37 @@ else
   ko "uninstall left the policy MCP server: $(jq -c '.mcpServers' "$hp/.claude.json")"
 fi
 
+# 19c. the MCP active set (Issue #219, ADR-0040), through install.sh: undeclared, install turns nothing off;
+# declared, install turns off a Codex server outside the set, check is clean after it, and uninstall restores
+# the Codex configuration byte for byte. Per-case semantics: global/mcp/mcp_render_test.py, class ActiveSet.
+ha="$base/home-mcp-active"; mkdir -p "$ha/.codex" "$ha/.local/share/personal-multi-harness-workstation-configuration/local-overlay"
+printf '%s\n' '[mcp_servers.set-a]' 'command = "/bin/echo"' '' '[mcp_servers.out-b]' 'command = "/bin/echo"' > "$ha/.codex/config.toml"
+act_seed=$(cksum < "$ha/.codex/config.toml")
+act_def="$ha/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json"
+printf '%s\n' '{"version": 1, "servers": {"set-a": {"command": "/bin/echo"}}}' > "$act_def"
+HOME="$ha" sh "$inst" > "$base/mcp-a0.out" 2>&1; expect "install with an undeclared active set" 0 $?
+if [ "$(cksum < "$ha/.codex/config.toml")" = "$act_seed" ] && grep -qF "SKIP    MCP active set: not declared" "$base/mcp-a0.out"; then
+  ok "an undeclared active set turns nothing off"
+else
+  ko "an undeclared active set changed the Codex configuration"; cat "$base/mcp-a0.out"
+fi
+printf '%s\n' '{"version": 1, "servers": {"set-a": {"command": "/bin/echo"}}, "active_set": {}}' > "$act_def"
+HOME="$ha" sh "$inst" --check > /dev/null 2>&1; expect "check reports the server on outside the declared set" 1 $?
+HOME="$ha" sh "$inst" > "$base/mcp-a1.out" 2>&1; expect "install with a declared active set" 0 $?
+if grep -qF "CHANGED codex: turned off out-b (1)" "$base/mcp-a1.out" \
+   && grep -qxF 'enabled = false  # managed-by: personal-multi-harness-workstation-configuration (mcp active set)' "$ha/.codex/config.toml"; then
+  ok "install turns off the Codex server outside the set, natively"
+else
+  ko "the active set did not turn the Codex server off"; cat "$base/mcp-a1.out"
+fi
+HOME="$ha" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the active set is applied" 0 $?
+HOME="$ha" sh "$inst" --uninstall > "$base/mcp-a2.out" 2>&1; expect "uninstall after the active set" 0 $?
+if [ "$(cksum < "$ha/.codex/config.toml")" = "$act_seed" ] && grep -qF "turned back on out-b (1)" "$base/mcp-a2.out"; then
+  ok "uninstall turns the Codex server back on, byte for byte"
+else
+  ko "uninstall did not restore the Codex configuration"; cat "$base/mcp-a2.out"
+fi
+
 # 20. uninstall after a default install removes exactly the start-up block it wrote: the owner's ~/.zshrc,
 # seeded before, comes back byte for byte.
 hu="$base/home-uninstall-rc"; mkdir -p "$hu"

@@ -11,6 +11,11 @@
                                   (JSON surfaces only; a backup is kept)
     --source=FILE                 the definition (default: <data dir>/local-overlay/mcp-servers.json)
     --surfaces=a,b                restrict to these surfaces: codex, claude-code, claude-desktop, kiro
+    mcp_render.py --active --mode=install|check|dry-run|uninstall [--stamp=S] [--source=FILE]
+                                  the MCP active set (Issue #219, ADR-0040, global/mcp/mcp_active.py): every
+                                  server outside the local definition is turned off through each agent
+                                  harness's own switch, once the definition declares "active_set"; uninstall
+                                  turns back on what it turned off. Names only, never a value
     mcp_render.py --policy --mode=install|check|dry-run|uninstall [--stamp=S]
                                   the policy servers (ADR-0038): global/mcp/policy-servers.json, tracked,
                                   rendered by global/install.sh on every mhw install. Each change is printed
@@ -61,8 +66,14 @@ LAUNCHER_SRC = os.path.join(HERE, "mcp-launch.sh")
 POLICY_SRC = os.path.join(HERE, "policy-servers.json")
 POLICY_BACKUP = ".pmhwc-mcp-policy-backup"
 BACKUP = ".pmhwc-backup"
+# The manifest's sections: the local definition's servers, the policy servers (ADR-0038) and what the
+# active set turned off (Issue #219). A section empty in all of them leaves no manifest behind.
+MANIFEST_KEYS = ("surfaces", "stamps", "policy", "policy_stamps", "active")
 
-SOURCE_KEYS = {"$schema", "version", "servers"}
+SOURCE_KEYS = {"$schema", "version", "servers", "active_set"}
+ACTIVE_KEYS = {"description", "connectors"}
+# Decision 1 of Issue #219 (parity): a server in a declared active set is on in all three agent harnesses.
+PARITY = ("codex", "claude-code", "kiro")
 SERVER_KEYS = {"description", "command", "args", "env", "secrets", "surfaces", "not_secret"}
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 ENV_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -302,6 +313,29 @@ def validate(doc, platform=sys.platform):
                 errs.append('%s: secret %r: the source must be "keychain:<service>" or "env:<VAR>"' % (where, k))
         if secrets and platform == "win32":
             errs.append("%s: secrets need the POSIX launcher, which is not available on Windows" % where)
+        if "active_set" in doc and isinstance(surfaces, list) and any(x not in surfaces for x in PARITY):
+            errs.append("%s: the active set is on in Claude Code, Codex and Kiro alike (Issue #219, parity), so "
+                        "\"surfaces\" must include %s, or be left out" % (where, ", ".join(PARITY)))
+    return errs + validate_active(doc.get("active_set", {}))
+
+
+def validate_active(active):
+    """The active set's own keys (Issue #219). The servers are the definition's; only the claude.ai
+    connectors, which are account-level and cannot be read from a local file, are declared here."""
+    if not isinstance(active, dict):
+        return ['"active_set" must be an object']
+    errs = ["active_set: unknown key %r" % k for k in active if k not in ACTIVE_KEYS]
+    if not isinstance(active.get("description", ""), str):
+        errs.append('active_set: "description" must be a string')
+    connectors = active.get("connectors", {})
+    if not isinstance(connectors, dict):
+        return errs + ['active_set: "connectors" must map a claude.ai connector name to "on" or "off"']
+    for name, state in connectors.items():
+        if not name or name != name.strip() or len(name) > 128 or not _no_control(name):
+            errs.append("active_set: connector %r: the name must be the display name claude.ai shows, without "
+                        "leading or trailing blanks or control characters" % name)
+        if state not in ("on", "off"):
+            errs.append('active_set: connector %r: the state must be "on" or "off"' % name)
     return errs
 
 
@@ -739,6 +773,8 @@ def load_manifest():
         v = m.get(key, {})
         if not isinstance(v, dict) or not all(isinstance(x, kind) for x in v.values()):
             raise Refuse(3, "the managed-server manifest %s has an unexpected shape" % manifest_path())
+    if not isinstance(m.get("active", {}), dict):
+        raise Refuse(3, "the managed-server manifest %s has an unexpected shape" % manifest_path())
     return m.get("surfaces", {})
 
 
@@ -755,7 +791,7 @@ def load_manifest_doc():
 
 def write_manifest(doc):
     out = {"version": 1}
-    for key in ("surfaces", "stamps", "policy", "policy_stamps"):
+    for key in MANIFEST_KEYS:
         if doc.get(key) or key in ("surfaces", "stamps"):
             out[key] = doc.get(key, {})
     atomic_write(manifest_path(), json.dumps(out, indent=2) + "\n", backup=False)
@@ -958,7 +994,7 @@ def render_policy(mode, stamp=None, path=POLICY_SRC):
     if mode in ("install", "uninstall") and (pol != mdoc.get("policy", {}) or
                                              pstamps != mdoc.get("policy_stamps", {})):
         mdoc.update({"policy": pol, "policy_stamps": pstamps})
-        if any(mdoc.get(k) for k in ("surfaces", "stamps", "policy", "policy_stamps")):
+        if any(mdoc.get(k) for k in MANIFEST_KEYS):
             write_manifest(mdoc)
         elif os.path.exists(manifest_path()):
             os.remove(manifest_path())
@@ -1072,9 +1108,38 @@ def policy_main(argv):
         return e.code
 
 
+def active_main(argv):
+    """The MCP active set (Issue #219, ADR-0040): global/mcp/mcp_active.py, run through this renderer."""
+    mode, stamp, source = "install", None, None
+    for a in argv:
+        if a == "--active":
+            continue
+        if a in ("--mode=install", "--mode=check", "--mode=dry-run", "--mode=uninstall"):
+            mode = a.split("=", 1)[1]
+        elif a.startswith("--stamp=") and len(a) > len("--stamp="):
+            stamp = a[len("--stamp="):]
+        elif a.startswith("--source=") and len(a) > len("--source="):
+            source = a[len("--source="):]
+        else:
+            print("usage: mcp_render.py --active --mode=install|check|dry-run|uninstall [--stamp=S] [--source=FILE]",
+                  file=sys.stderr)
+            return 2
+    import mcp_active  # beside this file; imported here, since it imports this module
+    try:
+        return mcp_active.main(mode, stamp, source)
+    except Refuse as e:
+        print(str(e), file=sys.stderr)
+        return e.code
+
+
 def main(argv):
+    if "--policy" in argv and "--active" in argv:
+        print("--policy and --active are separate runs", file=sys.stderr)
+        return 2
     if "--policy" in argv:
         return policy_main(argv)
+    if "--active" in argv:
+        return active_main(argv)
     mode, adopt, source, surfaces = "install", False, None, list(SURFACES)
     for a in argv:
         if a in ("--dry-run", "--check", "--scan"):
