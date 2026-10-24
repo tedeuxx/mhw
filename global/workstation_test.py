@@ -358,6 +358,16 @@ class ModelsLine(unittest.TestCase):
                                 "hand): synth-c (1)"])
         self.assertEqual(ws.issues(lines), 1, "only DRIFT is a target install fixes; ABSENT and REPORT are not")
 
+    def test_mcp_connect_lines_show_name_and_result_only(self):
+        """#219 bullet 3: status --mcp-connect prints the check's lines under one heading, without its tag."""
+        tag = " (MCP connect)"
+        lines = ["OK      codex: s-a: ok" + tag, "FAIL    kiro: s-b: fail: timeout" + tag, "an untagged line"]
+        self.assertEqual(ws.mcp_connect_lines(lines, 1), ["  mcp connect      codex: s-a: ok",
+                                                         ws.MCP_INDENT + "kiro: s-b: fail: timeout"])
+        self.assertTrue(ws.mcp_connect_lines([], 2)[0].startswith("  mcp connect      no result (exit 2)"))
+        for bad in ("--mcp-connect=0", "--mcp-connect=x", "--mcp-connect=99999"):
+            self.assertEqual(ws.main(["status", bad]), 2, bad)
+
     def test_mcp_active_set_never_reads_clean_when_a_harness_was_not_read(self):
         """#222 lens: Codex is skipped without Python 3.11+ (macOS ships 3.9), so its servers are unknown and the
         line says so; an agent harness that is not installed is not a gap."""

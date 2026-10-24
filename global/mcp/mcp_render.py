@@ -16,6 +16,10 @@
                                   server outside the local definition is turned off through each agent
                                   harness's own switch, once the definition declares "active_set"; uninstall
                                   turns back on what it turned off. Names only, never a value
+    mcp_render.py --active --mode=connect [--timeout=SECONDS] [--source=FILE]
+                                  owner-run, opt-in (global/mcp/mcp_connect.py): start each set member as each
+                                  agent harness has it, send an MCP initialize, print name and result; exit 1
+                                  when one fails. Default timeout 30 seconds
     mcp_render.py --policy --mode=install|check|dry-run|uninstall [--stamp=S]
                                   the policy servers (ADR-0038): global/mcp/policy-servers.json, tracked,
                                   rendered by global/install.sh on every mhw install. Each change is printed
@@ -1110,22 +1114,30 @@ def policy_main(argv):
 
 def active_main(argv):
     """The MCP active set (Issue #219, ADR-0041): global/mcp/mcp_active.py, run through this renderer."""
-    mode, stamp, source = "install", None, None
+    mode, stamp, source, timeout = "install", None, None, None
     for a in argv:
         if a == "--active":
             continue
-        if a in ("--mode=install", "--mode=check", "--mode=dry-run", "--mode=uninstall"):
+        if a in ("--mode=install", "--mode=check", "--mode=dry-run", "--mode=uninstall", "--mode=connect"):
             mode = a.split("=", 1)[1]
+        elif re.fullmatch(r"--timeout=[1-9][0-9]{0,3}", a):
+            timeout = int(a[len("--timeout="):])
         elif a.startswith("--stamp=") and len(a) > len("--stamp="):
             stamp = a[len("--stamp="):]
         elif a.startswith("--source=") and len(a) > len("--source="):
             source = a[len("--source="):]
         else:
-            print("usage: mcp_render.py --active --mode=install|check|dry-run|uninstall [--stamp=S] [--source=FILE]",
-                  file=sys.stderr)
+            print("usage: mcp_render.py --active --mode=install|check|dry-run|uninstall|connect [--stamp=S] "
+                  "[--source=FILE] [--timeout=SECONDS, connect only]", file=sys.stderr)
             return 2
+    if timeout is not None and mode != "connect":
+        print("--timeout applies to --mode=connect only", file=sys.stderr)
+        return 2
     import mcp_active  # beside this file; imported here, since it imports this module
     try:
+        if mode == "connect":
+            import mcp_connect
+            return mcp_connect.main(mcp_active.load_set(mode, source), timeout or mcp_connect.DEFAULT_TIMEOUT)
         return mcp_active.main(mode, stamp, source)
     except (Refuse, mcp_active.r.Refuse) as e:  # run as a script, this file is __main__ and mcp_render apart
         print(str(e), file=sys.stderr)

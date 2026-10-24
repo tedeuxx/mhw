@@ -1437,6 +1437,183 @@ class ActiveSet(unittest.TestCase):
                                   "node_repl": True})
 
 
+
+# ------------------------------------------------------------------------ the MCP connection check (#219)
+# A tiny stdio MCP stub: it reads one request and answers by its mode. It writes a canary to stderr, which the
+# check must never print, and its pid to a file, so a test can show the check killed it.
+STUB_SERVER = r'''import json, os, sys, time
+mode, pidfile = sys.argv[1], sys.argv[2]
+open(pidfile, "w").write(str(os.getpid()))
+sys.stderr.write("STDERR-CANARY-" + os.environ.get("SYNTH_CANARY", "") + "\n"); sys.stderr.flush()
+if mode == "exit":
+    sys.exit(3)
+req = json.loads(sys.stdin.readline())
+if mode == "hang":
+    time.sleep(600)
+if mode == "needenv" and not os.environ.get("SYNTH_TOKEN"):
+    sys.exit(4)
+print("not json, a log line a server prints first"); sys.stdout.flush()
+print(json.dumps({"jsonrpc": "2.0", "id": 99, "result": {}}))
+if mode == "error":
+    print(json.dumps({"jsonrpc": "2.0", "id": req["id"], "error": {"code": -32603, "message": "x"}}))
+else:
+    print(json.dumps({"jsonrpc": "2.0", "id": req["id"], "result": {"protocolVersion": "2025-06-18",
+                      "capabilities": {}, "serverInfo": {"name": "synth", "version": "0"}}}))
+sys.stdout.flush()
+time.sleep(600)
+'''
+
+
+class _Stub:
+    """A local HTTP stub: /ok answers 200, /login 401 with WWW-Authenticate, /bare401 401 without it, /missing
+    404, /boom 500; /sse answers a GET with 200 and a POST with 405. Every body carries a canary the check must never print."""
+
+    def __init__(self, canary):
+        import http.server
+        import threading
+        stub = self
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def answer(self):
+                stub.agents.append(self.headers.get("User-Agent", ""))
+                length = int(self.headers.get("Content-Length") or 0)
+                if length:
+                    self.rfile.read(length)
+                code = {"/ok": 200, "/login": 401, "/bare401": 401, "/missing": 404, "/boom": 500,
+                        "/sse": 200 if self.command == "GET" else 405}.get(self.path, 404)
+                self.send_response(code)
+                if self.path == "/login":
+                    self.send_header("WWW-Authenticate", 'Bearer resource_metadata="x"')
+                body = ("BODY-CANARY-" + canary).encode()
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            do_POST = answer
+            do_GET = answer
+
+        self.agents = []
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        self.url = "http://127.0.0.1:%d" % self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
+def connect(home, *extra, env=None):
+    return run(home, "--active", "--mode=connect", *extra, env=env)
+
+
+def pid_alive(pidfile):
+    try:
+        os.kill(int(read(pidfile)), 0)
+    except (OSError, ValueError):
+        return False
+    return True
+
+
+class Connect(unittest.TestCase):
+    """Issue #219, done-when bullet 3 (ADR-0041 amendment of 2026-10-24): an owner-run, opt-in check that starts
+    each set member as each agent harness has it and says whether it answers an MCP initialize."""
+
+    def test_http_results_map_to_ok_needs_login_and_fail(self):
+        import mcp_connect as c
+        stub = _Stub("synthetic-" + secrets.token_hex(6))
+        try:
+            got = {path: c.probe_http(stub.url + path, "http", 5)
+                   for path in ("/ok", "/login", "/bare401", "/missing", "/boom")}
+            got["sse"] = c.probe_http(stub.url + "/sse", "sse", 5)
+        finally:
+            stub.close()
+        self.assertEqual(got, {"/ok": "ok", "/login": "needs login", "/bare401": "fail: http 401",
+                               "/missing": "fail: http 404", "/boom": "fail: http 500", "sse": "ok"})
+        self.assertTrue(all(a.startswith("mhw-mcp-connect/") for a in stub.agents), stub.agents)
+        self.assertEqual(c.probe_http("http://127.0.0.1:9/mcp", "http", 3), "fail: unreachable")
+
+    def test_stdio_members_are_started_as_each_harness_has_them_and_killed(self):
+        canary = "synthetic-" + secrets.token_hex(8)
+        h = mk_home("home-connect")
+        stub_py = os.path.join(BASE, "mcp_stub_server.py")
+        with open(stub_py, "w") as fh:
+            fh.write(STUB_SERVER)
+        pids = os.path.join(h, "pids")
+        os.makedirs(pids)
+        parity = ["codex", "claude-code", "kiro"]
+
+        def server(mode, **more):
+            return dict({"command": sys.executable, "args": [stub_py, mode, os.path.join(pids, mode)],
+                         "surfaces": parity}, **more)
+
+        doc = {"version": 1, "active_set": {}, "servers": {
+            "s-ok": server("ok"), "s-err": server("error"), "s-exit": server("exit"), "s-hang": server("hang"),
+            "s-secret": server("needenv", secrets={"SYNTH_TOKEN": "env:SYNTH_SRC"}),
+            "s-web": {"command": "/bin/echo", "surfaces": parity}}}
+        src = write_source(h, doc)
+        self.assertEqual(run(h, "--source=" + src).returncode, 0, "the renderer writes every surface")
+        stub = _Stub(canary)
+        try:
+            cc = jload(targets(h)["claude-code"])
+            cc["mcpServers"]["s-web"] = {"type": "http", "url": stub.url + "/login"}
+            # Not set members: the policy server and an exempt one are never started.
+            started = os.path.join(h, "not-a-member-started")
+            cc["mcpServers"]["chrome-devtools"] = {"command": "/usr/bin/touch", "args": [started]}
+            cc["mcpServers"]["claude-in-chrome"] = {"command": "/usr/bin/touch", "args": [started]}
+            write_json(targets(h)["claude-code"], cc)
+            kiro = jload(targets(h)["kiro"])
+            kiro["mcpServers"]["s-hang"]["disabled"] = True  # off in Kiro: not checked there
+            write_json(targets(h)["kiro"], kiro)
+            env = clean_env(h, SYNTH_SRC="synthetic-token", SYNTH_CANARY=canary)
+            p = connect(h, "--timeout=3", env=env)
+        finally:
+            stub.close()
+        out = p.stdout + p.stderr
+        self.assertEqual(p.returncode, 1, out)
+        for surface in parity:
+            self.assertIn("OK      %s: s-ok: ok (MCP connect)" % surface, p.stdout)
+            self.assertIn("FAIL    %s: s-err: fail: error response (MCP connect)" % surface, p.stdout)
+            self.assertIn("FAIL    %s: s-exit: fail: exited 3 (MCP connect)" % surface, p.stdout)
+            self.assertIn("OK      %s: s-secret: ok (MCP connect)" % surface, p.stdout,
+                          "the secret reaches the server through mcp-launch.sh")
+        self.assertIn("FAIL    codex: s-hang: fail: timeout (MCP connect)", p.stdout)
+        self.assertNotIn("kiro: s-hang", p.stdout, "a member turned off on an agent harness is not checked there")
+        self.assertIn("OK      claude-code: s-web: needs login (MCP connect)", p.stdout)
+        self.assertNotIn(canary, out, "neither stderr nor a response body is printed")
+        self.assertNotIn("synthetic-token", out)
+        self.assertNotIn("127.0.0.1", out, "no URL is printed")
+        self.assertNotIn(stub_py, out, "no command is printed")
+        self.assertFalse(os.path.exists(started), "the policy server and an exempt server are not started")
+        self.assertFalse(pid_alive(os.path.join(pids, "hang")), "a server that never answered is killed")
+        self.assertFalse(pid_alive(os.path.join(pids, "ok")), "a server that answered is killed too")
+
+    def test_all_ok_exits_zero_and_an_undeclared_set_checks_nothing(self):
+        h = mk_home("home-connect-ok")
+        stub_py = os.path.join(BASE, "mcp_stub_server.py")
+        with open(stub_py, "w") as fh:
+            fh.write(STUB_SERVER)
+        src = write_source(h, {"version": 1, "active_set": {}, "servers": {"s-ok": {
+            "command": sys.executable, "args": [stub_py, "ok", os.path.join(h, "pid")],
+            "surfaces": ["codex", "claude-code", "kiro"]}}})
+        self.assertEqual(run(h, "--source=" + src).returncode, 0)
+        p = connect(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(p.stdout.count(": s-ok: ok (MCP connect)"), 3, p.stdout)
+        write_source(h, {"version": 1, "servers": {"s-ok": {"command": "/bin/echo"}}})
+        p = connect(h)
+        self.assertEqual(p.returncode, 0)
+        self.assertIn("SKIP    MCP connect: no active set is declared", p.stdout)
+
+    def test_connect_arguments(self):
+        h = mk_home("home-connect-usage")
+        for args in (("--active", "--mode=connect", "--timeout=0"), ("--active", "--mode=connect", "--timeout=x"),
+                     ("--active", "--mode=check", "--timeout=5")):
+            self.assertEqual(run(h, *args).returncode, 2, args)
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.exit("usage: mcp_render_test.py <empty-or-new base directory>")
