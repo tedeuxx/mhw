@@ -149,9 +149,11 @@ install is the owner's act, from his own terminal, is an instruction, as for eve
 
 ### Bad, and the limits
 
-- **Connection is not checked (follow-up, Issue #219 stays open for it).** The Issue's done-when asks
+- ~~**Connection is not checked (follow-up, Issue #219 stays open for it).** The Issue's done-when asks
   `mhw status` to name any server in the set that fails to connect. This slice does not build it:
-  status names what is configured, missing or blocked, never whether a server starts or answers.
+  status names what is configured, missing or blocked, never whether a server starts or answers.~~
+  *Struck 2026-10-24: built, opt-in; see the amendment below.* The default `mhw status` still never
+  starts a server.
 - **A plugin server that collides with a kept server stays on.** When its command, or its URL's host,
   equals a kept server's, a deny would block both, so none is written and the server is reported. The
   host test is deliberately wider than Claude Code's own match, so it reports more than it must rather
@@ -177,9 +179,43 @@ install is the owner's act, from his own terminal, is an instruction, as for eve
 - **Scope:** user scope only. A project's `.mcp.json`, a project-scoped entry in `~/.claude.json`, a
   Kiro workspace `mcp.json` and a Codex project config are not read. The denylist does reach a
   project's server of the same name or URL, because Claude Code matches it wherever it is defined.
-- **macOS and Linux only.** `install.ps1` does not run it; on Windows nothing is turned off.
+- **macOS and Linux only.** `install.ps1` does not run it; on Windows nothing is turned off, and the
+  connection check does not run.
 - **Evidence:** written and tested in throwaway homes; the Codex switch probed. Not installed on the
   reference machine, and not checked in a signed-in session of any agent harness.
+
+## Amendment 2026-10-24: the connection check, opt-in (Issue #219, done-when bullet 3)
+
+**Decided (the coordinator's design, recorded here):** `mhw status --mcp-connect[=SECONDS]`, which runs
+`mcp_render.py --active --mode=connect [--timeout=SECONDS]` (`global/mcp/mcp_connect.py`) after the status
+view. Chosen surface: a `status` flag, because the result is a status finding, and opt-in, because it is
+never part of the default view: starting a server has side effects (a process, a package fetch, a sign-in
+prompt) and costs up to the timeout per server. Default timeout 30 seconds.
+
+- **Scope:** each set member, on each agent harness where it is configured and enabled (Codex
+  `enabled` not false, Kiro `disabled` not true, Claude Code and the desktop app as configured). Not
+  checked: the policy server (it fetches a package at every start) and the exempt servers (they belong
+  to their apps). A set member not configured on an agent harness is the check's `ABSENT`, not this one's.
+- **stdio:** the configured command, args and env, as the agent harness has them, with `${VAR}` and
+  `${VAR:-default}` expanded for Claude Code and Kiro. A secret-bearing server runs through
+  `mcp-launch.sh`, which reads its secret; the probe never does. One `initialize` request on stdin; the
+  result is `ok` on the matching result, `fail: error response` on the matching error, `fail: exited
+  <code>` or `fail: timeout`. The process group is killed afterwards, answered or not (tested).
+- **http:** a POST of `initialize` with the client User-Agent `mhw-mcp-connect/1` and **no configured
+  header**: a header can carry a credential, and the probe sends none. 2xx is `ok`; 401 with
+  `WWW-Authenticate` is `needs login` and counts as reachable; any other status or a network error fails.
+  **sse** (the legacy transport) is a GET of the event stream instead, read for its status only: such an
+  endpoint is opened with a GET and typically refuses a POST, so a POST would report a working server as
+  failed.
+- **Output:** one line per server per agent harness, `<harness>: <name>: <result>`. Never stderr, a
+  response body, a command or a URL (tested with canaries). Exit 1 when a set member fails.
+
+**Limits:** a server that needs a configured header to answer shows as `needs login` or fails, though the
+agent harness, which sends the header, may connect. `ok` means it answered `initialize` from this
+process, with this environment: the agent harness's own environment (a GUI app's in particular) can
+differ. Not run on Windows, and on Python before 3.11 the Codex surface is skipped. Evidence: written
+and tested against a synthetic stdio stub and a local HTTP stub, in throwaway homes; not run on the
+reference machine.
 
 ## Links
 
