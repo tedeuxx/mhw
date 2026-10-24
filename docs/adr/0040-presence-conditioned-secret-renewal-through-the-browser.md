@@ -1,11 +1,13 @@
 # ADR-0040: With the owner present, the agent may create or renew a secret through his browser
 
-- **Status:** proposed. The four decisions it records (D1 to D4) are the owner's own, given on
+- **Status:** proposed. The five decisions it records (D1 to D5) are the owner's own, given on
   [Issue #220](https://github.com/tedeuxx/mhw/issues/220) on 2026-10-24. The record waits for his
-  ratification. **Its canary is owed, not passed**, so no part of this record may be read as a claim
-  that a secret value stays out of the model's context.
+  ratification. **The canary has run in local emulation only; the canary on the real forge page is
+  owed, not passed** (see the amendment "2026-10-24: canary results in local emulation"). No part of
+  this record may be read as a claim that a secret value stays out of the model's context on the real
+  page.
 - **Date:** 2026-10-24
-- **Deciders:** the owner (D1 to D4); written by `agents-lead`
+- **Deciders:** the owner (D1 to D5); written by `agents-lead`
 - **Issue:** [#220](https://github.com/tedeuxx/mhw/issues/220)
 - **Amends:** [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md), the reason given for the
   floor row "Writing or deleting a secret": *"A secret is set by the human, never by an agent"*. See
@@ -48,6 +50,11 @@ is owed (ADR-0001 significance gate).
   *"An interactive session in auto mode counts as present when the owner's latest turn asked for this
   specific act. Otherwise, auto mode stays away."* Evidence level: *"an instruction only. No native
   prompt fires in auto mode."* In acceptance criterion 5 the away list drops plain "auto mode".
+- **D5, how the value moves** (raised by canary run 2's reverse calibration): *"Script ou colar"*
+  ([Issue comment](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6390004151)). Rule 3 allows
+  two routes: the page's own copy control and a paste into the target field, or an in-page script that
+  moves the value from the source element into the target field and returns nothing that carries the
+  value. **Each route needs its own canary** before any real use.
 
 ## Threat model
 
@@ -56,7 +63,7 @@ What the rule protects against, and what each threat costs:
 | Threat | What goes wrong | Covered by |
 | --- | --- | --- |
 | An unattended run writes a secret | A drain, a scheduled run or a subagent replaces a credential nobody asked for; the owner learns of it from a failing deploy, or never | The closed away list below; the Bash denies |
-| The value enters the model's context | A screenshot, a page snapshot or a script read carries the token to the model provider and into the session transcript on disk, against the workstation brief's rule 2 (sanitise secrets) | D3, copy without reading; the canary, **owed** |
+| The value enters the model's context | A screenshot, a page snapshot, a page-text read or a script that returns the value carries the token to the model provider and into the session transcript on disk, against the workstation brief's rule 2 (sanitise secrets) | D3 and D5, copy without reading; the canary, run in local emulation only, **owed on the real page** |
 | The browser tool captures the screen on its own | Some browser tools return a screenshot after a click without being asked; the value would enter context even under D3 | **Nothing yet.** The canary must cover it (owner, D3) |
 | The agent reads the clipboard | A clipboard read (`pbpaste` or a tool equivalent) after the copy puts the value into context | Instruction: the agent never reads the clipboard while it holds a secret |
 | Scope creep | "Present" is read as a general licence for other floor items | D2: secrets only, create or renew only |
@@ -106,14 +113,23 @@ browser**, driving the flow with Chrome DevTools or Claude in Chrome, on these c
    not from D1's words) requires that the owner's own latest turn in this session asked for this act.
 2. **Create or renew only (D2).** Deleting or removing a secret is not covered, and neither is any other
    floor item.
-3. **Copy without reading (D3).** No screenshot, no page snapshot, no page-text or script read, and no
-   clipboard read while the value is visible or held. The agent moves the value with the page's own copy
-   control and a paste into the target field.
+3. **Copy without reading (D3, as amended by D5).** ~~No screenshot, no page snapshot, no page-text or
+   script read, and no clipboard read while the value is visible or held. The agent moves the value with
+   the page's own copy control and a paste into the target field.~~ *(Struck 2026-10-24, D5: it forbade
+   the script route that canary run 2 measured.)* No screenshot, no page snapshot, no page-text read
+   returned to the agent, and no clipboard read while the value is visible or held. The agent moves the
+   value by one of two routes:
+   - **(a) paste:** the page's own copy control, then a paste into the target field;
+   - **(b) script:** an in-page script that moves the value from the source element into the target
+     field and returns nothing that carries the value.
+
+   Each route needs its own canary before its first real use (D5).
 4. **The browser only.** The Bash secret-store commands stay denied (`gh secret set/delete/remove` and
    the rest of ADR-0016's row). The agent does not pass the value through a shell command, a file or a
    tool argument.
 5. **No real use before the canary passes.** The canary below is a precondition of the first real use
-   (D3), run through each browser tool that will be used; if it fails, the route stays closed.
+   (D3), run through each browser tool and each route of rule 3 that will be used (D5); if it fails,
+   that route stays closed.
 
 ### Away: a closed list
 
@@ -140,7 +156,7 @@ never the absence of an item on this list.
 | The Bash secret-store denies | Native deny rules from `global/deny-floor.conf`, four installed layers (ADR-0016) | Unchanged: installed and enforced as before |
 | Presence (D1, D4) and the away list | **Instruction.** No layer observes whether the owner is watching | Written only |
 | Scope (D2) | Instruction | Written only |
-| Copy without reading (D3) | Instruction | Written only; **the canary is owed** |
+| Copy without reading (D3, D5) | Instruction | Written only. Canary in local emulation only: the script route through `chrome-devtools` passed; the paste route through Claude in Chrome did not. **The canary on the real page is owed** (amendment "2026-10-24: canary results in local emulation") |
 | The browser route itself | Instruction. No deny entry matches a browser or MCP tool | Written only, as today |
 
 The `chrome-devtools` server this repository installs is bound to the consuming project's declared
@@ -164,6 +180,34 @@ Before the first real use, on a throwaway repository secret:
 Until it passes, this record makes **no claim that the value never enters the context**. Its result, when
 it exists, is recorded as an amendment here.
 
+#### Amendment 2026-10-24: canary results in local emulation
+
+Recorded from the run reports on Issue #220
+([run 1](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6389916754),
+[run 2 blocked](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6389950373),
+[run 2](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6389977724),
+[reverse calibration](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6389990795)). **Local
+emulation only:** a page served on `127.0.0.1` generated a random fake `github_pat_…` value in the page
+itself and showed it beside a password field. No real forge page and no real secret were involved. The
+counter used `grep -F -f` across `~/.claude/projects/-Users-tadeumen` and the session's task outputs,
+printing counts only.
+
+| Route | Tool | Result | Counts |
+| --- | --- | --- | --- |
+| (b) script | `chrome-devtools` (run 2) | **Passed in emulation.** One in-page script moved the value into the field and returned only `"ok"`; no snapshot, no screenshot | `positive_control=2`, **`canary=0`** |
+| (b) script, reverse calibration | `chrome-devtools` (same session) | A script returned a fresh fake value on purpose | `positive_control=4`, `canary=2`: non-zero, so run 2's 0 is a real negative |
+| (a) paste | Claude in Chrome (run 1) | **Not passed.** The copy step put the value into no transcript; the paste into the password field failed (*"Cannot access a chrome-extension:// URL of different extension"*, not diagnosed) | copy step: `positive_control=2`, **`canary=0`** |
+
+- **Run 2 was first blocked:** `chrome-devtools` is launched with
+  `--allowedUrlPattern "$HARNESS_SWEEP_ORIGIN"` (ADR-0038) and `--isolated`, so a page opens only in a
+  session launched with that variable set to the target origin, in a throwaway profile.
+- **Not proven:** the real forge page; the MCP server's own logs, which were not searched; any field
+  outside the page, such as a password manager.
+- **Still owed before any real use:** the real flow on a **throwaway repository secret** at
+  `github.com`, in a session launched with `HARNESS_SWEEP_ORIGIN='https://github.com/*'`. The owner logs
+  in to the isolated window himself; the agent never enters credentials. The first real use repeats the
+  count.
+
 ## Consequences
 
 - **Good:** the owner gets full help while he watches; every mechanical deny is untouched; the rule now
@@ -178,7 +222,7 @@ it exists, is recorded as an amendment here.
 
 ## Links
 
-- Issue [#220](https://github.com/tedeuxx/mhw/issues/220), its intake and the owner's D1 to D4.
+- Issue [#220](https://github.com/tedeuxx/mhw/issues/220), its intake, the owner's D1 to D5 and the canary run reports.
 - ADR-0016 (the deny floor), ADR-0035 (hooks only for existential risk), ADR-0038 (the
   `chrome-devtools` server bounded by origin).
 - tedeuxx/tadeumendonca-skills#576, tedeuxx/tadeumendonca-io#781.
