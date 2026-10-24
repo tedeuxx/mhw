@@ -103,10 +103,12 @@ Option 1.
   2026-10-13 is 1.10.1). It is fetched by `npx --ignore-scripts -y`: install scripts do not run, and
   npm checks the tarball against the registry's integrity hash
   (`sha512-Wrm9z0/5WbVs778apjWgYRkpe9bvYQWjK2zVRwqoPAtz1IHQ5+GvotM07UGXJcfrA0rj6Gt1Pnn5+w/Tf1nU4w==`,
-  `npm view chrome-devtools-mcp@1.8.0 dist.integrity`). Flags, as the plugin: `--isolated` (a
-  temporary profile, none of the owner's sessions), `--channel stable`, `--viewport 1280x800`,
-  `--no-usage-statistics`, `--no-performance-crux`, `--allowedUrlPattern <origin>`. The flags were
-  checked against the pinned version's `--help`.
+  `npm view chrome-devtools-mcp@1.8.0 dist.integrity`). Flags, ~~as the plugin: `--isolated` (a
+  temporary profile, none of the owner's sessions), `--channel stable`, `--viewport 1280x800`,~~
+  *(struck 2026-10-24, #224: see the amendment "attach to the owner's Chrome")* `--autoConnect`
+  when the project declares an http(s) origin, else `--isolated`; `--channel stable`, `--no-usage-statistics`, `--no-performance-crux`, `--allowedUrlPattern <origin>`.
+  The flags were checked against the pinned version's `--help` ~~.~~ and, for `--autoConnect`, its
+  source.
 - **Route.** `global/mcp/mcp_render.py --policy --mode=install|check|dry-run|uninstall`, called by
   `global/install.sh` (its `mcp_step`) on every `mhw install`, `mhw check` and `mhw uninstall`. The
   previous `~/.claude.json` is kept as `~/.claude.json.pmhwc-mcp-policy-backup`, owner-only (0600). Each
@@ -234,6 +236,85 @@ stays the discard port; fail-closed is unchanged.
   reaches the server's environment); the session that loads the dedicated workspace has not yet been
   run at the time of writing. ADR-0022 applies: start a fresh session in that directory before relying
   on it.
+
+## Amendment 2026-10-24: attach to the owner's Chrome ([Issue #224](https://github.com/tedeuxx/mhw/issues/224))
+
+The owner decided, verbatim (decision D6 on #220): *"nao faz sentido voce rodar o chrome-devtools fora
+do meu profile. senao voce vai sempre pedir para logar."* On #224 he added that remote debugging must
+be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
+
+- **The change.** When the project declares an http(s) origin in `HARNESS_SWEEP_ORIGIN`, the server
+  passes `--autoConnect --channel stable` and attaches to the owner's running Chrome, the default
+  profile of the stable channel. Otherwise it keeps the throwaway `--isolated` launch, bound to the
+  discard port, so a project with no declared origin raises no Chrome prompt and never touches his
+  tabs (decided by the coordinator, reversible). The two flags never appear together: 1.8.0 declares
+  `--isolated` a conflict of `--autoConnect`. `--viewport` is removed in both modes. The origin bound
+  is unchanged.
+- **The risk the owner accepted.** The agent drives a browser that holds all of his logins. Within the
+  bound, a page opens with his session: on the declared origin, the agent sees what he sees when he is
+  logged in there. Outside it, the bound refuses the page.
+- **Why the bound still holds when attached** ~~(cited from source; the canary is owed)~~ *(measured
+  2026-10-26, [live probe](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427884355): attached to the owner's Chrome 155.0.8059.85, `https://example.com/` opened
+  under the bound and `https://example.org/` was refused with "Navigation to https://example.org/ is
+  blocked by blocklist/allowlist rules")*. The source reason, in 1.8.0:
+  `build/src/index.js` hands the same `allowlist` to `ensureBrowserConnected` as to
+  `ensureBrowserLaunched`, and `build/src/browser.js` passes it to `puppeteer.connect`. In the bundled
+  puppeteer-core 25.8.0, the connect path builds the same `CdpBrowser` and `TargetManager` as the
+  launch path. They refuse a `goto` outside the pattern (*"Navigation to … is blocked by
+  blocklist/allowlist rules"*), detach from tabs whose URL is outside it at the first attach, and set a
+  network rule on every attached target that takes everything but the pattern offline.
+- **Chrome's own controls, kept.** The remote-debugging server that `--autoConnect` reaches is the
+  one the owner turns on at `chrome://inspect/#remote-debugging`. Chrome starts it in an
+  approval-only mode and asks him to allow a connection. **Measured** (the same probe): one connection,
+  one approval prompt, which he allowed. **Not measured:** whether the prompt fires on every connection
+  (as Chrome's documentation says) or once per Chrome run; the probe made one connection. That prompt
+  fits D1 (presence) and is not bypassed. A local process that tries the same port meets the same prompt
+  (cited, not measured).
+- **Default on, with nothing to remember.** The toggle is the Chrome preference
+  `devtools.remote_debugging.user-enabled`, stored in the browser's Local State, not per profile, and
+  Chrome reads it at startup. Neither alternative turns it on: Chrome ignores `--remote-debugging-port`
+  on the default user data directory since Chrome 136, and the `RemoteDebuggingAllowed` policy can only
+  forbid remote debugging. ~~`mhw install` does not write it~~ *(owner's decision on
+  [#224](https://github.com/tedeuxx/mhw/issues/224), the same day: "mhw edita o Local State")*
+  `mhw install` sets it, through `global/chrome_debugging.py`:
+  - only while Chrome is not running; if it runs, the step prints one SKIP line and writes nothing;
+  - only that key: a JSON round-trip that keeps every other field and the file's mode, written to a
+    temporary file in Chrome's own directory and renamed over the original;
+  - no backup anywhere, and no output that carries the file's contents;
+  - a no-op when the key is already true; `check` reports DRIFT while it is not; uninstall leaves it.
+- **Status.** `mhw status` prints a `chrome debugging` line with that one key's value (read as that key,
+  never printed as file contents) and whether `DevToolsActivePort` exists. So a Chrome update that
+  renames the key reads "off" or "not read" instead of failing silently. `DevToolsActivePort` is
+  written when the server starts, and no removal of it was found in Chrome's source, so a present file
+  may be stale.
+- **Accepted with the decision:** Local State also holds personal data, and a Chrome update can change
+  the key. **Not measured:** the `Local State` write itself, and whether Chrome honours a value written
+  from outside it; in the probe the owner turned the toggle on by hand. The first install on the
+  reference machine, with Chrome quit, is that measurement.
+
+Consequences, bad:
+
+- ~~**The bound now clamps the owner's own browsing while a session is attached.** The network rule
+  lands on every target the server attaches to, including a tab the owner opens himself.~~ *(Refuted
+  2026-10-26 by the [live probe](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427884355): while the server was attached, a tab he opened himself to
+  `https://example.net/`, outside the bound, loaded. One run, one build; the source reading was wrong
+  for his own tabs. Not measured: a tab's network after the server disconnects. He had closed the tab
+  before that step ([correction](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427911167)).)*
+- **No unattended sweep.** A connection waits for his click, so a sweep with nobody at the machine
+  cannot attach. That is D1 working as designed.
+- **The product lens changes.** The sweep now sees the declared origin logged in as the owner, not as
+  the anonymous reader. The package offers `new_page` with an `isolatedContext` (a separate browser
+  context inside the attached Chrome, holding none of his cookies), and `product-lead`'s brief now
+  asks for it when the reader's view is the point.
+
+Evidence level: **written and tested** (`global/mcp/mcp_render_test.py`, `global/workstation_test.py`,
+`global/chrome_debugging_test.py`, on a fixture Local State). **Measured** for the package itself, by the
+[live probe of 2026-10-26](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427884355), which launched `chrome-devtools-mcp@1.8.0 --autoConnect --channel stable
+--allowedUrlPattern 'https://example.com/*'` on its own, with the owner watching: the attach, the
+approval prompt, the allowed origin opening and the disallowed origin refused. The rendered
+configuration is not installed and not loaded; that needs `mhw install` and a fresh session
+(ADR-0022). Still not measured: the `Local State` write, whether the prompt fires per connection or per
+Chrome run, and a tab's network after the server disconnects ([correction](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427911167)).
 
 ## Links
 

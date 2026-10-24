@@ -204,9 +204,10 @@ printing counts only.
 - **Not proven:** the real forge page; the MCP server's own logs, which were not searched; any field
   outside the page, such as a password manager.
 - **Still owed before any real use:** the real flow on a **throwaway repository secret** at
-  `github.com`, in a session launched with `HARNESS_SWEEP_ORIGIN='https://github.com/*'`. The owner logs
-  in to the isolated window himself; the agent never enters credentials. The first real use repeats the
-  count.
+  `github.com`, in a session launched with `HARNESS_SWEEP_ORIGIN='https://github.com/*'`. ~~The owner logs
+  in to the isolated window himself;~~ *(struck 2026-10-24, #224: the server now attaches to the owner's
+  own Chrome, ADR-0038 amendment, so his existing login is used and he allows the connection)* the
+  agent never enters credentials. The first real use repeats the count.
 
 ## Consequences
 

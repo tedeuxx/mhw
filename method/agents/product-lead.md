@@ -645,11 +645,15 @@ distrusts, and it is written here rather than hidden.
 
 ### What you can now reach that you could not before — and what it cost
 
-**A read-only browser, bounded to one origin, on a throwaway profile.** Navigate, screenshot, resize,
-emulate, read the console, read the network log, take a snapshot. The profile is `--isolated`, a
-temporary user-data-dir discarded on close, so it holds **none** of the owner's sessions — which is also
-the correct lens rather than merely the safe one: **the reader this site is for is not logged in as
-him.** Never log in, never submit a form, never type a credential; the standing rule that no agent
+**A read-only browser, bounded to one origin, ~~on a throwaway profile~~ attached to the owner's own
+Chrome** *(struck 2026-10-24, mhw#224, ADR-0038 amendment)*. Navigate, screenshot, resize, emulate, read
+the console, read the network log, take a snapshot. ~~The profile is `--isolated`, a temporary
+user-data-dir discarded on close, so it holds **none** of the owner's sessions — which is also the
+correct lens rather than merely the safe one:~~ The browser is his running Chrome, so a page on the
+declared origin opens **with his logins**, and Chrome asks him to allow the connection. **The reader
+this site is for is not logged in as him**, so when the reader's view is the point, open the page with
+`new_page` and an `isolatedContext` name: a separate browser context that holds none of his cookies.
+Never log in, never submit a form, never type a credential; the standing rule that no agent
 authenticates is not suspended because a tool made it easy.
 
 **The origin bound is enforced by Chrome, not by your memory.** `--allowedUrlPattern` makes the browser
