@@ -200,7 +200,9 @@ prompt) and costs up to the timeout per server. Default timeout 30 seconds.
   `${VAR:-default}` expanded for Claude Code and Kiro. A secret-bearing server runs through
   `mcp-launch.sh`, which reads its secret; the probe never does. One `initialize` request on stdin; the
   result is `ok` on the matching result, `fail: error response` on the matching error, `fail: exited
-  <code>` or `fail: timeout`. The process group is killed afterwards, answered or not (tested).
+  <code>` or `fail: timeout`. The server's whole process group is killed afterwards, answered or not,
+  and also when the leader exited first and left a child behind (tested on both paths; the first build
+  killed the group only while the leader was alive, found by the PR #225 lens).
 - **http:** a POST of `initialize` with the client User-Agent `mhw-mcp-connect/1` and **no configured
   header**: a header can carry a credential, and the probe sends none. 2xx is `ok`; 401 with
   `WWW-Authenticate` is `needs login` and counts as reachable; any other status or a network error fails.
@@ -209,6 +211,16 @@ prompt) and costs up to the timeout per server. Default timeout 30 seconds.
   failed.
 - **Output:** one line per server per agent harness, `<harness>: <name>: <result>`. Never stderr, a
   response body, a command or a URL (tested with canaries). Exit 1 when a set member fails.
+
+**Limits, also:**
+
+- An OAuth server that is already signed in in the agent harness still reads `needs login`: the probe
+  sends no token.
+- Codex may start a server with a restricted environment; the probe passes its own full environment, so
+  `ok` can be optimistic for Codex.
+- A 30x answer to the POST is followed by Python's `urllib`, so the result is that of the redirect target.
+- A member that a `deniedMcpServers` entry blocks in Claude Code is still probed, from its configuration:
+  read this check together with the `check`'s `ABSENT` line, which names it.
 
 **Limits:** a server that needs a configured header to answer shows as `needs login` or fails, though the
 agent harness, which sends the header, may connect. `ok` means it answered `initialize` from this
