@@ -550,7 +550,7 @@ he is away.*
   observed by no layer, so this is written only, not enforced.
 - **Deleting a secret is not covered**, and neither is any other floor item.
 - **The canary is owed.** Until it passes, no claim is made that the value stays out of the model's
-  context.
+  context, and no real use happens before it does (D3).
 
 ## Links
 

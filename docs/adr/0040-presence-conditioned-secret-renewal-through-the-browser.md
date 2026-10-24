@@ -77,8 +77,10 @@ What the rule protects against, and what each threat costs:
    It would also loosen the floor for every away mode that does not honour the prompt, and the value
    would still have to reach `gh secret set` through the agent's command.
 3. **A hook that observes presence.** *Rejected.* A hook sees a tool payload, not whether the owner is
-   watching the screen; and ADR-0035 reserves hooks for existential risk where a hook can actually hold
-   the control. A hook that guesses presence would read as enforcement and behave as advice.
+   watching the screen; and ADR-0035 records the owner's principle that *"hooks somente devem ser
+   utilizados para mitigacao de riscos existenciais"* (hooks should only be used to mitigate existential
+   risks). Even where that bar were met, a hook that guesses presence would read as enforcement and
+   behave as advice.
 4. **A presence-conditioned browser route, held as an instruction (chosen).** With the owner present
    (D1), the agent may create or renew a secret or token (D2) in his browser, copying without reading
    (D3). Every Bash deny stays. *Trade-off:* nothing mechanical stops an away run from driving the
@@ -94,8 +96,9 @@ Chosen option 4.
 With the owner **present**, the agent may **create or renew** a secret or a token **through his
 browser**, driving the flow with Chrome DevTools or Claude in Chrome, on these conditions:
 
-1. **Present means D1, and only D1:** in this session, the owner's own latest turn asked for this act,
-   and he is watching the browser while the agent drives it.
+1. **Present means D1:** he is watching the browser, live, while the agent drives it. **And** the
+   session is not on the away list below, whose last item (from acceptance criterion 5 on Issue #220,
+   not from D1's words) requires that the owner's own latest turn in this session asked for this act.
 2. **Create or renew only (D2).** Deleting or removing a secret is not covered, and neither is any other
    floor item.
 3. **Copy without reading (D3).** No screenshot, no page snapshot, no page-text or script read, and no
@@ -104,8 +107,8 @@ browser**, driving the flow with Chrome DevTools or Claude in Chrome, on these c
 4. **The browser only.** The Bash secret-store commands stay denied (`gh secret set/delete/remove` and
    the rest of ADR-0016's row). The agent does not pass the value through a shell command, a file or a
    tool argument.
-5. **Until the canary passes**, the agent tells the owner before the first real use that the value may
-   enter its context, and nobody claims otherwise.
+5. **No real use before the canary passes.** The canary below is a precondition of the first real use
+   (D3), run through each browser tool that will be used; if it fails, the route stays closed.
 
 ### Away: a closed list
 
@@ -142,7 +145,9 @@ repository's reach.
 Before the first real use, on a throwaway repository secret:
 
 1. Choose a dummy value carrying a unique marker. It is not a real credential.
-2. Run the whole flow under D1 and D3, through the browser tool that will be used for real.
+2. Run the whole flow under D1 and D3, through each browser tool that will be used for real. Which of
+   the two tools (Chrome DevTools or Claude in Chrome) runs it first is **open**, not decided here; a tool
+   that has not passed its own canary is not used for a real secret.
 3. Count the marker with `grep -c` across the session transcript (JSONL) and the saved tool outputs.
 4. Pass only on **0** occurrences. Calibrate it the other way: a deliberate page read of the marker must
    make the count non-zero.
@@ -158,8 +163,7 @@ it exists, is recorded as an amendment here.
   rule tries to satisfy it.
 - **Bad:** presence is not observable, so the rule is held by the agent's reading of the session and
   nothing else. An away run that drives the browser is stopped by no layer, as today.
-- **Bad:** until the canary passes, a real use may put a live token into the transcript. The owner
-  accepted that risk only with the canary as a precondition (D3).
+- **Bad:** the route cannot be used until the canary passes, and a failing canary keeps it closed (D3).
 - **Bad:** rule 4 in the two project root briefs still says "never"; it is restated in their own repos,
   tracked by tedeuxx/tadeumendonca-skills#576 and tedeuxx/tadeumendonca-io#781.
 
