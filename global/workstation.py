@@ -13,6 +13,8 @@ checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./wo
                                           the plugin cutover (#63, #64), kept current once installed
     ./mhw status [--verbose]            what is installed, which layers and protections, the version key
     ./mhw status --summary              the session-start runtime summary an agent harness relays (#80)
+    ./mhw status --mcp-connect[=SECONDS]  also start each MCP active-set server and say whether it answers
+                                        (opt-in: it starts processes; exit 1 when one fails; #219)
     ./mhw check                         exit non-zero when an installed target differs from this checkout
                                           (the admin layer included, stamped or from an earlier release),
                                           or a required prerequisite is missing (global/prerequisites.json)
@@ -297,6 +299,30 @@ def mcp_active_lines(f):
     fix = "; %s turns off what is on outside the set in %d agent harness(es)" % (FIX, drift) if drift else ""
     count = len(findings) - len(unread)
     return [head + "%s%d finding(s)%s" % (prefix, count, fix)] + [MCP_INDENT + x for x in findings]
+
+
+MCP_RENDER = HERE / "mcp" / "mcp_render.py"
+
+
+def mcp_connect_lines(lines, code=0):
+    """The connection check's own lines, under one heading; its tag and its word are dropped. Untagged
+    lines (a refusal) are not shown: the exit code is, with where to read the reason."""
+    out = []
+    for line in lines:
+        if line.endswith(" (MCP connect)"):
+            out.append(line[:-len(" (MCP connect)")].split(None, 1)[-1])
+    if not out:
+        out = ["no result (exit %d); run global/mcp/mcp_render.py --active --mode=connect for the reason" % code]
+    return ["  mcp connect      " + out[0]] + [MCP_INDENT + x for x in out[1:]]
+
+
+def mcp_connect_status(timeout):
+    """mhw status --mcp-connect (Issue #219): the owner-run connection check, after the status view."""
+    code, lines = run([sys.executable, "-B", str(MCP_RENDER), "--active", "--mode=connect",
+                       "--timeout=%d" % timeout])
+    for line in mcp_connect_lines(lines, code):
+        print(line)
+    return 1 if code else 0
 
 
 def models_text(f):
@@ -1535,7 +1561,7 @@ def main(argv):
         import scan
         return scan.main(rest)
     overlay, project, verbose, admin, wanted, summary, method = None, None, False, False, None, False, False
-    prereq_only, yes, no_admin = False, False, False
+    prereq_only, yes, no_admin, connect = False, False, False, None
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
@@ -1545,6 +1571,8 @@ def main(argv):
             verbose = True
         elif arg == "--summary" and command == "status":
             summary = True
+        elif command == "status" and re.fullmatch(r"--mcp-connect(=[1-9][0-9]{0,3})?", arg):
+            connect = int(arg.split("=", 1)[1]) if "=" in arg else 30
         elif arg == "--prerequisites" and command == "check":
             prereq_only = True
         elif arg == "--admin" and command == "install":
@@ -1584,7 +1612,7 @@ def main(argv):
         lines = render_summary(facts) if summary and not verbose else render_status(facts, verbose)
         for line in lines:
             print(line)
-        return 0
+        return mcp_connect_status(connect) if connect else 0
     print("mhw: unknown subcommand %s (install, install --admin, status, check, scan, update, uninstall)"
           % command, file=sys.stderr)
     return 2
