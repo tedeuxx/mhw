@@ -29,6 +29,7 @@ STAMP = "release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567"
 BASE = None
 
 sys.path.insert(0, str(REPO / "global" / "clipboard"))
+sys.path.insert(0, str(REPO / "global"))
 import clipboard_guard as guard  # noqa: E402
 
 # The sections each command must carry. The first four are shared; the rest are the behaviour its Issue
@@ -152,9 +153,26 @@ class NeedMe(unittest.TestCase):
         self.assertIn("it follows the stricter", self.body)
 
     def test_no_weaker_option_count(self):
-        # The overlay sets exactly three; the brief's ceiling of four must not reappear as this command's rule.
-        self.assertNotRegex(self.body.lower(), r"at most (four|4)|up to (four|4)|four options")
-        self.assertNotRegex(self.body.lower(), r"\b(two|four|five) (authored )?options\b")
+        # The overlay sets exactly three; the brief's ceiling of four must not reappear as this command's rule,
+        # in the body or the front matter, bold or plain.
+        flat = re.sub(r"\s+", " ", self.text.replace("*", "").replace("`", "")).lower()
+        self.assertNotRegex(flat, r"\b(at most|up to|no more than|maximum of) (four|4)\b")
+        self.assertNotRegex(flat, r"\b(two|four|five|2|4|5) (authored |direct |answer )?(options|choices)\b")
+        self.assertIn("exactly three authored, mutually exclusive options", flat)
+
+    def test_an_empty_list_is_not_an_empty_queue(self):
+        # gh issue list with an absent label prints [] and exits 0 (measured, global/owner_actions.py), so the
+        # command must confirm the label before reading [] as zero, as owner_actions.py does.
+        flat = re.sub(r"\s+", " ", self.body)
+        self.assertIn("gh label list --repo tedeuxx/mhw --limit 1000 --json name", flat)
+        self.assertIn("An empty list is not yet an empty queue", flat)
+        self.assertIn("If `owner-action` is not among the names, or either call fails, say the queue was **not read**", flat)
+        self.assertIn("mhw status --summary", flat)
+        import owner_actions  # noqa: E402 - the repository the status line reads must be the one named here
+        queue = flat.split("**The owner-action queue**", 1)[1].split("Then filter", 1)[0]
+        self.assertEqual(set(re.findall(r"--repo (\S+)", queue)), {owner_actions.REPO})
+        self.assertEqual(len(re.findall(r"--repo ", queue)), 2)
+        self.assertIn("--label %s " % owner_actions.LABEL, flat)
 
     def test_writes_only_the_record(self):
         never = self.body.split("## What this command never does", 1)[1]

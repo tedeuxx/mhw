@@ -34,9 +34,15 @@ Read the minimum, scoped to this session; never the whole backlog.
    `gh issue view <n> --repo <owner/repo> --comments` and `gh pr view <n> --repo <owner/repo>
    --comments`. A pending item is a question to him that has no answer from him yet, a `blocked` label
    that waits on him, or a pull request whose gate verdict at its current head leaves the act to him.
-3. **The owner-action queue.** `gh issue list --repo tedeuxx/mhw --state open --label owner-action
-   --limit 1000 --json number,title,url`. If the call fails, say the queue was **not read** and why;
-   never report it as empty.
+3. **The owner-action queue** in the workstation repository, `tedeuxx/mhw` (the repository
+   `mhw status` reads it from). Where `mhw` is on PATH, its count is the `owner-action` line of
+   `mhw status --summary`, which already says `not read (<reason>)` instead of a false 0. To list the
+   items, run `gh issue list --repo tedeuxx/mhw --state open --label owner-action --limit 1000 --json
+   number,title,url`. **An empty list is not yet an empty queue:** `gh issue list` with a label the
+   repository does not have also prints `[]` and exits 0. So when the list is empty, confirm the label
+   exists with `gh label list --repo tedeuxx/mhw --limit 1000 --json name`. If `owner-action` is not
+   among the names, or either call fails, say the queue was **not read** and why. Never report it as
+   empty.
 
 Then filter: drop what is yours to decide (above), and drop what is already answered on the tracker.
 An answer given only in this conversation counts as an answer, and you record it (below) before you

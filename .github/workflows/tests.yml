@@ -190,8 +190,10 @@ jobs:
       # reads the command file. #198: each /handoff carrier names its own agent harness, the installed
       # launch-line.py prints only that harness's line, the line parses under sh (and zsh where present)
       # and carries the prompt exactly, and no rendering token survives. /need-me (owner, 2026-10-26): its
-      # sections and phrases reach every carrier, it restates no weaker option count, and it writes only
-      # the record of the owner's answer.
+      # headings and phrases reach every carrier; its source text (front matter included, markup stripped)
+      # carries no four-option ceiling and names exactly three options; it confirms the owner-action label
+      # before reading an empty list as zero, against owner_actions.py's repository and label; and its
+      # source names no Issue-creating or label-adding command. These are text checks, not behaviour.
       - name: workflow-commands suite
         env:
           TMPDIR: ${{ runner.temp }}
