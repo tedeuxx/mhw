@@ -188,7 +188,7 @@ the gap is the evidence for why the assessment is a standing rule.
 The ordering act is absent — nothing ranks and nothing estimates — so the order is **FIFO within the
 `loop`/`product` partition**: `loop` in arrival order, then `product` in arrival order. That is the
 owner's ruling that loop-first survives in both modes, plus the filing-order tiebreak
-`commands/sprint-planning.md` already defines and labels as arrival order rather than a ranking, so
+`skills/sprint-planning/SKILL.md` already defines and labels as arrival order rather than a ranking, so
 **`kanban`'s entire ordering rule is a rule this repository already carries**. The predicate that
 returns it, ordered, is published in full in `docs/loop-mode.md`. **The paragraphs below are `scrum`'s
 answer to the same question** — a ranked body composed at planning — and they are unchanged there.

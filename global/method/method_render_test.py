@@ -113,12 +113,14 @@ class SourceShape(unittest.TestCase):
                                          "engineering-standards", "definition-of-ready", "definition-of-done",
                                          "quality-gates", "published-voice", "scm", "ci", "provisioning",
                                          "planning-poker", "code-review", "content-publishing",
-                                         "orchestration"]))
-        # The four rites moved at #130 (owner, 2026-10-12).
+                                         "orchestration",
+                                         # The four rites moved at #130 (owner, 2026-10-12) and became skills
+                                         # on 2026-10-26 (owner: "para mim sao skills").
+                                         "sprint-planning", "sprint-review", "sprint-retrospective",
+                                         "funnel-review"]))
         # #198 added /handoff.
         self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-prd", "prd-to-issues", "what-else",
-                                           "blueprint", "sprint-planning", "sprint-review", "sprint-retrospective",
-                                           "funnel-review", "handoff", "need-me"]))
+                                           "blueprint", "handoff", "need-me"]))
 
     def test_the_deprecated_aliases(self):
         _, _, commands = mr.load(SOURCE)
@@ -226,14 +228,14 @@ FORMER_POINTERS = (
      "the `orchestration` skill's *The loop-mode contract* section", "The loop-mode contract"),
     ("commands/autonomy.md", "surfaces what is missing",
      "the `orchestration` skill's *How to ask the owner* section", "How to ask the owner"),
-    ("commands/funnel-review.md", "rule 4, that makes it a decision",
+    ("skills/funnel-review/SKILL.md", "rule 4, that makes it a decision",
      "the `orchestration` skill's *How to ask the owner*", "How to ask the owner"),
-    ("commands/funnel-review.md", "PR #528 found that it contradicts his own escalation rules",
+    ("skills/funnel-review/SKILL.md", "PR #528 found that it contradicts his own escalation rules",
      "(the root brief then, the `orchestration` skill since #176), so they win", "How to ask the owner"),
     # Added by #176, not repointed: before it this site named only the user-level brief.
     ("commands/new-issue.md", "This is the interview half of the HITL escalation format",
      "the method's `orchestration` skill, *How to ask the owner*", "How to ask the owner"),
-    ("commands/sprint-planning.md", "It is not an independent source",
+    ("skills/sprint-planning/SKILL.md", "It is not an independent source",
      "the `orchestration` skill's *How to ask the owner*", "How to ask the owner"),
     ("agents/scrum-master.md", "and `scrum` is one value of a closed enum of two",
      "*The loop-mode contract* in the `orchestration` skill", "The loop-mode contract"),
@@ -697,9 +699,9 @@ class Render(unittest.TestCase):
         self.assertEqual("\n".join(lines[1:]), (SOURCE / "scripts" / "funnel-review-contract" / "README.md")
                          .read_text(encoding="utf-8"))
         self.assertTrue((scripts / "funnel-review.sh").is_file())
-        rite = (SOURCE / "commands" / "funnel-review.md").read_text(encoding="utf-8")
+        rite = (SOURCE / "skills" / "funnel-review" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("`{{method-scripts}}/funnel-review-contract/README.md`", rite)
-        for rendered in (".claude/commands/funnel-review.md", ".agents/skills/funnel-review/SKILL.md",
+        for rendered in (".claude/skills/funnel-review/SKILL.md", ".agents/skills/funnel-review/SKILL.md",
                          ".kiro/skills/funnel-review/SKILL.md"):
             self.assertIn("`%s`" % installed, self.h.p(rendered).read_text(encoding="utf-8"), rendered)
         old = "docs/funnel-review/" + "README.md"
@@ -726,7 +728,7 @@ class Render(unittest.TestCase):
                 (src / "scripts" / "linked" / "README.md").symlink_to(outside / "README.md")
             else:
                 (src / "scripts" / "linked").symlink_to(outside, target_is_directory=True)
-            rite = src / "commands" / "funnel-review.md"
+            rite = src / "skills" / "funnel-review" / "SKILL.md"
             rite.write_text(rite.read_text(encoding="utf-8") + "\nSee `{{method-scripts}}/linked/README.md`.\n",
                             encoding="utf-8")
             code, out = h.run("--mode=install", "--source=%s" % src)

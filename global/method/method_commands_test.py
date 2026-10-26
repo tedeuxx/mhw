@@ -45,14 +45,24 @@ REQUIRED = {
     "need-me": SHARED + ["## The rules this command runs", "## Gather what is pending", "## When nothing is pending",
                          "## Ask one at a time", "## After he answers"],
 }
-# The four rites moved from the plugin at #130 (owner, 2026-10-12). They keep the plugin's text, so they are
-# held to the headings that carry each rite, not to the workflow commands' "never" section.
+# The four rites moved from the plugin at #130 (owner, 2026-10-12) and became skills on 2026-10-26 (owner: "para
+# mim sao skills"). They keep the plugin's text, so they are held to the headings that carry each rite, not to
+# the workflow commands' "never" section.
 RITES = {
     "sprint-planning": ["## The trigger", "## What this rite does NOT do", "## What nothing enforces, said before any green is read"],
     "sprint-review": ["## The trigger, and where it sits among the three rites", "## What this rite cannot see"],
     "sprint-retrospective": ["## The trigger", "## What this cannot catch"],
     "funnel-review": ["## The steps", "## What this rite cannot see"],
 }
+RITE_RE = r"(sprint-planning|sprint-review|sprint-retrospective|funnel-review)"
+# The only lines in method/ that may still name a rite's retired command path: each is history, a path in the
+# plugin at a named commit or a dated measurement of the plugin's file, keyed by file and by a phrase of the line.
+RITE_COMMAND_HISTORY = [
+    ("commands/autonomy.md", "git cat-file -e 5cfea0b:commands/sprint-retrospective.md"),
+    ("skills/sprint-planning/SKILL.md", "`grep -c 'loop-mode' commands/sprint-planning.md` returned"),
+    ("skills/funnel-review/SKILL.md", "The original wording is in the plugin's `commands/funnel-review.md` at"),
+    ("skills/funnel-review/SKILL.md", "Both are in the plugin's `commands/funnel-review.md` at `4882b911`"),
+]
 # The old names, kept for one release as deprecated aliases (owner, 2026-10-26: "-idea- deveria ser
 # renomeado para -prd em todos comandos com esse termo"). Each must still run the whole command.
 DEPRECATED = {"new-idea": "new-prd", "idea-to-issues": "prd-to-issues"}
@@ -78,6 +88,13 @@ def render(home):
     p = subprocess.run([sys.executable, "-B", str(RENDER), "--mode=install", "--stamp=" + STAMP, "--opt-in",
                         "--source=" + str(REPO / "method")], env=env, capture_output=True, text=True)
     return p.returncode, p.stdout + p.stderr
+
+
+def skill_carriers(home, name):
+    """agent harness -> the rendered file that carries a method skill there (the rites since 2026-10-26)."""
+    return {"claude": home / ".claude" / "skills" / name / "SKILL.md",
+            "codex": home / ".agents" / "skills" / name / "SKILL.md",
+            "kiro": home / ".kiro" / "skills" / name / "SKILL.md"}
 
 
 def carriers(home, name):
@@ -204,7 +221,8 @@ class NeedMe(unittest.TestCase):
 
 
 class Rites(unittest.TestCase):
-    """#130: the four rites render for every agent harness method/ targets, in the method's shape."""
+    """#130 moved the four rites into method/; on 2026-10-26 the owner made them skills ("para mim sao skills").
+    They render as skills for every agent harness method/ targets: no command carrier, no implicit-off policy."""
 
     @classmethod
     def setUpClass(cls):
@@ -214,33 +232,41 @@ class Rites(unittest.TestCase):
     def test_render_succeeds(self):
         self.assertEqual(self.code, 0, self.out)
 
-    def test_every_rite_is_in_every_carrier(self):
+    def test_every_rite_is_a_skill_in_every_carrier(self):
         for name in RITES:
-            for harness, path in carriers(self.home, name).items():
+            self.assertTrue((REPO / "method" / "skills" / name / "SKILL.md").is_file(), name)
+            self.assertFalse((REPO / "method" / "commands" / (name + ".md")).exists(), name)
+            for harness, path in skill_carriers(self.home, name).items():
                 self.assertTrue(path.is_file(), "%s missing in %s" % (name, harness))
 
-    def test_codex_keeps_implicit_invocation_off(self):
+    def test_no_command_carrier_and_no_implicit_off_policy(self):
         for name in RITES:
-            policy = self.home / ".agents" / "skills" / name / "agents" / "openai.yaml"
-            self.assertIn("\npolicy:\n  allow_implicit_invocation: false\n", policy.read_text(encoding="utf-8"), name)
+            self.assertFalse((self.home / ".claude" / "commands" / (name + ".md")).exists(), name)
+            self.assertFalse((self.home / ".agents" / "skills" / name / "agents" / "openai.yaml").exists(), name)
+            for harness, path in skill_carriers(self.home, name).items():
+                self.assertNotIn("Owner-typed command", path.read_text(encoding="utf-8"), (name, harness))
 
-    def test_invocation_names_and_front_matter(self):
+    def test_invocation_by_name_and_the_argument(self):
         for name in RITES:
-            c = carriers(self.home, name)
-            head = c["claude"].read_text(encoding="utf-8").split("\n---\n", 1)[0]
-            self.assertIn("argument-hint:", head, name)
-            self.assertIn("Owner-typed command $%s" % name, c["codex"].read_text(encoding="utf-8"), name)
-            self.assertIn("Owner-typed command /%s" % name, c["kiro"].read_text(encoding="utf-8"), name)
-            source = (REPO / "method" / "commands" / (name + ".md")).read_text(encoding="utf-8")
-            front = source.split("\n---\n", 1)[0]
-            for key in ("name", "description", "purpose", "argument-hint"):
+            source = (REPO / "method" / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
+            front, body = source.split("\n---\n", 1)
+            for key in ("name", "description", "purpose"):
                 self.assertRegex(front, r'(?m)^%s: "' % key, (name, key))
             self.assertIn('name: "%s"' % name, front)
+            self.assertNotIn("argument-hint:", front, name)
+            # The argument still reaches the rite: the description says it takes one, and the body reads the
+            # text typed after the name instead of a placeholder only Claude Code substitutes.
+            self.assertRegex(front, r'(?m)^description: ".* as its argument, typed after its name', name)
+            self.assertNotIn("$ARGUMENTS", body, name)
+            self.assertIn("Claude Code `/%s`, Codex `$%s`, Kiro `/%s`" % (name, name, name), body, name)
+            for harness, path in skill_carriers(self.home, name).items():
+                head = path.read_text(encoding="utf-8").split("\n---\n", 1)[0]
+                self.assertIn("name: " + json.dumps(name), head, (name, harness))
 
     def test_headings_and_retired_note_reach_every_carrier(self):
         missing = []
         for name, headings in RITES.items():
-            for harness, path in carriers(self.home, name).items():
+            for harness, path in skill_carriers(self.home, name).items():
                 text = path.read_text(encoding="utf-8")
                 lines = text.split("\n")
                 missing += ["%s/%s: %s" % (name, harness, h) for h in headings if h not in lines]
@@ -250,27 +276,64 @@ class Rites(unittest.TestCase):
 
     def test_no_plugin_namespaced_invocation(self):
         for name in RITES:
-            text = (REPO / "method" / "commands" / (name + ".md")).read_text(encoding="utf-8")
+            text = (REPO / "method" / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
             body = text.split(RETIRED_NOTE, 1)[1].split("\n\n", 1)[1]
             self.assertNotRegex(body, r"/tadeumendonca-skills:[a-z]", name)
         autonomy = (REPO / "method" / "commands" / "autonomy.md").read_text(encoding="utf-8")
         self.assertNotRegex(autonomy, r"/tadeumendonca-skills:(sprint|funnel)", "autonomy")
 
     def test_pointers_to_the_rites_resolve(self):
-        import re
-        unresolved = []
-        for path in sorted((REPO / "method").rglob("*.md")):
-            text = path.read_text(encoding="utf-8")
-            for name in set(re.findall(r"commands/(sprint-planning|sprint-review|sprint-retrospective|funnel-review)\.md", text)) | \
-                    set(re.findall(r"`/(sprint-planning|sprint-review|sprint-retrospective|funnel-review)\b", text)):
-                if not (REPO / "method" / "commands" / (name + ".md")).is_file():
-                    unresolved.append("%s -> %s" % (path.relative_to(REPO), name))
+        unresolved, history = [], []
+        for path in sorted((REPO / "method").rglob("*")):
+            if not path.is_file() or path.suffix not in (".md", ".sh"):
+                continue
+            rel = str(path.relative_to(REPO / "method"))
+            for n, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
+                names = set(re.findall(r"skills/%s/SKILL\.md" % RITE_RE, line)) | \
+                    set(re.findall(r"`/%s\b" % RITE_RE, line)) | set(re.findall(r"`\$%s\b" % RITE_RE, line))
+                for name in names:
+                    if not (REPO / "method" / "skills" / name / "SKILL.md").is_file():
+                        unresolved.append("%s:%d -> %s" % (rel, n, name))
+                if re.search(r"commands/%s\.md" % RITE_RE, line):
+                    history.append((rel, line))
+                    if not any(rel == f and phrase in line for f, phrase in RITE_COMMAND_HISTORY):
+                        unresolved.append("%s:%d names the retired command path: %s" % (rel, n, line.strip()[:100]))
         self.assertEqual(unresolved, [])
-        self.assertTrue(any((REPO / "method" / "commands" / (n + ".md")).is_file() for n in RITES))
+        self.assertEqual(len(history), len(RITE_COMMAND_HISTORY), "a history line is gone; shrink the list")
+
+    def test_a_command_rendered_rite_is_retired_on_install(self):
+        """An install from the earlier shape (the rites as commands) followed by one from this source leaves
+        each rite only as a skill: install removes the command file and the implicit-off policy it no longer
+        renders, and rewrites the Codex and Kiro SKILL.md from the skill."""
+        old = Path(tempfile.mkdtemp(prefix="old-src-", dir=BASE)) / "method"
+        shutil.copytree(REPO / "method", old)
+        for name in RITES:
+            skill = old / "skills" / name / "SKILL.md"
+            front, body = skill.read_text(encoding="utf-8").split("\n---\n", 1)
+            (old / "commands" / (name + ".md")).write_text(
+                front + '\nargument-hint: "[iteration]"\n---\n' + body, encoding="utf-8")
+            shutil.rmtree(skill.parent)
+        home = Path(tempfile.mkdtemp(prefix="home-", dir=BASE))
+        env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(home), "TMPDIR": str(home)}
+        first = subprocess.run([sys.executable, "-B", str(RENDER), "--mode=install", "--stamp=" + STAMP, "--opt-in",
+                                "--source=" + str(old)], env=env, capture_output=True, text=True)
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        for name in RITES:
+            self.assertTrue((home / ".claude" / "commands" / (name + ".md")).is_file(), name)
+            self.assertTrue((home / ".agents" / "skills" / name / "agents" / "openai.yaml").is_file(), name)
+        code, out = render(home)
+        self.assertEqual(code, 0, out)
+        for name in RITES:
+            self.assertFalse((home / ".claude" / "commands" / (name + ".md")).exists(), name)
+            self.assertFalse((home / ".agents" / "skills" / name / "agents" / "openai.yaml").exists(), name)
+            for harness, path in skill_carriers(home, name).items():
+                text = path.read_text(encoding="utf-8")
+                self.assertIn("source: method/skills/%s/SKILL.md" % name, text, (name, harness))
+                self.assertNotIn("Owner-typed command", text, (name, harness))
 
     def test_rendered_rites_carry_no_secret_or_personal_data(self):
         for name in RITES:
-            for harness, path in carriers(self.home, name).items():
+            for harness, path in skill_carriers(self.home, name).items():
                 self.assertEqual(guard.find_spans(path.read_text(encoding="utf-8")), [], (name, harness))
 
 
@@ -344,7 +407,7 @@ class MethodScripts(unittest.TestCase):
                     missing.append("%s -> %s" % (path.relative_to(self.home), name))
         self.assertEqual(missing, [])
         self.assertGreater(refs, 0, "no rendered file points into the scripts directory")
-        planning = (self.home / ".claude" / "commands" / "sprint-planning.md").read_text(encoding="utf-8")
+        planning = (self.home / ".claude" / "skills" / "sprint-planning" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("python3 %smilestone-create.py" % prefix, planning)
 
     def test_source_references_are_shipped_or_listed(self):
@@ -403,7 +466,7 @@ CLAUDE_MD_ALLOWED = [
     ("agents/quality-assurance.md", "a quoted `.claude/`, `.codex/`, `.github/`, `AGENTS.md` or `CLAUDE.md`"),
     ("agents/quality-assurance.md", "corrected in `CLAUDE.md` this round"),
     ("agents/scrum-master.md", "# 5 issues -> README.md · CLAUDE.md"),
-    ("commands/funnel-review.md", "`CLAUDE.md` until #562"),
+    ("skills/funnel-review/SKILL.md", "`CLAUDE.md` until #562"),
     ("commands/new-issue.md", "`apps/*/AGENTS.md` or `apps/*/CLAUDE.md`"),
 ]
 

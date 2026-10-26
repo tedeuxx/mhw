@@ -1,8 +1,7 @@
 ---
 name: "sprint-retrospective"
-description: "Run the iteration retrospective as a rite — consult each persona that ran, one at a time and in isolation, on what should change in how we work, each reasoning from its own artifacts rather than from memory. Use when the drain reports its entry snapshot exhausted, or when the owner types it against an iteration that was worked by hand. Produces a proposal he rules on at planning, never an Issue and never a change."
+description: "Run the iteration retrospective as a rite — consult each persona that ran, one at a time and in isolation, on what should change in how we work, each reasoning from its own artifacts rather than from memory. Use when the drain reports its entry snapshot exhausted, or when the owner types it against an iteration that was worked by hand. Produces a proposal he rules on at planning, never an Issue and never a change. It takes an optional iteration title as its argument, typed after its name; without one it uses the active iteration."
 purpose: "give the closing of an iteration an object, so improvement stops being invented by the one role that saw the whole iteration and is therefore the least able to see its own bias in the list it produces"
-argument-hint: "[iteration] (defaults to the active iteration)"
 ---
 
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
@@ -19,8 +18,13 @@ argument-hint: "[iteration] (defaults to the active iteration)"
 > directory the method installs them to, the same for every agent harness, so the rite runs them from
 > any repository.
 
-Run the retrospective rite for the iteration named by `$ARGUMENTS` (default: the active iteration,
-derived from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
+> **A skill, not a command, since 2026-10-26** (the owner: *"para mim sao skills"*). Invoke it by name:
+> Claude Code `/sprint-retrospective`, Codex `$sprint-retrospective`, Kiro `/sprint-retrospective`. Any agent harness may also load it
+> on its own when the task matches its description; the rite's steps and its owner acts are
+> unchanged by that.
+
+Run the retrospective rite for the iteration the owner named after this skill's name (default: the
+active iteration, derived from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
 
 **This file is the object `/autonomy on` has been promising.** That command has said *"the closing
 ceremonies run against the exhausted iteration"* since #326 with no ceremony anywhere in the tree. This
@@ -474,7 +478,7 @@ twenty-sixth amendment, not an omission to be repaired later by someone who assu
 ~~## The sprint review half is NOT built, and this is where that is recorded~~ — **struck 2026-09-02
 (#379).** This heading was the record of the deferral for three days, and it is struck in place rather
 than deleted because it is what every reader of this rite took away about the other half. **The rite
-exists: `commands/sprint-review.md`, driven by `product-lead`, run FIRST of the three closing rites.**
+exists: `skills/sprint-review/SKILL.md`, driven by `product-lead`, run FIRST of the three closing rites.**
 
 **The refusal below was SATISFIED, not lifted, and that distinction is the whole design of what
 replaced it.** Both grounds were about the review's *shape*, and both were built into it:

@@ -152,3 +152,24 @@ again and that no carrier asks for one; it cannot observe a merge.
 **Evidence level.** *Written and tested*; the regression assertions were mutation-checked against
 their sources. Not installed: the installed global brief on the reference machine still carries the
 intake sentence until the owner reinstalls.
+
+## Amendment 2026-10-26: `session-finish` is a workspace skill
+
+Status unchanged. The owner, 2026-10-26, after making the sprint rites skills: *"mesma coisa session
+finish"*. The workspace command `.claude/commands/session-finish.md` and its Codex mirror
+`.agents/skills/source-command-session-finish/SKILL.md` are replaced by one skill text in
+`.claude/skills/session-finish/SKILL.md` and `.agents/skills/session-finish/SKILL.md`; the workspace
+carries no `.kiro/skills/`, so Kiro keeps the route through `AGENTS.md` and its steering.
+
+- **What changes.** A skill may be loaded by the model on its own, so publishing a completed slice
+  into `rc/next` can start without the owner typing the name. That is inside his standing
+  authorization (AGENTS.md, *Delivery contract*). The skill body says explicitly that the
+  release-candidate pull request is never merged without his explicit go and that invoking or
+  loading the skill is never that go.
+- **What does not.** The route itself (`workspace/delivery.py merge` and `verify`), the gate and the
+  release-candidate rule. Nothing mechanical enforces the rule; it is an instruction, as before.
+- **Evidence.** Claude Code 2.1.311 lists the skill in the headless `init` `skills` (measured, and
+  absent with the file moved aside); Codex 0.163.0 lists it as a model-visible skill (measured).
+  `workspace/delivery_test.py` asserts the two copies are identical, the old carriers are gone, and
+  the owner's-go sentences are present. Not installed: the workspace files take effect in a fresh
+  session of this repository.

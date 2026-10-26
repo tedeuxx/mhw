@@ -31,7 +31,7 @@ ROOT="$(cd "$HERE/.." && pwd)"
 SCRIPT="$HERE/funnel-review.sh"
 FIXTURES="$HERE/fixtures/funnel-review"
 STORE="$ROOT/docs/funnel-review"
-CMD="$ROOT/commands/funnel-review.md"
+CMD="$ROOT/skills/funnel-review/SKILL.md"
 RECORD="$ROOT/docs/loop-cadence.md"
 
 pass=0
@@ -271,7 +271,7 @@ for f in "$SCRIPT" "$CMD"; do
     ${f#"$ROOT"/} declares a 'decision' field"
 done
 if [ ! -r "$CMD" ]; then
-  bad "no verdict — commands/funnel-review.md is not readable" "the command file is half the subject of this assertion; it did NOT run over it"
+  bad "no verdict — skills/funnel-review/SKILL.md is not readable" "the rite file is half the subject of this assertion; it did NOT run over it"
 elif [ -z "$verdict_problems" ]; then
   ok "no verdict — neither the script nor the rite declares a verdict literal or a decision field"
 else
@@ -360,7 +360,7 @@ fi
 # column-0 candidate appended must match exactly TWO lines under the SAME selector: its `Candidate
 # rule:` line and its `Evidence:` line. Both counts use "$q_sel" — the before-count alone cannot tell a
 # real zero from a dead pattern, so the after-count is what calibrates it. That makes the "prints
-# nothing" zero published in commands/funnel-review.md a real zero, and it fails in both directions.
+# nothing" zero published in skills/funnel-review/SKILL.md a real zero, and it fails in both directions.
 # The selector is also asserted VERBATIM in both rites that publish it, so the string this arm
 # calibrates is the string a reader runs, and the three copies cannot drift apart in silence.
 q_sel='^(Candidate rule|Evidence|Ruled):'
@@ -378,7 +378,7 @@ else
 fi
 q_pub="grep -nE '$q_sel' docs/funnel-review/*.md"
 q_missing=""
-for q_doc in "$ROOT/commands/funnel-review.md" "$ROOT/commands/sprint-planning.md"; do
+for q_doc in "$ROOT/skills/funnel-review/SKILL.md" "$ROOT/skills/sprint-planning/SKILL.md"; do
   grep -qF -- "$q_pub" "$q_doc" 2>/dev/null || q_missing="$q_missing ${q_doc#"$ROOT"/}"
 done
 if [ -z "$q_missing" ]; then

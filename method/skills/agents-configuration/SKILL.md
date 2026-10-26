@@ -459,7 +459,7 @@ chain above becomes checkable instead of merely believed.
 
 ### Scrum vocabulary — what these names import here, and what they do not (#372)
 
-**The rite commands are named after the official Scrum events so a human who has never seen this loop
+~~**The rite commands**~~ **The rites (skills since 2026-10-26, owner: *«para mim sao skills»*) are named after the official Scrum events so a human who has never seen this loop
 can tell what is happening and how to control it.** The owner's reason, and it is the ruler for every
 naming decision downstream of it: *«a ideia principal que tive foi orientar a configuracao de harness
 a comportamentos e elementos conhecidos pela metodologia agil do scrum para que seja mais facil para
@@ -1390,7 +1390,7 @@ carried over), not a gate.
   dispatched subagent, there is no non-production environment to sweep, and resumable state has no
   durable home since #245. RETROSPECTIVE and PLANNING are dispatch-and-interview shapes, not mechanisms
   in this file.~~ **Struck 2026-08-30 (#355), and it was wrong in two different ways.** *The
-  RETROSPECTIVE half is built* — `commands/sprint-retrospective.md`, a typed command the drain runs at its
+  RETROSPECTIVE half is built* — `skills/sprint-retrospective/SKILL.md` (a typed command until 2026-10-26, a skill since), a rite the drain runs at its
   terminal condition, with the isolation, the derived consult set, the per-persona artifact and the
   cap. It was never merely a "dispatch-and-interview shape": what made it a mechanism was feeding each
   consulted persona **its own artifacts**, since a persona at iteration close is a fresh context and
@@ -1398,14 +1398,14 @@ carried over), not a gate.
   head* — `product-lead` declares a read-only `chrome-devtools` subset with a bounded origin, merged
   2026-08-29 (#356). ~~**The review half is still not built**, on grounds that survive the new capability
   intact — a route list rots, and a looker's finding has no ruler~~ — **struck 2026-09-02 (#379): it is
-  built, and the two grounds were SATISFIED rather than lifted.** `commands/sprint-review.md` ships no
+  built, and the two grounds were SATISFIED rather than lifted.** `skills/sprint-review/SKILL.md` ships no
   route list (its targets come from the product's own generator, its assets off the page) and is
   explicitly not a gate and returns no verdict. **The residual the grounds did not cover is stated in
   the rite itself:** it is a lower bound, and nothing fires it. Recorded in
-  `commands/sprint-retrospective.md`'s own last section as well, where the deferral was, so a reader
+  `skills/sprint-retrospective/SKILL.md`'s own last section as well, where the deferral was, so a reader
   who arrives at the refusal finds what discharged it. ~~**PLANNING is genuinely unbuilt and no claim is made about it.**~~ **Struck 2026-09-01
   (#378) — PLANNING IS BUILT, and this sentence is struck IN THE PRELOAD because that is where it did
-  its damage.** `commands/sprint-planning.md` is a typed rite the owner invokes: it assembles the
+  its damage.** `skills/sprint-planning/SKILL.md` is a rite the owner invokes by name: it assembles the
   eligible unmilestoned work in both repositories plus the previous iteration's retrospective
   proposals, has a tool-less profile rank it, ~~presents each item alone for his ruling~~ **composes the
   iteration from that ranking and puts the WHOLE composition to him as ONE activation he confirms or

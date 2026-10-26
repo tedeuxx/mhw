@@ -1,8 +1,7 @@
 ---
 name: "sprint-planning"
-description: "Assemble everything that could enter the next iteration — the eligible open work plus the proposals the closing rites produced — have it ranked by a context that did not run the session, compose the iteration from that ranking against the ratified rules, and put the WHOLE composition to the owner as ONE activation he confirms or changes. Use when an iteration is about to open, or when the drain hands off at its terminal condition. It assembles, ranks and proposes; it never places."
+description: "Assemble everything that could enter the next iteration — the eligible open work plus the proposals the closing rites produced — have it ranked by a context that did not run the session, compose the iteration from that ranking against the ratified rules, and put the WHOLE composition to the owner as ONE activation he confirms or changes. Use when an iteration is about to open, or when the drain hands off at its terminal condition. It assembles, ranks and proposes; it never places. It takes the title of the iteration being composed as its argument, typed after its name."
 purpose: "give iteration composition an object, so the pool the owner rules on is assembled and ranked by a fresh context rather than remembered by the session that produced it, and so the retrospective's proposals reach a moment where they can be ruled on at all"
-argument-hint: "<iteration> (the title of the iteration being composed)"
 ---
 
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
@@ -22,14 +21,20 @@ argument-hint: "<iteration> (the title of the iteration being composed)"
 > **Not shipped by this method:** `scripts/milestone-create.sh` and `scripts/milestone-update.sh`,
 > the plugin's retired predecessors of the Python routes, named below only as history.
 
-Run the planning rite for the iteration named by `$ARGUMENTS`.
+> **A skill, not a command, since 2026-10-26** (the owner: *"para mim sao skills"*). Invoke it by name:
+> Claude Code `/sprint-planning`, Codex `$sprint-planning`, Kiro `/sprint-planning`. Any agent harness may also load it
+> on its own when the task matches its description; the rite's steps and its owner acts are
+> unchanged by that.
 
-**This rite is the consumer the closing rites never had.** `commands/sprint-retrospective.md` produces
+Run the planning rite for the iteration the owner named when he invoked this skill: the text
+after its name. If he named none, ask him for its title before step 1.
+
+**This rite is the consumer the closing rites never had.** `skills/sprint-retrospective/SKILL.md` produces
 per-persona proposal files whose stated consumer is *"a proposal the owner rules on at planning"* — and
 until this rite shipped there was no planning to rule in. **`/agents-configuration` said so in its own
 words, and that sentence is STRUCK IN THAT FILE by the same slice that adds this one:**
 *"PLANNING is genuinely unbuilt and no claim is made about it."* **Read it as the state this rite
-closed, not as a live claim** — a command file whose opening argument rested on a sentence its own
+closed, not as a live claim** — a rite file whose opening argument rested on a sentence its own
 merge falsifies would be exactly the defect this repository blocks on, and the strike is what keeps
 the citation honest in both directions.
 
@@ -291,7 +296,7 @@ this step expects as a finding about the handoff, not as a defect in the ruling.
 **`/funnel-review` may attach a candidate rule for `published-voice` to a finding. The owner ruled on
 2026-09-25 that those candidates wait for THIS rite**: *«Fila no planning»*, recorded on #473. So this
 step reads them. The queue is the reports themselves, with no separate store, and
-`commands/funnel-review.md` defines the shape. Its step 3 defines the column-0 `Candidate rule:` and
+`skills/funnel-review/SKILL.md` defines the shape. Its step 3 defines the column-0 `Candidate rule:` and
 `Evidence:` lines, and its step 4 defines the `Ruled:` lines:
 
 ```
