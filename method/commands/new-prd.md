@@ -1,7 +1,9 @@
 ---
-name: "new-idea"
-description: "Turn a new idea, or a plan to refine, given in the owner's own words as the argument, into an agreed requirements document: interview the owner round by round until every decision is settled, then write docs/<repo>-product-requirements-document-<subject>.md. Use when the owner brings an idea or a plan that is not yet agreed. Not for a one-off request (see new-issue) or for cutting an agreed document into Issues (see idea-to-issues)."
+name: "new-prd"
+description: "Turn a new idea, or a plan to refine, given in the owner's own words as the argument, into an agreed product requirements document (PRD): interview the owner round by round until every decision is settled, then write docs/<repo>-product-requirements-document-<subject>.md. Use when the owner brings an idea or a plan that is not yet agreed. Not for a one-off request (see new-issue) or for cutting an agreed document into Issues (see prd-to-issues)."
 purpose: "a plan reaches building only after shared understanding, and that understanding lands in a versioned document instead of staying in the chat"
+deprecated-aliases:
+  - new-idea
 ---
 
 Turn `$ARGUMENTS` into an agreed requirements document for the current repository.
@@ -13,7 +15,7 @@ method; no text is copied.*
 
 - The owner brings a new idea, or a plan he wants refined, and its decisions are not settled yet.
 - **Not** for a one-off request: that goes straight to one Issue with `new-issue`.
-- **Not** for an agreed document: cutting it into Issues is `idea-to-issues`.
+- **Not** for an agreed document: cutting it into Issues is `prd-to-issues`.
 
 ## Steps
 
@@ -25,7 +27,7 @@ method; no text is copied.*
 3. **Run the interview rounds** (next section) until no decision is open.
 4. **Write the requirements document** (section below) and show him its path and a three-line summary.
 5. **Deliver it through the repository's own route** (a branch and a pull request, if that is how the
-   repository works). Then point at `idea-to-issues` as the next step; do not run it unasked.
+   repository works). Then point at `prd-to-issues` as the next step; do not run it unasked.
 
 ## Interview rounds
 
@@ -52,4 +54,4 @@ method; no text is copied.*
 
 - It never merges, publishes or releases anything, and it never adds a hook.
 - It never decides for the owner: an unanswered decision stays open in the document.
-- It never opens Issues; that is `idea-to-issues`, when he asks for it.
+- It never opens Issues; that is `prd-to-issues`, when he asks for it.

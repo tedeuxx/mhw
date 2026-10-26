@@ -307,9 +307,9 @@ as subagents.
 
 | Step | What happens | Command | Agents | Skills |
 | --- | --- | --- | --- | --- |
-| 1. Idea | An interview, round by round, settles every decision; facts are looked up by the agent, decisions are his. A one-off request goes straight to a single Issue. | `/new-idea` · `/new-issue` | product-lead, tech-lead | engineering-standards, documentation-standard |
-| 2. Requirements document | The agreed target behaviour and why, versioned as `<repo>-product-requirements-document-<subject>.md`. | `/new-idea` (writes it) | tech-lead | documentation-standard |
-| 3. Issues | The document is cut into vertical slices with acceptance criteria and blocking order; each slice must clear the definition of ready. | `/idea-to-issues` | agents-lead, tech-lead, product-lead | definition-of-ready |
+| 1. Idea | An interview, round by round, settles every decision; facts are looked up by the agent, decisions are his. A one-off request goes straight to a single Issue. | `/new-prd` (~~`/new-idea`~~) · `/new-issue` | product-lead, tech-lead | engineering-standards, documentation-standard |
+| 2. Requirements document | The agreed target behaviour and why, versioned as `<repo>-product-requirements-document-<subject>.md`. | `/new-prd` (~~`/new-idea`~~, writes it) | tech-lead | documentation-standard |
+| 3. Issues | The document is cut into vertical slices with acceptance criteria and blocking order; each slice must clear the definition of ready. | `/prd-to-issues` (~~`/idea-to-issues`~~) | agents-lead, tech-lead, product-lead | definition-of-ready |
 | 4. Build and gate | The loop takes ready Issues one at a time; a builder implements with tests and checks itself; one gate verifies against the definition of done and the quality thresholds. | `/autonomy on` · `off` | scrum-master (orders), developer or agents-lead (builds), content-writer and content-reviewer (published text), quality-assurance (gate) | agents-configuration, shell, definition-of-done, quality-gates, published-voice |
 | 5. Release | Slices accumulate on `rc/next`. The release-candidate pull request to `main` waits for the owner; its merge cuts a numeric SemVer release through CI, and the session reports the release link only once it is verified. | none (automatic) | quality-assurance, then the owner | scm, ci |
 
@@ -498,14 +498,18 @@ workstation follows them ([#69](https://github.com/tedeuxx/mhw/issues/69)).
 ### Editorial line for commands
 
 - **Words people already say:** a command is a short phrase that people in a software team already use
-  day to day, so it makes sense with no explanation, for example `/new-idea`, `/what-else`,
-  `/idea-to-issues`. Familiar team vocabulary (handover, issue, release) is welcome; slang and private
+  day to day, so it makes sense with no explanation, for example `/new-prd`, `/what-else`,
+  `/prd-to-issues`. *(Amended 2026-10-26: the owner renamed ~~`/new-idea`~~ and ~~`/idea-to-issues`~~,
+  "-idea- deveria ser renomeado para -prd em todos comandos com esse termo"; PRD, product requirements
+  document, is the team word for what these commands write and read. The old names stay as deprecated
+  aliases for one release, ADR-0032, 2026-10-26 amendment.)* Familiar team vocabulary (handover, issue, release) is welcome; slang and private
   jargon are not.
 - **Plain, international words:** two or three of them, lowercase and hyphenated. No slang, idioms,
   metaphors, contractions or acronyms.
 - **Name the intent, not the mechanism:** what the owner wants to happen, not how the agent harness does
   it.
-- **Families read alike:** `/new-idea` and `/new-issue`; `/idea-to-issues`.
+- **Families read alike:** `/new-prd` and `/new-issue`; `/prd-to-issues`. (~~`/new-idea`~~,
+  ~~`/idea-to-issues`~~ until 2026-10-26.)
 - **Checked against this line:** `/handover`, `/blueprint` and `/breaking-glass` all fit, because teams
   already say them (owner, 2026-10-05). (`/breaking-glass` was later removed, ADR-0028, and `/handover`
   at #196; `/handoff`, #198, is the same everyday word.)
@@ -590,8 +594,8 @@ a technology stack; **Reference** holds unused patterns.
 | # | Command | What it does | Layer | Why |
 | --- | --- | --- | --- | --- |
 | 1 | `/autonomy` | `on` drains the ready pool end to end; `off` finishes the slice in flight and hands control back | user | The owner hands the backlog to the loop and takes it back with one word, instead of approving each in-pattern step. |
-| 2 | `/new-idea` ([#71](https://github.com/tedeuxx/mhw/issues/71)) | Turns a new idea, or a plan to refine, into an agreed requirements document. Interviews the owner in rounds until every decision is settled: each round asks every question that is now answerable, each with a recommended answer; facts are looked up by the agent, decisions are his. Ends by writing the requirements document ([5a](#5a-documentation-standards-user-layer-every-repository)). | user | A plan reaches building only after shared understanding, and that understanding lands in the versioned document instead of staying in the chat. Concept from Matt Pocock's MIT-licensed skills (grilling and to-spec), adapted. |
-| 3 | `/idea-to-issues` ([#72](https://github.com/tedeuxx/mhw/issues/72)) | Breaks a requirements document into vertical slices, each a complete path through every layer, small enough for one fresh session and demonstrable alone; asks the owner about granularity and blocking order; opens one Issue per slice with acceptance criteria and blocked-by links. | user | Turns an agreed document into tracked scope he can sequence, so work never starts untracked. Concept from Matt Pocock's MIT-licensed to-tickets skill, adapted to GitHub Issues. |
+| 2 | `/new-prd`, ~~`/new-idea`~~ (renamed 2026-10-26; the old name is a deprecated alias for one release) ([#71](https://github.com/tedeuxx/mhw/issues/71)) | Turns a new idea, or a plan to refine, into an agreed requirements document. Interviews the owner in rounds until every decision is settled: each round asks every question that is now answerable, each with a recommended answer; facts are looked up by the agent, decisions are his. Ends by writing the requirements document ([5a](#5a-documentation-standards-user-layer-every-repository)). | user | A plan reaches building only after shared understanding, and that understanding lands in the versioned document instead of staying in the chat. Concept from Matt Pocock's MIT-licensed skills (grilling and to-spec), adapted. |
+| 3 | `/prd-to-issues`, ~~`/idea-to-issues`~~ (renamed 2026-10-26; the old name is a deprecated alias for one release) ([#72](https://github.com/tedeuxx/mhw/issues/72)) | Breaks a requirements document into vertical slices, each a complete path through every layer, small enough for one fresh session and demonstrable alone; asks the owner about granularity and blocking order; opens one Issue per slice with acceptance criteria and blocked-by links. | user | Turns an agreed document into tracked scope he can sequence, so work never starts untracked. Concept from Matt Pocock's MIT-licensed to-tickets skill, adapted to GitHub Issues. |
 | 4 | `/new-issue` | Captures a request as an Issue after searching for an existing decision | user | Every request becomes tracked scope before work starts, in every repository. |
 | 5 | ~~`/handover`~~ ([#73](https://github.com/tedeuxx/mhw/issues/73)) | Removed ([#196](https://github.com/tedeuxx/mhw/issues/196)); `/handoff` ([#198](https://github.com/tedeuxx/mhw/issues/198)) replaces it. ~~Writes a handover prompt the owner pastes to open a new session derived from the current one. That prompt instructs the new session to write a **return prompt** for the parent session when its objective is done.~~ | user | ~~Work branches into focused child sessions and comes back without losing context. Both prompts carry only the minimum context and are sanitised under the firewall rules.~~ |
 | 6 | `/what-else` ([#74](https://github.com/tedeuxx/mhw/issues/74)) | Restates the session's objective and answers what is still missing: what is done (with its evidence), what is left, what is blocked on the owner (that ask first) and the next step. | user | The owner can check at any moment how far the session is from its goal. |
@@ -867,8 +871,8 @@ The matrix itself, with its findings against this document, is
 | [#67](https://github.com/tedeuxx/mhw/issues/67) | `./workstation` install, update, status, uninstall ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first run |
 | [#68](https://github.com/tedeuxx/mhw/issues/68) | npm distribution from GitHub by tag, ~~`workstation` command~~ `mhw` command and postinstall ([9b](#9b-one-install-command-managed-by-the-repository)) | minor | first npm install |
 | [#69](https://github.com/tedeuxx/mhw/issues/69) | Documentation standard, workstation-wide ([5a](#5a-documentation-standards-user-layer-every-repository)) | minor | install |
-| [#71](https://github.com/tedeuxx/mhw/issues/71) | Command `/new-idea` | minor | none |
-| [#72](https://github.com/tedeuxx/mhw/issues/72) | Command `/idea-to-issues` | minor | none |
+| [#71](https://github.com/tedeuxx/mhw/issues/71) | Command `/new-idea` (now `/new-prd`) | minor | none |
+| [#72](https://github.com/tedeuxx/mhw/issues/72) | Command `/idea-to-issues` (now `/prd-to-issues`) | minor | none |
 | [#73](https://github.com/tedeuxx/mhw/issues/73) | Command `/handover` (removed at #196) | minor | none |
 | [#74](https://github.com/tedeuxx/mhw/issues/74) | Command `/what-else` | minor | none |
 | [#75](https://github.com/tedeuxx/mhw/issues/75) | `/blueprint` reshaped: export and import as a requirements document | minor | none |
