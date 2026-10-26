@@ -187,9 +187,10 @@ jobs:
       # Issues #71-#75: the workflow commands render on all three agent harnesses with their required
       # sections, Codex implicit invocation off (four since #196 removed /handover, five with #198's
       # /handoff); the sanitisation check on a synthetic fixture, kept after that removal because it never
-      # reads the command file. #198: each /handoff carrier names its own agent harness, the installed
-      # launch-line.py prints only that harness's line, the line parses under sh (and zsh where present)
-      # and carries the prompt exactly, and no rendering token survives.
+      # reads the command file. #198: each /handoff carrier defaults to its own agent harness, an explicit
+      # first-word target overrides it, the installed launch-line.py prints one fenced block for the
+      # target, the block parses under sh, bash (and zsh where present) and carries the prompt (quotes,
+      # $, backticks, newlines) and the launch environment exactly, and no rendering token survives.
       - name: workflow-commands suite
         env:
           TMPDIR: ${{ runner.temp }}

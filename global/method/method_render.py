@@ -31,7 +31,7 @@ Carriers (ADR-0027 matrix, ADR-0032):
                  (#181); a document no body names, such as a contract only a test reads, stays in the
                  source.
     Harness      in a command body, {{agent-harness}} becomes the id of the agent harness that copy is for
-                 (claude-code, codex, kiro), so /handoff prints its own harness's launch line (#198). The
+                 (claude-code, codex, kiro), so /handoff defaults to its own harness's launch line (#198). The
                  Kiro copy serves the CLI and the IDE alike. In a skill or agent body the token stops the
                  render.
 

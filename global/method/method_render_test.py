@@ -521,7 +521,7 @@ class Render(unittest.TestCase):
             self.assertIn("Owner-typed command $%s" % c, self.h.p(".agents/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
             self.assertIn("Owner-typed command /%s" % c, self.h.p(".kiro/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
             # #196: argument-hint only on the plugin standard's allowlisted owner-typed commands.
-            hinted = c not in ("idea-to-issues", "new-idea", "what-else", "handoff")
+            hinted = c not in ("idea-to-issues", "new-idea", "what-else")
             head = "\n".join(front_matter(self.h.p(".claude/commands/%s.md" % c)))
             (self.assertIn if hinted else self.assertNotIn)("argument-hint:", head, c)
 
