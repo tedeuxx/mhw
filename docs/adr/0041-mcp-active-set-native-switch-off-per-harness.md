@@ -95,8 +95,8 @@ The set is the `servers` of the local definition, `active_set` opts in, and the 
   1 does not admit a per-harness list. The alternative, making parity an explicit flag, was not taken:
   a default that already meets the decision needs no second switch.
 - **The policy servers** ([ADR-0038](0038-chrome-devtools-mcp-at-user-scope-bounded-by-origin.md)) are
-  never treated as outside the set on the surfaces they name, and they are not part of parity: they are
-  tracked, not the owner's, and `chrome-devtools` is Claude Code only by that record. *Amended 2026-10-26:* a policy server the local definition also
+  never treated as outside the set on the surfaces they name, ~~and they are not part of parity:~~ and a
+  policy server the local definition does not name is not part of parity: they are tracked, not the owner's, and `chrome-devtools` is Claude Code only by that record. *Amended 2026-10-26:* a policy server the local definition also
   names is a set member, extended to the other surfaces by the local copy, and the policy's surfaces
   count towards its parity (amendment below).
 - **claude.ai connectors** are declared by display name, `on` (in the set) or `off` (denied). A
@@ -249,11 +249,19 @@ render:
   name, the render refuses it, and the check prints `REPORT  <surface>: set member(s) whose local copy
   differs from the policy server's here … : <name> (1)` on that surface; `mhw status` lists it as a
   finding. Where the refused copy is not configured, the existing `ABSENT` names it.
+- **A differing copy off the policy's surfaces is reported, not refused** (follow-up of the same date,
+  advisory 1 of the gate's verdict on PR #228). A local copy whose `surfaces` leave the policy's out
+  renders, because the render compares only where both apply. Where its command, args or env differ from
+  the policy's copy, the check prints, on each such surface, `REPORT  <surface>: set member(s) whose local
+  copy here runs another command, args or env than the policy server's copy on <policy surfaces> …:
+  <name> (1)`, and `mhw status` lists it. Names and surfaces only, never a value. A conflicting member is
+  reported once, as the conflict.
 - **Nothing outside the set changes.** A policy server stays "not outside the set" on its surfaces,
   whether or not the local definition names it; on Claude Code the deny list keeps excluding it.
 - **The connection check** starts such a member like any other set member, including the policy's copy
   on Claude Code. This was read from the code (`mcp_connect.main` probes every set member configured
-  on a surface); no test starts a policy server.
+  on a surface); ~~no test starts a policy server~~ since the follow-up, tested in a throwaway
+  home with a stub server standing in for the policy's copy (`test_connect_starts_a_policy_server_in_the_set_where_each_harness_has_it`).
 
 Evidence: written and tested in throwaway homes (`global/mcp/mcp_render_test.py`, class
 `PolicyExtension`), each new assertion checked against a mutation of the source; not run on the

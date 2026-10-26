@@ -1851,6 +1851,50 @@ class PolicyExtension(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertNotIn("ABSENT", p.stdout)
 
+    def test_a_differing_copy_off_the_policy_surfaces_is_rendered_and_reported(self):
+        arg = "exec /bin/echo synthetic-" + secrets.token_hex(6)
+        h = mk_home("home-ext-divergent")
+        write_source(h, {"version": 1, "active_set": {},
+                         "servers": {"chrome-devtools": policy_copy(args=["-c", arg], surfaces=["codex", "kiro"])}})
+        self.assertEqual(policy(h, "install").returncode, 0)
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(json_servers(h, "kiro")["chrome-devtools"]["args"], ["-c", arg], "rendered, not refused")
+        p = active(h, "check")
+        for surface in ("codex", "kiro"):
+            self.assertIn("REPORT  %s: set member(s) whose local copy here runs another command, args or env than "
+                          "the policy server's copy on claude-code" % surface, p.stdout)
+        self.assertIn("chrome-devtools (1)", p.stdout)
+        self.assertNotIn("REPORT  claude-code", p.stdout, "the policy's copy runs there")
+        self.assertNotIn(arg, p.stdout + p.stderr, "names only, never a value")
+        import workstation
+        lines = "\n".join(workstation.mcp_active_lines({"user_lines": p.stdout.splitlines()}))
+        self.assertIn("codex: set member(s) whose local copy here runs another command", lines, "mhw status lists it")
+        write_source(h, {"version": 1, "active_set": {},
+                         "servers": {"chrome-devtools": policy_copy(surfaces=["codex", "kiro"])}})
+        self.assertEqual(run(h).returncode, 0)
+        p = active(h, "check")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertNotIn("REPORT", p.stdout, "an identical copy is not reported")
+
+    def test_connect_starts_a_policy_server_in_the_set_where_each_harness_has_it(self):
+        h = mk_home("home-ext-connect")
+        stub_py = os.path.join(BASE, "mcp_stub_server.py")
+        with open(stub_py, "w") as fh:
+            fh.write(STUB_SERVER)
+        pids = os.path.join(h, "pids")
+        os.makedirs(pids)
+        ok = {"command": sys.executable, "args": [stub_py, "ok", os.path.join(pids, "ok")]}
+        write_source(h, {"version": 1, "active_set": {},
+                         "servers": {"chrome-devtools": dict(ok, surfaces=["codex", "kiro"])}})
+        self.assertEqual(run(h).returncode, 0)
+        # The policy's copy on Claude Code, with the stub's command instead of the package (no fetch in a test).
+        write_json(targets(h)["claude-code"], {"mcpServers": {"chrome-devtools": dict(ok, type="stdio")}})
+        p = connect(h, "--timeout=5")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        for surface in ("codex", "kiro", "claude-code"):
+            self.assertIn("OK      %s: chrome-devtools: ok (MCP connect)" % surface, p.stdout)
+
     def test_the_active_set_reports_a_differing_copy(self):
         h = self._set_home("home-ext-active-conflict", policy_copy(args=["-c", "exec /bin/echo synthetic"]))
         self.assertEqual(run(h).returncode, 3)
@@ -1861,6 +1905,7 @@ class PolicyExtension(unittest.TestCase):
         self.assertIn("ABSENT  codex: set member(s) not configured: chrome-devtools (1)", p.stdout,
                       "the refused copy is not configured there, and that is said")
         self.assertNotIn("ABSENT  claude-code", p.stdout, "the policy's copy is configured there")
+        self.assertNotIn("runs another command", p.stdout, "a refused copy is reported once, as the conflict")
 
 
 if __name__ == "__main__":
