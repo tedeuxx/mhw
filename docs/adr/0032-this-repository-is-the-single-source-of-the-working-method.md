@@ -327,9 +327,10 @@ method/"** over retiring them or postponing #130, and made two preconditions of 
 in `method/`, and the root-brief rename to `AGENTS.md` (ADR-0037) applied across `method/`.
 
 - **Moved:** `sprint-planning`, `sprint-review`, `sprint-retrospective` and `funnel-review`, from the
-  plugin's `commands/` at its `main` commit `4882b911`, into `method/commands/`. They render like every
+  plugin's `commands/` at its `main` commit `4882b911`, into `method/commands/`. ~~They render like every
   other command: Claude Code commands, Codex skills with implicit invocation off, Kiro skills. The
-  method now holds 11 commands.
+  method now holds 11 commands.~~ *(Struck 2026-10-26: they are skills now; see the amendment of that
+  date.)*
 - **Adapted as at seeding, and nothing else:** the method's front-matter shape (`name`, `description`,
   `purpose`, `argument-hint`, quoted); the retired-plugin-hooks note at the top; the plugin's namespaced
   invocations (`/tadeumendonca-skills:<name>`) made bare in `autonomy` (the rite bodies carried none). Their
@@ -529,6 +530,115 @@ amendment above was a one-shot migration for the cutover, and #130 is closed.
 - **Evidence.** On the reference machine the plugin is not enabled in the Claude Code user settings
   (the owner's read-only check on #206). Replicator installs were not checked; the release notes ask
   them to run `mhw status`.
+
+## Amendment 2026-10-26: a renamed command keeps its old name for one release
+
+Status unchanged (proposed). The owner, 2026-10-26: *"-idea- deveria ser renomeado para -prd em todos
+comandos com esse termo"* (every command whose name carries "idea" carries "prd" instead). Two commands
+carried it: `new-idea` becomes `new-prd` and `idea-to-issues` becomes `prd-to-issues`. PRD (product
+requirements document) is the document both write or read; its filename pattern,
+`docs/<repo>-product-requirements-document-<subject>.md`, carries no command name and is unchanged.
+
+**Decision.** A command's front matter may list `deprecated-aliases`, its old names. The renderer
+renders each alias as a command of its own in every carrier: a Claude Code command file, a Codex skill
+with implicit invocation off, a Kiro skill. The alias carries the command's whole body, a description
+that opens *"Deprecated name of <new>, kept for one release."*, and a preface telling the agent to name
+the new spelling to the owner once. Its provenance stamp names the current command's source file. An
+alias that collides with a skill, a command, an agent or another alias stops the render, with nothing
+written. Dropping an alias from the source makes `--mode=check` report its rendered files `STALE` and
+the next install remove them, through the existing stale path.
+
+**Why.** Nothing the owner types stops working with the rename, which follows the precedent of the
+`workstation` command kept as a deprecated alias of `mhw` (ADR-0034, 2026-10-06 amendment, removed
+2026-10-18). Rendering a second command is the only route that reaches all three agent harnesses:
+none of their user-level command carriers has a field this renderer can set to give one file a second
+name. That is *documented* at best and **not measured** in any of the three: no build was searched
+for an alias field and none was exercised.
+
+**Rejected:** rename with no alias. It costs nothing to render, but every old spelling stops working
+at once, which is a breaking change for the owner's typing habit, cut as major. **Rejected:** an alias
+whose body only says "run `new-prd`". It is shorter, but whether one command can invoke another differs
+per agent harness and was not measured, so the alias could run nothing.
+
+**Consequences.**
+
+- Good: `/new-idea`, `$new-idea` and their Kiro form keep running the same steps for one release, and
+  the agent tells the owner the new name.
+- Good: the next rename uses the same field, with no renderer change.
+- Bad: for one release each old name is a second full copy in every carrier, so a harness command list
+  shows both names, distinguished only by the description.
+- Bad: removing an alias is a breaking change (major), and nothing schedules it: the next release that
+  drops `deprecated-aliases` from the two files does it. The `workstation` precedent shipped one major
+  later than its own note said.
+
+**Evidence, 2026-10-26.** *Written and tested.* `global/method/method_render_test.py`:
+`test_the_deprecated_aliases` (the declared set, and no command name still carrying "idea"),
+`test_a_deprecated_alias_renders_the_command_under_its_old_name`, `test_a_colliding_alias_stops_the_render`
+and `test_a_dropped_alias_is_removed_on_the_next_install`; `global/method/method_commands_test.py`:
+`test_deprecated_names_still_run_the_whole_command`. Seven mutations of the source (no alias emitted,
+no deprecation note, the body dropped, the collision check off, the description unmarked, the alias
+undeclared, the alias misspelled) each turned at least one suite red, and both recovered on restore.
+Not run on Windows. Nothing is installed on the reference machine, and no agent harness was observed
+listing or running an alias.
+
+## Amendment 2026-10-26: the sprint rites are skills, not commands
+
+Status unchanged (proposed). The owner, 2026-10-26: *"nao sei se precisamos de comandos para os ritos
+de sprint. para mim sao skills."* This changes how the 2026-10-12 amendment above carried the four
+rites; its sentence on rendering them as commands is struck in place.
+
+- **Moved:** `sprint-planning`, `sprint-review`, `sprint-retrospective` and `funnel-review`, from
+  `method/commands/<name>.md` to `method/skills/<name>/SKILL.md`. Bodies unchanged except: the
+  `argument-hint` key is dropped (the skill shape has none) and its text folded into the description;
+  `$ARGUMENTS`, which only Claude Code substitutes, becomes "the iteration the owner named after this
+  skill's name"; a dated note at the top names the invocation on each agent harness. Every pointer in
+  `method/` to `commands/<rite>.md` now names `skills/<rite>/SKILL.md`, except four history lines (a path
+  in the plugin at a named commit, or a dated measurement of the plugin's file), which a test lists.
+  The method now holds 19 skills and 8 commands (with `need-me`, added the same day).
+- **How they render.** Like every method skill: the same text in `~/.claude/skills/`, `~/.agents/skills/`
+  and `~/.kiro/skills/`, with no Codex `agents/openai.yaml`. Install removes the rite's earlier
+  `~/.claude/commands/<name>.md` and its Codex implicit-off policy as no longer rendered (the existing
+  `REMOVED … (no longer in method/)` path), and rewrites the Codex and Kiro `SKILL.md` from the skill;
+  a test installs the earlier shape and then this one and checks that.
+- **Invocation by name, per agent harness, at its evidence level.** Claude Code: **measured**
+  (2.1.311, a throwaway configuration directory, not logged in): the headless `init` lists all four in
+  `skills` and in `slash_commands`, so `/<name>` is offered; running one was not measured (needs a
+  login). Codex: **measured** (0.163.0, `codex debug prompt-input` with an empty `CODEX_HOME`): the four
+  rendered rite skills are in the model-visible skill list, and are absent when run from a directory
+  without them; explicit `$<name>` invocation is **documented**, not measured. Kiro: **documented** only
+  (every skill is a slash command in CLI and IDE, the enforcement matrix); no Kiro cell is measured.
+- **The same for the workspace `session-finish`** (owner: *"mesma coisa session finish"*): the
+  workspace command `.claude/commands/session-finish.md` and its Codex mirror
+  `.agents/skills/source-command-session-finish/` become one skill text in `.claude/skills/session-finish/`
+  and `.agents/skills/session-finish/`. Claude Code 2.1.311 lists it in `skills` (**measured**; the
+  `slash_commands` entry is confounded here, since a worktree's parent checkout still carries the old
+  command file); Codex 0.163.0 lists it as a model-visible skill (**measured**). The workspace has no
+  `.kiro/skills/`, so Kiro keeps the route through `AGENTS.md` and its steering. See ADR-0021's
+  amendment of this date.
+
+**Considered options.**
+
+1. *Skills, model-invocable (chosen).* What the owner said. A rite the drain names at its terminal
+   condition can now be loaded by the model as well as typed.
+2. *Skills with model invocation switched off* (Claude Code `disable-model-invocation`, a Codex
+   implicit-off policy). Rejected: it keeps the command's behaviour under a skill's name, which is not
+   what he asked, and Claude Code's key is not part of the shared skill shape the renderer writes for
+   all three agent harnesses.
+3. *Keep them as commands.* Rejected by his words.
+
+**Consequences.**
+
+- Good: one shape for every rite; the owner's typed names keep working on all three agent harnesses;
+  the rites stop carrying a Claude-Code-only placeholder.
+- Bad: a model may now load a rite on its own when its description matches. Each rite's owner acts
+  (composing an iteration, ruling on proposals) are unchanged and remain his; that a model loads a rite
+  is not his go. On Codex the rites are now in the model-visible skill list, which they were kept out
+  of before. A skill has no `argument-hint`, so Claude Code shows no argument hint after the name.
+- Not covered: whether a model loads a rite at the wrong moment is not observable by any layer; it is
+  an instruction held by the rite's text.
+
+**Evidence level.** *Written and tested*; the listings above were *probed* in throwaway directories.
+Not installed on the reference machine.
 
 ## Links
 

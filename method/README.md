@@ -10,7 +10,13 @@ decision and the carrier map are in
 | --- | --- | --- |
 | `agents/<name>.md` | one agent: `name`, `description`, `purpose`, `tools` (an explicit `[]` for none), optional `disallowed-tools` (`mcp__<server>__<tool>` of a granted server), `skills` (preloads), then its brief | Claude Code `~/.claude/agents/`, Codex `~/.codex/agents/<name>.toml`, Kiro `~/.kiro/agents/<name>.json` |
 | `skills/<name>/SKILL.md` | one skill: `name`, `description`, `purpose`, then its body | `~/.claude/skills/`, `~/.agents/skills/` (Codex), `~/.kiro/skills/` |
-| `commands/<name>.md` | one owner-typed command: `name`, `description`, `purpose`, `argument-hint`, then its body | `~/.claude/commands/`; a Codex skill with implicit invocation off; a Kiro skill |
+| `commands/<name>.md` | one owner-typed command: `name`, `description`, `purpose`, `argument-hint`, optional `deprecated-aliases` (old names kept for one release), then its body | `~/.claude/commands/`; a Codex skill with implicit invocation off; a Kiro skill. Each deprecated alias is rendered the same way under its old name, with a note naming the current one: no agent harness here has a native command alias |
+
+**The sprint rites are skills, not commands** (owner, 2026-10-26: *"para mim sao skills"*):
+`sprint-planning`, `sprint-review`, `sprint-retrospective` and `funnel-review` live in
+`skills/<name>/SKILL.md`. The owner still invokes each by name (Claude Code `/<name>`, Codex `$<name>`,
+Kiro `/<name>`), typing the iteration or period after it; a skill has no `argument-hint`, so its
+description says what it takes. Unlike a command, a skill may also be loaded by the model on its own.
 
 **Installing it is opt-in until the plugin cutover (#63, #64):** `./mhw install --method`
 renders it through `global/install.sh` (on Windows, `global/install.ps1 -Method`), which runs

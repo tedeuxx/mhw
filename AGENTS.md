@@ -213,9 +213,10 @@ The source of truth for every layer lives here, versioned; what is installed on 
   until it confirms the exact head is in a merged PR covered by a successful version workflow and a
   published newer numeric SemVer release. Report a blocker instead of calling local commits a
   delivery.
-- Claude Code offers `/session-finish`; other harnesses follow this same contract from AGENTS.md and
-  the Kiro steering and invoke the shared commands. Nothing mechanical enforces the release-candidate
-  rule: it is an instruction.
+- The workspace skill `session-finish` carries this route (`/session-finish` in Claude Code,
+  `$session-finish` in Codex; a skill since 2026-10-26, so an agent may also load it on its own); Kiro
+  follows the same contract from AGENTS.md and the Kiro steering and invokes the shared commands.
+  Nothing mechanical enforces the release-candidate rule: it is an instruction.
 
 - **No secret value is ever committed here** — not tokens, API keys, passwords, OAuth client secrets,
   service-account files, nor a config file copied verbatim from a machine that contains them. Reference

@@ -20,6 +20,9 @@ Carriers (ADR-0027 matrix, ADR-0032):
     Kiro         ~/.kiro/agents/<n>.json (tools, excludedTools, preloaded skills as files; no allowedTools,
                  so nothing is auto-approved: Kiro carries no deny floor),
                  ~/.kiro/skills/<n>/SKILL.md, and each command as a skill (a slash command in CLI and IDE)
+    Aliases      a command's deprecated-aliases (its old names, kept for one release) are rendered as commands
+                 of their own in every carrier, with the same body and a preface naming the current name: no
+                 agent harness here has a native command alias (ADR-0032, 2026-10-26 amendment)
     Scripts      the executables the rites run (method/scripts/*.py and *.sh, never a *.test.* file), one
                  copy for every agent harness, in ${XDG_DATA_HOME:-~/.local/share}/personal-multi-harness-
                  workstation-configuration/method/scripts/ (with --home, always under that home's
@@ -147,8 +150,15 @@ def load(source):
         fields, body = split_front_matter(path.read_text(encoding="utf-8"), where)
         if fields.get("name") != name or not NAME_RE.fullmatch(name):
             raise SourceError("%s: name must equal the file name" % where)
+        aliases = fields.get("deprecated-aliases", [])
+        if not isinstance(aliases, list):
+            raise SourceError("%s: deprecated-aliases must be a list" % where)
+        for a in aliases:
+            if not NAME_RE.fullmatch(a) or a == name:
+                raise SourceError("%s: invalid deprecated alias %r" % (where, a))
         commands[name] = {"description": need(fields, "description", where), "purpose": fields.get("purpose", ""),
-                          "hint": fields.get("argument-hint", ""), "body": body, "where": where}
+                          "hint": fields.get("argument-hint", ""), "body": body, "where": where,
+                          "aliases": aliases}
     for path in sorted((source / "agents").glob("*.md")):
         name = path.stem
         where = "method/agents/%s.md" % name
@@ -186,6 +196,14 @@ def load(source):
     clash = set(skills) & set(commands)
     if clash:
         raise SourceError("a skill and a command share a name: %s" % ", ".join(sorted(clash)))
+    # A deprecated alias (a command's old name, kept for one release) is rendered as a command of its own,
+    # so it must not collide with any skill, command or other alias.
+    seen = set(skills) | set(commands) | set(agents)
+    for name in sorted(commands):
+        for a in commands[name]["aliases"]:
+            if a in seen:
+                raise SourceError("method/commands/%s.md: deprecated alias %s collides with another name" % (name, a))
+            seen.add(a)
     if not skills or not agents or not commands:
         raise SourceError("method/ must hold agents, skills and commands")
     return skills, agents, commands
@@ -290,6 +308,19 @@ def command_as_skill(c, name, invoke, stamp, harness):
     body = for_harness(c["body"], harness)
     return skill_md(name, description, c["purpose"], "\n" + command_preface(name, invoke) + body.lstrip("\n"),
                     c["where"], stamp)
+
+
+def alias_command(c, target, alias, invoke):
+    """The command as rendered under one of its deprecated aliases: the same body and purpose, with a
+    description and a preface that name the current name. No agent harness this method installs to has a
+    native alias for a command (ADR-0032, 2026-10-26 amendment), so the alias is a second rendered command."""
+    note = ("> **Deprecated name.** `%s` is the old name of `%s`, kept for one release so that what the owner "
+            "types keeps working; removing it is a breaking change. It runs exactly the steps below. Tell the "
+            "owner once, in one line, that the name is now `%s`.\n\n" % (alias, target, invoke))
+    alias_c = dict(c)
+    alias_c["description"] = "Deprecated name of %s, kept for one release. %s" % (target, c["description"])
+    alias_c["body"] = "\n" + note + c["body"].lstrip("\n")
+    return alias_c
 
 
 def codex_policy(where, stamp):
@@ -413,6 +444,17 @@ def targets(skills, agents, commands, stamp, scripts=None, documents=None):
             (h["agents"] / "skills" / name / "agents" / "openai.yaml", codex_policy(c["where"], stamp), "md"),
             (kiro_skills / name / "SKILL.md", command_as_skill(c, name, "/" + name, stamp, "kiro"), "md"),
         ])
+        for alias in c["aliases"]:
+            out.extend([
+                (h["claude"] / "commands" / (alias + ".md"),
+                 claude_command(alias_command(c, name, alias, "/" + name), stamp, "claude-code"), "md"),
+                (h["agents"] / "skills" / alias / "SKILL.md",
+                 command_as_skill(alias_command(c, name, alias, "$" + name), alias, "$" + alias, stamp, "codex"),
+                 "md"),
+                (h["agents"] / "skills" / alias / "agents" / "openai.yaml", codex_policy(c["where"], stamp), "md"),
+                (kiro_skills / alias / "SKILL.md",
+                 command_as_skill(alias_command(c, name, alias, "/" + name), alias, "/" + alias, stamp, "kiro"), "md"),
+            ])
     for name, a in agents.items():
         out.append((h["claude"] / "agents" / (name + ".md"), claude_agent(a, name, stamp), "md"))
         out.append((h["codex"] / "agents" / (name + ".toml"), codex_agent(a, name, stamp), "md"))
@@ -601,10 +643,12 @@ def main(argv):
         else:
             remove(path)
             print("REMOVED %s (no longer in method/)" % path)
-    print("METHOD  installed: %d agents, %d skills, %d commands from method/ into Claude Code (agents, skills, commands), "
+    aliases = sum(len(c["aliases"]) for c in commands.values())
+    print("METHOD  installed: %d agents, %d skills, %d commands (and %d deprecated command names) from method/ into "
+          "Claude Code (agents, skills, commands), "
           "Codex (custom agents without a tool list, skills; commands as skills with implicit invocation off) "
           "and Kiro (agents, skills; commands as skills); %d scripts in %s"
-          % (len(agents), len(skills), len(commands), len(scripts), homes()["scripts"]))
+          % (len(agents), len(skills), len(commands), aliases, len(scripts), homes()["scripts"]))
     return run.status
 
 

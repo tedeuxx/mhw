@@ -1,8 +1,7 @@
 ---
 name: "funnel-review"
-description: "Read the content funnel end to end for one period — the site's own analytics and the post metrics for what was published — and return at most two findings about where the funnel breaks. Use when the retrospective runs at the close of an iteration, or when the owner types it against a period worked by hand. It returns observations for the owner, never a ruling, and it gates nothing."
+description: "Read the content funnel end to end for one period — the site's own analytics and the post metrics for what was published — and return at most two findings about where the funnel breaks. Use when the retrospective runs at the close of an iteration, or when the owner types it against a period worked by hand. It returns observations for the owner, never a ruling, and it gates nothing. It takes an optional period as its argument, typed after its name; without one it uses the active iteration."
 purpose: "give published content a feedback loop the loop itself can run, because every gate in this harness reads a diff and not one of them can see whether anything published was reached, read or acted on"
-argument-hint: "[period] (defaults to the active iteration)"
 ---
 
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
@@ -19,8 +18,13 @@ argument-hint: "[period] (defaults to the active iteration)"
 > directory the method installs them to, the same for every agent harness, so the rite runs them from
 > any repository.
 
-Run the funnel review for the period named by `$ARGUMENTS` (default: the active iteration, derived
-from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
+> **A skill, not a command, since 2026-10-26** (the owner: *"para mim sao skills"*). Invoke it by name:
+> Claude Code `/funnel-review`, Codex `$funnel-review`, Kiro `/funnel-review`. Any agent harness may also load it
+> on its own when the task matches its description; the rite's steps and its owner acts are
+> unchanged by that.
+
+Run the funnel review for the period the owner named after this skill's name (default: the active
+iteration, derived from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
 
 **This rite exists because it already ran once, by hand, and found something nothing else would
 have.** On 2026-09-04 one session read the site's acquisition and landing-page reports, read the post
