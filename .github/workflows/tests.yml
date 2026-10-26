@@ -64,7 +64,7 @@ jobs:
                   compile(fh.read(), f, "exec")' \
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
-            global/mcp/mcp_render.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
+            global/mcp/mcp_render.py global/mcp/mcp_active.py global/mcp/mcp_connect.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/kiro/kiro_permissions.py global/kiro/kiro_permissions_test.py \
             global/profile/profile.py global/profile/profile_test.py \
             global/workstation.py global/workstation_test.py \

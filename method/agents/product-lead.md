@@ -765,8 +765,9 @@ order requires you to have returned a new order, or the session to record that t
 from the `quality-assurance` (which judges the diff against the engineering DoD) — a slice can be
 flawless code and still not do the thing its Issue promised a person.
 
-**3 · Is the flow honest?** Every piece of work a tracked Issue, WIP respected, the board reflecting
-reality. Not whether the work is good — whether the record of it is true.
+**3 · Is the flow honest?** Every piece of work a tracked Issue, ~~WIP respected~~ one issue per
+worktree and one merge request at the gate (struck 2026-10-19, #216: no count bounds development), the
+board reflecting reality. Not whether the work is good — whether the record of it is true.
 
 **4 · Is the slice the right SIZE?** A thin vertical increment that is end-to-end and reviewable, or a
 compound that will take three rounds. This is the question that was `scrum-master`'s, and it belongs

@@ -5,7 +5,8 @@
   wants.~~ **accepted** (the owner's ratification, 2026-10-01). See the amendment "2026-10-01:
   ratified by the owner and installed on the reference workstation" below. The amendment
   "2026-10-05: the floor absorbs the plugin's irreversible-action rules and moves to the admin layer"
-  is **proposed**.
+  is **proposed**. The amendment "2026-10-24: a secret may be created or renewed by the agent in the
+  owner's browser while he watches" is **proposed** (ADR-0040).
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -90,7 +91,7 @@ invalid one stops the run with exit 2, so an entry the parser would drop never b
 | --- | --- | --- |
 | Bypassing the permission layer | `claude --dangerously-skip-permissions`, `--allow-dangerously-skip-permissions`, `--permission-mode bypassPermissions`; `codex [exec] --dangerously-bypass-approvals-and-sandbox`, `--dangerously-bypass-hook-trust`, `--sandbox`/`-s danger-full-access`; `sudo` | An agent starting a less-guarded agent, or escalating privilege, erases every other rule |
 | Reading a credential into context | `gh auth token`; `security find-generic-password`, `find-internet-password`, `dump-keychain`; `aws configure export-credentials`, `aws configure get aws_secret_access_key`, `aws secretsmanager get-secret-value`; file reads and writes of `~/.ssh/id_*`, `~/.aws/credentials`, `~/.netrc`, `~/.config/gh/hosts.yml`, `~/.docker/config.json`, `~/.codex/auth.json`, `~/.claude/.credentials.json` | The firewall's first job is that secrets do not reach a model provider (`AGENTS.md`, "How: the LLM firewall") |
-| Writing or deleting a secret | `gh secret set/delete/remove`; `aws secretsmanager create-secret/put-secret-value/update-secret/delete-secret`; `aws ssm put-parameter`; `aws iam create-access-key`; `security add-/delete-generic-password`, `add-/delete-internet-password` | A secret is set by the human, never by an agent |
+| Writing or deleting a secret | `gh secret set/delete/remove`; `aws secretsmanager create-secret/put-secret-value/update-secret/delete-secret`; `aws ssm put-parameter`; `aws iam create-access-key`; `security add-/delete-generic-password`, `add-/delete-internet-password` | A secret is set by the human, never by an agent *(amended, proposed: see the amendment "2026-10-24" below and ADR-0040)* |
 | Rewriting history | `git push --force`, `--force-with-lease`, `--force-if-includes`, `-f`, `--mirror`; `git reset --hard`; `git filter-branch`, `filter-repo`; `git reflog expire/delete`; `git gc --prune=now` | Others may hold the old history; the last three destroy what makes a rewrite recoverable |
 | Destructive deletes | `rm` with `-rf`, `-fr`, `-Rf`, `-fR`, `-r -f`, `-f -r`, `-R -f`, `-f -R`, `--recursive --force`, `--force --recursive`; `git clean -f`, ten combined spellings with `d` and `x`, `--force`, `-d -f`, `-x -f` | Untracked files have no other copy. The flags are a set, not a token, so each spelling is its own entry |
 | Mutating infrastructure outside a pipeline | `terraform apply`, `terraform destroy` | A destroyed resource is not restored by a revert. No layer on the reference machine allows either; his repositories allow only `plan`, `fmt`, `validate` and `init` |
@@ -533,6 +534,23 @@ Status unchanged. The owner's decision on Issue #206 (*"Os 4 agora"*) removes
   holding it back from agents is an instruction, not a control. The removed script's `--apply` was
   behind the floor's `gh api --method PATCH` deny; the native command is not. *Accepted cost:* an agent
   that runs it is stopped by nothing mechanical.
+
+## Amendment 2026-10-24: a secret may be created or renewed by the agent in the owner's browser while he watches (Issue #220, proposed)
+
+Proposed, with [ADR-0040](0040-presence-conditioned-secret-renewal-through-the-browser.md). It amends the
+reason given for the row "Writing or deleting a secret", *"A secret is set by the human, never by an
+agent"*, and nothing else. On ratification that reason reads: *a secret is set by the human, or, while
+he watches live, by the agent in his browser; never by an agent through a shell command and never while
+he is away.*
+
+- **The entries do not change.** `gh secret set`, `gh secret delete`, `gh secret remove` and the rest
+  of the row stay in `global/deny-floor.conf` and in all four installed layers.
+- **What changes is an instruction.** With the owner present (ADR-0040, D1), the agent may create or
+  renew a secret or a token (D2) through his browser, copying without reading (D3). Presence is
+  observed by no layer, so this is written only, not enforced.
+- **Deleting a secret is not covered**, and neither is any other floor item.
+- **The canary is owed.** Until it passes, no claim is made that the value stays out of the model's
+  context, and no real use happens before it does (D3).
 
 ## Links
 

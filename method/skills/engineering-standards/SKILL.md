@@ -1,6 +1,6 @@
 ---
 name: "engineering-standards"
-description: "The owner's engineering preferences, portable to any project — two tiers (a non-negotiable floor, a risk-calibrated judgment layer), the twelve principles behind every call, delivered versus hygiene, and the human residual. Use when deciding how much rigor a change deserves, whether something counts as delivery, or what to do while blocked. Not this loop's machinery, state machine or WIP rule (see agents-configuration), and not what done means concretely (see definition-of-done)."
+description: "The owner's engineering preferences, portable to any project — two tiers (a non-negotiable floor, a risk-calibrated judgment layer), the twelve principles behind every call, delivered versus hygiene, and the human residual. Use when deciding how much rigor a change deserves, whether something counts as delivery, or what to do while blocked. Not this loop's machinery, state machine or worktree rule (see agents-configuration), and not what done means concretely (see definition-of-done)."
 purpose: "hold the engineering preferences that survive leaving this loop, so a project that runs different machinery can adopt the judgment without inheriting a configuration that says nothing to it"
 ---
 
@@ -36,7 +36,7 @@ them would have made the file unable to say where it came from.
 
 **Its companion is `agents-configuration`, and the two are not interchangeable.** This file is the
 judgment; that one is the loop the judgment is applied inside — its state machine, its intake chain,
-its gates, its WIP rule and the mechanisms that hold them. Where a principle below has a local
+its gates, its ~~WIP rule~~ worktree-per-issue rule and the mechanisms that hold them. Where a principle below has a local
 enforcement, the enforcement is named there and the principle is named here, once each.
 
 ## The move that makes it a discipline, not a vibe
@@ -166,15 +166,22 @@ for any non-trivial task. *When I move faster:* a trivial, in-pattern change doe
 existing pattern. The line is "does this change a boundary others depend on, or something hard to
 undo?" → ask. Otherwise → decide and report. Never make a *solo architectural* call.
 
-**3. Thin vertical slices, bounded by overlap AND by a work-in-progress bound.** Each increment
-crosses the layers and delivers reviewable value. Serial focus beats half-finished breadth.
+**3. Thin vertical slices, ~~bounded by overlap AND by a work-in-progress bound~~ each isolated in
+its own checkout and integrated one at a time.** Each increment crosses the layers and delivers
+reviewable value. ~~Serial focus beats half-finished breadth.~~ Parallel development is fine when each
+slice has its own working tree; integration is where serial focus pays, because two changes reviewed
+against heads that do not contain each other compose untested. *(Reworded 2026-10-19, #216: a count
+of work in progress is no longer the bound.)*
 
-> **The bound itself is a local decision and is not stated here.** What the bound *is* — one branch
+> **The rule itself is a local decision and is not stated here.** ~~What the bound *is* — one branch
 > and one open PR at a time, versus a file-overlap rule — depends on the machinery available to hold
-> it, on what a shared checkout costs, and on what the owner of that loop has ruled. This loop's
-> answer, the correction that produced it, what it is protecting, and the measurement showing that
-> nothing enforces it are all in **`agents-configuration`**, under *WIP=1*. Read them there; this
-> principle only says that a bound exists and that it is not optional.
+> it, on what a shared checkout costs, and on what the owner of that loop has ruled.~~ How slices are
+> isolated, whether anything counts them, and how integration is serialised depend on the machinery
+> available to hold it, on what a shared checkout costs, and on what the owner of that loop has
+> ruled. This loop's answer, the corrections that produced it, what it is protecting, and the
+> measurement showing that nothing enforces it are all in **`agents-configuration`**, under the
+> section headed *WIP=1*, which now records the count's retirement. Read them there; this principle
+> only says that slices are isolated and integrated serially, and that this is not optional.
 
 **4. Surgical changes, tracked debt.** Keep each change focused on its slice. When adjacent mess sits
 in the path, **work around it and file the debt** — do *not* refactor alongside (no boy-scouting

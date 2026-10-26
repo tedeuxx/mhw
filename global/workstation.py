@@ -13,6 +13,8 @@ checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./wo
                                           the plugin cutover (#63, #64), kept current once installed
     ./mhw status [--verbose]            what is installed, which layers and protections, the version key
     ./mhw status --summary              the session-start runtime summary an agent harness relays (#80)
+    ./mhw status --mcp-connect[=SECONDS]  also start each MCP active-set server and say whether it answers
+                                        (opt-in: it starts processes; exit 1 when one fails; #219)
     ./mhw check                         exit non-zero when an installed target differs from this checkout
                                           (the admin layer included, stamped or from an earlier release),
                                           or a required prerequisite is missing (global/prerequisites.json)
@@ -216,6 +218,7 @@ def render_status(f, verbose=False):
         f["brief"], f["floor"], f["hooks"]))
     lines.append("  method           %s" % method_text(f.get("method")))
     lines.append("  models           %s" % models_text(f))
+    lines.extend(mcp_active_lines(f))
     if f.get("permissions"):
         lines.append("  permissions      %s" % f["permissions"])
     key = f["key"]
@@ -258,6 +261,68 @@ MODEL_KEYS = {"Claude Code": ("model", "effortLevel"), "Codex": ("model", "model
               "Kiro": ("chat.defaultModel",)}
 # install.sh --check lines of the model-defaults step (ADR-0035) carry this tag.
 MODELS_TAG = "(model defaults "
+
+
+# install.sh --check lines of the MCP active-set step (Issue #219, ADR-0041) end with this tag.
+MCP_ACTIVE_TAG = "(MCP active set)"
+_MCP_ACTIVE_LINE = re.compile(r"^([A-Z]+)\s+(\S+): (.*) \([^()]*\) \(MCP active set\)$")
+MCP_INDENT = " " * 19
+
+
+def mcp_active_lines(f):
+    """The MCP active set as install.sh --check reported it: every server on outside the set, every set
+    member missing on an agent harness, and what has no native switch. Names and counts only: the lines
+    carry no command, URL or other value."""
+    head = "  mcp active set   "
+    hits = [line for line in f.get("user_lines", []) if line.endswith(MCP_ACTIVE_TAG)]
+    if not hits:
+        return [head + "not read (the check printed no MCP active-set line)"]
+    for line in hits:
+        if line.startswith("SKIP    MCP active set: "):
+            return [head + line[len("SKIP    MCP active set: "):-len(" " + MCP_ACTIVE_TAG)]]
+    findings, drift, unread = [], 0, []
+    for line in hits:
+        m = _MCP_ACTIVE_LINE.match(line)
+        if m and m.group(1) in ("DRIFT", "REPORT", "ABSENT", "REFUSE"):
+            findings.append("%s: %s" % (m.group(2), m.group(3)))
+            drift += m.group(1) == "DRIFT"
+        elif m and m.group(1) == "SKIP" and not m.group(3).startswith("not installed"):
+            # An agent harness installed here whose files were not read (Codex without Python 3.11+): its
+            # servers are unknown, so the line must not read clean (#222 lens).
+            unread.append(m.group(2))
+            findings.append("%s: not read: %s" % (m.group(2), m.group(3)))
+    prefix = "not read for %s; " % ", ".join(unread) if unread else ""
+    if not findings:
+        return [head + "declared; nothing on outside the set and no set member missing"]
+    if len(findings) == len(unread):
+        return [head + "declared; " + prefix.rstrip("; ")] + [MCP_INDENT + x for x in findings]
+    fix = "; %s turns off what is on outside the set in %d agent harness(es)" % (FIX, drift) if drift else ""
+    count = len(findings) - len(unread)
+    return [head + "%s%d finding(s)%s" % (prefix, count, fix)] + [MCP_INDENT + x for x in findings]
+
+
+MCP_RENDER = HERE / "mcp" / "mcp_render.py"
+
+
+def mcp_connect_lines(lines, code=0):
+    """The connection check's own lines, under one heading; its tag and its word are dropped. Untagged
+    lines (a refusal) are not shown: the exit code is, with where to read the reason."""
+    out = []
+    for line in lines:
+        if line.endswith(" (MCP connect)"):
+            out.append(line[:-len(" (MCP connect)")].split(None, 1)[-1])
+    if not out:
+        out = ["no result (exit %d); run global/mcp/mcp_render.py --active --mode=connect for the reason" % code]
+    return ["  mcp connect      " + out[0]] + [MCP_INDENT + x for x in out[1:]]
+
+
+def mcp_connect_status(timeout):
+    """mhw status --mcp-connect (Issue #219): the owner-run connection check, after the status view."""
+    code, lines = run([sys.executable, "-B", str(MCP_RENDER), "--active", "--mode=connect",
+                       "--timeout=%d" % timeout])
+    for line in mcp_connect_lines(lines, code):
+        print(line)
+    return 1 if code else 0
 
 
 def models_text(f):
@@ -1496,7 +1561,7 @@ def main(argv):
         import scan
         return scan.main(rest)
     overlay, project, verbose, admin, wanted, summary, method = None, None, False, False, None, False, False
-    prereq_only, yes, no_admin = False, False, False
+    prereq_only, yes, no_admin, connect = False, False, False, None
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
@@ -1506,6 +1571,8 @@ def main(argv):
             verbose = True
         elif arg == "--summary" and command == "status":
             summary = True
+        elif command == "status" and re.fullmatch(r"--mcp-connect(=[1-9][0-9]{0,3})?", arg):
+            connect = int(arg.split("=", 1)[1]) if "=" in arg else 30
         elif arg == "--prerequisites" and command == "check":
             prereq_only = True
         elif arg == "--admin" and command == "install":
@@ -1545,7 +1612,7 @@ def main(argv):
         lines = render_summary(facts) if summary and not verbose else render_status(facts, verbose)
         for line in lines:
             print(line)
-        return 0
+        return mcp_connect_status(connect) if connect else 0
     print("mhw: unknown subcommand %s (install, install --admin, status, check, scan, update, uninstall)"
           % command, file=sys.stderr)
     return 2

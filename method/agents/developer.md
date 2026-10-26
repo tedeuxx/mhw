@@ -227,7 +227,7 @@ The generic rule (one atomic call, `gh --repo` flag position, `--body-file`) liv
 skill now — not restated here. ~~**One thing specific to you:** `wip-guard.sh` gates *you* specifically on
 the `--repo` flag's spelling, since you're the persona it checks WIP against.~~ **Struck 2026-09-04
 (#383): that hook is deleted, so nothing gates you on WIP at all — a second PR overlapping an open one
-now executes silently, and the bound is ~~the written WIP=1 policy in `agents-configuration`~~ the `wip:` value in `docs/loop-mode.md`, held by nothing but instruction.** *(Struck 2026-09-27, #521: WIP=1 was reversed on 2026-09-11 at #385, a week after this sentence was written; the bound now lives in the mode record, and the review gate stays serial at any value.)* The flag
+now executes silently, and the bound is ~~the written WIP=1 policy in `agents-configuration`~~ ~~the `wip:` value in `docs/loop-mode.md`~~ one issue per git worktree with no count, held by nothing but instruction.** *(Struck 2026-09-27, #521: WIP=1 was reversed on 2026-09-11 at #385, a week after this sentence was written; ~~the bound now lives in the mode record, and the review gate stays serial at any value~~.)* *(Struck again 2026-10-19, #216, the owner's decision: the count is retired. You build one issue in its own worktree, any number may be in flight at once, you rebase onto the current trunk before the gate, and the gate takes one merge request at a time.)* The flag
 still accepts all five spellings (`-R x`, `-Rx`, `-R=x`, `--repo x`, `--repo=x`), which `/scm` now
 records as a property of `gh` rather than of any hook, and the flag's *position* (after the subcommand)
 still matters for the permission matcher, per `shell`'s own rule.
