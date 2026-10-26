@@ -189,7 +189,9 @@ jobs:
       # /handoff); the sanitisation check on a synthetic fixture, kept after that removal because it never
       # reads the command file. #198: each /handoff carrier names its own agent harness, the installed
       # launch-line.py prints only that harness's line, the line parses under sh (and zsh where present)
-      # and carries the prompt exactly, and no rendering token survives.
+      # and carries the prompt exactly, and no rendering token survives. /need-me (owner, 2026-10-26): its
+      # sections and phrases reach every carrier, it restates no weaker option count, and it writes only
+      # the record of the owner's answer.
       - name: workflow-commands suite
         env:
           TMPDIR: ${{ runner.temp }}

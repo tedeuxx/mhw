@@ -41,6 +41,8 @@ REQUIRED = {
     "what-else": SHARED + ["## The anchored objective", "## Read the bus", "## The answer"],
     "blueprint": SHARED + ["## export", "## import", "## Alignment interview"],
     "handoff": SHARED + ["## When to use", "## Build the prompt", "## The prompt", "## Print it"],
+    "need-me": SHARED + ["## The rules this command runs", "## Gather what is pending", "## When nothing is pending",
+                         "## Ask one at a time", "## After he answers"],
 }
 # The four rites moved from the plugin at #130 (owner, 2026-10-12). They keep the plugin's text, so they are
 # held to the headings that carry each rite, not to the workflow commands' "never" section.
@@ -60,6 +62,10 @@ PHRASES = {
                   "Nothing is changed before the alignment interview is complete"],
     "handoff": ["re-derive the state from the tracker", "It prints only", "launch-line.py",
                 "at most 280 characters", "Then stop working in this session"],
+    # The owner's request (2026-10-26): HITL escalation on demand, under today's discipline, three options.
+    "need-me": ["**Escalating to the owner**", "**owner overlay**", "Exactly **three** authored, mutually exclusive",
+                "one line, the act and the link", "Put **only the first** to him", "**Never manufacture an ask**",
+                "--state open --label owner-action", "queue was **not read**", "--body-file", "quoting his"],
 }
 
 
@@ -130,6 +136,32 @@ class Commands(unittest.TestCase):
         for name in REQUIRED:
             for harness, path in carriers(self.home, name).items():
                 self.assertEqual(guard.find_spans(path.read_text(encoding="utf-8")), [], (name, harness))
+
+
+class NeedMe(unittest.TestCase):
+    """The owner's /need-me (2026-10-26): it runs the escalation rules in force and restates none of them
+    in a weaker form, asks one item at a time, and writes only the record of his answer."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = (REPO / "method" / "commands" / "need-me.md").read_text(encoding="utf-8")
+        cls.body = cls.text.split("\n---\n", 1)[1]
+
+    def test_defers_to_the_rules_in_force(self):
+        self.assertIn("This command adds no escalation rule of its own", self.body)
+        self.assertIn("it follows the stricter", self.body)
+
+    def test_no_weaker_option_count(self):
+        # The overlay sets exactly three; the brief's ceiling of four must not reappear as this command's rule.
+        self.assertNotRegex(self.body.lower(), r"at most (four|4)|up to (four|4)|four options")
+        self.assertNotRegex(self.body.lower(), r"\b(two|four|five) (authored )?options\b")
+
+    def test_writes_only_the_record(self):
+        never = self.body.split("## What this command never does", 1)[1]
+        self.assertIn("It writes nothing except the comment that records his answer", never)
+        self.assertIn("It never asks two things in one message", never)
+        self.assertNotIn("gh issue create", self.body)
+        self.assertNotIn("--add-label", self.body)
 
 
 class Rites(unittest.TestCase):
