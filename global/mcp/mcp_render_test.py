@@ -959,6 +959,15 @@ class Policy(unittest.TestCase):
                          "the package is pinned to one exact version, fetched with install scripts off")
         self.assertIn("--allowedUrlPattern \"$o\"", script)
         self.assertIn("o='http://127.0.0.1:9/*'", script, "the fail-closed default: the discard port")
+        # Issue #224 (ADR-0038 amendment; owner, "Sempre seu perfil"): always attach to the owner's running
+        # Chrome, with or without a declared origin. The argv per value is asserted in the launch-script
+        # test below.
+        argv = script.split()
+        self.assertEqual(argv[argv.index("--channel") + 1], "stable",
+                         "autoConnect finds the profile from the channel's default user data directory")
+        for gone in ("--isolated", "--viewport", "--browserUrl", "--wsEndpoint", "--userDataDir",
+                     "--executablePath", "--headless"):
+            self.assertNotIn(gone, script, gone)
         # Measured on Claude Code 2.1.296 (ADR-0038): a ${VAR} in a server's args is expanded from the
         # process environment before a project's settings env is applied, so it would always give the
         # default. The shell expands it at launch instead, so no ${ may reach the harness.
@@ -983,7 +992,46 @@ class Policy(unittest.TestCase):
                  ("-x", "http://127.0.0.1:9/*"),
                  ("site.example/*", "http://127.0.0.1:9/*"),
                  ("file:///etc/*", "http://127.0.0.1:9/*"),
-                 (" https://lead-space.example/*", "http://127.0.0.1:9/*"))
+                 (" https://lead-space.example/*", "http://127.0.0.1:9/*"),
+                 # Issue #224 lens: a * in the host lifts the bound on the owner's logged-in Chrome (URLPattern
+                 # "https://*" matches every https host), and so does an empty host. Each falls back to the
+                 # discard port; a * in the path stays allowed (the declared form is "https://<host>/*").
+                 ("https://*", "http://127.0.0.1:9/*"),
+                 ("https://*/*", "http://127.0.0.1:9/*"),
+                 ("http://*:*/*", "http://127.0.0.1:9/*"),
+                 ("https://*.example/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example*/*", "http://127.0.0.1:9/*"),
+                 ("https://user@*/x", "http://127.0.0.1:9/*"),
+                 ("https://", "http://127.0.0.1:9/*"),
+                 ("https:///x/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example:8443/*", "https://site.example:8443/*"),
+                 # Lens on 632c11a: URLPattern syntax in the host passed a denylist of "*" and matched other
+                 # hosts. The host is now an allowlist: letters, digits, "." and "-", with an optional
+                 # ":<digits>"; anything else is the discard port.
+                 ("https://([a-z.]+)/*", "http://127.0.0.1:9/*"),
+                 ("https://:a.:b/*", "http://127.0.0.1:9/*"),
+                 ("https://:name/*", "http://127.0.0.1:9/*"),
+                 ("https://{a,b}.example/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example?/*", "http://127.0.0.1:9/*"),
+                 ("https://site+.example/*", "http://127.0.0.1:9/*"),
+                 ("https://site\\.example/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example:/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example:84a3/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example:1:2/*", "http://127.0.0.1:9/*"),
+                 ("https://:8443/*", "http://127.0.0.1:9/*"),
+                 ("https://site_x.example/*", "http://127.0.0.1:9/*"),
+                 ("https://My-Site.example/*", "https://My-Site.example/*"),
+                 # Lens on 4434e60: cut is line-based and $( ) drops a trailing newline, while URLPattern
+                 # strips it, so these became the hosts m*, g* and a.io*. Any control character refuses.
+                 ("https://m\n(.*)/*", "http://127.0.0.1:9/*"),
+                 ("https://g\n*/*", "http://127.0.0.1:9/*"),
+                 ("https://a.io\n*/*", "http://127.0.0.1:9/*"),
+                 ("https://a.io\r*/*", "http://127.0.0.1:9/*"),
+                 ("https://a.io/*\n", "http://127.0.0.1:9/*"),
+                 ("https://a.io\t/*", "http://127.0.0.1:9/*"),
+                 # A control character outside the host is refused too, not only where the host check sees it.
+                 ("https://a.io/*\r", "http://127.0.0.1:9/*"),
+                 ("https://a.io/\x7f*", "http://127.0.0.1:9/*"))
         for value, bound in cases:
             env = {"PATH": d + os.pathsep + "/usr/bin:/bin"}
             if value is not None:
@@ -992,6 +1040,8 @@ class Policy(unittest.TestCase):
             self.assertEqual(p.returncode, 0, p.stderr)
             argv = read(log).splitlines()
             self.assertEqual(argv[-2:], ["--allowedUrlPattern", bound], value)
+            # #224: always attach to the owner's Chrome, never the throwaway launch, whatever the value.
+            self.assertEqual((argv.count("--autoConnect"), "--isolated" in argv), (1, False), value)
             self.assertIn("chrome-devtools-mcp@", " ".join(argv))
         self.assertFalse(os.path.exists(os.path.join(d, "x")), "the origin is one argument, never shell text")
 

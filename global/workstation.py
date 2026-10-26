@@ -57,6 +57,7 @@ import subprocess
 import sys
 
 import owner_actions  # global/, beside this file (ADR-0035, decision 9)
+import chrome_debugging as chrome_debugging_mod  # global/, beside this file (Issue #224)
 
 NAME = "personal-multi-harness-workstation-configuration"
 MARKER = "managed-by: " + NAME
@@ -219,6 +220,8 @@ def render_status(f, verbose=False):
     lines.append("  method           %s" % method_text(f.get("method")))
     lines.append("  models           %s" % models_text(f))
     lines.extend(mcp_active_lines(f))
+    if f.get("chrome_debugging"):
+        lines.append("  chrome debugging %s" % f["chrome_debugging"])
     if f.get("permissions"):
         lines.append("  permissions      %s" % f["permissions"])
     key = f["key"]
@@ -988,6 +991,15 @@ def permissions_text(ws_root):
             "%d trusted commands" % (mode, layer, n_claude, codex, n_codex, n_kiro))
 
 
+# Issue #224 (ADR-0038 amendment 2026-10-24): whether Chrome's remote-debugging toggle is on, read as the
+# single key devtools.remote_debugging.user-enabled from Chrome's Local State (global/chrome_debugging.py),
+# so a Chrome update that renames the key shows here as "off" or "not read" rather than going silent.
+
+
+def chrome_debugging(system=None, home=None):
+    return chrome_debugging_mod.status_text(system, home)
+
+
 def gather(project):
     admin = admin_installed()
     managed_state = admin_state()
@@ -1025,7 +1037,7 @@ def gather(project):
             "admin_code": admin_code,
             "settings": read_settings(ws["root"]), "permissions": permissions_text(ws["root"]),
             "method": method_state(user_lines, enabled_plugins(ws["root"])),
-            "npm": npm_notes(source, user_stamps),
+            "npm": npm_notes(source, user_stamps), "chrome_debugging": chrome_debugging(),
             "owner_actions": owner_actions.text(owner_actions.read())}
 
 
