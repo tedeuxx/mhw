@@ -273,7 +273,18 @@ be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
   since the declared form is `https://<host>/*`; `http://localhost:4321/*` stays valid. A subdomain
   wildcard (`https://*.example/*`) is refused too. Tested per form in `mcp_render_test.py` (the
   launch-script test), with each clause of the guard removed or the character set widened in the
-  source, six mutants, each red. The script
+  source, six mutants, each red.
+  **Control characters are refused before the host is read** (lens re-review at `4434e60`, measured):
+  `cut` is line-based and `$(…)` drops a trailing newline, while URLPattern strips a newline, so
+  `https://m` + newline + `(.*)/*` and two similar values passed unchanged and became the hosts `m*`,
+  `g*` and `a.io*`. A value that `tr -d '\000-\037\177'` would change now goes to the discard port, a
+  missing `tr` included. Rows for newline, CR, tab and DEL, in and outside the host; four mutants of the
+  refusal, each red. The host is still taken with `cut`, not with `${o#*://}`: the measurement above
+  found Claude Code expanding `${…}` in a server's arguments, and the test that no `${` reaches the
+  harness stays. With control characters refused, `cut` sees one line.
+  **Scope: this guard protects against a mistaken origin value, not against a hostile project.** A
+  project file that can set `env` can also register hooks that run as the owner, so a repository the
+  owner does not trust is outside what any argument check can bound. The script
   uses `$(…)`, not `${…}`; the measurement above showed Claude Code expanding `${VAR}` forms, and `$(…)`
   passing through is read from the test of the rendered entry, not measured in a live session.
 - **The risk the owner accepted.** The agent drives a browser that holds all of his logins. Within the

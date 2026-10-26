@@ -7,7 +7,7 @@
       "command": "/bin/sh",
       "args": [
         "-c",
-        "o=$HARNESS_SWEEP_ORIGIN; case \"$o\" in http://*|https://*) ;; *) o='http://127.0.0.1:9/*' ;; esac; h=$(printf '%s' \"$o\" | cut -d/ -f3); case \"$h\" in ''|*[!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:-]*|:*|*:|*:*[!0123456789]*) o='http://127.0.0.1:9/*' ;; esac; exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux --allowedUrlPattern \"$o\""
+        "o=$HARNESS_SWEEP_ORIGIN; case \"$o\" in http://*|https://*) ;; *) o='http://127.0.0.1:9/*' ;; esac; [ \"$(printf '%s' \"$o\" | tr -d '\\000-\\037\\177')\" = \"$o\" ] || o='http://127.0.0.1:9/*'; h=$(printf '%s' \"$o\" | cut -d/ -f3); case \"$h\" in ''|*[!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:-]*|:*|*:|*:*[!0123456789]*) o='http://127.0.0.1:9/*' ;; esac; exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux --allowedUrlPattern \"$o\""
       ],
       "surfaces": ["claude-code"]
     }

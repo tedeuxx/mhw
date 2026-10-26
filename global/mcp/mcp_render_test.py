@@ -1020,7 +1020,18 @@ class Policy(unittest.TestCase):
                  ("https://site.example:1:2/*", "http://127.0.0.1:9/*"),
                  ("https://:8443/*", "http://127.0.0.1:9/*"),
                  ("https://site_x.example/*", "http://127.0.0.1:9/*"),
-                 ("https://My-Site.example/*", "https://My-Site.example/*"))
+                 ("https://My-Site.example/*", "https://My-Site.example/*"),
+                 # Lens on 4434e60: cut is line-based and $( ) drops a trailing newline, while URLPattern
+                 # strips it, so these became the hosts m*, g* and a.io*. Any control character refuses.
+                 ("https://m\n(.*)/*", "http://127.0.0.1:9/*"),
+                 ("https://g\n*/*", "http://127.0.0.1:9/*"),
+                 ("https://a.io\n*/*", "http://127.0.0.1:9/*"),
+                 ("https://a.io\r*/*", "http://127.0.0.1:9/*"),
+                 ("https://a.io/*\n", "http://127.0.0.1:9/*"),
+                 ("https://a.io\t/*", "http://127.0.0.1:9/*"),
+                 # A control character outside the host is refused too, not only where the host check sees it.
+                 ("https://a.io/*\r", "http://127.0.0.1:9/*"),
+                 ("https://a.io/\x7f*", "http://127.0.0.1:9/*"))
         for value, bound in cases:
             env = {"PATH": d + os.pathsep + "/usr/bin:/bin"}
             if value is not None:

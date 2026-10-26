@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turn on Chrome's remote-debugging toggle for the owner (Issue #224; ADR-0038, amendment 2026-10-24).
 
-    chrome_debugging.py --mode=install|check|dry-run|uninstall [--home=DIR]
+    chrome_debugging.py --mode=install|check|dry-run|uninstall
 
 The chrome-devtools MCP server attaches to the owner's running Chrome (--autoConnect), which needs the
 remote-debugging server he would otherwise turn on at chrome://inspect/#remote-debugging. That toggle is
@@ -201,23 +201,15 @@ def run(mode, system=None, home=None, running=None):
 
 
 def main(argv):
-    mode, home = None, None
-    for arg in argv:
-        if arg.startswith("--mode="):
-            mode = arg[len("--mode="):]
-        elif arg.startswith("--home="):
-            home = arg[len("--home="):]
-        elif arg.startswith("--stamp="):
-            pass
-        else:
-            print("usage: chrome_debugging.py --mode=install|check|dry-run|uninstall [--home=DIR]",
-                  file=sys.stderr)
-            return 2
-    if mode not in ("install", "check", "dry-run", "uninstall"):
-        print("usage: chrome_debugging.py --mode=install|check|dry-run|uninstall [--home=DIR]", file=sys.stderr)
+    """The command line takes the mode only. The home is $HOME, the same as every install step reads: a
+    --home argument was dropped (SonarCloud, PR #227: a path from the command line reached open())."""
+    usage = "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall"
+    modes = [a[len("--mode="):] for a in argv if a.startswith("--mode=")]
+    if len(modes) != 1 or modes[0] not in ("install", "check", "dry-run", "uninstall") \
+            or any(not a.startswith("--mode=") for a in argv):
+        print(usage, file=sys.stderr)
         return 2
-    return run(mode, home=home)
-
+    return run(modes[0])
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

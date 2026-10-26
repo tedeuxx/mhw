@@ -202,6 +202,8 @@ class OtherModes(Fixture):
         with contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(cd.main(["--mode=bogus"]), 2)
             self.assertEqual(cd.main(["--other"]), 2)
+            self.assertEqual(cd.main(["--mode=check", "--home=/x"]), 2, "no path from the command line")
+            self.assertEqual(cd.main([]), 2)
 
 
 class StatusText(Fixture):
@@ -239,8 +241,8 @@ class CommandLine(unittest.TestCase):
                 self.skipTest("no default Chrome profile path on this system")
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({"devtools": {"remote_debugging": {"user-enabled": True}}}))
-            p = subprocess.run([sys.executable, "-B", cd.__file__, "--mode=check", "--home=" + home],
-                               capture_output=True, text=True, check=False)
+            p = subprocess.run([sys.executable, "-B", cd.__file__, "--mode=check"],
+                               capture_output=True, text=True, check=False, env=dict(os.environ, HOME=home))
             self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
             self.assertTrue(p.stdout.startswith("OK      " + str(path)), p.stdout)
 
