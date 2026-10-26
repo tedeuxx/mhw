@@ -200,9 +200,11 @@ never run. Tested with a fake `npx` (mutation-checked: with the guard removed, t
 re-measured under Claude Code 2.1.296 with a recorder server: the project's `https://` value arrived,
 and a project with none got the discard port.
 
-**What the guard does not validate.** It checks the scheme prefix only. A wide pattern still passes:
+**What the guard does not validate.** It checks the scheme prefix only. ~~A wide pattern still passes:
 `https://*`, `http://*/*` or a pattern for any host the project names is accepted as written, and the
-package's own URL-pattern parsing then decides what it allows. Whether a malformed pattern after the
+package's own URL-pattern parsing then decides what it allows.~~ *(Struck 2026-10-26, #224: a `*` in the
+host, or an empty host, is now refused; see the amendment "attach to the owner's Chrome", "The host
+guard".)* A pattern for any one host the project names is still accepted as written. Whether a malformed pattern after the
 prefix fails closed in the package is not measured. The bound is as narrow as the project declares.
 
 ## Amendment 2026-10-15: accepted ([Issue #174](https://github.com/tedeuxx/mhw/issues/174#issuecomment-6202190001))
@@ -255,6 +257,17 @@ be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
   to the owner's running Chrome, the default profile of the stable channel. `--isolated` is never
   passed (1.8.0 declares it a conflict of `--autoConnect`), and `--viewport` is removed. With no
   declared origin the bound stays on the discard port. The origin bound is unchanged.
+- **The host guard (added 2026-10-26, from the `agents-lead` lens on PR #227).** Attached, the bound is
+  the only thing between an agent and every login in his Chrome, and `HARNESS_SWEEP_ORIGIN` comes from
+  a project's committed settings, so any repository could widen it. The lens measured that the scheme
+  guard alone accepts `https://*`, `https://*/*` and `http://*:*/*`, and that URLPattern `https://*`
+  matches any https host. The launch script now takes the host part (the scheme stripped, cut at the
+  first `/`, through `cut -d/ -f3`) and sends a value whose host is empty or contains `*` to the discard
+  port. A `*` in the path stays allowed, since the declared form is `https://<host>/*`. A subdomain
+  wildcard (`https://*.example/*`) is refused too. Tested per form in `mcp_render_test.py` (the
+  launch-script test), with the guard removed or weakened in the source four ways, each red. The script
+  uses `$(…)`, not `${…}`; the measurement above showed Claude Code expanding `${VAR}` forms, and `$(…)`
+  passing through is read from the test of the rendered entry, not measured in a live session.
 - **The risk the owner accepted.** The agent drives a browser that holds all of his logins. Within the
   bound, a page opens with his session: on the declared origin, the agent sees what he sees when he is
   logged in there. Outside it, the bound refuses the page.
@@ -291,6 +304,10 @@ be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
     temporary file in Chrome's own directory and renamed over the original;
   - no backup anywhere, and no output that carries the file's contents;
   - a no-op when the key is already true; `check` reports DRIFT while it is not; uninstall leaves it.
+- **Turned on only when something would attach.** The step writes the key only when the Claude Code user
+  configuration holds the `chrome-devtools` server in its attach form (`--autoConnect`). When the MCP
+  renderer refused the server, or an older isolated copy is kept, it prints a SKIP line and leaves the
+  key as it is.
 - **Status.** `mhw status` prints a `chrome debugging` line with that one key's value (read as that key,
   never printed as file contents) and whether `DevToolsActivePort` exists. So a Chrome update that
   renames the key reads "off" or "not read" instead of failing silently. `DevToolsActivePort` is
@@ -306,6 +323,19 @@ be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
 
 Consequences, bad:
 
+- **The owner's own MCP overlay conflicts with this change, and an owner action comes before the local
+  render.** His local definition lists `chrome-devtools` on `claude-code`, `codex` and `kiro`, with
+  `--isolated`. Under the 2026-10-26 amendment below (#219), that copy differs from the policy's on
+  `claude-code`. Measured in a throwaway home with a definition of that shape (`install.sh`, this
+  branch): install exits 0, the policy writes the attach form into `~/.claude.json`, and the active-set
+  check prints `REPORT … differs from the policy server's here` for `claude-code` and `ABSENT` for Codex
+  and Kiro. The local render, `mcp_render.py` in its default mode, is the run that refuses the server on
+  every surface and exits 3 (that amendment's rule 3; read from its text and tests, not re-run here).
+  **Before that render, he drops `claude-code` from the entry's `surfaces`** (rule 4: a policy
+  server's local copy may leave `claude-code` out, since the policy puts it there). mhw does not edit his
+  overlay. After that, **Codex and Kiro keep his isolated launch**, and only Claude Code attaches to his
+  Chrome. The Chrome step looks only at the Claude Code entry: it turns remote debugging on only when
+  that entry is in its attach form.
 - **A Chrome prompt in any project whose agent calls the MCP, accepted by the owner** ([ruling](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6428313879)).
   The server is defined in every project, so any agent's first call raises Chrome's approval prompt on
   his screen. In a project with no declared origin, the bound is the discard port, so the agent reaches

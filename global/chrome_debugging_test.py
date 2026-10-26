@@ -36,6 +36,12 @@ class Fixture(unittest.TestCase):
         self.home = self.temp.name
         self.path = cd.local_state("Darwin", self.home)
         self.path.parent.mkdir(parents=True)
+        self.server({"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --autoConnect"]})
+
+    def server(self, entry):
+        """The Claude Code user configuration of the fixture home, with this chrome-devtools entry."""
+        doc = {"mcpServers": {} if entry is None else {"chrome-devtools": entry}}
+        Path(self.home, ".claude.json").write_text(json.dumps(doc), encoding="utf-8")
 
     def tearDown(self):
         self.temp.cleanup()
@@ -119,6 +125,54 @@ class Install(Fixture):
         for out in outs:
             self.assertNotIn(SECRET, out)
             self.assertNotIn("info_cache", out)
+
+
+class AttachGate(Fixture):
+    """Issue #224 lens: remote debugging is turned on only when an attaching chrome-devtools server is
+    rendered; a refused server (no entry), an older isolated copy, or no configuration leave the key."""
+
+    def test_refused_or_isolated_server_leaves_the_key(self):
+        cases = (None, {"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --isolated"]},
+                 "no file")
+        for entry in cases:
+            with self.subTest(entry=entry):
+                if entry == "no file":
+                    os.unlink(Path(self.home, ".claude.json"))
+                else:
+                    self.server(entry)
+                self.write(DOC)
+                before = self.path.read_bytes()
+                for mode in ("install", "dry-run", "check"):
+                    code, out = self.run_mode(mode)
+                    self.assertEqual(code, 0, mode)
+                    self.assertTrue(out.startswith("SKIP"), out)
+                    self.assertIn("nothing would attach", out)
+                self.assertEqual(self.path.read_bytes(), before)
+
+    def test_an_on_key_is_reported_on_whatever_the_server(self):
+        self.server(None)
+        self.write({"devtools": {"remote_debugging": {"user-enabled": True}}})
+        self.assertTrue(self.run_mode("check")[1].startswith("OK"))
+
+
+class NotSyncedReport(Fixture):
+    def test_a_failed_directory_sync_is_not_reported_as_nothing_written(self):
+        self.write(DOC)
+        real = os.fsync
+        calls = []
+
+        def second_fails(fd):
+            calls.append(fd)
+            if len(calls) == 2:
+                raise OSError("sync failed")
+            return real(fd)
+        with mock.patch.object(cd.os, "fsync", second_fails):
+            code, out = self.run_mode("install")
+        self.assertEqual(code, 3)
+        self.assertTrue(out.startswith("CHANGED"), out)
+        self.assertIn("not synced", out)
+        self.assertNotIn("nothing was written", out)
+        self.assertIs(cd.read_value(self.path), True)
 
 
 class OtherModes(Fixture):

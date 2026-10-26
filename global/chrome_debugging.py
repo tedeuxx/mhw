@@ -15,7 +15,10 @@ The owner's decision on Issue #224: mhw install sets the key itself. The rules i
   - change only that key: a JSON round-trip that keeps every other field, written atomically (a temporary
     file in Chrome's own directory, then a rename);
   - never print, log or copy the file's contents; no backup is made anywhere;
-  - a no-op when the key is already true.
+  - a no-op when the key is already true;
+  - only when the chrome-devtools server in its attach form (--autoConnect) is in the Claude Code user
+    configuration: if the MCP renderer refused it, or an older isolated copy is kept, nothing would
+    attach, so the key is left as it is (a SKIP line).
 Uninstall leaves the key alone: it is the owner's browser setting, and turning it off is his click.
 
 Paths: macOS ~/Library/Application Support/Google/Chrome/Local State; Linux ~/.config/google-chrome/Local
@@ -39,6 +42,24 @@ USER_DATA = {"Darwin": ("Library", "Application Support", "Google", "Chrome"),
 # The process names pgrep -x matches for the stable channel.
 PROCESS = {"Darwin": "Google Chrome", "Linux": "chrome"}
 LABEL = "(Chrome remote debugging)"
+SERVER = "chrome-devtools"
+
+
+class NotSynced(Exception):
+    """The new file is in place, but fsync of its directory failed: the rename may not survive a crash."""
+
+
+def attach_rendered(home=None):
+    """True when Claude Code's user configuration holds the chrome-devtools server in its attach form
+    (--autoConnect). Only that one entry's args are looked at; nothing is printed. Issue #224 lens: when the
+    MCP renderer refused the server (a local copy that conflicts with the policy's, ADR-0038 amendment for
+    #219) or left an older copy, nothing here would attach, so remote debugging is not turned on."""
+    try:
+        with open(Path(home or Path.home()) / ".claude.json", encoding="utf-8") as fh:
+            entry = json.load(fh).get("mcpServers", {}).get(SERVER, {})
+        return "--autoConnect" in " ".join(str(a) for a in entry.get("args", [])).split()
+    except (OSError, ValueError, AttributeError):
+        return False
 
 
 def local_state(system=None, home=None):
@@ -96,16 +117,20 @@ def set_on(path):
             os.fsync(fh.fileno())
         os.chmod(tmp, mode)
         os.replace(tmp, path)
-        # Durability of the rename itself (PR #227 advisory A5): fsync the directory that holds it.
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+    # Durability of the rename itself (PR #227 advisory A5): fsync the directory that holds it. The file is
+    # already replaced here, so a failure is reported as such, never as "nothing was written".
+    try:
         dfd = os.open(os.path.dirname(path) or ".", os.O_RDONLY)
         try:
             os.fsync(dfd)
         finally:
             os.close(dfd)
-    except BaseException:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-        raise
+    except OSError as e:
+        raise NotSynced() from e
 
 
 def status_text(system=None, home=None):
@@ -143,6 +168,10 @@ def run(mode, system=None, home=None, running=None):
         print("OK      %s: %s = true %s" % (path, KEY_NAME, LABEL))
         return 0
     old = "false" if value is False else "absent"
+    if mode != "uninstall" and not attach_rendered(home):
+        print("SKIP    %s: %s %s, left as it is: no %s server in its attach form is in the Claude Code user "
+              "configuration (refused or not rendered), so nothing would attach %s" % (path, KEY_NAME, old, SERVER, LABEL))
+        return 0
     if mode == "check":
         print("DRIFT   %s: %s %s, want true %s" % (path, KEY_NAME, old, LABEL))
         return 1
@@ -158,6 +187,10 @@ def run(mode, system=None, home=None, running=None):
         return 0
     try:
         set_on(path)
+    except NotSynced:
+        print("CHANGED %s: %s %s -> true, but the directory was not synced, so the change may not survive a "
+              "crash %s" % (path, KEY_NAME, old, LABEL))
+        return 3
     except (OSError, ValueError):
         print("REFUSE  %s: %s could not be set; nothing was written %s" % (path, KEY_NAME, LABEL))
         return 3

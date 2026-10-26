@@ -992,7 +992,19 @@ class Policy(unittest.TestCase):
                  ("-x", "http://127.0.0.1:9/*"),
                  ("site.example/*", "http://127.0.0.1:9/*"),
                  ("file:///etc/*", "http://127.0.0.1:9/*"),
-                 (" https://lead-space.example/*", "http://127.0.0.1:9/*"))
+                 (" https://lead-space.example/*", "http://127.0.0.1:9/*"),
+                 # Issue #224 lens: a * in the host lifts the bound on the owner's logged-in Chrome (URLPattern
+                 # "https://*" matches every https host), and so does an empty host. Each falls back to the
+                 # discard port; a * in the path stays allowed (the declared form is "https://<host>/*").
+                 ("https://*", "http://127.0.0.1:9/*"),
+                 ("https://*/*", "http://127.0.0.1:9/*"),
+                 ("http://*:*/*", "http://127.0.0.1:9/*"),
+                 ("https://*.example/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example*/*", "http://127.0.0.1:9/*"),
+                 ("https://user@*/x", "http://127.0.0.1:9/*"),
+                 ("https://", "http://127.0.0.1:9/*"),
+                 ("https:///x/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example:8443/*", "https://site.example:8443/*"))
         for value, bound in cases:
             env = {"PATH": d + os.pathsep + "/usr/bin:/bin"}
             if value is not None:
