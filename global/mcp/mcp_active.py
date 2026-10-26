@@ -66,6 +66,16 @@ class ActiveSet:
         # Set members whose local copy differs from the policy's on a surface both name: the default render
         # refuses them (mcp_render.py policy_conflicts), name -> those surfaces.
         self.conflicts = r.policy_conflicts(doc, policy_doc, r.launcher_dest()) if self.declared else {}
+        # Set members whose local copy differs from the policy's and is rendered only where the policy is not
+        # (it leaves the policy's surfaces out, so the render does not refuse it): name -> the surfaces where
+        # the local copy runs another command, args or env than the policy's would. Reported, not refused.
+        self.divergent = {}
+        for n, s in (doc["servers"].items() if self.declared else ()):
+            if n not in policy or n in self.conflicts:
+                continue
+            for surface in sorted(set(s.get("surfaces", r.SURFACES)) - set(covered.get(n, ()))):
+                if r.entry(surface, s, r.launcher_dest()) != r.entry(surface, policy[n], None):
+                    self.divergent.setdefault(n, []).append(surface)
         # name -> the Claude Code entries a kept server is rendered as: a set member (with the launcher for a
         # secret-bearing one) and a policy server. A deny that matches one of these would block it too.
         self.kept = {}
@@ -74,6 +84,10 @@ class ActiveSet:
                 self.kept.setdefault(n, []).append(e)
         for n, e in r.desired(policy_doc, "claude-code", None).items():
             self.kept.setdefault(n, []).append(e)
+
+    def policy_where(self, name):
+        """The surfaces the policy servers file renders this server on."""
+        return [s for s in r.SURFACES if name in self.policy.get(s, ())]
 
     def members(self, surface):
         """The set members configured on this surface (their own surfaces, or a policy server's)."""
@@ -436,6 +450,11 @@ class Run:
             self.say("REPORT", surface, "set member(s) whose local copy differs from the policy server's here, so "
                      "the policy's copy runs and global/mcp/mcp_render.py refuses the local copy: %s" % names(here),
                      cfg)
+        apart = sorted(n for n, where in self.aset.divergent.items() if surface in where)
+        if apart:
+            self.say("REPORT", surface, "set member(s) whose local copy here runs another command, args or env "
+                     "than the policy server's copy on %s (rendered, not refused; ADR-0038): %s"
+                     % (", ".join(sorted({x for n in apart for x in self.aset.policy_where(n)})), names(apart)), cfg)
 
     def installed(self, surface):
         """The surface's config file, or None when the agent harness is not installed here."""
@@ -485,6 +504,7 @@ class Run:
         by_hand = sorted(n for n in self.aset.servers if n in servers and isinstance(servers[n], dict)
                          and servers[n].get("enabled", True) is False and lay.get(n, {}).get("mark") is None)
         self.absent("codex", cfg, missing, by_hand)
+        self.conflict("codex", cfg)
         if new_text == text:
             self.ok("codex", cfg, len(record))
             return record
