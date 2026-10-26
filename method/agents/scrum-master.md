@@ -139,14 +139,14 @@ Four states, each of which is invisible to every layer above, and each named fro
 evidence rather than invented:
 
 1. **A rite that never ran on an exhausted iteration — and since #379 there are TWO closing rites, with
-   a load-bearing ORDER between them.** `commands/sprint-retrospective.md` (named `retrospective.md`
+   a load-bearing ORDER between them.** `skills/sprint-retrospective/SKILL.md` (named `retrospective.md`
    until #372) says so in its own words: *"a rite skipped, a rite run over the wrong iteration, and a
    rite run with three personas instead of six are indistinguishable from the tracker."* Nothing fires
    either rite and nothing observes that one did not fire.
 
    **The order is `/sprint-review` → `/sprint-retrospective` → `/sprint-planning`, and it is not
    cosmetic** — the retrospective feeds each consulted persona its own artifacts, and the sweep's
-   report is one of them (`commands/sprint-retrospective.md`, step 3), so a review run *second*
+   report is one of them (`skills/sprint-retrospective/SKILL.md`, step 3), so a review run *second*
    produces evidence the consultation could not read. **So "the rites happen, in order" now has a
    second closing rite and a real ordering to be wrong about**, and *"you owe the review before the
    retrospective"* is a thing only this profile would say. **Say it in the selection record when the

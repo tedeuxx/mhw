@@ -1,8 +1,7 @@
 ---
 name: "sprint-review"
-description: "Sweep the running product at iteration close — the live surface, derived rather than listed, at more than one viewport and in every locale, and report what a reader would meet at a derived lower bound. Use when the drain reports its entry snapshot exhausted, or when the owner types it against an iteration worked by hand. It returns observations for the owner, never a verdict, and it gates nothing."
+description: "Sweep the running product at iteration close — the live surface, derived rather than listed, at more than one viewport and in every locale, and report what a reader would meet at a derived lower bound. Use when the drain reports its entry snapshot exhausted, or when the owner types it against an iteration worked by hand. It returns observations for the owner, never a verdict, and it gates nothing. It takes an optional iteration title as its argument, typed after its name; without one it uses the active iteration."
 purpose: "give the closing of an iteration a look at the running product, because every gate in this loop reads a diff and none of them can see a page that renders wrong"
-argument-hint: "[iteration] (defaults to the active iteration)"
 ---
 
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
@@ -19,8 +18,13 @@ argument-hint: "[iteration] (defaults to the active iteration)"
 > directory the method installs them to, the same for every agent harness, so the rite runs them from
 > any repository.
 
-Run the sprint review for the iteration named by `$ARGUMENTS` (default: the active iteration, derived
-from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
+> **A skill, not a command, since 2026-10-26** (the owner: *"para mim sao skills"*). Invoke it by name:
+> Claude Code `/sprint-review`, Codex `$sprint-review`, Kiro `/sprint-review`. Any agent harness may also load it
+> on its own when the task matches its description; the rite's steps and its owner acts are
+> unchanged by that.
+
+Run the sprint review for the iteration the owner named after this skill's name (default: the active
+iteration, derived from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
 
 **This file is the second half of a promise that has been plural since #326.** `/autonomy on` has said
 *"the closing ceremonies run against the exhausted iteration"* since then; `/sprint-retrospective`
@@ -73,7 +77,7 @@ Two independent reasons, and either alone would settle it:
    for.
 2. **The retrospective feeds each consulted persona its OWN artifacts, and this rite's report is on
    that list.** Run second, it would be an artifact produced after the consultation that would have
-   read it. **The list is `commands/sprint-retrospective.md`'s step 3, and it is closed** — check the
+   read it. **The list is `skills/sprint-retrospective/SKILL.md`'s step 3, and it is closed** — check the
    bullet naming `docs/iteration-sweep/<iteration>.md` is there, because that bullet is the whole of
    this reason. **It was NOT there when this sentence was first written**, and the same slice added it
    after a review found the reason resting on a consumption relationship that did not exist. Read that

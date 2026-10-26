@@ -12,6 +12,12 @@ decision and the carrier map are in
 | `skills/<name>/SKILL.md` | one skill: `name`, `description`, `purpose`, then its body | `~/.claude/skills/`, `~/.agents/skills/` (Codex), `~/.kiro/skills/` |
 | `commands/<name>.md` | one owner-typed command: `name`, `description`, `purpose`, `argument-hint`, then its body | `~/.claude/commands/`; a Codex skill with implicit invocation off; a Kiro skill |
 
+**The sprint rites are skills, not commands** (owner, 2026-10-26: *"para mim sao skills"*):
+`sprint-planning`, `sprint-review`, `sprint-retrospective` and `funnel-review` live in
+`skills/<name>/SKILL.md`. The owner still invokes each by name (Claude Code `/<name>`, Codex `$<name>`,
+Kiro `/<name>`), typing the iteration or period after it; a skill has no `argument-hint`, so its
+description says what it takes. Unlike a command, a skill may also be loaded by the model on its own.
+
 **Installing it is opt-in until the plugin cutover (#63, #64):** `./mhw install --method`
 renders it through `global/install.sh` (on Windows, `global/install.ps1 -Method`), which runs
 `global/method/method_render.py` as its own step. `./mhw check`, `status` and `uninstall` cover
