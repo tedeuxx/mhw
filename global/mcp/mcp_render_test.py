@@ -1084,13 +1084,6 @@ class Policy(unittest.TestCase):
         self.assertTrue(os.path.exists(r_manifest(h)), "the local definition's record stays")
         self.assertEqual(run(h, "--check", "--surfaces=claude-code").returncode, 0)
 
-    def test_the_local_definition_may_not_redefine_a_policy_server(self):
-        h = mk_home("home-policy-clash")
-        write_source(h, source_doc({"chrome-devtools": {"command": "/bin/echo"}}))
-        p = run(h, "--surfaces=claude-code")
-        self.assertEqual(p.returncode, 2)
-        self.assertIn("policy servers", p.stderr)
-
     def test_a_policy_server_that_names_a_secret_or_codex_is_refused(self):
         d = os.path.join(BASE, "policy-invalid")
         os.makedirs(d, exist_ok=True)
@@ -1683,6 +1676,168 @@ class Connect(unittest.TestCase):
         for args in (("--active", "--mode=connect", "--timeout=0"), ("--active", "--mode=connect", "--timeout=x"),
                      ("--active", "--mode=check", "--timeout=5")):
             self.assertEqual(run(h, *args).returncode, 2, args)
+
+
+
+# ------------------------------------------- a policy server extended by the local definition (#219)
+
+
+def policy_copy(**change):
+    """The local definition's copy of the policy server: its command and args, every surface by default."""
+    s = r.load_policy()["servers"]["chrome-devtools"]
+    out = {"command": s["command"], "args": list(s["args"])}
+    out.update(change)
+    return out
+
+
+def codex_servers(home):
+    p = targets(home)["codex"]
+    return tload(p).get("mcp_servers", {}) if os.path.exists(p) else {}
+
+
+def json_servers(home, surface):
+    p = targets(home)[surface]
+    return jload(p).get("mcpServers", {}) if os.path.exists(p) else {}
+
+
+class PolicyExtension(unittest.TestCase):
+    """ADR-0038 amendment (Issue #219): the local definition may extend a policy server to the surfaces the
+    policy does not name. On the policy's own surfaces the policy's copy stays and the local copy is never
+    written; a local copy that differs there is refused, that server alone."""
+
+    def test_an_identical_copy_renders_on_the_other_surfaces_and_never_on_the_policys(self):
+        h = mk_home("home-ext")
+        cfg = targets(h)["claude-code"]
+        write_source(h, source_doc({"chrome-devtools": policy_copy()}))
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("POLICY  claude-code: chrome-devtools rendered here by the policy servers", p.stdout)
+        self.assertNotIn("chrome-devtools", json_servers(h, "claude-code"), "the local copy is never written there")
+        self.assertEqual(policy(h, "install").returncode, 0, "the policy finds no hand-written copy in its way")
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        policy_server = r.load_policy()["servers"]["chrome-devtools"]
+        self.assertEqual(codex_servers(h)["chrome-devtools"], r.entry("codex", policy_server, None))
+        self.assertEqual(json_servers(h, "kiro")["chrome-devtools"], r.entry("kiro", policy_server, None))
+        if DARWIN:
+            self.assertEqual(json_servers(h, "claude-desktop")["chrome-devtools"],
+                             r.entry("claude-desktop", policy_server, None))
+        self.assertEqual(json_servers(h, "claude-code")["chrome-devtools"], policy_entry())
+        for surface in ("codex", "kiro", "claude-code"):
+            self.assertIn("fake-plain", codex_servers(h) if surface == "codex" else json_servers(h, surface))
+        m = jload(r_manifest(h))
+        self.assertNotIn("chrome-devtools", m["surfaces"].get("claude-code", []), "the policy's name there")
+        self.assertIn("chrome-devtools", m["surfaces"]["kiro"])
+        self.assertEqual(m["policy"]["claude-code"], ["chrome-devtools"])
+        self.assertEqual(run(h, "--check").returncode, 0)
+        self.assertEqual(policy(h, "check").returncode, 0)
+        self.assertEqual(policy(h, "uninstall").returncode, 0)
+        self.assertNotIn("chrome-devtools", json_servers(h, "claude-code"))
+        self.assertIn("chrome-devtools", json_servers(h, "kiro"), "the policy never removes the local copies")
+        self.assertEqual(run(h, "--check").returncode, 0, "nor does the local mode take the policy's surface over")
+
+    def test_a_name_recorded_on_a_policy_surface_is_never_removed_by_the_local_mode(self):
+        h = mk_home("home-ext-legacy")
+        self.assertEqual(policy(h, "install").returncode, 0)
+        m = jload(r_manifest(h))
+        m["surfaces"] = {"claude-code": ["chrome-devtools"]}  # recorded by the local mode of an earlier release
+        write_json(r_manifest(h), m)
+        write_source(h, source_doc())
+        p = run(h, "--surfaces=claude-code")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(json_servers(h, "claude-code")["chrome-devtools"], policy_entry())
+        self.assertNotIn("chrome-devtools", jload(r_manifest(h))["surfaces"]["claude-code"])
+        self.assertEqual(policy(h, "check").returncode, 0)
+
+    def test_a_differing_copy_is_refused_alone_and_the_other_servers_render(self):
+        h = mk_home("home-ext-conflict")
+        different = policy_copy(args=["-c", "exec /bin/echo synthetic"])
+        write_source(h, source_doc({"chrome-devtools": different}))
+        p = run(h)
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertIn("REFUSE  chrome-devtools: a policy server", p.stderr)
+        self.assertIn("differs from the policy's on claude-code", p.stderr)
+        for surface in ("kiro", "claude-code"):
+            self.assertIn("fake-plain", json_servers(h, surface), "one conflict never blocks the others")
+            self.assertNotIn("chrome-devtools", json_servers(h, surface))
+        self.assertIn("fake-plain", codex_servers(h))
+        self.assertNotIn("chrome-devtools", codex_servers(h))
+        # A copy mhw wrote earlier is kept as it is while the local copy is refused.
+        write_source(h, source_doc({"chrome-devtools": policy_copy()}))
+        self.assertEqual(run(h).returncode, 0)
+        kiro_before, codex_before = json_servers(h, "kiro")["chrome-devtools"], codex_servers(h)["chrome-devtools"]
+        write_source(h, source_doc({"chrome-devtools": different, "fake-new": {"command": "/bin/echo"}}))
+        p = run(h)
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertEqual(json_servers(h, "kiro")["chrome-devtools"], kiro_before)
+        self.assertEqual(codex_servers(h)["chrome-devtools"], codex_before)
+        self.assertIn("chrome-devtools", jload(r_manifest(h))["surfaces"]["kiro"], "still recorded as mhw's")
+        self.assertIn("fake-new", json_servers(h, "kiro"))
+        self.assertIn("fake-new", codex_servers(h))
+        p = run(h, "--check")
+        self.assertEqual(p.returncode, 3, "check refuses the conflict too")
+        # Leaving the policy's surface out is an extension that cannot conflict.
+        write_source(h, source_doc({"chrome-devtools": dict(different, surfaces=["codex", "kiro"])}))
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(codex_servers(h)["chrome-devtools"], r.entry("codex", different, None))
+
+    def test_parity_counts_the_policy_surfaces(self):
+        doc = {"version": 1, "active_set": {},
+               "servers": {"chrome-devtools": policy_copy(surfaces=["codex", "kiro", "claude-desktop"])}}
+        self.assertTrue(any("parity" in e for e in r.validate(doc)), "without the policy, claude-code is missing")
+        self.assertEqual(r.validate(doc, covered=r.policy_surfaces()), [])
+        narrow = {"version": 1, "active_set": {}, "servers": {"other": {"command": "x", "surfaces": ["codex", "kiro"]}}}
+        self.assertTrue(any("parity" in e for e in r.validate(narrow, covered=r.policy_surfaces())),
+                        "only a policy server's own surfaces count")
+
+    def _set_home(self, name, copy):
+        h = mk_home(name)
+        write_source(h, {"version": 1, "active_set": {},
+                         "servers": {"set-a": {"command": "/bin/echo", "surfaces": ["codex", "claude-code", "kiro"]},
+                                     "chrome-devtools": copy}})
+        self.assertEqual(policy(h, "install").returncode, 0)
+        return h
+
+    def test_the_active_set_agrees_with_the_render(self):
+        h = self._set_home("home-ext-active", policy_copy())
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        p = active(h, "check")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertNotIn("ABSENT", p.stdout, "no false ABSENT: not on desktop for set-a, not anywhere for the policy")
+        self.assertNotIn("outside the set", p.stdout.replace("nothing on outside the set", ""))
+        self.assertNotIn("REPORT", p.stdout)
+        for surface in ("codex", "kiro", "claude-code"):
+            self.assertIn("OK      %s: nothing on outside the set" % surface, p.stdout)
+        if DARWIN:
+            self.assertIn("chrome-devtools", json_servers(h, "claude-desktop"))
+            self.assertNotIn("set-a", json_servers(h, "claude-desktop"))
+
+    def test_an_extension_that_leaves_the_policy_surface_out_is_checked_there(self):
+        h = mk_home("home-ext-active-out")
+        write_source(h, {"version": 1, "active_set": {},
+                         "servers": {"chrome-devtools": policy_copy(surfaces=["codex", "kiro"])}})
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        p = active(h, "check")
+        self.assertIn("ABSENT  claude-code: set member(s) not configured: chrome-devtools (1)", p.stdout,
+                      "the policy's surface is the member's too, so a policy not installed is said")
+        self.assertEqual(policy(h, "install").returncode, 0)
+        p = active(h, "check")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertNotIn("ABSENT", p.stdout)
+
+    def test_the_active_set_reports_a_differing_copy(self):
+        h = self._set_home("home-ext-active-conflict", policy_copy(args=["-c", "exec /bin/echo synthetic"]))
+        self.assertEqual(run(h).returncode, 3)
+        p = active(h, "check")
+        self.assertIn("REPORT  claude-code: set member(s) whose local copy differs from the policy server's here",
+                      p.stdout)
+        self.assertIn("chrome-devtools (1)", p.stdout)
+        self.assertIn("ABSENT  codex: set member(s) not configured: chrome-devtools (1)", p.stdout,
+                      "the refused copy is not configured there, and that is said")
+        self.assertNotIn("ABSENT  claude-code", p.stdout, "the policy's copy is configured there")
 
 
 if __name__ == "__main__":
