@@ -118,7 +118,7 @@ class SourceShape(unittest.TestCase):
         # #198 added /handoff.
         self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-prd", "prd-to-issues", "what-else",
                                            "blueprint", "sprint-planning", "sprint-review", "sprint-retrospective",
-                                           "funnel-review", "handoff"]))
+                                           "funnel-review", "handoff", "need-me"]))
 
     def test_the_deprecated_aliases(self):
         _, _, commands = mr.load(SOURCE)
@@ -531,7 +531,7 @@ class Render(unittest.TestCase):
             self.assertIn("Owner-typed command $%s" % c, self.h.p(".agents/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
             self.assertIn("Owner-typed command /%s" % c, self.h.p(".kiro/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
             # #196: argument-hint only on the plugin standard's allowlisted owner-typed commands.
-            hinted = c not in ("prd-to-issues", "new-prd", "what-else", "handoff")
+            hinted = c not in ("prd-to-issues", "new-prd", "what-else", "handoff", "need-me")
             head = "\n".join(front_matter(self.h.p(".claude/commands/%s.md" % c)))
             (self.assertIn if hinted else self.assertNotIn)("argument-hint:", head, c)
 
