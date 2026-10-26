@@ -269,7 +269,12 @@ policy server to the agent harnesses the policy does not cover.
 would run one command on Codex and Kiro and another on Claude Code under one name, silently, which
 breaks the parity the active set exists for, while the definition reads as if both were the same. A
 refusal of one server costs one server; the old refusal of the whole render cost all of them. Keeping
-an earlier copy follows the renderer's exit-3 convention, *left untouched*.
+an earlier copy follows the renderer's exit-3 convention, *left untouched*. **A copy that differs but
+leaves the policy's surfaces out is reported, not refused** (follow-up of the same date, advisory 1 of
+the gate's verdict on PR #228): that definition names no surface where the policy's copy runs, so it
+says nothing false, and a per-harness variant on surfaces the policy does not cover is the owner's to
+choose. What it does break is the active set's parity, so `--active --mode=check` and `mhw status`
+print a `REPORT` naming the server and the surfaces where it differs (ADR-0041 amendment).
 
 **Rejected: let the local copy override the policy everywhere.** It would let an untracked file widen
 the origin bound this record exists for, on the one agent harness the bound was measured on.
