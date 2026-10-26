@@ -959,15 +959,13 @@ class Policy(unittest.TestCase):
                          "the package is pinned to one exact version, fetched with install scripts off")
         self.assertIn("--allowedUrlPattern \"$o\"", script)
         self.assertIn("o='http://127.0.0.1:9/*'", script, "the fail-closed default: the discard port")
-        # Issue #224 (ADR-0038 amendment 2026-10-24): attach to the owner's running Chrome only when an
-        # http(s) origin is declared; otherwise a throwaway --isolated launch bound to the discard port.
-        # The mode per value is asserted on the real argv in the launch-script test below.
+        # Issue #224 (ADR-0038 amendment; owner, "Sempre seu perfil"): always attach to the owner's running
+        # Chrome, with or without a declared origin. The argv per value is asserted in the launch-script
+        # test below.
         argv = script.split()
-        self.assertIn("http://*|https://*) m=--autoConnect ;;", script)
-        self.assertIn("o='http://127.0.0.1:9/*'; m=--isolated ;;", script)
         self.assertEqual(argv[argv.index("--channel") + 1], "stable",
                          "autoConnect finds the profile from the channel's default user data directory")
-        for gone in ("--viewport", "--browserUrl", "--wsEndpoint", "--userDataDir",
+        for gone in ("--isolated", "--viewport", "--browserUrl", "--wsEndpoint", "--userDataDir",
                      "--executablePath", "--headless"):
             self.assertNotIn(gone, script, gone)
         # Measured on Claude Code 2.1.296 (ADR-0038): a ${VAR} in a server's args is expanded from the
@@ -1003,9 +1001,8 @@ class Policy(unittest.TestCase):
             self.assertEqual(p.returncode, 0, p.stderr)
             argv = read(log).splitlines()
             self.assertEqual(argv[-2:], ["--allowedUrlPattern", bound], value)
-            # #224: attach to the owner's Chrome only for a declared origin; never both modes in one argv.
-            declared = bound != "http://127.0.0.1:9/*"
-            self.assertEqual(("--autoConnect" in argv, "--isolated" in argv), (declared, not declared), value)
+            # #224: always attach to the owner's Chrome, never the throwaway launch, whatever the value.
+            self.assertEqual((argv.count("--autoConnect"), "--isolated" in argv), (1, False), value)
             self.assertIn("chrome-devtools-mcp@", " ".join(argv))
         self.assertFalse(os.path.exists(os.path.join(d, "x")), "the origin is one argument, never shell text")
 

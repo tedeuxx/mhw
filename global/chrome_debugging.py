@@ -96,6 +96,12 @@ def set_on(path):
             os.fsync(fh.fileno())
         os.chmod(tmp, mode)
         os.replace(tmp, path)
+        # Durability of the rename itself (PR #227 advisory A5): fsync the directory that holds it.
+        dfd = os.open(os.path.dirname(path) or ".", os.O_RDONLY)
+        try:
+            os.fsync(dfd)
+        finally:
+            os.close(dfd)
     except BaseException:
         if os.path.exists(tmp):
             os.unlink(tmp)

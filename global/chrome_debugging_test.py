@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import chrome_debugging as cd  # noqa: E402
@@ -172,14 +173,70 @@ class Running(unittest.TestCase):
         self.assertEqual(cd.local_state("Linux", "/h"), Path("/h/.config/google-chrome/Local State"))
 
 
-class CommandLine(Fixture):
+class CommandLine(unittest.TestCase):
     def test_cli_runs_against_home(self):
-        self.write({"devtools": {"remote_debugging": {"user-enabled": True}}})
-        p = subprocess.run([sys.executable, "-B", cd.__file__, "--mode=check", "--home=" + self.home],
-                           capture_output=True, text=True, check=False)
-        if os.uname().sysname == "Darwin":
+        """The CLI reads the fixture at this system's path (PR #227 advisory A4: it asserted nothing on
+        Linux)."""
+        with tempfile.TemporaryDirectory(prefix="chrome-debugging-cli-") as home:
+            path = cd.local_state(None, home)
+            if path is None:
+                self.skipTest("no default Chrome profile path on this system")
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps({"devtools": {"remote_debugging": {"user-enabled": True}}}))
+            p = subprocess.run([sys.executable, "-B", cd.__file__, "--mode=check", "--home=" + home],
+                               capture_output=True, text=True, check=False)
             self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-            self.assertTrue(p.stdout.startswith("OK"))
+            self.assertTrue(p.stdout.startswith("OK      " + str(path)), p.stdout)
+
+
+class PgrepOutcomes(unittest.TestCase):
+    """PR #227 B2 (C1, C6): only pgrep's exit 1 means "not running"; an error or a missing pgrep must
+    count as running, so an unknown answer never leads to a write."""
+
+    def test_table(self):
+        for code, want in ((0, True), (1, False), (2, True), (None, True)):
+            with self.subTest(code=code), tempfile.TemporaryDirectory(prefix="pgrep-stub-") as d:
+                if code is not None:
+                    stub = Path(d, "pgrep")
+                    stub.write_text("#!/bin/sh\nexit %d\n" % code)
+                    stub.chmod(0o700)
+                with mock.patch.dict(os.environ, {"PATH": d}):
+                    self.assertIs(cd.chrome_running("Darwin"), want)
+
+
+class Atomicity(Fixture):
+    """PR #227 B2 (C2): the write lands by rename, and a failed write leaves the original untouched."""
+
+    def test_install_renames_a_new_file_over_the_old(self):
+        self.write(DOC)
+        before = os.stat(self.path).st_ino
+        self.assertEqual(self.run_mode("install")[0], 0)
+        self.assertNotEqual(os.stat(self.path).st_ino, before)
+
+    def test_a_failed_write_leaves_the_original_and_no_temporary(self):
+        self.write(DOC)
+        before = self.path.read_bytes()
+
+        def boom(*_a, **_k):
+            raise OSError("disk full")
+        with mock.patch.object(cd.json, "dump", boom):
+            code, out = self.run_mode("install")
+        self.assertEqual(code, 3)
+        self.assertTrue(out.startswith("REFUSE"))
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(sorted(os.listdir(self.path.parent)), ["Local State"])
+
+    def test_the_directory_is_fsynced_after_the_rename(self):
+        self.write(DOC)
+        calls = []
+        real = os.fsync
+
+        def spy(fd):
+            calls.append(fd)
+            return real(fd)
+        with mock.patch.object(cd.os, "fsync", spy):
+            self.assertEqual(self.run_mode("install")[0], 0)
+        self.assertEqual(len(calls), 2, "the file, then its directory")
 
 
 if __name__ == "__main__":

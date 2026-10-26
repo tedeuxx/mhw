@@ -106,7 +106,8 @@ Option 1.
   `npm view chrome-devtools-mcp@1.8.0 dist.integrity`). Flags, ~~as the plugin: `--isolated` (a
   temporary profile, none of the owner's sessions), `--channel stable`, `--viewport 1280x800`,~~
   *(struck 2026-10-24, #224: see the amendment "attach to the owner's Chrome")* `--autoConnect`
-  when the project declares an http(s) origin, else `--isolated`; `--channel stable`, `--no-usage-statistics`, `--no-performance-crux`, `--allowedUrlPattern <origin>`.
+  ~~when the project declares an http(s) origin, else `--isolated`~~ *(always, since the owner's
+  [ruling](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6428313879) of 2026-10-26)*; `--channel stable`, `--no-usage-statistics`, `--no-performance-crux`, `--allowedUrlPattern <origin>`.
   The flags were checked against the pinned version's `--help` ~~.~~ and, for `--autoConnect`, its
   source.
 - **Route.** `global/mcp/mcp_render.py --policy --mode=install|check|dry-run|uninstall`, called by
@@ -243,13 +244,15 @@ The owner decided, verbatim (decision D6 on #220): *"nao faz sentido voce rodar 
 do meu profile. senao voce vai sempre pedir para logar."* On #224 he added that remote debugging must
 be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
 
-- **The change.** When the project declares an http(s) origin in `HARNESS_SWEEP_ORIGIN`, the server
-  passes `--autoConnect --channel stable` and attaches to the owner's running Chrome, the default
-  profile of the stable channel. Otherwise it keeps the throwaway `--isolated` launch, bound to the
-  discard port, so a project with no declared origin raises no Chrome prompt and never touches his
-  tabs (decided by the coordinator, reversible). The two flags never appear together: 1.8.0 declares
-  `--isolated` a conflict of `--autoConnect`. `--viewport` is removed in both modes. The origin bound
-  is unchanged.
+- **The change.** ~~When the project declares an http(s) origin in `HARNESS_SWEEP_ORIGIN`, the server
+  passes `--autoConnect --channel stable` … Otherwise it keeps the throwaway `--isolated` launch … (decided
+  by the coordinator, reversible).~~ *(Struck 2026-10-26: the gate found on PR #227 (B1) that this
+  narrowed acceptance criterion 1, and the owner ruled "Sempre seu perfil" on
+  [#224](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6428313879). He declined keeping the isolated launch without an origin, and declined not starting
+  the server without one.)* The server always passes `--autoConnect --channel stable` and attaches
+  to the owner's running Chrome, the default profile of the stable channel. `--isolated` is never
+  passed (1.8.0 declares it a conflict of `--autoConnect`), and `--viewport` is removed. With no
+  declared origin the bound stays on the discard port. The origin bound is unchanged.
 - **The risk the owner accepted.** The agent drives a browser that holds all of his logins. Within the
   bound, a page opens with his session: on the declared origin, the agent sees what he sees when he is
   logged in there. Outside it, the bound refuses the page.
@@ -262,7 +265,11 @@ be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
   puppeteer-core 25.8.0, the connect path builds the same `CdpBrowser` and `TargetManager` as the
   launch path. They refuse a `goto` outside the pattern (*"Navigation to … is blocked by
   blocklist/allowlist rules"*), detach from tabs whose URL is outside it at the first attach, and set a
-  network rule on every attached target that takes everything but the pattern offline.
+  network rule on every target the server attaches to that takes everything but the pattern offline.
+  That rule lands only on the server's own targets: tabs open at the first attach whose URL is outside
+  the pattern are detached. The owner's own new tab was probably never attached, so no rule reached
+  it: a hypothesis that fits the measured result below, where such a tab kept its network, and was not
+  traced further in the source.
 - **Chrome's own controls, kept.** The remote-debugging server that `--autoConnect` reaches is the
   one the owner turns on at `chrome://inspect/#remote-debugging`. Chrome starts it in an
   approval-only mode and asks him to allow a connection. **Measured** (the same probe): one connection,
@@ -289,10 +296,18 @@ be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
   may be stale.
 - **Accepted with the decision:** Local State also holds personal data, and a Chrome update can change
   the key. **Not measured:** the `Local State` write itself, and whether Chrome honours a value written
-  from outside it; in the probe the owner turned the toggle on by hand. The first install on the
-  reference machine, with Chrome quit, is that measurement.
+  from outside it; in the probe the owner turned the toggle on by hand. ~~The first install on the
+  reference machine, with Chrome quit, is that measurement.~~ *(Struck 2026-10-26, PR #227 advisory A1: on the reference
+  machine the key is already `true`, set by his manual toggle, so the first install prints `OK` and
+  writes nothing. The write stays unmeasured until a run starts from a key that is false or absent,
+  with Chrome quit. That read does show Chrome 155 stores the manual toggle under exactly this key.)*
 
 Consequences, bad:
+
+- **A Chrome prompt in any project whose agent calls the MCP, accepted by the owner** ([ruling](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6428313879)).
+  The server is defined in every project, so any agent's first call raises Chrome's approval prompt on
+  his screen. In a project with no declared origin, the bound is the discard port, so the agent reaches
+  nothing useful even after he allows it.
 
 - ~~**The bound now clamps the owner's own browsing while a session is attached.** The network rule
   lands on every target the server attaches to, including a tab the owner opens himself.~~ *(Refuted

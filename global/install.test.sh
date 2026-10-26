@@ -1165,6 +1165,31 @@ else
   ko "uninstall left the policy MCP server: $(jq -c '.mcpServers' "$hp/.claude.json")"
 fi
 
+# 19d. Chrome's remote-debugging key (Issue #224, ADR-0038 amendment), through install.sh: a fixture Local
+# State with the key already true, so the result never depends on whether a real Chrome runs (a false key
+# would reach the real pgrep). install and --check both run the step and report OK; the fixture is unchanged.
+hc="$base/home-chrome-debugging"
+case $(uname -s) in
+  Darwin) hcl="$hc/Library/Application Support/Google/Chrome/Local State" ;;
+  *) hcl="$hc/.config/google-chrome/Local State" ;;
+esac
+mkdir -p "$(dirname "$hcl")"
+printf '%s' '{"devtools":{"remote_debugging":{"user-enabled":true}},"other":1}' > "$hcl"
+hc_seed=$(cksum < "$hcl")
+HOME="$hc" sh "$inst" > "$base/chrome-1.out" 2>&1; expect "install with a fixture Chrome Local State" 0 $?
+if grep -qF "OK      $hcl: devtools.remote_debugging.user-enabled = true (Chrome remote debugging)" "$base/chrome-1.out" \
+   && [ "$(cksum < "$hcl")" = "$hc_seed" ]; then
+  ok "install runs the Chrome remote-debugging step and leaves an on key untouched"
+else
+  ko "install did not report the Chrome remote-debugging key"; grep -F "Chrome remote debugging" "$base/chrome-1.out"
+fi
+HOME="$hc" sh "$inst" --check > "$base/chrome-2.out" 2>&1; expect "check with the Chrome key on" 0 $?
+if grep -qF "OK      $hcl: devtools.remote_debugging.user-enabled = true (Chrome remote debugging)" "$base/chrome-2.out"; then
+  ok "--check runs the Chrome remote-debugging step"
+else
+  ko "--check did not report the Chrome remote-debugging key"
+fi
+
 # 19c. the MCP active set (Issue #219, ADR-0041), through install.sh: undeclared, install turns nothing off;
 # declared, install turns off a Codex server outside the set, check is clean after it, and uninstall restores
 # the Codex configuration byte for byte. Per-case semantics: global/mcp/mcp_render_test.py, class ActiveSet.

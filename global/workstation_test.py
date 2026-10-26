@@ -754,7 +754,15 @@ class GatherLegacyDropin(unittest.TestCase):
                   "permissions": {"deny": ["Bash(sudo:*)"]}}
         ws.admin_dropin().parent.mkdir(parents=True)
         ws.admin_dropin().write_text(json.dumps(legacy), encoding="utf-8")
+        # PR #227 B2 (M2): gather() carries the Chrome key, read from a fixture Local State in this HOME.
+        ls = ws.chrome_debugging_mod.local_state()
+        if ls is not None:
+            ls.parent.mkdir(parents=True)
+            ls.write_text('{"devtools":{"remote_debugging":{"user-enabled":true}}}', encoding="utf-8")
         f = ws.gather(str(self.proj))
+        if ls is not None:
+            self.assertTrue(f["chrome_debugging"].startswith("on (devtools.remote_debugging.user-enabled = true;"),
+                            f["chrome_debugging"])
         self.assertIn(f["key"]["state"], ("match", "mismatch"))
         self.assertEqual(f["admin_state"], "legacy")
         layers = [line for line in ws.render_summary(f) if line.startswith("  layers ")][0]
