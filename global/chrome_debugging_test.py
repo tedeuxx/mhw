@@ -36,7 +36,8 @@ class Fixture(unittest.TestCase):
         self.home = self.temp.name
         self.path = cd.local_state("Darwin", self.home)
         self.path.parent.mkdir(parents=True)
-        self.server({"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --autoConnect"]})
+        self.server({"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --autoConnect "
+                                                           "--allowedUrlPattern \"$o\""]})
 
     def server(self, entry):
         """The Claude Code user configuration of the fixture home, with this chrome-devtools entry."""
@@ -133,6 +134,7 @@ class AttachGate(Fixture):
 
     def test_refused_or_isolated_server_leaves_the_key(self):
         cases = (None, {"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --isolated"]},
+                 {"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --autoConnect"]},
                  "no file")
         for entry in cases:
             with self.subTest(entry=entry):

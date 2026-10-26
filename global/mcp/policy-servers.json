@@ -3,11 +3,11 @@
   "version": 1,
   "servers": {
     "chrome-devtools": {
-      "description": "ADR-0038 (Issues #174, #224). A browser for product-lead's read-only sweep, bounded by origin. Since #224 it always attaches to the owner's own running Chrome (--autoConnect, the stable channel's default profile), so it drives a browser holding his logins and Chrome asks him to allow the connection, in any project whose agent calls it; with no declared origin, or one whose host is empty or carries a * wildcard, it is bound to the discard port and reaches nothing useful. The shell reads HARNESS_SWEEP_ORIGIN when the server starts, from the environment the harness gives it, which carries the project's settings env. With no value, or one that does not begin http:// or https://, the origin is the discard port, so the browser reaches nothing. The package is pinned to one exact version and fetched with install scripts off.",
+      "description": "ADR-0038 (Issues #174, #224). A browser for product-lead's read-only sweep, bounded by origin. Since #224 it always attaches to the owner's own running Chrome (--autoConnect, the stable channel's default profile), so it drives a browser holding his logins and Chrome asks him to allow the connection, in any project whose agent calls it; with no declared origin, or one whose host is not plain letters, digits, dots and hyphens with an optional :port, it is bound to the discard port and reaches nothing useful. The shell reads HARNESS_SWEEP_ORIGIN when the server starts, from the environment the harness gives it, which carries the project's settings env. With no value, or one that does not begin http:// or https://, the origin is the discard port, so the browser reaches nothing. The package is pinned to one exact version and fetched with install scripts off.",
       "command": "/bin/sh",
       "args": [
         "-c",
-        "o=$HARNESS_SWEEP_ORIGIN; case \"$o\" in http://*|https://*) ;; *) o='http://127.0.0.1:9/*' ;; esac; h=$(printf '%s' \"$o\" | cut -d/ -f3); case \"$h\" in ''|*'*'*) o='http://127.0.0.1:9/*' ;; esac; exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux --allowedUrlPattern \"$o\""
+        "o=$HARNESS_SWEEP_ORIGIN; case \"$o\" in http://*|https://*) ;; *) o='http://127.0.0.1:9/*' ;; esac; h=$(printf '%s' \"$o\" | cut -d/ -f3); case \"$h\" in ''|*[!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:-]*|:*|*:|*:*[!0123456789]*) o='http://127.0.0.1:9/*' ;; esac; exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux --allowedUrlPattern \"$o\""
       ],
       "surfaces": ["claude-code"]
     }

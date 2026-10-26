@@ -1004,7 +1004,23 @@ class Policy(unittest.TestCase):
                  ("https://user@*/x", "http://127.0.0.1:9/*"),
                  ("https://", "http://127.0.0.1:9/*"),
                  ("https:///x/*", "http://127.0.0.1:9/*"),
-                 ("https://site.example:8443/*", "https://site.example:8443/*"))
+                 ("https://site.example:8443/*", "https://site.example:8443/*"),
+                 # Lens on 632c11a: URLPattern syntax in the host passed a denylist of "*" and matched other
+                 # hosts. The host is now an allowlist: letters, digits, "." and "-", with an optional
+                 # ":<digits>"; anything else is the discard port.
+                 ("https://([a-z.]+)/*", "http://127.0.0.1:9/*"),
+                 ("https://:a.:b/*", "http://127.0.0.1:9/*"),
+                 ("https://:name/*", "http://127.0.0.1:9/*"),
+                 ("https://{a,b}.example/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example?/*", "http://127.0.0.1:9/*"),
+                 ("https://site+.example/*", "http://127.0.0.1:9/*"),
+                 ("https://site\\.example/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example:/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example:84a3/*", "http://127.0.0.1:9/*"),
+                 ("https://site.example:1:2/*", "http://127.0.0.1:9/*"),
+                 ("https://:8443/*", "http://127.0.0.1:9/*"),
+                 ("https://site_x.example/*", "http://127.0.0.1:9/*"),
+                 ("https://My-Site.example/*", "https://My-Site.example/*"))
         for value, bound in cases:
             env = {"PATH": d + os.pathsep + "/usr/bin:/bin"}
             if value is not None:

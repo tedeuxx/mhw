@@ -261,11 +261,19 @@ be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
   the only thing between an agent and every login in his Chrome, and `HARNESS_SWEEP_ORIGIN` comes from
   a project's committed settings, so any repository could widen it. The lens measured that the scheme
   guard alone accepts `https://*`, `https://*/*` and `http://*:*/*`, and that URLPattern `https://*`
-  matches any https host. The launch script now takes the host part (the scheme stripped, cut at the
-  first `/`, through `cut -d/ -f3`) and sends a value whose host is empty or contains `*` to the discard
-  port. A `*` in the path stays allowed, since the declared form is `https://<host>/*`. A subdomain
+  matches any https host. The launch script takes the host part (the scheme stripped, cut at the first
+  `/`, through `cut -d/ -f3`). ~~It sends a value whose host is empty or contains `*` to the discard
+  port.~~ *(Struck the same day: a denylist of `*` blocks spellings, not the class. The lens re-review at
+  `632c11a` measured that `https://([a-z.]+)/*` and `https://:a.:b/*` passed it and that URLPattern
+  matches other hosts, such as a forge's settings page or a mail host, with them.)* **The host is an
+  allowlist:** ASCII letters, digits, `.` and `-`, with an optional `:` and digits for a port. An empty
+  host, an empty port, a port that is not all digits, or any other character (regex groups, named
+  groups, `{` `?` `+` `\` `*`, `_`) sends the value to the discard port. The letters are listed one by
+  one rather than as a range, so the shell's locale cannot widen them. A `*` in the path stays allowed,
+  since the declared form is `https://<host>/*`; `http://localhost:4321/*` stays valid. A subdomain
   wildcard (`https://*.example/*`) is refused too. Tested per form in `mcp_render_test.py` (the
-  launch-script test), with the guard removed or weakened in the source four ways, each red. The script
+  launch-script test), with each clause of the guard removed or the character set widened in the
+  source, six mutants, each red. The script
   uses `$(…)`, not `${…}`; the measurement above showed Claude Code expanding `${VAR}` forms, and `$(…)`
   passing through is read from the test of the rendered entry, not measured in a live session.
 - **The risk the owner accepted.** The agent drives a browser that holds all of his logins. Within the
@@ -305,7 +313,8 @@ be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
   - no backup anywhere, and no output that carries the file's contents;
   - a no-op when the key is already true; `check` reports DRIFT while it is not; uninstall leaves it.
 - **Turned on only when something would attach.** The step writes the key only when the Claude Code user
-  configuration holds the `chrome-devtools` server in its attach form (`--autoConnect`). When the MCP
+  configuration holds the `chrome-devtools` server in its attach form (`--autoConnect`), with the origin
+  bound (`--allowedUrlPattern`) in the same args. When the MCP
   renderer refused the server, or an older isolated copy is kept, it prints a SKIP line and leaves the
   key as it is.
 - **Status.** `mhw status` prints a `chrome debugging` line with that one key's value (read as that key,
