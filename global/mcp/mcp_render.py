@@ -25,7 +25,11 @@
                                   rendered by global/install.sh on every mhw install. Each change is printed
                                   old -> new; the previous file is kept as <config>.pmhwc-mcp-policy-backup
                                   (0600); uninstall removes them. The local definition's servers are never
-                                  touched by this mode, and a name in both is refused by the default mode.
+                                  touched by this mode. A policy server may also be in the local definition,
+                                  to extend it to the surfaces the policy does not name: on the policy's own
+                                  surfaces the policy's copy is kept and the local copy is never written;
+                                  a local copy that differs from the policy's on such a surface is refused,
+                                  that server alone (see policy_conflicts).
 
 The policy servers are the one tracked definition: they hold no secret and no owner value, and the
 renderer refuses a policy server that names one. JSON surfaces only (Codex is refused there).
@@ -229,8 +233,10 @@ def _no_control(s):
     return not any(ord(c) < 0x20 or ord(c) == 0x7F for c in s)
 
 
-def validate(doc, platform=sys.platform):
-    """Return a list of human-readable errors; empty means the definition is valid."""
+def validate(doc, platform=sys.platform, covered=None):
+    """Return a list of human-readable errors; empty means the definition is valid. covered: name -> the
+    surfaces a policy server is rendered on (policy_surfaces), which count towards the active set's parity."""
+    covered = covered or {}
     errs = []
     if not isinstance(doc, dict):
         return ["the definition must be a JSON object"]
@@ -317,9 +323,11 @@ def validate(doc, platform=sys.platform):
                 errs.append('%s: secret %r: the source must be "keychain:<service>" or "env:<VAR>"' % (where, k))
         if secrets and platform == "win32":
             errs.append("%s: secrets need the POSIX launcher, which is not available on Windows" % where)
-        if "active_set" in doc and isinstance(surfaces, list) and any(x not in surfaces for x in PARITY):
+        if "active_set" in doc and isinstance(surfaces, list) and any(
+                x not in surfaces and x not in covered.get(name, ()) for x in PARITY):
             errs.append("%s: the active set is on in Claude Code, Codex and Kiro alike (Issue #219, parity), so "
-                        "\"surfaces\" must include %s, or be left out" % (where, ", ".join(PARITY)))
+                        "\"surfaces\" must include %s, or be left out (a policy server's own surfaces count)"
+                        % (where, ", ".join(PARITY)))
     return errs + validate_active(doc.get("active_set", {}))
 
 
@@ -410,7 +418,7 @@ def load_source(path):
             doc = json.load(fh)
     except (OSError, ValueError) as e:
         raise Refuse(2, UNREADABLE % (path, e))
-    errs = validate(doc)
+    errs = validate(doc, covered=policy_surfaces())
     if errs:
         raise Refuse(2, "invalid MCP definition %s:\n  - %s" % (path, "\n  - ".join(errs)))
     return doc
@@ -477,6 +485,64 @@ def entry(surface, server, launcher):
 def desired(doc, surface, launcher):
     return {n: entry(surface, s, launcher) for n, s in doc["servers"].items()
             if surface in s.get("surfaces", SURFACES)}
+
+
+def policy_surfaces(policy_doc=None):
+    """name -> the surfaces a policy server (ADR-0038) is rendered on."""
+    doc = load_policy() if policy_doc is None else policy_doc
+    return {n: frozenset(s["surfaces"]) for n, s in doc["servers"].items()}
+
+
+def local_desired(doc, surface, launcher, covered):
+    """The local definition's entries for one surface, without a policy server on a surface the policy
+    names: there the policy's copy is authoritative, and the local copy is never written."""
+    return {n: e for n, e in desired(doc, surface, launcher).items() if surface not in covered.get(n, ())}
+
+
+def policy_conflicts(doc, policy_doc, launcher):
+    """name -> the surfaces (sorted) where the local copy of a policy server differs from the policy's own
+    entry. Such a definition says something that does not run there (the policy's copy does), so the
+    default mode refuses that server, on every surface, and renders the others."""
+    out = {}
+    policy = policy_doc["servers"]
+    for n, s in doc["servers"].items():
+        if n not in policy:
+            continue
+        for surface in sorted(set(s.get("surfaces", SURFACES)) & set(policy[n]["surfaces"])):
+            if entry(surface, s, launcher) != entry(surface, policy[n], None):
+                out.setdefault(n, []).append(surface)
+    return out
+
+
+def held_copies(surface, path, names, managed_before):
+    """The copies mhw wrote earlier of these servers on one surface, as they are now: kept unchanged for a
+    refused server. {} when the file cannot be read or parsed (the surface's own run refuses that)."""
+    if not names:
+        return {}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except (OSError, UnicodeDecodeError):
+        return {}
+    if surface == "codex":
+        lines = text.splitlines(keepends=True)
+        begins = [i for i, l in enumerate(lines) if l.startswith(BLOCK_BEGIN_PREFIX)]
+        ends = [i for i, l in enumerate(lines) if l.rstrip("\r\n") == BLOCK_END]
+        if tomllib is None or len(begins) != 1 or len(ends) != 1 or begins[0] > ends[0]:
+            return {}
+        try:
+            ours = tomllib.loads("".join(lines[begins[0]:ends[0] + 1])).get("mcp_servers", {})
+        except tomllib.TOMLDecodeError:
+            return {}
+    else:
+        try:
+            current = json.loads(text).get("mcpServers", {})
+        except (ValueError, AttributeError):
+            return {}
+        ours = {n: current[n] for n in managed_before if isinstance(current, dict) and n in current}
+    if not isinstance(ours, dict):
+        return {}
+    return {n: ours[n] for n in sorted(names) if n in ours}
 
 
 def toml_str(s):
@@ -823,16 +889,24 @@ def render(mode, source, surfaces, adopt):
         raise Refuse(2, "%s is inside a git work tree and not ignored, so it could be committed. The definition "
                         "lives only in the untracked local overlay" % source)
     doc = load_source(source)
-    shared = sorted(set(doc["servers"]) & set(load_policy()["servers"]))
-    if shared:
-        raise Refuse(2, "server(s) %s are policy servers (global/mcp/policy-servers.json, ADR-0038), rendered by "
-                        "mhw install; remove them from the local definition %s" % (", ".join(shared), source))
+    policy_doc = load_policy()
+    covered = policy_surfaces(policy_doc)
     stamp = provenance()
     print("SOURCE  %s" % stamp)
     managed = load_manifest()
     stamps = load_stamps()
     run = Run(mode, adopt, stamp)
     launcher = launcher_dest()
+    # ADR-0038 amendment (Issue #219): a policy server in the local definition is extended to the surfaces the
+    # policy does not name. A local copy that differs from the policy's where both apply is refused alone.
+    conflicts = policy_conflicts(doc, policy_doc, launcher)
+    for n, where in sorted(conflicts.items()):
+        print("REFUSE  %s: a policy server (global/mcp/policy-servers.json, ADR-0038) whose local copy differs "
+              "from the policy's on %s, where the policy's copy runs. Nothing is written for it on any surface "
+              "(a copy mhw wrote earlier is kept as it is); the other servers are rendered. Make the local copy "
+              "match the policy's, or leave %s out of its \"surfaces\"" % (n, ", ".join(where), ", ".join(where)),
+              file=sys.stderr)
+        run.raise_(3)
     if any(s.get("secrets") for s in doc["servers"].values()) and not run.launcher():
         return run.status
     new_manifest = dict(managed)
@@ -843,14 +917,23 @@ def render(mode, source, surfaces, adopt):
             print("SKIP    %s: no published app for this OS" % surface)
             continue
         path, installed_dir = target
-        want = desired(doc, surface, launcher)
         if not os.path.isdir(installed_dir) and not os.path.exists(path):
             print("SKIP    %s: not installed (%s absent)" % (surface, installed_dir))
             continue
+        # A name the policy renders on this surface is the policy's here, even one an earlier render recorded:
+        # never removed, never rewritten by this mode.
+        before = [n for n in managed.get(surface, []) if surface not in covered.get(n, ())]
+        local = local_desired(doc, surface, launcher, covered)
+        want = {n: e for n, e in local.items() if n not in conflicts}
+        want.update(held_copies(surface, path, set(conflicts), before))
+        policy_here = sorted(set(desired(doc, surface, launcher)) - set(local))
+        if policy_here:
+            print("POLICY  %s: %s rendered here by the policy servers (mcp_render.py --policy, ADR-0038), not by "
+                  "the local definition" % (surface, ", ".join(policy_here)))
         if surface == "codex":
             run.codex(path, want)
         else:
-            names = run.json_surface(surface, path, want, managed)
+            names = run.json_surface(surface, path, want, dict(managed, **{surface: before}))
             if names is not None:
                 new_manifest[surface] = names
                 if not names:

@@ -20,7 +20,7 @@ prompt, a process) and costs time. Per server and agent harness where it is enab
 
 One line per server per agent harness, its name and its result. Never stderr, never a response body,
 never a URL or a command: they can carry values. Exit 1 when a set member fails, 0 otherwise.
-Only the set members are checked: the policy server and the exempt ones are not started (a policy server
+Only the set members are checked: a policy server outside the set and the exempt ones are not started (a policy server
 fetches a package at every start, and an exempt one belongs to its app).
 """
 import json

@@ -96,7 +96,9 @@ The set is the `servers` of the local definition, `active_set` opts in, and the 
   a default that already meets the decision needs no second switch.
 - **The policy servers** ([ADR-0038](0038-chrome-devtools-mcp-at-user-scope-bounded-by-origin.md)) are
   never treated as outside the set on the surfaces they name, and they are not part of parity: they are
-  tracked, not the owner's, and `chrome-devtools` is Claude Code only by that record.
+  tracked, not the owner's, and `chrome-devtools` is Claude Code only by that record. *Amended 2026-10-26:* a policy server the local definition also
+  names is a set member, extended to the other surfaces by the local copy, and the policy's surfaces
+  count towards its parity (amendment below).
 - **claude.ai connectors** are declared by display name, `on` (in the set) or `off` (denied). A
   connector the overlay does not name is not acted on: nothing local can list it.
 
@@ -194,7 +196,9 @@ prompt) and costs up to the timeout per server. Default timeout 30 seconds.
 
 - **Scope:** each set member, on each agent harness where it is configured and enabled (Codex
   `enabled` not false, Kiro `disabled` not true, Claude Code and the desktop app as configured). Not
-  checked: the policy server (it fetches a package at every start) and the exempt servers (they belong
+  checked: ~~the policy server~~ a policy server that is not a set member (it fetches a package at every
+  start; amended 2026-10-26: one the local definition names is a set member and is checked, the policy's
+  copy on the policy's surfaces) and the exempt servers (they belong
   to their apps). A set member not configured on an agent harness is the check's `ABSENT`, not this one's.
 - **stdio:** the configured command, args and env, as the agent harness has them, with `${VAR}` and
   `${VAR:-default}` expanded for Claude Code and Kiro. A secret-bearing server runs through
@@ -227,6 +231,32 @@ agent harness, which sends the header, may connect. `ok` means it answered `init
 process, with this environment: the agent harness's own environment (a GUI app's in particular) can
 differ. Not run on Windows, and on Python before 3.11 the Codex surface is skipped. Evidence: written
 and tested against a synthetic stdio stub and a local HTTP stub, in throwaway homes; not run on the
+reference machine.
+
+## Amendment 2026-10-26: a policy server in the set ([Issue #219](https://github.com/tedeuxx/mhw/issues/219#issuecomment-6427936169))
+
+On v8.1.0 the renderer refused the whole render when a set member was also a policy server, so no set
+member reached any agent harness. The owner decided the local definition may extend a policy server to
+the surfaces the policy does not name; the rule is [ADR-0038](0038-chrome-devtools-mcp-at-user-scope-bounded-by-origin.md)'s
+amendment of this date. What it changes here, so that `--mode=check` and `mhw status` agree with the
+render:
+
+- **A set member is expected where it is configured**: on the surfaces its own `surfaces` list names,
+  and on the policy's surfaces for a policy server. `ABSENT` is reported only there, so a member that
+  leaves the desktop app out is no longer `ABSENT` on the desktop app, and a policy server whose local
+  copy leaves `claude-code` out is still expected on Claude Code, through the policy's copy.
+- **A conflicting member is reported.** When its local copy differs from the policy's on a surface both
+  name, the render refuses it, and the check prints `REPORT  <surface>: set member(s) whose local copy
+  differs from the policy server's here … : <name> (1)` on that surface; `mhw status` lists it as a
+  finding. Where the refused copy is not configured, the existing `ABSENT` names it.
+- **Nothing outside the set changes.** A policy server stays "not outside the set" on its surfaces,
+  whether or not the local definition names it; on Claude Code the deny list keeps excluding it.
+- **The connection check** starts such a member like any other set member, including the policy's copy
+  on Claude Code. This was read from the code (`mcp_connect.main` probes every set member configured
+  on a surface); no test starts a policy server.
+
+Evidence: written and tested in throwaway homes (`global/mcp/mcp_render_test.py`, class
+`PolicyExtension`), each new assertion checked against a mutation of the source; not run on the
 reference machine.
 
 ## Links

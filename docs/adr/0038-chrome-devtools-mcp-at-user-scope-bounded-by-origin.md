@@ -115,7 +115,9 @@ Option 1.
   previous `~/.claude.json` is kept as `~/.claude.json.pmhwc-mcp-policy-backup`, owner-only (0600). Each
   change is printed `chrome-devtools <old> -> <new>`. The names it wrote are recorded under `policy` in
   the renderer's manifest, apart from the local definition's, so neither mode removes the other's
-  servers, and a local definition that reuses a policy name is refused. A same-named server that mhw
+  servers, ~~and a local definition that reuses a policy name is refused~~ and a local definition may
+  reuse a policy name to extend it to the surfaces the policy does not name (amendment 2026-10-26
+  below). A same-named server that mhw
   did not write is refused (exit 3), never overwritten. `--scan` also reads the new backup.
 - **Coverage, harness × OS.**
 
@@ -330,6 +332,56 @@ approval prompt, the allowed origin opening and the disallowed origin refused. T
 configuration is not installed and not loaded; that needs `mhw install` and a fresh session
 (ADR-0022). Still not measured: the `Local State` write, whether the prompt fires per connection or per
 Chrome run, and a tab's network after the server disconnects ([correction](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427911167)).
+
+## Amendment 2026-10-26: the local definition may extend a policy server ([Issue #219](https://github.com/tedeuxx/mhw/issues/219#issuecomment-6427936169))
+
+**What happened.** On v8.1.0 the owner put `chrome-devtools` in his local MCP definition, to have it on
+Codex, Kiro and the Claude desktop app too, as a member of the active set
+([ADR-0041](0041-mcp-active-set-native-switch-off-per-harness.md)). The renderer's default mode refused
+the **whole** render, because the name is also a policy server: no set member reached any agent
+harness. **The owner's decision (2026-10-26):** fix mhw so that the local definition may extend a
+policy server to the agent harnesses the policy does not cover.
+
+**The rule** (`global/mcp/mcp_render.py`: `policy_surfaces`, `local_desired`, `policy_conflicts`):
+
+1. **On a surface the policy names, the policy's copy is authoritative.** The default mode never writes
+   the local copy there, never removes the policy's copy, and drops the name from its own record for
+   that surface if an earlier render left it there. It prints `POLICY  <surface>: <name> rendered here
+   by the policy servers`.
+2. **On every other surface the local copy is rendered as any other server** of the definition, under
+   the local definition's own record and backups.
+3. **A real conflict is refused, that server alone.** A conflict is a local copy whose entry, on a
+   surface both name, differs from the policy's own entry there (another command, other args, an env,
+   a secret). The definition then says something that does not run on that surface. The server is
+   written nowhere by that run, a copy mhw wrote earlier is kept exactly as it is, the run prints
+   `REFUSE  <name>: … differs from the policy's on <surfaces>` and exits 3, and **every other server is
+   rendered**. A local copy equal to the policy's, or one that leaves the policy's surfaces out of its
+   `surfaces`, cannot conflict.
+4. **Parity counts the policy's surfaces.** With an `active_set`, a policy server's local copy may leave
+   `claude-code` out of its `surfaces`: the policy already puts it there. Any other server still has to
+   name codex, claude-code and kiro.
+
+**Why refuse a conflict rather than report it.** Reporting it and rendering the local copy elsewhere
+would run one command on Codex and Kiro and another on Claude Code under one name, silently, which
+breaks the parity the active set exists for, while the definition reads as if both were the same. A
+refusal of one server costs one server; the old refusal of the whole render cost all of them. Keeping
+an earlier copy follows the renderer's exit-3 convention, *left untouched*.
+
+**Rejected: let the local copy override the policy everywhere.** It would let an untracked file widen
+the origin bound this record exists for, on the one agent harness the bound was measured on.
+
+**One overlap blocking every server was fixed in the same change, not as a separate one.** Once the
+overlap stopped being refused as a whole, the only remaining refusal is the per-server conflict, so a
+separate fix would have had nothing left to change.
+
+**The active set agrees** (`global/mcp/mcp_active.py`, ADR-0041 amendment of the same date): a set
+member is expected only on the surfaces it is configured for (its own and the policy's), so a member
+whose `surfaces` leave out the desktop app is no longer reported `ABSENT` there; a conflicting member
+is reported (`REPORT … differs from the policy server's here`), and `mhw status` lists it.
+
+**Evidence level.** Written and tested in throwaway homes (`global/mcp/mcp_render_test.py`, class
+`PolicyExtension`); each new assertion was checked against ten mutations of the source, each turned it
+red. Not run on the reference machine; the owner's render runs after the release.
 
 ## Links
 
