@@ -18,9 +18,10 @@ pasted into a terminal, not run by the agent.
 Prints, on stdout, one fenced block and nothing after it (the owner pastes the block):
     NAME='value' claude '<prompt>'           claude-code
     NAME='value' codex '<prompt>'            codex
-    NAME='value' kiro-cli chat '<prompt>'    kiro; before the block, one line for the Kiro IDE, which
-                                             has no launch line (a `#` line inside the block would be a
-                                             command in zsh, where interactive comments are off)
+    NAME='value' kiro-cli chat '<prompt>'    kiro; before the block, one line for the Kiro IDE, whose
+                                             `kiro chat [prompt]` is read from `kiro chat --help` 1.3.11
+                                             and not run (a `#` line inside the block would be a command
+                                             in zsh, where interactive comments are off)
 Each --env becomes a prefix assignment, so the variable reaches the agent harness even through the
 workstation's paste wrapper function (measured on zsh, bash, bash --posix and sh). The fence is one
 backtick longer than any backtick run in the block, so a prompt carrying backticks cannot close it.
@@ -28,15 +29,22 @@ backtick longer than any backtick run in the block, so a prompt carrying backtic
 The prompt file is read only when it resolves (symlinks and `..` included) under the repository work
 tree or the system temporary directory, is a regular file and holds at most 64 KiB (confine.py, as the
 worklog and milestone scripts read their inputs). Refuses, exit 1, a prompt that would not be safe to
-hand over: empty, carrying a NUL, a first line not opening with /goal, a line over 280 characters, or a
-machine-local path (the worklog continuity contract's refused strings, imported from worklog.py so the
-two cannot drift); and an --env whose name is not a shell variable name or whose value carries a NUL, a
-newline or a machine-local path. This is a string check: copied private content carries none of those
+hand over: empty, a first line not opening with /goal, a line over 280 characters, a machine-local path
+(the worklog continuity contract's refused strings, imported from worklog.py so the two cannot drift),
+or a control character: every Unicode Cc character but the newline (so NUL, TAB, ^C, ^U, ESC and the
+rest: in an interactive zsh or bash one of them can end the paste or the quote and run what follows as a
+command, and an unbracketed paste eats a TAB) and the bidirectional controls U+202A-U+202E and
+U+2066-U+2069, which make the block read differently from what runs. An --env is refused when its name
+is not a shell variable name or is a loader, interpreter or shell variable (PATH, NODE_OPTIONS, DYLD_*,
+LD_* and the others in DENIED_ENV), or when its value carries a control character (the newline
+included), a bidirectional control or a machine-local path. The refusal names the line or the --env,
+never the content. This is a string check: copied private content carries none of those
 strings and passes. Exit 2 on a usage error. Standard library only, Python 3.9+.
 """
 
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # worklog.py ships beside this file (mhw #170)
@@ -45,11 +53,31 @@ from worklog import STRICT_PRIVATE  # noqa: E402
 
 LAUNCH = {"claude-code": "claude", "codex": "codex", "kiro": "kiro-cli chat"}
 ALIASES = {"claude": "claude-code", "kiro-cli": "kiro"}
-IDE_NOTE = ("Kiro IDE: no documented launch command takes an initial prompt. The block below is for Kiro CLI; "
-            "in the IDE, open a new chat and paste the text inside the outer quotes, reading each '\\'' as '.")
+IDE_NOTE = ("The block below is for Kiro CLI. For the Kiro IDE, replace `kiro-cli chat` with `kiro chat`, "
+            "whose [prompt] argument is read from `kiro chat --help` 1.3.11 and not run.")
 LINE_LIMIT = 280
 SIZE_LIMIT = 64 * 1024  # bytes; a prompt is a handful of one-line fields
 ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+BIDI = frozenset(chr(c) for c in list(range(0x202A, 0x202F)) + list(range(0x2066, 0x206A)))
+# Variables that change what the agent harness loads or how a shell or interpreter starts: a launch
+# environment names what an MCP server or the agent harness reads, never one of these.
+DENIED_ENV = frozenset(("PATH", "NODE_OPTIONS", "NODE_PATH", "BASH_ENV", "ENV", "ZDOTDIR", "IFS", "SHELLOPTS",
+                        "BASHOPTS", "PS4", "PROMPT_COMMAND", "HOME", "SHELL", "TMPDIR", "PERL5LIB", "PERL5OPT",
+                        "PERLLIB", "RUBYLIB", "RUBYOPT", "JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS",
+                        "CLASSPATH", "GIT_EXEC_PATH", "GIT_SSH", "GIT_SSH_COMMAND", "GIT_CONFIG_GLOBAL",
+                        "GIT_CONFIG_SYSTEM", "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
+                        "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
+                        "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy"))
+DENIED_ENV_PREFIX = ("DYLD_", "LD_", "PYTHON", "NPM_CONFIG_", "npm_config_", "BASH_FUNC_")
+
+
+def control(text, keep_newline):
+    """True when text carries a Cc character (the newline excepted when keep_newline) or a bidi control."""
+    return any((unicodedata.category(c) == "Cc" and not (keep_newline and c == "\n")) or c in BIDI for c in text)
+
+
+def denied_env(name):
+    return name in DENIED_ENV or name.startswith(DENIED_ENV_PREFIX)
 
 
 def canonical(name):
@@ -66,8 +94,6 @@ def problems(prompt):
     out = []
     if not prompt.strip():
         return ["the prompt is empty"]
-    if "\0" in prompt:
-        out.append("the prompt carries a NUL character")
     if not prompt.startswith("/goal "):
         out.append("the first line must open with /goal")
     for n, line in enumerate(prompt.split("\n"), 1):
@@ -76,6 +102,8 @@ def problems(prompt):
         if STRICT_PRIVATE.search(line):
             # The text is never echoed: only where it is.
             out.append("line %d carries a machine-local path (a refused string of the worklog contract)" % n)
+        if control(line, keep_newline=True):
+            out.append("line %d carries a control character (Cc other than the newline, or a bidi control)" % n)
     return out
 
 
@@ -84,8 +112,10 @@ def env_problems(pairs):
     for n, (name, value) in enumerate(pairs, 1):
         if not ENV_NAME.match(name):
             out.append("--env %d: the name is not a shell variable name" % n)
-        if "\0" in value or "\n" in value or "\r" in value:
-            out.append("--env %d: the value carries a NUL or a line break" % n)
+        elif denied_env(name):
+            out.append("--env %d: the name is a loader, interpreter or shell variable" % n)
+        if control(value, keep_newline=False):
+            out.append("--env %d: the value carries a control character or a line break" % n)
         if STRICT_PRIVATE.search(value):
             out.append("--env %d: the value carries a machine-local path" % n)
     return out
@@ -151,7 +181,9 @@ def main(argv):
         if real.stat().st_size > SIZE_LIMIT:
             print("REFUSE  the prompt file is over %d bytes" % SIZE_LIMIT, file=sys.stderr)
             return 1
-        prompt = real.read_text(encoding="utf-8")
+        # newline="" keeps a lone CR as it is, so it is refused below rather than read as a newline.
+        with real.open(encoding="utf-8", newline="") as handle:
+            prompt = handle.read()
     except (OSError, UnicodeError) as error:
         print("launch-line: cannot read the prompt file: %s" % error.__class__.__name__, file=sys.stderr)
         return 2

@@ -359,7 +359,7 @@ class RootBriefRename(unittest.TestCase):
 
 
 LAUNCH_PREFIX = {"claude-code": "claude '", "codex": "codex '", "kiro": "kiro-cli chat '"}
-IDE_PHRASE = "Kiro IDE: no documented launch command takes an initial prompt"
+IDE_PHRASE = "For the Kiro IDE, replace `kiro-cli chat` with `kiro chat`"
 TOKEN_RE = re.compile(r"\{\{[a-z][a-z-]*\}\}")
 # A prompt the template could produce, with the characters that break a hand-quoted line: a single quote,
 # a newline, `$` (an expansion), backticks (a substitution and, three of them, a Markdown fence), a
@@ -487,6 +487,40 @@ class Handoff(unittest.TestCase):
             self.assertNotIn("someone", out.stderr, bad)
         for usage in (["--env"], ["--env", "NOEQUALS"], ["--other", "X=1"]):
             self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE, *usage).returncode, 2, usage)
+
+    def test_terminal_and_bidi_controls_are_refused_without_echo(self):
+        """A paste into interactive zsh or bash: ^C or ^U can discard the open quote, ESC[201~ ends a
+        bracketed paste early, and an unbracketed paste eats a TAB, so the rest of the prompt would run as
+        commands. A bidi control makes the block read differently from what runs. Each is refused, in the
+        prompt and in an --env value, and the refusal never echoes the line."""
+        secret = "SENTINELTEXT"
+        hostile = {"^C": "\x03", "ESC[201~": "\x1b[201~", "^U": "\x15", "TAB": "\t", "CR": "\r", "DEL": "\x7f",
+                   "U+202E": "\u202e", "U+2066": "\u2066"}
+        for label, ch in hostile.items():
+            prompt = "/goal fix it\nNext act: %s %s; touch pwned" % (ch, secret)
+            out = run_launch_line(self.script, "claude-code", prompt, BASE)
+            self.assertEqual(out.returncode, 1, label)
+            self.assertEqual(out.stdout, "", label)
+            self.assertIn("line 2 carries a control character", out.stderr, label)
+            self.assertNotIn(secret, out.stderr, label)
+            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", "X=a%s%s" % (ch, secret))
+            self.assertEqual(out.returncode, 1, label)
+            self.assertEqual(out.stdout, "", label)
+            self.assertIn("--env 1: the value carries a control character", out.stderr, label)
+            self.assertNotIn(secret, out.stderr, label)
+        # The newline is the one control a prompt may carry, and only outside an --env value.
+        self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE).returncode, 0)
+
+    def test_loader_and_interpreter_variables_are_refused(self):
+        for name in ("PATH", "NODE_OPTIONS", "DYLD_INSERT_LIBRARIES", "LD_PRELOAD", "PYTHONPATH", "BASH_ENV",
+                     "ZDOTDIR", "HTTPS_PROXY", "npm_config_prefix"):
+            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", name + "=x")
+            self.assertEqual(out.returncode, 1, name)
+            self.assertEqual(out.stdout, "", name)
+            self.assertIn("loader, interpreter or shell variable", out.stderr, name)
+        for name in ("HARNESS_SWEEP_ORIGIN", "LOAD_LEVEL", "PATHWAY"):
+            self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE, "--env", name + "=x").returncode,
+                             0, name)
 
     def test_a_backtick_run_cannot_close_the_fence(self):
         prompt = "/goal keep ```` four and ````` five backticks"

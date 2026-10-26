@@ -85,20 +85,22 @@ open pull requests and Issues the objective mentions instead.
    the target from *The arguments*. It quotes the environment and the prompt for a POSIX shell (zsh,
    bash), deterministically, so `'`, `$`, backticks and newlines reach the new session intact, and
    prints one fenced block. It refuses a prompt whose first line does not open with `/goal`, a line over
-   280 characters, a machine-local path, or an `--env` that is not a variable name or whose value is
-   unsafe; fix it and run it again. It reads the file only when it resolves under the system temporary
+   280 characters, a machine-local path, a control character (a terminal control such as `^C`, ESC
+   or TAB, or a bidirectional control), or an `--env` that is not a variable name, names a loader or
+   interpreter variable such as `PATH`, or whose value is unsafe; fix it and run it again. It reads the file only when it resolves under the system temporary
    directory or the current work tree, is a regular file and holds at most 64 KiB. Never quote the
    prompt by hand.
 4. End your reply with the script's output, exactly as printed, and nothing after it. Do not print the
    prompt separately, do not refer to it from another line and add no instruction around the block:
-   the prompt is inside it. For the Kiro target the output opens with one line for the Kiro IDE, which
-   has no documented launch command that takes a prompt; the block is for Kiro CLI.
+   the prompt is inside it. For the Kiro target the output opens with one line for the Kiro IDE: the
+   block is for Kiro CLI, and the IDE takes the same block with `kiro chat` in place of `kiro-cli chat`.
 5. Then stop working in this session. Two sessions on one checkout overwrite each other's work.
 
 The block names the target's start command and its documented argument for an initial prompt: `claude
 '<prompt>'` (the `[prompt]` argument of `claude --help`), `codex '<prompt>'` (Codex's `[PROMPT]`
-argument; documented, not run here) and `kiro-cli chat '<prompt>'` (the `[INPUT]` argument of `kiro-cli
-chat --help`, "the first question to ask"). The block runs in the terminal's current directory; open the
+argument of `codex --help` 0.163.0) and `kiro-cli chat '<prompt>'` (the `[INPUT]` argument of `kiro-cli
+chat --help` 2.34.1, "the first question to ask"); for the Kiro IDE, `kiro chat [prompt]` from `kiro chat
+--help` 1.3.11. Each is read from `--help`, none run. The block runs in the terminal's current directory; open the
 terminal in a different checkout from the old session's. Where the workstation's paste wrapper is
 installed, those names reach it and an environment prefix reaches the agent harness through it; a
 prompt passed as an argument is not cleaned by the wrapper, so the sanitising above is the clean-up. On
