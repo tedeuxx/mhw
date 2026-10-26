@@ -37,7 +37,7 @@ Issue.
 2. **Compare:** list what the document adds, what it changes and what conflicts with this project.
 3. **Run the alignment interview** (next section).
 4. **Record the agreement:** write the agreed target as this project's own requirements document,
-   then offer `idea-to-issues` to turn it into tracked work. The changes are built by the loop, through
+   then offer `prd-to-issues` to turn it into tracked work. The changes are built by the loop, through
    the repository's normal gates, never applied by this command.
 
 ## Alignment interview

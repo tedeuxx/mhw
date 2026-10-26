@@ -36,8 +36,8 @@ import clipboard_guard as guard  # noqa: E402
 # asks for. "What this command never does" holds the merge, publish and hook prohibitions.
 SHARED = ["## What this command never does"]
 REQUIRED = {
-    "new-idea": SHARED + ["## When to use", "## Steps", "## Interview rounds", "## The requirements document"],
-    "idea-to-issues": SHARED + ["## When to use", "## Steps", "## Vertical slices", "## Definition of ready",
+    "new-prd": SHARED + ["## When to use", "## Steps", "## Interview rounds", "## The requirements document"],
+    "prd-to-issues": SHARED + ["## When to use", "## Steps", "## Vertical slices", "## Definition of ready",
                                 "## Opening the Issues"],
     "what-else": SHARED + ["## The anchored objective", "## Read the bus", "## The answer"],
     "blueprint": SHARED + ["## export", "## import", "## Alignment interview"],
@@ -53,11 +53,14 @@ RITES = {
     "sprint-retrospective": ["## The trigger", "## What this cannot catch"],
     "funnel-review": ["## The steps", "## What this rite cannot see"],
 }
+# The old names, kept for one release as deprecated aliases (owner, 2026-10-26: "-idea- deveria ser
+# renomeado para -prd em todos comandos com esse termo"). Each must still run the whole command.
+DEPRECATED = {"new-idea": "new-prd", "idea-to-issues": "prd-to-issues"}
 RETIRED_NOTE = "> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).**"
 # Phrases that carry the behaviour the Issues require, beyond the headings.
 PHRASES = {
-    "new-idea": ["product-requirements-document-<subject>.md", "recommended answer", "Mermaid"],
-    "idea-to-issues": ["--body-file", "Blocked by #N", "definition-of-ready", "acceptance criteria"],
+    "new-prd": ["product-requirements-document-<subject>.md", "recommended answer", "Mermaid"],
+    "prd-to-issues": ["--body-file", "Blocked by #N", "definition-of-ready", "acceptance criteria"],
     "what-else": ["native goal command (`/goal`)", "gh pr list --state open", "owner decisions"],
     "blueprint": ["product-requirements-document-agent-harness-setup.md", "Mermaid",
                   "Nothing is changed before the alignment interview is complete"],
@@ -124,6 +127,24 @@ class Commands(unittest.TestCase):
                 missing += ["%s/%s: %s" % (name, harness, h) for h in headings if h not in lines]
                 text = "\n".join(lines)
                 missing += ["%s/%s: %r" % (name, harness, p) for p in PHRASES[name] if p not in text]
+        self.assertEqual(missing, [])
+
+    def test_deprecated_names_still_run_the_whole_command(self):
+        missing = []
+        for old, new in DEPRECATED.items():
+            for harness, path in carriers(self.home, old).items():
+                if not path.is_file():
+                    missing.append("%s/%s: not rendered" % (old, harness))
+                    continue
+                text = path.read_text(encoding="utf-8")
+                lines = text.split("\n")
+                missing += ["%s/%s: %s" % (old, harness, h) for h in REQUIRED[new] if h not in lines]
+                missing += ["%s/%s: %r" % (old, harness, p) for p in PHRASES[new] if p not in text]
+                if "is the old name of `%s`" % new not in text:
+                    missing.append("%s/%s: no deprecation note naming %s" % (old, harness, new))
+            policy = self.home / ".agents" / "skills" / old / "agents" / "openai.yaml"
+            if "allow_implicit_invocation: false" not in policy.read_text(encoding="utf-8"):
+                missing.append("%s/codex: implicit invocation on" % old)
         self.assertEqual(missing, [])
 
     def test_never_section_forbids_merge_publish_and_hooks(self):

@@ -530,6 +530,56 @@ amendment above was a one-shot migration for the cutover, and #130 is closed.
   (the owner's read-only check on #206). Replicator installs were not checked; the release notes ask
   them to run `mhw status`.
 
+## Amendment 2026-10-26: a renamed command keeps its old name for one release
+
+Status unchanged (proposed). The owner, 2026-10-26: *"-idea- deveria ser renomeado para -prd em todos
+comandos com esse termo"* (every command whose name carries "idea" carries "prd" instead). Two commands
+carried it: `new-idea` becomes `new-prd` and `idea-to-issues` becomes `prd-to-issues`. PRD (product
+requirements document) is the document both write or read; its filename pattern,
+`docs/<repo>-product-requirements-document-<subject>.md`, carries no command name and is unchanged.
+
+**Decision.** A command's front matter may list `deprecated-aliases`, its old names. The renderer
+renders each alias as a command of its own in every carrier: a Claude Code command file, a Codex skill
+with implicit invocation off, a Kiro skill. The alias carries the command's whole body, a description
+that opens *"Deprecated name of <new>, kept for one release."*, and a preface telling the agent to name
+the new spelling to the owner once. Its provenance stamp names the current command's source file. An
+alias that collides with a skill, a command, an agent or another alias stops the render, with nothing
+written. Dropping an alias from the source makes `--mode=check` report its rendered files `STALE` and
+the next install remove them, through the existing stale path.
+
+**Why.** Nothing the owner types stops working with the rename, which follows the precedent of the
+`workstation` command kept as a deprecated alias of `mhw` (ADR-0034, 2026-10-06 amendment, removed
+2026-10-18). Rendering a second command is the only route that reaches all three agent harnesses:
+none of their user-level command carriers has a field this renderer can set to give one file a second
+name. That is *documented* at best and **not measured** in any of the three: no build was searched
+for an alias field and none was exercised.
+
+**Rejected:** rename with no alias. It costs nothing to render, but every old spelling stops working
+at once, which is a breaking change for the owner's typing habit, cut as major. **Rejected:** an alias
+whose body only says "run `new-prd`". It is shorter, but whether one command can invoke another differs
+per agent harness and was not measured, so the alias could run nothing.
+
+**Consequences.**
+
+- Good: `/new-idea`, `$new-idea` and their Kiro form keep running the same steps for one release, and
+  the agent tells the owner the new name.
+- Good: the next rename uses the same field, with no renderer change.
+- Bad: for one release each old name is a second full copy in every carrier, so a harness command list
+  shows both names, distinguished only by the description.
+- Bad: removing an alias is a breaking change (major), and nothing schedules it: the next release that
+  drops `deprecated-aliases` from the two files does it. The `workstation` precedent shipped one major
+  later than its own note said.
+
+**Evidence, 2026-10-26.** *Written and tested.* `global/method/method_render_test.py`:
+`test_the_deprecated_aliases` (the declared set, and no command name still carrying "idea"),
+`test_a_deprecated_alias_renders_the_command_under_its_old_name`, `test_a_colliding_alias_stops_the_render`
+and `test_a_dropped_alias_is_removed_on_the_next_install`; `global/method/method_commands_test.py`:
+`test_deprecated_names_still_run_the_whole_command`. Seven mutations of the source (no alias emitted,
+no deprecation note, the body dropped, the collision check off, the description unmarked, the alias
+undeclared, the alias misspelled) each turned at least one suite red, and both recovered on restore.
+Not run on Windows. Nothing is installed on the reference machine, and no agent harness was observed
+listing or running an alias.
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)
