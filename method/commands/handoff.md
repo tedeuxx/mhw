@@ -32,8 +32,8 @@ The objective from the arguments is used only when none was anchored.
 Re-derive every field from the tracker, not from memory of this conversation:
 
 1. **Objective.** The native goal where the agent harness has one (`/goal`) and it is set; otherwise
-   the objective agreed at session start; otherwise the objective from the arguments. If there is none at all, say so in one
-   line and stop: a prompt with no objective cannot be continued.
+   the objective agreed at session start; otherwise the objective from the arguments. If there is none
+   at all, say so in one line and stop: a prompt with no objective cannot be continued.
 2. **Anchored Issue.** The Issue the objective names, read with `gh issue view <n> --repo <owner/repo>
    --comments`. With no Issue anchored, the prompt still prints, built from the objective alone, and
    says that no Issue is anchored.
@@ -74,11 +74,13 @@ open pull requests and Issues the objective mentions instead.
 
 ## Print it
 
-1. **Launch environment.** Name every environment variable the next act reads only at launch (a
-   variable an MCP server or the agent harness reads when it starts, such as an origin a browser
-   server is bounded to). Each becomes `--env NAME=VALUE`. A value is public: no secret, no personal
-   data, no machine-local path; a secret the next act needs stays where it lives and is named in the
-   prompt by its name only. With none, pass no `--env`.
+1. **Launch environment.** Name every environment variable the next act reads only at launch. Only
+   the launch variables the method declares are accepted: today `HARNESS_SWEEP_ORIGIN`, the origin the
+   chrome-devtools server is bounded to (`LAUNCH_ENV` in `launch-line.py`). Each becomes `--env
+   NAME=VALUE`. Any other name is refused; if the next act needs one, say so to the owner instead of
+   working around it, since adding a name is a reviewed change to that list. A value is public: no
+   secret, no personal data, no machine-local path. A secret the next act needs stays where it lives
+   and is named in the prompt by its name only. With none, pass no `--env`.
 2. Write the filled prompt to a file outside every repository (the session scratchpad, or the system
    temporary directory).
 3. Run `python3 {{method-scripts}}/launch-line.py <target> <that file> [--env NAME=VALUE]...`, with
@@ -86,10 +88,10 @@ open pull requests and Issues the objective mentions instead.
    bash), deterministically, so `'`, `$`, backticks and newlines reach the new session intact, and
    prints one fenced block. It refuses a prompt whose first line does not open with `/goal`, a line over
    280 characters, a machine-local path, a control character (a terminal control such as `^C`, ESC
-   or TAB, or a bidirectional control), or an `--env` that is not a variable name, names a loader or
-   interpreter variable such as `PATH`, or whose value is unsafe; fix it and run it again. It reads the file only when it resolves under the system temporary
-   directory or the current work tree, is a regular file and holds at most 64 KiB. Never quote the
-   prompt by hand.
+   or TAB, or a bidirectional control), or an `--env` whose name is not a declared launch variable or
+   whose value is unsafe; fix it and run it again. It reads the file only when it resolves under the
+   system temporary directory or the current work tree, is a regular file and holds at most 64 KiB.
+   Never quote the prompt by hand.
 4. End your reply with the script's output, exactly as printed, and nothing after it. Do not print the
    prompt separately, do not refer to it from another line and add no instruction around the block:
    the prompt is inside it. For the Kiro target the output opens with one line for the Kiro IDE: the
@@ -97,11 +99,11 @@ open pull requests and Issues the objective mentions instead.
 5. Then stop working in this session. Two sessions on one checkout overwrite each other's work.
 
 The block names the target's start command and its documented argument for an initial prompt: `claude
-'<prompt>'` (the `[prompt]` argument of `claude --help`), `codex '<prompt>'` (Codex's `[PROMPT]`
-argument of `codex --help` 0.163.0) and `kiro-cli chat '<prompt>'` (the `[INPUT]` argument of `kiro-cli
-chat --help` 2.34.1, "the first question to ask"); for the Kiro IDE, `kiro chat [prompt]` from `kiro chat
---help` 1.3.11. Each is read from `--help`, none run. The block runs in the terminal's current directory; open the
-terminal in a different checkout from the old session's. Where the workstation's paste wrapper is
+'<prompt>'` (the `[prompt]` argument of `claude --help` 2.1.311), `codex '<prompt>'` (the `[PROMPT]`
+argument of `codex --help` 0.163.0) and `kiro-cli chat '<prompt>'` (the `[INPUT]` argument of
+`kiro-cli chat --help` 2.34.1, "the first question to ask"); for the Kiro IDE, `kiro chat [prompt]`
+from `kiro chat --help` 1.3.11. Each is read from `--help`; none was run. The block runs in the
+terminal's current directory; open the terminal in a different checkout from the old session's. Where the workstation's paste wrapper is
 installed, those names reach it and an environment prefix reaches the agent harness through it; a
 prompt passed as an argument is not cleaned by the wrapper, so the sanitising above is the clean-up. On
 Windows the block is for a POSIX shell and does not apply to PowerShell; paste the prompt into a new

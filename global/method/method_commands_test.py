@@ -471,16 +471,15 @@ class Handoff(unittest.TestCase):
                 self.assertEqual(p.stdout.split("\0")[:-1], command.split()[1:] + [PROMPT], (target, shell))
 
     def test_the_launch_environment_is_part_of_the_block(self):
-        env = ["--env", "HARNESS_SWEEP_ORIGIN=https://example.org", "--env", "ODD=it's $x `y`"]
-        out = run_launch_line(self.script, "claude", PROMPT, BASE, *env)
-        self.assertEqual(out.returncode, 0, out.stderr)
-        _, line = the_block(out.stdout)
-        self.assertTrue(line.startswith("HARNESS_SWEEP_ORIGIN='https://example.org' ODD="), line[:60])
-        for shell in SHELLS:
-            p = argv_through(shell, line, "claude", ("HARNESS_SWEEP_ORIGIN", "ODD"))
-            self.assertEqual(p.stdout.split("\0")[:-1],
-                             ["HARNESS_SWEEP_ORIGIN=https://example.org", "ODD=it's $x `y`", PROMPT], shell)
-        for bad in ("1X=a", "X-Y=a", "X=" + "/Use" + "rs/someone", "X=a\nb"):
+        for value in ("https://example.org", "it's $x `y` \\ \"q\" !!"):
+            out = run_launch_line(self.script, "claude", PROMPT, BASE, "--env", "HARNESS_SWEEP_ORIGIN=" + value)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            _, line = the_block(out.stdout)
+            self.assertTrue(line.startswith("HARNESS_SWEEP_ORIGIN='"), line[:60])
+            for shell in SHELLS:
+                p = argv_through(shell, line, "claude", ("HARNESS_SWEEP_ORIGIN",))
+                self.assertEqual(p.stdout.split("\0")[:-1], ["HARNESS_SWEEP_ORIGIN=" + value, PROMPT], shell)
+        for bad in ("1X=a", "X-Y=a", "HARNESS_SWEEP_ORIGIN=" + "/Use" + "rs/someone", "HARNESS_SWEEP_ORIGIN=a\nb"):
             out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", bad)
             self.assertEqual(out.returncode, 1, bad)
             self.assertEqual(out.stdout, "", bad)
@@ -503,7 +502,8 @@ class Handoff(unittest.TestCase):
             self.assertEqual(out.stdout, "", label)
             self.assertIn("line 2 carries a control character", out.stderr, label)
             self.assertNotIn(secret, out.stderr, label)
-            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", "X=a%s%s" % (ch, secret))
+            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env",
+                                  "HARNESS_SWEEP_ORIGIN=a%s%s" % (ch, secret))
             self.assertEqual(out.returncode, 1, label)
             self.assertEqual(out.stdout, "", label)
             self.assertIn("--env 1: the value carries a control character", out.stderr, label)
@@ -511,16 +511,21 @@ class Handoff(unittest.TestCase):
         # The newline is the one control a prompt may carry, and only outside an --env value.
         self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE).returncode, 0)
 
-    def test_loader_and_interpreter_variables_are_refused(self):
-        for name in ("PATH", "NODE_OPTIONS", "DYLD_INSERT_LIBRARIES", "LD_PRELOAD", "PYTHONPATH", "BASH_ENV",
-                     "ZDOTDIR", "HTTPS_PROXY", "npm_config_prefix"):
-            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", name + "=x")
+    def test_only_declared_launch_variables_are_accepted(self):
+        """An allowlist: a configuration home, a base URL, git's own configuration, an editor and a loader
+        variable are all refused, as is a near-miss of the declared name; the value is never echoed."""
+        secret = "SENTINELVALUE"
+        for name in ("CLAUDE_CONFIG_DIR", "CODEX_HOME", "KIRO_HOME", "XDG_CONFIG_HOME", "ANTHROPIC_BASE_URL",
+                     "OPENAI_BASE_URL", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "EDITOR", "GIT_ASKPASS",
+                     "PATH", "NODE_OPTIONS", "DYLD_INSERT_LIBRARIES", "LD_PRELOAD", "harness_sweep_origin",
+                     "HARNESS_SWEEP_ORIGIN_X", "HARNESS_SWEEP"):
+            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", "%s=%s" % (name, secret))
             self.assertEqual(out.returncode, 1, name)
             self.assertEqual(out.stdout, "", name)
-            self.assertIn("loader, interpreter or shell variable", out.stderr, name)
-        for name in ("HARNESS_SWEEP_ORIGIN", "LOAD_LEVEL", "PATHWAY"):
-            self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE, "--env", name + "=x").returncode,
-                             0, name)
+            self.assertIn("--env 1: the name is not a declared launch variable", out.stderr, name)
+            self.assertNotIn(secret, out.stderr, name)
+        out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", "HARNESS_SWEEP_ORIGIN=https://example.org")
+        self.assertEqual(out.returncode, 0, out.stderr)
 
     def test_a_backtick_run_cannot_close_the_fence(self):
         prompt = "/goal keep ```` four and ````` five backticks"

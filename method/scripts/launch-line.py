@@ -34,10 +34,11 @@ hand over: empty, a first line not opening with /goal, a line over 280 character
 or a control character: every Unicode Cc character but the newline (so NUL, TAB, ^C, ^U, ESC and the
 rest: in an interactive zsh or bash one of them can end the paste or the quote and run what follows as a
 command, and an unbracketed paste eats a TAB) and the bidirectional controls U+202A-U+202E and
-U+2066-U+2069, which make the block read differently from what runs. An --env is refused when its name
-is not a shell variable name or is a loader, interpreter or shell variable (PATH, NODE_OPTIONS, DYLD_*,
-LD_* and the others in DENIED_ENV), or when its value carries a control character (the newline
-included), a bidirectional control or a machine-local path. The refusal names the line or the --env,
+U+2066-U+2069, which make the block read differently from what runs. An --env is accepted only when
+its name is in LAUNCH_ENV, the launch variables the method declares (an allowlist: a denylist always
+misses one more variable that redirects a configuration home, a base URL, an editor or git's own
+configuration). It is refused when its value carries a control character (the newline included), a
+bidirectional control or a machine-local path. The refusal names the line or the --env,
 never the content. This is a string check: copied private content carries none of those
 strings and passes. Exit 2 on a usage error. Standard library only, Python 3.9+.
 """
@@ -57,18 +58,14 @@ IDE_NOTE = ("The block below is for Kiro CLI. For the Kiro IDE, replace `kiro-cl
             "whose [prompt] argument is read from `kiro chat --help` 1.3.11 and not run.")
 LINE_LIMIT = 280
 SIZE_LIMIT = 64 * 1024  # bytes; a prompt is a handful of one-line fields
-ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 BIDI = frozenset(chr(c) for c in list(range(0x202A, 0x202F)) + list(range(0x2066, 0x206A)))
-# Variables that change what the agent harness loads or how a shell or interpreter starts: a launch
-# environment names what an MCP server or the agent harness reads, never one of these.
-DENIED_ENV = frozenset(("PATH", "NODE_OPTIONS", "NODE_PATH", "BASH_ENV", "ENV", "ZDOTDIR", "IFS", "SHELLOPTS",
-                        "BASHOPTS", "PS4", "PROMPT_COMMAND", "HOME", "SHELL", "TMPDIR", "PERL5LIB", "PERL5OPT",
-                        "PERLLIB", "RUBYLIB", "RUBYOPT", "JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS",
-                        "CLASSPATH", "GIT_EXEC_PATH", "GIT_SSH", "GIT_SSH_COMMAND", "GIT_CONFIG_GLOBAL",
-                        "GIT_CONFIG_SYSTEM", "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
-                        "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
-                        "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy"))
-DENIED_ENV_PREFIX = ("DYLD_", "LD_", "PYTHON", "NPM_CONFIG_", "npm_config_", "BASH_FUNC_")
+# The launch variables the method declares: a variable an MCP server or the agent harness reads only when
+# it starts. An allowlist, so a name that redirects a configuration home, a base URL, an editor or git's
+# configuration is refused without anyone having had to think of it. Add a name here, in a reviewed
+# change, when a method file declares a new launch variable.
+LAUNCH_ENV = frozenset((
+    "HARNESS_SWEEP_ORIGIN",  # the origin the chrome-devtools server is bounded to (ADR-0038)
+))
 
 
 def control(text, keep_newline):
@@ -76,8 +73,8 @@ def control(text, keep_newline):
     return any((unicodedata.category(c) == "Cc" and not (keep_newline and c == "\n")) or c in BIDI for c in text)
 
 
-def denied_env(name):
-    return name in DENIED_ENV or name.startswith(DENIED_ENV_PREFIX)
+def declared_env(name):
+    return name in LAUNCH_ENV
 
 
 def canonical(name):
@@ -110,10 +107,8 @@ def problems(prompt):
 def env_problems(pairs):
     out = []
     for n, (name, value) in enumerate(pairs, 1):
-        if not ENV_NAME.match(name):
-            out.append("--env %d: the name is not a shell variable name" % n)
-        elif denied_env(name):
-            out.append("--env %d: the name is a loader, interpreter or shell variable" % n)
+        if not declared_env(name):
+            out.append("--env %d: the name is not a declared launch variable (%s)" % (n, ", ".join(sorted(LAUNCH_ENV))))
         if control(value, keep_newline=False):
             out.append("--env %d: the value carries a control character or a line break" % n)
         if STRICT_PRIVATE.search(value):
