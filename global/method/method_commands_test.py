@@ -41,7 +41,8 @@ REQUIRED = {
                                 "## Opening the Issues"],
     "what-else": SHARED + ["## The anchored objective", "## Read the bus", "## The answer"],
     "blueprint": SHARED + ["## export", "## import", "## Alignment interview"],
-    "handoff": SHARED + ["## When to use", "## Build the prompt", "## The prompt", "## Print it"],
+    "handoff": SHARED + ["## The arguments", "## When to use", "## Build the prompt", "## The prompt",
+                         "## Print it"],
     "need-me": SHARED + ["## The rules this command runs", "## Gather what is pending", "## When nothing is pending",
                          "## Ask one at a time", "## After he answers"],
 }
@@ -75,7 +76,8 @@ PHRASES = {
     "blueprint": ["product-requirements-document-agent-harness-setup.md", "Mermaid",
                   "Nothing is changed before the alignment interview is complete"],
     "handoff": ["re-derive the state from the tracker", "It prints only", "launch-line.py",
-                "at most 280 characters", "Then stop working in this session"],
+                "at most 280 characters", "Then stop working in this session", "--resolve",
+                "--env NAME=VALUE", "and nothing after it"],
     # The owner's request (2026-10-26): HITL escalation on demand, under today's discipline, three options.
     "need-me": ["**Escalating to the owner**", "**owner overlay**", "Exactly **three** authored, mutually exclusive",
                 "one line, the act and the link", "Put **only the first** to him", "**Never manufacture an ask**",
@@ -126,10 +128,11 @@ class Commands(unittest.TestCase):
     def test_invocation_names_per_harness(self):
         for name in REQUIRED:
             c = carriers(self.home, name)
-            # #196: argument-hint only on the plugin standard's allowlisted owner-typed commands (blueprint
-            # here); the other workflow commands fold the hint text into their description.
+            # #196: argument-hint only on the owner-typed commands that take a typed argument (blueprint, and
+            # handoff since its target-harness argument); the other workflow commands fold the hint text into
+            # their description.
             head = c["claude"].read_text(encoding="utf-8").split("\n---\n", 1)[0]
-            (self.assertIn if name == "blueprint" else self.assertNotIn)("argument-hint:", head, name)
+            (self.assertIn if name in ("blueprint", "handoff") else self.assertNotIn)("argument-hint:", head, name)
             self.assertIn("Owner-typed command $%s" % name, c["codex"].read_text(encoding="utf-8"), name)
             self.assertIn("Owner-typed command /%s" % name, c["kiro"].read_text(encoding="utf-8"), name)
             for harness in ("codex", "kiro"):
@@ -490,26 +493,54 @@ class RootBriefRename(unittest.TestCase):
 
 
 LAUNCH_PREFIX = {"claude-code": "claude '", "codex": "codex '", "kiro": "kiro-cli chat '"}
-IDE_PHRASE = "# Kiro IDE: there is no launch line"
+IDE_PHRASE = "For the Kiro IDE, replace `kiro-cli chat` with `kiro chat`"
 TOKEN_RE = re.compile(r"\{\{[a-z][a-z-]*\}\}")
-# A prompt the template could produce, with the two characters that break a hand-quoted line: a single
-# quote and a newline. Built from public, synthetic values.
+# A prompt the template could produce, with the characters that break a hand-quoted line: a single quote,
+# a newline, `$` (an expansion), backticks (a substitution and, three of them, a Markdown fence), a
+# backslash, a double quote and `!`. Built from public, synthetic values.
 PROMPT = ("/goal ship the owner's handoff command\n"
           "Continue owner/repo#12 in this fresh session; the session that printed this prompt stops now.\n"
-          "Next act: run the suite; it's green when 'OK' prints.\n"
+          "Next act: run the suite; it's green when 'OK' prints, not $HOME or $(date) or `id`.\n"
+          "Evidence: ```fence``` and \\n and \"quoted\" and !! and \\'' stay as typed.\n"
           "Before acting, re-derive the state from the tracker: gh issue view 12 --repo owner/repo --comments.")
+SHELLS = ["sh", "bash"] + (["zsh"] if shutil.which("zsh") else [])
 
 
-def run_launch_line(script, harness, prompt, base):
+def run_launch_line(script, harness, prompt, base, *extra):
     f = Path(tempfile.mkdtemp(prefix="prompt-", dir=base)) / "prompt.txt"
     f.write_text(prompt, encoding="utf-8")
-    return subprocess.run([sys.executable, "-B", str(script), harness, str(f)], capture_output=True, text=True)
+    return subprocess.run([sys.executable, "-B", str(script), harness, str(f)] + list(extra), capture_output=True,
+                          text=True)
+
+
+def the_block(stdout):
+    """(the lines before the fenced block, the block's command line). Fails unless stdout ENDS with exactly
+    one fenced block."""
+    lines = stdout.rstrip("\n").split("\n")
+    fences = [n for n, l in enumerate(lines) if re.fullmatch(r"`{3,}", l)]
+    if len(fences) != 2 or fences[1] != len(lines) - 1 or lines[fences[0]] != lines[fences[1]]:
+        raise AssertionError("not one fenced block at the end: %r" % stdout[:200])
+    return lines[:fences[0]], "\n".join(lines[fences[0] + 1:fences[1]])
+
+
+def argv_through(shell, line, command, env_names=()):
+    """Run the block's line with the agent harness's command defined as a shell function that prints each
+    argument (and the named environment variables) NUL-separated: what the agent harness would receive.
+    A function, like the workstation's paste wrapper, so the environment prefix is measured through one."""
+    printer = "".join('printf "%%s=%%s\\0" %s "$%s"; ' % (n, n) for n in env_names)
+    # sh refuses a function named kiro-cli, so the command word is swapped for a valid name first.
+    head = command.split()[0] + " "
+    if head not in line:
+        raise AssertionError("the command %r is not in the line" % head)
+    script = "harness_argv() { %sprintf '%%s\\0' \"$@\"; }\n%s" % (printer, line.replace(head, "harness_argv ", 1))
+    return subprocess.run([shell, "-c", script], capture_output=True, text=True)
 
 
 class Handoff(unittest.TestCase):
-    """#198: each carrier of /handoff names its own agent harness, the installed launch-line script prints
-    that harness's launch line and no other, the line is valid shell that carries the prompt exactly, and
-    no rendering token survives anywhere."""
+    """#198: each carrier of /handoff names its own agent harness as the default target; the installed
+    launch-line script prints one fenced block for the TARGET agent harness with the prompt inline as its
+    argument; the block is valid shell that carries the prompt and the launch environment exactly; and no
+    rendering token survives anywhere."""
 
     @classmethod
     def setUpClass(cls):
@@ -517,21 +548,126 @@ class Handoff(unittest.TestCase):
         cls.code, cls.out = render(cls.home)
         cls.script = cls.home / SCRIPTS_REL / "launch-line.py"
 
+    def resolve(self, *argv):
+        return subprocess.run([sys.executable, "-B", str(self.script), "--resolve"] + list(argv),
+                              capture_output=True, text=True)
+
     def test_render_succeeds(self):
         self.assertEqual(self.code, 0, self.out)
 
-    def test_each_carrier_prints_only_its_own_launch_line(self):
+    def test_each_carrier_defaults_to_its_own_harness(self):
         expected = {"claude": "claude-code", "codex": "codex", "kiro": "kiro"}
         for carrier, path in carriers(self.home, "handoff").items():
-            named = set(re.findall(r"launch-line\.py (\S+) ", path.read_text(encoding="utf-8")))
+            named = set(re.findall(r"launch-line\.py --resolve (\S+) ", path.read_text(encoding="utf-8")))
             self.assertEqual(named, {expected[carrier]}, carrier)
+            # No harness word in the arguments: the target is the current agent harness.
+            for words in ((), ("ship",), ("Claude",), ("$x",)):
+                out = self.resolve(expected[carrier], *words)
+                self.assertEqual(out.stdout, "%s\nkept\n" % expected[carrier], (carrier, words))
             out = run_launch_line(self.script, expected[carrier], PROMPT, BASE)
             self.assertEqual(out.returncode, 0, out.stderr)
-            self.assertTrue(out.stdout.startswith(LAUNCH_PREFIX[expected[carrier]]), (carrier, out.stdout[:40]))
-            for other, prefix in LAUNCH_PREFIX.items():
-                if other != expected[carrier]:
-                    self.assertFalse(re.search(r"(?m)^" + re.escape(prefix), out.stdout), (carrier, other))
+            _, line = the_block(out.stdout)
+            self.assertTrue(line.startswith(LAUNCH_PREFIX[expected[carrier]]), (carrier, line[:40]))
             (self.assertIn if carrier == "kiro" else self.assertNotIn)(IDE_PHRASE, out.stdout, carrier)
+
+    def test_an_explicit_target_overrides_the_current_harness(self):
+        names = {"claude-code": "claude-code", "claude": "claude-code", "codex": "codex", "kiro": "kiro",
+                 "kiro-cli": "kiro"}
+        for current in LAUNCH_PREFIX:
+            for word, target in names.items():
+                out = self.resolve(current, word)
+                self.assertEqual(out.stdout, "%s\nconsumed\n" % target, (current, word))
+        for word, target in names.items():
+            out = run_launch_line(self.script, word, PROMPT, BASE)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            _, line = the_block(out.stdout)
+            self.assertTrue(line.startswith(LAUNCH_PREFIX[target]), (word, line[:40]))
+            for other, prefix in LAUNCH_PREFIX.items():
+                if other != target:
+                    self.assertFalse(line.startswith(prefix), (word, other))
+        self.assertEqual(self.resolve("cursor").returncode, 2)
+        self.assertEqual(self.resolve().returncode, 2)
+
+    def test_the_block_carries_the_prompt_inline_and_exactly(self):
+        for target, prefix in LAUNCH_PREFIX.items():
+            out = run_launch_line(self.script, target, PROMPT, BASE)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            before, line = the_block(out.stdout)
+            self.assertEqual(len(before), 1 if target == "kiro" else 0, target)
+            # The prompt is printed nowhere outside the block.
+            self.assertNotIn("/goal", "\n".join(before), target)
+            command = prefix[:-2]
+            for shell in SHELLS:
+                p = subprocess.run([shell, "-n", "-c", line], capture_output=True, text=True)
+                self.assertEqual(p.returncode, 0, (target, shell, p.stderr))
+                p = argv_through(shell, line, command)
+                self.assertEqual(p.returncode, 0, (target, shell, p.stderr))
+                self.assertEqual(p.stdout.split("\0")[:-1], command.split()[1:] + [PROMPT], (target, shell))
+
+    def test_the_launch_environment_is_part_of_the_block(self):
+        for value in ("https://example.org", "it's $x `y` \\ \"q\" !!"):
+            out = run_launch_line(self.script, "claude", PROMPT, BASE, "--env", "HARNESS_SWEEP_ORIGIN=" + value)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            _, line = the_block(out.stdout)
+            self.assertTrue(line.startswith("HARNESS_SWEEP_ORIGIN='"), line[:60])
+            for shell in SHELLS:
+                p = argv_through(shell, line, "claude", ("HARNESS_SWEEP_ORIGIN",))
+                self.assertEqual(p.stdout.split("\0")[:-1], ["HARNESS_SWEEP_ORIGIN=" + value, PROMPT], shell)
+        for bad in ("1X=a", "X-Y=a", "HARNESS_SWEEP_ORIGIN=" + "/Use" + "rs/someone", "HARNESS_SWEEP_ORIGIN=a\nb"):
+            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", bad)
+            self.assertEqual(out.returncode, 1, bad)
+            self.assertEqual(out.stdout, "", bad)
+            self.assertNotIn("someone", out.stderr, bad)
+        for usage in (["--env"], ["--env", "NOEQUALS"], ["--other", "X=1"]):
+            self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE, *usage).returncode, 2, usage)
+
+    def test_terminal_and_bidi_controls_are_refused_without_echo(self):
+        """A paste into interactive zsh or bash: ^C or ^U can discard the open quote, ESC[201~ ends a
+        bracketed paste early, and an unbracketed paste eats a TAB, so the rest of the prompt would run as
+        commands. A bidi control makes the block read differently from what runs. Each is refused, in the
+        prompt and in an --env value, and the refusal never echoes the line."""
+        secret = "SENTINELTEXT"
+        hostile = {"^C": "\x03", "ESC[201~": "\x1b[201~", "^U": "\x15", "TAB": "\t", "CR": "\r", "DEL": "\x7f",
+                   "U+202E": "\u202e", "U+2066": "\u2066"}
+        for label, ch in hostile.items():
+            prompt = "/goal fix it\nNext act: %s %s; touch pwned" % (ch, secret)
+            out = run_launch_line(self.script, "claude-code", prompt, BASE)
+            self.assertEqual(out.returncode, 1, label)
+            self.assertEqual(out.stdout, "", label)
+            self.assertIn("line 2 carries a control character", out.stderr, label)
+            self.assertNotIn(secret, out.stderr, label)
+            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env",
+                                  "HARNESS_SWEEP_ORIGIN=a%s%s" % (ch, secret))
+            self.assertEqual(out.returncode, 1, label)
+            self.assertEqual(out.stdout, "", label)
+            self.assertIn("--env 1: the value carries a control character", out.stderr, label)
+            self.assertNotIn(secret, out.stderr, label)
+        # The newline is the one control a prompt may carry, and only outside an --env value.
+        self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE).returncode, 0)
+
+    def test_only_declared_launch_variables_are_accepted(self):
+        """An allowlist: a configuration home, a base URL, git's own configuration, an editor and a loader
+        variable are all refused, as is a near-miss of the declared name; the value is never echoed."""
+        secret = "SENTINELVALUE"
+        for name in ("CLAUDE_CONFIG_DIR", "CODEX_HOME", "KIRO_HOME", "XDG_CONFIG_HOME", "ANTHROPIC_BASE_URL",
+                     "OPENAI_BASE_URL", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "EDITOR", "GIT_ASKPASS",
+                     "PATH", "NODE_OPTIONS", "DYLD_INSERT_LIBRARIES", "LD_PRELOAD", "harness_sweep_origin",
+                     "HARNESS_SWEEP_ORIGIN_X", "HARNESS_SWEEP"):
+            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", "%s=%s" % (name, secret))
+            self.assertEqual(out.returncode, 1, name)
+            self.assertEqual(out.stdout, "", name)
+            self.assertIn("--env 1: the name is not a declared launch variable", out.stderr, name)
+            self.assertNotIn(secret, out.stderr, name)
+        out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", "HARNESS_SWEEP_ORIGIN=https://example.org")
+        self.assertEqual(out.returncode, 0, out.stderr)
+
+    def test_a_backtick_run_cannot_close_the_fence(self):
+        prompt = "/goal keep ```` four and ````` five backticks"
+        out = run_launch_line(self.script, "codex", prompt, BASE)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        _, line = the_block(out.stdout)
+        self.assertTrue(out.stdout.startswith("``````\n"), out.stdout[:10])
+        self.assertEqual(argv_through("sh", line, "codex").stdout.split("\0")[:-1], [prompt])
 
     def test_no_rendering_token_survives(self):
         left = []
@@ -541,22 +677,25 @@ class Handoff(unittest.TestCase):
                     left.append(str(p.relative_to(self.home)))
         self.assertEqual(left, [])
 
-    def test_the_line_is_shell_and_carries_the_prompt_exactly(self):
-        out = run_launch_line(self.script, "claude-code", PROMPT, BASE)
-        self.assertEqual(out.returncode, 0, out.stderr)
-        line = out.stdout.rstrip("\n")
-        self.assertIn("'", PROMPT)
-        self.assertIn("\n", PROMPT)
-        shells = ["sh"] + (["zsh"] if shutil.which("zsh") else [])
-        for shell in shells:
-            p = subprocess.run([shell, "-n", "-c", line], capture_output=True, text=True)
-            self.assertEqual(p.returncode, 0, (shell, p.stderr))
-            # Replace the command with printf: what reaches the agent harness is exactly the prompt.
-            p = subprocess.run([shell, "-c", "printf %s " + line[len("claude "):]], capture_output=True, text=True)
-            self.assertEqual(p.stdout, PROMPT, shell)
-        kiro = run_launch_line(self.script, "kiro", PROMPT, BASE).stdout
-        for shell in shells:
-            self.assertEqual(subprocess.run([shell, "-n", "-c", kiro]).returncode, 0, shell)
+    def test_the_claude_command_carries_the_argument_hint(self):
+        head = carriers(self.home, "handoff")["claude"].read_text(encoding="utf-8").split("\n---\n")[0]
+        self.assertIn('argument-hint: "[claude-code|claude|codex|kiro|kiro-cli] ', head)
+
+    def test_windows_ends_with_the_prompt_in_one_fenced_block(self):
+        """QA B1 on #230: Windows renders /handoff (install.ps1) and PowerShell reads the POSIX '\\'' as two
+        quotes, so there the reply ends with the filled prompt in one fenced block, not the script's block.
+        Text check, in the source and in every rendered carrier; whether a model follows it is not tested."""
+        rule = ("**On Windows, end your reply instead with the filled prompt in one fenced block, and nothing "
+                "after it.**")
+        flat = lambda text: re.sub(r"\s+", " ", text)
+        texts = {"source": (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")}
+        texts.update({c: p.read_text(encoding="utf-8") for c, p in carriers(self.home, "handoff").items()})
+        for where, text in texts.items():
+            body = flat(text)
+            self.assertIn(rule, body, where)
+            self.assertIn("do not print its output", body, where)
+            # The old instruction pointed at a prompt that step 4 no longer prints.
+            self.assertNotIn("paste the prompt into a new session instead", body, where)
 
     def test_unsafe_prompts_are_refused_without_echo(self):
         local = "/Use" + "rs/someone/notes.txt"
@@ -567,7 +706,7 @@ class Handoff(unittest.TestCase):
             self.assertEqual(out.returncode, 1, label)
             self.assertEqual(out.stdout, "", label)
             self.assertNotIn("someone", out.stderr, label)
-        self.assertEqual(run_launch_line(self.script, "claude", PROMPT, BASE).returncode, 2)
+        self.assertEqual(run_launch_line(self.script, "cursor", PROMPT, BASE).returncode, 2)
 
     def test_a_prompt_file_outside_the_allowed_roots_is_refused(self):
         """Sonar S8707 on #198: the path is resolved and confined, so `..` cannot walk out of the temporary
