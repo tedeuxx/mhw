@@ -67,6 +67,7 @@
         "global/prerequisites.py",
         "global/prerequisites.json",
         "global/owner_actions.py",
+        "global/chrome_debugging.py",
         "global/private_copy.py",
         "mhw",
         "bin/",
