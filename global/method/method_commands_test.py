@@ -681,6 +681,22 @@ class Handoff(unittest.TestCase):
         head = carriers(self.home, "handoff")["claude"].read_text(encoding="utf-8").split("\n---\n")[0]
         self.assertIn('argument-hint: "[claude-code|claude|codex|kiro|kiro-cli] ', head)
 
+    def test_windows_ends_with_the_prompt_in_one_fenced_block(self):
+        """QA B1 on #230: Windows renders /handoff (install.ps1) and PowerShell reads the POSIX '\\'' as two
+        quotes, so there the reply ends with the filled prompt in one fenced block, not the script's block.
+        Text check, in the source and in every rendered carrier; whether a model follows it is not tested."""
+        rule = ("**On Windows, end your reply instead with the filled prompt in one fenced block, and nothing "
+                "after it.**")
+        flat = lambda text: re.sub(r"\s+", " ", text)
+        texts = {"source": (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")}
+        texts.update({c: p.read_text(encoding="utf-8") for c, p in carriers(self.home, "handoff").items()})
+        for where, text in texts.items():
+            body = flat(text)
+            self.assertIn(rule, body, where)
+            self.assertIn("do not print its output", body, where)
+            # The old instruction pointed at a prompt that step 4 no longer prints.
+            self.assertNotIn("paste the prompt into a new session instead", body, where)
+
     def test_unsafe_prompts_are_refused_without_echo(self):
         local = "/Use" + "rs/someone/notes.txt"
         cases = {"no goal": "Continue owner/repo#12.", "long": "/goal " + "x" * 300,

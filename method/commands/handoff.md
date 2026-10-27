@@ -96,6 +96,11 @@ open pull requests and Issues the objective mentions instead.
    prompt separately, do not refer to it from another line and add no instruction around the block:
    the prompt is inside it. For the Kiro target the output opens with one line for the Kiro IDE: the
    block is for Kiro CLI, and the IDE takes the same block with `kiro chat` in place of `kiro-cli chat`.
+   **On Windows, end your reply instead with the filled prompt in one fenced block, and nothing after
+   it.** The script's block is for a POSIX shell: PowerShell reads its `'\''` differently, so an
+   apostrophe in the prompt would arrive corrupted. Run step 3 anyway so the prompt is checked, but do
+   not print its output. Fence the prompt with more backticks than any run of backticks inside it. The
+   owner opens a new session and pastes the prompt as its first message.
 5. Then stop working in this session. Two sessions on one checkout overwrite each other's work.
 
 The block names the target's start command and its documented argument for an initial prompt: `claude
@@ -103,11 +108,11 @@ The block names the target's start command and its documented argument for an in
 argument of `codex --help` 0.163.0) and `kiro-cli chat '<prompt>'` (the `[INPUT]` argument of
 `kiro-cli chat --help` 2.34.1, "the first question to ask"); for the Kiro IDE, `kiro chat [prompt]`
 from `kiro chat --help` 1.3.11. Each is read from `--help`; none was run. The block runs in the
-terminal's current directory; open the terminal in a different checkout from the old session's. Where the workstation's paste wrapper is
-installed, those names reach it and an environment prefix reaches the agent harness through it; a
-prompt passed as an argument is not cleaned by the wrapper, so the sanitising above is the clean-up. On
-Windows the block is for a POSIX shell and does not apply to PowerShell; paste the prompt into a new
-session instead.
+terminal's current directory; open the terminal in a different checkout from the old session's.
+Where the workstation's paste wrapper is installed, those names reach it and an environment prefix
+reaches the agent harness through it; a prompt passed as an argument is not cleaned by the wrapper, so
+the sanitising above is the clean-up. On Windows the block does not apply: step 4 prints the prompt
+instead.
 
 ## What this command never does
 
