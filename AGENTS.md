@@ -213,9 +213,9 @@ The source of truth for every layer lives here, versioned; what is installed on 
   until it confirms the exact head is in a merged PR covered by a successful version workflow and a
   published newer numeric SemVer release. Report a blocker instead of calling local commits a
   delivery.
-- The workspace skill `session-finish` carries this route (`/session-finish` in Claude Code,
-  `$session-finish` in Codex; a skill since 2026-10-26, so an agent may also load it on its own); Kiro
-  follows the same contract from AGENTS.md and the Kiro steering and invokes the shared commands.
+- No workspace skill carries this route (the `session-finish` skill was removed on 2026-10-29, owner's
+  decision on PR #233). Agents on every harness follow `workspace/README.md` and run
+  `workspace/delivery.py` directly. The release candidate is never merged without his explicit go.
   Nothing mechanical enforces the release-candidate rule: it is an instruction.
 
 - **No secret value is ever committed here** — not tokens, API keys, passwords, OAuth client secrets,

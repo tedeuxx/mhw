@@ -607,14 +607,15 @@ rites; its sentence on rendering them as commands is struck in place.
   rendered rite skills are in the model-visible skill list, and are absent when run from a directory
   without them; explicit `$<name>` invocation is **documented**, not measured. Kiro: **documented** only
   (every skill is a slash command in CLI and IDE, the enforcement matrix); no Kiro cell is measured.
-- **The same for the workspace `session-finish`** (owner: *"mesma coisa session finish"*): the
+- ~~**The same for the workspace `session-finish`** (owner: *"mesma coisa session finish"*): the
   workspace command `.claude/commands/session-finish.md` and its Codex mirror
   `.agents/skills/source-command-session-finish/` become one skill text in `.claude/skills/session-finish/`
   and `.agents/skills/session-finish/`. Claude Code 2.1.311 lists it in `skills` (**measured**; the
   `slash_commands` entry is confounded here, since a worktree's parent checkout still carries the old
   command file); Codex 0.163.0 lists it as a model-visible skill (**measured**). The workspace has no
   `.kiro/skills/`, so Kiro keeps the route through `AGENTS.md` and its steering. See ADR-0021's
-  amendment of this date.
+  amendment of this date.~~ *(Struck 2026-10-29:
+  the workspace skill is removed; see the amendment of that date below.)*
 
 **Considered options.**
 
@@ -639,6 +640,17 @@ rites; its sentence on rendering them as commands is struck in place.
 
 **Evidence level.** *Written and tested*; the listings above were *probed* in throwaway directories.
 Not installed on the reference machine.
+
+## Amendment 2026-10-29: the workspace `session-finish` skill is removed
+
+Status unchanged (proposed). The owner decided, recorded on PR #233
+([comment](https://github.com/tedeuxx/mhw/pull/233#issuecomment-6510816092)), to remove the workspace `session-finish` skill on every agent harness; the
+`session-finish` bullet of the 2026-10-26 amendment above is struck in place. The method's own skills
+and commands are untouched: `session-finish` was a workspace skill of this repository, never a
+`method/` skill. The delivery route is `workspace/README.md` and `workspace/delivery.py`, which agents
+on every harness follow directly; see ADR-0021's amendment of this date.
+
+**Evidence level.** *Written and tested.* Not installed on the reference machine.
 
 ## Links
 
