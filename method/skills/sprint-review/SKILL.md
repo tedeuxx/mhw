@@ -92,7 +92,9 @@ engineered.
 **Run this first, in the session that will dispatch, before the route generator runs and before any
 persona is dispatched.** The browser this rite drives is bounded by `--allowedUrlPattern`, with the
 value of `HARNESS_SWEEP_ORIGIN` or, when that is unset, empty or not an `http://` or `https://` value,
-`http://127.0.0.1:9/*`. ~~`.mcp.json`'s
+`http://127.0.0.1:9/*`. *(Since mhw#220, decision D7, the value may be a list of origins separated by
+single spaces: each becomes its own `--allowedUrlPattern`, and one failing element sends the whole list
+to the discard port.)* ~~`.mcp.json`'s
 `--allowedUrlPattern ${HARNESS_SWEEP_ORIGIN:-http://127.0.0.1:9/*}`~~ *(struck 2026-10-13, mhw#174: the
 server is no longer the plugin's `.mcp.json`. The workstation renders it into the Claude Code user
 configuration, and its shell reads the variable when the server starts, so a project's settings `env`
@@ -130,7 +132,9 @@ base URL must be provided for a relative constructor string"*. The argv shows th
 happens, so the probe catches it where an environment check would not.
 
 **Classify what it prints. Exactly one outcome proceeds.** If it prints more than one line, proceed
-only when one of them equals the tracked declaration, and list all the lines in the dispatch:
+only when one of them equals the tracked declaration, and list all the lines in the dispatch. **A
+declared list prints one line per origin from the same server**: proceed only when the lines from that
+server are exactly the declared origins, in order; one missing or extra is `SWEEP-ORIGIN-UNBOUND`.
 
 | the probe prints | meaning | outcome |
 |---|---|---|

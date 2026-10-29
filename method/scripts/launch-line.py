@@ -64,7 +64,7 @@ BIDI = frozenset(chr(c) for c in list(range(0x202A, 0x202F)) + list(range(0x2066
 # configuration is refused without anyone having had to think of it. Add a name here, in a reviewed
 # change, when a method file declares a new launch variable.
 LAUNCH_ENV = frozenset((
-    "HARNESS_SWEEP_ORIGIN",  # the origin the chrome-devtools server is bounded to (ADR-0038)
+    "HARNESS_SWEEP_ORIGIN",  # the origin(s), space-separated, the chrome-devtools server is bounded to (ADR-0038)
 ))
 
 
