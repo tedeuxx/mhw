@@ -359,8 +359,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(policy["integration_branch"], "rc/next")
         self.assertEqual(policy["release_merge"], "owner")
         for carrier in ("AGENTS.md", "global/AGENTS.md", "workspace/README.md",
-                        ".kiro/steering/workspace-session.md", ".claude/skills/session-finish/SKILL.md",
-                        ".agents/skills/session-finish/SKILL.md",
+                        ".kiro/steering/workspace-session.md",
                         "overlay/AGENTS.md", "overlay/desktop-instructions.md"):
             text = " ".join((d.ROOT / carrier).read_text().split())
             with self.subTest(carrier=carrier):
@@ -397,40 +396,27 @@ class DeliveryTests(unittest.TestCase):
     def test_carriers_state_who_merges(self):
         # Issue #60: agents merge slices into rc/next; only the release candidate waits for the owner.
         for carrier in ("AGENTS.md", "workspace/README.md",
-                        ".kiro/steering/workspace-session.md", ".claude/skills/session-finish/SKILL.md",
-                        ".agents/skills/session-finish/SKILL.md"):
+                        ".kiro/steering/workspace-session.md"):
             text = " ".join((d.ROOT / carrier).read_text().split())
             with self.subTest(carrier=carrier):
                 self.assertIn("rc/next", text)
                 self.assertRegex(text, r"(?i)owner")
 
-    def test_session_finish_is_a_workspace_skill(self):
-        # Owner, 2026-10-26: "mesma coisa session finish" -- a skill, not a command. One text in the Claude
-        # Code and Codex workspace skill directories; the command file and the "source-command" mirror are gone.
-        claude = d.ROOT / ".claude/skills/session-finish/SKILL.md"
-        codex = d.ROOT / ".agents/skills/session-finish/SKILL.md"
-        self.assertEqual(claude.read_text(), codex.read_text())
-        self.assertFalse((d.ROOT / ".claude/commands/session-finish.md").exists())
-        self.assertFalse((d.ROOT / ".agents/skills/source-command-session-finish").exists())
-        text = claude.read_text()
-        front = text.split("\n---\n", 1)[0].split("\n")
-        self.assertEqual(front[0], "---")
-        self.assertIn("name: session-finish", front)
-        self.assertEqual(len([l for l in front if l.startswith("description: ")]), 1)
-        # A model may load it on its own now, so the release-candidate rule is in the body, explicit.
-        body = " ".join(text.split("\n---\n", 1)[1].split())
-        self.assertIn("**it is never merged without the owner's explicit go**", body)
-        self.assertIn("Invoking or loading this skill is never the owner's go.", body)
-        self.assertIn("Claude Code `/session-finish`, Codex `$session-finish`", body)
-        kiro = d.ROOT / ".kiro/skills"
-        if kiro.exists():
-            self.assertEqual((kiro / "session-finish/SKILL.md").read_text(), text)
+    def test_session_finish_skill_is_removed(self):
+        # Owner, 2026-10-29 (PR #233): the workspace session-finish skill is removed on every harness;
+        # workspace/README.md and delivery.py are the only delivery route. No carrier of it may return.
+        for rel in (".claude/skills/session-finish", ".agents/skills/session-finish",
+                    ".kiro/skills/session-finish", ".claude/commands/session-finish.md",
+                    ".agents/skills/source-command-session-finish"):
+            with self.subTest(path=rel):
+                self.assertFalse((d.ROOT / rel).exists(), rel)
+        brief = " ".join((d.ROOT / "AGENTS.md").read_text().split())
+        self.assertNotIn("/session-finish", brief)
+        self.assertNotIn("$session-finish", brief)
 
     def test_finish_carriers_route_slices_through_the_gate(self):
         # Slices merge through delivery.py's rc/next gate; no carrier tells an agent to merge by hand.
-        for carrier in (".claude/skills/session-finish/SKILL.md",
-                        ".agents/skills/session-finish/SKILL.md",
-                        "workspace/README.md", "AGENTS.md"):
+        for carrier in ("workspace/README.md", "AGENTS.md"):
             text = " ".join((d.ROOT / carrier).read_text().split())
             with self.subTest(carrier=carrier):
                 self.assertIn("python3 -B workspace/delivery.py merge --pr", text)

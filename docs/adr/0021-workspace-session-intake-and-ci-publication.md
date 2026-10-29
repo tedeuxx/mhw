@@ -142,7 +142,8 @@ each improvement session") goes. In its place:
 `workspace/session-policy.json` (schema version 2) now declares only this route: the integration
 branch, who merges slices and who merges the release, and the delivery evidence. `delivery.py` is
 kept unchanged as the gate for a PR into `main` (merge and verify); it does not merge slices into
-`rc/next`. `/session-finish` and its skill copy describe the new route.
+`rc/next`. ~~`/session-finish` and its skill copy describe the new route.~~ *(Struck 2026-10-29: the
+skill is removed; see the amendment of that date.)*
 
 **What holds it.** The CI checks and `delivery.py` hold what they held before, when executed. That
 an agent never merges the release candidate without the owner's go is an **instruction**: nothing
@@ -154,6 +155,9 @@ their sources. Not installed: the installed global brief on the reference machin
 intake sentence until the owner reinstalls.
 
 ## Amendment 2026-10-26: `session-finish` is a workspace skill
+
+*(Superseded 2026-10-29: the skill this amendment created is removed; see the amendment of that
+date below.)*
 
 Status unchanged. The owner, 2026-10-26, after making the sprint rites skills: *"mesma coisa session
 finish"*. The workspace command `.claude/commands/session-finish.md` and its Codex mirror
@@ -173,3 +177,22 @@ carries no `.kiro/skills/`, so Kiro keeps the route through `AGENTS.md` and its 
   `workspace/delivery_test.py` asserts the two copies are identical, the old carriers are gone, and
   the owner's-go sentences are present. Not installed: the workspace files take effect in a fresh
   session of this repository.
+
+## Amendment 2026-10-29: the workspace `session-finish` skill is removed
+
+Status unchanged. The owner decided, recorded on PR #233
+([comment](https://github.com/tedeuxx/mhw/pull/233#issuecomment-6510816092)), to remove the workspace `session-finish` skill on every agent harness.
+`.claude/skills/session-finish/` and `.agents/skills/session-finish/` are deleted; there was no
+`.kiro/skills/`. The amendment of 2026-10-26 above is superseded by this one.
+
+- **What remains.** `workspace/README.md` and `workspace/delivery.py` are the only delivery route: a
+  slice merges into `rc/next` through `python3 -B workspace/delivery.py merge --pr N`, and the release
+  candidate `rc/next` -> `main` is never merged without the owner's explicit go. Agents on every
+  harness follow `AGENTS.md` and `workspace/README.md` directly.
+- **What holds it.** Unchanged: the release-candidate rule is an instruction; nothing mechanical
+  refuses it. `workspace/delivery_test.py` now asserts that neither skill directory, nor the older
+  command file and Codex mirror, exists, and that `AGENTS.md` names no `/session-finish` or
+  `$session-finish` invocation.
+- **Evidence level.** *Written and tested*; the new assertion was mutation-checked by re-creating a
+  removed directory (red) and deleting it again (green). Not installed: a fresh session of this
+  repository stops listing the skill.
