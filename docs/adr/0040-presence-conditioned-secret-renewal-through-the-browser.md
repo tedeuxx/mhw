@@ -204,7 +204,9 @@ printing counts only.
 - **Not proven:** the real forge page; the MCP server's own logs, which were not searched; any field
   outside the page, such as a password manager.
 - **Still owed before any real use:** the real flow on a **throwaway repository secret** at
-  `github.com`, in a session launched with `HARNESS_SWEEP_ORIGIN='https://github.com/*'`. ~~The owner logs
+  `github.com`, in a session launched with `HARNESS_SWEEP_ORIGIN='https://github.com/*'`. *(2026-10-29,
+  #220: that bound alone blocked the asset host the secret form needs; under decision D7 the variable
+  is a declared list of origins, ADR-0038 amendment, and the rerun sets the list the canary measures.)* ~~The owner logs
   in to the isolated window himself;~~ *(struck 2026-10-24, #224: the server now attaches to the owner's
   own Chrome, ADR-0038 amendment, so his existing login is used and he allows the connection)* the
   agent never enters credentials. The first real use repeats the count.

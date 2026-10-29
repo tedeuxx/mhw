@@ -92,7 +92,9 @@ engineered.
 **Run this first, in the session that will dispatch, before the route generator runs and before any
 persona is dispatched.** The browser this rite drives is bounded by `--allowedUrlPattern`, with the
 value of `HARNESS_SWEEP_ORIGIN` or, when that is unset, empty or not an `http://` or `https://` value,
-`http://127.0.0.1:9/*`. ~~`.mcp.json`'s
+`http://127.0.0.1:9/*`. *(Since mhw#220, decision D7, the value may be a list of origins separated by
+single spaces: each becomes its own `--allowedUrlPattern`, and one failing element sends the whole list
+to the discard port.)* ~~`.mcp.json`'s
 `--allowedUrlPattern ${HARNESS_SWEEP_ORIGIN:-http://127.0.0.1:9/*}`~~ *(struck 2026-10-13, mhw#174: the
 server is no longer the plugin's `.mcp.json`. The workstation renders it into the Claude Code user
 configuration, and its shell reads the variable when the server starts, so a project's settings `env`
@@ -108,11 +110,22 @@ its report reads *completed with named gaps*, not FAILED.
 **The probe reads the SERVER, not the environment.** It prints the argument the browser server was
 actually launched with, from the process table:
 
+~~`ps -ax -o pid=,ppid=,args= | grep -E -- 'chrome-devtools-mcp[^ ]* .*--allowedUrlPattern ' | grep -v grep | grep -oE -- '--allowedUrlPattern [^ ]+'`~~
+*(struck 2026-10-29, mhw#220: its last stage drops the pid, so one server bound to two origins and two
+servers bound to one origin each print the same lines, and a declared list cannot be compared per
+server. Measured 2026-09-28, Claude Code 2.1.283, variable unset: it printed
+`--allowedUrlPattern http://127.0.0.1:9/*`.)* The probe now prints one line per pattern, the server's
+pid first:
+
 ```
-ps -ax -o pid=,ppid=,args= | grep -E -- 'chrome-devtools-mcp[^ ]* .*--allowedUrlPattern ' | grep -v grep | grep -oE -- '--allowedUrlPattern [^ ]+'
-# measured 2026-09-28, Claude Code 2.1.283, variable unset in the session:
-# -> --allowedUrlPattern http://127.0.0.1:9/*
+ps -ax -o pid=,args= | grep -E -- 'chrome-devtools-mcp[^ ]* .*--allowedUrlPattern ' | grep -v grep | awk '{for (i = 2; i < NF; i++) if ($i == "--allowedUrlPattern") print $1, $(i + 1)}'
+# one server bound to two origins prints:      two servers bound to one origin each print:
+# -> 101 https://site.example/*                -> 202 https://site.example/*
+# -> 101 https://assets.example/*              -> 203 https://assets.example/*
 ```
+
+The pairs above are from synthetic process lines fed to the same pipeline. The pipeline itself was run
+against a live process table on 2026-10-29 and printed `<pid> <pattern>` lines.
 
 **The probe requires the package name before the flag on the same line.** The line that carries the
 flag is the `npm exec chrome-devtools-mcp@…` launcher. Its node child does not repeat the arguments.
@@ -129,16 +142,28 @@ while the server still fails. That is the sprint-02 hypothesis: *"Failed to cons
 base URL must be provided for a relative constructor string"*. The argv shows the literal when that
 happens, so the probe catches it where an environment check would not.
 
-**Classify what it prints. Exactly one outcome proceeds.** If it prints more than one line, proceed
-only when one of them equals the tracked declaration, and list all the lines in the dispatch:
+**Classify what it prints, per server. Exactly one outcome proceeds.** ~~If it prints more than one
+line, proceed only when one of them equals the tracked declaration, and list all the lines in the
+dispatch.~~ *(Struck 2026-10-29, mhw#220: since D7 a declaration may be a list, and a list never equals
+one printed line.)* Group the lines by pid: each pid's patterns, in the order printed, are what that
+server is bound to. **The declaration is a list too**, the tracked value split on single spaces (a
+single origin is a list of one). **Proceed only when one pid's patterns equal the declared list element
+by element, in order, with nothing missing and nothing extra.** Patterns spread over several pids never
+add up to a match. List every pid and its patterns in the dispatch. In the table below, "the value" of a
+server means its list of patterns.
+
+**A proceed here does not prove the browser attached.** An element that passes the launch guard but is
+not a valid URLPattern makes the server refuse to connect, with the declared values still on its
+process line, so a step-0 proceed can still end in a failed attach (lens on mhw#234, read from the
+package bundle, not measured live).
 
 | the probe prints | meaning | outcome |
 |---|---|---|
 | nothing | no browser server is running on this host, or this host's shell cannot see the process table | **`SWEEP-ORIGIN-UNBOUND`** |
 | a value beginning `$` | the host passed the argument **unexpanded** | **`SWEEP-ORIGIN-UNBOUND`** |
 | `http://127.0.0.1:9/*` | the fail-closed default: nothing declared an origin | **`SWEEP-ORIGIN-UNBOUND`** |
-| any other value, and it **differs** from the origin the consuming repository declares in its tracked configuration | bound to something other than production | **`SWEEP-ORIGIN-UNBOUND`** |
-| a value **equal to** that tracked declaration | the precondition holds | **proceed**, and put the observed pattern in the driver's dispatch |
+| for every pid, a list of patterns that **differs** from the list the consuming repository declares in its tracked configuration | bound to something other than production | **`SWEEP-ORIGIN-UNBOUND`** |
+| one pid whose list of patterns is **equal to** that tracked list, element by element and in order | the precondition holds | **proceed**, and put that pid's observed patterns in the driver's dispatch |
 
 **If the consuming repository declares no origin in tracked configuration, the outcome is
 `SWEEP-ORIGIN-UNBOUND` too.** The only way the bound could then carry a real origin is an untracked
@@ -207,8 +232,8 @@ the first navigation fails as `FAILED`. Both are listed under *What step 0 does 
   because the probe matches only the spaced form that the rendered server uses. That error also runs
   toward stopping.
 - **Which server the driver's tools reach, when the consumer declares its own.** If the consumer
-  declares its own `chrome-devtools` server, the probe prints two lines, the user-scope server's value and
-  the consumer's origin. Whether the driver's calls go to the second one is the consumer carrier's own
+  declares its own `chrome-devtools` server, the probe prints lines under two pids, the user-scope server's
+  patterns and the consumer's. Whether the driver's calls go to the second one is the consumer carrier's own
   measurement, not this probe's.
 - **Anything on Codex, which is UNMEASURED.** Two open questions. Does Codex expand
   `${HARNESS_SWEEP_ORIGIN:-…}` in a plugin server's arguments? Can Codex's sandboxed shell see the

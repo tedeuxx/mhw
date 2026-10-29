@@ -70,7 +70,8 @@ tadeumendonca-skills#525: the bound must come from the project's tracked configu
 1. **User scope, the shell reads the origin at launch (chosen).** `mhw install` writes the server into
    `~/.claude.json` from a tracked `global/mcp/policy-servers.json`. The command is `/bin/sh -c`, and
    the script sets the origin from `HARNESS_SWEEP_ORIGIN`, or `http://127.0.0.1:9/*` when that is unset,
-   empty or does not begin `http://` or `https://` (see "The scheme guard" below), then `exec`s `npx`. The script carries no `${`, so Claude Code expands nothing; the shell
+   empty or does not begin `http://` or `https://` (see "The scheme guard" below), then `exec`s `npx`.
+   *(Since 2026-10-29 the value is a list of origins; see the amendment "a declared list of origins".)* The script carries no `${`, so Claude Code expands nothing; the shell
    reads the variable from the environment the harness gave the server, which carries the project's
    settings `env`. After `exec` the process table shows the `npm exec chrome-devtools-mcp@1.8.0 …
    --allowedUrlPattern <value>` line that `/sprint-review` step 0 reads. *Trade-off:* the server is
@@ -437,6 +438,60 @@ is reported (`REPORT … differs from the policy server's here`), and `mhw statu
 **Evidence level.** Written and tested in throwaway homes (`global/mcp/mcp_render_test.py`, class
 `PolicyExtension`); each new assertion was checked against ten mutations of the source, each turned it
 red. Not run on the reference machine; the owner's render runs after the release.
+
+## Amendment 2026-10-29: a declared list of origins ([Issue #220](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6509761287), decision D7)
+
+**What happened.** A canary on the real forge page, with the bound set to `https://github.com/*`,
+filled a secret form but could not create the secret
+([run](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6509543202)). The bound cut every
+request outside `github.com`, including the asset host that serves the scripts which seal the value in
+the browser before submit, so the server rejected the post.
+
+**The owner's decision (D7, 2026-10-29):** *"Lista declarada"*. `HARNESS_SWEEP_ORIGIN` accepts several
+origins: the site plus only the hosts the page is measured to need. Declined: keeping one origin, and
+broad wildcards such as a subdomain wildcard for the forge or its asset host.
+
+**Fact behind it.** `chrome-devtools-mcp@1.8.0` declares `--allowedUrlPattern` as `type: 'array'`
+("Accepts an array of patterns", `build/src/cli.js`). Read from the package source, as recorded on the
+Issue; the live behaviour with more than one pattern is measured by the canary rerun, not here.
+
+**The rule** (the launch script in `global/mcp/policy-servers.json`):
+
+- **The value is a list separated by single spaces.** Each element is passed to the server as its own
+  `--allowedUrlPattern <element>`, in the declared order.
+- **Every element passes the same three checks** as the single origin did: it begins `http://` or
+  `https://`; it carries no control character; its host passes the allowlist (letters, digits, `.`,
+  `-`, an optional `:` and digits). A wildcard host, URLPattern group syntax such as `([a-z.]+)` or
+  `:a.:b`, and an embedded newline are refused in any position.
+- **One failure fails the whole list.** If any element fails, or the list is empty, or an element is
+  empty (a leading, trailing or doubled space), the server gets one `--allowedUrlPattern` with the
+  discard port `http://127.0.0.1:9/*`. A bad element is never dropped while the rest are kept: a list
+  that silently lost a member would read as declared while binding something else, and the failure
+  would show only as a refused page.
+- **A tab is a refusal, not a separator.** It is a control character, so the control-character check
+  refuses the whole value before it is split. Treating it as a separator would widen what a pasted
+  value can mean for no gain; the declared form uses spaces.
+- **Unchanged:** POSIX `/bin/sh`, no `${` anywhere in the script (Claude Code expands it in server
+  arguments, measured above), `--autoConnect` always, `--isolated` never. The split runs with globbing
+  off (`set -f`), so a pattern such as `https://site.example/*` is never expanded against the working
+  directory.
+
+**What the owner accepts with it.** Each declared origin is one more place where the agent opens pages
+with his logged-in session. The list is a project's committed setting, so the scope note of the host
+guard applies to every element: the checks protect against a mistaken value, not a hostile project.
+
+**Which list the forge case needs is not decided here.** D7 says the canary measures it; this
+amendment only makes a list expressible. The rerun on the throwaway repository sets the measured list
+in its own session.
+
+**Evidence level.** Written and tested (`global/mcp/mcp_render_test.py`, the launch-script test): a
+two- and a three-origin list pass; each earlier bypass in second (and third) position, a tab, a
+newline, an empty list and an empty element fail the whole list closed; a glob-shaped element is not
+expanded. The same cases pass under dash, bash and ksh. Eight mutants of the source (globbing on, only
+the first element checked, the bad element dropped instead of the whole list, no empty-element check,
+no control-character refusal, a tab as separator, no per-element scheme check, `*` in the host
+allowlist), each red. Not installed, not loaded: that needs `mhw install` and a fresh session
+(ADR-0022).
 
 ## Links
 
