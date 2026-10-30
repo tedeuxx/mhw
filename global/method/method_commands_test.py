@@ -641,7 +641,7 @@ class Handoff(unittest.TestCase):
         prompt and in an --env value, and the refusal never echoes the line."""
         secret = "SENTINELTEXT"
         hostile = {"^C": "\x03", "ESC[201~": "\x1b[201~", "^U": "\x15", "TAB": "\t", "CR": "\r", "DEL": "\x7f",
-                   "U+202E": "‮", "U+2066": "⁦"}
+                   "U+202E": "\u202e", "U+2066": "\u2066"}
         for label, ch in hostile.items():
             prompt = "/goal fix it\nNext act: %s %s; touch pwned" % (ch, secret)
             out = run_launch_line(self.script, "claude-code", prompt, BASE)

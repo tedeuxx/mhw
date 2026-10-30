@@ -569,6 +569,12 @@ that needs `mhw install` and a fresh session (ADR-0022), then a canary in which 
 former origin opens. The canary of 2026-10-15 and the live probe of 2026-10-26 measured the bound; they
 say nothing about the launch without it.
 
+**Codex, Kiro and the Claude desktop app (added 2026-10-29, `agents-lead` lens on PR #237).** The policy
+renders only to `claude-code`. Those other surfaces get `chrome-devtools` from the owner's local MCP
+definition (the 2026-10-26 amendment), and that copy keeps its own arguments. D8 takes effect there only
+once the local definition's copy matches the policy server's command and args; until then it still
+passes whatever bound it was written with. mhw does not edit the owner's overlay.
+
 ## Links
 
 - [Issue #174](https://github.com/tedeuxx/mhw/issues/174); tadeumendonca-io#725 (the plugin disabled).

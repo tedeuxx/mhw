@@ -108,20 +108,29 @@ and that it is not an older render still carrying the retired bound.
 first:
 
 ```
-ps -ax -o pid=,args= | grep -E -- 'chrome-devtools-mcp[^ ]* .*--autoConnect( |$)' | grep -v grep | awk '{b = "unbounded"; for (i = 2; i <= NF; i++) if ($i == "--allowedUrlPattern") b = "BOUND"; print $1, b}'
+ps -ax -o pid=,args= | grep -E -- 'chrome-devtools-mcp[^ ]* .*--autoConnect( |$)' | grep -v grep | awk '{b = "unbounded"; for (i = 2; i <= NF; i++) if ($i == "--allowedUrlPattern" || index($i, "--allowedUrlPattern=") == 1) b = "BOUND"; print $1, b}'
 # -> 101 unbounded     the server as the workstation renders it since D8
-# -> 103 BOUND         an older render, still carrying --allowedUrlPattern
+# -> 103 BOUND         a copy still carrying --allowedUrlPattern <value>
+# -> 105 BOUND         the same, spelled --allowedUrlPattern=<value>
 ```
 
-The two lines above are from synthetic process lines fed to the same pipeline, which also dropped a
-line for an `--isolated` server and one for the package's node child (the child does not repeat the
-arguments; the `npm exec chrome-devtools-mcp@…` launcher does). Run against the live process table on
-2026-10-29, with no server running, it printed nothing.
+The lines above are from synthetic process lines fed to the same pipeline. It also dropped a line for
+an `--isolated` server and one for the package's node child (the child does not repeat the arguments;
+the `npm exec chrome-devtools-mcp@…` launcher does), and read a word that only begins with the flag
+name, such as `--allowedUrlPatternX`, as unbounded. Run against the live process table on 2026-10-29,
+with no server running, it printed nothing.
+
+**Where a `BOUND` line comes from depends on the agent harness.** On Claude Code the workstation
+renders the server from its tracked policy, so a `BOUND` line there is an install older than D8. On
+Codex and Kiro the policy is not rendered: those agent harnesses get `chrome-devtools` from the owner's
+local MCP definition, and that copy keeps whatever arguments it was written with. A `BOUND` line there,
+or no line at all because that copy does not pass `--autoConnect`, means the local copy does not match
+the policy server. D8 takes effect on those agent harnesses only once it does.
 
 | the probe prints | meaning | outcome |
 |---|---|---|
 | nothing | no attached browser server runs on this host, or this host's shell cannot see the process table | **`SWEEP-BROWSER-UNREADY`** |
-| only `BOUND` lines | the server is an older render with the retired bound: pages outside it would be refused | **`SWEEP-BROWSER-UNREADY`** |
+| only `BOUND` lines | the server still carries the retired bound, from an install older than D8 (Claude Code) or from the owner's local MCP definition copy (Codex, Kiro): pages outside it would be refused | **`SWEEP-BROWSER-UNREADY`** |
 | at least one `unbounded` line | the precondition holds | **proceed**, and put the pids in the driver's dispatch |
 
 **Which site the sweep visits is not step 0's to supply any more.** The bound used to carry the
@@ -133,11 +142,15 @@ the consuming repository, and is not defined here.
 
 **This is an ACTION pendency, not a decision.** The loop cannot perform the fix. The server starts with
 the session, so a new render takes effect only after `mhw install` and a restart, and only the owner
-restarts a session. Emit exactly one line, carrying the act and where to act:
+restarts a session. The owner's local MCP definition is his to edit, never the loop's. Emit exactly one
+line, carrying the act and where to act:
 
 ```
-SWEEP-BROWSER-UNREADY — run mhw install, start a fresh session, rerun /sprint-review: https://github.com/tedeuxx/mhw/issues/224
+SWEEP-BROWSER-UNREADY — make the chrome-devtools copy in your local MCP definition match the policy server's command and args (global/mcp/policy-servers.json), run mhw install, start a fresh session, rerun /sprint-review: https://github.com/tedeuxx/mhw/issues/224
 ```
+
+On Claude Code, where the policy renders the server, the first act is a no-op when the local
+definition does not list `claude-code`, and `mhw install` alone is the fix.
 
 **Nothing is written for this outcome.** No persona is dispatched, so no sweep report exists for the
 iteration. Pay attention to that cost: the retrospective that follows finds no
