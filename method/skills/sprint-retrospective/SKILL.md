@@ -515,7 +515,8 @@ kept out of this slice on two measured grounds rather than on cost:
 **One premise of the original deferral is now false and is corrected here rather than left standing.**
 `/agents-configuration` records that REVIEW cannot run unattended because *"no MCP server is reachable
 from a dispatched subagent"*. That was true when it was written and is not true now: `product-lead`
-declares a read-only `chrome-devtools` subset with a bounded origin. **The obstacle was never the
+declares a read-only `chrome-devtools` subset ~~with a bounded origin~~ *(no origin bound since
+2026-10-29, mhw#224 decision D8)*. **The obstacle was never the
 browser** — it is a route list that rots and a finding with no ruler, both of which survive the new
 capability intact.
 

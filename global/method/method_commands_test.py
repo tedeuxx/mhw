@@ -506,6 +506,9 @@ PROMPT = ("/goal ship the owner's handoff command\n"
 SHELLS = ["sh", "bash"] + (["zsh"] if shutil.which("zsh") else [])
 
 
+PROBE_VAR = "MHW_PROBE_LAUNCH_VAR"  # declared only in the test's probe copy of launch-line.py
+
+
 def run_launch_line(script, harness, prompt, base, *extra):
     f = Path(tempfile.mkdtemp(prefix="prompt-", dir=base)) / "prompt.txt"
     f.write_text(prompt, encoding="utf-8")
@@ -547,6 +550,15 @@ class Handoff(unittest.TestCase):
         cls.home = Path(tempfile.mkdtemp(prefix="home-", dir=BASE))
         cls.code, cls.out = render(cls.home)
         cls.script = cls.home / SCRIPTS_REL / "launch-line.py"
+        # mhw#224 D8: the method declares no launch variable today, so the accepted-variable path is
+        # measured through a sibling copy in the throwaway home that declares one probe name. Only the
+        # allowlist differs; the copy imports the same confine.py and worklog.py beside it.
+        source = cls.script.read_text(encoding="utf-8")
+        anchor = "LAUNCH_ENV = frozenset((\n"
+        if source.count(anchor) != 1:
+            raise AssertionError("the LAUNCH_ENV allowlist is not where the probe copy expects it")
+        cls.probe = cls.script.with_name("launch-line-probe.py")
+        cls.probe.write_text(source.replace(anchor, anchor + '    "%s",\n' % PROBE_VAR), encoding="utf-8")
 
     def resolve(self, *argv):
         return subprocess.run([sys.executable, "-B", str(self.script), "--resolve"] + list(argv),
@@ -605,16 +617,17 @@ class Handoff(unittest.TestCase):
                 self.assertEqual(p.stdout.split("\0")[:-1], command.split()[1:] + [PROMPT], (target, shell))
 
     def test_the_launch_environment_is_part_of_the_block(self):
+        # Measured through the probe copy, which declares PROBE_VAR (mhw#224 D8: the method declares none).
         for value in ("https://example.org", "it's $x `y` \\ \"q\" !!"):
-            out = run_launch_line(self.script, "claude", PROMPT, BASE, "--env", "HARNESS_SWEEP_ORIGIN=" + value)
+            out = run_launch_line(self.probe, "claude", PROMPT, BASE, "--env", PROBE_VAR + "=" + value)
             self.assertEqual(out.returncode, 0, out.stderr)
             _, line = the_block(out.stdout)
-            self.assertTrue(line.startswith("HARNESS_SWEEP_ORIGIN='"), line[:60])
+            self.assertTrue(line.startswith(PROBE_VAR + "='"), line[:60])
             for shell in SHELLS:
-                p = argv_through(shell, line, "claude", ("HARNESS_SWEEP_ORIGIN",))
-                self.assertEqual(p.stdout.split("\0")[:-1], ["HARNESS_SWEEP_ORIGIN=" + value, PROMPT], shell)
-        for bad in ("1X=a", "X-Y=a", "HARNESS_SWEEP_ORIGIN=" + "/Use" + "rs/someone", "HARNESS_SWEEP_ORIGIN=a\nb"):
-            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", bad)
+                p = argv_through(shell, line, "claude", (PROBE_VAR,))
+                self.assertEqual(p.stdout.split("\0")[:-1], [PROBE_VAR + "=" + value, PROMPT], shell)
+        for bad in ("1X=a", "X-Y=a", PROBE_VAR + "=" + "/Use" + "rs/someone", PROBE_VAR + "=a\nb"):
+            out = run_launch_line(self.probe, "codex", PROMPT, BASE, "--env", bad)
             self.assertEqual(out.returncode, 1, bad)
             self.assertEqual(out.stdout, "", bad)
             self.assertNotIn("someone", out.stderr, bad)
@@ -628,7 +641,7 @@ class Handoff(unittest.TestCase):
         prompt and in an --env value, and the refusal never echoes the line."""
         secret = "SENTINELTEXT"
         hostile = {"^C": "\x03", "ESC[201~": "\x1b[201~", "^U": "\x15", "TAB": "\t", "CR": "\r", "DEL": "\x7f",
-                   "U+202E": "\u202e", "U+2066": "\u2066"}
+                   "U+202E": "‮", "U+2066": "⁦"}
         for label, ch in hostile.items():
             prompt = "/goal fix it\nNext act: %s %s; touch pwned" % (ch, secret)
             out = run_launch_line(self.script, "claude-code", prompt, BASE)
@@ -636,8 +649,8 @@ class Handoff(unittest.TestCase):
             self.assertEqual(out.stdout, "", label)
             self.assertIn("line 2 carries a control character", out.stderr, label)
             self.assertNotIn(secret, out.stderr, label)
-            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env",
-                                  "HARNESS_SWEEP_ORIGIN=a%s%s" % (ch, secret))
+            out = run_launch_line(self.probe, "codex", PROMPT, BASE, "--env",
+                                  "%s=a%s%s" % (PROBE_VAR, ch, secret))
             self.assertEqual(out.returncode, 1, label)
             self.assertEqual(out.stdout, "", label)
             self.assertIn("--env 1: the value carries a control character", out.stderr, label)
@@ -651,15 +664,26 @@ class Handoff(unittest.TestCase):
         secret = "SENTINELVALUE"
         for name in ("CLAUDE_CONFIG_DIR", "CODEX_HOME", "KIRO_HOME", "XDG_CONFIG_HOME", "ANTHROPIC_BASE_URL",
                      "OPENAI_BASE_URL", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "EDITOR", "GIT_ASKPASS",
-                     "PATH", "NODE_OPTIONS", "DYLD_INSERT_LIBRARIES", "LD_PRELOAD", "harness_sweep_origin",
-                     "HARNESS_SWEEP_ORIGIN_X", "HARNESS_SWEEP"):
-            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", "%s=%s" % (name, secret))
+                     "PATH", "NODE_OPTIONS", "DYLD_INSERT_LIBRARIES", "LD_PRELOAD", PROBE_VAR.lower(),
+                     PROBE_VAR + "_X", PROBE_VAR[:-1]):
+            out = run_launch_line(self.probe, "codex", PROMPT, BASE, "--env", "%s=%s" % (name, secret))
             self.assertEqual(out.returncode, 1, name)
             self.assertEqual(out.stdout, "", name)
             self.assertIn("--env 1: the name is not a declared launch variable", out.stderr, name)
             self.assertNotIn(secret, out.stderr, name)
-        out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", "HARNESS_SWEEP_ORIGIN=https://example.org")
+        out = run_launch_line(self.probe, "codex", PROMPT, BASE, "--env", PROBE_VAR + "=https://example.org")
         self.assertEqual(out.returncode, 0, out.stderr)
+
+    def test_the_method_declares_no_launch_variable(self):
+        """mhw#224 D8 (2026-10-29): the chrome-devtools origin bound is removed, so HARNESS_SWEEP_ORIGIN has
+        no consumer and left the allowlist. The empty allowlist still refuses every --env, the retired name
+        and the probe name included, and says that none is declared."""
+        for name in ("HARNESS_SWEEP_ORIGIN", PROBE_VAR, "CODEX_HOME"):
+            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--env", name + "=https://example.org")
+            self.assertEqual(out.returncode, 1, name)
+            self.assertEqual(out.stdout, "", name)
+            self.assertIn("--env 1: the name is not a declared launch variable (none is declared)",
+                          out.stderr, name)
 
     def test_a_backtick_run_cannot_close_the_fence(self):
         prompt = "/goal keep ```` four and ````` five backticks"

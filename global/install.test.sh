@@ -1146,10 +1146,11 @@ chmod 644 "$hp/.claude.json"
 pol_seed=$(cksum < "$hp/.claude.json")
 HOME="$hp" sh "$inst" > "$base/mcp-p1.out" 2>&1; expect "install with an existing ~/.claude.json" 0 $?
 if grep -qF "CHANGED $hp/.claude.json: chrome-devtools absent -> /bin/sh -c " "$base/mcp-p1.out" \
-   && [ "$(jq -r '.mcpServers["chrome-devtools"].args[1]' "$hp/.claude.json" | grep -cF "o='http://127.0.0.1:9/*'")" -eq 1 ] \
+   && [ "$(jq -r '.mcpServers["chrome-devtools"].args[1]' "$hp/.claude.json" | grep -cF -- "--autoConnect")" -eq 1 ] \
+   && [ "$(jq -r '.mcpServers["chrome-devtools"].args[1]' "$hp/.claude.json" | grep -cF -- "--allowedUrlPattern")" -eq 0 ] \
    && [ "$(jq -r '.mcpServers.mine.command' "$hp/.claude.json")" = /bin/echo ] \
    && [ "$(cksum < "$hp/.claude.json.pmhwc-mcp-policy-backup")" = "$pol_seed" ]; then
-  ok "install renders chrome-devtools with the discard-port default, prints old -> new, keeps a backup"
+  ok "install renders chrome-devtools attached with no origin bound (ADR-0038 D8), prints old -> new, keeps a backup"
 else
   ko "the policy MCP server was not rendered as expected"; cat "$base/mcp-p1.out"
 fi

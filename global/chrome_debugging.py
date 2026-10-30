@@ -51,15 +51,18 @@ class NotSynced(Exception):
 
 def attach_rendered(home=None):
     """True when Claude Code's user configuration holds the chrome-devtools server in its attach form
-    (--autoConnect) with the origin bound (--allowedUrlPattern) in the same args. Only that one entry's args are looked at; nothing is printed. Issue #224 lens: when the
+    (--autoConnect). Only that one entry's args are looked at; nothing is printed. Since ADR-0038
+    amendment D8 (2026-10-29) the policy server carries no origin bound, so the attach form alone counts.
+    Issue #224 lens: when the
     MCP renderer refused the server (a local copy that conflicts with the policy's, ADR-0038 amendment for
     #219) or left an older copy, nothing here would attach, so remote debugging is not turned on."""
     try:
         with open(Path(home or Path.home()) / ".claude.json", encoding="utf-8") as fh:
             entry = json.load(fh).get("mcpServers", {}).get(SERVER, {})
         words = " ".join(str(a) for a in entry.get("args", [])).split()
-        # PR #227 lens advisory: an attach without the origin bound in the same args does not count.
-        return "--autoConnect" in words and "--allowedUrlPattern" in words
+        # D8 (2026-10-29): the attach form is the whole test. The PR #227 rule that an attach without the
+        # origin bound did not count is retired with the bound.
+        return "--autoConnect" in words
     except (OSError, ValueError, AttributeError):
         return False
 

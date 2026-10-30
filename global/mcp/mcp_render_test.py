@@ -957,13 +957,16 @@ class Policy(unittest.TestCase):
         script = s["args"][1]
         self.assertRegex(script, r"exec npx --ignore-scripts -y chrome-devtools-mcp@[0-9]+\.[0-9]+\.[0-9]+ ",
                          "the package is pinned to one exact version, fetched with install scripts off")
-        # Issue #220 (D7): the value is a list; each element becomes its own --allowedUrlPattern.
-        self.assertIn("--allowedUrlPattern \"$u\"", script)
-        self.assertIn("set -f;", script, "an unquoted split must not glob a pattern against the directory")
-        self.assertIn("o='http://127.0.0.1:9/*'", script, "the fail-closed default: the discard port")
+        # Issue #224 (ADR-0038 amendment D8, 2026-10-29; owner, "Sem limite nenhum"): no origin bound. The
+        # launch carries no --allowedUrlPattern and reads no environment variable, so nothing a project
+        # declares changes what the browser may reach. D8 supersedes the bound and D7's origin list.
+        launch = json.dumps([s["command"]] + s["args"])
+        self.assertNotIn("allowedUrlPattern", launch, "D8: the origin bound is removed")
+        self.assertNotIn("HARNESS_SWEEP_ORIGIN", launch, "D8: no origin variable is read")
+        self.assertIn("--autoConnect", script.split(), "#224: the attach to the owner's Chrome stays")
+        self.assertNotIn("$", script, "D8: nothing in the launch is expanded from the environment")
         # Issue #224 (ADR-0038 amendment; owner, "Sempre seu perfil"): always attach to the owner's running
-        # Chrome, with or without a declared origin. The argv per value is asserted in the launch-script
-        # test below.
+        # Chrome. The argv is asserted in the launch-script test below.
         argv = script.split()
         self.assertEqual(argv[argv.index("--channel") + 1], "stable",
                          "autoConnect finds the profile from the channel's default user data directory")
@@ -975,7 +978,7 @@ class Policy(unittest.TestCase):
         # default. The shell expands it at launch instead, so no ${ may reach the harness.
         self.assertNotIn("${", json.dumps(s))
 
-    def test_the_launch_script_binds_the_declared_origin_or_the_discard_port(self):
+    def test_the_launch_script_attaches_with_no_origin_bound(self):
         d = os.path.join(BASE, "policy-fake-npx")
         os.makedirs(d, exist_ok=True)
         log = os.path.join(d, "argv.txt")
@@ -984,108 +987,26 @@ class Policy(unittest.TestCase):
             fh.write('#!/bin/sh\nfor a in "$@"; do printf "%%s\\n" "$a"; done > "%s"\n' % log)
         os.chmod(npx, 0o700)
         e = policy_entry()
-        cases = ((None, "http://127.0.0.1:9/*"), ("", "http://127.0.0.1:9/*"),
-                 ("https://site.example/*", "https://site.example/*"),
-                 # Since #220 (D7) a space separates origins, so ";" and "touch" are elements of their own,
-                 # fail the scheme check and send the whole list to the discard port.
-                 ("https://a.example/* ; touch x", "http://127.0.0.1:9/*"),
-                 ("http://localhost:4321/*", "http://localhost:4321/*"),
-                 # A dash-led value would be read as a flag and leave the allow list empty; a value that
-                 # is not an http(s) URL is not an origin. Both fall back to the discard port (QA A1).
-                 ("--remote-debugging-port=9222", "http://127.0.0.1:9/*"),
-                 ("-x", "http://127.0.0.1:9/*"),
-                 ("site.example/*", "http://127.0.0.1:9/*"),
-                 ("file:///etc/*", "http://127.0.0.1:9/*"),
-                 (" https://lead-space.example/*", "http://127.0.0.1:9/*"),
-                 # Issue #224 lens: a * in the host lifts the bound on the owner's logged-in Chrome (URLPattern
-                 # "https://*" matches every https host), and so does an empty host. Each falls back to the
-                 # discard port; a * in the path stays allowed (the declared form is "https://<host>/*").
-                 ("https://*", "http://127.0.0.1:9/*"),
-                 ("https://*/*", "http://127.0.0.1:9/*"),
-                 ("http://*:*/*", "http://127.0.0.1:9/*"),
-                 ("https://*.example/*", "http://127.0.0.1:9/*"),
-                 ("https://site.example*/*", "http://127.0.0.1:9/*"),
-                 ("https://user@*/x", "http://127.0.0.1:9/*"),
-                 ("https://", "http://127.0.0.1:9/*"),
-                 ("https:///x/*", "http://127.0.0.1:9/*"),
-                 ("https://site.example:8443/*", "https://site.example:8443/*"),
-                 # Lens on 632c11a: URLPattern syntax in the host passed a denylist of "*" and matched other
-                 # hosts. The host is now an allowlist: letters, digits, "." and "-", with an optional
-                 # ":<digits>"; anything else is the discard port.
-                 ("https://([a-z.]+)/*", "http://127.0.0.1:9/*"),
-                 ("https://:a.:b/*", "http://127.0.0.1:9/*"),
-                 ("https://:name/*", "http://127.0.0.1:9/*"),
-                 ("https://{a,b}.example/*", "http://127.0.0.1:9/*"),
-                 ("https://site.example?/*", "http://127.0.0.1:9/*"),
-                 ("https://site+.example/*", "http://127.0.0.1:9/*"),
-                 ("https://site\\.example/*", "http://127.0.0.1:9/*"),
-                 ("https://site.example:/*", "http://127.0.0.1:9/*"),
-                 ("https://site.example:84a3/*", "http://127.0.0.1:9/*"),
-                 ("https://site.example:1:2/*", "http://127.0.0.1:9/*"),
-                 ("https://:8443/*", "http://127.0.0.1:9/*"),
-                 ("https://site_x.example/*", "http://127.0.0.1:9/*"),
-                 ("https://My-Site.example/*", "https://My-Site.example/*"),
-                 # Lens on 4434e60: cut is line-based and $( ) drops a trailing newline, while URLPattern
-                 # strips it, so these became the hosts m*, g* and a.io*. Any control character refuses.
-                 ("https://m\n(.*)/*", "http://127.0.0.1:9/*"),
-                 ("https://g\n*/*", "http://127.0.0.1:9/*"),
-                 ("https://a.io\n*/*", "http://127.0.0.1:9/*"),
-                 ("https://a.io\r*/*", "http://127.0.0.1:9/*"),
-                 ("https://a.io/*\n", "http://127.0.0.1:9/*"),
-                 ("https://a.io\t/*", "http://127.0.0.1:9/*"),
-                 # A control character outside the host is refused too, not only where the host check sees it.
-                 ("https://a.io/*\r", "http://127.0.0.1:9/*"),
-                 ("https://a.io/\x7f*", "http://127.0.0.1:9/*"),
-                 # Issue #220 (D7, owner: "Lista declarada"): a list of origins separated by single spaces.
-                 # Every element passes the same scheme check, control-character refusal and host allowlist,
-                 # and each becomes its own --allowedUrlPattern, in order.
-                 ("https://github.com/* https://github.githubassets.com/*",
-                  ["https://github.com/*", "https://github.githubassets.com/*"]),
-                 ("http://localhost:4321/* https://a.example/* https://b.example:8443/x/*",
-                  ["http://localhost:4321/*", "https://a.example/*", "https://b.example:8443/x/*"]),
-                 # A second element that fails sends the WHOLE list to the discard port; the good first
-                 # element is not kept. Each bypass the earlier lenses found, now in second position.
-                 ("https://github.com/* https://*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* https://*/*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* https://*.githubassets.com/*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* https://([a-z.]+)/*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* https://:a.:b/*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* https://m\n(.*)/*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* https://g\n*/*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* https://a.io/*\r", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* https://", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* https://site.example:84a3/*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* file:///etc/*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* --remote-debugging-port=9222", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* site.example/*", "http://127.0.0.1:9/*"),
-                 # A bad element in third position is caught as well, not only the second.
-                 ("https://a.example/* https://b.example/* https://*", "http://127.0.0.1:9/*"),
-                 # A tab is refused, not read as a separator (it is a control character); so is a newline.
-                 ("https://github.com/*\thttps://github.githubassets.com/*", "http://127.0.0.1:9/*"),
-                 ("https://github.com/*\nhttps://github.githubassets.com/*", "http://127.0.0.1:9/*"),
-                 # An empty list, and an empty element (leading, trailing or doubled space), fail closed.
-                 (" ", "http://127.0.0.1:9/*"),
-                 ("   ", "http://127.0.0.1:9/*"),
-                 ("https://github.com/* ", "http://127.0.0.1:9/*"),
-                 ("https://github.com/*  https://github.githubassets.com/*", "http://127.0.0.1:9/*"))
-        # A directory that the pattern "https://glob.example/*" would match as a shell glob: if the split
-        # ever globbed, the element would become "https://glob.example/zz" (the guard's set -f).
-        os.makedirs(os.path.join(d, "https:", "glob.example", "zz"), exist_ok=True)
-        cases += (("https://a.example/* https://glob.example/*", ["https://a.example/*", "https://glob.example/*"]),)
-        for value, bound in cases:
+        # Issue #224, D8 (2026-10-29; owner, "Sem limite nenhum"): the argv is the same whatever the
+        # environment holds. A value the retired bound read, D7's list form included, changes nothing and
+        # is never passed on.
+        want = ["--ignore-scripts", "-y", "chrome-devtools-mcp@1.8.0", "--autoConnect", "--channel", "stable",
+                "--no-usage-statistics", "--no-performance-crux"]
+        for value in (None, "", "https://site.example/*",
+                      "https://github.com/* https://github.githubassets.com/*",
+                      "https://a.example/* ; touch x", "--remote-debugging-port=9222"):
             env = {"PATH": d + os.pathsep + "/usr/bin:/bin"}
             if value is not None:
                 env["HARNESS_SWEEP_ORIGIN"] = value
             p = subprocess.run([e["command"]] + e["args"], env=env, capture_output=True, text=True, cwd=d)
             self.assertEqual(p.returncode, 0, p.stderr)
             argv = read(log).splitlines()
-            bounds = [bound] if isinstance(bound, str) else bound
-            want = [w for b in bounds for w in ("--allowedUrlPattern", b)]
-            self.assertEqual(argv[argv.index("--no-performance-crux") + 1:], want, repr(value))
-            # #224: always attach to the owner's Chrome, never the throwaway launch, whatever the value.
-            self.assertEqual((argv.count("--autoConnect"), "--isolated" in argv), (1, False), value)
-            self.assertIn("chrome-devtools-mcp@", " ".join(argv))
-        self.assertFalse(os.path.exists(os.path.join(d, "x")), "each origin is one argument, never shell text")
+            # D8: no origin bound reaches the server. #224: it attaches to the owner's Chrome, never the
+            # throwaway launch.
+            self.assertNotIn("--allowedUrlPattern", argv, repr(value))
+            self.assertEqual((argv.count("--autoConnect"), "--isolated" in argv), (1, False), repr(value))
+            self.assertEqual(argv, want, repr(value))
+        self.assertFalse(os.path.exists(os.path.join(d, "x")), "the environment is never shell text")
 
     def test_install_writes_old_to_new_keeps_a_private_backup_and_uninstall_removes(self):
         h = mk_home("home-policy")

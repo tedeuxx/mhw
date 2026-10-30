@@ -999,7 +999,8 @@ mcp_step() {
     return 0
   fi
   # The policy MCP servers (ADR-0038, Issue #174): chrome-devtools in the Claude Code user configuration
-  # (~/.claude.json), bounded by origin. old -> new, a 0600 backup, removed on uninstall.
+  # (~/.claude.json), with no origin bound since ADR-0038 amendment D8. old -> new, a 0600 backup, removed
+  # on uninstall.
   python3 -B "$script_dir/mcp/mcp_render.py" --policy "--mode=$mode" "--stamp=$stamp" || raise $?
   # The MCP active set (Issue #219, ADR-0041): once the local MCP definition declares "active_set", every
   # server outside it is turned off through each agent harness's own switch (Codex enabled = false,

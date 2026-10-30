@@ -36,8 +36,8 @@ class Fixture(unittest.TestCase):
         self.home = self.temp.name
         self.path = cd.local_state("Darwin", self.home)
         self.path.parent.mkdir(parents=True)
-        self.server({"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --autoConnect "
-                                                           "--allowedUrlPattern \"$o\""]})
+        # The policy server's form since ADR-0038 amendment D8: the attach, with no origin bound.
+        self.server({"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --autoConnect"]})
 
     def server(self, entry):
         """The Claude Code user configuration of the fixture home, with this chrome-devtools entry."""
@@ -133,8 +133,8 @@ class AttachGate(Fixture):
     rendered; a refused server (no entry), an older isolated copy, or no configuration leave the key."""
 
     def test_refused_or_isolated_server_leaves_the_key(self):
+        # D8 (2026-10-29): an attach with no origin bound is the policy form now, so it is no longer a case here.
         cases = (None, {"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --isolated"]},
-                 {"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --autoConnect"]},
                  "no file")
         for entry in cases:
             with self.subTest(entry=entry):
@@ -150,6 +150,20 @@ class AttachGate(Fixture):
                     self.assertTrue(out.startswith("SKIP"), out)
                     self.assertIn("nothing would attach", out)
                 self.assertEqual(self.path.read_bytes(), before)
+
+    def test_the_tracked_policy_server_and_an_older_bounded_copy_both_attach(self):
+        """D8: the tracked policy form turns the key on; a copy still carrying the retired bound attaches too."""
+        policy = json.loads(Path(__file__).with_name("mcp").joinpath("policy-servers.json")
+                            .read_text(encoding="utf-8"))["servers"]["chrome-devtools"]
+        older = {"command": "/bin/sh", "args": ["-c", "exec npx chrome-devtools-mcp@1.8.0 --autoConnect "
+                                                      "--allowedUrlPattern \"$o\""]}
+        for entry in ({"command": policy["command"], "args": policy["args"]}, older):
+            with self.subTest(entry=entry):
+                self.server(entry)
+                self.write(DOC)
+                code, out = self.run_mode("install")
+                self.assertEqual(code, 0)
+                self.assertIn("CHANGED", out)
 
     def test_an_on_key_is_reported_on_whatever_the_server(self):
         self.server(None)
