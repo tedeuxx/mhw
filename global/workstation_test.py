@@ -90,7 +90,8 @@ def facts(**over):
          "plugins": [], "brief": "installed in 2/3 agent harnesses (an instruction)",
          "floor": USER_FLOOR, "admin_state": "absent", "hooks": "user layer (paste filter)",
          "key": {"required": ">=3.1 <4", "state": "match", "line": ""},
-         "runtime": "host (Linux x86_64; no container marker found)"}
+         "runtime": "host (Linux x86_64; no container marker found)",
+         "chrome_debugging": "off (devtools.remote_debugging.user-enabled absent; no DevToolsActivePort)"}
     f.update(over)
     return f
 
@@ -98,7 +99,7 @@ def facts(**over):
 class StatusOutput(unittest.TestCase):
     def test_short_view(self):
         out = ws.render_status(facts())
-        self.assertLessEqual(len(out), 14)  # 13 since the models line (ADR-0035), 14 since the MCP active set (#219)
+        self.assertLessEqual(len(out), 15)  # 13 since the models line (ADR-0035), 14 since the MCP active set (#219), 15 since chrome debugging (#224)
         self.assertIn("  source           v3.1.0 @ aaaaaaa (this checkout)", out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: not installed", out)
         self.assertIn("  check            matches this checkout", out)
@@ -144,6 +145,25 @@ class StatusOutput(unittest.TestCase):
         lines = ["OK      a", "STAMP   b", "DRIFT   c", "MISSING d", "STALE   e", "SKIP    f", "FLOOR   g",
                  "NOTE    h", "SOURCE  i"]
         self.assertEqual(ws.issues(lines), 4)
+
+
+class ChromeDebugging(unittest.TestCase):
+    """Issue #224: status carries the chrome debugging line from chrome_debugging.status_text (tested in
+    chrome_debugging_test.py, with a fixture Local State)."""
+
+    def test_status_carries_the_line(self):
+        out = ws.render_status(facts())
+        self.assertIn("  chrome debugging off (devtools.remote_debugging.user-enabled absent; "
+                      "no DevToolsActivePort)", out)
+        self.assertFalse(any(line.startswith("  chrome debugging")
+                             for line in ws.render_status(facts(chrome_debugging=None))))
+
+    def test_gather_reads_the_key_through_the_module(self):
+        with tempfile.TemporaryDirectory(prefix="chrome-debugging-") as d:
+            profile = Path(d, "Library", "Application Support", "Google", "Chrome")
+            profile.mkdir(parents=True)
+            (profile / "Local State").write_text('{"devtools":{"remote_debugging":{"user-enabled":true}}}')
+            self.assertTrue(ws.chrome_debugging("Darwin", d).startswith("on (devtools.remote_debugging.user-enabled = true;"))
 
 
 class RuntimeSummary(unittest.TestCase):
@@ -734,7 +754,15 @@ class GatherLegacyDropin(unittest.TestCase):
                   "permissions": {"deny": ["Bash(sudo:*)"]}}
         ws.admin_dropin().parent.mkdir(parents=True)
         ws.admin_dropin().write_text(json.dumps(legacy), encoding="utf-8")
+        # PR #227 B2 (M2): gather() carries the Chrome key, read from a fixture Local State in this HOME.
+        ls = ws.chrome_debugging_mod.local_state()
+        if ls is not None:
+            ls.parent.mkdir(parents=True)
+            ls.write_text('{"devtools":{"remote_debugging":{"user-enabled":true}}}', encoding="utf-8")
         f = ws.gather(str(self.proj))
+        if ls is not None:
+            self.assertTrue(f["chrome_debugging"].startswith("on (devtools.remote_debugging.user-enabled = true;"),
+                            f["chrome_debugging"])
         self.assertIn(f["key"]["state"], ("match", "mismatch"))
         self.assertEqual(f["admin_state"], "legacy")
         layers = [line for line in ws.render_summary(f) if line.startswith("  layers ")][0]

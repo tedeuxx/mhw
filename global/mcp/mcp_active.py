@@ -58,14 +58,40 @@ class ActiveSet:
         policy_doc = r.load_policy()
         policy = policy_doc["servers"]
         self.policy = {s: {n for n, v in policy.items() if s in v["surfaces"]} for s in r.SURFACES}
+        covered = r.policy_surfaces(policy_doc)
+        # name -> the surfaces a set member is configured on: its own, and a policy server's (ADR-0038
+        # amendment, Issue #219: the local copy extends a policy server to the surfaces the policy does not name).
+        self.where = {n: set(s.get("surfaces", r.SURFACES)) | set(covered.get(n, ()))
+                      for n, s in doc["servers"].items()} if self.declared else {}
+        # Set members whose local copy differs from the policy's on a surface both name: the default render
+        # refuses them (mcp_render.py policy_conflicts), name -> those surfaces.
+        self.conflicts = r.policy_conflicts(doc, policy_doc, r.launcher_dest()) if self.declared else {}
+        # Set members whose local copy differs from the policy's and is rendered only where the policy is not
+        # (it leaves the policy's surfaces out, so the render does not refuse it): name -> the surfaces where
+        # the local copy runs another command, args or env than the policy's would. Reported, not refused.
+        self.divergent = {}
+        for n, s in (doc["servers"].items() if self.declared else ()):
+            if n not in policy or n in self.conflicts:
+                continue
+            for surface in sorted(set(s.get("surfaces", r.SURFACES)) - set(covered.get(n, ()))):
+                if r.entry(surface, s, r.launcher_dest()) != r.entry(surface, policy[n], None):
+                    self.divergent.setdefault(n, []).append(surface)
         # name -> the Claude Code entries a kept server is rendered as: a set member (with the launcher for a
         # secret-bearing one) and a policy server. A deny that matches one of these would block it too.
         self.kept = {}
         if self.declared:
-            for n, e in r.desired(doc, "claude-code", r.launcher_dest()).items():
+            for n, e in r.local_desired(doc, "claude-code", r.launcher_dest(), covered).items():
                 self.kept.setdefault(n, []).append(e)
         for n, e in r.desired(policy_doc, "claude-code", None).items():
             self.kept.setdefault(n, []).append(e)
+
+    def policy_where(self, name):
+        """The surfaces the policy servers file renders this server on."""
+        return [s for s in r.SURFACES if name in self.policy.get(s, ())]
+
+    def members(self, surface):
+        """The set members configured on this surface (their own surfaces, or a policy server's)."""
+        return sorted(n for n in self.servers if surface in self.where.get(n, r.SURFACES))
 
     def outside(self, surface, name):
         """True when a declared set leaves this server out and it is not exempt."""
@@ -415,6 +441,21 @@ class Run:
         if parts:
             self.say("ABSENT", surface, "; ".join(parts), cfg)
 
+    def conflict(self, surface, cfg):
+        """Report a set member whose local copy differs from the policy server's on this surface."""
+        if self.mode == "uninstall" or not self.aset.declared:
+            return
+        here = sorted(n for n, where in self.aset.conflicts.items() if surface in where)
+        if here:
+            self.say("REPORT", surface, "set member(s) whose local copy differs from the policy server's here, so "
+                     "the policy's copy runs and global/mcp/mcp_render.py refuses the local copy: %s" % names(here),
+                     cfg)
+        apart = sorted(n for n, where in self.aset.divergent.items() if surface in where)
+        if apart:
+            self.say("REPORT", surface, "set member(s) whose local copy here runs another command, args or env "
+                     "than the policy server's copy on %s (rendered, not refused; ADR-0038): %s"
+                     % (", ".join(sorted({x for n in apart for x in self.aset.policy_where(n)})), names(apart)), cfg)
+
     def installed(self, surface):
         """The surface's config file, or None when the agent harness is not installed here."""
         target = r.surface_target(surface)
@@ -443,7 +484,7 @@ class Run:
             with open(cfg, encoding="utf-8") as fh:
                 text = fh.read()
         except FileNotFoundError:
-            self.absent("codex", cfg, sorted(self.aset.servers), [])
+            self.absent("codex", cfg, self.aset.members("codex"), [])
             return {}
         except (OSError, UnicodeDecodeError) as e:
             self.refuse("codex", cfg, "unreadable (%s); left untouched" % type(e).__name__)
@@ -459,10 +500,11 @@ class Run:
         if stuck:
             self.refuse("codex", cfg, "server(s) %s are not written as an [mcp_servers.<name>] table, so the switch "
                                       "cannot be added; turn them off by hand" % names(stuck))
-        missing = sorted(n for n in self.aset.servers if n not in servers)
+        missing = [n for n in self.aset.members("codex") if n not in servers]
         by_hand = sorted(n for n in self.aset.servers if n in servers and isinstance(servers[n], dict)
                          and servers[n].get("enabled", True) is False and lay.get(n, {}).get("mark") is None)
         self.absent("codex", cfg, missing, by_hand)
+        self.conflict("codex", cfg)
         if new_text == text:
             self.ok("codex", cfg, len(record))
             return record
@@ -484,10 +526,11 @@ class Run:
             self.refuse("kiro", cfg, "its mcpServers is not an object; left untouched")
             return prior
         new, add, back, record = plan_kiro(data, self.aset, prior)
-        missing = sorted(n for n in self.aset.servers if n not in servers)
+        missing = [n for n in self.aset.members("kiro") if n not in servers]
         by_hand = sorted(n for n in self.aset.servers if isinstance(servers.get(n), dict)
                          and servers[n].get("disabled") is True and n not in prior)
         self.absent("kiro", cfg, missing, by_hand)
+        self.conflict("kiro", cfg)
         if not (add or back) or not exists:
             self.ok("kiro", cfg, len(record))
             return record
@@ -528,8 +571,9 @@ class Run:
                      "same host, as a server kept on, so it is not denied (the deny would block both): %s"
                      % names(collide), cfg)
         blocked = blocked_members(self.aset, user_servers, new.get("deniedMcpServers", []))
-        self.absent("claude-code", user_cfg, sorted(n for n in self.aset.servers if n not in user_servers), [],
-                    blocked)
+        self.absent("claude-code", user_cfg, [n for n in self.aset.members("claude-code") if n not in user_servers],
+                    [], blocked)
+        self.conflict("claude-code", user_cfg)
         if self.aset.on and self.mode != "uninstall":
             print("NOTE    claude-code: %d claude.ai connector(s) declared on; connectors are account-level, so "
                   "whether they are connected cannot be read here (%s) %s" % (len(self.aset.on), cfg, TAG))
@@ -558,8 +602,10 @@ class Run:
         if outside:
             self.say("REPORT", "claude-desktop", "on outside the set, no native switch for one server (remove it by "
                      "hand): %s" % names(outside), cfg)
-        missing = sorted(n for n in self.aset.servers if n not in (servers if isinstance(servers, dict) else {}))
+        missing = [n for n in self.aset.members("claude-desktop")
+                   if n not in (servers if isinstance(servers, dict) else {})]
         self.absent("claude-desktop", cfg, missing, [])
+        self.conflict("claude-desktop", cfg)
 
 
 def load_set(mode, source):

@@ -180,7 +180,7 @@ job is separating an instrument from a memory.
 - **Checked by an instruction the session follows, not by a hook:** the presence of `sp:N`. The drain's
   preflight *"refuses to enter"* while an item in the active iteration lacks one — and that preflight
   is **prose in `commands/autonomy.md` executed by the session**, not `hooks/scripts/preflight.sh`.
-  **The names collide, and `commands/sprint-planning.md` is where the collision is warned about**, in
+  **The names collide, and `skills/sprint-planning/SKILL.md` is where the collision is warned about**, in
   its own words: *"That preflight is the command's own self-check and is NOT
   `hooks/scripts/preflight.sh`. The names collide and nothing but this sentence separates them … the
   word* refuses *here describes a rule someone follows, not a hook that fires."* Its falsifier,

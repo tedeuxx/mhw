@@ -33,7 +33,7 @@
 #   * It cannot tell a TRUE collection file from a plausible one. `collected: yes` is an assertion by
 #     whoever wrote the file; nothing here verifies that a browser was ever opened. A driver that
 #     invented its figures produces a byte-identical run to one that read them.
-#   * It cannot fire. Nothing dispatches this rite — see `commands/funnel-review.md`'s own last
+#   * It cannot fire. Nothing dispatches this rite — see `skills/funnel-review/SKILL.md`'s own last
 #     section. `hooks/scripts/cadence-notice.sh` NOTICES that the artifact is stale; noticing is not
 #     firing, and a hook cannot dispatch.
 #   * It cannot count findings in prose. The cap below is printed into the report; the arm that
@@ -48,7 +48,7 @@
 
 set -uo pipefail
 
-# The cap, as a NUMBER, the way `commands/sprint-retrospective.md` caps a persona at two. Two and not
+# The cap, as a NUMBER, the way `skills/sprint-retrospective/SKILL.md` caps a persona at two. Two and not
 # three: the prototype session produced three tracked items from one sitting, and a rite producing
 # three items per period is a machine for generating work — which is the failure this loop names
 # first. The cap is the ceiling, never a quota.
@@ -300,7 +300,7 @@ printf 'A candidate is not a ruling. It reaches published-voice only if the owne
 # are ruled together at /sprint-planning. The shape above is indented on purpose — the queue is read
 # by COLUMN-0 lines, so this template can never be counted as an open candidate.
 printf 'Write both lines at column 0. The candidate then waits here, open, until /sprint-planning\n'
-printf 'writes a Ruled: line under it (commands/funnel-review.md step 4).\n\n'
+printf 'writes a Ruled: line under it (skills/funnel-review/SKILL.md step 4).\n\n'
 
 printf '## What I would leave alone\n\n'
 

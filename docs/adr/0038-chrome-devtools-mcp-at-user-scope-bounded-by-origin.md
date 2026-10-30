@@ -1,4 +1,9 @@
-# ADR-0038: A `chrome-devtools` MCP server at Claude Code user scope, bounded by origin
+# ADR-0038: A `chrome-devtools` MCP server at Claude Code user scope, ~~bounded by origin~~
+
+*(Title struck in place 2026-10-29, decision D8 on
+[Issue #224](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6511323788): the server carries no
+origin bound. The filename keeps its old words, because inbound links resolve it. See the amendment
+"no origin bound" below.)*
 
 - **Status:** ~~proposed. The owner chose the scope (user scope) on
   [Issue #174](https://github.com/tedeuxx/mhw/issues/174), 2026-10-13. The rest of this record, the
@@ -70,7 +75,8 @@ tadeumendonca-skills#525: the bound must come from the project's tracked configu
 1. **User scope, the shell reads the origin at launch (chosen).** `mhw install` writes the server into
    `~/.claude.json` from a tracked `global/mcp/policy-servers.json`. The command is `/bin/sh -c`, and
    the script sets the origin from `HARNESS_SWEEP_ORIGIN`, or `http://127.0.0.1:9/*` when that is unset,
-   empty or does not begin `http://` or `https://` (see "The scheme guard" below), then `exec`s `npx`. The script carries no `${`, so Claude Code expands nothing; the shell
+   empty or does not begin `http://` or `https://` (see "The scheme guard" below), then `exec`s `npx`.
+   *(Since 2026-10-29 the value is a list of origins; see the amendment "a declared list of origins".)* The script carries no `${`, so Claude Code expands nothing; the shell
    reads the variable from the environment the harness gave the server, which carries the project's
    settings `env`. After `exec` the process table shows the `npm exec chrome-devtools-mcp@1.8.0 …
    --allowedUrlPattern <value>` line that `/sprint-review` step 0 reads. *Trade-off:* the server is
@@ -103,16 +109,22 @@ Option 1.
   2026-10-13 is 1.10.1). It is fetched by `npx --ignore-scripts -y`: install scripts do not run, and
   npm checks the tarball against the registry's integrity hash
   (`sha512-Wrm9z0/5WbVs778apjWgYRkpe9bvYQWjK2zVRwqoPAtz1IHQ5+GvotM07UGXJcfrA0rj6Gt1Pnn5+w/Tf1nU4w==`,
-  `npm view chrome-devtools-mcp@1.8.0 dist.integrity`). Flags, as the plugin: `--isolated` (a
-  temporary profile, none of the owner's sessions), `--channel stable`, `--viewport 1280x800`,
-  `--no-usage-statistics`, `--no-performance-crux`, `--allowedUrlPattern <origin>`. The flags were
-  checked against the pinned version's `--help`.
+  `npm view chrome-devtools-mcp@1.8.0 dist.integrity`). Flags, ~~as the plugin: `--isolated` (a
+  temporary profile, none of the owner's sessions), `--channel stable`, `--viewport 1280x800`,~~
+  *(struck 2026-10-24, #224: see the amendment "attach to the owner's Chrome")* `--autoConnect`
+  ~~when the project declares an http(s) origin, else `--isolated`~~ *(always, since the owner's
+  [ruling](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6428313879) of 2026-10-26)*; `--channel stable`, `--no-usage-statistics`, `--no-performance-crux`, ~~`--allowedUrlPattern <origin>`~~
+  *(struck 2026-10-29, D8: no origin bound is passed)*.
+  The flags were checked against the pinned version's `--help` ~~.~~ and, for `--autoConnect`, its
+  source.
 - **Route.** `global/mcp/mcp_render.py --policy --mode=install|check|dry-run|uninstall`, called by
   `global/install.sh` (its `mcp_step`) on every `mhw install`, `mhw check` and `mhw uninstall`. The
   previous `~/.claude.json` is kept as `~/.claude.json.pmhwc-mcp-policy-backup`, owner-only (0600). Each
   change is printed `chrome-devtools <old> -> <new>`. The names it wrote are recorded under `policy` in
   the renderer's manifest, apart from the local definition's, so neither mode removes the other's
-  servers, and a local definition that reuses a policy name is refused. A same-named server that mhw
+  servers, ~~and a local definition that reuses a policy name is refused~~ and a local definition may
+  reuse a policy name to extend it to the surfaces the policy does not name (amendment 2026-10-26
+  below). A same-named server that mhw
   did not write is refused (exit 3), never overwritten. `--scan` also reads the new backup.
 - **Coverage, harness × OS.**
 
@@ -129,8 +141,9 @@ Good:
 
 - The grant `product-lead` already carries reaches a server again, in every project, through the
   workstation's own install, check and uninstall.
-- A project with no declared origin gets a browser bound to the discard port. A declared origin reaches
-  the server from the project's tracked settings, by the measurement above.
+- ~~A project with no declared origin gets a browser bound to the discard port. A declared origin reaches
+  the server from the project's tracked settings, by the measurement above.~~ *(Struck 2026-10-29, D8:
+  there is no bound, and no project setting is read.)*
 - The version is pinned and install scripts are off, so a new release of the package is not taken
   silently.
 
@@ -147,16 +160,19 @@ Bad:
 - **A browser server in every project.** In each project but tadeumendonca-io it starts, if an agent
   calls it, a browser that can reach nothing. Its tools are visible to every agent whose tool list does
   not exclude them; the main session included.
-- **The origin is only as narrow as the project declares.** A project whose settings `env` sets a wide
-  pattern gets a wide browser. The bound is the project's to choose.
+- ~~**The origin is only as narrow as the project declares.** A project whose settings `env` sets a wide
+  pattern gets a wide browser. The bound is the project's to choose.~~ *(Struck 2026-10-29, D8: the
+  browser may reach any site; see the risk accepted in the amendment "no origin bound".)*
 - **Writing `~/.claude.json` while Claude Code runs.** ADR-0017 records that a running Claude Code
   session rewrites that file; an install made while one runs may be overwritten. Not measured here; the
   instruction is the fresh-session rule (ADR-0022): install last, then restart.
-- **The measurement is one build.** A later Claude Code may apply the settings `env` before it expands
+- ~~**The measurement is one build.** A later Claude Code may apply the settings `env` before it expands
   arguments, which is harmless here, or start expanding `$VAR` without braces. That second change would
   also rewrite the script's `$o`, and the browser could then be launched with an empty pattern, whose
   effect in the package is not measured: that direction is not known to fail closed. Re-measure on
-  every new build with the step 0 probe; a probe line with an empty value is a stop.
+  every new build with the step 0 probe; a probe line with an empty value is a stop.~~ *(Struck
+  2026-10-29, D8: the launch script reads no variable and carries no `$`, so there is nothing for a
+  harness to expand.)*
 
 ## Evidence level, and what is not measured
 
@@ -187,7 +203,8 @@ Bad:
 
 ### The scheme guard (QA advisory A1 on PR #175)
 
-The launch script keeps the value only when it begins `http://` or `https://`; anything else, including
+*(Retired 2026-10-29 with the bound it guarded, D8: the launch script no longer reads a value, so
+there is nothing to check. Kept as the record of what was built.)* The launch script keeps the value only when it begins `http://` or `https://`; anything else, including
 an empty value, becomes the discard port. Without the guard, a dash-led value such as
 `--remote-debugging-port=9222` would be passed where the pattern goes and would likely be parsed by the
 package as a flag, leaving no allow list. The value stays one quoted argument, so shell text in it is
@@ -195,9 +212,11 @@ never run. Tested with a fake `npx` (mutation-checked: with the guard removed, t
 re-measured under Claude Code 2.1.296 with a recorder server: the project's `https://` value arrived,
 and a project with none got the discard port.
 
-**What the guard does not validate.** It checks the scheme prefix only. A wide pattern still passes:
+**What the guard does not validate.** It checks the scheme prefix only. ~~A wide pattern still passes:
 `https://*`, `http://*/*` or a pattern for any host the project names is accepted as written, and the
-package's own URL-pattern parsing then decides what it allows. Whether a malformed pattern after the
+package's own URL-pattern parsing then decides what it allows.~~ *(Struck 2026-10-26, #224: a `*` in the
+host, or an empty host, is now refused; see the amendment "attach to the owner's Chrome", "The host
+guard".)* A pattern for any one host the project names is still accepted as written. Whether a malformed pattern after the
 prefix fails closed in the package is not measured. The bound is as narrow as the project declares.
 
 ## Amendment 2026-10-15: accepted ([Issue #174](https://github.com/tedeuxx/mhw/issues/174#issuecomment-6202190001))
@@ -212,6 +231,9 @@ records a measurement against them.~~ They come from the canary of 2026-10-15, r
 Issue #174, not from the ratification.
 
 ## Amendment 2026-10-17: a dedicated workspace for a local admin origin
+
+*(Superseded 2026-10-29 by D8: with no origin bound, a session in any directory reaches a local admin
+origin, so no dedicated workspace is needed and `env.HARNESS_SWEEP_ORIGIN` in it is read by nothing.)*
 
 The owner needed the browser on a device's admin page on his private LAN (a home router), from a
 session started in his home directory. The navigation was refused: that session declares no origin,
@@ -234,6 +256,324 @@ stays the discard port; fail-closed is unchanged.
   reaches the server's environment); the session that loads the dedicated workspace has not yet been
   run at the time of writing. ADR-0022 applies: start a fresh session in that directory before relying
   on it.
+
+## Amendment 2026-10-24: attach to the owner's Chrome ([Issue #224](https://github.com/tedeuxx/mhw/issues/224))
+
+The owner decided, verbatim (decision D6 on #220): *"nao faz sentido voce rodar o chrome-devtools fora
+do meu profile. senao voce vai sempre pedir para logar."* On #224 he added that remote debugging must
+be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
+
+- **The change.** ~~When the project declares an http(s) origin in `HARNESS_SWEEP_ORIGIN`, the server
+  passes `--autoConnect --channel stable` … Otherwise it keeps the throwaway `--isolated` launch … (decided
+  by the coordinator, reversible).~~ *(Struck 2026-10-26: the gate found on PR #227 (B1) that this
+  narrowed acceptance criterion 1, and the owner ruled "Sempre seu perfil" on
+  [#224](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6428313879). He declined keeping the isolated launch without an origin, and declined not starting
+  the server without one.)* The server always passes `--autoConnect --channel stable` and attaches
+  to the owner's running Chrome, the default profile of the stable channel. `--isolated` is never
+  passed (1.8.0 declares it a conflict of `--autoConnect`), and `--viewport` is removed. ~~With no
+  declared origin the bound stays on the discard port. The origin bound is unchanged.~~ *(Struck
+  2026-10-29, D8: the bound is removed.)*
+- **The host guard (added 2026-10-26, from the `agents-lead` lens on PR #227; retired 2026-10-29 with
+  the bound, D8).** Attached, the bound is
+  the only thing between an agent and every login in his Chrome, and `HARNESS_SWEEP_ORIGIN` comes from
+  a project's committed settings, so any repository could widen it. The lens measured that the scheme
+  guard alone accepts `https://*`, `https://*/*` and `http://*:*/*`, and that URLPattern `https://*`
+  matches any https host. The launch script takes the host part (the scheme stripped, cut at the first
+  `/`, through `cut -d/ -f3`). ~~It sends a value whose host is empty or contains `*` to the discard
+  port.~~ *(Struck the same day: a denylist of `*` blocks spellings, not the class. The lens re-review at
+  `632c11a` measured that `https://([a-z.]+)/*` and `https://:a.:b/*` passed it and that URLPattern
+  matches other hosts, such as a forge's settings page or a mail host, with them.)* **The host is an
+  allowlist:** ASCII letters, digits, `.` and `-`, with an optional `:` and digits for a port. An empty
+  host, an empty port, a port that is not all digits, or any other character (regex groups, named
+  groups, `{` `?` `+` `\` `*`, `_`) sends the value to the discard port. The letters are listed one by
+  one rather than as a range, so the shell's locale cannot widen them. A `*` in the path stays allowed,
+  since the declared form is `https://<host>/*`; `http://localhost:4321/*` stays valid. A subdomain
+  wildcard (`https://*.example/*`) is refused too. Tested per form in `mcp_render_test.py` (the
+  launch-script test), with each clause of the guard removed or the character set widened in the
+  source, six mutants, each red.
+  **Control characters are refused before the host is read** (lens re-review at `4434e60`, measured):
+  `cut` is line-based and `$(…)` drops a trailing newline, while URLPattern strips a newline, so
+  `https://m` + newline + `(.*)/*` and two similar values passed unchanged and became the hosts `m*`,
+  `g*` and `a.io*`. A value that `tr -d '\000-\037\177'` would change now goes to the discard port, a
+  missing `tr` included. Rows for newline, CR, tab and DEL, in and outside the host; four mutants of the
+  refusal, each red. The host is still taken with `cut`, not with `${o#*://}`: the measurement above
+  found Claude Code expanding `${…}` in a server's arguments, and the test that no `${` reaches the
+  harness stays. With control characters refused, `cut` sees one line.
+  **Scope: this guard protects against a mistaken origin value, not against a hostile project.** A
+  project file that can set `env` can also register hooks that run as the owner, so a repository the
+  owner does not trust is outside what any argument check can bound. The script
+  uses `$(…)`, not `${…}`; the measurement above showed Claude Code expanding `${VAR}` forms, and `$(…)`
+  passing through is read from the test of the rendered entry, not measured in a live session.
+- **The risk the owner accepted.** The agent drives a browser that holds all of his logins. ~~Within the
+  bound, a page opens with his session: on the declared origin, the agent sees what he sees when he is
+  logged in there. Outside it, the bound refuses the page.~~ *(Struck 2026-10-29, D8: there is no bound,
+  so a page on any site opens with his session. The wider risk he accepted is in the amendment "no
+  origin bound".)*
+- **Why the bound still holds when attached** ~~(cited from source; the canary is owed)~~ *(measured
+  2026-10-26, [live probe](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427884355): attached to the owner's Chrome 155.0.8059.85, `https://example.com/` opened
+  under the bound and `https://example.org/` was refused with "Navigation to https://example.org/ is
+  blocked by blocklist/allowlist rules")*. The source reason, in 1.8.0:
+  `build/src/index.js` hands the same `allowlist` to `ensureBrowserConnected` as to
+  `ensureBrowserLaunched`, and `build/src/browser.js` passes it to `puppeteer.connect`. In the bundled
+  puppeteer-core 25.8.0, the connect path builds the same `CdpBrowser` and `TargetManager` as the
+  launch path. They refuse a `goto` outside the pattern (*"Navigation to … is blocked by
+  blocklist/allowlist rules"*), detach from tabs whose URL is outside it at the first attach, and set a
+  network rule on every target the server attaches to that takes everything but the pattern offline.
+  That rule lands only on the server's own targets: tabs open at the first attach whose URL is outside
+  the pattern are detached. The owner's own new tab was probably never attached, so no rule reached
+  it: a hypothesis that fits the measured result below, where such a tab kept its network, and was not
+  traced further in the source.
+- **Chrome's own controls, kept.** The remote-debugging server that `--autoConnect` reaches is the
+  one the owner turns on at `chrome://inspect/#remote-debugging`. Chrome starts it in an
+  approval-only mode and asks him to allow a connection. **Measured** (the same probe): one connection,
+  one approval prompt, which he allowed. **Not measured:** whether the prompt fires on every connection
+  (as Chrome's documentation says) or once per Chrome run; the probe made one connection. That prompt
+  fits D1 (presence) and is not bypassed. A local process that tries the same port meets the same prompt
+  (cited, not measured).
+- **Default on, with nothing to remember.** The toggle is the Chrome preference
+  `devtools.remote_debugging.user-enabled`, stored in the browser's Local State, not per profile, and
+  Chrome reads it at startup. Neither alternative turns it on: Chrome ignores `--remote-debugging-port`
+  on the default user data directory since Chrome 136, and the `RemoteDebuggingAllowed` policy can only
+  forbid remote debugging. ~~`mhw install` does not write it~~ *(owner's decision on
+  [#224](https://github.com/tedeuxx/mhw/issues/224), the same day: "mhw edita o Local State")*
+  `mhw install` sets it, through `global/chrome_debugging.py`:
+  - only while Chrome is not running; if it runs, the step prints one SKIP line and writes nothing;
+  - only that key: a JSON round-trip that keeps every other field and the file's mode, written to a
+    temporary file in Chrome's own directory and renamed over the original;
+  - no backup anywhere, and no output that carries the file's contents;
+  - a no-op when the key is already true; `check` reports DRIFT while it is not; uninstall leaves it.
+- **Turned on only when something would attach.** The step writes the key only when the Claude Code user
+  configuration holds the `chrome-devtools` server in its attach form (`--autoConnect`)~~, with the origin
+  bound (`--allowedUrlPattern`) in the same args~~ *(struck 2026-10-29, D8: the attach form alone
+  counts)*. When the MCP
+  renderer refused the server, or an older isolated copy is kept, it prints a SKIP line and leaves the
+  key as it is.
+- **Status.** `mhw status` prints a `chrome debugging` line with that one key's value (read as that key,
+  never printed as file contents) and whether `DevToolsActivePort` exists. So a Chrome update that
+  renames the key reads "off" or "not read" instead of failing silently. `DevToolsActivePort` is
+  written when the server starts, and no removal of it was found in Chrome's source, so a present file
+  may be stale.
+- **Accepted with the decision:** Local State also holds personal data, and a Chrome update can change
+  the key. **Not measured:** the `Local State` write itself, and whether Chrome honours a value written
+  from outside it; in the probe the owner turned the toggle on by hand. ~~The first install on the
+  reference machine, with Chrome quit, is that measurement.~~ *(Struck 2026-10-26, PR #227 advisory A1: on the reference
+  machine the key is already `true`, set by his manual toggle, so the first install prints `OK` and
+  writes nothing. The write stays unmeasured until a run starts from a key that is false or absent,
+  with Chrome quit. That read does show Chrome 155 stores the manual toggle under exactly this key.)*
+
+Consequences, bad:
+
+- **The owner's own MCP overlay conflicts with this change, and an owner action comes before the local
+  render.** His local definition lists `chrome-devtools` on `claude-code`, `codex` and `kiro`, with
+  `--isolated`. Under the 2026-10-26 amendment below (#219), that copy differs from the policy's on
+  `claude-code`. Measured in a throwaway home with a definition of that shape (`install.sh`, this
+  branch): install exits 0, the policy writes the attach form into `~/.claude.json`, and the active-set
+  check prints `REPORT … differs from the policy server's here` for `claude-code` and `ABSENT` for Codex
+  and Kiro. The local render, `mcp_render.py` in its default mode, is the run that refuses the server on
+  every surface and exits 3 (that amendment's rule 3; read from its text and tests, not re-run here).
+  **Before that render, he drops `claude-code` from the entry's `surfaces`** (rule 4: a policy
+  server's local copy may leave `claude-code` out, since the policy puts it there). mhw does not edit his
+  overlay. After that, **Codex and Kiro keep his isolated launch**, and only Claude Code attaches to his
+  Chrome. The Chrome step looks only at the Claude Code entry: it turns remote debugging on only when
+  that entry is in its attach form.
+- **A Chrome prompt in any project whose agent calls the MCP, accepted by the owner** ([ruling](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6428313879)).
+  The server is defined in every project, so any agent's first call raises Chrome's approval prompt on
+  his screen. ~~In a project with no declared origin, the bound is the discard port, so the agent reaches
+  nothing useful even after he allows it.~~ *(Struck 2026-10-29, D8: once he allows it, the agent in any
+  project reaches any site.)*
+
+- ~~**The bound now clamps the owner's own browsing while a session is attached.** The network rule
+  lands on every target the server attaches to, including a tab the owner opens himself.~~ *(Refuted
+  2026-10-26 by the [live probe](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427884355): while the server was attached, a tab he opened himself to
+  `https://example.net/`, outside the bound, loaded. One run, one build; the source reading was wrong
+  for his own tabs. Not measured: a tab's network after the server disconnects. He had closed the tab
+  before that step ([correction](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427911167)).)*
+- **No unattended sweep.** A connection waits for his click, so a sweep with nobody at the machine
+  cannot attach. That is D1 working as designed.
+- **The product lens changes.** The sweep now sees the declared origin logged in as the owner, not as
+  the anonymous reader. The package offers `new_page` with an `isolatedContext` (a separate browser
+  context inside the attached Chrome, holding none of his cookies), and `product-lead`'s brief now
+  asks for it when the reader's view is the point.
+
+Evidence level: **written and tested** (`global/mcp/mcp_render_test.py`, `global/workstation_test.py`,
+`global/chrome_debugging_test.py`, on a fixture Local State). **Measured** for the package itself, by the
+[live probe of 2026-10-26](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427884355), which launched `chrome-devtools-mcp@1.8.0 --autoConnect --channel stable
+--allowedUrlPattern 'https://example.com/*'` on its own, with the owner watching: the attach, the
+approval prompt, the allowed origin opening and the disallowed origin refused. The rendered
+configuration is not installed and not loaded; that needs `mhw install` and a fresh session
+(ADR-0022). Still not measured: the `Local State` write, whether the prompt fires per connection or per
+Chrome run, and a tab's network after the server disconnects ([correction](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427911167)).
+
+## Amendment 2026-10-26: the local definition may extend a policy server ([Issue #219](https://github.com/tedeuxx/mhw/issues/219#issuecomment-6427936169))
+
+**What happened.** On v8.1.0 the owner put `chrome-devtools` in his local MCP definition, to have it on
+Codex, Kiro and the Claude desktop app too, as a member of the active set
+([ADR-0041](0041-mcp-active-set-native-switch-off-per-harness.md)). The renderer's default mode refused
+the **whole** render, because the name is also a policy server: no set member reached any agent
+harness. **The owner's decision (2026-10-26):** fix mhw so that the local definition may extend a
+policy server to the agent harnesses the policy does not cover.
+
+**The rule** (`global/mcp/mcp_render.py`: `policy_surfaces`, `local_desired`, `policy_conflicts`):
+
+1. **On a surface the policy names, the policy's copy is authoritative.** The default mode never writes
+   the local copy there, never removes the policy's copy, and drops the name from its own record for
+   that surface if an earlier render left it there. It prints `POLICY  <surface>: <name> rendered here
+   by the policy servers`.
+2. **On every other surface the local copy is rendered as any other server** of the definition, under
+   the local definition's own record and backups.
+3. **A real conflict is refused, that server alone.** A conflict is a local copy whose entry, on a
+   surface both name, differs from the policy's own entry there (another command, other args, an env,
+   a secret). The definition then says something that does not run on that surface. The server is
+   written nowhere by that run, a copy mhw wrote earlier is kept exactly as it is, the run prints
+   `REFUSE  <name>: … differs from the policy's on <surfaces>` and exits 3, and **every other server is
+   rendered**. A local copy equal to the policy's, or one that leaves the policy's surfaces out of its
+   `surfaces`, cannot conflict.
+4. **Parity counts the policy's surfaces.** With an `active_set`, a policy server's local copy may leave
+   `claude-code` out of its `surfaces`: the policy already puts it there. Any other server still has to
+   name codex, claude-code and kiro.
+
+**Why refuse a conflict rather than report it.** Reporting it and rendering the local copy elsewhere
+would run one command on Codex and Kiro and another on Claude Code under one name, silently, which
+breaks the parity the active set exists for, while the definition reads as if both were the same. A
+refusal of one server costs one server; the old refusal of the whole render cost all of them. Keeping
+an earlier copy follows the renderer's exit-3 convention, *left untouched*. **A copy that differs but
+leaves the policy's surfaces out is reported, not refused** (follow-up of the same date, advisory 1 of
+the gate's verdict on PR #228): that definition names no surface where the policy's copy runs, so it
+says nothing false, and a per-harness variant on surfaces the policy does not cover is the owner's to
+choose. What it does break is the active set's parity, so `--active --mode=check` and `mhw status`
+print a `REPORT` naming the server and the surfaces where it differs (ADR-0041 amendment).
+
+**Rejected: let the local copy override the policy everywhere.** It would let an untracked file widen
+the origin bound this record exists for, on the one agent harness the bound was measured on.
+
+**One overlap blocking every server was fixed in the same change, not as a separate one.** Once the
+overlap stopped being refused as a whole, the only remaining refusal is the per-server conflict, so a
+separate fix would have had nothing left to change.
+
+**The active set agrees** (`global/mcp/mcp_active.py`, ADR-0041 amendment of the same date): a set
+member is expected only on the surfaces it is configured for (its own and the policy's), so a member
+whose `surfaces` leave out the desktop app is no longer reported `ABSENT` there; a conflicting member
+is reported (`REPORT … differs from the policy server's here`), and `mhw status` lists it.
+
+**Evidence level.** Written and tested in throwaway homes (`global/mcp/mcp_render_test.py`, class
+`PolicyExtension`); each new assertion was checked against ten mutations of the source, each turned it
+red. Not run on the reference machine; the owner's render runs after the release.
+
+## Amendment 2026-10-29: a declared list of origins ([Issue #220](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6509761287), decision D7)
+
+*(Superseded the same day by D8, the amendment "no origin bound" below: the list, its checks and its
+discard-port fallback are removed with the bound. Kept as the record of what was decided and built.)*
+
+**What happened.** A canary on the real forge page, with the bound set to `https://github.com/*`,
+filled a secret form but could not create the secret
+([run](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6509543202)). The bound cut every
+request outside `github.com`, including the asset host that serves the scripts which seal the value in
+the browser before submit, so the server rejected the post.
+
+**The owner's decision (D7, 2026-10-29):** *"Lista declarada"*. `HARNESS_SWEEP_ORIGIN` accepts several
+origins: the site plus only the hosts the page is measured to need. Declined: keeping one origin, and
+broad wildcards such as a subdomain wildcard for the forge or its asset host.
+
+**Fact behind it.** `chrome-devtools-mcp@1.8.0` declares `--allowedUrlPattern` as `type: 'array'`
+("Accepts an array of patterns", `build/src/cli.js`). Read from the package source, as recorded on the
+Issue; the live behaviour with more than one pattern is measured by the canary rerun, not here.
+
+**The rule** (the launch script in `global/mcp/policy-servers.json`):
+
+- **The value is a list separated by single spaces.** Each element is passed to the server as its own
+  `--allowedUrlPattern <element>`, in the declared order.
+- **Every element passes the same three checks** as the single origin did: it begins `http://` or
+  `https://`; it carries no control character; its host passes the allowlist (letters, digits, `.`,
+  `-`, an optional `:` and digits). A wildcard host, URLPattern group syntax such as `([a-z.]+)` or
+  `:a.:b`, and an embedded newline are refused in any position.
+- **One failure fails the whole list.** If any element fails, or the list is empty, or an element is
+  empty (a leading, trailing or doubled space), the server gets one `--allowedUrlPattern` with the
+  discard port `http://127.0.0.1:9/*`. A bad element is never dropped while the rest are kept: a list
+  that silently lost a member would read as declared while binding something else, and the failure
+  would show only as a refused page.
+- **A tab is a refusal, not a separator.** It is a control character, so the control-character check
+  refuses the whole value before it is split. Treating it as a separator would widen what a pasted
+  value can mean for no gain; the declared form uses spaces.
+- **Unchanged:** POSIX `/bin/sh`, no `${` anywhere in the script (Claude Code expands it in server
+  arguments, measured above), `--autoConnect` always, `--isolated` never. The split runs with globbing
+  off (`set -f`), so a pattern such as `https://site.example/*` is never expanded against the working
+  directory.
+
+**What the owner accepts with it.** Each declared origin is one more place where the agent opens pages
+with his logged-in session. The list is a project's committed setting, so the scope note of the host
+guard applies to every element: the checks protect against a mistaken value, not a hostile project.
+
+**Which list the forge case needs is not decided here.** D7 says the canary measures it; this
+amendment only makes a list expressible. The rerun on the throwaway repository sets the measured list
+in its own session.
+
+**Evidence level.** Written and tested (`global/mcp/mcp_render_test.py`, the launch-script test): a
+two- and a three-origin list pass; each earlier bypass in second (and third) position, a tab, a
+newline, an empty list and an empty element fail the whole list closed; a glob-shaped element is not
+expanded. The same cases pass under dash, bash and ksh. Eight mutants of the source (globbing on, only
+the first element checked, the bad element dropped instead of the whole list, no empty-element check,
+no control-character refusal, a tab as separator, no per-element scheme check, `*` in the host
+allowlist), each red. Not installed, not loaded: that needs `mhw install` and a fresh session
+(ADR-0022).
+
+## Amendment 2026-10-29: no origin bound ([Issue #224](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6511323788), decision D8)
+
+**The owner's decision (D8, 2026-10-29)**, verbatim: *«nao preicsa restringir soemtne dominio
+github»*. Asked how the domain bound should work from now on, he chose **"Sem limite nenhum"**. He
+declined two options: a bound only when `HARNESS_SWEEP_ORIGIN` is declared, and keeping the bound as
+it is.
+
+**D8 supersedes the origin bound and D7.** It replaces the bound this record was named for, D7's
+declared list, the scheme guard, the host guard and the discard-port fallback. The amendments that
+built them stay above, struck where they made a claim about the current launch.
+
+**The rule** (the launch script in `global/mcp/policy-servers.json`):
+
+- The server is launched as `exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect
+  --channel stable --no-usage-statistics --no-performance-crux`. **No `--allowedUrlPattern` is
+  passed.** The agent may navigate any site in the owner's Chrome.
+- **The script reads no environment variable** and carries no `$`. `HARNESS_SWEEP_ORIGIN` no longer
+  has a consumer. A project that still sets it changes nothing, and `/handoff`'s `launch-line.py`
+  dropped it from its allowlist of launch variables. The allowlist is empty and refuses every `--env`.
+- **Unchanged:** the pinned version and `--ignore-scripts`; `--autoConnect` always, `--isolated` never
+  (the 2026-10-24 amendment); POSIX `/bin/sh` as the command, kept so the rendered entry's shape does
+  not change for the renderer's ownership and conflict checks; Chrome's approval prompt on a connection;
+  the `Local State` step, which now counts the attach form alone (`global/chrome_debugging.py`).
+
+**The risk the owner accepted, stated to him before he chose.** The agent browses with his logged-in
+accounts. A malicious page can try to instruct the agent (prompt injection) while it has that access.
+Nothing in this control limits which page that is any more. What still stands between such a page and
+his accounts is Chrome's approval prompt for the connection, `product-lead`'s exclusion of
+`evaluate_script`, `fill`, `type_text` and the other input tools, and the persona's own judgement.
+**None of those three is measured against an injection.** The exclusions are a tool list, native in
+Claude Code; the judgement is an instruction.
+
+**What follows elsewhere:**
+
+- ADR-0040's rule 3, which relied on the bound to confine the secret-renewal page to the forge, is
+  reconciled in that record (its 2026-10-29 D8 amendment).
+- `/sprint-review` step 0 no longer reads a bound off the process. It checks that the browser server
+  runs and that it attaches (`--autoConnect`).
+- The rejected option in the 2026-10-26 amendment, *"let the local copy override the policy
+  everywhere"*, gave as its reason that an untracked file could widen the origin bound. That reason has
+  no subject now. The rejection stands on its other ground: on `claude-code` the tracked policy decides
+  the launch.
+
+**Evidence level.** Written and tested: `global/mcp/mcp_render_test.py` (class `Policy`: the policy file
+carries no `--allowedUrlPattern`, no `HARNESS_SWEEP_ORIGIN` and no `$`; the launch script, run with a
+fake `npx`, passes the same argv whatever the environment holds, with `--autoConnect` once and no
+`--allowedUrlPattern`), `global/install.test.sh` section 19b, `global/chrome_debugging_test.py` and
+`global/method/method_commands_test.py`. Mutation-checked: re-adding `--allowedUrlPattern` to the
+source script turns the render tests red. **Not installed and not loaded** on the reference machine:
+that needs `mhw install` and a fresh session (ADR-0022), then a canary in which a page outside any
+former origin opens. The canary of 2026-10-15 and the live probe of 2026-10-26 measured the bound; they
+say nothing about the launch without it.
+
+**Codex, Kiro and the Claude desktop app (added 2026-10-29, `agents-lead` lens on PR #237).** The policy
+renders only to `claude-code`. Those other surfaces get `chrome-devtools` from the owner's local MCP
+definition (the 2026-10-26 amendment), and that copy keeps its own arguments. D8 takes effect there only
+once the local definition's copy matches the policy server's command and args; until then it still
+passes whatever bound it was written with. mhw does not edit the owner's overlay.
 
 ## Links
 

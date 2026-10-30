@@ -999,7 +999,8 @@ mcp_step() {
     return 0
   fi
   # The policy MCP servers (ADR-0038, Issue #174): chrome-devtools in the Claude Code user configuration
-  # (~/.claude.json), bounded by origin. old -> new, a 0600 backup, removed on uninstall.
+  # (~/.claude.json), with no origin bound since ADR-0038 amendment D8. old -> new, a 0600 backup, removed
+  # on uninstall.
   python3 -B "$script_dir/mcp/mcp_render.py" --policy "--mode=$mode" "--stamp=$stamp" || raise $?
   # The MCP active set (Issue #219, ADR-0041): once the local MCP definition declares "active_set", every
   # server outside it is turned off through each agent harness's own switch (Codex enabled = false,
@@ -1007,10 +1008,23 @@ mcp_step() {
   # nothing is turned off, and uninstall turns back on what install turned off.
   python3 -B "$script_dir/mcp/mcp_render.py" --active "--mode=$mode" "--stamp=$stamp" || raise $?
 }
+# Chrome's remote-debugging toggle (Issue #224, ADR-0038 amendment 2026-10-24): the chrome-devtools server
+# attaches to the owner's Chrome, so global/chrome_debugging.py sets devtools.remote_debugging.user-enabled
+# in Chrome's Local State, only while Chrome is not running, changing that one key and printing none of the
+# file. Chrome still asks him to allow a connection. Uninstall leaves the key as it is.
+chrome_step() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP    Chrome remote debugging: python3 3.9 or later is required"
+    raise 2
+    return 0
+  fi
+  python3 -B "$script_dir/chrome_debugging.py" "--mode=$mode" || raise $?
+}
 if [ "$mode" = uninstall ]; then
   allow_uninstall
   models_step
   mcp_step
+  chrome_step
   kiro_step
   shell_rc_uninstall   # before uninstall_user, which removes the data directory once it is empty
   uninstall_user
@@ -1090,6 +1104,7 @@ fi
 merge_settings
 kiro_step
 mcp_step
+chrome_step
 models_step
 allow_step
 method_step

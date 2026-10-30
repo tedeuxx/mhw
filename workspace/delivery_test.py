@@ -359,8 +359,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(policy["integration_branch"], "rc/next")
         self.assertEqual(policy["release_merge"], "owner")
         for carrier in ("AGENTS.md", "global/AGENTS.md", "workspace/README.md",
-                        ".kiro/steering/workspace-session.md", ".claude/commands/session-finish.md",
-                        ".agents/skills/source-command-session-finish/SKILL.md",
+                        ".kiro/steering/workspace-session.md",
                         "overlay/AGENTS.md", "overlay/desktop-instructions.md"):
             text = " ".join((d.ROOT / carrier).read_text().split())
             with self.subTest(carrier=carrier):
@@ -397,17 +396,27 @@ class DeliveryTests(unittest.TestCase):
     def test_carriers_state_who_merges(self):
         # Issue #60: agents merge slices into rc/next; only the release candidate waits for the owner.
         for carrier in ("AGENTS.md", "workspace/README.md",
-                        ".kiro/steering/workspace-session.md", ".claude/commands/session-finish.md"):
+                        ".kiro/steering/workspace-session.md"):
             text = " ".join((d.ROOT / carrier).read_text().split())
             with self.subTest(carrier=carrier):
                 self.assertIn("rc/next", text)
                 self.assertRegex(text, r"(?i)owner")
 
+    def test_session_finish_skill_is_removed(self):
+        # Owner, 2026-10-29 (PR #233): the workspace session-finish skill is removed on every harness;
+        # workspace/README.md and delivery.py are the only delivery route. No carrier of it may return.
+        for rel in (".claude/skills/session-finish", ".agents/skills/session-finish",
+                    ".kiro/skills/session-finish", ".claude/commands/session-finish.md",
+                    ".agents/skills/source-command-session-finish"):
+            with self.subTest(path=rel):
+                self.assertFalse((d.ROOT / rel).exists(), rel)
+        brief = " ".join((d.ROOT / "AGENTS.md").read_text().split())
+        self.assertNotIn("/session-finish", brief)
+        self.assertNotIn("$session-finish", brief)
+
     def test_finish_carriers_route_slices_through_the_gate(self):
         # Slices merge through delivery.py's rc/next gate; no carrier tells an agent to merge by hand.
-        for carrier in (".claude/commands/session-finish.md",
-                        ".agents/skills/source-command-session-finish/SKILL.md",
-                        "workspace/README.md", "AGENTS.md"):
+        for carrier in ("workspace/README.md", "AGENTS.md"):
             text = " ".join((d.ROOT / carrier).read_text().split())
             with self.subTest(carrier=carrier):
                 self.assertIn("python3 -B workspace/delivery.py merge --pr", text)

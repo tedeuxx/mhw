@@ -1,8 +1,7 @@
 ---
 name: "sprint-review"
-description: "Sweep the running product at iteration close — the live surface, derived rather than listed, at more than one viewport and in every locale, and report what a reader would meet at a derived lower bound. Use when the drain reports its entry snapshot exhausted, or when the owner types it against an iteration worked by hand. It returns observations for the owner, never a verdict, and it gates nothing."
+description: "Sweep the running product at iteration close — the live surface, derived rather than listed, at more than one viewport and in every locale, and report what a reader would meet at a derived lower bound. Use when the drain reports its entry snapshot exhausted, or when the owner types it against an iteration worked by hand. It returns observations for the owner, never a verdict, and it gates nothing. It takes an optional iteration title as its argument, typed after its name; without one it uses the active iteration."
 purpose: "give the closing of an iteration a look at the running product, because every gate in this loop reads a diff and none of them can see a page that renders wrong"
-argument-hint: "[iteration] (defaults to the active iteration)"
 ---
 
 > **Read this first: hooks named below are the retired plugin's, not controls you have (#61).** This
@@ -19,8 +18,13 @@ argument-hint: "[iteration] (defaults to the active iteration)"
 > directory the method installs them to, the same for every agent harness, so the rite runs them from
 > any repository.
 
-Run the sprint review for the iteration named by `$ARGUMENTS` (default: the active iteration, derived
-from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
+> **A skill, not a command, since 2026-10-26** (the owner: *"para mim sao skills"*). Invoke it by name:
+> Claude Code `/sprint-review`, Codex `$sprint-review`, Kiro `/sprint-review`. Any agent harness may also load it
+> on its own when the task matches its description; the rite's steps and its owner acts are
+> unchanged by that.
+
+Run the sprint review for the iteration the owner named after this skill's name (default: the active
+iteration, derived from the pool per `/agents-configuration` rule 1 — **enumerate, never type a milestone name**).
 
 **This file is the second half of a promise that has been plural since #326.** `/autonomy on` has said
 *"the closing ceremonies run against the exhausted iteration"* since then; `/sprint-retrospective`
@@ -73,7 +77,7 @@ Two independent reasons, and either alone would settle it:
    for.
 2. **The retrospective feeds each consulted persona its OWN artifacts, and this rite's report is on
    that list.** Run second, it would be an artifact produced after the consultation that would have
-   read it. **The list is `commands/sprint-retrospective.md`'s step 3, and it is closed** — check the
+   read it. **The list is `skills/sprint-retrospective/SKILL.md`'s step 3, and it is closed** — check the
    bullet naming `docs/iteration-sweep/<iteration>.md` is there, because that bullet is the whole of
    this reason. **It was NOT there when this sentence was first written**, and the same slice added it
    after a review found the reason resting on a consumption relationship that did not exist. Read that
@@ -83,85 +87,70 @@ Two independent reasons, and either alone would settle it:
 file, and by this loop's own test — *would something stop me, or only my memory?* — it is not
 engineered.
 
-## Step 0 — confirm the browser bound BEFORE anything is derived or dispatched (#525)
+## Step 0 — confirm the browser server runs, attached, BEFORE anything is derived or dispatched (#525)
 
 **Run this first, in the session that will dispatch, before the route generator runs and before any
-persona is dispatched.** The browser this rite drives is bounded by `--allowedUrlPattern`, with the
-value of `HARNESS_SWEEP_ORIGIN` or, when that is unset, empty or not an `http://` or `https://` value,
-`http://127.0.0.1:9/*`. ~~`.mcp.json`'s
-`--allowedUrlPattern ${HARNESS_SWEEP_ORIGIN:-http://127.0.0.1:9/*}`~~ *(struck 2026-10-13, mhw#174: the
-server is no longer the plugin's `.mcp.json`. The workstation renders it into the Claude Code user
-configuration, and its shell reads the variable when the server starts, so a project's settings `env`
-reaches it. mhw ADR-0038 records why: Claude Code 2.1.296 expands `${…}` in server arguments before it
-applies a project's settings `env`.)* The default is the discard port,
-so the bound fails closed: with no origin declared, the browser can reach nothing. **Until #525 the
-rite learned that only by dispatching a sweep that could only write FAILED.** In three closes in a
-row the shipped server rendered no sweep (sprint-02, sprint-03, sprint-04, recorded in
-`docs/retrospective/sprint-04/product-lead.md`, Finding 1). Two of those closes, sprint-02 and
-sprint-04, wrote FAILED. Sprint-03 rendered its routes only through a browser outside the bound, and
-its report reads *completed with named gaps*, not FAILED.
+persona is dispatched.** Until #525 the rite learned that its browser could not do the work only by
+dispatching a sweep that could only write FAILED. In three closes in a row the shipped server rendered
+no sweep (sprint-02, sprint-03, sprint-04, recorded in `docs/retrospective/sprint-04/product-lead.md`,
+Finding 1).
 
-**The probe reads the SERVER, not the environment.** It prints the argument the browser server was
-actually launched with, from the process table:
+**Since mhw#224, decision D8 (2026-10-29), the browser has no origin bound.** The owner chose *"Sem
+limite nenhum"*: the workstation launches `chrome-devtools-mcp` with `--autoConnect` and no
+`--allowedUrlPattern`, so the agent may navigate any site in his Chrome (mhw ADR-0038, amendment "no
+origin bound"). Step 0 therefore no longer compares a bound with a declaration, and
+`HARNESS_SWEEP_ORIGIN` is read by nothing. The earlier step 0, which classified the server's
+`--allowedUrlPattern` values against the consuming repository's declared origin list (mhw#220, D7), is
+in this file's git history. What step 0 still checks is that a browser server runs in its attach form,
+and that it is not an older render still carrying the retired bound.
+
+**The probe reads the SERVER, not the environment.** It prints one line per attached server, its pid
+first:
 
 ```
-ps -ax -o pid=,ppid=,args= | grep -E -- 'chrome-devtools-mcp[^ ]* .*--allowedUrlPattern ' | grep -v grep | grep -oE -- '--allowedUrlPattern [^ ]+'
-# measured 2026-09-28, Claude Code 2.1.283, variable unset in the session:
-# -> --allowedUrlPattern http://127.0.0.1:9/*
+ps -ax -o pid=,args= | grep -E -- 'chrome-devtools-mcp[^ ]* .*--autoConnect( |$)' | grep -v grep | awk '{b = "unbounded"; for (i = 2; i <= NF; i++) if ($i == "--allowedUrlPattern" || index($i, "--allowedUrlPattern=") == 1) b = "BOUND"; print $1, b}'
+# -> 101 unbounded     the server as the workstation renders it since D8
+# -> 103 BOUND         a copy still carrying --allowedUrlPattern <value>
+# -> 105 BOUND         the same, spelled --allowedUrlPattern=<value>
 ```
 
-**The probe requires the package name before the flag on the same line.** The line that carries the
-flag is the `npm exec chrome-devtools-mcp@…` launcher. Its node child does not repeat the arguments.
-Measured on the same host with a non-server wrapper running,
-`sh -c 'sleep 40; : --allowedUrlPattern https://example.org/*'`: the looser form
-`grep -E -- '--allowedUrlPattern'` printed three lines. They were the harness's own quoted eval
-wrapper, the `sh -c` line with the complete value unquoted, and the real server. The form above
-printed only the server line.
+The lines above are from synthetic process lines fed to the same pipeline. It also dropped a line for
+an `--isolated` server and one for the package's node child (the child does not repeat the arguments;
+the `npm exec chrome-devtools-mcp@…` launcher does), and read a word that only begins with the flag
+name, such as `--allowedUrlPatternX`, as unbounded. Run against the live process table on 2026-10-29,
+with no server running, it printed nothing.
 
-**Why the process and not `printenv HARNESS_SWEEP_ORIGIN`.** The environment says what the session
-holds. It does not say what the host passed to the server. A host that does not expand
-`${…}` in a plugin's server arguments hands the server the literal string, so `printenv` can pass
-while the server still fails. That is the sprint-02 hypothesis: *"Failed to construct 'URLPattern': A
-base URL must be provided for a relative constructor string"*. The argv shows the literal when that
-happens, so the probe catches it where an environment check would not.
-
-**Classify what it prints. Exactly one outcome proceeds.** If it prints more than one line, proceed
-only when one of them equals the tracked declaration, and list all the lines in the dispatch:
+**Where a `BOUND` line comes from depends on the agent harness.** On Claude Code the workstation
+renders the server from its tracked policy, so a `BOUND` line there is an install older than D8. On
+Codex and Kiro the policy is not rendered: those agent harnesses get `chrome-devtools` from the owner's
+local MCP definition, and that copy keeps whatever arguments it was written with. A `BOUND` line there,
+or no line at all because that copy does not pass `--autoConnect`, means the local copy does not match
+the policy server. D8 takes effect on those agent harnesses only once it does.
 
 | the probe prints | meaning | outcome |
 |---|---|---|
-| nothing | no browser server is running on this host, or this host's shell cannot see the process table | **`SWEEP-ORIGIN-UNBOUND`** |
-| a value beginning `$` | the host passed the argument **unexpanded** | **`SWEEP-ORIGIN-UNBOUND`** |
-| `http://127.0.0.1:9/*` | the fail-closed default: nothing declared an origin | **`SWEEP-ORIGIN-UNBOUND`** |
-| any other value, and it **differs** from the origin the consuming repository declares in its tracked configuration | bound to something other than production | **`SWEEP-ORIGIN-UNBOUND`** |
-| a value **equal to** that tracked declaration | the precondition holds | **proceed**, and put the observed pattern in the driver's dispatch |
+| nothing | no attached browser server runs on this host, or this host's shell cannot see the process table | **`SWEEP-BROWSER-UNREADY`** |
+| only `BOUND` lines | the server still carries the retired bound, from an install older than D8 (Claude Code) or from the owner's local MCP definition copy (Codex, Kiro): pages outside it would be refused | **`SWEEP-BROWSER-UNREADY`** |
+| at least one `unbounded` line | the precondition holds | **proceed**, and put the pids in the driver's dispatch |
 
-**If the consuming repository declares no origin in tracked configuration, the outcome is
-`SWEEP-ORIGIN-UNBOUND` too.** The only way the bound could then carry a real origin is an untracked
-source, such as a shell profile. The owner ruled that out as the carrier on #525: *«pq vc precisa de
-uma variavel no shell profile para algo que deveria ser baseado em uma ancora de comportamento de
-harness?»*. With no tracked value, "production" has nothing to be compared against.
+**Which site the sweep visits is not step 0's to supply any more.** The bound used to carry the
+production origin into the dispatch. Now the dispatch names it, read from the consuming repository's
+tracked configuration, never from memory or from a domain you remember. Which file holds it belongs to
+the consuming repository, and is not defined here.
 
-**Read the declaration only from the consuming repository's tracked file. Never take it from memory,
-from the environment, or from a domain you remember.** Which file holds it and which key names it
-belong to the carrier's own design, in the consuming repository, and are not defined here. Until that
-carrier exists and defines its read, the no-declaration paragraph above decides every case, so the
-last two rows of the table cannot be reached.
-
-### On `SWEEP-ORIGIN-UNBOUND`: stop, emit ONE action line, dispatch nothing
+### On `SWEEP-BROWSER-UNREADY`: stop, emit ONE action line, dispatch nothing
 
 **This is an ACTION pendency, not a decision.** The loop cannot perform the fix. The server starts with
-the session, so a new value takes effect only after a restart, and only the owner restarts a session.
-Emit exactly one line, carrying the act and where to act:
+the session, so a new render takes effect only after `mhw install` and a restart, and only the owner
+restarts a session. The owner's local MCP definition is his to edit, never the loop's. Emit exactly one
+line, carrying the act and where to act:
 
 ```
-SWEEP-ORIGIN-UNBOUND — declare the production sweep origin in <consumer>'s tracked config, restart the session, rerun /sprint-review: <link to that carrier, or to the Issue tracking it>
+SWEEP-BROWSER-UNREADY — make the chrome-devtools copy in your local MCP definition match the policy server's command and args (global/mcp/policy-servers.json), run mhw install, start a fresh session, rerun /sprint-review: https://github.com/tedeuxx/mhw/issues/224
 ```
 
-**The line always points at the consuming repository's TRACKED carrier. It never tells anyone to
-`export` a variable in a shell.** A shell profile is per machine and untracked, and no review sees it.
-Another host or a fresh checkout loses the value silently. The carrier itself is the consumer's
-decision and lives in the consumer's repository, never here: this plugin names no domain.
+On Claude Code, where the policy renders the server, the first act is a no-op when the local
+definition does not list `claude-code`, and `mhw install` alone is the fix.
 
 **Nothing is written for this outcome.** No persona is dispatched, so no sweep report exists for the
 iteration. Pay attention to that cost: the retrospective that follows finds no
@@ -170,48 +159,30 @@ only record, and it lives in the session.
 
 ### `FAILED` is reserved for failures AFTER step 0 held
 
-**`SWEEP-ORIGIN-UNBOUND` and `FAILED` are different literals on purpose, and a missing origin that
-step 0 observes never produces `FAILED`.** `FAILED` means the precondition was observed to hold and
-the sweep still broke: the generator did not run, a navigation errored, or fewer routes were visited
-than emitted. A missing origin is not a sweep failure. It is a sweep that should not have started.
-Writing a missing or malformed origin as `FAILED` is how two of those three closes, sprint-02 and
-sprint-04, produced reports that recorded an absence, and how *FAILED* began to read as the rite's
-normal output. For sprint-02, "missing or malformed" is deliberate: the retrospective's hypothesis is
-an unexpanded `$` literal. **The exception is a missing origin step 0 cannot observe, and it has two
-known instances.** In the first, another session's server satisfies the probe. In the second, a
-wrapper or test process prints the declared value. In both, this session's bound is still missing and
-the first navigation fails as `FAILED`. Both are listed under *What step 0 does NOT establish* below.
+**`SWEEP-BROWSER-UNREADY` and `FAILED` are different literals on purpose.** `FAILED` means the
+precondition was observed to hold and the sweep still broke: the generator did not run, a navigation
+errored, or fewer routes were visited than emitted. A browser that was never ready is not a sweep
+failure. It is a sweep that should not have started. **The exception is a browser step 0 cannot see,
+and it has two known instances.** In the first, another session's server satisfies the probe. In the
+second, a wrapper or test process prints the attach form. In both, this session's browser may still be
+missing and the first navigation fails as `FAILED`. Both are listed below.
 
 ### What step 0 does NOT establish
 
-- **That Chrome accepts the pattern, or that the origin answers.** The probe reads argv. The first
-  navigation is the first real test of the bound. If it fails after step 0 passed, that is a
-  legitimate `FAILED`.
+- **That Chrome allowed the connection, or that the site answers.** The probe reads argv. Chrome asks
+  the owner to allow the connection (whether per connection or once per Chrome run is not measured),
+  and the first navigation is the first real test. If it fails
+  after step 0 passed, that is a legitimate `FAILED`.
 - **Which session owns the process.** `ps` lists every browser server on the host. With more than one
   session open, a line from another session can satisfy the probe. That error runs toward
-  *proceeding*, and it is visible: the first navigation then fails loudly as `FAILED`. It is not
-  silent.
-- **That every matching line is a server.** `ps` prints argv joined by spaces, without quoting. So a
-  wrapper or test process whose argv names the package and then the flag with the complete value
-  prints that value exactly. Step 0 cannot tell it from a server. Measured:
-  `sh -c 'sleep 30; : chrome-devtools-mcp --allowedUrlPattern https://example.org/*'` satisfies the
-  probe above. If that value equals the declaration while the real server is still on the default,
-  step 0 proceeds. That error runs toward *proceeding*, and it shows up as `FAILED` at the first
-  navigation, like the multi-session case. Requiring the package name narrows this case but does not
-  close it.
-- **The `=value` spelling.** A server launched with `--allowedUrlPattern=<pattern>` prints nothing,
-  because the probe matches only the spaced form that the rendered server uses. That error also runs
-  toward stopping.
-- **Which server the driver's tools reach, when the consumer declares its own.** If the consumer
-  declares its own `chrome-devtools` server, the probe prints two lines, the user-scope server's value and
-  the consumer's origin. Whether the driver's calls go to the second one is the consumer carrier's own
-  measurement, not this probe's.
-- **Anything on Codex, which is UNMEASURED.** Two open questions. Does Codex expand
-  `${HARNESS_SWEEP_ORIGIN:-…}` in a plugin server's arguments? Can Codex's sandboxed shell see the
-  process table at all? Neither has been measured. If the shell cannot see the table, the probe prints
-  nothing and stops the rite, so that error runs toward stopping. **The probe is also the instrument
-  that settles the first question.** The next Codex close that runs step 0 prints the argv the server
-  actually received. A `$` literal while the variable is set confirms the sprint-02 hypothesis.
+  *proceeding*, and it is visible: the first navigation then fails loudly as `FAILED`.
+- **That every matching line is a server.** `ps` prints argv joined by spaces, without quoting, so a
+  wrapper process whose argv names the package and then `--autoConnect` satisfies the probe. That
+  error also runs toward *proceeding* and shows up as `FAILED`. Requiring the package name before the
+  flag narrows this case but does not close it.
+- **Anything on Codex, which is UNMEASURED.** Whether Codex's sandboxed shell can see the process table
+  at all has not been measured. If it cannot, the probe prints nothing and stops the rite, so that
+  error runs toward stopping.
 - **That anyone ran it.** Step 0 is an instruction in this file, like the rite's order. Nothing
   fires it, and nothing observes that it was skipped.
 
@@ -376,7 +347,7 @@ second and the first is the one that means someone has to act tonight:
 run.** Both headings appear every time.
 
 **A sweep that could not reach the site reports FAILED, never "no findings".** That holds *after*
-step 0 held. A bound that never pointed at the site is `SWEEP-ORIGIN-UNBOUND` and is caught before any
+step 0 held. A browser server that was never ready is `SWEEP-BROWSER-UNREADY` and is caught before any
 dispatch (see *Step 0*). The rite runs at
 iteration close, which is exactly the moment nobody is watching, and a clean-looking report is precisely
 what a broken sweep produces if it is allowed to. The conditions are in `agents/product-lead.md`; the

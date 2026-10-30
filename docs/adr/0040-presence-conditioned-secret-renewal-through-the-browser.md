@@ -159,9 +159,11 @@ never the absence of an item on this list.
 | Copy without reading (D3, D5) | Instruction | Written only. Canary in local emulation only: the script route through `chrome-devtools` passed; the paste route through Claude in Chrome did not. **The canary on the real page is owed** (amendment "2026-10-24: canary results in local emulation") |
 | The browser route itself | Instruction. No deny entry matches a browser or MCP tool | Written only, as today |
 
-The `chrome-devtools` server this repository installs is bound to the consuming project's declared
+~~The `chrome-devtools` server this repository installs is bound to the consuming project's declared
 origin (ADR-0038), so it reaches a forge settings page only where a project declares that origin. That
-is read from ADR-0038, not measured for this route. Claude in Chrome is not installed or configured by
+is read from ADR-0038, not measured for this route.~~ *(Struck 2026-10-29, ADR-0038 amendment D8: the
+server has no origin bound, so it reaches a forge settings page from any project, and no layer confines
+rule 3's route to the forge. See the amendment "2026-10-29: no origin bound" below.)* Claude in Chrome is not installed or configured by
 this repository; its behaviour, including any screenshot it takes on its own, is outside this
 repository's reach.
 
@@ -204,9 +206,29 @@ printing counts only.
 - **Not proven:** the real forge page; the MCP server's own logs, which were not searched; any field
   outside the page, such as a password manager.
 - **Still owed before any real use:** the real flow on a **throwaway repository secret** at
-  `github.com`, in a session launched with `HARNESS_SWEEP_ORIGIN='https://github.com/*'`. The owner logs
-  in to the isolated window himself; the agent never enters credentials. The first real use repeats the
-  count.
+  `github.com`~~, in a session launched with `HARNESS_SWEEP_ORIGIN='https://github.com/*'`. *(2026-10-29,
+  #220: that bound alone blocked the asset host the secret form needs; under decision D7 the variable
+  is a declared list of origins, ADR-0038 amendment, and the rerun sets the list the canary measures.)*~~
+  *(Struck 2026-10-29, ADR-0038 amendment D8: there is no origin bound, so the rerun sets no variable
+  and the asset host is reachable.)* ~~The owner logs
+  in to the isolated window himself;~~ *(struck 2026-10-24, #224: the server now attaches to the owner's
+  own Chrome, ADR-0038 amendment, so his existing login is used and he allows the connection)* the
+  agent never enters credentials. The first real use repeats the count.
+
+#### Amendment 2026-10-29: no origin bound ([Issue #224](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6511323788), ADR-0038 decision D8)
+
+The owner removed the `chrome-devtools` origin bound (D8, *"Sem limite nenhum"*). Two things in this
+record leaned on it, and both are reconciled here:
+
+- **Rule 3 is unchanged in what it asks.** Copy without reading, by route (a) or (b), with no
+  screenshot, snapshot, page-text read or clipboard read while the value is visible. What changed is
+  what surrounds it: the bound no longer keeps the browser on the forge while the value is on screen,
+  so a page outside the forge that the agent opens is not refused. Keeping the flow on the forge's own
+  pages is now an instruction only, held with D1 by the owner watching.
+- **The canary rerun needs no launch variable.** It runs in any session, and the forge's asset host is
+  reachable, which the single-origin bound had blocked.
+- **Evidence level:** unchanged for this record, *written only*. The canary on the real page is still
+  owed, and nothing here was measured against the unbounded launch.
 
 ## Consequences
 
@@ -224,5 +246,5 @@ printing counts only.
 
 - Issue [#220](https://github.com/tedeuxx/mhw/issues/220), its intake, the owner's D1 to D5 and the canary run reports.
 - ADR-0016 (the deny floor), ADR-0035 (hooks only for existential risk), ADR-0038 (the
-  `chrome-devtools` server bounded by origin).
+  `chrome-devtools` server, ~~bounded by origin~~ with no origin bound since its D8 amendment).
 - tedeuxx/tadeumendonca-skills#576, tedeuxx/tadeumendonca-io#781.
