@@ -1395,8 +1395,8 @@ carried over), not a gate.
   cap. It was never merely a "dispatch-and-interview shape": what made it a mechanism was feeding each
   consulted persona **its own artifacts**, since a persona at iteration close is a fresh context and
   isolated speculation is still speculation. *And the MCP clause was true when written and is false at
-  head* — `product-lead` declares a read-only `chrome-devtools` subset with a bounded origin, merged
-  2026-08-29 (#356). ~~**The review half is still not built**, on grounds that survive the new capability
+  head* — `product-lead` declares a read-only `chrome-devtools` subset ~~with a bounded origin~~, merged
+  2026-08-29 (#356) *(the origin bound was removed 2026-10-29, mhw#224 decision D8)*. ~~**The review half is still not built**, on grounds that survive the new capability
   intact — a route list rots, and a looker's finding has no ruler~~ — **struck 2026-09-02 (#379): it is
   built, and the two grounds were SATISFIED rather than lifted.** `skills/sprint-review/SKILL.md` ships no
   route list (its targets come from the product's own generator, its assets off the page) and is

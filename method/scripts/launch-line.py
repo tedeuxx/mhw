@@ -63,8 +63,9 @@ BIDI = frozenset(chr(c) for c in list(range(0x202A, 0x202F)) + list(range(0x2066
 # it starts. An allowlist, so a name that redirects a configuration home, a base URL, an editor or git's
 # configuration is refused without anyone having had to think of it. Add a name here, in a reviewed
 # change, when a method file declares a new launch variable.
+# None is declared today, so every --env is refused. HARNESS_SWEEP_ORIGIN was the one entry; it left with
+# the chrome-devtools origin bound it fed (ADR-0038 amendment D8, 2026-10-29), which was its only consumer.
 LAUNCH_ENV = frozenset((
-    "HARNESS_SWEEP_ORIGIN",  # the origin(s), space-separated, the chrome-devtools server is bounded to (ADR-0038)
 ))
 
 
@@ -108,7 +109,8 @@ def env_problems(pairs):
     out = []
     for n, (name, value) in enumerate(pairs, 1):
         if not declared_env(name):
-            out.append("--env %d: the name is not a declared launch variable (%s)" % (n, ", ".join(sorted(LAUNCH_ENV))))
+            out.append("--env %d: the name is not a declared launch variable (%s)"
+                       % (n, ", ".join(sorted(LAUNCH_ENV)) or "none is declared"))
         if control(value, keep_newline=False):
             out.append("--env %d: the value carries a control character or a line break" % n)
         if STRICT_PRIVATE.search(value):

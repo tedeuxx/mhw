@@ -75,9 +75,11 @@ open pull requests and Issues the objective mentions instead.
 ## Print it
 
 1. **Launch environment.** Name every environment variable the next act reads only at launch. Only
-   the launch variables the method declares are accepted: today `HARNESS_SWEEP_ORIGIN`, the origin (or
-   space-separated origins, mhw#220 D7) the chrome-devtools server is bounded to (`LAUNCH_ENV` in `launch-line.py`). Each becomes `--env
-   NAME=VALUE`. Any other name is refused; if the next act needs one, say so to the owner instead of
+   the launch variables the method declares are accepted (`LAUNCH_ENV` in `launch-line.py`), and today
+   it declares **none**, so every `--env` is refused. ~~today `HARNESS_SWEEP_ORIGIN`, the origin (or
+   space-separated origins, mhw#220 D7) the chrome-devtools server is bounded to~~ *(struck 2026-10-29,
+   mhw#224 decision D8: the chrome-devtools server has no origin bound, so nothing reads that variable.)*
+   A name, once declared, becomes `--env NAME=VALUE`. Any other name is refused; if the next act needs one, say so to the owner instead of
    working around it, since adding a name is a reviewed change to that list. A value is public: no
    secret, no personal data, no machine-local path. A secret the next act needs stays where it lives
    and is named in the prompt by its name only. With none, pass no `--env`.
