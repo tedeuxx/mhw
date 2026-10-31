@@ -187,7 +187,7 @@ def compile_profile(profile):
         "- **Language:** talk to the owner in " + LANGUAGES[locale]
         + " in everything made for the owner to read: chat, reports, artifacts and pickers. Only text for an outside audience is in "
         + LANGUAGES[conversation["publication_language"]]
-        + ": public repository text (Issues, pull requests, commits, docs), site copy and social posts.",
+        + ": public repository text (Issues, pull requests, commits, docs). Site copy and social posts follow their own surface's language rule, which may be per locale or bilingual.",
         "- **Decision tone:** " + TONES[conversation["decision_tone"]],
         "- **Escalation limits:** one question per message; " + length
         + "; the reasoning goes in a linked artifact, not in the message.",
