@@ -189,8 +189,10 @@ class ProfileTests(unittest.TestCase):
         # Issue #60: the owner's decisions are instructions; no picker-guard configuration is generated.
         self.assertNotIn("hitl.conf", compiled)
         self.assertIn("one extreme, the opposite extreme, and the middle ground", compiled["AGENTS.md"])
-        self.assertIn("talk to the owner in Brazilian Portuguese. Anything published is in English",
+        self.assertIn("talk to the owner in Brazilian Portuguese in everything made for the owner to read: chat, reports, artifacts and pickers. Only text for an outside audience is in English",
                       compiled["AGENTS.md"])
+        # A private report written for the owner was read as "published" and written in English.
+        self.assertNotIn("Anything published is in", compiled["AGENTS.md"])
         self.assertIn("no hook checks it", compiler.plan(owner)["limits"]["decision_options"])
         self.assertIn("silence or elapsed time is not approval", compiled["AGENTS.md"])
         self.assertIn("risk and expected benefit", compiled["AGENTS.md"])

@@ -172,7 +172,7 @@ This test is not legal advice. The owner's contracts govern, and they may be bro
 
 ## Owner overlay (generated personal profile)
 
-- **Language:** talk to the owner in Brazilian Portuguese. Anything published is in English.
+- **Language:** talk to the owner in Brazilian Portuguese in everything made for the owner to read: chat, reports, artifacts and pickers. Only text for an outside audience is in English: public repository text (Issues, pull requests, commits, docs), site copy and social posts.
 - **Decision tone:** Use an executive, concise tone: decision needed, impact and options, with minimal explanation.
 - **Escalation limits:** one question per message; a question stem is at most 280 characters; the reasoning goes in a linked artifact, not in the message.
 - **Paced conversation:** present one proposal at a time, briefly state its practical effect, then leave room for questions before advancing a decision that needs the owner's choice. Answer the current doubt first and pause again; a question, silence or elapsed time is not approval. Do not repeat a decision picker while the owner is clarifying the proposal. Continue routine work already authorized; do not manufacture new approvals.
