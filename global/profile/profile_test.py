@@ -193,6 +193,10 @@ class ProfileTests(unittest.TestCase):
                       compiled["AGENTS.md"])
         # A private report written for the owner was read as "published" and written in English.
         self.assertNotIn("Anything published is in", compiled["AGENTS.md"])
+        # Site copy and social posts keep their own surface rule (a bilingual post is not English-only).
+        self.assertIn("Site copy and social posts follow their own surface's language rule",
+                      compiled["AGENTS.md"])
+        self.assertNotIn("site copy and social posts.", compiled["AGENTS.md"])
         self.assertIn("no hook checks it", compiler.plan(owner)["limits"]["decision_options"])
         self.assertIn("silence or elapsed time is not approval", compiled["AGENTS.md"])
         self.assertIn("risk and expected benefit", compiled["AGENTS.md"])
