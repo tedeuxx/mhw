@@ -257,7 +257,8 @@ orchestrator remembering to type it.
 
 **The precedent is `agents/content-reviewer.md`'s round protocol, and half of it is deliberately NOT
 transplanted.** That protocol pairs a terminal condition with a **mechanical cap** — the pair is over at
-a `CONTENT-REVIEW-CLEAR` literal, **or** when a second `## Round` section exists, whichever comes first.
+a `CONTENT-REVIEW-CLEAR` literal, **or** when a second `## Round` section exists under the current
+correction, whichever comes first.
 The terminal condition is what is copied here. **The cap is not**, on #393's own refusal: *a standard
 that blocks on off-by-one in round 2 and waves through off-by-three in round 7 decays with the count.*
 A cap and a bar-lowering rule are different things, and the distinction survives only while somebody is
@@ -833,6 +834,30 @@ Not "is it well argued" — is it **untrue**, against something you can check ri
 - **Cross-surface contradiction.** The presence spans several surfaces (site, LinkedIn, a designed CV,
   the public repo catalog, a newsletter). A number, title or claim that differs between two of them is
   false on at least one.
+
+### A loop-describing block is re-read WHOLE, not hunk by hunk (mhw#135)
+
+**When a reader-facing diff touches any part of a block that describes the loop** (a diagram, a table,
+a section about how work flows from intake to merge), **re-read the whole enclosing block against the
+canonical current source, not only the changed hunks.** A claim in that block which the current source
+contradicts is a Check 1 finding **even when it sits outside the diff**: the diff made the block current
+in one place and left it stale in the next line, and a reader takes the block as one statement.
+
+- **The block, defined operationally:** the enclosing Markdown section, from its heading up to the next
+  heading of the same or higher level; or, for a diagram, the whole fence (` ```mermaid ` to its
+  closing fence). If the touched lines sit in a diagram inside a section, re-read both.
+- **The two canonical sources, and they are the only ruler:** the **states table** in the
+  `agents-configuration` skill (*The states* — who acts at each transition and what artifact records
+  it) and the **review route** in the `orchestration` skill (*Review is routed by type*). Read them
+  live, at the version installed for this session, not from memory of an earlier version. Where the
+  block and those sources disagree, the sources win and the block is the finding.
+- **Severity follows the usual test:** a claim the sources contradict is false now, so it blocks; a
+  block that is merely incomplete against them is advisory.
+
+**Evidence level: an instruction.** Nothing checks that you read beyond the hunks. No hook, test or
+gate observes how much of a block a lens re-read, and a review that read only the diff looks identical
+from the PR to one that read the whole block. Whether this lens runs before the gate and leaves an
+artifact is mhw#197's question, not this rule's.
 
 ## Check 2 — claims the author has not earned
 

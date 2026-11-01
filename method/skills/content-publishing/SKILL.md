@@ -231,6 +231,34 @@ rule produce two opinions rather than a conflict.
   exists only where the draft changed by another hand.**
 - The rounds land in a **tracked review file on the branch**, one section per round, each closed with one
   of two literals. That file is the artifact; there is no comment and no relayed claim.
+- **One article has one review file, for its whole life (mhw#139).** It is
+  `docs/content-review/<slug>.md`, where `<slug>` is the stem of the article's canonical draft, shared
+  by every locale and every later revision. A correction the owner orders after the pair terminated
+  appends `## Correction <N>` to the same file, and **the two-round cap applies per correction**: the
+  rounds above the first `## Correction` heading are the first review, and each correction gets its
+  own two. Existing files are not renamed; the rule applies from the next piece. The full rule is in
+  the reviewing persona's brief.
+
+**Count the rounds per correction, not per file.** A per-file total no longer says whether the cap
+held, because a file with two corrections legitimately carries up to six rounds. Run this in the repo
+the drafts live in; it prints one line per section and flags any section past the cap:
+
+```
+awk '
+  FNR == 1 { c = "first review"; k[++m] = FILENAME ": " c }
+  /^## Correction / { c = "correction " $3; k[++m] = FILENAME ": " c }
+  /^## Round/ { n[FILENAME ": " c]++ }
+  END { for (i = 1; i <= m; i++) { r = n[k[i]] + 0
+        print k[i] " = " r (r > 2 ? "  OVER THE CAP" : "") } }
+' docs/content-review/*.md
+```
+
+Calibrated 2026-11-01 (mhw#139) on a fixture file holding a first review of one round and two
+corrections of two rounds and one round. It printed `first review = 1`, `correction 1 = 2` and
+`correction 2 = 1`, where the per-file `grep -c` below printed `4`. A third round added under
+correction 1 printed `correction 1 = 3  OVER THE CAP`; removing it restored `= 2`. The command reads
+headings only: a correction heading without a number prints whatever word follows `Correction` in
+place of the number (`correction —` for `## Correction — <date>`), and an empty file prints nothing. It is a count you run; nothing runs it for you.
 
 **This half of the pair is the least exercised thing in the lane, and the skill says so rather than
 describing it as routine.** Read the two facts together, because separately each one misleads:
@@ -317,9 +345,13 @@ is not a bound.*
 
 **Both readings are defensible and that is the problem.** Rounds spent on an artifact that no longer
 exists are not rounds spent on this draft; equally, *"the piece changed"* is available on every piece
-and turns a bound into a formality. **This is with the owner and unanswered. It is recorded here and
+and turns a bound into a formality. ~~**This is with the owner and unanswered. It is recorded here and
 deliberately not decided** — the lane does not get to settle its own stopping rule, and nothing in this
-skill changes the bound.
+skill changes the bound.~~ *(Struck 2026-11-01, mhw#139.)* **Answered in part by the owner's ruling on
+mhw#139:** an owner-ordered change opens `## Correction <N>` in the same file, with its own two
+rounds, and its `ordered:` line names where he asked. **What stays open:** the heading is still written
+by the party the bound constrains, so nothing distinguishes a correction he ordered from a third round
+under a new heading except the `ordered:` line a reader follows.
 
 **When the rounds terminate, the TEXT is closed and the piece is NOT finished.** By the owner's rule
 above, the next act is the first deploy — steps 6 and 7 — not a message to him carrying the words. **Do
