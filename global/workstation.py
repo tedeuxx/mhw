@@ -404,6 +404,56 @@ def cannot_override(f):
     return " · ".join(parts)
 
 
+# Issue #38: the summary names --check drift by CATEGORY only, never a path or a file's content. The
+# categories are read from the installers' own target lines, in this order; a line none of them matches
+# is still counted, as "other", so a drift is never dropped for want of a name.
+_DRIFT_LINE = re.compile(r"(DRIFT|MISSING|STALE|REFUSE)\s")
+_DRIFT_CATEGORIES = (
+    ("paste wrapper", ("paste",)),
+    ("allow list", ("allow list", "permissions.allow", "allow-list")),
+    ("deny floor", ("deny-floor", "deny floor", "/.claude/settings.json", "permissions.yaml",
+                    "managed-settings", "requirements.toml")),
+    ("hooks", ("hooks.json", "clipboard", "hook")),
+    ("MCP", ("mcp", "claude.json", "codex:", "kiro:", "claude-code:")),
+    ("models", ("model",)),
+    ("method", ("/skills/", "/agents/", "/commands/", "/prompts/", "/method/")),
+)
+
+
+def drift_category(line):
+    """The category of one --check problem line: removed controls (every STALE line names what an earlier
+    release installed and this one removes), brief, paste wrapper, deny floor, hooks, ..., or other."""
+    if line.startswith("STALE"):
+        return "removed controls"
+    if any(str(p) in line for p in brief_paths().values()):
+        return "brief"
+    low = line.lower()
+    for name, needles in _DRIFT_CATEGORIES:
+        if any(n.lower() in low for n in needles):
+            return name
+    return "other"
+
+
+def drift_text(user_lines, admin_lines, admin_code=0):
+    """'drift: <n> target(s) in <categories> — next: <CMD> install', or '' when both layers are clean.
+    The admin layer's categories carry an 'admin ' prefix; an admin --check that exits non-zero with no
+    target line still counts as one target."""
+    cats, count = [], 0
+    for prefix, lines in (("", user_lines), ("admin ", admin_lines)):
+        hits = [line for line in lines if _DRIFT_LINE.match(line)]
+        if prefix and not hits and admin_code:
+            hits, names = [None], ["admin layer"]
+        else:
+            names = [prefix + drift_category(line) for line in hits]
+        count += len(hits)
+        for name in names:
+            if name not in cats:
+                cats.append(name)
+    if not count:
+        return ""
+    return "drift: %d target(s) in %s — next: %s install" % (count, ", ".join(cats), CMD)
+
+
 def render_summary(f):
     """At most ten lines: what is in effect, each item at the evidence level this view has."""
     present = [h for h, v in f["harnesses"].items() if v is not None]
@@ -436,8 +486,11 @@ def render_summary(f):
     lines.append("  overrides        %s" % ("; ".join(overrides) if overrides
                                            else "no workspace setting overrides a user default"))
     lines.append("  cannot override  %s" % cannot_override(f))
-    lines.append("  protections      brief %s · hooks %s · evidence: installed; loaded and enforced "
-                 "need a session canary" % (f["brief"], f["hooks"]))
+    # The installers' --check drift rides on the protections item (Issue #38), so the summary keeps its
+    # ten-line limit and a session never reads clean while part of the firewall stopped applying.
+    drift = drift_text(f.get("user_lines", []), f.get("admin_lines", []), f.get("admin_code", 0))
+    lines.append("  protections      brief %s · hooks %s%s · evidence: installed; loaded and enforced "
+                 "need a session canary" % (f["brief"], f["hooks"], " · " + drift if drift else ""))
     lines.append("  permission mode  %s; session flags: %s" % (
         _settings_text(settings, MODE_KEYS, shown), ", ".join("%s %s" % (h, NATIVE_VIEW[h]) for h in shown)))
     lines.append("  runtime          %s" % f["runtime"])
