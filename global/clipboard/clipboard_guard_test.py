@@ -194,7 +194,9 @@ def conf_in(d, **over):
     os.makedirs(d, exist_ok=True)
     path = os.path.join(d, "clipboard.conf")
     lines = ["salt_store=file", "terms_file=%s" % os.path.join(d, "lo", "terms"),
-             "salt_file=%s" % os.path.join(d, "lo", "salt")] + ["%s=%s" % kv for kv in over.items()]
+             "salt_file=%s" % os.path.join(d, "lo", "salt"),
+             "health_terms_file=%s" % os.path.join(d, "lo", "terms-health"),
+             "colleague_terms_file=%s" % os.path.join(d, "lo", "terms-colleague")] + ["%s=%s" % kv for kv in over.items()]
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines) + "\n")
     return path
@@ -336,6 +338,163 @@ class Patterns(unittest.TestCase):
         self.assertEqual(g.sanitise(text, spans), "x [REDACTED:credential] y")
 
 
+def J(*parts):
+    """Join fixture pieces at run time, so this file itself never carries a string the new detectors
+    (or mhw scan reading this file) would report. Every value is synthetic and obviously fake."""
+    return "".join(parts)
+
+
+# Issue #36: per category, synthetic positives (text, the exact span the finding must cover) and
+# near-miss negatives that must stay clean. No real person, number, address, salary or diagnosis.
+NEW_POSITIVES = {
+    "phone": [
+        (J("ligue +55 (11) 9", "0000-0001 hoje"), J("+55 (11) 9", "0000-0001")),
+        (J("tel +55 21 3", "000 0000."), J("+55 21 3", "000 0000")),
+        (J("fixo (21) 3", "000-0000"), J("(21) 3", "000-0000")),
+        (J("cel (99) 9", "8888-7777, ok"), J("(99) 9", "8888-7777")),
+        (J("call +1 (555) 0", "10-0199 now"), J("+1 (555) 0", "10-0199")),
+        (J("call +44 20 7", "946 0000"), J("+44 20 7", "946 0000")),
+    ],
+    "postal-address": [
+        (J("CEP 01", "000-000, centro"), J("01", "000-000")),
+        (J("cep: 9", "9999999"), None),
+        (J("CEP 9", "9999999"), J("CEP 9", "9999999")),
+        (J("Rua das Flores Fictícias, ", "123 fundos"), J("Rua das Flores Fictícias, ", "123")),
+        (J("na Avenida Zyxw Quillon nº ", "45"), J("Avenida Zyxw Quillon nº ", "45")),
+        (J("at 12 Quillon Zyxw ", "Street today"), J("12 Quillon Zyxw ", "Street")),
+    ],
+    "contract-value": [
+        (J("meu salário é R$", " 12.500,00 por mês"), J("R$", " 12.500,00")),
+        (J("proposta PJ: R$", "18000"), J("R$", "18000")),
+        (J("contract rate US$", " 90 per hour"), J("US$", " 90")),
+        (J("an offer of $", "120,000 base"), J("$", "120,000")),
+        (J("bonus of $", "15k"), J("$", "15k")),
+        (J("pretensão salarial: BRL", " 9.000"), J("BRL", " 9.000")),
+    ],
+    "health": [
+        (J("atestado com CID F", "32.1 anexo"), J("CID F", "32.1")),
+        (J("cid-10: J", "45"), J("cid-10: J", "45")),
+        (J("ICD-10 F", "41.1"), J("ICD-10 F", "41.1")),
+        (J("CID U", "07.1"), J("CID U", "07.1")),
+    ],
+    "colleague-name": [
+        (J("minha gestora ", "Zyxa Quellon pediu"), J("Zyxa ", "Quellon")),
+        (J("My colleague ", "Quillo Zyxwer wrote"), J("Quillo ", "Zyxwer")),
+        (J("meu colega de time ", "Zyx da Quell disse"), J("Zyx da ", "Quell")),
+        (J("our tech lead ", "Zyxo approved"), J("Zy", "xo")),
+    ],
+}
+NEW_NEGATIVES = {
+    "phone": ["(11) 1234", "version 1.2.3-4567", "date 2026-10-01", "score +12 points",
+              "@@ -10,7 +10,8 @@", "(01) 2345-6789", "+55 12", "uuid 123e4567-e89b-12d3-a456-426614174000",
+              "call (11)91234-56789", "x+1 (555) 010-0199", "+1 555"],
+    "postal-address": ["ticket 12345-6789", "v2.12345-678.1", "ref 12345-678/2026", "Rua sem número",
+                       "a rua tem 3 casas", "Quillon Street", "build ab12345-678", "Avenida Paulista vale 10"],
+    "contract-value": [J("R$", " 30 a unidade"), J("budget USD", " 50 per month"), "salary=$1",
+                       "the contract defines 3 fields", J("costs $", "1,000"), "echo $100",
+                       J("price R$", " 12.500,00 for the laptop")],
+    "health": ["acid F32", "CID alone", "ICD-10 codes", "CIDR 10.0.0.0/8", "cid:image001", "CID-1 F32x",
+               "the bug was diagnosed with a profiler"],
+    "colleague-name": ["my manager said hi", "my manager, Zyxa said", "o gestor Zyxa", "Meu colega disse",
+                       "my colleague's Zyxa", "minha gestora pediu"],
+}
+
+
+class NewCategories(unittest.TestCase):
+    """Issue #36: phone, postal-address, contract-value, health, colleague-name."""
+
+    def test_each_positive_is_found_with_its_exact_span(self):
+        for cat, cases in NEW_POSITIVES.items():
+            for text, span in cases:
+                found = g.find_spans(text)
+                if span is None:            # a case the category must find, whatever its exact span
+                    self.assertEqual(g.categories(found), [cat], text)
+                    continue
+                self.assertEqual([text[s:e] for s, e, c in found if c == cat], [span], (cat, text))
+                self.assertEqual(g.categories(found), [cat], (cat, text))
+                self.assertIn("[REDACTED:%s]" % cat, g.sanitise(text, found))
+                self.assertNotIn(span, g.sanitise(text, found))
+
+    def test_each_near_miss_negative_is_clean(self):
+        for cat, texts in NEW_NEGATIVES.items():
+            for text in texts:
+                self.assertEqual([(text[s:e], c) for s, e, c in g.find_spans(text)], [], (cat, text))
+
+    def test_a_contract_cue_counts_only_on_the_same_line_and_near(self):
+        amount = J("R$ 1", "2.500,00")
+        self.assertEqual(g.find_spans("salário\n" + amount), [])
+        self.assertEqual(g.find_spans("salário " + "x" * (g.CONTRACT_WINDOW + 1) + " " + amount), [])
+        self.assertEqual(g.categories(g.find_spans("salário " + "x" * 10 + " " + amount)), ["contract-value"])
+        self.assertEqual(g.categories(g.find_spans(amount + " de salário")), ["contract-value"])
+
+    def test_one_phone_matched_by_two_patterns_is_one_finding(self):
+        text = J("+55 (11) 9", "0000-0001")
+        self.assertEqual(g.find_spans(text), [(0, len(text), "phone")])
+
+    def test_the_new_categories_are_in_the_order_and_block_by_default(self):
+        new = ["phone", "postal-address", "contract-value", "health", "colleague-name"]
+        self.assertEqual(g.CATEGORY_ORDER[-5:], new)
+        conf = g.load_config(conf_in(os.path.join(BASE, "new-defaults")))
+        self.assertEqual(g.blocking_set(conf), set(g.CATEGORY_ORDER))
+        self.assertEqual(g.report_only_set(conf), set())
+
+
+class PrivateTermLists(unittest.TestCase):
+    """Health terms and colleague names the patterns cannot tell, from the owner's private lists:
+    the same salted-hash format and salt as the employer list, one file each, never plaintext."""
+    HEALTH = "Zyxwitis Quillonica"
+    COLLEAGUE = "Quellara Zyxwood"
+
+    def lists(self):
+        return {"health": frozenset(g.term_hash(SALT, f) for f in g.term_forms(self.HEALTH)),
+                "colleague-name": frozenset(g.term_hash(SALT, f) for f in g.term_forms(self.COLLEAGUE))}
+
+    def test_each_list_reports_its_own_category(self):
+        text = "notes: %s, and %s" % (self.HEALTH.lower(), self.COLLEAGUE.upper())
+        found = g.find_spans(text, frozenset(), SALT, self.lists())
+        self.assertEqual(sorted((text[s:e].lower(), c) for s, e, c in found),
+                         sorted([(self.HEALTH.lower(), "health"), (self.COLLEAGUE.lower(), "colleague-name")]))
+
+    def test_no_salt_or_no_list_no_term_match(self):
+        text = "notes: %s, %s" % (self.HEALTH, self.COLLEAGUE)
+        self.assertEqual(g.find_spans(text, frozenset(), None, self.lists()), [])
+        self.assertEqual(g.find_spans(text, frozenset(), SALT, {}), [])
+        self.assertEqual(g.find_spans("Zyxwitis alone", frozenset(), SALT, self.lists()), [])
+
+    def test_a_list_does_not_leak_into_another_category(self):
+        employer = self.lists()["colleague-name"]
+        found = g.find_spans(self.COLLEAGUE, employer, SALT, {"health": frozenset()})
+        self.assertEqual(g.categories(found), ["employer-client-term"])
+
+    def test_read_term_lists_reads_the_configured_files(self):
+        d = os.path.join(BASE, "lists-read")
+        conf = g.load_config(conf_in(d))
+        g.add_term_hashes(conf["health_terms_file"], sorted(self.lists()["health"]))
+        terms, lists = g.read_term_lists(conf)
+        self.assertEqual((terms, lists["health"], lists["colleague-name"]),
+                         (frozenset(), self.lists()["health"], frozenset()))
+        body = read(conf["health_terms_file"]).lower()
+        self.assertNotIn("zyxwitis", body)
+        self.assertEqual(stat.S_IMODE(os.stat(conf["health_terms_file"]).st_mode), 0o600)
+
+    def test_default_paths_sit_beside_the_employer_list(self):
+        conf = g.load_config(None)
+        for key, name in (("health_terms_file", "clipboard-terms-health"),
+                          ("colleague_terms_file", "clipboard-terms-colleague")):
+            self.assertEqual(conf[key], os.path.join(g.local_overlay_dir(), name))
+
+    def test_add_term_list_flag_is_validated_before_anything_runs(self):
+        d = os.path.join(BASE, "lists-flag")
+        conf = conf_in(d)
+        r = subprocess.run([sys.executable, "-B", g.__file__, "add-term", "--list", "medical", "--config", conf],
+                           capture_output=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn(b"--list must be", r.stderr)
+        r = subprocess.run([sys.executable, "-B", g.__file__, "prompt-hook", "--harness", "claude", "--list",
+                            "health"], capture_output=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(r.returncode, 2, "--list is add-term's flag only")
+
+
 def hook_conf(name, **over):
     d = os.path.join(BASE, name)
     conf = g.load_config(conf_in(d, **over))
@@ -423,6 +582,52 @@ class PromptHook(unittest.TestCase):
         self.assertEqual(decide(conf, "key " + CREDENTIALS["aws"])[0]["decision"], "block")
         d, conf = hook_conf("hook-typo", block_categories="credential,emial")
         self.assertEqual(decide(conf, "mail ana@zyxw-mail.zyxw")[0]["decision"], "block")
+
+    def test_every_new_category_blocks_by_default_naming_it_only(self):
+        d, conf = hook_conf("hook-new")
+        for cat, cases in NEW_POSITIVES.items():
+            text, span = cases[0]
+            out, raw = decide(conf, text)
+            self.assertEqual(out and out.get("decision"), "block", cat)
+            self.assertIn(cat, out["reason"].split("\n", 1)[0], cat)
+            self.assertIn("[REDACTED:%s]" % cat, out["reason"], cat)
+            self.assertNotIn(span, raw, "the matched text reached the hook output")
+
+    def test_private_lists_block_and_their_salt_is_read(self):
+        d, conf = hook_conf("hook-lists")
+        g.add_term_hashes(conf["colleague_terms_file"], [g.term_hash(SALT, f) for f in g.term_forms("Quellara Zyxwood")])
+        out, raw = decide(conf, "ask quellara zyxwood")
+        self.assertEqual(out["decision"], "block")
+        self.assertIn("colleague-name", out["reason"])
+        self.assertNotIn("quellara", raw.lower())
+        out, _ = decide(conf, "ask quellara zyxwood", salts=FakeSalts(None))
+        self.assertIn("term matching was NOT checked", out["systemMessage"])
+
+    def test_report_only_names_the_category_and_passes_unchanged(self):
+        blocking = ",".join(c for c in g.CATEGORY_ORDER if c not in ("phone", "health"))
+        d, conf = hook_conf("hook-report", block_categories=blocking, report_categories="phone,health")
+        self.assertEqual(g.report_only_set(conf), {"phone", "health"})
+        text, span = NEW_POSITIVES["phone"][0]
+        out, raw = decide(conf, text)
+        self.assertNotIn("decision", out)
+        self.assertIn("phone in this prompt (report-only", out["systemMessage"])
+        self.assertNotIn(span, raw)
+        # A blocking finding still blocks, and the report-only one is named beside it.
+        out, raw = decide(conf, text + " key " + CREDENTIALS["aws"])
+        self.assertEqual(out["decision"], "block")
+        self.assertIn("phone in this prompt (report-only", out["reason"])
+        self.assertIn(span, out["reason"], "a report-only finding is left in the redacted copy")
+        self.assertNotIn(CREDENTIALS["aws"], raw)
+        # Listed for report AND for block: block wins.
+        d, conf = hook_conf("hook-report-both", report_categories="phone")
+        self.assertEqual(decide(conf, text)[0]["decision"], "block")
+        # Off (in neither list): silent, as before Issue #36.
+        d, conf = hook_conf("hook-off", block_categories=blocking)
+        self.assertIsNone(decide(conf, text)[0])
+
+    def test_a_report_categories_typo_empties_it(self):
+        d, conf = hook_conf("hook-report-typo", report_categories="phone,fone")
+        self.assertEqual(conf["report_categories"], "")
 
     def test_hook_keychain_read_is_gated_bounded_and_non_interactive(self):
         """The hook's Keychain path (the owner's real configuration since he added a term): it calls
@@ -696,6 +901,7 @@ class Config(unittest.TestCase):
                     out.write(fh.read())
         generic = g.load_config(os.path.join(repo, "global", "clipboard.conf"))
         self.assertEqual(generic["block_categories"], ",".join(g.CATEGORY_ORDER))
+        self.assertEqual(generic["report_categories"], "")
         owner = g.load_config(joined)
         for key in g.DEFAULTS:
             if key.startswith("notice_"):
@@ -739,11 +945,23 @@ class AddTermCli(unittest.TestCase):
         self.assertIn(b"agent session marker", r.stdout)
 
     def test_terminal_entry_echo_off_hashes_only(self):
-        d = os.path.join(BASE, "cli-tty")
+        self.drive_entry("cli-tty", [], "terms_file", "employer-client-term")
+
+    def test_terminal_entry_into_each_private_list(self):
+        """Issue #36: --list health and --list colleague-name write only their own file."""
+        for name, key in (("health", "health_terms_file"), ("colleague-name", "colleague_terms_file")):
+            c = self.drive_entry("cli-tty-" + name, ["--list", name], key, name)
+            others = {"terms_file", "health_terms_file", "colleague_terms_file"} - {key}
+            for other in others:
+                self.assertFalse(os.path.exists(c[other]), "%s wrote %s" % (name, other))
+
+    def drive_entry(self, sub, extra, key, category):
+        d = os.path.join(BASE, sub)
         conf = conf_in(d)
         pid, fd = pty.fork()
         if pid == 0:
-            os.execve(sys.executable, [sys.executable, "-B", g.__file__, "add-term", "--config", conf], self.env(d))
+            os.execve(sys.executable, [sys.executable, "-B", g.__file__, "add-term"] + extra + ["--config", conf],
+                      self.env(d))
         seen = b""
         deadline = time.time() + 20
         sent = 0
@@ -777,12 +995,13 @@ class AddTermCli(unittest.TestCase):
         self.assertEqual(os.WEXITSTATUS(status), 0, seen)
         self.assertNotIn(b"Quillon", seen, "the term was echoed to the terminal")
         c = g.load_config(conf)
-        self.assertEqual(len(g.read_terms(c["terms_file"])), 2)
-        body = read(c["terms_file"])
+        self.assertEqual(len(g.read_terms(c[key])), 2)
+        body = read(c[key])
         self.assertNotIn("quillon", body.lower())
         salt = g.SaltStore(c).get()
-        hashes = g.read_terms(c["terms_file"])
-        self.assertEqual(g.categories(g.find_spans("re: zyxw QUILLON synthetic", hashes, salt)), ["employer-client-term"])
+        terms, lists = g.read_term_lists(c)
+        self.assertEqual(g.categories(g.find_spans("re: zyxw QUILLON synthetic", terms, salt, lists)), [category])
+        return c
 
     def drive_cancel(self, d, key):
         """Run add-term in a pty, press `key` at the first prompt, return (exit status, terminal output)."""

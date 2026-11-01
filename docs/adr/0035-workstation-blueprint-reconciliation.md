@@ -757,11 +757,74 @@ and outside a repository, a clean file, a binary file and the exit-2 cases, and 
 `--file` branch or its regular-file check is disabled in the source. Not installed on the reference
 machine; no post has been scanned through it yet.
 
+## Amendment 2026-11-01: five more detection categories (Issue #36)
+
+Status unchanged (accepted). This adds categories to the one detection engine that decision 7 reuses,
+`find_spans` in `global/clipboard/clipboard_guard.py`. The paste wrapper, the prompt hook and `mhw scan`
+all call it, so all three get the categories at once. It changes no surface's response: the wrapper
+still replaces, the hook still blocks, and the scan still informs and never blocks.
+
+**Context.** The owner's ruling on Issue #36 (2026-11-01): a detector for each of five categories, phone,
+postal address, contract and salary values, health and colleague names. The first three are patterns.
+Health and colleague names are patterns seeded by a private term list where a pattern cannot tell, and
+that list stays out of the repository.
+
+**1. The categories.** The engine reports eleven categories, in this order: `employer-client-term`,
+`credential`, `email`, `payment-card`, `cpf`, `cnpj`, and since this amendment `phone`, `postal-address`,
+`contract-value`, `health` and `colleague-name`. Each new pattern needs a cue that a plain number, date
+or identifier does not carry:
+
+- `phone`: the Brazilian `+55` code or a parenthesised Brazilian area code (two digits 1 to 9) and a
+  hyphenated number, or another `+` country code; 10 to 15 digits.
+- `postal-address`: a hyphenated CEP, `CEP` and eight digits, a Brazilian street line (the street word,
+  a capitalised name, the number) or an English one (the number, capitalised words, the street word).
+- `contract-value`: an amount with a currency symbol or code (`R$`, `US$`, `€`, `£`, `BRL`, `USD`,
+  `EUR`, `GBP`, or `$` with a thousands separator or `k`), counted only with a contract or salary word
+  on the same line within 80 characters. A price or a budget alone is not reported.
+- `health`: a CID-10 or ICD-10 code with its prefix. A "diagnosed with" pattern was tried and dropped,
+  because it is ordinary engineering text. ICD-11 codes are not covered, because their shape collides
+  with hexadecimal.
+- `colleague-name`: one to four capitalised words right after a possessive and a colleague word ("my
+  colleague", "minha gestora" and similar).
+
+**2. The private lists.** Health terms and colleague names that no pattern can tell are matched against
+two more term lists, loaded the same way as the employer and client list: salted HMAC hashes, never
+plaintext, the same salt, the same matching (up to six words, accents and case folded). Each list has its
+own file beside the first: `clipboard-terms-health` and `clipboard-terms-colleague` in the local overlay.
+They are written only by `clipboard_guard.py add-term --list health|colleague-name`, from the terminal
+with echo off. Where a list or the salt cannot be read, the hook says term matching was not checked,
+and `mhw scan` prints a NOTE that names each list and says its category was checked by its pattern
+only.
+
+**3. Report-only.** A new setting, `report_categories`, makes a category report-only when it is also
+removed from `block_categories`. The prompt hook names it in a notice and sends the prompt unchanged.
+The paste wrapper forwards it unchanged and counts it in its session summary, because a notice in the
+middle of a session would corrupt the CLI's screen. `mhw scan` reports every category whatever either
+setting says. A category in both lists blocks. A name that is not a category empties the setting.
+
+**4. The false-positive threshold, and what it measured.** Threshold: a category ships report-only if
+the engine reports even one false positive on the measured corpus. On a false positive the wrapper and
+the hook rewrite or block the owner's own prompt. Measured on 2026-11-01 at `98b04f7e6632`, before
+this change's own fixtures and comments: 0 findings for each of the five categories over every tracked
+text file, 0 over the 80,369 lines added in the history and 0 over its 576 commit messages. The
+instrument was checked on the same corpus: the email category, run the same way, reported 12 and 399.
+So all five block by default, and `report_categories` is empty. The corpus is English engineering text,
+not the owner's Portuguese conversation, where these patterns are more likely to fire. That is the gap
+the setting exists for: one line makes a noisy category report-only.
+
+**5. Evidence level.** *Written and tested*: `clipboard_guard_test.py` holds synthetic positives, each with
+its exact span, and near-miss negatives for each category, plus the private lists, report-only and
+`add-term --list` through a pty. `paste_wrapper_test.py` covers a report-only paste through a real
+wrapper process, and `scan_test.py` covers the new categories and the list NOTEs. Each detector's source
+was mutated to turn its tests red, then restored. Not installed on the reference machine; not probed
+in a harness. macOS and Linux, as before.
+
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10);
   [#145](https://github.com/tedeuxx/mhw/issues/145) (install applies every setting itself, 2026-10-11);
   [#34](https://github.com/tedeuxx/mhw/issues/34) (decision 7 reaches a post before it is published,
+  2026-11-01); [#36](https://github.com/tedeuxx/mhw/issues/36) (five more detection categories,
   2026-11-01)
 - Pull requests: #118 (slice A), #119 (slice B), #120 (slice F), #121 (decision 9, owner-action queue),
   #126 (decisions 6 and 10), #132 (decision 1, mhw sphere line)
