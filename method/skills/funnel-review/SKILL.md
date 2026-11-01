@@ -275,6 +275,29 @@ Each option states its consequence, and that consequence is the whole preamble:*
   nothing needs to**: both are assertions by whoever wrote them, which is the bound the store already
   carries.
 
+**An unreachable browser is a blocker raised to the owner, never a silent skip (#131).** Owner
+requirement, 2026-10-10, verbatim: *«lembre-se que a retrospectiva deve contemplar sempre analise dos
+dados de google analytics que temos sobre audiencia e tendencias de consumo dos conteudos para
+alinhamento de rota.»* On the sprint-05 close the browser looked unreachable and this rite was skipped
+without asking him; he corrected it in the same session. So:
+
+- **The picker above is asked before anything is written.** No collection file, no report and no
+  dispatch comes first. The context that ran the check asks it, in the same turn it found the route
+  missing.
+- **`FUNNEL-REVIEW-NOT-COLLECTED` is legitimate only after his answer**: his **Skip**, or his
+  confirmation that the route cannot be made reachable on this host for this period. Record that
+  confirmation the way a skip is recorded, with his reason:
+  `collected: no owner confirmed on <date>: <route> cannot be made reachable on <host>`.
+- **A not-collected report written before he answered is the defect**, whatever the reason in its
+  line. "The browser looked unreachable" is the check's result, not his decision.
+- **Connecting the route is his act, and nothing stands in for it.** The rite does not fall back to
+  another route while it waits for his answer; the shipped `chrome-devtools` server is not this route
+  (above).
+
+**Evidence level: an instruction.** Nothing fires this rite, nothing checks that the picker was asked
+before the file was written, and a `collected: no` line written without asking him reads exactly like
+one written after. The order is held by whoever runs the rite.
+
 **What this check does NOT establish, said so it is not over-read.** It proves reachability for the
 context that ran it — the one holding ~~the extension~~ the host's browser route. **Whether a
 dispatched subagent can drive ~~that extension~~ that route is still ~~unmeasured~~ not established on any host** (per the
@@ -329,7 +352,10 @@ include the owner's own sessions. By the state of the property's internal-traffi
   do not compare it with a fully filtered period as if the two were alike;
 - **no marking exists** — declare `none`, and read every figure as including the owner's own sessions.
 
-**Write `collected: no <reason>` and stop when the browser is not authenticated.** That is the
+~~**Write `collected: no <reason>` and stop when the browser is not authenticated.**~~ *(Struck
+2026-11-01, #131: it let the not-collected file be written without asking him.)* **When the browser
+is not authenticated, go back to step 0's picker; write `collected: no <reason>` and stop only after
+his Skip or his confirmation.** That is the
 honest output of a step that could not run, and it is what makes the not-collected literal reachable.
 Do not guess a number, do not carry one forward from the prior period, and do not omit the file.
 
