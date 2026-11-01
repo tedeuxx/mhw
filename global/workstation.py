@@ -30,7 +30,11 @@ checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./wo
                                           (or REF, or the paths given) and over every unpushed commit's
                                           added lines and message; prints file:line, category and match
                                           length, never the matched text; exit 0 with findings;
-                                          needs a git repository in every mode (exit 2 outside one)
+                                          needs a git repository in these modes (exit 2 outside one)
+    ./mhw scan --file=PATH              the same detectors and report over one text file, whether or
+                                          not git tracks it, inside a repository or outside one (a post
+                                          before it is published, Issue #34); exit 2 when PATH names no
+                                          regular file
     ./mhw postinstall                   what npm's postinstall runs (bin/postinstall.js): one line naming
                                           `mhw install`; it installs nothing (Issue #113)
 

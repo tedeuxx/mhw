@@ -422,6 +422,65 @@ class OutboundScan(unittest.TestCase):
         for i in range(len(TERM) - 4):
             self.assertNotIn(TERM[i:i + 5], r.stdout + r.stderr)
 
+    # Issue #34: --file=PATH scans one text file git does not track, such as a post written to a
+    # scratch file before it is published. Same engine, same report format, same exit codes.
+    def _outside(self, name, content):
+        scratch = self.box.root / "scratch"
+        scratch.mkdir(exist_ok=True)
+        path = scratch / name
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def _mhw_outside_git(self, *args):
+        """mhw scan run from a directory no git repository contains."""
+        env = dict(self.box.env, GIT_CEILING_DIRECTORIES=str(self.box.root))
+        return subprocess.run(["/bin/sh", str(MHW), "scan"] + list(args), cwd=str(self.box.root / "scratch"),
+                              capture_output=True, text=True, env=env)
+
+    def test_file_untracked_and_outside_git_is_reported(self):
+        post = self._outside("post.txt", "a draft post\n\nwrite to " + EMAIL + "\nkey " + AWS_EXAMPLE + "\n")
+        # From inside the repository by absolute path, and from a directory no repository contains.
+        runs = ((str(post), self.box.mhw("--file=" + str(post))),
+                ("post.txt", self._mhw_outside_git("--file=post.txt")))
+        for label, r in runs:
+            self.assertEqual(r.returncode, 0, r.stderr)   # findings never block
+            lines = r.stdout.splitlines()
+            self.assertIn("%s:3: email, %d chars" % (label, len(EMAIL)), lines)
+            self.assertIn("%s:4: credential, %d chars" % (label, len(AWS_EXAMPLE)), lines)
+            self.assertIn("mhw scan: 2 finding(s); 1 of 1 scanned file(s) had one;", r.stdout)
+            self.assertNoLeak(r)
+
+    def test_file_untracked_inside_the_repository_is_reported(self):
+        self.box.write("draft.txt", "x\ncpf " + CPF + "\n")      # untracked, never added
+        r = self.box.mhw("--file=draft.txt")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("draft.txt:2: cpf, %d chars" % len(CPF), r.stdout)
+        self.assertNoLeak(r)
+
+    def test_file_clean_reports_nothing(self):
+        self._outside("clean-post.txt", "nothing sensitive in this post\n")
+        r = self._mhw_outside_git("--file=clean-post.txt")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("mhw scan: 0 finding(s); 0 of 1 scanned file(s) had one;", r.stdout)
+        self.assertNotIn("SKIPPED", r.stdout)
+
+    def test_file_missing_or_misused_exits_two(self):
+        self._outside("present.txt", "x\n")
+        r = self._mhw_outside_git("--file=absent.txt")
+        self.assertEqual(r.returncode, 2)
+        self.assertEqual(r.stderr, "mhw scan: --file=absent.txt: no such regular file\n")
+        self.assertEqual(r.stdout, "")
+        self.assertEqual(self._mhw_outside_git("--file=.").returncode, 2)          # a directory
+        self.assertEqual(self._mhw_outside_git("--file=").returncode, 2)
+        self.assertEqual(self._mhw_outside_git("--file=present.txt", "--file=present.txt").returncode, 2)
+        self.assertEqual(self.box.mhw("--file=new.txt", "clean.txt").returncode, 2)
+        self.assertEqual(self.box.mhw("--file=new.txt", "--base=base").returncode, 2)
+
+    def test_file_binary_is_skipped_with_the_reason(self):
+        r = self.box.mhw("--file=blob.bin")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("SKIPPED blob.bin: binary, not scanned", r.stdout)
+
 
 class ScanText(unittest.TestCase):
     def test_returns_positions_never_text(self):

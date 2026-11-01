@@ -718,10 +718,51 @@ migrations this record and ADR-0032 added, and the retired-server policy file wi
   owner's read-only check on #206). Replicator installs were not checked; the release notes ask them to
   run `mhw status` and remove a leftover table by hand.
 
+## Amendment 2026-11-01: decision 7 reaches a post before it is published (Issue #34)
+
+Status unchanged (accepted). This extends decision 7's control to the second exit path the owner
+named, posts on the social networks; it changes no detector and no category.
+
+**Context.** The owner's answer on Issue #34 (2026-10-01), on a finding in a post about to go out:
+*"limpar sozinho e publicar"*. Decision 7 already informs and never blocks, which matches it, but the
+scan reached only what git tracks. A social post is text the orchestrator types through a browser
+extension (`content-publishing` step 10), so no scan reached it.
+
+**1. A fourth mode.** `mhw scan --file=PATH` scans exactly one text file, whether or not git tracks it,
+inside a repository or outside one. Same engine (`find_spans`, through `scan_text`), same report
+(`path:line: category, N chars`, never the matched text), same exit codes: 0 with or without findings;
+2 when `PATH` names no regular file (missing, a directory), when `--file` is empty or given twice, or
+when it is combined with `--base` or with `PATH` arguments. A binary, too large or unreadable file is
+`SKIPPED` with the reason, as in the other modes.
+
+**2. What it gives up, on purpose.** Item 4's 2026-10-10 append made an explicit `PATH` unable to reach
+`open()`: only git's own entry is opened. `--file` cannot keep that property, because the file it
+exists for is one git does not list. The path the caller names is resolved with `realpath` (a symlink
+is followed to the file it names), must be a regular file, and is then read. Reading it only produces
+positions and categories. If SonarCloud reports S8707 on this path, that is this trade, stated here
+rather than hidden; the other three modes keep item 4's construction unchanged.
+
+**3. The step that uses it.** `content-publishing` step 10 adds a bullet: write each post's exact text
+to a scratch file, run `mhw scan --file`, rewrite any finding toward the abstract
+([ADR-0012](0012-operational-judgement-delegated-to-the-harness.md)) and scan again; a `[REDACTED:…]`
+marker never appears in a public post; the owner is told the category only. It is an instruction.
+
+**4. Declared gaps.** Out of reach: e-mail and other cloud connectors, and text typed straight into a
+desktop or web application. Nothing checks that the scan ran or that the posted text is the scanned
+file. Employer and client terms are checked only where the term list is readable, with the NOTE line
+of item 3 otherwise. macOS and Linux only, as item 7 states for every mode.
+
+**5. Evidence level.** *Written and tested*: `global/scan_test.py` covers an untracked finding inside
+and outside a repository, a clean file, a binary file and the exit-2 cases, and it goes red when the
+`--file` branch or its regular-file check is disabled in the source. Not installed on the reference
+machine; no post has been scanned through it yet.
+
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10);
-  [#145](https://github.com/tedeuxx/mhw/issues/145) (install applies every setting itself, 2026-10-11)
+  [#145](https://github.com/tedeuxx/mhw/issues/145) (install applies every setting itself, 2026-10-11);
+  [#34](https://github.com/tedeuxx/mhw/issues/34) (decision 7 reaches a post before it is published,
+  2026-11-01)
 - Pull requests: #118 (slice A), #119 (slice B), #120 (slice F), #121 (decision 9, owner-action queue),
   #126 (decisions 6 and 10), #132 (decision 1, mhw sphere line)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),
