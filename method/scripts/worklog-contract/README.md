@@ -72,6 +72,31 @@ Points are never duplicated per contributor or split arbitrarily. Missing estima
 
 These are team planning measurements. They do not convert points to tokens/hours, score individuals, or establish causal harness rankings across different work mixes.
 
+## Consumption — the optional `usage` object (#76)
+
+A `checkpoint`, `handoff` or `outcome` event may carry one `usage` object: what the session's work on the Issue consumed, copied by the acting context from its agent harness's own report when that work ends. It is a closed object. `validate-event`, `prepare-event` and `report` refuse any other key in it, so there is no field for a prompt, an output, a summary or a note.
+
+| field | what goes in it | bound |
+|---|---|---|
+| `usage_provenance` | `native` when the numbers come from the harness's own report, `unavailable` when the harness exposes none for the session | required; one of the two |
+| `model` · `effort` | the model and effort identifiers the harness shows | a fixed identifier (letters, digits, `.`, `_`, `:`, `-`; at most 64 characters, no spaces) or null |
+| `tokens_input` · `tokens_output` | token counts | a non-negative integer or null |
+| `credits` | the harness's credit count | a non-negative number or null |
+
+**`unavailable` carries no numbers; `native` carries at least one.** An `unavailable` record with null values is the honest record. A count the harness did not show is never estimated, and it is never written as zero. Events written before #76 carry no `usage`, and they stay valid.
+
+**One record per run.** A run (`run_id`) on an Issue carries at most one `usage` object: the consumption of that run, put on the event that ends its work on the Issue. A harness report is usually a running total for the session, so two records on one run could be two totals or two deltas. The report cannot tell which, so it refuses with exit 2 rather than risk counting twice. A correction repairs it. `implementation_start` cannot carry `usage`. A run whose only event is `implementation_start` is therefore unrecorded unless a later event on the same run carries one.
+
+**Where each number comes from.** This follows the workstation repository's `docs/native-enforcement-matrix.md`: its *Usage and token reporting* row and its section *Per-session token counts (worklog, #76)*.
+
+- **Claude Code**: a headless run returns token fields per session; `/usage` in a session. The shape was measured; the values were not, because the throwaway home was not logged in.
+- **Codex**: `/status` shows the session's token usage. This is documented, not measured.
+- **Kiro**: **credits, not tokens.** `/usage` shows credits, and the published documentation names no per-session token count. A Kiro record is `native` with `credits` and null tokens, or `unavailable`.
+
+**What the report derives.** Each item gets `usage`, and `totals.usage_by_harness` groups runs by the normalised harness key that cohorts use. A run takes the harness of the event carrying its record; a run without one takes the harness of its latest event. Each summary gives the run counts (`runs`, `native_runs`, `unavailable_runs`, `unrecorded_runs`) and, per metric, the `sum` of the values reported and the number of `runs` that reported it. A metric no run reported has a null sum. `coverage` is `complete` only when every run has a `native` record. It is `partial` when some run is `unavailable` or has no record, and `none` when no run has a `native` record. So a sum under partial coverage is a sum of what was reported, a lower bound and never an estimate. A metric's own `runs` count shows how many runs it covers: a Kiro run counts toward `credits` and not toward tokens. Usage coverage does not change the report's `partial` flag, which stays about delivery evidence. Retained history has no `usage`, and making every older report partial on that ground would hide the evidence problems the flag exists for.
+
+**What nothing enforces.** Nothing makes a session write `usage`, and nothing checks the numbers against the harness. The contract bounds the *shape*: numbers, two identifiers and a provenance. It cannot tell a copied count from a mistyped one. Points are not converted into tokens or credits, and no threshold reads these sums.
+
 ## Provenance and privacy
 
 Attribution provenance is `observed`, `declared`, or `unknown`. **`harness` is free text, and cohorts compare it normalised** (#515). Case is folded and every character that is not an ASCII letter or digit is dropped, so `Kiro`, `kiro` and `ki-ro` are one harness, and so are `Claude Code` and `claude-code`. A value that folds to nothing counts as `unknown`. Before #515, `Kiro` and `kiro` on one Issue made a `mixed` cohort in a report marked complete. Normalising was chosen over a fixed enum on purpose: an enum would refuse retained history written with any other spelling. It does not merge harnesses spelled genuinely differently, for example `Codex` and `OpenAI Codex`. Segments keep the value as written. Declared harness identity is metadata, not authenticated permission identity. Never infer it from persona, forge account, branch, or global plugin configuration. Runtime/plugin/source fields remain independently visible and unknown stays unknown.
