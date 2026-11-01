@@ -1,6 +1,6 @@
 ---
 name: "documentation-standard"
-description: "Write or review documentation for any <project> repo — general docs (README, architecture pages, diagram choice, Markdown + Mermaid only) AND Architecture Decision Records (MADR format, the significance gate, the methodology/product library split, numbering and status, and the current-codebase rule for a reversed decision). Use when adding a README or architecture page, choosing a diagram type, reviewing drifted docs, writing or superseding an ADR, or judging architectural significance."
+description: "Write or review documentation for any <project> repo — general docs (README, architecture pages, diagram kinds and colours, Markdown + Mermaid only, plain-word naming, English by default) AND Architecture Decision Records (MADR format, the significance gate, the methodology/product library split, numbering and status, and the current-codebase rule for a reversed decision). Use when adding a README or architecture page, choosing a diagram type, naming a command, skill or document, reviewing drifted docs, writing or superseding an ADR, or judging architectural significance."
 purpose: "keep documentation diffable and decisions durable, so a fresh context can load what was already decided instead of re-deciding it"
 ---
 
@@ -67,18 +67,123 @@ the one deliberate exception to "next to the code"** — they live at each repo'
 regardless of which unit a decision concerns, because a decision record needs one stable, browsable
 index per repo more than it needs to sit beside the specific file it changed.
 
-### Diagram types
+### Diagrams — two kinds, always simple
 
-| Diagram | Mermaid | Where |
-|---|---|---|
-| Infra architecture | `flowchart TD` / `graph LR` | `docs/architecture.md` (each repo) |
-| Data model (tables) | `erDiagram` | `docs/data-model.md` in the API unit |
-| Flows / integrations | `sequenceDiagram` | `docs/sequences.md`, one per unit that participates |
-| Frontend components | `flowchart LR` | `docs/architecture.md` in the SPA unit |
+**Where these rules come from (#69).** They are the owner's documentation standard for every
+repository on the workstation, agreed during the workstation requirements-document review on
+2026-10-05 and first written in that document's section 5a. This skill is now their one canonical
+home; the requirements document points here. His words when he asked for it, translated: *"turn the
+diagram patterns agreed here into a managed-workstation standard."*
+
+- **Mermaid only.** No other diagram format, and no static image.
+- **Always simple.** Less is more for a wide audience, even if the drawing leaves questions open. The
+  detail goes in the text, not in the diagram.
+- **Two kinds of diagram, and only two:**
+  - **Layer diagrams** (architecture views): stacked, labelled layers, one short label each, **no
+    arrows**. Draw them with `block-beta` and **one column**, so every layer has the **same width**.
+  - **Sequential diagrams** (workflow, process): **always arrows**, as a simple **left-to-right flow
+    of labelled steps** (`flowchart LR`). The owner, 2026-10-05: "the workflow diagram is one that
+    needs arrows/edges".
+- **Reading direction.** Left to right when possible; otherwise top-down or bottom-up. **An agent
+  harness stack reads bottom-up, with the agent harness itself as the base layer.** In `block-beta`
+  the first block is drawn at the top, so write the base layer last.
+- **Colour encodes who can change a layer**: one colour per audience, and nothing else is coloured.
+- **Palette** (colour-blind safe; pleasant and highly visible):
+
+  | Who can change the layer | Border colour | Border style |
+  |---|---|---|
+  | administrator | orange `#D55E00` | solid |
+  | project contributors | green `#009E73` | solid |
+  | owner or machine user | blue `#0072B2` | solid |
+  | vendor | grey `#6b7178` | dashed |
+
+  The colour goes on a **2px border** over a **light fill**, with **dark text**, so the contrast holds in
+  both light and dark themes.
+- **Legend.** One line under the diagram names the reading direction and what each colour means.
+
+A layer diagram in this style, for an agent harness stack (bottom-up):
+
+```mermaid
+block-beta
+  columns 1
+  L4["Project settings · project contributors"]
+  L3["User settings · machine user"]
+  L2["Managed settings · administrator only"]
+  L1["Built-in defaults of the agent harness · vendor"]
+  classDef admin fill:#F9D8C4,stroke:#D55E00,stroke-width:2px,color:#1d2228
+  classDef project fill:#CDEDE2,stroke:#009E73,stroke-width:2px,color:#1d2228
+  classDef user fill:#CFE3F2,stroke:#0072B2,stroke-width:2px,color:#1d2228
+  classDef vendor fill:#E3E5E8,stroke:#6b7178,stroke-width:2px,color:#1d2228,stroke-dasharray:5 4
+  class L4 project
+  class L3 user
+  class L2 admin
+  class L1 vendor
+```
+
+*Read bottom-up. Grey dashed: vendor. Orange: administrator only. Blue: machine user. Green: project
+contributors.*
+
+**Which diagram goes where:**
+
+| Diagram | Kind | Mermaid | Where |
+|---|---|---|---|
+| Infrastructure architecture | layer | `block-beta`, one column | `docs/architecture.md` (each repo) |
+| Frontend components | layer | `block-beta`, one column | `docs/architecture.md` in the SPA unit |
+| Workflow / process | sequential | `flowchart LR` | next to what it describes |
+| Flows / integrations between units | sequential | `sequenceDiagram` | `docs/sequences.md`, one per unit that participates |
+| Data model (tables) | reference | `erDiagram` | `docs/data-model.md` in the API unit |
+
+*Struck 2026-11-01 (#69): this table used to draw both architecture rows as node-and-edge graphs with
+arrows. The layer rule above replaced it.* **The data-model row is kept as it was and is neither of the
+two kinds:** a table of entities is not a layer view and not a flow, and the 2026-10-05 standard does
+not rule on it. Keep it as simple as the rest.
+
+### Names — plain words, vendor terms
+
+- **Layer names follow the vendors' own documentation terms.** Name a configuration layer the way the
+  agent harness vendor's documentation names it (managed settings, user settings, project settings),
+  not with a private label. The owner, 2026-10-05: "use the same terms, or terms that follow harness
+  documentation standards, for these configuration layers".
+- **Names are plain words that a native speaker of any language understands.** No slang, idioms or
+  metaphors. This applies to command, skill and document names, not only to diagram labels. The
+  owner, 2026-10-05: "it must be something any native speaker of any language understands". Two
+  examples he gave: "grill-me" became `/new-idea` (since renamed `/new-prd`), and "PRD" is spelled out
+  in a document's name and title ("Product Requirements Document").
+
+### Editorial line for commands
+
+- **Words people already say.** A command is a short phrase that people in a software team already use
+  day to day, so it makes sense with no explanation: `/new-prd`, `/new-issue`, `/prd-to-issues`.
+  Familiar team vocabulary (handover, issue, release) is welcome; slang and private jargon are not.
+  *(`prd` in a command name is the owner's call of 2026-10-26: PRD is the team word for what those
+  commands write and read. The document itself still spells the term out.)*
+- **Plain, international words:** two or three of them, lowercase and hyphenated. No slang, idioms,
+  metaphors, contractions or acronyms.
+- **Name the intent, not the mechanism:** what the owner wants to happen, not how the agent harness does
+  it.
+- **Families read alike:** `/new-prd` and `/new-issue`; `/prd-to-issues`.
+
+### Documents — language, naming, and the rationale rule
+
+- **English is the default** for code, comments, documents and artifacts. **One language per
+  document**, quotes included: a quote in another language is translated. End-user application text
+  follows each project's own standard.
+- **Requirements documents** are named `docs/<git-repo-name>-product-requirements-document-<subject>.md`.
+  The repository-level document uses the subject `project`, and the term is spelled out in the title
+  ("Product Requirements Document").
+- **The README mirrors the agreed project requirements document.**
+- **A rationale names the concrete problem it prevents** — never a category label such as "generic
+  method". "So a fresh session can find the decision without the chat" is a rationale; "for
+  consistency" is a label.
+
+**A known conflict, named rather than resolved here.** Many method files, this library included, quote
+the owner verbatim in Portuguese, and some carry the quote with no translation. The one-language rule
+governs documents written after 2026-10-05; retrofitting the existing ones is not part of #69. Until it
+is done, a verbatim quote that also carries its translation is the form to prefer when you touch one.
 
 ### Expected content per file
 
-- **`iac/docs/architecture.md`** — Terraform module dependency graph (+ network topology when a VPC is provisioned: subnets/NAT/endpoints).
+- **`iac/docs/architecture.md`** — the infrastructure as stacked layers (for example edge, compute, data, network), one short label each; a module dependency order or a network topology (subnets, NAT, endpoints) goes in the text under the diagram, not in the drawing.
 - **The API unit's `docs/data-model.md`** — `erDiagram` of the persisted entities (fields, types, implicit relations); on a document store, the implicit relations are the ones worth drawing, since nothing in the engine declares them.
 - **The API unit's `docs/sequences.md`** — the auth exchange end to end, one representative write path (admin → API → store → notification), and any request that leaves the normal path (a bot/SEO render, a webhook).
 - **The API unit's `docs/architecture.md`** — compute × gateway × data store × secrets × object storage.
