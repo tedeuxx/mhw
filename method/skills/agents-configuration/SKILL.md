@@ -1589,7 +1589,11 @@ over real iterations, which is his decision and not a build's.
    `dispatch-metrics-stop.sh` and the worklog half has no equivalent in this tree.~~ **Struck
    2026-09-23 (#499): a host-neutral, explicit worklog now exists at `{{method-scripts}}/worklog.py`, with its
    contract in `docs/worklog/`.** It has no automatic producer and does not read the metrics hook.
-   **Do not read native usage reporting as the worklog:** they are separate instruments.
+   **Do not read native usage reporting as the worklog:** they are separate instruments. **Since #76 a
+   worklog event may carry an optional `usage` object** (numbers and fixed identifiers only), copied by
+   the acting context from that native report when its work on the Issue ends, and `worklog.py report`
+   sums it per Issue and per harness and marks coverage partial. The native report stays the source;
+   nothing fills the field automatically.
 2. **The mapping from a story point to tokens and hours does not exist.** The worklog uses frozen
    points for team planning velocity and deliberately does not make `sp:N` a token/hour denominator.
    **The question is open and asked rather than answered:** *how does this loop

@@ -108,40 +108,41 @@ agent harness costs one command, not a migration.
 
 ## 1c. Ten commandments for working with an agent harness every day
 
-> **Draft, pending the owner's ratification.** Written from his own statements during the review, for him
-> to edit and ratify. Once ratified, they are the behavioural anchor of every agent harness on the
-> workstation: they are written at the top of the user-level brief rendered to Claude Code, Codex and
-> Kiro, so every session and every agent starts from them. Until then they are not installed anywhere
-> ([#77](https://github.com/tedeuxx/mhw/issues/77)).
+Ratified by the owner on 2026-11-01, one at a time ([#77](https://github.com/tedeuxx/mhw/issues/77)):
+the six principles he added on that Issue were consolidated with the draft ten into ten, and
+commandment 2 is his rewrite. They are the behavioural anchor of every agent harness on the
+workstation and are carried at the top of the user-level brief, [`global/AGENTS.md`](../global/AGENTS.md),
+which the installer renders to Claude Code, Codex and Kiro. That brief is the operative copy; this
+section restates it. They are instructions, not enforced by any hook.
 
 1. **Native first, thin on top, one source for all.** Use each agent harness's own mechanisms before
    building anything custom, and render one versioned source into every agent harness, so switching
    vendor costs one command, not a migration. A thin layer benefits most from how the agent harnesses
    evolve: each vendor improvement arrives for free, and there is less custom code to retest along the
    way.
-2. **Talk like executives with your agents.** Communication between people and agents is direct in both
-   directions: plain instructions in, plain results out. Clarifying questions are optional, asked only
-   when a decision truly needs one. Fewer words each way also saves tokens.
+2. **Talk plainly with your agents.** Direct instructions in, direct results out, in both directions; a
+   clarifying question only when a decision truly needs one. Fewer words each way also saves tokens.
 3. **No build without an agreed document.** An idea becomes a requirements document before it becomes
    code, because that document is the refined context the agents work from: a clear, agreed brief
    instead of a scattered conversation.
-4. **All agent work runs on the issue tracker.** Every piece of agent work is tied to an Issue, so agile
-   delivery metrics and the cost of each agent session can be measured against the work it served. The
-   tracker is also a shared context bus: sessions running in parallel, in any agent harness, read and
-   write the same context there.
-5. **The orchestrator talks, the agents work.** The session I talk to delegates every task and keeps its
-   own context light.
-6. **Best-effort enforcement over hard mechanical hooks.** Behaviour is taught through instructions,
-   skills and native settings, accepting a best-effort result. A hard mechanical hook is used only for
-   irreversible harm or harm to third parties, where teaching would act too late.
-7. **Clean, don't ask.** Sensitive content is removed automatically, never logged or sent back for
-   approval.
+4. **The issue tracker is the bus; where a session runs does not matter.** Every piece of agent work is
+   tied to an Issue, and sessions in any agent harness, machine or stage coordinate by reading and
+   writing the tracker, not by where they run.
+5. **The orchestrator talks, the agents work, each with least privilege for its purpose and full
+   autonomy within it.**
+6. **Defend the perimeter, teach the behaviour, clean without asking.** Hard mechanical controls only at
+   the perimeter (managed layer, OS privilege, native deny rules, later the container) and only for
+   irreversible or third-party harm; inside it behaviour is taught and best effort; sensitive content is
+   cleaned automatically, never logged or sent back for approval.
+7. **Probe, don't pretend.** Verify a claim by probing real behaviour in a throwaway environment; keep
+   only mutation-checked regression tests beside the probes.
 8. **Track agent harness consumption per Issue.** Every task done with an agent harness records its cost
    (tokens, model and effort) on its Issue. This builds cost observability over time, and that evidence
    can change how the workflow itself is configured: which agent harness, model and effort each kind of
    task gets.
-9. **Less is more.** Plain words any native speaker of any language understands, simple diagrams, one
-   decision at a time.
+9. **Less is more, and design the context for attention.** Plain words, simple diagrams, one decision at
+   a time; the objective and hard rules where attention is strongest, small relevant context,
+   distinctive markers, each agent only the context its task needs.
 10. **Use conflict between agents to reach consensus.** Where it adds value, agents with opposing lenses
     disagree first and agree on one answer. When speed matters more, use fewer agents per layer of the
     workflow.
@@ -170,12 +171,13 @@ agent harness costs one command, not a migration.
 7. **Teach rather than lock.** Hooks are mechanical locks. Keep them to the minimum and replace them with
    behaviour taught through briefs, skills and agent instructions, accepting a best-effort result. Every
    hook that remains must pass the [hook budget](#4a-hook-budget).
-8. **Perimeter, not behaviour.** *Draft, proposed on #77, pending the owner's ratification.* In the owner's words (translated, #77): "every attempt to build
+8. **Perimeter, not behaviour.** ~~*Draft, proposed on #77, pending the owner's ratification.*~~ *Ratified on 2026-11-01 as part of commandment 6 (#77).* In the owner's words (translated, #77): "every attempt to build
    explicit blocking of agent behaviour, or hard control over how agents behave, has proved
    ineffective. Perimeter defence is therefore the right approach." The workstation protects the
    boundary: the managed layer that only an administrator changes, the operating system's privilege
    model, and native deny rules on irreversible actions. Inside that perimeter, behaviour is taught and
-   accepted as best effort. Until he ratifies it, this principle is not installed anywhere
+   accepted as best effort. ~~Until he ratifies it, this principle is not installed anywhere~~ It is
+   carried in the user-level brief as commandment 6
    ([1c](#1c-ten-commandments-for-working-with-an-agent-harness-every-day)).
 9. **No per-request waivers; exceptions only through `sudo`.** In the owner's words (translated, #52):
    "no mechanical lock may require individual, temporary waiver requests unless the waiver is tied to a
@@ -471,58 +473,21 @@ barrier of the proposed managed workstation."
 
 ## 5a. Documentation standards (user layer, every repository)
 
-Distributed as part of the `documentation-standard` skill at user level, so every repository on the
-workstation follows them ([#69](https://github.com/tedeuxx/mhw/issues/69)).
+The documentation standard for every repository on the workstation lives in one place: the
+[`documentation-standard`](../method/skills/documentation-standard/SKILL.md) skill, Part I, which the
+method installs at user level for Claude Code, Codex and Kiro
+([#69](https://github.com/tedeuxx/mhw/issues/69)). It carries the rules first agreed here on
+2026-10-05 and the owner's additions on #69:
 
-### Diagrams
+- **Diagrams:** Mermaid only, always simple; two kinds (layer diagrams with no arrows, sequential
+  diagrams as a left-to-right flow with arrows); colour encodes who can change a layer, with a
+  colour-blind-safe palette and a one-line legend.
+- **Names:** vendors' documentation terms for layers; plain words a speaker of any language understands.
+- **Editorial line for commands.**
+- **Documents:** English by default, one language per document, requirements-document file naming,
+  the README mirrors the requirements document, and a rationale names the concrete problem it prevents.
 
-- **Mermaid** is the only diagram format.
-- **Always simple:** less is more for a wide audience, even if the drawing leaves questions open. The
-  detail goes in the text.
-- **Two kinds of diagram.** *Layer* diagrams (architecture) are stacked, labelled layers, one short label
-  each, with no arrows. *Sequential* diagrams (workflow, process) always have arrows: a simple
-  left-to-right flow of labelled steps.
-- **Layer names follow the vendors' own documentation.** Names use plain words that a speaker of any
-  language understands: no slang, idioms or metaphors.
-- **Symmetric:** layers have equal widths (`block-beta`, one column).
-- **Reading direction:** left to right when possible; otherwise top-down or bottom-up. Agent harness
-  stacks read bottom-up, with the agent harness itself as the base layer.
-- **Colour encodes who can change the layer:** one colour per audience, and nothing else is coloured.
-- **Palette:** pleasant and highly visible.
-  - Colour-blind-safe hues: orange `#D55E00` administrator, green `#009E73` project contributors, blue
-    `#0072B2` owner or machine user, grey dashed `#6b7178` vendor.
-  - Colour applied as a 2px border on a light fill, with dark text, so contrast holds in light and dark
-    themes.
-- **Legend:** a one-line legend under the diagram names the reading direction and what each colour means.
-
-### Editorial line for commands
-
-- **Words people already say:** a command is a short phrase that people in a software team already use
-  day to day, so it makes sense with no explanation, for example `/new-prd`, `/what-else`,
-  `/prd-to-issues`. *(Amended 2026-10-26: the owner renamed ~~`/new-idea`~~ and ~~`/idea-to-issues`~~,
-  "-idea- deveria ser renomeado para -prd em todos comandos com esse termo"; PRD, product requirements
-  document, is the team word for what these commands write and read. The old names stay as deprecated
-  aliases for one release, ADR-0032, 2026-10-26 amendment.)* Familiar team vocabulary (handover, issue, release) is welcome; slang and private
-  jargon are not.
-- **Plain, international words:** two or three of them, lowercase and hyphenated. No slang, idioms,
-  metaphors, contractions or acronyms.
-- **Name the intent, not the mechanism:** what the owner wants to happen, not how the agent harness does
-  it.
-- **Families read alike:** `/new-prd` and `/new-issue`; `/prd-to-issues`. (~~`/new-idea`~~,
-  ~~`/idea-to-issues`~~ until 2026-10-26.)
-- **Checked against this line:** `/handover`, `/blueprint` and `/breaking-glass` all fit, because teams
-  already say them (owner, 2026-10-05). (`/breaking-glass` was later removed, ADR-0028, and `/handover`
-  at #196; `/handoff`, #198, is the same everyday word.)
-
-### Documents
-
-- **Language:** English is the default for code, comments, documents and artifacts. One language per
-  document, owner quotes included (translated). End-user application text follows each project's own
-  standard.
-- **Requirements documents:** `docs/<git-repo-name>-product-requirements-document-<subject>.md`. The
-  repository-level document uses the subject `project`, and the term is spelled out ("Product
-  Requirements Document").
-- **README:** mirrors the agreed project requirements document.
+This section no longer restates the rules, so a change to them is made in the skill alone.
 
 ## 6. Working method (user layer)
 
@@ -961,10 +926,10 @@ is the owner's act, in a fresh session.
   ([#79](https://github.com/tedeuxx/mhw/issues/79)); a new
   idea that goes through the requirements route first.
 - Content agents under the persona-wide lens: optional; the owner is open to it.
-- Business case ([1b](#1b-business-case)) and the ten commandments ([1c](#1c-ten-commandments-for-working-with-an-agent-harness-every-day)): to be completed and ratified with the owner.
+- Business case ([1b](#1b-business-case)) ~~and the ten commandments ([1c](#1c-ten-commandments-for-working-with-an-agent-harness-every-day))~~: to be completed and ratified with the owner. The ten commandments were ratified on 2026-11-01 (#77).
 
 Decided: connector access is granted through native per-agent tool lists, not a hook.
 
 Separately pending in the decision-record library: the ratification of every proposed record, listed
-with the other owner asks (the ten commandments, the plugin-mirror credential for #62, the runtime
+with the other owner asks (~~the ten commandments,~~ the plugin-mirror credential for #62, the runtime
 interview) in the [decision-record index](adr/README.md). Each is raised only when a slice reaches it.
