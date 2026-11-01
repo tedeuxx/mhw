@@ -604,7 +604,8 @@ this section.
 fourth and fifth both landed 2026-09-19, with rules 19–20 and rule 21; the count is stated here rather
 than left to be counted, because a reader who takes a stale number from this sentence stops at that
 bullet. **It has now moved twice in one day, which is the argument for stating it rather than for
-dropping it.**
+dropping it.** ~~Five~~ **Six since 2026-11-01 (mhw#34)**: the outbound scan before the post is the
+last bullet.
 
 - **The share URL is FORMED locale-neutral, and only then tagged.** This is where
   `published-voice`'s rule 21 binds — **at formation, textually, before anything is posted**, which is
@@ -677,6 +678,23 @@ dropping it.**
   matcher sees at all — so this cannot be more than a written precondition, exactly like the OG-card
   check above. **Neither rule is a merge hold**: no copy hold reaches this lane (step 6), so a post
   missing its hints ships unless somebody reads for it here.
+- **Each post's text is SCANNED before it is posted, and a finding is rewritten, never masked
+  (mhw#34).** Write the exact text of each post, as it will be typed, to a scratch file in the session
+  scratchpad, one file per network, and run `mhw scan --file=<that file>` (`./mhw scan --file=…` in a
+  checkout). It is the workstation's outbound scan: the same detection engine as the push check, a
+  report of `file:line`, category and length, never the matched text. **On a finding, rewrite that
+  passage toward the abstract** (a sector or a role instead of a name, a description instead of an
+  identifier) and scan again until it reports nothing. **A `[REDACTED:…]` marker never appears in a
+  public post**: a marker is itself visible, and odd, to every reader. **Tell the owner the category
+  only**, never the text that was found. This follows his ruling on the outbound response, *"limpar
+  sozinho e publicar"* (mhw#34): clean, then publish, with no hold. **What it does not reach, said
+  here so the scan is not read as covering the publication:** an e-mail or any other cloud connector,
+  and any text typed straight into a desktop or web application rather than written to a file first.
+  The scan reads only the file; if the typed post differs from it, the difference was never scanned.
+  Employer and client terms are matched only where the owner's term list is readable; otherwise the
+  scan prints a NOTE that the category was not checked, and that NOTE is part of what the owner is
+  told. *Held by: an instruction. Nothing observes the post, and nothing compares it with the scanned
+  file.*
 
 **The drafts are written to a private, ignored location**, because pre-publication copy in a public
 repository lets anyone read tomorrow's post today. **Existing files are never overwritten** — the prose
@@ -693,6 +711,7 @@ is hand-voiced after generation, and regenerating over it at this cadence buys n
 | a bilingual post carries its two language hints, and sits under the length target | **an instruction** (`published-voice` rules 19–20, 2026-09-19). The gate arm asserts the clauses are WRITTEN; nothing reads a draft, and no copy hold reaches this lane to refuse a post that dropped them |
 | the share URL is locale-neutral | **an instruction** (rule 21, 2026-09-19), and it is **inert until the neutral form resolves** — so today what holds it is the precondition the rule states first. An MCP call carries the typed URL, which made a detector conceivable on that route; none exists in this method, and the route that has actually published is the browser extension no matcher sees |
 | the publish act is accounted for | **an instruction**: `agents-configuration`'s end-of-turn check 9, after the act, gating nothing |
+| each post's text is scanned before it is posted, and a finding is rewritten rather than masked | **an instruction** (mhw#34). `mhw scan --file` reports and never blocks; nothing checks that the scan ran, or that the posted text is the scanned file |
 
 **By this loop's own test — *would something stop me, or only my memory?* — nothing on this step is
 engineered**: the only native layer is the agents' tool lists, and they do not hold the orchestrator. That
