@@ -366,10 +366,13 @@ earlier answer in its context — **the isolation would survive the dispatch and
 one file each, no consulted persona ever reads another's answer, and the property is held by the shape
 of the artifact instead of by an instruction.
 
-**There is no index and no summary, deliberately.** The directory is the artifact; `ls
-docs/retrospective/<iteration>/` answers *"did the rite run"*. Anyone composing the sections into one
+~~**There is no index and no summary, deliberately.**~~ **There is no index in this directory,
+deliberately.** The directory is the artifact; `ls
+docs/retrospective/<iteration>/` answers *"did the rite run"*. ~~Anyone composing the sections into one
 narrative would be performing the aggregation the isolation exists to prevent, which is why no step here
-asks for one.
+asks for one.~~ *(Struck 2026-11-01, #131: Step 6 now asks for one composition.)* **Step 6 is the only
+composition: it runs after every per-persona file has landed, so no consulted persona reads it, and it
+adds no findings of its own.**
 
 **A comment was NOT chosen, and four of the eight personas are why.** `permission-guard.sh` rule 5e
 allowlists `gh pr comment` / `gh issue comment` / `gh issue create` to the orchestrator, `developer`,
