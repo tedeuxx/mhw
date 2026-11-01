@@ -123,6 +123,40 @@ for b in "$h/.claude/CLAUDE.md" "$h/.codex/AGENTS.md" "$h/.kiro/steering/worksta
     ko "${b#"$h"/} lacks an interaction standard or still carries the intake"
   fi
 done
+# The ten commandments (Issue #77, ratified 2026-11-01) open every rendered brief, before the mission,
+# with the owner's rewrite of commandment 2 and not the draft wording. Text checks, not behaviour.
+for b in "$h/.claude/CLAUDE.md" "$h/.codex/AGENTS.md" "$h/.kiro/steering/workstation-global-brief.md"; do
+  first=$(grep -n -m1 '^## ' "$b" | cut -d: -f2-)
+  titles=0
+  for t in '1. \*\*Native first, thin on top, one source for all.\*\*' \
+           '2. \*\*Talk plainly with your agents.\*\*' \
+           '3. \*\*No build without an agreed document.\*\*' \
+           '4. \*\*The issue tracker is the bus; where a session runs does not matter.\*\*' \
+           '5. \*\*The orchestrator talks, the agents work, each with least privilege for its purpose and full' \
+           '6. \*\*Defend the perimeter, teach the behaviour, clean without asking.\*\*' \
+           "7. \\*\\*Probe, don't pretend.\\*\\*" \
+           '8. \*\*Track agent harness consumption per Issue.\*\*' \
+           '9. \*\*Less is more, and design the context for attention.\*\*' \
+           '10. \*\*Use conflict between agents to reach consensus.\*\*'; do
+    grep -q "^$t" "$b" && titles=$((titles + 1))
+  done
+  if [ "$first" = "## Ten commandments for working with an agent harness every day" ] && [ "$titles" -eq 10 ] \
+     && ! grep -q 'Talk like executives' "$b"; then
+    ok "${b#"$h"/} opens with the ten ratified commandments"
+  else
+    ko "${b#"$h"/} lacks the commandments at the top (first section: $first; titles found: $titles of 10)"
+  fi
+done
+# The requirements document's section 1c restates the brief's ten word for word (Issue #77).
+repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+ten_brief=$(awk '/^## Ten commandments/{f=1;next} /^## /{f=0} f && /^ *[0-9]|^   /' "$repo_root/global/AGENTS.md")
+ten_prd=$(awk '/^## 1c\. Ten commandments/{f=1;next} /^## /{f=0} f && /^ *[0-9]|^   /' \
+  "$repo_root/docs/mhw-product-requirements-document-project.md")
+if [ -n "$ten_brief" ] && [ "$ten_brief" = "$ten_prd" ]; then
+  ok "requirements document section 1c carries the brief's ten commandments word for word"
+else
+  ko "requirements document section 1c and the brief's ten commandments differ"
+fi
 HOME="$h" sh "$inst" --check; expect "check after install" 0 $?
 
 # The restart guard and /breaking-glass are removed (ADR-0028): nothing of theirs is rendered.

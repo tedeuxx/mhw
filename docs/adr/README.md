@@ -18,8 +18,9 @@ Each is raised one at a time, when a slice reaches it.
    to ADR-0034 are all proposed; ADR-0026 was accepted on 2026-10-11. ~~ADR-0038 (#174) is
    proposed.~~ ADR-0038 (#174) was accepted on 2026-10-15. ADR-0039 (#200) is proposed. ADR-0040 (#220) is proposed, and so is the ADR-0016 amendment it
    brings. ADR-0041 (#219) is proposed.
-2. **The ten commandments** ([#77](https://github.com/tedeuxx/mhw/issues/77)):
-   edit and ratify the draft in the requirements document, section 1c. Nothing is installed before that.
+2. ~~**The ten commandments** ([#77](https://github.com/tedeuxx/mhw/issues/77)):
+   edit and ratify the draft in the requirements document, section 1c. Nothing is installed before that.~~
+   *Ratified on 2026-11-01; carried at the top of `global/AGENTS.md`. Installing it is the owner's act.*
 3. **The cross-repository write credential** for the plugin mirror
    ([#62](https://github.com/tedeuxx/mhw/issues/62)):
    create it, scoped to the plugin repository only, and store it as a secret here. The agent names it
