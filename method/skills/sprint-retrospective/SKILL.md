@@ -134,6 +134,12 @@ held by the harness — so with no authenticated session it reads nothing and sa
 literal. **A funnel report reading `FUNNEL-REVIEW-NOT-COLLECTED` is not a finding about the funnel and
 must not be fed to step 3 as one.**
 
+**The audience analysis is part of every retrospective, and an unreachable browser is a blocker for
+the owner, not a reason to proceed without it (#131).** `/funnel-review`'s step 0 asks him before
+anything is written; a not-collected report is legitimate only after his Skip or his confirmation
+that the route cannot be made reachable. Do not start step 1 of this rite while that question is
+unanswered. *Evidence level: an instruction; nothing checks the order.*
+
 ## Step 1 — the scope record, written before any consultation
 
 **`agents-lead` writes `docs/retrospective/<iteration>/00-scope.md` first**, and it contains **query
@@ -360,10 +366,13 @@ earlier answer in its context — **the isolation would survive the dispatch and
 one file each, no consulted persona ever reads another's answer, and the property is held by the shape
 of the artifact instead of by an instruction.
 
-**There is no index and no summary, deliberately.** The directory is the artifact; `ls
-docs/retrospective/<iteration>/` answers *"did the rite run"*. Anyone composing the sections into one
+~~**There is no index and no summary, deliberately.**~~ **There is no index in this directory,
+deliberately.** The directory is the artifact; `ls
+docs/retrospective/<iteration>/` answers *"did the rite run"*. ~~Anyone composing the sections into one
 narrative would be performing the aggregation the isolation exists to prevent, which is why no step here
-asks for one.
+asks for one.~~ *(Struck 2026-11-01, #131: Step 6 now asks for one composition.)* **Step 6 is the only
+composition: it runs after every per-persona file has landed, so no consulted persona reads it, and it
+adds no findings of its own.**
 
 **A comment was NOT chosen, and four of the eight personas are why.** `permission-guard.sh` rule 5e
 allowlists `gh pr comment` / `gh issue comment` / `gh issue create` to the orchestrator, `developer`,
@@ -418,6 +427,50 @@ and the rite adds no second control over it.
 
 **Only the owner opens work.** A rite that filed its own findings would convert one decision into a
 queue, which is `/agents-configuration`'s *Review does not open work* applied to a ceremony.
+
+## Step 6 — the closing rites end in ONE executive report, a Claude Artifact, reviewed by three leads (#131)
+
+**Owner requirements, 2026-10-10, verbatim:** *«o resultado consolidado dos ritos de encerramento de
+sprint deve ser sempre um claude artifact para leitura minha visao executiva»* · *«o relatorio de
+final do sprint precisa ser em portugues»* · *«o relatorio de final de sprint tem que ser revisado tbm
+pelos rosters/perfis de lideranca dentro do time»*. On the sprint-05 close the first consolidated
+report went out in English and without lead review, and he corrected both in the same session.
+
+**This rite is the consolidation point** because it runs after `/sprint-review` and `/funnel-review`,
+so all three closing rites' outputs exist when it ends. `/sprint-planning` is not part of the report:
+it is where he rules on it.
+
+1. **The main session drafts one consolidated report** from the three rites' own artifacts: the
+   sweep report, the funnel report (or its not-collected literal, with his recorded answer), and the
+   per-persona retrospective files. It is an executive view: what was delivered, what the audience
+   did, what the method should change, and the decisions waiting for him at planning, each pointing at
+   the artifact it came from. Drafting is consolidation, not new findings: a line the sources do not
+   carry does not go in. This is the one step of this rite the orchestrator authors, and the next item
+   is what checks it.
+2. **`tech-lead`, `product-lead` and `agents-lead` each review the draft, in isolated dispatches**,
+   against the same source artifacts, each from its own angle: the system and its cost, the reader and
+   the market, the machinery of the loop. Each returns corrections, not a rewrite. **Apply their
+   corrections before he sees anything.** Where two leads disagree, the disagreement goes in the report
+   as a decision for him, not resolved underneath.
+3. **The report names which leads reviewed it.** If a lead could not be dispatched or returned
+   nothing, the report says so by name; a review that did not happen is never implied.
+4. **It is delivered as a Claude Artifact**, the native rendered surface for a document he reads.
+   Where the agent harness has none, use the nearest native rendered surface it offers, and say in the
+   message which surface it is and why. **Chat text, or links to repository files, do not count as
+   delivering it.** The repository files stay the record; the Artifact is how he reads it.
+5. **It is written in Brazilian Portuguese**, by the owner overlay's language rule: everything made
+   for him to read is in Portuguese, and only text for an outside audience is in English. The
+   per-persona files under `docs/retrospective/` are public repository text and stay in English; the
+   Artifact is for him and is not.
+
+**This does not conflict with the owner-read rule for publications.** The `orchestration` skill's
+owner-read sentence forbids an Artifact for his read of a piece before it publishes, and carves out
+*"an Artifact he asked for elsewhere, such as a closing-rite report"*. This step is that carve-out.
+
+**Evidence level: an instruction, in every item.** Nothing fires this rite, nothing checks that three
+leads were dispatched, that their corrections were applied, that the language is Portuguese, or that
+the result reached him as an Artifact rather than as chat text. A report delivered any other way is
+indistinguishable, from the repository, from one delivered correctly.
 
 ## What this costs the NEXT iteration — the amplification, stated where the rite is defined
 

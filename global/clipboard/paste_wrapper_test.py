@@ -86,7 +86,9 @@ def conf_in(d, **over):
     os.makedirs(d, exist_ok=True)
     path = os.path.join(d, "clipboard.conf")
     lines = ["salt_store=file", "terms_file=%s" % os.path.join(d, "lo", "terms"),
-             "salt_file=%s" % os.path.join(d, "lo", "salt")]
+             "salt_file=%s" % os.path.join(d, "lo", "salt"),
+             "health_terms_file=%s" % os.path.join(d, "lo", "terms-health"),
+             "colleague_terms_file=%s" % os.path.join(d, "lo", "terms-colleague")]
     lines += ["%s=%s" % kv for kv in over.items()]
     with open(path, "w") as fh:
         fh.write("\n".join(lines) + "\n")
@@ -346,6 +348,22 @@ class Filter(unittest.TestCase):
         out = f.feed(S + EMAIL.encode() + E)
         self.assertEqual(out, S + b"[ERR ValueError]" + E)
 
+    def test_new_categories_are_redacted_and_report_only_is_forwarded_and_counted(self):
+        """Issue #36: a new category in block_categories is replaced; one listed only for report is
+        forwarded byte for byte and counted, by category name, for the session summary."""
+        phone = "+55 (11) 9" + "0000-0001"
+        f, _ = self.make()
+        self.assertEqual(f.feed(S + ("tel " + phone).encode() + E), S + b"tel [REDACTED:phone]" + E)
+        blocking = ",".join(c for c in g.CATEGORY_ORDER if c != "phone")
+        conf = g.load_config(conf_in(os.path.join(BASE, "filter-report"), block_categories=blocking,
+                                     report_categories="phone"))
+        clean = w.make_cleaner(conf, frozenset(), None)
+        f = w.PasteFilter(clean, 1000, {"too_large": "[T]", "error": "[E {error}]"})
+        payload = ("tel " + phone + " mail " + EMAIL).encode()
+        self.assertEqual(f.feed(S + payload + E), S + ("tel " + phone + " mail [REDACTED:email]").encode() + E)
+        self.assertEqual(f.feed(S + ("tel " + phone).encode() + E), S + ("tel " + phone).encode() + E)
+        self.assertEqual((clean.reported_pastes, clean.reported, f.cleaned), (2, {"phone"}, 1))
+
     def test_paste_without_end_is_cleaned_after_idle(self):
         f, clock = self.make()
         self.assertEqual(f.feed(S + EMAIL.encode()), b"")
@@ -519,6 +537,23 @@ class Relay(unittest.TestCase):
         s.send(b"\x1d\x1dOFF")
         self.assertTrue(s.wait_out(b"turned bracketed paste off"), s.out[-300:])
         s.finish()
+
+    def test_report_only_paste_reaches_the_cli_unchanged_and_is_summarised(self):
+        """Issue #36, through a real wrapper: a report-only category passes, the summary names it."""
+        d = os.path.join(BASE, "report-only")
+        blocking = ",".join(c for c in g.CATEGORY_ORDER if c != "postal-address")
+        conf = conf_in(d, block_categories=blocking, report_categories="postal-address")
+        s = Session("report-only", conf=conf)
+        self.ready(s)
+        self.assertTrue(s.wait_out(b"\x1b[?2004h"))
+        address = ("CEP 01" + "000-000").encode()
+        s.send(S + address + E)
+        self.assertTrue(s.wait_out(b"<ACK1>"))
+        rc, _ = s.finish()
+        self.assertIn(S + address + E, s.received())
+        self.assertNotIn(address, s.out, "the terminal output carries pasted content")
+        self.assertIn(b"1 paste(s) in this session carried report-only categories (postal-address)", s.out)
+        self.assertEqual(rc, 0)
 
     def test_missing_salt_is_said_at_start_and_at_exit(self):
         d = os.path.join(BASE, "nosalt")

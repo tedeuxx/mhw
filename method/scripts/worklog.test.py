@@ -941,6 +941,131 @@ class WorklogTest(unittest.TestCase):
                        "then": {"properties": {"event_type": {"enum": sorted(worklog.CONTINUITY_TYPES)}}}},
                       schema["allOf"])
 
+    # #76: consumption. Synthetic values only; the model identifiers are invented.
+    NATIVE_TOKENS = {"usage_provenance": "native", "model": "model-a-1", "effort": "medium",
+                     "tokens_input": 1200, "tokens_output": 300, "credits": None}
+
+    def test_usage_is_a_closed_object_of_numbers_and_fixed_identifiers(self):
+        """Source mutations, each confirmed red then green after restore: drop the unknown-field check in
+        `validate_usage` (the free-text key passes), and drop the integer check on tokens (the string passes)."""
+        accepted, handoff = FIXTURE["events"][2], FIXTURE["events"][1]
+        valid = [
+            ("native tokens on outcome", changed(accepted, ("usage",), self.NATIVE_TOKENS)),
+            ("native tokens on handoff", changed(handoff, ("usage",), self.NATIVE_TOKENS)),
+            ("credits only, as Kiro reports", changed(accepted, ("usage",), {
+                "usage_provenance": "native", "model": None, "credits": 1.25})),
+            ("unavailable with empty values", changed(accepted, ("usage",), {
+                "usage_provenance": "unavailable", "model": "model-a-1", "tokens_input": None,
+                "tokens_output": None, "credits": None})),
+            ("minimal unavailable", changed(accepted, ("usage",), {"usage_provenance": "unavailable"})),
+        ]
+        for label, event in valid:
+            with self.subTest(valid=label):
+                self.assertIs(event, worklog.validate_event(event))
+        cases = [
+            ("added free-text key", dict(self.NATIVE_TOKENS, note="the session summarised the prompt"),
+             "unknown field note"),
+            ("non-numeric token value", dict(self.NATIVE_TOKENS, tokens_input="1200"), "non-negative integer"),
+            ("boolean token value", dict(self.NATIVE_TOKENS, tokens_output=True), "non-negative integer"),
+            ("fractional token value", dict(self.NATIVE_TOKENS, tokens_output=1.5), "non-negative integer"),
+            ("negative token value", dict(self.NATIVE_TOKENS, tokens_input=-1), "non-negative integer"),
+            ("non-numeric credits", dict(self.NATIVE_TOKENS, credits="3"), "non-negative number"),
+            ("non-finite credits", dict(self.NATIVE_TOKENS, credits=float("nan")), "non-negative number"),
+            ("free-text model", dict(self.NATIVE_TOKENS, model="the large one, I think"), "fixed identifier"),
+            ("path as effort", dict(self.NATIVE_TOKENS, effort="notes/effort.md"), "fixed identifier"),
+            ("unknown provenance", dict(self.NATIVE_TOKENS, usage_provenance="estimated"), "native or unavailable"),
+            ("missing provenance", {"tokens_input": 1}, "missing usage_provenance"),
+            ("unavailable with numbers", {"usage_provenance": "unavailable", "tokens_input": 10},
+             "carries no numbers"),
+            ("native with no numbers", {"usage_provenance": "native", "model": "model-a-1"}, "at least one"),
+            ("not an object", "1200 tokens", "must be an object"),
+        ]
+        for label, usage, message in cases:
+            with self.subTest(invalid=label), self.assertRaisesRegex(worklog.ContractError, message):
+                worklog.validate_event(changed(accepted, ("usage",), usage))
+        start = FIXTURE["events"][0]
+        with self.assertRaisesRegex(worklog.ContractError, "usage is only valid on"):
+            worklog.validate_event(changed(start, ("usage",), self.NATIVE_TOKENS))
+
+    def test_events_without_usage_stay_valid(self):
+        for event in FIXTURE["events"]:
+            with self.subTest(event=event["event_id"]):
+                self.assertNotIn("usage", event)
+                worklog.validate_event(copy.deepcopy(event))
+        result = worklog.report(CLEAN_SNAPSHOT, tracker_export(CLEAN_EVENTS), "reproduce")
+        self.assertFalse(result["partial"], result["warnings"])
+        for item in result["items"]:
+            self.assertEqual("none", item["usage"]["coverage"])
+            self.assertIsNone(item["usage"]["tokens_input"]["sum"], "nothing reported is null, never zero")
+
+    def test_report_sums_usage_per_issue_and_per_harness_and_marks_partial_coverage(self):
+        """Source mutations, each confirmed red then green after restore: in `usage_summary`, count an
+        `unavailable` run as covered, and count a run with no usage record as covered (coverage reads
+        complete in each case)."""
+        events = copy.deepcopy(CLEAN_EVENTS)
+        by_id = {event["event_id"]: event for event in events}
+        by_id["skills-7-accepted"]["usage"] = dict(self.NATIVE_TOKENS)               # Codex, run-b
+        kiro = next(event for event in events if event["issue"] == "acme/site#7" and event["event_type"] == "outcome")
+        kiro["usage"] = {"usage_provenance": "native", "credits": 1.25}               # Kiro, run-c
+        result = worklog.report(CLEAN_SNAPSHOT, tracker_export(events), "reproduce")
+        self.assertFalse(result["partial"], "usage coverage does not change sprint evidence")
+        items = {item["issue"]: item["usage"] for item in result["items"]}
+        # acme/skills#7: run-a (Claude Code) left no usage record, run-b reported. Partial, never estimated.
+        self.assertEqual("partial", items["acme/skills#7"]["coverage"])
+        self.assertEqual((2, 1, 0, 1), tuple(items["acme/skills#7"][key] for key in
+                                             ("runs", "native_runs", "unavailable_runs", "unrecorded_runs")))
+        self.assertEqual({"sum": 1200, "runs": 1}, items["acme/skills#7"]["tokens_input"])
+        self.assertEqual({"sum": 300, "runs": 1}, items["acme/skills#7"]["tokens_output"])
+        self.assertEqual("complete", items["acme/site#7"]["coverage"])
+        self.assertEqual({"sum": None, "runs": 0}, items["acme/site#7"]["tokens_input"], "Kiro reports credits")
+        self.assertEqual({"sum": 1.25, "runs": 1}, items["acme/site#7"]["credits"])
+        harness = result["totals"]["usage_by_harness"]
+        self.assertEqual(["claudecode", "codex", "kiro"], sorted(harness))
+        self.assertEqual("none", harness["claudecode"]["coverage"])
+        self.assertEqual("complete", harness["codex"]["coverage"])
+        self.assertEqual(1200, harness["codex"]["tokens_input"]["sum"])
+        self.assertEqual(1.25, harness["kiro"]["credits"]["sum"])
+
+        # The same Codex run declared unavailable instead: no numbers, and coverage is partial, not complete.
+        by_id["skills-7-accepted"]["usage"] = {"usage_provenance": "unavailable"}
+        extra = copy.deepcopy(by_id["skills-7-accepted"])
+        extra.update({"event_id": "skills-7-second-run", "run_id": "run-z", "attempt_id": "attempt-z",
+                      "event_type": "checkpoint", "timestamp": "2026-09-02T12:00:00Z",
+                      "usage": dict(self.NATIVE_TOKENS, tokens_input=50, tokens_output=5)})
+        for field in ("outcome", "completion_sprint", "acceptance_evidence"):
+            extra.pop(field)
+        events.append(extra)
+        result = worklog.report(CLEAN_SNAPSHOT, tracker_export(events), "reproduce")
+        codex = result["totals"]["usage_by_harness"]["codex"]
+        self.assertEqual("partial", codex["coverage"])
+        self.assertEqual((2, 1, 1, 0), tuple(codex[key] for key in
+                                             ("runs", "native_runs", "unavailable_runs", "unrecorded_runs")))
+        self.assertEqual({"sum": 50, "runs": 1}, codex["tokens_input"])
+        self.assertIn("usage by harness", worklog.markdown(result))
+
+    def test_two_usage_records_on_one_run_fail(self):
+        """Source mutation, confirmed red then green after restore: drop the refusal in `usage_runs`."""
+        events = copy.deepcopy(CLEAN_EVENTS)
+        for event in events:
+            if event["run_id"] == "run-b":  # the handoff and the outcome of one Codex run
+                event["usage"] = dict(self.NATIVE_TOKENS)
+        with self.assertRaisesRegex(worklog.ContractError, "more than one usage record"):
+            worklog.report(CLEAN_SNAPSHOT, tracker_export(events), "reproduce")
+
+    def test_schema_documents_the_usage_object(self):
+        schema = json.loads((ROOT / "scripts/worklog-contract/event.schema.json").read_text())
+        usage = schema["$defs"]["usage"]
+        self.assertEqual({"$ref": "#/$defs/usage"}, schema["properties"]["usage"])
+        self.assertIs(False, usage["additionalProperties"])
+        self.assertEqual(worklog.USAGE_FIELDS, set(usage["properties"]))
+        self.assertEqual(sorted(worklog.USAGE_PROVENANCE), sorted(usage["properties"]["usage_provenance"]["enum"]))
+        self.assertEqual(worklog.IDENTIFIER_RE.pattern, schema["$defs"]["identifier"]["pattern"])
+        for field in ("tokens_input", "tokens_output"):
+            self.assertEqual(["integer", "null"], usage["properties"][field]["type"])
+        self.assertIn({"if": {"required": ["usage"]},
+                       "then": {"properties": {"event_type": {"enum": sorted(worklog.USAGE_TYPES)}}}},
+                      schema["allOf"])
+
     def test_inputs_are_confined_to_the_work_tree_or_temp(self):
         """mhw #170 (Sonar S8707): what `load` reads can become a published comment, so a path outside the
         work tree and the temporary directory is refused before it is read."""

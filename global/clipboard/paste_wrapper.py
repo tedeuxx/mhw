@@ -232,15 +232,25 @@ class ModeTracker:
         self.tail = buf[cut:]
 
 
-def make_cleaner(conf, terms, salt):
-    wanted = set(c.strip() for c in conf["block_categories"].split(","))
+def make_cleaner(conf, terms, salt, term_lists=None):
+    """The paste cleaner. Only block_categories are replaced. A report-only category (Issue #36) is
+    forwarded unchanged and only counted: clean.reported_pastes and clean.reported (category names), for
+    the session summary; never the text."""
+    wanted = core.blocking_set(conf)
+    report = core.report_only_set(conf)
 
     def clean(payload):
         text = payload.decode("utf-8", "surrogateescape")
-        spans = [s for s in core.find_spans(text, terms, salt) if s[2] in wanted]
+        found = core.find_spans(text, terms, salt, term_lists)
+        reported = core.categories([s for s in found if s[2] in report])
+        if reported:
+            clean.reported_pastes += 1
+            clean.reported.update(reported)
+        spans = [s for s in found if s[2] in wanted]
         if not spans:
             return payload, []
         return core.sanitise(text, spans).encode("utf-8", "surrogateescape"), core.categories(spans)
+    clean.reported_pastes, clean.reported = 0, set()
     return clean
 
 
@@ -295,17 +305,18 @@ def args_allow_marker(cleaner, args, no_salt):
 def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
     """Run `real` on a pty and relay. Returns the exit status to exit with."""
     err = sys.stderr if err is None else err
-    terms = core.read_terms(conf["terms_file"])
+    terms, lists = core.read_term_lists(conf)
     salt = None
     no_salt = False
-    if terms:
+    if terms or any(lists.values()):
         salt = core.SaltStore(conf, interactive=False).get()
         if not salt:
             no_salt = True
             err.write(notice(conf, "notice_wrapper_no_salt") + "\n")
             err.flush()
-    cleaner = make_cleaner(conf, terms, salt)
+    cleaner = make_cleaner(conf, terms, salt, lists)
     marked, arg_categories = args_allow_marker(cleaner, args, no_salt)
+    cleaner.reported_pastes, cleaner.reported = 0, set()    # the arguments are not pastes
     if not marked:
         err.write(notice(conf, "notice_wrapper_args_unmarked", categories=", ".join(arg_categories) or "-") + "\n")
         err.flush()
@@ -462,6 +473,9 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
         err.write(notice(conf, "notice_session_summary", count=filt.cleaned,
                          categories=", ".join(c for c in core.CATEGORY_ORDER if c in filt.categories) or "-",
                          replaced=filt.replaced) + "\n")
+    if cleaner.reported_pastes:
+        err.write(notice(conf, "notice_session_report_only", count=cleaner.reported_pastes,
+                         categories=", ".join(c for c in core.CATEGORY_ORDER if c in cleaner.reported)) + "\n")
     if not mode.ever:
         err.write(notice(conf, "notice_no_bracketed_paste", program=argv0) + "\n")
     if no_salt:
