@@ -285,8 +285,13 @@ and became a repair rather than a veto**; you run after, on the diff, against th
 production. **It EDITS the draft under those two grounds**, so a `content` diff carries its repairs and
 not only its rounds. **What it changes for you is one checkable thing, not a
 judgement:** a `content` PR should carry `docs/content-review/<slug>.md` with at least one `## Round`
-section, and **never more than two** — `grep -c '^## Round' <file>` returns 1 or 2, and a 3 means the
-bound was overrun, which is a finding on your delivery lens. **A missing file is a finding too, and it
+section, and ~~**never more than two** — `grep -c '^## Round' <file>` returns 1 or 2, and a 3 means the
+bound was overrun, which is a finding on your delivery lens.~~ *(Struck 2026-11-01, mhw#139: a file
+with a correction legitimately holds more than two rounds.)* **at most two `## Round` sections per
+section of the review file** (the first review, above the first `## Correction` heading, and each
+`## Correction <N>`). Run the per-correction count in `content-publishing` step 5; any line flagged
+`OVER THE CAP` is a finding on your delivery lens. A per-file total above two is not a finding by
+itself (mhw#139). **A missing file is a finding too, and it
 is the likelier one**, because nothing mechanical dispatches the pair. **What is NOT yours: whether the
 findings in it were good, or whether the writer was right to drop an advisory one.** That is the pair's
 argument and it is bounded on purpose; re-litigating it from the gate is how a bounded review becomes an
@@ -875,7 +880,7 @@ which is the shape this file already refuses everywhere else.
 | the diff | what criterion 10 asks |
 |---|---|
 | **not `content`-typed**, and the trigger above fires | **unchanged.** `product-lead` returned a verdict, you quote it **verbatim inside the `copy-verdict` fence**, its `BLOCKING` findings are resolved. |
-| **`content`-typed** | **no verdict, no fence.** Instead: `docs/content-review/<slug>.md` exists on the branch, carries at least one `## Round` section, and that section closes with `CONTENT-REVIEW-FINDINGS` or `CONTENT-REVIEW-CLEAR`. |
+| **`content`-typed** | **no verdict, no fence.** Instead: `docs/content-review/<slug>.md` exists on the branch, carries at least one `## Round` section **under the section this PR adds or changes** (the first review, or the newest `## Correction <N>`; mhw#139), and that section closes with `CONTENT-REVIEW-FINDINGS` or `CONTENT-REVIEW-CLEAR`. |
 
 **The second half of the criterion is IDENTICAL on both rows and is the half that did not move.** A
 claim you can yourself falsify against a checkable source fails criterion 10 on a `content` diff exactly

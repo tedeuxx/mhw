@@ -345,9 +345,13 @@ is not a bound.*
 
 **Both readings are defensible and that is the problem.** Rounds spent on an artifact that no longer
 exists are not rounds spent on this draft; equally, *"the piece changed"* is available on every piece
-and turns a bound into a formality. **This is with the owner and unanswered. It is recorded here and
+and turns a bound into a formality. ~~**This is with the owner and unanswered. It is recorded here and
 deliberately not decided** — the lane does not get to settle its own stopping rule, and nothing in this
-skill changes the bound.
+skill changes the bound.~~ *(Struck 2026-11-01, mhw#139.)* **Answered in part by the owner's ruling on
+mhw#139:** an owner-ordered change opens `## Correction <N>` in the same file, with its own two
+rounds, and its `ordered:` line names where he asked. **What stays open:** the heading is still written
+by the party the bound constrains, so nothing distinguishes a correction he ordered from a third round
+under a new heading except the `ordered:` line a reader follows.
 
 **When the rounds terminate, the TEXT is closed and the piece is NOT finished.** By the owner's rule
 above, the next act is the first deploy — steps 6 and 7 — not a message to him carrying the words. **Do

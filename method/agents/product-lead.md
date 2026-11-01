@@ -257,7 +257,8 @@ orchestrator remembering to type it.
 
 **The precedent is `agents/content-reviewer.md`'s round protocol, and half of it is deliberately NOT
 transplanted.** That protocol pairs a terminal condition with a **mechanical cap** — the pair is over at
-a `CONTENT-REVIEW-CLEAR` literal, **or** when a second `## Round` section exists, whichever comes first.
+a `CONTENT-REVIEW-CLEAR` literal, **or** when a second `## Round` section exists under the current
+correction, whichever comes first.
 The terminal condition is what is copied here. **The cap is not**, on #393's own refusal: *a standard
 that blocks on off-by-one in round 2 and waves through off-by-three in round 7 decays with the count.*
 A cap and a bar-lowering rule are different things, and the distinction survives only while somebody is
