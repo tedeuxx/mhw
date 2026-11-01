@@ -70,6 +70,11 @@ mode alone first and over relying on the native sandboxes only.
   "leave Docker Desktop support as another valid option").
 - **One runtime-neutral container definition** serves both runtimes. Any difference between them is
   stated where it applies, never hidden.
+- **Base image:** the owner chose **an official Linux image, pinned by digest, rebuilt weekly** so it
+  picks up agent harness updates. The pin makes each build reproducible; the weekly rebuild is what
+  moves it forward.
+- **Parallel ceiling:** the owner chose **a configurable ceiling, default 3**, held in the overlay. The
+  console refuses to start a session beyond it.
 
 ### 4.2 Agent harnesses in the container
 
@@ -104,7 +109,19 @@ image: a policy change on the host reaches the next container with no image rebu
   agent harness reads it on Linux (`/etc/claude-code/` and `/etc/kiro/` are documented; Codex read
   `/etc/codex/` on this machine, measured by the 2026-10-04 canary). Where a layer cannot be placed,
   the gap is stated, never assumed covered.
-- **What it costs, stated plainly:** the container is coupled to the host it runs on. **This choice
+- **Where the policy and the login share a directory, the policy is copied, not mounted.** On Linux,
+  Claude Code keeps both its settings and its login under one user directory, so a read-only policy
+  mount and a writable login volume would sit on the same path. The owner chose **to copy the host
+  policy into the login volume at each container start**.
+- **What the copy costs, stated plainly:** **the copy is writable, so an agent inside the container can
+  alter it for that container's life.** The next container start copies the host policy again, so the
+  change does not outlive the container, but while it runs the policy in that directory is only as
+  strong as the agent's restraint.
+- **This is in tension with the read-only mount above, and the tension is named, not resolved.** The
+  mount decision was chosen so a session cannot change its own policy; the copy reopens that for the
+  layers that live in the shared directory. Which layers are copied and which stay mounted read-only is
+  stated per agent harness when it is built.
+- **What the host mount costs, stated plainly:** the container is coupled to the host it runs on. **This choice
   does not carry to the cloud**: a cloud host has no owner's Mac to mount from. How the firewall layers
   reach a cloud runtime is an open decision for phase 2.
 
@@ -127,7 +144,7 @@ block-beta
   C5["Session: Claude Code · Codex · Kiro CLI"]
   C4["Repository clone (ephemeral, discarded with the container)"]
   C3["Login and session state (mapped volume per agent harness)"]
-  C2["Firewall: managed layer, user layer, deny floor (mounted read-only from the host)"]
+  C2["Firewall: managed layer, user layer, deny floor (from the host: read-only mount, or a copy per start)"]
   C1["Container runtime: Podman or Docker · vendor"]
   classDef admin fill:#F9D8C4,stroke:#D55E00,stroke-width:2px,color:#1d2228
   classDef project fill:#CDEDE2,stroke:#009E73,stroke-width:2px,color:#1d2228
@@ -148,7 +165,10 @@ contributors.*
 ### 5.1 Access
 
 - The owner chose **localhost only**: the console listens on `127.0.0.1` and has **no login of its own
-  in version 1**. Anyone who can reach the owner's loopback interface is the owner.
+  in version 1**. Reaching the loopback interface is enough to observe and to start or stop sessions.
+- **Every merge or approve action needs a passkey (WebAuthn, Touch ID).** The owner chose this so that
+  a process on the host, including a host-mode agent session, cannot perform those actions by reaching
+  the console. Other console actions need no extra step.
 - Hosting the console in the cloud is phase 2, and it will need its own authentication then.
 
 ### 5.2 What it does
@@ -165,6 +185,8 @@ The owner chose **full orchestration** in version 1:
 - **Open a terminal:** the owner, translated: *"it also needs a TTY session with the container, I think
   from the console."* The console opens an interactive terminal (TTY) attached to a running session's
   container.
+- **Paste into that terminal is cleaned in the console.** The owner chose that a paste runs through the
+  shared detection engine (the one the paste wrapper uses) before it reaches the TTY.
 
 ### 5.3 Sequence: one session, end to end
 
@@ -188,9 +210,9 @@ flowchart LR
 - **Release candidate:** `rc/next` → `main` merges only on the owner's explicit act. The console may be
   where he performs that act; it is still his act, taken by him at the console, and it goes through the
   same checked command and verifier.
-- **No agent drives the console.** A session in a container has no route to the console's merge or
-  approve actions. How that is held is a design point for the build
-  ([section 8](#8-open-decisions)); it must be held by the console's design, not by an agent's memory.
+- **No agent drives the console's owner actions.** No session, in a container or on the host, can merge
+  or approve through the console: each such action needs the owner's passkey
+  ([section 5.1](#51-access)), which no agent holds.
 - **ADR-0015 holds unchanged:** recoverable work stays autonomous; a high-risk PROD change needs the
   owner's explicit approval for that exact change. An approve button is how he gives it, never a way
   around it.
@@ -205,7 +227,7 @@ flowchart LR
 
 ## 8. Open decisions
 
-Nothing in this list is decided. Each is written as open rather than guessed.
+Nothing in the numbered list is decided. Each is written as open rather than guessed.
 
 1. **How the firewall layers reach a cloud runtime in phase 2.** Version 1 mounts them from the host,
    which a cloud host cannot do. Candidates (built into the image, fetched at start from a release,
@@ -218,19 +240,20 @@ Nothing in this list is decided. Each is written as open rather than guessed.
    browser terminal for the TTY. Reasons: this repository already ships Python scripts and an npm
    package, so no new language enters; the runtime CLIs are the runtime-neutral surface. Cost: a CLI
    wrapper is slower and less structured than an API client.
-4. **The login volume and the read-only policy mount share a directory.** On Linux, Claude Code keeps
-   both its settings and its login under one user directory. A read-only policy mount and a writable
-   login volume at the same path conflict. The build must find a split each agent harness supports, or
-   state which one cannot have both. To be measured per agent harness.
-5. **How the console keeps agents off its merge and approve actions.** Localhost-only with no login
-   means any process on the host, including a host-mode session, can reach it. The design must say what
-   separates the owner's action from an agent's request.
-6. **Paste cleaning through the console's terminal.** The paste wrapper is a launcher on the owner's
-   terminal. Whether a paste into the console's browser terminal is cleaned is not designed; until it
-   is, it must be stated as not covered.
-7. **How many sessions may run in parallel, and what they cost** (memory, CPU, subscription use). No
-   limit is set.
-8. **The base image and its update policy.** Not discussed.
+
+### Settled after the first draft
+
+Five points found while writing the first draft were put to the owner and settled on 2026-11-01 (also
+posted on [#79](https://github.com/tedeuxx/mhw/issues/79)). Each is now stated in the section it
+belongs to:
+
+| Point | The owner's choice | Where |
+| --- | --- | --- |
+| Settings and login share one directory on Linux | Copy the host policy into the login volume at each container start; the copy is writable for that container's life | [4.4](#44-the-firewall-inside-the-container) |
+| Host agents reaching the console's owner actions | A passkey (WebAuthn, Touch ID) per merge or approve action; other actions need no step | [5.1](#51-access) |
+| Paste in the console's terminal | Cleaned in the console by the shared detection engine before it reaches the TTY | [5.2](#52-what-it-does) |
+| Parallel sessions | A configurable ceiling, default 3, held in the overlay; the console refuses beyond it | [4.1](#41-one-switch-per-session) |
+| Base image | An official Linux image pinned by digest, rebuilt weekly | [4.1](#41-one-switch-per-session) |
 
 ## 9. Decision records owed by the build
 
@@ -238,8 +261,10 @@ Each of these crosses the significance gate (a new tool class or dependency, or 
 pattern) and is owed in the same pull request as the change it justifies:
 
 - the container mode as a supported session mode, and the runtime-neutral definition;
-- the read-only host mount as the route for the firewall layers in version 1;
-- the web console as an owner surface, and how it keeps agents off its owner actions.
+- the read-only host mount as the route for the firewall layers in version 1, and the writable
+  per-start copy where policy and login share a directory;
+- the web console as an owner surface, and the per-action passkey that keeps agents off its owner
+  actions.
 
 ## 10. Related
 
