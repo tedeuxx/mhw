@@ -174,6 +174,42 @@ class RuntimeSummary(unittest.TestCase):
         self.assertEqual(len(hits), 1, (label, out))
         return hits[0][19:]
 
+    def test_user_drift_is_named_by_category_with_the_next_step(self):
+        """Issue #38: one DRIFT line in the user --check reaches the protections line, category only."""
+        brief = str(ws.brief_paths()["Claude Code"])
+        lines = ["SOURCE  release: v3.1.0; commit: aaaaaaa", "OK      /h/.codex/AGENTS.md (x)",
+                 "DRIFT   %s (release: v3.0.0; commit: bbbbbbb)" % brief,
+                 "FLOOR   carried by: the user layer only"]
+        out = ws.render_summary(facts(user_lines=lines, user_issues=1))
+        self.assertLessEqual(len(out), 10)
+        row = self.row(out, "protections")
+        self.assertIn("drift: 1 target(s) in brief — next: %s install" % ws.CMD, row)
+        self.assertNotIn(brief, row)
+        self.assertNotIn("bbbbbbb", row)
+
+    def test_clean_check_shows_no_drift_text(self):
+        clean = ["OK      %s (x)" % ws.brief_paths()["Claude Code"], "STAMP   /h/.codex/AGENTS.md: other",
+                 "SKIP    something", "FLOOR   carried by: the admin layer"]
+        out = ws.render_summary(facts(user_lines=clean))
+        self.assertNotIn("drift", self.row(out, "protections"))
+        self.assertNotIn("next:", self.row(out, "protections"))
+
+    def test_categories_and_admin_layer(self):
+        user = ["MISSING /h/.zshrc: no paste-wrapper start-up block; install adds it",
+                "DRIFT   /h/.claude/settings.json (2 deny-floor rule(s) missing; or a hook entry is missing)",
+                "STALE   /h/.local/share/x/restart-state: the removed restart guard's baselines",
+                "REFUSE  /h/.codex/hooks.json: exists and is NOT managed by this project",
+                "MISSING /h/.claude/skills/shell/SKILL.md", "DRIFT   /h/somewhere/else.txt"]
+        admin = ["DRIFT   /Library/Application Support/ClaudeCode/managed-settings.d/50-x.json (stamp)"]
+        row = self.row(ws.render_summary(facts(user_lines=user, admin_lines=admin, admin_code=1)),
+                       "protections")
+        self.assertIn("drift: 7 target(s) in paste wrapper, deny floor, removed controls, hooks, "
+                      "method, other, admin deny floor — next: %s install" % ws.CMD, row)
+        # An admin --check that fails with no target line still counts, so it cannot read clean.
+        self.assertEqual(ws.drift_text([], ["NOTE    could not read"], 3),
+                         "drift: 1 target(s) in admin layer — next: %s install" % ws.CMD)
+        self.assertEqual(ws.drift_text([], [], 0), "")
+
     def test_every_item_in_ten_lines(self):
         out = ws.render_summary(facts())
         self.assertLessEqual(len(out), 10)
