@@ -1,17 +1,17 @@
 # Loop Issue transfer map
 
-On 2026-11-01 the owner ruled that every `loop` Issue lives in the mhw tracker and that the product repositories' trackers hold product work only. The loop Issues of `tadeumendonca-io` and `tadeumendonca-skills`, open and closed, were moved here with `gh issue transfer`, which keeps each Issue's comments and timeline but gives it a new number.
+On 2026-11-01 the owner ruled that the tadeumendonca-io tracker touches only that product's items and that mhw runs its own independent tracker; `loop` Issues therefore live here. His words (Portuguese, verbatim): «esse issue tracker deve tocar somente itens do produto tadeumendonca.io. o mhw deveria rodar com issue tracker independente no repo dele», then «itens [de] loop precisam ser movidos para o issue tracker do mhw» «para mantermos historico», «o historico de itens de loop tbm» «nao apenas os abertos». Asked how to handle the bare `#N` citations a transfer orphans, he chose to transfer with this old-to-new map.
 
-**Why this file exists:** a bare citation such as `#383` in a document does not follow a transfer. Method files in this repository and in `tadeumendonca-skills` cite `tadeumendonca-skills` Issues by bare number. Use this table to resolve such a citation to its new home. Full GitHub URLs to the old Issue redirect on their own.
+The loop Issues of `tadeumendonca-io` and `tadeumendonca-skills`, open and closed, were moved with `gh issue transfer`, which keeps each Issue's comments and timeline but gives it a new number. A full GitHub URL to an old Issue redirects to its new home; a bare citation such as `#383` in a document does not. Use this table to resolve one.
 
-Rows: 157.
+Rows: 157. Titles are read from the live mhw Issues.
 
 | old | new | title |
 | --- | --- | --- |
-| [tadeumendonca-io#790](https://github.com/tedeuxx/tadeumendonca-io/issues/790) | [mhw#249](https://github.com/tedeuxx/mhw/issues/249) |  |
-| [tadeumendonca-io#781](https://github.com/tedeuxx/tadeumendonca-io/issues/781) | [mhw#250](https://github.com/tedeuxx/mhw/issues/250) |  |
-| [tadeumendonca-skills#578](https://github.com/tedeuxx/tadeumendonca-skills/issues/578) | [mhw#251](https://github.com/tedeuxx/mhw/issues/251) |  |
-| [tadeumendonca-skills#576](https://github.com/tedeuxx/tadeumendonca-skills/issues/576) | [mhw#252](https://github.com/tedeuxx/mhw/issues/252) |  |
+| [tadeumendonca-io#790](https://github.com/tedeuxx/tadeumendonca-io/issues/790) | [mhw#249](https://github.com/tedeuxx/mhw/issues/249) | harness: remove the project chrome-devtools server from .mcp.json so the workstation's --autoConnect server is the only one |
+| [tadeumendonca-io#781](https://github.com/tedeuxx/tadeumendonca-io/issues/781) | [mhw#250](https://github.com/tedeuxx/mhw/issues/250) | Floor rule 4: secret-store acts allowed with the owner watching; unchanged when he is away (mhw#220) |
+| [tadeumendonca-skills#578](https://github.com/tedeuxx/tadeumendonca-skills/issues/578) | [mhw#251](https://github.com/tedeuxx/mhw/issues/251) | ci: the release job's VERSION_BUMP_TOKEN expires on a calendar; move it to a GitHub App (twin of tadeumendonca-io#783) |
+| [tadeumendonca-skills#576](https://github.com/tedeuxx/tadeumendonca-skills/issues/576) | [mhw#252](https://github.com/tedeuxx/mhw/issues/252) | Floor rule 4: secret-store acts allowed with the owner watching; unchanged when he is away (mhw#220) |
 | [tadeumendonca-io#614](https://github.com/tedeuxx/tadeumendonca-io/issues/614) | [mhw#253](https://github.com/tedeuxx/mhw/issues/253) | CLAUDE.md claims a wip-guard that no longer exists — and the claim errs permissive |
 | [tadeumendonca-io#615](https://github.com/tedeuxx/tadeumendonca-io/issues/615) | [mhw#254](https://github.com/tedeuxx/mhw/issues/254) | harness-drift fires on what someone writes here, never on what it compares — a 14-day blind window |
 | [tadeumendonca-io#618](https://github.com/tedeuxx/tadeumendonca-io/issues/618) | [mhw#255](https://github.com/tedeuxx/mhw/issues/255) | the harness filter covers the checker's code but not its inputs — 2 of 5 |
@@ -126,7 +126,7 @@ Rows: 157.
 | [tadeumendonca-skills#453](https://github.com/tedeuxx/tadeumendonca-skills/issues/453) | [mhw#364](https://github.com/tedeuxx/mhw/issues/364) | loop: the permission-guard suite is not hermetic — a main checkout silences 8 of the 11 assertions guarding rule 3b |
 | [tadeumendonca-skills#455](https://github.com/tedeuxx/tadeumendonca-skills/issues/455) | [mhw#365](https://github.com/tedeuxx/mhw/issues/365) | Add a native Codex preventive hook bridge with explicit trust and caller boundaries |
 | [tadeumendonca-skills#462](https://github.com/tedeuxx/tadeumendonca-skills/issues/462) | [mhw#366](https://github.com/tedeuxx/mhw/issues/366) | README.md publishes "six command files" against seven — and its own inline falsifier lists six names |
-| [tadeumendonca-skills#463](https://github.com/tedeuxx/tadeumendonca-skills/issues/463) | [mhw#367](https://github.com/tedeuxx/mhw/issues/367) | Across all fourteen hook registrations is false in BOTH repositories, inside the byte-identical shared block |
+| [tadeumendonca-skills#463](https://github.com/tedeuxx/tadeumendonca-skills/issues/463) | [mhw#367](https://github.com/tedeuxx/mhw/issues/367) | "Across all fourteen hook registrations" is false in BOTH repositories, inside the byte-identical shared block |
 | [tadeumendonca-skills#464](https://github.com/tedeuxx/tadeumendonca-skills/issues/464) | [mhw#368](https://github.com/tedeuxx/mhw/issues/368) | The inventory gate pins two count families in prose and not the other two — both live false numbers are in the unpinned pair |
 | [tadeumendonca-skills#474](https://github.com/tedeuxx/tadeumendonca-skills/issues/474) | [mhw#369](https://github.com/tedeuxx/mhw/issues/369) | Four voice rulings: the layered piece, a plural audience, the philosophical register, and depth as an editorial mark |
 | [tadeumendonca-skills#475](https://github.com/tedeuxx/tadeumendonca-skills/issues/475) | [mhw#370](https://github.com/tedeuxx/mhw/issues/370) | zombie-loop-detect's marker predicate is a substring test — the gate's own verdict silences the staleness arm |
