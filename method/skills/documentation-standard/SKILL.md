@@ -78,7 +78,7 @@ diagram patterns agreed here into a managed-workstation standard."*
 - **Mermaid only.** No other diagram format, and no static image.
 - **Always simple.** Less is more for a wide audience, even if the drawing leaves questions open. The
   detail goes in the text, not in the diagram.
-- **Two kinds of diagram, and only two:**
+- **Two kinds of diagram for system views:**
   - **Layer diagrams** (architecture views): stacked, labelled layers, one short label each, **no
     arrows**. Draw them with `block-beta` and **one column**, so every layer has the **same width**.
   - **Sequential diagrams** (workflow, process): **always arrows**, as a simple **left-to-right flow
@@ -155,10 +155,10 @@ not rule on it. Keep it as simple as the rest.
 - **Words people already say.** A command is a short phrase that people in a software team already use
   day to day, so it makes sense with no explanation: `/new-prd`, `/new-issue`, `/prd-to-issues`.
   Familiar team vocabulary (handover, issue, release) is welcome; slang and private jargon are not.
-  *(`prd` in a command name is the owner's call of 2026-10-26: PRD is the team word for what those
-  commands write and read. The document itself still spells the term out.)*
 - **Plain, international words:** two or three of them, lowercase and hyphenated. No slang, idioms,
-  metaphors, contractions or acronyms.
+  metaphors, contractions or acronyms, with one exception: `prd`, the owner's call of 2026-10-26,
+  because PRD is the team word for what those commands write and read. The document itself still
+  spells the term out.
 - **Name the intent, not the mechanism:** what the owner wants to happen, not how the agent harness does
   it.
 - **Families read alike:** `/new-prd` and `/new-issue`; `/prd-to-issues`.
