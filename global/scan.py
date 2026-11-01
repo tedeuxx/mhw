@@ -39,8 +39,12 @@ It informs and never blocks: the exit code is 0 with or without findings. Exit 2
 could not run (not in a git repository, no upstream and no --base, a --base that is not a commit, a
 --file that names no regular file, an unknown argument), which is not a finding.
 
-Every category is reported, whatever block_categories says: that setting decides what blocks a prompt,
-and this command blocks nothing. Employer and client terms are matched only where the owner's hashed
+Every category is reported, whatever block_categories or report_categories says: those settings decide
+what blocks a prompt, and this command blocks nothing. Since Issue #36 the categories are eleven:
+employer-client-term, credential, email, payment-card, cpf, cnpj, phone, postal-address, contract-value,
+health and colleague-name. Health and colleague-name are also matched against the owner's private term
+lists for them, under the same conditions as the employer and client list; a NOTE names each list that
+could not be read, and those two categories are then checked by their patterns only. Employer and client terms are matched only where the owner's hashed
 term list and its salt are readable without a prompt (SaltStore(interactive=False)). Whenever they are
 not (no term list, an empty or unreadable one, or no salt), a NOTE line says that category was NOT
 checked. In CI there is no term list, so the NOTE is printed there every time.
@@ -161,26 +165,33 @@ def added_blocks(patch):
     return [b if isinstance(b, tuple) else (b[0], b[1], "\n".join(b[2]) + "\n") for b in blocks]
 
 
-def scan_text(text, terms=frozenset(), salt=None):
+def scan_text(text, terms=frozenset(), salt=None, term_lists=None):
     """[(line, category, length)] for every finding in text, in order. Never the matched text."""
     found = []
-    for start, end, cat in core.find_spans(text, terms, salt):
+    for start, end, cat in core.find_spans(text, terms, salt, term_lists):
         found.append((text.count("\n", 0, start) + 1, cat, end - start))
     return sorted(found, key=lambda f: (f[0], core.CATEGORY_ORDER.index(f[1]), f[2]))
 
 
 def term_detector(conf, out, salts=None):
-    """(terms, salt), with a NOTE whenever employer-client-term cannot be checked. Never silent."""
-    terms = core.read_terms(conf["terms_file"])
+    """(terms, salt, term_lists), with a NOTE for every term list that cannot be checked. Never silent.
+    term_lists: the private health and colleague-name lists (Issue #36); without them those two
+    categories are still checked by their patterns, and the NOTE says the term half was not."""
+    terms, lists = core.read_term_lists(conf)
     if not terms:
         out.write("NOTE    no employer and client term list could be read (absent, empty or unreadable); "
                   "employer-client-term was NOT checked\n")
-        return terms, None
+    for cat, hashes in lists.items():
+        if not hashes:
+            out.write("NOTE    no %s term list could be read (absent, empty or unreadable); %s was checked "
+                      "by its pattern only, NOT against a term list\n" % (cat, cat))
+    if not terms and not any(lists.values()):
+        return terms, None, lists
     salt = (salts or core.SaltStore(conf, interactive=False)).get()
     if not salt:
-        out.write("NOTE    the term list's salt could not be read without a prompt; employer-client-term "
-                  "was NOT checked\n")
-    return terms, salt
+        out.write("NOTE    the term list's salt could not be read without a prompt; no term list was checked "
+                  "(employer-client-term, and the term half of health and colleague-name)\n")
+    return terms, salt, lists
 
 
 def listed_files():
@@ -244,7 +255,7 @@ def scan(targets, conf, out=None, salts=None, root=None, commits=None):
     output and is relative to the current directory. A path must still resolve under root (default: the
     current directory), so a listed symlink pointing elsewhere is not followed."""
     out = out or sys.stdout
-    terms, salt = term_detector(conf, out, salts)
+    terms, salt, lists = term_detector(conf, out, salts)
     limit = int(conf["max_bytes"])
     cwd = os.getcwd()
     root = os.path.realpath(root or cwd)
@@ -276,7 +287,7 @@ def scan(targets, conf, out=None, salts=None, root=None, commits=None):
             out.write("SKIPPED %s: binary, not scanned\n" % label)
             continue
         scanned += 1
-        findings = scan_text(raw.decode("utf-8", errors="replace"), terms, salt)
+        findings = scan_text(raw.decode("utf-8", errors="replace"), terms, salt, lists)
         for line, cat, length in findings:
             out.write("%s:%d: %s, %d chars\n" % (label, line, cat, length))
         total += len(findings)
@@ -285,7 +296,7 @@ def scan(targets, conf, out=None, salts=None, root=None, commits=None):
     if commits is not None:
         commits_with = 0
         for short, full, is_merge in commits:
-            found = scan_commit(short, full, is_merge, terms, salt, limit, out)
+            found = scan_commit(short, full, is_merge, terms, salt, limit, out, lists)
             total += found
             commits_with += bool(found)
         summary += " and %d of %d commit(s)" % (commits_with, len(commits))
@@ -302,14 +313,14 @@ def without_attribution_trailer(message):
                                    else m.group(0), message)
 
 
-def scan_commit(short, full, is_merge, terms, salt, limit, out):
+def scan_commit(short, full, is_merge, terms, salt, limit, out, term_lists=None):
     """Findings in one commit's message and, unless it is a merge, in the lines it added."""
     found = 0
     code, message = _git(["log", "-1", "--format=%B", full])
     if code:
         out.write("SKIPPED %s:message: unreadable, not scanned\n" % short)
     else:
-        for _line, cat, length in scan_text(without_attribution_trailer(message), terms, salt):
+        for _line, cat, length in scan_text(without_attribution_trailer(message), terms, salt, term_lists):
             out.write("%s:message: %s, %d chars\n" % (short, cat, length))
             found += 1
     if is_merge:
@@ -326,7 +337,7 @@ def scan_commit(short, full, is_merge, terms, salt, limit, out):
         if len(text.encode("utf-8")) > limit:
             out.write("SKIPPED %s:%s: added lines over %d bytes, not scanned\n" % (short, path, limit))
             continue
-        for line, cat, length in scan_text(text, terms, salt):
+        for line, cat, length in scan_text(text, terms, salt, term_lists):
             out.write("%s:%s:%d: %s, %d chars\n" % (short, path, first + line - 1, cat, length))
             found += 1
     return found

@@ -294,7 +294,7 @@ else
   ko "installed paste filter core differs from its source"
 fi
 cc="$(data "$h")/clipboard.conf"
-if grep -qx 'block_categories=employer-client-term,credential,email,payment-card,cpf,cnpj' "$cc" && grep -q '^notice_blocked=Filtro de colagem' "$cc"; then
+if grep -qx 'block_categories=employer-client-term,credential,email,payment-card,cpf,cnpj,phone,health,colleague-name' "$cc" && grep -q '^notice_blocked=Filtro de colagem' "$cc"; then
   ok "paste filter settings carry the generic categories and the overlay's notices"
 else
   ko "paste filter settings wrong"

@@ -12,7 +12,7 @@
 # (`…clipboard-salt`) the owner already holds are found under the same names, so nothing is migrated.
 #
 # Properties this file must keep, each with a test in clipboard_guard_test.py:
-#   - it writes NOTHING except the term list (add-term only): no log, no history, no cache, no record of
+#   - it writes NOTHING except the term lists (add-term only): no log, no history, no cache, no record of
 #     what matched (ADR-0005). It never reads or writes the system clipboard, calls no dialog or
 #     notification tool, and runs only when a harness CLI calls it, or inside paste_wrapper.py, which
 #     imports this core to clean bracketed pastes (the owner: "nao deve impactar nenhum outro app ou ux
@@ -21,7 +21,8 @@
 #   - the prompt hook prints nothing in a session the paste wrapper started (WRAPPER_MARKER set to
 #     WRAPPER_MARKER_VALUE in its environment), and judges every prompt otherwise (Issue #58);
 #   - a notice names categories and the mitigation, never the original content or the matched term;
-#   - the term list holds salted hashes of normalised terms, never plaintext, and add-term reads the
+#   - each term list (employer and client terms; since Issue #36 also health terms and colleague names,
+#     one file each) holds salted hashes of normalised terms, never plaintext, and add-term reads the
 #     term from the terminal with echo off: never from argv, the environment or a pipe.
 #
 # Standard library only. Runs on the Command Line Tools python3 (3.9) and later.
@@ -39,18 +40,34 @@ PROJECT = "personal-multi-harness-workstation-configuration"
 MAX_TERM_TOKENS = 6
 MIN_TERM_CHARS = 3
 TERMS_HEADER = "# %s clipboard terms v1: HMAC-SHA256(salt, normalised term), one per line; never plaintext\n" % PROJECT
-CATEGORY_ORDER = ["employer-client-term", "credential", "email", "payment-card", "cpf", "cnpj"]
+CATEGORY_ORDER = ["employer-client-term", "credential", "email", "payment-card", "cpf", "cnpj",
+                  "phone", "postal-address", "contract-value", "health", "colleague-name"]
+# The two categories whose pattern half is seeded by a private term list of the owner's (Issue #36): the
+# same salted-hash format, the same salt, a separate file each, written only by add-term --list.
+TERM_LISTS = {"health": "health_terms_file", "colleague-name": "colleague_terms_file"}
+LIST_FILES = {"health": "clipboard-terms-health", "colleague-name": "clipboard-terms-colleague"}
+# Report-only unless the owner says otherwise (Issue #36, gate round 1 measurement).
+REPORT_ONLY_DEFAULT = ("postal-address", "contract-value")
 
 # --------------------------------------------------------------------------------------------- config
 
 DEFAULTS = {
     "max_bytes": "1000000",
-    "block_categories": ",".join(CATEGORY_ORDER),   # which categories block a prompt; others pass
+    # Which categories block a prompt; others pass. Every category but REPORT_ONLY_DEFAULT (Issue #36).
+    # This is also what a typo in the setting falls back to, so a typo never makes those two block.
+    "block_categories": ",".join(c for c in CATEGORY_ORDER if c not in REPORT_ONLY_DEFAULT),
+    # Report-only (Issue #36): a category listed here and NOT in block_categories is named in a notice
+    # and passes unchanged; the paste wrapper forwards it unchanged and counts it in its session summary.
+    # postal-address and contract-value by default: on synthetic Portuguese work prose both crossed the
+    # one-false-positive threshold (ADR-0035, second 2026-11-01 amendment).
+    "report_categories": ",".join(REPORT_ONLY_DEFAULT),
     "show_cleaned_chars": "8000",   # the redacted copy is shown in the block message up to this size
     "salt_store": "",           # keychain | file; empty means keychain on macOS, file elsewhere
     "keychain_service": PROJECT + ".clipboard-salt",
     "keychain_path": "",        # empty (production) means the default keychain; tests name a throwaway file
     "terms_file": "",           # empty means <local overlay>/clipboard-terms
+    "health_terms_file": "",    # empty means <local overlay>/clipboard-terms-health
+    "colleague_terms_file": "",  # empty means <local overlay>/clipboard-terms-colleague
     "salt_file": "",            # empty means <local overlay>/clipboard-salt (salt_store=file only)
     "notice_blocked": "Paste filter (ADR-0011): {categories} in this prompt. It was NOT sent, and nothing "
                       "was changed. A redacted copy is below: submit that instead, or edit your prompt.",
@@ -58,8 +75,8 @@ DEFAULTS = {
     "notice_too_large": "Paste filter (ADR-0011): this prompt is over {max} bytes and was NOT checked.",
     "notice_error": "Paste filter (ADR-0011): internal error ({error}); this prompt was NOT checked.",
     "notice_no_salt": "Paste filter (ADR-0011): the term list exists but its salt could not be read without "
-                      "a prompt (Keychain locked, slow or item missing), so employer/client term matching "
-                      "was NOT checked for this prompt.",
+                      "a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for "
+                      "this prompt (employer/client terms, health terms, colleague names).",
     # The paste wrapper (paste_wrapper.py), and the hook's notice for a prompt that carries its markers.
     # The first two REPLACE a paste inside the CLI's input, so they stay one line.
     "notice_paste_too_large": "[paste filter (ADR-0011): a paste over {max} bytes was NOT forwarded, it could not "
@@ -72,12 +89,18 @@ DEFAULTS = {
     "notice_session_summary": "Paste filter (ADR-0011): {count} paste(s) cleaned in this session ({categories}); "
                               "{replaced} paste(s) replaced by a notice.",
     "notice_wrapper_no_salt": "Paste filter (ADR-0011): the term list exists but its salt could not be read without "
-                              "a prompt, so employer/client terms are NOT cleaned in this session.",
+                              "a prompt, so term matching (employer/client terms, health terms, colleague names) is NOT "
+                              "applied in this session.",
     "notice_wrapper_args_unmarked": "Paste filter (ADR-0011): a command-line argument carries {categories} or could "
                                     "not be checked, so this session is NOT marked and the prompt hook checks "
                                     "every prompt.",
     "notice_paste_redacted": "Paste filter (ADR-0011): this prompt carries redacted text ({categories}); the "
                              "original was not sent.",
+    # Report-only categories (Issue #36): named, never blocked or rewritten.
+    "notice_report_only": "Paste filter (ADR-0011): {categories} in this prompt (report-only: it was sent "
+                          "unchanged).",
+    "notice_session_report_only": "Paste filter (ADR-0011): {count} paste(s) in this session carried report-only "
+                                  "categories ({categories}) and were forwarded unchanged.",
 }
 HARNESSES = ("claude", "codex")
 
@@ -128,12 +151,18 @@ def load_config(path):
     wanted = [c.strip() for c in conf["block_categories"].split(",") if c.strip()]
     if not wanted or any(c not in CATEGORY_ORDER for c in wanted):
         conf["block_categories"] = DEFAULTS["block_categories"]   # a typo never switches a category off
+    report = [c.strip() for c in conf["report_categories"].split(",") if c.strip()]
+    if any(c not in CATEGORY_ORDER for c in report):
+        conf["report_categories"] = DEFAULTS["report_categories"]
     if conf["salt_store"] not in ("keychain", "file"):
         conf["salt_store"] = "keychain" if sys.platform == "darwin" else "file"
     if not conf["terms_file"]:
         conf["terms_file"] = os.path.join(local_overlay_dir(), "clipboard-terms")
     if not conf["salt_file"]:
         conf["salt_file"] = os.path.join(local_overlay_dir(), "clipboard-salt")
+    for cat, key in TERM_LISTS.items():
+        if not conf[key]:
+            conf[key] = os.path.join(local_overlay_dir(), LIST_FILES[cat])
     kc = conf["keychain_path"]
     if kc and (not os.path.isabs(kc) or any(c in kc for c in '"\\\n\r')):
         # Only an absolute, quote-free path can be passed through `security -i`. Refuse rather than fall
@@ -214,6 +243,60 @@ EMAIL_SKIP_LOCAL = ("git",)
 EMAIL_SKIP_DOMAIN = re.compile(r"(?:^|\.)(?:example\.(?:com|org|net)|example|test|invalid|localhost|users\.noreply\.github\.com)$",
                                re.IGNORECASE)
 
+# Issue #36: five more categories. Each pattern is narrow on purpose: on the paste wrapper and the
+# prompt hook a false positive rewrites or blocks the owner's own prompt, so every pattern needs a
+# cue a plain number, date or identifier does not carry (a +country code or a parenthesised area code;
+# a street word or a hyphenated CEP; a currency symbol next to a contract or salary word; a CID/ICD
+# prefix; a "my colleague"-type phrase before a capitalised name). Health and colleague names are also
+# matched against the owner's private term lists, where no pattern can tell (TERM_LISTS). A "diagnosed
+# with" phrase was tried and dropped: it is ordinary engineering text ("diagnosed with a profiler").
+_UPPER = "A-ZÀ-ÖØ-Þ"
+_LOWER = "a-zß-öø-ÿ"
+PHONE_PATTERNS = [
+    # the Brazilian country code, the area code (two digits 1-9, optionally parenthesised), then eight
+    # digits, or nine for a mobile
+    re.compile(r"(?<![\w+])\+55[ .-]?(?:\([1-9]{2}\)|[1-9]{2})[ .-]?9?\d{4}[ .-]?\d{4}(?![\w-])"),
+    # a parenthesised Brazilian area code and a hyphenated eight- or nine-digit number
+    re.compile(r"(?<![\w(])\([1-9]{2}\)[ ]?9?\d{4}-\d{4}(?![\w-])"),
+    # another country code: + then 10 to 15 digits in at most five groups, starting with a digit 1-9
+    re.compile(r"(?<![\w+])\+(?!55)[1-9]\d{0,2}(?:[ .-]?\(?\d{1,4}\)?){2,4}(?![\w-])"),
+]
+PHONE_DIGITS = (10, 15)
+ADDRESS_PATTERNS = [
+    # a CEP: five digits, a hyphen, three digits; or "CEP" followed by eight digits
+    re.compile(r"(?<![\w.\-/])\d{5}-\d{3}(?![\w\-/])(?!\.\w)"),
+    re.compile(r"\b(?i:CEP)[:\s]*\d{8}\b"),
+    # a Brazilian street line: the street word, a capitalised name, a comma or "nº", and the number
+    re.compile(r"\b(?:Rua|Avenida|Av\.|Alameda|Travessa|Praça|Rodovia|Estrada|Largo)\s+"
+               r"(?:d[aeo]s?\s+)?[%s0-9][%s%s.]*(?:\s+(?:d[aeo]s?\s+|e\s+)?[%s0-9][%s%s.]*){0,5}"
+               r"\s*(?:,\s*(?:n[º°o]\.?\s*)?|\s+n[º°o]\.?\s*)\d{1,5}\b" % ((_UPPER, _UPPER, _LOWER) * 2)),
+    # an English street line: the number, one to four capitalised words, the street word
+    re.compile(r"(?<![\w.])\d{1,5}\s+(?:[%s][%s]+\s+){1,4}(?:Street|Avenue|Road|Boulevard|Lane|Drive)\b"
+               % (_UPPER, _LOWER)),
+]
+CONTRACT_AMOUNT = re.compile(
+    r"(?<![\w$])(?:R\$|US\$|U\$|€|£|(?:BRL|USD|EUR|GBP)\s)\s?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{1,2})?"
+    r"(?:\s?(?:mil|milh(?:ão|ões|ao|oes)|k|K|mi|M|million|thousand)\b)?(?![\d.,]\d)"
+    r"|(?<![\w$])\$\d{1,3}(?:,\d{3})+(?:\.\d{2})?(?![\d,])"
+    r"|(?<![\w$])\$\d+(?:\.\d+)?[kK]\b")
+# The amount counts only with one of these words on the same line, at most CONTRACT_WINDOW characters
+# away: a price, a budget or a cost limit with a currency symbol is not a contract or salary value.
+CONTRACT_CUE = re.compile(
+    r"(?i:\b(?:sal[aá]rios?|salar(?:y|ies)|remunera[çc][ãa]o|compensation|pretens[ãa]o|contratos?|contracts?|"
+    r"proposta|offer|b[ôo]nus|PLR|CLT|PJ|honor[áa]rios|day rate|hourly rate|por hora|per hour|valor/hora|"
+    r"pacote|package|stock options?|equity)\b)")
+CONTRACT_WINDOW = 80
+HEALTH_PATTERNS = [
+    # a CID-10/ICD-10 code with its prefix (the prefix, a letter and two digits, an optional decimal);
+    # the ICD-11 code shape is not covered, because it collides with hexadecimal
+    re.compile(r"\b(?i:CID|ICD)(?:[- ]?1[01])?[\s:.-]*[A-Z]\d{2}(?:\.\d{1,2})?\b"),
+]
+COLLEAGUE_PATTERN = re.compile(
+    r"(?i:\b(?:meu|minha|meus|minhas|nosso|nossa|my|our)\s+(?:ex-?)?(?:colegas?|gestora?|chefe|l[íi]der|"
+    r"diretora?|colleagues?|coworkers?|co-workers?|manager|boss|teammates?|team lead|tech lead|director)"
+    r"(?:\s+(?:de\s+(?:time|equipe|trabalho)|at work))?\s+)"
+    r"([%s][%s]+(?:\s+(?:d[aeo]s?\s+)?[%s][%s]+){0,3})" % ((_UPPER, _LOWER) * 2))
+
 CARD = re.compile(r"(?<![\d-])\d(?:[ -]?\d){14,15}(?![\d-])")
 CPF = re.compile(r"(?<![\d.])\d{3}\.\d{3}\.\d{3}-\d{2}(?![\d-])")
 CNPJ = re.compile(r"(?<![\d.])\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}(?![\d-])")
@@ -260,10 +343,48 @@ def cnpj_ok(digits):
     return digits[12:] == "%d%d" % (d1, d2)
 
 
-def find_spans(text, term_hashes=frozenset(), salt=None):
-    """[(start, end, category)] for every finding. Categories: employer-client-term, credential,
-    email, payment-card, cpf, cnpj. Never returns the matched text itself."""
+def _phone_ok(match):
+    digits = re.sub(r"\D", "", match)
+    return PHONE_DIGITS[0] <= len(digits) <= PHONE_DIGITS[1]
+
+
+def _contract_cue_near(text, start, end):
+    line_start = text.rfind("\n", 0, start) + 1
+    line_end = text.find("\n", end)
+    line_end = len(text) if line_end < 0 else line_end
+    window = text[max(line_start, start - CONTRACT_WINDOW):min(line_end, end + CONTRACT_WINDOW)]
+    return CONTRACT_CUE.search(window) is not None
+
+
+def pattern_spans(text):
+    """[(start, end, category)] for the five pattern categories of Issue #36."""
     spans = []
+    for rx in PHONE_PATTERNS:
+        spans += [(m.start(), m.end(), "phone") for m in rx.finditer(text) if _phone_ok(m.group(0))]
+    for rx in ADDRESS_PATTERNS:
+        spans += [(m.start(), m.end(), "postal-address") for m in rx.finditer(text)]
+    spans += [(m.start(), m.end(), "contract-value") for m in CONTRACT_AMOUNT.finditer(text)
+              if _contract_cue_near(text, m.start(), m.end())]
+    for rx in HEALTH_PATTERNS:
+        spans += [(m.start(), m.end(), "health") for m in rx.finditer(text)]
+    spans += [(m.start(1), m.end(1), "colleague-name") for m in COLLEAGUE_PATTERN.finditer(text)]
+    # Two patterns of one category can match one value (a +55 number also has a parenthesised area
+    # code): overlapping findings of the same category are one finding, so mhw scan counts it once.
+    merged = []
+    for start, end, cat in sorted(spans, key=lambda s: (s[2], s[0], -s[1])):
+        if merged and merged[-1][2] == cat and start < merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end, cat])
+    return [tuple(m) for m in merged]
+
+
+def find_spans(text, term_hashes=frozenset(), salt=None, term_lists=None):
+    """[(start, end, category)] for every finding. Categories: CATEGORY_ORDER. term_hashes is the
+    employer and client list; term_lists maps "health" and "colleague-name" to the owner's private
+    lists for those categories (Issue #36), matched like the employer list, with the same salt.
+    Never returns the matched text itself."""
+    spans = pattern_spans(text)
     for rx in CREDENTIAL_PATTERNS:
         spans += [(m.start(), m.end(), "credential") for m in rx.finditer(text)]
     for m in EMAIL.finditer(text):
@@ -274,14 +395,17 @@ def find_spans(text, term_hashes=frozenset(), salt=None):
             spans.append((m.start(), m.end(), "payment-card"))
     spans += [(m.start(), m.end(), "cpf") for m in CPF.finditer(text) if cpf_ok(re.sub(r"\D", "", m.group(0)))]
     spans += [(m.start(), m.end(), "cnpj") for m in CNPJ.finditer(text) if cnpj_ok(re.sub(r"\D", "", m.group(0)))]
-    if term_hashes and salt:
+    lists = [(cat, hashes) for cat, hashes in
+             [("employer-client-term", term_hashes)] + sorted((term_lists or {}).items()) if hashes]
+    if lists and salt:
         words = tokens(text)
         for i in range(len(words)):
             for n in range(1, min(MAX_TERM_TOKENS, len(words) - i) + 1):
                 group = [w[2] for w in words[i:i + n]]
-                forms = {" ".join(group), "".join(group)}
-                if any(term_hash(salt, f) in term_hashes for f in forms):
-                    spans.append((words[i][0], words[i + n - 1][1], "employer-client-term"))
+                digests = {term_hash(salt, f) for f in {" ".join(group), "".join(group)}}
+                for cat, hashes in lists:
+                    if digests & hashes:
+                        spans.append((words[i][0], words[i + n - 1][1], cat))
     return spans
 
 
@@ -440,6 +564,20 @@ def read_terms(path):
         return frozenset()
 
 
+def read_term_lists(conf):
+    """(employer and client hashes, {category: hashes} for the private health and colleague lists)."""
+    return read_terms(conf["terms_file"]), {cat: read_terms(conf[key]) for cat, key in TERM_LISTS.items()}
+
+
+def blocking_set(conf):
+    return set(c.strip() for c in conf["block_categories"].split(",") if c.strip())
+
+
+def report_only_set(conf):
+    """The categories named but never blocked or rewritten: listed for report and not for block."""
+    return set(c.strip() for c in conf["report_categories"].split(",") if c.strip()) - blocking_set(conf)
+
+
 def add_term_hashes(path, hashes):
     _private_dir(os.path.dirname(path))
     current = read_terms(path)
@@ -474,14 +612,18 @@ def prompt_decision(conf, prompt, harness, salts=None):
     if len(prompt.encode("utf-8")) > int(conf["max_bytes"]):
         return {"systemMessage": _format(conf, "notice_too_large", max=conf["max_bytes"])}
     warnings = []
-    terms = read_terms(conf["terms_file"])
+    terms, lists = read_term_lists(conf)
     salt = None
-    if terms:
+    if terms or any(lists.values()):
         salt = (salts or SaltStore(conf, interactive=False)).get()
         if not salt:
             warnings.append(_format(conf, "notice_no_salt"))
-    blocking = set(c.strip() for c in conf["block_categories"].split(","))
-    spans = [s for s in find_spans(prompt, terms, salt) if s[2] in blocking]
+    blocking, report = blocking_set(conf), report_only_set(conf)
+    found = find_spans(prompt, terms, salt, lists)
+    spans = [s for s in found if s[2] in blocking]
+    reported = categories([s for s in found if s[2] in report])
+    if reported:
+        warnings.append(_format(conf, "notice_report_only", categories=", ".join(reported)))
     if not spans:
         # Text the paste wrapper (or an earlier block) already redacted: say so, by category only.
         marked = set(REDACTED_MARKER.findall(prompt))
@@ -535,7 +677,10 @@ def cmd_prompt_hook(conf, harness, stdin=None, stdout=None, salts=None, environ=
 USAGE = """usage:
   clipboard_guard.py prompt-hook --harness claude|codex [--config FILE]
                                                    the UserPromptSubmit hook (payload on stdin)
-  clipboard_guard.py add-term [--config FILE]      add one term, typed at your terminal with echo off
+  clipboard_guard.py add-term [--list LIST] [--config FILE]
+                                                   add one term, typed at your terminal with echo off;
+                                                   LIST is employer-client-term (default), health or
+                                                   colleague-name
   clipboard_guard.py check-config [--config FILE]  print the effective non-secret settings
 No command takes a term as an argument.
 """
@@ -588,7 +733,7 @@ def _read_secret_line(tty_fd, prompt):
     return buf.decode("utf-8", "replace")
 
 
-def cmd_add_term(conf, out=sys.stdout):
+def cmd_add_term(conf, out=sys.stdout, list_name="employer-client-term"):
     present = [m for m in AGENT_MARKERS if os.environ.get(m)]
     if present:
         out.write("refused: an agent session marker is set (%s). Add terms from your own terminal, outside "
@@ -619,9 +764,10 @@ def cmd_add_term(conf, out=sys.stdout):
         out.write("not added: a term has 1 to %d words and at least %d letters or digits.\n" % (MAX_TERM_TOKENS, MIN_TERM_CHARS))
         return 1
     salt = SaltStore(conf).get_or_create()
-    n = add_term_hashes(conf["terms_file"], [term_hash(salt, f) for f in forms])
+    path = conf[TERM_LISTS[list_name]] if list_name in TERM_LISTS else conf["terms_file"]
+    n = add_term_hashes(path, [term_hash(salt, f) for f in forms])
     del forms
-    out.write("added: %d new hash(es) to %s. The term itself was not stored anywhere.\n" % (n, conf["terms_file"]))
+    out.write("added: %d new hash(es) to %s. The term itself was not stored anywhere.\n" % (n, path))
     return 0
 
 
@@ -631,11 +777,16 @@ def main(argv):
         sys.stdout.write(USAGE)
         return 0
     command, rest = args[0], args[1:]
-    config, harness = None, None
+    config, harness, list_name = None, None, "employer-client-term"
     while rest:
         flag = rest.pop(0)
         if flag == "--config" and rest:
             config = rest.pop(0)
+        elif flag == "--list" and rest and command == "add-term":
+            list_name = rest.pop(0)
+            if list_name not in ("employer-client-term",) + tuple(TERM_LISTS):
+                sys.stderr.write("add-term: --list must be employer-client-term, %s\n" % " or ".join(TERM_LISTS))
+                return 2
         elif flag == "--harness" and rest:
             harness = rest.pop(0)
         else:
@@ -654,12 +805,15 @@ def main(argv):
     if command == "prompt-hook":
         return cmd_prompt_hook(conf, harness)
     if command == "add-term":
-        return cmd_add_term(conf)
+        return cmd_add_term(conf, list_name=list_name)
     if command == "check-config":
-        for key in ("max_bytes", "block_categories", "show_cleaned_chars", "salt_store", "keychain_service",
-                    "keychain_path", "terms_file", "salt_file"):
+        for key in ("max_bytes", "block_categories", "report_categories", "show_cleaned_chars", "salt_store",
+                    "keychain_service", "keychain_path", "terms_file", "health_terms_file", "colleague_terms_file",
+                    "salt_file"):
             sys.stdout.write("%s=%s\n" % (key, conf[key]))
         sys.stdout.write("terms=%d\n" % len(read_terms(conf["terms_file"])))
+        for cat, key in TERM_LISTS.items():
+            sys.stdout.write("%s_terms=%d\n" % (cat.replace("-", "_"), len(read_terms(conf[key]))))
         return 0
     sys.stderr.write("unknown command: %s\n" % command)
     return 2
