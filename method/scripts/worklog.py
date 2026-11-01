@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import sys
 from datetime import datetime
@@ -44,6 +45,14 @@ STRICT_PRIVATE = re.compile(
 # only when an event is PREPARED — retained history is read as it was written.
 CONTINUITY_TYPES = {"checkpoint", "handoff"}
 FREE_TEXT_LIMIT = 280
+# Consumption (#76). A closed object of numbers and fixed identifiers, never prompt or output content. It is
+# valid on the events that close a session's work on an Issue, at most once per run, and `unavailable` is the
+# honest record where the harness exposes no count: its numbers stay null, they are never estimated.
+USAGE_TYPES = {"checkpoint", "handoff", "outcome"}
+USAGE_FIELDS = {"model", "effort", "tokens_input", "tokens_output", "credits", "usage_provenance"}
+USAGE_PROVENANCE = {"native", "unavailable"}
+USAGE_METRICS = ("tokens_input", "tokens_output", "credits")
+IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
 
 
 class ContractError(ValueError):
@@ -122,6 +131,33 @@ def validate_prepared(event: dict[str, Any], where: str = "event") -> dict[str, 
     if event["event_type"] == "correction":
         validate_prepared(event["corrected_event"], f"{where}.corrected_event")
     return event
+
+
+def validate_usage(usage: Any, where: str) -> None:
+    if not isinstance(usage, dict):
+        raise ContractError(f"{where}: must be an object")
+    extra = sorted(set(usage) - USAGE_FIELDS)
+    if extra:
+        raise ContractError(f"{where}: unknown field {', '.join(extra)}; usage carries numbers and fixed identifiers only")
+    require(usage, ["usage_provenance"], where)
+    if usage["usage_provenance"] not in USAGE_PROVENANCE:
+        raise ContractError(f"{where}.usage_provenance: must be native or unavailable")
+    for field in ("model", "effort"):
+        value = usage.get(field)
+        if value is not None and (not isinstance(value, str) or not IDENTIFIER_RE.fullmatch(value)):
+            raise ContractError(f"{where}.{field}: must be a fixed identifier or null")
+    for field in ("tokens_input", "tokens_output"):
+        value = usage.get(field)
+        if value is not None and (type(value) is not int or value < 0):
+            raise ContractError(f"{where}.{field}: must be a non-negative integer or null")
+    credits = usage.get("credits")
+    if credits is not None and (type(credits) not in (int, float) or not math.isfinite(credits) or credits < 0):
+        raise ContractError(f"{where}.credits: must be a non-negative number or null")
+    reported = [field for field in USAGE_METRICS if usage.get(field) is not None]
+    if usage["usage_provenance"] == "unavailable" and reported:
+        raise ContractError(f"{where}: unavailable usage carries no numbers")
+    if usage["usage_provenance"] == "native" and not reported:
+        raise ContractError(f"{where}: native usage carries at least one of {', '.join(USAGE_METRICS)}")
 
 
 def harness_key(value: str) -> str:
@@ -203,6 +239,10 @@ def validate_event(event: Any, where: str = "event") -> dict[str, Any]:
         if event["event_type"] not in CONTINUITY_TYPES:
             raise ContractError(f"{where}: next_act is only valid on checkpoint and handoff events")
         bounded_line(event["next_act"], f"{where}.next_act")
+    if "usage" in event:
+        if event["event_type"] not in USAGE_TYPES:
+            raise ContractError(f"{where}: usage is only valid on checkpoint, handoff and outcome events")
+        validate_usage(event["usage"], f"{where}.usage")
     if event["event_type"] == "implementation_start":
         require(event, ["frozen_estimate"], where)
         estimate = event["frozen_estimate"]
@@ -468,6 +508,44 @@ def latest_outcome(events: list[dict[str, Any]]) -> dict[str, Any] | None:
     return outcomes[-1] if outcomes else None
 
 
+def usage_runs(issue: str, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One coverage unit per run on an Issue: its harness key and its usage record, or None (#76).
+
+    A run carries at most one usage object. Two on one run cannot be told apart as cumulative or delta, so
+    summing them could double-count; the report refuses rather than guesses, and a correction repairs it.
+    """
+    runs: dict[str, dict[str, Any]] = {}
+    for event in events:
+        run = runs.setdefault(event["run_id"], {"harness": "unknown", "usage": None})
+        if "usage" in event:
+            if run["usage"] is not None:
+                raise ContractError(f"{issue}: run {event['run_id']} carries more than one usage record")
+            run["usage"] = event["usage"]
+            run["harness"] = harness_key(event["attribution"]["harness"])
+        elif run["usage"] is None:
+            run["harness"] = harness_key(event["attribution"]["harness"])
+    return [runs[key] for key in sorted(runs)]
+
+
+def usage_summary(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Sums of what was reported, never an estimate. A metric no run reported is null, not zero."""
+    native = [run["usage"] for run in runs if run["usage"] and run["usage"]["usage_provenance"] == "native"]
+    unavailable = sum(1 for run in runs if run["usage"] and run["usage"]["usage_provenance"] == "unavailable")
+    unrecorded = sum(1 for run in runs if run["usage"] is None)
+    if not native:
+        coverage = "none"
+    elif unavailable or unrecorded:
+        coverage = "partial"
+    else:
+        coverage = "complete"
+    summary: dict[str, Any] = {"coverage": coverage, "runs": len(runs), "native_runs": len(native),
+                               "unavailable_runs": unavailable, "unrecorded_runs": unrecorded}
+    for metric in USAGE_METRICS:
+        values = [usage[metric] for usage in native if usage.get(metric) is not None]
+        summary[metric] = {"sum": sum(values) if values else None, "runs": len(values)}
+    return summary
+
+
 def project_segment(record: dict[str, Any]) -> dict[str, Any]:
     event = record["event"]
     projected = {key: value for key, value in event.items() if key != "corrected_event"}
@@ -510,6 +588,7 @@ def report(snapshot: dict[str, Any], export: dict[str, Any], reproduction: str) 
     cohort_items = {"sole": 0, "mixed": 0, "unknown": 0}
     items: list[dict[str, Any]] = []
     work_types: dict[str, int] = {}
+    harness_runs: dict[str, list[dict[str, Any]]] = {}
     for issue, unit in units.items():
         planned += unit["planned_points"]
         issue_events = by_issue.get(issue, [])
@@ -544,6 +623,9 @@ def report(snapshot: dict[str, Any], export: dict[str, Any], reproduction: str) 
         else:
             cohort = "unknown"
         cohort_items[cohort] += 1
+        runs = usage_runs(issue, issue_events)
+        for run in runs:
+            harness_runs.setdefault(run["harness"], []).append(run)
         outcome = latest_outcome(issue_events)
         accepted = bool(outcome and outcome["outcome"] == "accepted")
         credited = bool(accepted and outcome.get("completion_sprint") == snapshot["sprint"] and frozen is not None)
@@ -570,6 +652,7 @@ def report(snapshot: dict[str, Any], export: dict[str, Any], reproduction: str) 
                       "frozen_estimate_provenance": starts[0]["frozen_estimate"]["provenance"] if starts else None,
                       "work_type": unit["work_type"], "cohort": cohort,
                       "outcome": outcome["outcome"] if outcome else "unknown", "credited": credited,
+                      "usage": usage_summary(runs),
                       "segments": [project_segment(record) for record in issue_ledger]})
     unmapped = sorted(set(by_issue) - set(units))
     if unmapped:
@@ -600,6 +683,7 @@ def report(snapshot: dict[str, Any], export: dict[str, Any], reproduction: str) 
                    "cohort_points": cohorts,
                    "cohort_items": cohort_items,
                    "work_type_points": dict(sorted(work_types.items())),
+                   "usage_by_harness": {key: usage_summary(group) for key, group in sorted(harness_runs.items())},
                    "duration_days": duration_days,
                    "points_per_week": points_per_week},
         "excluded": excluded, "items": items,
@@ -691,6 +775,7 @@ def markdown(data: dict[str, Any]) -> str:
              f"- cohort points: `{canonical(totals['cohort_points'])}`",
              f"- cohort items: `{canonical(totals['cohort_items'])}`",
              f"- work-type points: `{canonical(totals['work_type_points'])}`",
+             f"- usage by harness: `{canonical(totals['usage_by_harness'])}`",
              f"- unestimated completions: `{canonical(totals['unestimated_completions'])}`",
              f"- completion sprint mismatches: `{canonical(totals['completion_sprint_mismatches'])}`",
              f"- duration days: {totals['duration_days']}",

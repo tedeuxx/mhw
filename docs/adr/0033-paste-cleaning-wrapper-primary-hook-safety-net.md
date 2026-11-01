@@ -121,6 +121,18 @@ measurement needs a logged-in Kiro session, which a throwaway home does not have
 owner's fresh-session canary is the route. Kiro IDE: the IDE 1.2.56 bundle documents no prompt-submit
 hook type for a user scope (ADR-0036), so this proposal does not reach the IDE.
 
+## Amendment 2026-11-01: the detection core has five more categories (Issue #36)
+
+The "One detection core" bullet above lists five generic categories, as they stood then. Since Issue #36 the core also reports `phone`, `postal-address`, `contract-value`, `health` and
+`colleague-name`. Health and colleague names are also matched against two private term lists of the
+owner's, kept and loaded like the employer and client list (`add-term --list health|colleague-name`).
+A new setting, `report_categories`, makes a category report-only: the hook names it and sends the
+prompt, and the wrapper forwards the paste and counts it in its session summary. ~~All five block by
+default.~~ *Struck 2026-11-01 (gate round 1):* `postal-address` and `contract-value` are report-only by
+default; the other three block. The patterns, the false-positive threshold and its measurement are in
+[ADR-0035](0035-workstation-blueprint-reconciliation.md), amendment of 2026-11-01 (Issue #36).
+*Written and tested*; not installed.
+
 ## Links
 
 - ADR-0011 (superseded; the history). ADR-0005 (no log). ADR-0008 (no persistence). ADR-0025 (admin
