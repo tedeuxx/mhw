@@ -473,58 +473,21 @@ barrier of the proposed managed workstation."
 
 ## 5a. Documentation standards (user layer, every repository)
 
-Distributed as part of the `documentation-standard` skill at user level, so every repository on the
-workstation follows them ([#69](https://github.com/tedeuxx/mhw/issues/69)).
+The documentation standard for every repository on the workstation lives in one place: the
+[`documentation-standard`](../method/skills/documentation-standard/SKILL.md) skill, Part I, which the
+method installs at user level for Claude Code, Codex and Kiro
+([#69](https://github.com/tedeuxx/mhw/issues/69)). It carries the rules first agreed here on
+2026-10-05 and the owner's additions on #69:
 
-### Diagrams
+- **Diagrams:** Mermaid only, always simple; two kinds (layer diagrams with no arrows, sequential
+  diagrams as a left-to-right flow with arrows); colour encodes who can change a layer, with a
+  colour-blind-safe palette and a one-line legend.
+- **Names:** vendors' documentation terms for layers; plain words a speaker of any language understands.
+- **Editorial line for commands.**
+- **Documents:** English by default, one language per document, requirements-document file naming,
+  the README mirrors the requirements document, and a rationale names the concrete problem it prevents.
 
-- **Mermaid** is the only diagram format.
-- **Always simple:** less is more for a wide audience, even if the drawing leaves questions open. The
-  detail goes in the text.
-- **Two kinds of diagram.** *Layer* diagrams (architecture) are stacked, labelled layers, one short label
-  each, with no arrows. *Sequential* diagrams (workflow, process) always have arrows: a simple
-  left-to-right flow of labelled steps.
-- **Layer names follow the vendors' own documentation.** Names use plain words that a speaker of any
-  language understands: no slang, idioms or metaphors.
-- **Symmetric:** layers have equal widths (`block-beta`, one column).
-- **Reading direction:** left to right when possible; otherwise top-down or bottom-up. Agent harness
-  stacks read bottom-up, with the agent harness itself as the base layer.
-- **Colour encodes who can change the layer:** one colour per audience, and nothing else is coloured.
-- **Palette:** pleasant and highly visible.
-  - Colour-blind-safe hues: orange `#D55E00` administrator, green `#009E73` project contributors, blue
-    `#0072B2` owner or machine user, grey dashed `#6b7178` vendor.
-  - Colour applied as a 2px border on a light fill, with dark text, so contrast holds in light and dark
-    themes.
-- **Legend:** a one-line legend under the diagram names the reading direction and what each colour means.
-
-### Editorial line for commands
-
-- **Words people already say:** a command is a short phrase that people in a software team already use
-  day to day, so it makes sense with no explanation, for example `/new-prd`, `/what-else`,
-  `/prd-to-issues`. *(Amended 2026-10-26: the owner renamed ~~`/new-idea`~~ and ~~`/idea-to-issues`~~,
-  "-idea- deveria ser renomeado para -prd em todos comandos com esse termo"; PRD, product requirements
-  document, is the team word for what these commands write and read. The old names stay as deprecated
-  aliases for one release, ADR-0032, 2026-10-26 amendment.)* Familiar team vocabulary (handover, issue, release) is welcome; slang and private
-  jargon are not.
-- **Plain, international words:** two or three of them, lowercase and hyphenated. No slang, idioms,
-  metaphors, contractions or acronyms.
-- **Name the intent, not the mechanism:** what the owner wants to happen, not how the agent harness does
-  it.
-- **Families read alike:** `/new-prd` and `/new-issue`; `/prd-to-issues`. (~~`/new-idea`~~,
-  ~~`/idea-to-issues`~~ until 2026-10-26.)
-- **Checked against this line:** `/handover`, `/blueprint` and `/breaking-glass` all fit, because teams
-  already say them (owner, 2026-10-05). (`/breaking-glass` was later removed, ADR-0028, and `/handover`
-  at #196; `/handoff`, #198, is the same everyday word.)
-
-### Documents
-
-- **Language:** English is the default for code, comments, documents and artifacts. One language per
-  document, owner quotes included (translated). End-user application text follows each project's own
-  standard.
-- **Requirements documents:** `docs/<git-repo-name>-product-requirements-document-<subject>.md`. The
-  repository-level document uses the subject `project`, and the term is spelled out ("Product
-  Requirements Document").
-- **README:** mirrors the agreed project requirements document.
+This section no longer restates the rules, so a change to them is made in the skill alone.
 
 ## 6. Working method (user layer)
 
