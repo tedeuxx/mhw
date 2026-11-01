@@ -383,6 +383,22 @@ raise a finding against."* Inventing a house style is the failure this whole des
    fails, it is advisory-and-droppable and the title stands.
 4. Where the piece is a teaser, judge it against the teaser rules as a **separate artifact**, not as a
    compression of the article.
+4a. **Check every verbatim quotation against `published-voice` rule 18a's four conditions (mhw#140)**,
+   one by one, and cite the condition that fails:
+   - **short** — at most 40 words, counted as rule 18a counts them; over that, cut it to the part
+     whose wording is the artifact, or render it in the prose with its attribution there;
+   - **from a public source** — if the draft's material does not show where a reader can reach it,
+     cut it under the third path and say what would settle it;
+   - **attributed** — the name on the block, in rule 18's form; add it where the source is known;
+   - **never employer, client or NDA material** — remove the span entirely: no paraphrase and no
+     attribution, because the workstation global brief's rule 1 wins over rule 18 here. If you cannot
+     tell, treat it as such and remove it. **Write the finding without the span**: the review file is
+     tracked and public, so record the clause and that a span was removed, never its text, its source
+     or anything that lets a reader rebuild it, and tell the owner in your return that you removed
+     it and under which condition.
+
+   A rendered or paraphrased idea is not a quotation, so these four do not apply to it; rule 18's
+   verbatim clause decides which it is, and where you cannot tell, ask.
 5. **Make the repair in the draft as you find it**, one edit per finding, and name the ground for each.
    An edit you cannot place under ground 1 or ground 2 does not get made.
 6. Write the round section, close it with its literal, and say in your return which literal you wrote,
