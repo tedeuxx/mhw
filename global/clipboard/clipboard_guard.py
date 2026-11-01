@@ -46,16 +46,21 @@ CATEGORY_ORDER = ["employer-client-term", "credential", "email", "payment-card",
 # same salted-hash format, the same salt, a separate file each, written only by add-term --list.
 TERM_LISTS = {"health": "health_terms_file", "colleague-name": "colleague_terms_file"}
 LIST_FILES = {"health": "clipboard-terms-health", "colleague-name": "clipboard-terms-colleague"}
+# Report-only unless the owner says otherwise (Issue #36, gate round 1 measurement).
+REPORT_ONLY_DEFAULT = ("postal-address", "contract-value")
 
 # --------------------------------------------------------------------------------------------- config
 
 DEFAULTS = {
     "max_bytes": "1000000",
-    "block_categories": ",".join(CATEGORY_ORDER),   # which categories block a prompt; others pass
+    # Which categories block a prompt; others pass. Every category but REPORT_ONLY_DEFAULT (Issue #36).
+    # This is also what a typo in the setting falls back to, so a typo never makes those two block.
+    "block_categories": ",".join(c for c in CATEGORY_ORDER if c not in REPORT_ONLY_DEFAULT),
     # Report-only (Issue #36): a category listed here and NOT in block_categories is named in a notice
     # and passes unchanged; the paste wrapper forwards it unchanged and counts it in its session summary.
-    # Empty by default: every category measured under the stated false-positive threshold.
-    "report_categories": "",
+    # postal-address and contract-value by default: on synthetic Portuguese work prose both crossed the
+    # one-false-positive threshold (ADR-0035, second 2026-11-01 amendment).
+    "report_categories": ",".join(REPORT_ONLY_DEFAULT),
     "show_cleaned_chars": "8000",   # the redacted copy is shown in the block message up to this size
     "salt_store": "",           # keychain | file; empty means keychain on macOS, file elsewhere
     "keychain_service": PROJECT + ".clipboard-salt",

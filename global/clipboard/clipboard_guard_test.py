@@ -387,13 +387,15 @@ NEW_POSITIVES = {
 NEW_NEGATIVES = {
     "phone": ["(11) 1234", "version 1.2.3-4567", "date 2026-10-01", "score +12 points",
               "@@ -10,7 +10,8 @@", "(01) 2345-6789", "+55 12", "uuid 123e4567-e89b-12d3-a456-426614174000",
-              "call (11)91234-56789", "x+1 (555) 010-0199", "+1 555"],
+              "call (11)91234-56789", "x+1 (555) 010-0199", "+1 555",
+              # more digits than any phone number (above PHONE_DIGITS' upper bound of 15)
+              J("+1234567", "890123456")],
     "postal-address": ["ticket 12345-6789", "v2.12345-678.1", "ref 12345-678/2026", "Rua sem número",
                        "a rua tem 3 casas", "Quillon Street", "build ab12345-678", "Avenida Paulista vale 10"],
     "contract-value": [J("R$", " 30 a unidade"), J("budget USD", " 50 per month"), "salary=$1",
                        "the contract defines 3 fields", J("costs $", "1,000"), "echo $100",
                        J("price R$", " 12.500,00 for the laptop")],
-    "health": ["acid F32", "CID alone", "ICD-10 codes", "CIDR 10.0.0.0/8", "cid:image001", "CID-1 F32x",
+    "health": ["acid F32", "CID F3", "ICD-10 J4", "CID alone", "ICD-10 codes", "CIDR 10.0.0.0/8", "cid:image001", "CID-1 F32x",
                "the bug was diagnosed with a profiler"],
     "colleague-name": ["my manager said hi", "my manager, Zyxa said", "o gestor Zyxa", "Meu colega disse",
                        "my colleague's Zyxa", "minha gestora pediu"],
@@ -427,16 +429,30 @@ class NewCategories(unittest.TestCase):
         self.assertEqual(g.categories(g.find_spans("salário " + "x" * 10 + " " + amount)), ["contract-value"])
         self.assertEqual(g.categories(g.find_spans(amount + " de salário")), ["contract-value"])
 
+    def test_each_contract_cue_word_alone_marks_an_amount(self):
+        """Every member of CONTRACT_CUE, pinned one by one: the word alone, then an amount."""
+        amount = J("R$", " 9.000")
+        for cue in ["salário", "salario", "salários", "salary", "salaries", "remuneração", "remuneracao",
+                    "compensation", "pretensão", "pretensao", "contrato", "contratos", "contract", "contracts",
+                    "proposta", "offer", "bônus", "bonus", "PLR", "CLT", "PJ", "honorários", "honorarios",
+                    "day rate", "hourly rate", "por hora", "per hour", "valor/hora", "pacote", "package",
+                    "stock option", "stock options", "equity"]:
+            self.assertEqual(g.categories(g.find_spans(cue + " " + amount)), ["contract-value"], cue)
+        self.assertEqual(g.find_spans("word " + amount), [])
+
     def test_one_phone_matched_by_two_patterns_is_one_finding(self):
         text = J("+55 (11) 9", "0000-0001")
         self.assertEqual(g.find_spans(text), [(0, len(text), "phone")])
 
-    def test_the_new_categories_are_in_the_order_and_block_by_default(self):
+    def test_the_new_categories_are_in_the_order_and_two_are_report_only_by_default(self):
         new = ["phone", "postal-address", "contract-value", "health", "colleague-name"]
         self.assertEqual(g.CATEGORY_ORDER[-5:], new)
         conf = g.load_config(conf_in(os.path.join(BASE, "new-defaults")))
-        self.assertEqual(g.blocking_set(conf), set(g.CATEGORY_ORDER))
-        self.assertEqual(g.report_only_set(conf), set())
+        self.assertEqual(g.blocking_set(conf), set(g.CATEGORY_ORDER) - {"postal-address", "contract-value"})
+        self.assertEqual(g.report_only_set(conf), {"postal-address", "contract-value"})
+        # A typo in block_categories falls back to the same nine: it never makes those two block.
+        conf = g.load_config(conf_in(os.path.join(BASE, "new-defaults-typo"), block_categories="emial"))
+        self.assertEqual(g.report_only_set(conf), {"postal-address", "contract-value"})
 
 
 class PrivateTermLists(unittest.TestCase):
@@ -583,14 +599,24 @@ class PromptHook(unittest.TestCase):
         d, conf = hook_conf("hook-typo", block_categories="credential,emial")
         self.assertEqual(decide(conf, "mail ana@zyxw-mail.zyxw")[0]["decision"], "block")
 
-    def test_every_new_category_blocks_by_default_naming_it_only(self):
+    def test_three_new_categories_block_by_default_naming_it_only(self):
         d, conf = hook_conf("hook-new")
-        for cat, cases in NEW_POSITIVES.items():
+        for cat in ("phone", "health", "colleague-name"):
+            cases = NEW_POSITIVES[cat]
             text, span = cases[0]
             out, raw = decide(conf, text)
             self.assertEqual(out and out.get("decision"), "block", cat)
             self.assertIn(cat, out["reason"].split("\n", 1)[0], cat)
             self.assertIn("[REDACTED:%s]" % cat, out["reason"], cat)
+            self.assertNotIn(span, raw, "the matched text reached the hook output")
+
+    def test_postal_address_and_contract_value_are_report_only_by_default(self):
+        d, conf = hook_conf("hook-new-report")
+        for cat in ("postal-address", "contract-value"):
+            text, span = NEW_POSITIVES[cat][0]
+            out, raw = decide(conf, text)
+            self.assertEqual(out, {"systemMessage": "Paste filter (ADR-0011): %s in this prompt (report-only: it "
+                                                    "was sent unchanged)." % cat}, cat)
             self.assertNotIn(span, raw, "the matched text reached the hook output")
 
     def test_private_lists_block_and_their_salt_is_read(self):
@@ -620,14 +646,18 @@ class PromptHook(unittest.TestCase):
         self.assertNotIn(CREDENTIALS["aws"], raw)
         # Listed for report AND for block: block wins.
         d, conf = hook_conf("hook-report-both", report_categories="phone")
-        self.assertEqual(decide(conf, text)[0]["decision"], "block")
+        out, _ = decide(conf, text)
+        self.assertEqual(out["decision"], "block")
+        self.assertNotIn("report-only", out["reason"], "a blocked category was also called sent unchanged")
         # Off (in neither list): silent, as before Issue #36.
         d, conf = hook_conf("hook-off", block_categories=blocking)
         self.assertIsNone(decide(conf, text)[0])
 
-    def test_a_report_categories_typo_empties_it(self):
+    def test_a_report_categories_typo_restores_the_default(self):
         d, conf = hook_conf("hook-report-typo", report_categories="phone,fone")
-        self.assertEqual(conf["report_categories"], "")
+        self.assertEqual(conf["report_categories"], "postal-address,contract-value")
+        d, conf = hook_conf("hook-report-empty", report_categories="")
+        self.assertEqual(conf["report_categories"], "", "an explicit empty value turns report-only off")
 
     def test_hook_keychain_read_is_gated_bounded_and_non_interactive(self):
         """The hook's Keychain path (the owner's real configuration since he added a term): it calls
@@ -884,7 +914,7 @@ class Config(unittest.TestCase):
         d = os.path.join(BASE, "conf")
         conf = g.load_config(conf_in(d, max_bytes="lots", show_cleaned_chars="-3", block_categories=""))
         self.assertEqual((conf["max_bytes"], conf["show_cleaned_chars"], conf["block_categories"]),
-                         ("1000000", "8000", ",".join(g.CATEGORY_ORDER)))
+                         ("1000000", "8000", g.DEFAULTS["block_categories"]))
 
     def test_retired_watcher_keys_are_ignored(self):
         d = os.path.join(BASE, "conf-old")
@@ -900,8 +930,9 @@ class Config(unittest.TestCase):
                 with open(os.path.join(repo, part), encoding="utf-8") as fh:
                     out.write(fh.read())
         generic = g.load_config(os.path.join(repo, "global", "clipboard.conf"))
-        self.assertEqual(generic["block_categories"], ",".join(g.CATEGORY_ORDER))
-        self.assertEqual(generic["report_categories"], "")
+        self.assertEqual(generic["block_categories"], g.DEFAULTS["block_categories"])
+        self.assertEqual(generic["report_categories"], g.DEFAULTS["report_categories"])
+        self.assertEqual(generic["report_categories"], "postal-address,contract-value")
         owner = g.load_config(joined)
         for key in g.DEFAULTS:
             if key.startswith("notice_"):

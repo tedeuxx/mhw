@@ -127,8 +127,9 @@ The "One detection core" bullet above lists five generic categories, as they sto
 `colleague-name`. Health and colleague names are also matched against two private term lists of the
 owner's, kept and loaded like the employer and client list (`add-term --list health|colleague-name`).
 A new setting, `report_categories`, makes a category report-only: the hook names it and sends the
-prompt, and the wrapper forwards the paste and counts it in its session summary. All five block by
-default. The patterns, the false-positive threshold and its measurement are in
+prompt, and the wrapper forwards the paste and counts it in its session summary. ~~All five block by
+default.~~ *Struck 2026-11-01 (gate round 1):* `postal-address` and `contract-value` are report-only by
+default; the other three block. The patterns, the false-positive threshold and its measurement are in
 [ADR-0035](0035-workstation-blueprint-reconciliation.md), amendment of 2026-11-01 (Issue #36).
 *Written and tested*; not installed.
 

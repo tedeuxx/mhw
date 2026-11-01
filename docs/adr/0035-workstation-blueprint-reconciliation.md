@@ -808,7 +808,7 @@ the hook rewrite or block the owner's own prompt. Measured on 2026-11-01 at `98b
 this change's own fixtures and comments: 0 findings for each of the five categories over every tracked
 text file, 0 over the 80,369 lines added in the history and 0 over its 576 commit messages. The
 instrument was checked on the same corpus: the email category, run the same way, reported 12 and 399.
-So all five block by default, and `report_categories` is empty. The corpus is English engineering text,
+~~So all five block by default, and `report_categories` is empty.~~ *Struck 2026-11-01, gate round 1: two categories are report-only by default; see the next amendment.* The corpus is English engineering text,
 not the owner's Portuguese conversation, where these patterns are more likely to fire. That is the gap
 the setting exists for: one line makes a noisy category report-only.
 
@@ -818,6 +818,46 @@ its exact span, and near-miss negatives for each category, plus the private list
 wrapper process, and `scan_test.py` covers the new categories and the list NOTEs. Each detector's source
 was mutated to turn its tests red, then restored. Not installed on the reference machine; not probed
 in a harness. macOS and Linux, as before.
+
+## Amendment 2026-11-01: two categories ship report-only (Issue #36, gate round 1)
+
+Status unchanged (accepted). This corrects the outcome of item 4 of the amendment above, keeping its
+threshold: a category ships report-only if the engine reports even one false positive on the measured
+corpus.
+
+**Context.** Item 4 measured English repository text, and it named that corpus as unrepresentative. The
+merge gate (`quality-assurance`, round 1 on PR #412) measured the corpus the wrapper and the hook actually
+receive: 54 synthetic Portuguese work lines, covering meetings, streets mentioned in passing, prices,
+versions, dates, ticket numbers, ID ranges, a colleague by name and code-like tokens. Each hit was
+classified as a realistic false positive, a contrived one (deliberately adversarial) or a true finding.
+
+| Category | Lines hit | Realistic false positives | Contrived | True |
+| --- | --- | --- | --- | --- |
+| `contract-value` | 13 | 12 | 0 | 1 |
+| `postal-address` | 12 | 10 | 0 | 2 |
+| `phone` | 2 | 1 | 1 | 0 |
+| `colleague-name` | 7 | 0 | 6 | 1 |
+| `health` | 1 | 0 | 1 | 0 |
+
+**Cause.** In `contract-value`, several cue words also name a price, a plan or a vendor deal, and no
+pattern separates a person's pay from a price. In `postal-address`, the bare CEP shape is also the
+shape of a five-three ticket or ID number, and the street arm reads a count after a street name as a
+house number.
+
+**Decision.** `postal-address` and `contract-value` are report-only by default. They are removed from
+`block_categories` and listed in `report_categories`, in `global/clipboard.conf` and in `DEFAULTS` in
+`clipboard_guard.py`. `DEFAULTS` is also what a typo falls back to, so a typo never makes them block.
+The prompt hook names them and sends the prompt. The paste wrapper forwards them and counts them in its
+session summary. `mhw scan` reports them as before. `phone`, `health` and `colleague-name` stay
+blocking. `phone`'s one realistic hit was a growth figure, through the arm for other country codes,
+and it stays a candidate for report-only if it trips in practice. The default mode of `colleague-name`
+is a separate question for the owner.
+
+**Tests.** The suites cover the new default. A default configuration reports, and does not block, each
+of the two, with the exact notice line. A typo falls back to the same nine blocking categories. A
+category in both lists blocks, with no report-only notice. Each contract cue word is pinned one by one,
+and there are near-misses for a phone number over 15 digits and a one-digit health code. Each new test
+was turned red by mutating the source, then restored. *Written and tested*; not installed.
 
 ## Links
 
