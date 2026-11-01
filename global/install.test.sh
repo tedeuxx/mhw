@@ -116,7 +116,7 @@ fi
 for b in "$h/.claude/CLAUDE.md" "$h/.codex/AGENTS.md" "$h/.kiro/steering/workstation-global-brief.md"; do
   if grep -q 'one extreme, the opposite extreme, and the middle ground' "$b" \
      && grep -q 'one question per message; a question stem is at most 280 characters; the reasoning goes in a linked artifact' "$b" \
-     && grep -q 'talk to the owner in Brazilian Portuguese. Anything published is in English' "$b" \
+     && grep -q 'talk to the owner in Brazilian Portuguese in everything made for the owner to read: chat, reports, artifacts and pickers. Only text for an outside audience is in English' "$b" \
      && ! grep -q 'session-policy.json' "$b" && ! grep -q 'Melhoria de harness' "$b"; then
     ok "${b#"$h"/} carries the interaction standards and no session-type intake"
   else

@@ -184,8 +184,10 @@ def compile_profile(profile):
         discipline.append("- **Attention and notifications:** minimize simultaneous information; one point at a time. Prefer notifications only when the owner's decision or action is needed. Do not proactively send routine progress or completion notifications. Keep requested results accessible in the conversation; do not hide blockers or material failures. This instruction does not itself change native desktop notification settings.")
     body = "\n".join([
         "## Owner overlay (generated personal profile)", "",
-        "- **Language:** talk to the owner in " + LANGUAGES[locale] + ". Anything published is in "
-        + LANGUAGES[conversation["publication_language"]] + ".",
+        "- **Language:** talk to the owner in " + LANGUAGES[locale]
+        + " in everything made for the owner to read: chat, reports, artifacts and pickers. Only text for an outside audience is in "
+        + LANGUAGES[conversation["publication_language"]]
+        + ": public repository text (Issues, pull requests, commits, docs). Site copy and social posts follow their own surface's language rule, which may be per locale or bilingual.",
         "- **Decision tone:** " + TONES[conversation["decision_tone"]],
         "- **Escalation limits:** one question per message; " + length
         + "; the reasoning goes in a linked artifact, not in the message.",
