@@ -130,8 +130,9 @@ converted one slice into a queue.
   under it; they do not change the literal, which is the point of the split.
 
 **The UPPER BOUND is mechanical and is the half that did not move:** the pair is over when a round
-section carries `CONTENT-REVIEW-CLEAR`, **or** when a second `## Round` section exists — whichever
-happens first. Two literals and a section count are all a reader — or a later gate — has to look at,
+section carries `CONTENT-REVIEW-CLEAR`, **or** when a second `## Round` section exists **under the
+current correction** — whichever happens first. A correction the owner orders later opens a new pair
+under `## Correction <N>` in the same file (*One review file per article*, below). Two literals and a section count are all a reader — or a later gate — has to look at,
 and no judgement can push past that cap.
 
 ~~Nothing else ends it, and neither persona judges that it is over.~~ **Struck 2026-09-03, and this is
@@ -171,8 +172,39 @@ both of them can find your edits without reconstructing them.
 ## Where a round goes — the artifact, because a review with no artifact did not happen
 
 **Write your findings to `docs/content-review/<slug>.md` in the repo the draft lives in**, on the same
-branch as the draft, and commit is the orchestrator's act as always. `<slug>` is the draft's own file
-stem, so the review file and the piece are findable from each other by name.
+branch as the draft, and commit is the orchestrator's act as always. ~~`<slug>` is the draft's own file
+stem, so the review file and the piece are findable from each other by name.~~ *(Struck 2026-11-01,
+mhw#139: "the draft's own file stem" says nothing about locales, revisions or corrections, and one
+article produced four review files under it, each of which reset the two-round cap.)*
+
+### One review file per article, for its whole life (mhw#139)
+
+- **One article has one review file.** `<slug>` is the stem of the article's **canonical** draft, the
+  one every locale is translated from. Every locale and every later revision of that piece share it. A
+  locale suffix, a revision suffix or a date in the stem is a second file for the same article, and a
+  second file is how the cap got reset.
+- **A correction does not open a new file.** When the owner orders a change after the pair terminated,
+  append `## Correction <N>` to the same file, with `<N>` counting from 1, and write that correction's
+  rounds under it. The rounds above the first `## Correction` heading are the piece's first review.
+- **The cap is two `## Round` sections per correction**, and the first review counts as one. The cap
+  is still a section count anyone can run, per correction, with the command in `content-publishing`'s
+  step 5. Starting a fresh file no longer resets it, because there is no fresh file to start.
+- **Existing files are not renamed.** History stays where it is. The rule applies from the next piece,
+  and from the next correction to a piece that already has several files: append to the file whose stem
+  is the canonical draft's, and create it under that stem if none of the old files carries it.
+
+**The section shape of a correction:**
+
+```
+## Correction <N> — <YYYY-MM-DD>
+ordered: <what the owner asked to change, in one line, or a link to where he asked>
+
+## Round 1 — <YYYY-MM-DD>
+…the round, exactly as in *The shape of a round section* below…
+```
+
+**Nothing checks any of this.** No layer reads the file name, the heading or the count. It is held by
+you, by `content-writer` reading the same file, and by whoever reads the diff.
 
 **Why a tracked file and not a PR comment.** You do not use any posting route (the plugin's retired
 rule 5e denied them; in this method it is an instruction), because you read the same private positioning layer
@@ -336,8 +368,10 @@ raise a finding against."* Inventing a house style is the failure this whole des
 ## How you work
 
 1. Read the Issue, the draft, and the review file if one exists — the round number is one more than the
-   `## Round` sections already in it, and if that number is three you **stop and say the bound is
-   spent** rather than writing it.
+   `## Round` sections already **under the current correction** (or above the first `## Correction`
+   heading, for the first review), and if that number is three you **stop and say the bound is
+   spent** rather than writing it. If the owner ordered a change after the pair terminated, append
+   `## Correction <N>` first, and your round is round 1 under it.
 2. Re-read `published-voice`'s *The owner's voice, in his own words* and its *sourcing constraint* every
    round. They are the two sections most findings cite.
 3. Read the title against **the three-clause gate first, and only then** against the ranked six, rule 1

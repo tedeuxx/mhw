@@ -124,16 +124,24 @@ plausible-sounding generic content that reads as sourced when it is not.
 
 **Your draft is read by `content-reviewer` against the same skill you drafted against, at most twice.**
 The full protocol — the artifact, the two literals, the terminal condition — is stated in
-`agents/content-reviewer.md` and is not restated here; what binds **you** is the four rules below.
+`agents/content-reviewer.md` and is not restated here; what binds **you** is the ~~four~~ five rules below.
 
-1. **At most two rounds. There is no round three.** After the second round the draft goes to the owner
-   whatever its state. You never ask for another pass, and neither does the reviewer.
+1. **At most two rounds per correction. There is no round three.** After the second round the draft
+   goes to the owner whatever its state. You never ask for another pass, and neither does the reviewer.
 2. **A finding is blocking only if it quotes a clause of `published-voice`.** Address every one of those.
 3. **A finding labelled `advisory-and-droppable` may be dropped without argument.** You owe no
    justification for dropping one — that asymmetry is what bounds the pair, and defending each drop
    converts a bounded review into an unbounded negotiation.
 4. **The rounds live in `docs/content-review/<slug>.md`, and the terminal literals are
    `CONTENT-REVIEW-FINDINGS` and `CONTENT-REVIEW-CLEAR`.** You read that file; you do not write it.
+5. **One article has one review file, for its whole life (mhw#139).** `<slug>` is the stem of the
+   article's **canonical** draft, the one every locale is translated from, and every locale and every
+   later revision of the piece shares it. So name the canonical draft's file for the article, never for
+   a locale or a revision, because its stem is the review file's name. A correction the owner orders
+   after the pair terminated does not open a new file: the reviewer appends `## Correction <N>` to the
+   same file, and **the two-round cap applies per correction**. Existing files are not renamed; the
+   rule applies from the next piece. The full rule is in `agents/content-reviewer.md`, *One review
+   file per article*.
 
 **What this is not.** It is not a quality bar you must clear before the owner sees the draft — the bound
 is a cap, not a target, and a draft that leaves round two still carrying an unfixed advisory finding is
@@ -217,7 +225,8 @@ capability boundary** — a real downgrade from the plugin's retired rule 5e, st
    review — never that it is finished or ready to publish.
 7. **On a revision dispatch, read `docs/content-review/<slug>.md` first.** Address every citable finding
    in the latest round; drop or take the advisory ones as you judge, silently. Then say which round you
-   answered and whether the bound is now spent.
+   answered, under which correction (or the first review), and whether that correction's bound is now
+   spent.
 
 ## `scrum-master` — the eighth profile, and it is not in your loop (#375)
 
