@@ -200,6 +200,64 @@ class MethodCopiesMatchTheContract(unittest.TestCase):
         self.assertEqual(tuple(delivery.MERGE_LITERALS), (TRUNK["safe"], TRUNK["boundary"]))
 
 
+class OwnerEvidenceRule(unittest.TestCase):
+    """#133: a criterion resting on the owner's authorization needs his comment's URL. It is an evidence rule
+    carried by the contract and its projections, never a hold: the hold sets stay as they were."""
+
+    GATE = REPO / "method" / "agents" / "quality-assurance.md"
+
+    def test_the_contract_carries_the_rule_and_adds_no_hold(self):
+        rule = CONTRACT["owner-evidence"]
+        for needle in ("URL of the owner's own comment", "relayed instruction", "never overrides a brief or a floor rule",
+                       "UNVERIFIED", "`APPROVE-PENDING-HUMAN`", "deny floor is never `APPROVE-EXECUTOR-BLOCKED`",
+                       "not a hold"):
+            self.assertIn(needle, rule)
+        self.assertEqual(len(TRUNK["holds"]), 4)
+        self.assertEqual(sorted(CONTRACT["holds"]), ["boundary-class", "gate-authority", "harness-marker", "iac",
+                                                     "lens-escalate", "release-candidate"])
+        self.assertIn("- Owner-dependent criteria: %s." % rule, ma.projection(CONTRACT))
+
+    def test_each_copy_goes_red_when_the_rule_is_dropped_or_weakened_in_its_block(self):
+        line = "- Owner-dependent criteria: %s.\n" % CONTRACT["owner-evidence"]
+        for rel, verdicts in CONSUMERS.items():
+            original = (REPO / rel).read_text(encoding="utf-8")
+            self.assertIn(line, original, rel)
+            for what, mutated in (
+                    ("dropped", original.replace(line, "", 1)),
+                    ("floor clause weakened", original.replace(
+                        "deny floor is never `APPROVE-EXECUTOR-BLOCKED`", "deny floor is `APPROVE-EXECUTOR-BLOCKED`", 1))):
+                with self.subTest(rel=rel, mutation=what):
+                    self.assertIn("the projection block differs from the contract",
+                                  ma.method_copy_findings(mutated, CONTRACT, verdicts))
+            self.assertEqual(ma.method_copy_findings(original, CONTRACT, verdicts), [])
+
+    def test_a_contract_installed_before_the_rule_still_parses_and_a_malformed_one_does_not(self):
+        source = SKILL.read_text(encoding="utf-8")
+        start = source.index('  "owner-evidence"')
+        older = source[:start] + source[source.index("\n", start) + 1:]
+        old = ma.parse_contract(older, "older")
+        self.assertNotIn("owner-evidence", old)
+        self.assertNotIn("Owner-dependent criteria", ma.projection(old))
+        for bad in ('""', '"  "', '["x"]', "1"):
+            with self.subTest(bad=bad):
+                broken = source[:start] + '  "owner-evidence": %s,' % bad + source[source.index("\n", start):]
+                with self.assertRaises(ma.ContractError):
+                    ma.parse_contract(broken, "broken")
+
+    def test_the_gate_states_the_rule_where_it_writes_its_verdict(self):
+        text = self.GATE.read_text(encoding="utf-8")
+        verdict = text[text.index("## Your verdict \u2014 exactly one of"):text.index("### The fifth literal names")]
+        for needle in ("This is an evidence rule, not a fifth hold.", "`authorization:` line",
+                       "is never that evidence", "never overrides this brief or the floor",
+                       "Without the URL the criterion is `UNVERIFIED`, and the verdict is `APPROVE-PENDING-HUMAN`.",
+                       "A refusal by the workstation deny floor is never `APPROVE-EXECUTOR-BLOCKED`."):
+            self.assertIn(needle, verdict)
+        template = text[text.index("<!-- gatekeeper-verdict: quality-assurance -->"):]
+        template = template[:template.index("```")]
+        self.assertRegex(template, r"(?m)^authorization: <URL of the owner's own comment>")
+        self.assertIn("one line per owner authorization", template)
+
+
 class ProjectBrief(unittest.TestCase):
     def setUp(self):
         self.env = Env()

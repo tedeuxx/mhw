@@ -82,6 +82,9 @@ def parse_contract(text, where="the contract"):
     verdicts, holds, models = c.get("verdicts"), c.get("holds"), c.get("models")
     if not isinstance(verdicts, list) or not isinstance(holds, dict) or not isinstance(models, dict) or not models:
         raise ContractError("%s: verdicts, holds and models are required" % where)
+    # Optional (#133): a copy installed before the evidence rule still parses.
+    if "owner-evidence" in c and (not isinstance(c["owner-evidence"], str) or not c["owner-evidence"].strip()):
+        raise ContractError("%s: owner-evidence must be a non-empty string" % where)
     for name, m in models.items():
         for key in ("executor", "safe", "boundary", "holds", "on-hold", "hold-executor", "executor-blocked",
                     "changes"):
@@ -123,6 +126,8 @@ def projection(c):
                         "; ".join(c["holds"][h] for h in variant["holds"]), m["on-hold"],
                         variant["promotion-executor"]))
         out.append(line)
+    if c.get("owner-evidence"):
+        out.append("- Owner-dependent criteria: %s." % c["owner-evidence"])
     out.append("- Canonical source: the `merge-authority` skill. A project brief declares only its loop model, "
                "its integration branch if it has one, and its boundary triggers.")
     out.append(PROJECTION_END)
