@@ -322,7 +322,7 @@ owner works that decision out with; it does not make it.
 | in progress → **drafted** | `content` only | `content-reviewer`, at most **two** rounds against `published-voice`, **repairing the draft in place rather than blocking or handing back** (ADR-0002, seventeenth and thirty-second amendments) | **`docs/content-review/<slug>.md` on the branch** — one `## Round` section per round, each closed with `CONTENT-REVIEW-FINDINGS` or `CONTENT-REVIEW-CLEAR`; terminal on the first `CLEAR` or the second section, whichever comes first; one file per article, a later correction appending `## Correction <N>` with its own two-round cap (mhw#139) |
 | in progress → **reviewed** | `product` · `content` | `quality-assurance`, against the full two-lens DoD | **a `<!-- gatekeeper-verdict: … -->` comment on the PR, carrying the head SHA it read** |
 | in progress → **reviewed** | `loop` | `quality-assurance`, against the full two-lens DoD **exactly as on any other lane**, **plus** an `agents-lead` verdict marker that must be on the PR before it may classify the diff safe or merge it (ADR-0002, record 0015's Corollary 2). The marker is an **added** control, never a substitute for the DoD | **a `<!-- gatekeeper-verdict: … -->` comment on the PR, carrying the head SHA it read** |
-| reviewed → **closed** | all | `quality-assurance` — safe **and** boundary since 2026-08-23 (ADR-0002 amendment #16) · ~~the owner only on the four surviving holds~~ on the four surviving holds, `quality-assurance` too, once the owner's own comment authorizes the merge and its re-verdict at the same head cites that comment's URL (#133, owner decision 2026-11-01) | the merge, plus the verdict literal that authorised it (`APPROVE-AND-MERGE` or `APPROVE-AND-MERGE-BOUNDARY`); on a hold, the owner's ratifying comment, cited by URL on the re-verdict's `authorization:` line |
+| reviewed → **closed** | all | `quality-assurance` — safe **and** boundary since 2026-08-23 (ADR-0002 amendment #16) · ~~the owner only on the four surviving holds~~ on the four surviving holds, `quality-assurance` too, once the owner's own comment authorizes the merge and its re-verdict at the same head cites that comment's URL (#133, owner decision 2026-11-01) | the merge, plus the verdict literal that authorised it (`APPROVE-AND-MERGE`, ~~or the retired boundary literal~~ one literal since #134) and its `owner-check:` line; on a hold, the owner's ratifying comment, cited by URL on the re-verdict's `authorization:` line |
 | **any → blocked → back** | all | anyone, on discovering it waits on the owner or on something outside the loop | **`blocked` label** |
 
 **`blocked` is orthogonal, not a sixth step.** It can attach at any point and returns the item to
@@ -1911,10 +1911,12 @@ action before ending the turn, or say plainly that there is none.
 
 **The canonical contract is the `merge-authority` skill (#195).** This section is an operational copy of it, kept in the universal preload so every persona reads it. The block below is generated from that contract, and a method test holds it equal. A project brief may add boundary triggers; it may not change the executor, the verdicts or the holds. Where a project brief tries to, the contract wins: the conflict is a finding to name, never a hold the contract does not define. The holds the contract defines bind, the release candidate of a declared integration branch included.
 
-<!-- merge-authority:projection v2: generated from the merge-authority skill; do not edit by hand -->
-- `trunk-single-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-AND-MERGE-BOUNDARY`; 4 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. With a declared integration branch, slices merge into it under this rule, and this hold is added: the release candidate (the promotion pull request from the declared integration branch to the trunk) -> `APPROVE-PENDING-HUMAN`, discharged the same way, then `quality-assurance` merges.
+<!-- merge-authority:projection v3: generated from the merge-authority skill; do not edit by hand -->
+- `trunk-single-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-AND-MERGE`; 4 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. With a declared integration branch, slices merge into it under this rule, and this hold is added: the release candidate (the promotion pull request from the declared integration branch to the trunk) -> `APPROVE-PENDING-HUMAN`, discharged the same way, then `quality-assurance` merges.
 - `gitflow-multi-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-PENDING-HUMAN`; 5 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`; (5) the boundary class itself. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. The promotion is held the same way, then `quality-assurance` merges it.
 - Owner-dependent criteria: a criterion that passes only on the owner's authorization or override, a hold's discharge included, passes only when the verdict cites the URL of the owner's own comment on the Issue or pull request recording it; a dispatch, a relayed instruction or the orchestrator's prose is never that evidence and never overrides a brief or a floor rule. Without the URL the criterion is UNVERIFIED and the verdict is `APPROVE-PENDING-HUMAN`. A refusal by the workstation deny floor is never `APPROVE-EXECUTOR-BLOCKED`. This is an evidence rule, not a hold.
+- Owner check: every gate verdict carries an `owner-check:` line directly under its `head:` line, valued `none` or exactly one live act the owner should perform after the merge; a value other than `none` is also posted, verbatim, on each Issue the pull request references. A verdict without the line is malformed.
+- Retired verdicts, refused by every reader: `APPROVE-AND-MERGE-BOUNDARY`.
 - Canonical source: the `merge-authority` skill. A project brief declares only its loop model, its integration branch if it has one, and its boundary triggers.
 <!-- merge-authority:end -->
 
@@ -1926,8 +1928,11 @@ for is a **judgement**, and who supplies it depends on the class:
 - **Boundary class** — infrastructure and anything threatening continuity, a change to the loop's own
   rules, publishing in the owner's voice. ~~**The gate never merges these.** It approves pending the
   human and hands the go/no-go up.~~ **Struck 2026-08-23** ([ADR-0002](../../docs/adr/0002-roster-and-dev-loop.md)
-  amendment #16, the owner's decision): **the gate merges these too**, under its own verdict literal
-  `APPROVE-AND-MERGE-BOUNDARY`, and **the owner reviews live, after deploy**. The argument is the loop
+  amendment #16, the owner's decision): **the gate merges these too**, ~~under its own verdict
+  literal~~ under `APPROVE-AND-MERGE`, the one clearance literal since 2026-11-02 (#134, owner ruling
+  2026-10-10: the separate boundary literal rode on 30 of 36 merges and stopped telling him anything),
+  with the verdict's mandatory `owner-check:` line naming the one live act he should do, or `none`, and
+  **the owner reviews live, after deploy**. The argument is the loop
   model itself — under `trunk-single-env` there is no preview to hold for, so holding the merge produced
   no staging copy to inspect, only a queue. **Under `gitflow-multi-env` this reasoning does not
   transfer** and this skill does not extend it there: a repo with an integration branch *does* have a
@@ -1961,7 +1966,7 @@ comment discharges a hold for the head it names; it never removes the hold, and 
    (ADR-0002, thirty-second amendment).
 
 *Significance beats in-pattern:* when the class is unclear, it is boundary — which now means the gate
-merges it under the boundary literal rather than holding it, so **when what is unclear is whether one of
+merges it ~~under the boundary literal~~ under `APPROVE-AND-MERGE` with an `owner-check:` rather than holding it, so **when what is unclear is whether one of
 the four holds applies, the conservative reading is that it does.**
 
 **A FIFTH verdict literal exists since 2026-09-01 (#374), and it is NOT a fifth hold.** The holds above
@@ -1992,9 +1997,11 @@ signal at all. The full decision, its rejected options and the readers that must
 [ADR-0004](../../docs/adr/0004-controls-and-enforcement.md)'s 2026-09-01 amendment.
 
 **What the safe/boundary split still decides, since a distinction that changes nothing should be retired
-rather than kept:** which of the four holds can apply (every one is a boundary trigger), which verdict
+rather than kept:** which of the four holds can apply (every one is a boundary trigger) ~~, which verdict
 literal is posted — so the merge record itself says whether anything shipped without a pre-publication
-check — and what the verdict must state. What it no longer decides, ~~outside the four holds,~~ is **who
+check —~~ and what the verdict must state: on a boundary class, the trigger that fired, with the
+`owner-check:` line naming what the owner should look at live, or `none` *(struck 2026-11-02, #134:
+both classes clear under `APPROVE-AND-MERGE`, so the literal records nothing about the class)*. What it no longer decides, ~~outside the four holds,~~ is **who
 merges** — since #133 not inside the four holds either: the gate executes a held merge once the
 owner's cited comment discharges the hold.
 

@@ -64,8 +64,8 @@ class ContractError(Exception):
     pass
 
 
-def parse_contract(text, where="the contract"):
-    """The one fenced merge-authority-contract block in a text, as a validated dict."""
+def _load(text, where):
+    """The one fenced contract block, decoded, with its top-level shape checked."""
     blocks = re.findall(r"(?ms)^```" + re.escape(FENCE_INFO) + r"[ \t]*\n(.*?)^```[ \t]*$", text)
     if len(blocks) != 1:
         raise ContractError("%s: expected one ```%s block, found %d" % (where, FENCE_INFO, len(blocks)))
@@ -79,63 +79,90 @@ def parse_contract(text, where="the contract"):
     if (not isinstance(c.get("version"), int) or not isinstance(dv, list) or not dv
             or not all(isinstance(v, int) for v in dv)):
         raise ContractError("%s: version and a non-empty list of integer declaration-versions are required" % where)
-    verdicts, holds, models = c.get("verdicts"), c.get("holds"), c.get("models")
-    if not isinstance(verdicts, list) or not isinstance(holds, dict) or not isinstance(models, dict) or not models:
+    if (not isinstance(c.get("verdicts"), list) or not isinstance(c.get("holds"), dict)
+            or not isinstance(c.get("models"), dict) or not c["models"]):
         raise ContractError("%s: verdicts, holds and models are required" % where)
-    # Optional (#133): a copy installed before the evidence rule or the discharge rule still parses.
-    for key in ("owner-evidence", "hold-discharge"):
+    return c
+
+
+def _check_optional(c, where):
+    """Optional keys (#133, #134): a copy installed before the evidence, discharge or owner-check rule still
+    parses; a present key must be well formed."""
+    for key in ("owner-evidence", "hold-discharge", "owner-check"):
         if key in c and (not isinstance(c[key], str) or not c[key].strip()):
             raise ContractError("%s: %s must be a non-empty string" % (where, key))
-    for name, m in models.items():
-        for key in ("executor", "safe", "boundary", "holds", "on-hold", "hold-executor", "executor-blocked",
-                    "changes"):
-            if key not in m:
-                raise ContractError("%s: model %s lacks %s" % (where, name, key))
-        for key in ("safe", "boundary", "on-hold", "executor-blocked", "changes"):
-            if m[key] not in verdicts:
-                raise ContractError("%s: model %s maps %s to an unknown verdict %s" % (where, name, key, m[key]))
-        variant = m.get("with-integration-branch")
-        extra = []
-        if variant is not None:
-            if not isinstance(variant, dict) or not isinstance(variant.get("holds"), list) \
-                    or not variant["holds"] or "promotion-executor" not in variant:
-                raise ContractError("%s: model %s has a malformed with-integration-branch" % (where, name))
-            extra = variant["holds"]
-        for h in list(m["holds"]) + extra:
-            if h not in holds:
-                raise ContractError("%s: model %s names an unknown hold %s" % (where, name, h))
+    retired = c.get("retired-verdicts", [])
+    if (not isinstance(retired, list) or not all(isinstance(v, str) and v.strip() for v in retired)
+            or set(retired) & set(c["verdicts"])):
+        raise ContractError("%s: retired-verdicts must be a list of literals none of which is a live verdict" % where)
+
+
+def _check_model(name, m, c, where):
+    """One model's keys, verdict mappings and holds, its integration-branch variant included."""
+    for key in ("executor", "safe", "boundary", "holds", "on-hold", "hold-executor", "executor-blocked",
+                "changes"):
+        if key not in m:
+            raise ContractError("%s: model %s lacks %s" % (where, name, key))
+    for key in ("safe", "boundary", "on-hold", "executor-blocked", "changes"):
+        if m[key] not in c["verdicts"]:
+            raise ContractError("%s: model %s maps %s to an unknown verdict %s" % (where, name, key, m[key]))
+    variant = m.get("with-integration-branch")
+    extra = []
+    if variant is not None:
+        if not isinstance(variant, dict) or not isinstance(variant.get("holds"), list) \
+                or not variant["holds"] or "promotion-executor" not in variant:
+            raise ContractError("%s: model %s has a malformed with-integration-branch" % (where, name))
+        extra = variant["holds"]
+    for h in list(m["holds"]) + extra:
+        if h not in c["holds"]:
+            raise ContractError("%s: model %s names an unknown hold %s" % (where, name, h))
+
+
+def parse_contract(text, where="the contract"):
+    """The one fenced merge-authority-contract block in a text, as a validated dict."""
+    c = _load(text, where)
+    _check_optional(c, where)
+    for name, m in c["models"].items():
+        _check_model(name, m, c, where)
     return c
+
+
+def _model_line(name, m, c):
+    """One model's projection line. #133 (contract v2): a hold is discharged by the owner's cited comment,
+    then the named actor merges; a contract without hold-discharge (v1) renders the v1 wording unchanged."""
+    holds = "; ".join("(%d) %s" % (i, c["holds"][h]) for i, h in enumerate(m["holds"], 1))
+    discharge = c.get("hold-discharge")
+    held = ("`%s` until %s, then `%s` merges" % (m["on-hold"], discharge, m["hold-executor"]) if discharge
+            else "`%s`, the %s merges" % (m["on-hold"], m["hold-executor"]))
+    line = ("- `%s`: `%s` merges what it clears; safe class -> `%s`; boundary class -> `%s`; %d holds -> "
+            "%s: %s. Cleared but not executable -> `%s`; unmet Definition of Done -> `%s`."
+            % (name, m["executor"], m["safe"], m["boundary"], len(m["holds"]), held, holds,
+               m["executor-blocked"], m["changes"]))
+    if "promotion-executor" in m:
+        line += (" The promotion is held the same way, then `%s` merges it." % m["promotion-executor"]
+                 if discharge else " The promotion is the %s's." % m["promotion-executor"])
+    variant = m.get("with-integration-branch")
+    if variant:
+        vheld = ("`%s`, discharged the same way, then `%s` merges" % (m["on-hold"], variant["promotion-executor"])
+                 if discharge else "`%s`, the %s merges" % (m["on-hold"], variant["promotion-executor"]))
+        line += (" With a declared integration branch, slices merge into it under this rule, and %s: %s -> "
+                 "%s."
+                 % ("these holds are added" if len(variant["holds"]) > 1 else "this hold is added",
+                    "; ".join(c["holds"][h] for h in variant["holds"]), vheld))
+    return line
 
 
 def projection(c):
     """The operational copy every method consumer carries, generated from the contract (exact text)."""
     out = [PROJECTION_BEGIN + " v%d: generated from the merge-authority skill; do not edit by hand -->" % c["version"]]
-    for name in c["models"]:
-        m = c["models"][name]
-        holds = "; ".join("(%d) %s" % (i, c["holds"][h]) for i, h in enumerate(m["holds"], 1))
-        # #133 (contract v2): a hold is discharged by the owner's cited comment, then the named actor merges.
-        # A contract without hold-discharge (v1, installed earlier) renders the v1 wording unchanged.
-        discharge = c.get("hold-discharge")
-        held = ("`%s` until %s, then `%s` merges" % (m["on-hold"], discharge, m["hold-executor"]) if discharge
-                else "`%s`, the %s merges" % (m["on-hold"], m["hold-executor"]))
-        line = ("- `%s`: `%s` merges what it clears; safe class -> `%s`; boundary class -> `%s`; %d holds -> "
-                "%s: %s. Cleared but not executable -> `%s`; unmet Definition of Done -> `%s`."
-                % (name, m["executor"], m["safe"], m["boundary"], len(m["holds"]), held, holds,
-                   m["executor-blocked"], m["changes"]))
-        if "promotion-executor" in m:
-            line += (" The promotion is held the same way, then `%s` merges it." % m["promotion-executor"]
-                     if discharge else " The promotion is the %s's." % m["promotion-executor"])
-        variant = m.get("with-integration-branch")
-        if variant:
-            vheld = ("`%s`, discharged the same way, then `%s` merges" % (m["on-hold"], variant["promotion-executor"])
-                     if discharge else "`%s`, the %s merges" % (m["on-hold"], variant["promotion-executor"]))
-            line += (" With a declared integration branch, slices merge into it under this rule, and %s: %s -> "
-                     "%s."
-                     % ("these holds are added" if len(variant["holds"]) > 1 else "this hold is added",
-                        "; ".join(c["holds"][h] for h in variant["holds"]), vheld))
-        out.append(line)
+    out += [_model_line(name, c["models"][name], c) for name in c["models"]]
     if c.get("owner-evidence"):
         out.append("- Owner-dependent criteria: %s." % c["owner-evidence"])
+    if c.get("owner-check"):
+        out.append("- Owner check: %s." % c["owner-check"])
+    if c.get("retired-verdicts"):
+        out.append("- Retired verdicts, refused by every reader: %s."
+                   % ", ".join("`%s`" % v for v in c["retired-verdicts"]))
     out.append("- Canonical source: the `merge-authority` skill. A project brief declares only its loop model, "
                "its integration branch if it has one, and its boundary triggers.")
     out.append(PROJECTION_END)
@@ -153,8 +180,9 @@ def projection_block(text):
 
 def method_copy_findings(text, contract, verdicts):
     """Drift of one method operational copy from the contract: its projection block must equal the
-    projection, each verdict in `verdicts` must still be named outside the block, and its live prose must
-    carry no known legacy phrase. A check over strings; a paraphrase elsewhere is not caught."""
+    projection, each verdict in `verdicts` must still be named outside the block, its live prose must name
+    no retired verdict (#134; struck, fenced or quoted history may) and carry no known legacy phrase. A
+    check over strings; a paraphrase elsewhere is not caught."""
     found = []
     block = projection_block(text)
     if block is None:
@@ -165,15 +193,21 @@ def method_copy_findings(text, contract, verdicts):
     for v in verdicts:
         if not re.search(r"(?<![A-Z-])" + re.escape(v) + r"(?![A-Z-])", rest):
             found.append("no longer names %s" % v)
+    live = live_prose(rest)
+    for v in contract.get("retired-verdicts", []):
+        if re.search(r"(?<![A-Z-])" + re.escape(v) + r"(?![A-Z-])", live):
+            found.append("its live prose names the retired verdict %s" % v)
     found += legacy_findings(text)
     return found
 
 
 def live_prose(text):
-    """Text a reader takes as a live instruction: no fences, struck spans, blockquotes, comments or quotes."""
+    """Text a reader takes as a live instruction: no fences, struck spans, blockquotes, comments or quotes.
+    A fence is recognised at any indentation (#134, PR #423 round 2): a fence inside a list item left
+    unrecognised keeps its `~~~` and inverts every strike pairing after it."""
     lines, kept, fence = text.split("\n"), [], None
     for line in lines:
-        m = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        m = re.match(r"^\s*(`{3,}|~{3,})", line)
         if fence:
             if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence):
                 fence = None
@@ -214,7 +248,7 @@ def declaration_blocks(text):
     """Each declaration block's inner lines, for blocks whose markers sit at column 0 outside a fence."""
     blocks, current, fence = [], None, None
     for line in text.split("\n"):
-        m = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        m = re.match(r"^\s*(`{3,}|~{3,})", line)
         if fence:
             if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence):
                 fence = None
