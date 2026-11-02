@@ -157,6 +157,33 @@ if [ -n "$ten_brief" ] && [ "$ten_brief" = "$ten_prd" ]; then
 else
   ko "requirements document section 1c and the brief's ten commandments differ"
 fi
+# ADR-0015's first lock (Issue #243): every rendered brief quotes the material-advancement refusal and
+# its uncertainty rule word for word from the ADR's 2026-10-17 amendment. Whitespace is normalised;
+# any other drift on either side fails. A text check: it proves the rule is written, never obeyed.
+lock_adr=$(awk '/^### Amendment/{f=1;next} /^The first concrete lock protects/{f=0} f' \
+  "$repo_root/docs/adr/0015-master-of-first-principles-ethical-locks-on-own-aims.md" | tr '\n' ' ' \
+  | tr -s ' ' | sed -n 's/.*\(Local and recoverable work is autonomous by default\..*before material advancement\.\).*/\1/p')
+for b in "$h/.claude/CLAUDE.md" "$h/.codex/AGENTS.md" "$h/.kiro/steering/workstation-global-brief.md"; do
+  lock_brief=$(awk '/^## Ethical lock on the owner/{f=1;next} /^## /{f=0} f && /^> /' "$b" | sed 's/^> //' \
+    | tr '\n' ' ' | tr -s ' ' | sed 's/ $//')
+  if [ -n "$lock_adr" ] && [ "$lock_brief" = "$lock_adr" ]; then
+    ok "${b#"$h"/} quotes ADR-0015's material-advancement refusal word for word"
+  else
+    ko "${b#"$h"/} and ADR-0015 differ on the material-advancement refusal"
+  fi
+  # PR #426 lens: no project carries the deployment evidence yet, so the brief must say the interim
+  # state and never claim a carrier exists (ADR-0015: written policy only until carriers are delivered).
+  if grep -q 'none does yet, and until a project.s does, this half is written' "$b" \
+     && grep -q '^policy only and does not change that project.s merge route' "$b" \
+     && ! grep -q "which each project's CI/CD carries" "$b"; then
+    ok "${b#"$h"/} states the deployment evidence has no carrier yet"
+  else
+    ko "${b#"$h"/} claims a deployment-evidence carrier or lacks the interim state"
+  fi
+  # Codex truncates a brief past 32768 bytes (project_doc_max_bytes); the lock must not push it over.
+  size=$(wc -c < "$b" | tr -d ' ')
+  if [ "$size" -le 32768 ]; then ok "${b#"$h"/} is $size bytes, within 32768"; else ko "${b#"$h"/} is $size bytes, over 32768"; fi
+done
 HOME="$h" sh "$inst" --check; expect "check after install" 0 $?
 
 # The restart guard and /breaking-glass are removed (ADR-0028): nothing of theirs is rendered.
