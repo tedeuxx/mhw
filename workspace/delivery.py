@@ -57,7 +57,8 @@ LENS_CLOSED = "the lens is CLOSED"
 # a verdict written under the rule it replaced. It is refused by name so the refusal says what to do.
 MERGE_LITERALS = ("APPROVE-AND-MERGE",)
 RETIRED_LITERALS = ("APPROVE-AND-MERGE-BOUNDARY",)
-OWNER_CHECK_LINE = re.compile(r"owner-check: (?:none|\S(?:.*\S)?)")
+# `none` or one live act: both are a value that starts and ends with a non-space.
+OWNER_CHECK_LINE = re.compile(r"owner-check: \S(?:.*\S)?")
 TRUSTED_AUTHORS = ("OWNER", "MEMBER", "COLLABORATOR")
 HEAD_LINE = re.compile(r"head: ([0-9a-f]{40})")
 COMMIT_LINE = re.compile(r"commit: ([0-9a-f]{40})")

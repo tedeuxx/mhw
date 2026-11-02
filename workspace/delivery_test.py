@@ -243,8 +243,9 @@ class DeliveryTests(unittest.TestCase):
                        "closes: 52\n"
                        "\n"
                        "| criterion | verdict |")
+        plugin_comments = [raw(plugin_gate)]
         with self.assertRaisesRegex(d.Pending, "no owner-check line"):
-            d.gate_approves([raw(plugin_gate)], HEAD)
+            d.gate_approves(plugin_comments, HEAD)
         lines = plugin_gate.split("\n")
         d.gate_approves([raw("\n".join(lines[:3] + ["owner-check: none"] + lines[3:]))], HEAD)
 
@@ -314,13 +315,15 @@ class DeliveryTests(unittest.TestCase):
     def test_the_retired_boundary_literal_is_refused_at_a_new_head(self):
         # #134: one clearance literal. The retired one is refused by name, with no transition window,
         # well formed and at the current head; the one clearance literal at the same head merges.
+        retired = [gate(literal="APPROVE-AND-MERGE-BOUNDARY")]
+        after_approval = [gate(), gate(literal="APPROVE-AND-MERGE-BOUNDARY")]
+        retired_slice = dict(self.slice, comments=retired)
         with self.assertRaisesRegex(d.Pending, "retired literal APPROVE-AND-MERGE-BOUNDARY"):
-            d.gate_approves([gate(literal="APPROVE-AND-MERGE-BOUNDARY")], HEAD)
+            d.gate_approves(retired, HEAD)
         with self.assertRaisesRegex(d.Pending, "retired literal"):
-            d.gate_approves([gate(), gate(literal="APPROVE-AND-MERGE-BOUNDARY")], HEAD)
+            d.gate_approves(after_approval, HEAD)
         with self.assertRaises(d.Pending):
-            self.drive("merge", dict(self.slice, comments=[gate(literal="APPROVE-AND-MERGE-BOUNDARY")]),
-                       "feat/x")
+            self.drive("merge", retired_slice, "feat/x")
         d.gate_approves([gate(literal="APPROVE-AND-MERGE")], HEAD)
         calls, _ = self.drive("merge", self.slice, "feat/x")
         self.assertEqual(len(self.merged(calls)), 1)
@@ -343,11 +346,13 @@ class DeliveryTests(unittest.TestCase):
         }
         for name, line in bad.items():
             for literal in ("APPROVE-AND-MERGE", "APPROVE-AND-MERGE-BOUNDARY"):
+                comments = [gate(literal=literal, owner_check=line)]
                 with self.subTest(case=name, literal=literal), \
                         self.assertRaisesRegex(d.Pending, "no owner-check line"):
-                    d.gate_approves([gate(literal=literal, owner_check=line)], HEAD)
+                    d.gate_approves(comments, HEAD)
+        no_line_slice = dict(self.slice, comments=[gate(owner_check="")])
         with self.assertRaises(d.Pending):
-            self.drive("merge", dict(self.slice, comments=[gate(owner_check="")]), "feat/x")
+            self.drive("merge", no_line_slice, "feat/x")
         # Calibration: none, and one live act, pass; CRLF too.
         for line in ("owner-check: none", "owner-check: open /en/ and confirm the new card renders"):
             with self.subTest(good=line):
