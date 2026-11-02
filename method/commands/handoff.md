@@ -1,13 +1,15 @@
 ---
 name: "handoff"
-description: "Print one block the owner pastes into a new terminal to open a fresh session continuing this one: the launch environment and the target agent harness's start command with the continuation prompt inline (objective, anchored Issue, revision, state and next act re-derived from the tracker). The target defaults to the current agent harness. Use when the context is heavy or the owner wants to resume in a clean session. Prints only; posts nothing. Not for asking what is left (see what-else)."
+description: "Print one block the owner pastes into a new terminal to open a fresh session continuing this one: one command that changes into the checkout and runs the target agent harness's start command with the continuation prompt inline (objective, anchored Issue, revision, state and next act re-derived from the tracker). The target defaults to the current agent harness. Use when the context is heavy or the owner wants to resume in a clean session. Prints only; posts nothing. Not for asking what is left (see what-else)."
 argument-hint: "[claude-code|claude|codex|kiro|kiro-cli] [objective, used only when none is anchored]"
 purpose: "a session can be continued in a fresh one without losing its anchor or publishing anything"
 ---
 
-Print one block that opens a fresh session continuing this one: the launch environment, then the target
-agent harness's own start command with the continuation prompt inline as its argument. This copy is
-rendered for the agent harness `{{agent-harness}}`.
+Print one block that opens a fresh session continuing this one. The block is exactly one command: `cd`
+into the checkout the work stands in, then the launch environment and the target agent harness's own
+start command with the continuation prompt inline as its argument. Pasted into any terminal, it starts
+the right session; nothing else is typed.
+This copy is rendered for the agent harness `{{agent-harness}}`.
 
 ## The arguments
 
@@ -39,11 +41,14 @@ Re-derive every field from the tracker, not from memory of this conversation:
    says that no Issue is anchored.
 3. **Revision.** The repository, branch and commit the work stands at (`git -C <repo> rev-parse HEAD`
    and the branch name). `unknown` when there is none.
-4. **Handoff state and next act.** The latest effective `handoff` or `checkpoint` worklog event's
+4. **Checkout.** The top of the work tree the work stands in (`git -C <repo> rev-parse
+   --show-toplevel`), a worktree included. It goes to the script as `--cd`, never into the prompt. With
+   no repository at all there is nothing to change into: say so in one line and stop.
+5. **Handoff state and next act.** The latest effective `handoff` or `checkpoint` worklog event's
    `handoff.state` and `next_act`, read as the worklog contract's *Resuming* section reads them. If no
    event carries one, compose both from the tracker: the open pull request, its head, its checks and the
    verdict naming that head. The next act is one act, stated as an act.
-5. **Evidence.** Public references only: a pull request, a check run, a verdict comment, a path inside
+6. **Evidence.** Public references only: a pull request, a check run, a verdict comment, a path inside
    the repository.
 
 The worklog continuity contract bounds every field: **one line each, at most 280 characters**, facts and
@@ -54,19 +59,26 @@ path (`/Users/`, `/tmp/`, `~/`, `/home/`, `/private/`, `/var/folders/`, `file://
 
 ## The prompt
 
-Fill this template. Drop a line whose field is empty; keep the first line and the last two. The prompt
-carries its own `/goal` line, so nothing is typed in the new session before it starts working.
+Fill this template. Drop a line whose field is empty; keep the first line and the last two. Nothing is
+typed in the new session before it starts working: the prompt is its first message.
+~~The prompt carries its own `/goal` line~~ *(struck 2026-11-01, #198: the owner ruled that a fresh
+session does not start with `/goal`, and «o handoff tem que sempre ser um comando de inicio da sessao de
+harness com prompt inline». The prompt opens with the objective as plain text, and the script refuses a
+prompt whose first line opens with `/goal`.)*
 
 ```
-/goal <the objective, one line>
+Objective: <the objective, one line>
 Continue <owner/repo>#<n> in this fresh session; the session that printed this prompt stops now.
 Revision: <owner/repo> <branch> <commit>
 State: <handoff state>
 Next act: <the one act to perform first>
 Evidence: <one public reference>
 Before acting, re-derive the state from the tracker: gh issue view <n> --repo <owner/repo> --comments.
-This prompt says where the work was; the tracker says where it is. Do not work in the same checkout as the old session.
+This prompt says where the work was; the tracker says where it is.
 ```
+
+~~`Do not work in the same checkout as the old session.`~~ *(struck 2026-11-01, #198: the command now
+changes into the checkout itself, and the session that printed it stops, so the two never share it.)*
 
 With no Issue anchored, the second line reads `No Issue is anchored; continue the objective above in
 this fresh session; the session that printed this prompt stops now.`, and the tracker line names the
@@ -85,19 +97,24 @@ open pull requests and Issues the objective mentions instead.
    and is named in the prompt by its name only. With none, pass no `--env`.
 2. Write the filled prompt to a file outside every repository (the session scratchpad, or the system
    temporary directory).
-3. Run `python3 {{method-scripts}}/launch-line.py <target> <that file> [--env NAME=VALUE]...`, with
-   the target from *The arguments*. It quotes the environment and the prompt for a POSIX shell (zsh,
-   bash), deterministically, so `'`, `$`, backticks and newlines reach the new session intact, and
-   prints one fenced block. It refuses a prompt whose first line does not open with `/goal`, a line over
-   280 characters, a machine-local path, a control character (a terminal control such as `^C`, ESC
-   or TAB, or a bidirectional control), or an `--env` whose name is not a declared launch variable or
-   whose value is unsafe; fix it and run it again. It reads the file only when it resolves under the
+3. Run `python3 {{method-scripts}}/launch-line.py <target> <that file> --cd <the checkout>
+   [--env NAME=VALUE]...`, with the target from *The arguments* and the checkout from *Build the
+   prompt*. It quotes the checkout, the environment and the prompt for a POSIX shell (zsh, bash),
+   deterministically, so `'`, `$`, backticks and newlines reach the new session intact, and prints one
+   fenced block holding one command: `cd '<checkout>' && <the start command> '<prompt>'`. It refuses a
+   prompt whose first line opens with `/goal` ~~does not open with `/goal`~~ (struck 2026-11-01, #198),
+   a line over 280 characters, a machine-local path, a control character (a terminal control such as
+   `^C`, ESC or TAB, or a bidirectional control), an `--env` whose name is not a declared launch
+   variable or whose value is unsafe, and a `--cd` that is not an absolute path to a git checkout; fix
+   it and run it again. It reads the file only when it resolves under the
    system temporary directory or the current work tree, is a regular file and holds at most 64 KiB.
    Never quote the prompt by hand.
 4. End your reply with the script's output, exactly as printed, and nothing after it. Do not print the
    prompt separately, do not refer to it from another line and add no instruction around the block:
-   the prompt is inside it. For the Kiro target the output opens with one line for the Kiro IDE: the
-   block is for Kiro CLI, and the IDE takes the same block with `kiro chat` in place of `kiro-cli chat`.
+   the prompt is inside it. The output is the block alone, for every target, Kiro included.
+   ~~For the Kiro target the output opens with one line for the Kiro IDE: the block is for Kiro CLI,
+   and the IDE takes the same block with `kiro chat` in place of `kiro-cli chat`.~~ *(Struck
+   2026-11-01, #198: that line was text around the command. The Kiro IDE is named below instead.)*
    **On Windows, end your reply instead with the filled prompt in one fenced block, and nothing after
    it.** The script's block is for a POSIX shell: PowerShell reads its `'\''` differently, so an
    apostrophe in the prompt would arrive corrupted. Run step 3 anyway so the prompt is checked, but do
@@ -109,9 +126,12 @@ The block names the target's start command and its documented argument for an in
 '<prompt>'` (the `[prompt]` argument of `claude --help` 2.1.311), `codex '<prompt>'` (the `[PROMPT]`
 argument of `codex --help` 0.163.0) and `kiro-cli chat '<prompt>'` (the `[INPUT]` argument of
 `kiro-cli chat --help` 2.34.1, "the first question to ask"); for the Kiro IDE, `kiro chat [prompt]`
-from `kiro chat --help` 1.3.11. Each is read from `--help`; none was run. The block runs in the
-terminal's current directory; open the terminal in a different checkout from the old session's.
-Where the workstation's paste wrapper is installed, those names reach it and an environment prefix
+from `kiro chat --help` 1.3.11, which takes the same prompt in place of `kiro-cli chat`; the block does
+not print it. Each is read from `--help`; none was run. ~~The block runs in the terminal's current
+directory; open the terminal in a different checkout from the old session's.~~ *(Struck 2026-11-01,
+#198: that was a second step handed to the owner. The block now starts with `cd` into the checkout, so
+it runs the same from any directory.)* The launch environment is a prefix on the start command, after
+the `cd`, so it reaches the agent harness and not the shell. Where the workstation's paste wrapper is installed, those names reach it and an environment prefix
 reaches the agent harness through it; a prompt passed as an argument is not cleaned by the wrapper, so
 the sanitising above is the clean-up. On Windows the block does not apply: step 4 prints the prompt
 instead.
