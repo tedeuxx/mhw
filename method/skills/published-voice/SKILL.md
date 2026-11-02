@@ -449,10 +449,13 @@ never what the piece is about. A draft whose subject is him has misread this cal
 
 **Not a fourth topic**: the goal, the sourcing constraint and the truth rules all land at once, on eight
 words. **Six rules, RANKED and not a checklist** — 1 is a gate the other five never buy their way past.
-**And the six are not the first thing a candidate meets: a gate of three clauses runs AHEAD of them,
-immediately below.**
+**And the six are not the first thing a candidate meets: a gate of ~~three~~ four clauses runs AHEAD of
+them, immediately below.** *(Three until 2026-10-24; clause 4 added at #218.)*
 
-### The gate that runs BEFORE the six — three clauses, ratified 2026-09-16
+### The gate that runs BEFORE the six — four clauses, ratified 2026-09-16 and 2026-10-24
+
+*(This heading read "three clauses, ratified 2026-09-16" until 2026-10-24, when the owner ruled clause 4
+below; #218.)*
 
 **The six measure the sentence's CONSTRUCTION. Not one of them asks whose situation the sentence is
 about**, which is how a candidate wins on all six and addresses nobody. That is not a hypothetical: a
@@ -502,6 +505,14 @@ strong candidate can outweigh, and none of these three may be outweighed.
 3. **It must make the reader want to RUN AN EXPERIMENT** — *«tem que ser algo que torne o leitor
    interessado em fazer um experimento»*. **The operational test: what would the reader go and DO after
    reading this?** If the honest answer is *nod*, it fails.
+4. **It must name the PRODUCT the reader holds by the end of the piece** — ruled 2026-10-24, on reading
+   a held preview whose title he rejected: *«eu achei o titulo ruim. nao conecta com o que o nosso
+   leitor ganha ao ler o artigo ate o final. precisa deixar bem claro no titulo o produto que o leitor
+   ganha. lembre-se disso em disciplina de harness.»* · *«deve ser um comportamento repetido nas
+   proximas producoes de conteudo.»* **The operational test: name the deliverable the reader holds at
+   the piece's last line. If a reader cannot predict it from the title, stop.** A title that hints at a
+   stance, a provocation or a turn without naming what the reader leaves with fails here, however it
+   scores on the six.
 
 **Clause 3 is what makes 1 and 2 checkable rather than tasteful, and that is the reason it is worth
 its place.** A title about the author gives the reader nothing to try — there is no experiment inside
@@ -509,6 +520,14 @@ somebody else's identity, only agreement or indifference. A title too constructe
 instead of an experiment: the reader's next act is *work out what this means*, which is work done on
 the title rather than work done on their own machine. So where 1 and 2 read as taste, ask 3 and both
 resolve into something observable.
+
+**Clause 4 names what the reader GETS; clause 3 makes them want to TRY it. Clause 4 does not replace
+clause 3, and a title needs both.** The order inside a passing title is the product named, then the
+experiment provoked: a title that names a deliverable nobody would go and try fails 3, and one that
+provokes an experiment without saying what the reader leaves with fails 4. **The two are checked
+separately**, because each is the one a strong candidate most easily satisfies while missing the other.
+Clause 4 is also what ties the title to the body: the deliverable it names has to be there at the last
+line, so a title that passes 4 makes a promise the body can be read against.
 
 **Clause 1 is NOT new to this file — it is an existing rule arriving at the title for the first time,
 and that is why nothing above contradicts it.** *The subject is bounded* already says *«o tom pessoal e
@@ -526,7 +545,7 @@ because a title about the author is not repaired by disclosing more of him.**
 
 **The ratification:** *«essa a calibracao dos titulos que quero ancorar no nosso harness.»*
 
-**And the practice that produced these three clauses, because the MOVE is worth more than the result:
+**And the practice that produced clauses 1–3 (clause 4 came later, from one held-preview reading), because the MOVE is worth more than the result:
 when a batch is rejected, do not answer with another batch.** Ask what the reader is doing at that
 moment. A second batch ranked against the same criteria reproduces the same failure in new words —
 the criteria were never what was wrong. The interview is what surfaced the criterion the criteria were
@@ -617,7 +636,8 @@ applying it correctly, and *"but this one is good"* is not an exemption.
 **Numbered from 9 deliberately, and it is the only unambiguous span in this file.** ~~Three other
 sequences here restart at 1 — the register rules (1–4), the title rules (1–6) and the post rules
 (1–8)~~ — **struck: there are FOUR, and the fourth is the one most likely to be cited.** The title
-**gate** ratified 2026-09-16 restarts at 1 for its three clauses, and the sentence beneath it was never
+**gate** ratified 2026-09-16 restarts at 1 for its ~~three~~ four clauses (three until clause 4 landed on
+2026-10-24, #218), and the sentence beneath it was never
 re-derived — so the published selector returned **4** while the text beside it claimed 3, at head and
 before this slice. The claim the figure supports gets **stronger**, which is exactly why nobody
 re-ran it: *"rule 3"* now names **four** different clauses, one of them a gate.
@@ -813,7 +833,9 @@ stops connecting*) has no instance in this corpus. **Only clause 3 — *what wou
 DO* — has no body counterpart, and it is the clause four of these six fail against.** So this section
 is not the three clauses restated one layer down; it is the one of them that never reached prose, plus
 two defects that are not gate clauses at all. **Do not read rules 12–18 as a second copy of the gate.**
-**Rule 15 is a fifth thing again** — it came out of the same episode but not out of a rejection
+*(Clause 4 of the gate, the product the reader holds by the end, was ruled on 2026-10-24, after this
+section; the analysis above covers clauses 1–3 only and makes no claim about a body counterpart for
+4.)* **Rule 15 is a fifth thing again** — it came out of the same episode but not out of a rejection
 sentence, and it is about which SURFACE carries the piece rather than about the prose.
 
 **Provenance, stated because half of it is weaker than the other half — and a rule quoting a rejection

@@ -374,11 +374,14 @@ raise a finding against."* Inventing a house style is the failure this whole des
    `## Correction <N>` first, and your round is round 1 under it.
 2. Re-read `published-voice`'s *The owner's voice, in his own words* and its *sourcing constraint* every
    round. They are the two sections most findings cite.
-3. Read the title against **the three-clause gate first, and only then** against the ranked six, rule 1
+3. Read the title against **the ~~three-clause~~ four-clause gate first, and only then** against the ranked six, rule 1
    first within them — rule 1 is a gate the other five never buy their way past, and a title failing it
    is a citable finding however good the piece is. **The gate runs ahead of all six and is the same kind
    of finding**: its clauses are ratified and quotable, so a title whose subject is the owner rather
-   than the reader, or that gives the reader nothing to go and try, is ground 1 like any other. **What
+   than the reader, that gives the reader nothing to go and try, or that does not let a reader predict
+the product they hold at the piece's last line (clause 4, since 2026-10-24, #218), is ground 1 like any
+other. **Check every clause on every title you review, clause 4 included**: name the deliverable at the
+last line, then ask whether the title names it. **What
    it is NOT is a licence to rewrite a title you merely like less** — if you cannot quote the clause it
    fails, it is advisory-and-droppable and the title stands.
 4. Where the piece is a teaser, judge it against the teaser rules as a **separate artifact**, not as a
