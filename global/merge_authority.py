@@ -82,6 +82,10 @@ def parse_contract(text, where="the contract"):
     verdicts, holds, models = c.get("verdicts"), c.get("holds"), c.get("models")
     if not isinstance(verdicts, list) or not isinstance(holds, dict) or not isinstance(models, dict) or not models:
         raise ContractError("%s: verdicts, holds and models are required" % where)
+    # Optional (#133): a copy installed before the evidence rule or the discharge rule still parses.
+    for key in ("owner-evidence", "hold-discharge"):
+        if key in c and (not isinstance(c[key], str) or not c[key].strip()):
+            raise ContractError("%s: %s must be a non-empty string" % (where, key))
     for name, m in models.items():
         for key in ("executor", "safe", "boundary", "holds", "on-hold", "hold-executor", "executor-blocked",
                     "changes"):
@@ -109,20 +113,29 @@ def projection(c):
     for name in c["models"]:
         m = c["models"][name]
         holds = "; ".join("(%d) %s" % (i, c["holds"][h]) for i, h in enumerate(m["holds"], 1))
+        # #133 (contract v2): a hold is discharged by the owner's cited comment, then the named actor merges.
+        # A contract without hold-discharge (v1, installed earlier) renders the v1 wording unchanged.
+        discharge = c.get("hold-discharge")
+        held = ("`%s` until %s, then `%s` merges" % (m["on-hold"], discharge, m["hold-executor"]) if discharge
+                else "`%s`, the %s merges" % (m["on-hold"], m["hold-executor"]))
         line = ("- `%s`: `%s` merges what it clears; safe class -> `%s`; boundary class -> `%s`; %d holds -> "
-                "`%s`, the %s merges: %s. Cleared but not executable -> `%s`; unmet Definition of Done -> `%s`."
-                % (name, m["executor"], m["safe"], m["boundary"], len(m["holds"]), m["on-hold"],
-                   m["hold-executor"], holds, m["executor-blocked"], m["changes"]))
+                "%s: %s. Cleared but not executable -> `%s`; unmet Definition of Done -> `%s`."
+                % (name, m["executor"], m["safe"], m["boundary"], len(m["holds"]), held, holds,
+                   m["executor-blocked"], m["changes"]))
         if "promotion-executor" in m:
-            line += " The promotion is the %s's." % m["promotion-executor"]
+            line += (" The promotion is held the same way, then `%s` merges it." % m["promotion-executor"]
+                     if discharge else " The promotion is the %s's." % m["promotion-executor"])
         variant = m.get("with-integration-branch")
         if variant:
+            vheld = ("`%s`, discharged the same way, then `%s` merges" % (m["on-hold"], variant["promotion-executor"])
+                     if discharge else "`%s`, the %s merges" % (m["on-hold"], variant["promotion-executor"]))
             line += (" With a declared integration branch, slices merge into it under this rule, and %s: %s -> "
-                     "`%s`, the %s merges."
+                     "%s."
                      % ("these holds are added" if len(variant["holds"]) > 1 else "this hold is added",
-                        "; ".join(c["holds"][h] for h in variant["holds"]), m["on-hold"],
-                        variant["promotion-executor"]))
+                        "; ".join(c["holds"][h] for h in variant["holds"]), vheld))
         out.append(line)
+    if c.get("owner-evidence"):
+        out.append("- Owner-dependent criteria: %s." % c["owner-evidence"])
     out.append("- Canonical source: the `merge-authority` skill. A project brief declares only its loop model, "
                "its integration branch if it has one, and its boundary triggers.")
     out.append(PROJECTION_END)

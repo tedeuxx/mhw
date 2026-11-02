@@ -670,10 +670,10 @@ overridden. The owner chose canonicalization with verification (2026-10-17, reco
   literals, its complete hold set and the relation between the safe and boundary classes.
   `trunk-single-env` keeps the 2026-08-23 rule (the gate merges safe and boundary, four holds).
   `gitflow-multi-env` keeps the method's earlier rule and does not import the trunk one: the boundary
-  class is itself a hold there, and the promotion is the owner's. The `rc/next` variant of
+  class is itself a hold there, and the promotion is ~~the owner's~~ held for the owner *(amended 2026-11-01, #133: the gate executes it on his cited comment; see the amendment below)*. The `rc/next` variant of
   `trunk-single-env` (`scm`) is modelled too: a project that declares `integration-branch` gets the
   contract's release-candidate hold, so the promotion pull request into the trunk waits for the owner's
-  explicit go. A project can turn that hold on and cannot turn it off; a trunk brief that describes a
+  explicit go *(since #133, his go is his own comment, cited by URL; the gate then executes the merge)*. A project can turn that hold on and cannot turn it off; a trunk brief that describes a
   release candidate without declaring the branch is a finding.
 - **A project declares, in one bounded block of its root `AGENTS.md`, only its loop model, the contract
   reference, its integration branch if it has one, and its own boundary triggers.** It may not declare an executor, a verdict, a hold or a class
@@ -720,6 +720,61 @@ overridden. The owner chose canonicalization with verification (2026-10-17, reco
 
 **Evidence level.** *Written and tested* (`global/merge_authority_test.py`, every negative case mutated,
 red, restored, green). Not installed on the reference machine; no real project carries the block yet.
+
+## Amendment 2026-11-01: a held merge is discharged by the owner's cited comment and executed by the gate (#133)
+
+Status unchanged (proposed). This amends the 2026-11-01 amendment above (#195) on one point: who executes
+a merge that a hold stopped.
+
+**Context.** #133 added an evidence rule to the merge-authority contract: a criterion that rests on the
+owner's authorization passes only when the gate's verdict cites the URL of his own comment. Its scope
+named a hold's discharge, and the gate's round 1 on PR #421 found that this let the gate merge a held
+diff while every copy said the owner merges held diffs. The gate asked the owner. **He chose that the
+gate executes a held merge on any branch, the release candidate into `main` included, once his
+authorization comment is cited by URL** (recorded on #133,
+https://github.com/tedeuxx/mhw/issues/133#issuecomment-6567109882, and on PR #421,
+https://github.com/tedeuxx/mhw/pull/421#issuecomment-6567110098). His comment is his go; the act is the
+gate's. PR #419 had been merged that way before the method allowed it; this makes the pattern the rule.
+
+**Decision.**
+
+- The contract's `version` goes from 1 to 2: the executor of a held diff changes. `hold-executor` and
+  `promotion-executor` are `quality-assurance` in both models, and a new `hold-discharge` key states the
+  condition: the owner's own comment authorizes the merge and a verdict at the same head cites its URL.
+  `declaration-versions` stays `[1]`, so no project brief changes.
+- `APPROVE-PENDING-HUMAN` means *waiting for the owner's comment*. Once it exists, the gate re-verdicts at
+  the same head with the clearance literal the class earns, cites the comment on an `authorization:`
+  line, and merges. The verdict literals are unchanged; #134 changes them next and bumps the version
+  from 2.
+- The holds stay four (plus the release candidate where declared). A cited comment discharges a hold for
+  the head it names; it never removes it. The evidence rule, the relay clause (a relayed instruction is
+  never the evidence and never overrides a brief or floor rule) and the floor clause (a deny-floor refusal
+  is never `APPROVE-EXECUTOR-BLOCKED`) stand.
+
+**Considered options** (the owner's picker, as recorded on #133).
+
+- **Chosen: the gate on any branch.** One executor for every merge, and the owner's involvement is a
+  comment that the record carries. Trade-off: the gate now presses the button on the release candidate
+  into `main`, so a wrong reading of his comment ships a release; it is bounded only by review of the
+  cited comment.
+- **Rejected: always the owner** (the text before this amendment). It keeps his hand on every held merge,
+  at the cost of an action pendency per held pull request; the #419 precedent already departed from it.
+- **Rejected: the gate into `rc/next`, the owner into `main`.** A split executor by branch; it keeps the
+  release in his hand at the cost of two rules for one hold.
+
+**Consequences.**
+
+- Good: one executor; the owner's authorization is a durable, citable artifact on the record; no hold is
+  removed.
+- Bad: the gate merges the release candidate. Agents post through the owner's forge account, so a
+  comment's author field cannot tell his comment from an agent's; the citation rests on the comment
+  recording his answer, and on review.
+- Residual, unchanged by this slice: `workspace/delivery.py` runs its review gate only for a pull request
+  into `rc/next`; for a pull request into `main` it reads neither a gate verdict nor an owner comment.
+  The go is an instruction on that route, not a check.
+
+**Evidence level.** *Written and tested* (`global/merge_authority_test.py`: the executor rule in every
+copy, the old wording gone or struck, mutation-checked). Not installed on the reference machine.
 
 ## Links
 

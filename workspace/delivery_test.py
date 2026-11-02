@@ -357,7 +357,8 @@ class DeliveryTests(unittest.TestCase):
         policy = json.loads((d.ROOT / "workspace/session-policy.json").read_text())
         self.assertFalse([k for k in policy if k.startswith("entry_")])
         self.assertEqual(policy["integration_branch"], "rc/next")
-        self.assertEqual(policy["release_merge"], "owner")
+        # #133 (owner decision 2026-11-01): his comment is the go, the gate executes the release merge.
+        self.assertEqual(policy["release_merge"], "quality-assurance-on-owner-comment")
         for carrier in ("AGENTS.md", "global/AGENTS.md", "workspace/README.md",
                         ".kiro/steering/workspace-session.md",
                         "overlay/AGENTS.md", "overlay/desktop-instructions.md"):
