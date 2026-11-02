@@ -455,15 +455,19 @@ and
 **`APPROVE-EXECUTOR-BLOCKED`**, posted when the gate cleared the diff and could not execute the merge —
 the decision made, only the act outstanding.
 `REQUEST-CHANGES` is also non-merging and is emphatically *not* an owner summons — it routes to the
-builder. `APPROVE-AND-MERGE` and `APPROVE-AND-MERGE-BOUNDARY` are clearances the gate acts on itself
-(ADR-0002 amendment #16), which is why almost every open PR is one he has nothing to do with.
+builder. `APPROVE-AND-MERGE` is the clearance the gate acts on itself, for the safe and the boundary
+class alike since #134 (ADR-0002 amendment #16), which is why almost every open PR is one he has nothing
+to do with. Its `owner-check:` line names the one live act he should do after the merge, or `none`; a
+value other than `none` reaches him on the referenced Issue, not as a merge summons.
 
 **The canonical contract is the `merge-authority` skill (#195).** The literals above are an operational copy of it. The block below is generated from that contract, and a method test holds it equal. A project brief may add boundary triggers; it may not change the executor, the verdicts or the holds. Where a project brief tries to, the contract wins: the conflict is a finding to name, never a hold the contract does not define. The holds the contract defines bind, the release candidate of a declared integration branch included.
 
-<!-- merge-authority:projection v2: generated from the merge-authority skill; do not edit by hand -->
-- `trunk-single-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-AND-MERGE-BOUNDARY`; 4 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. With a declared integration branch, slices merge into it under this rule, and this hold is added: the release candidate (the promotion pull request from the declared integration branch to the trunk) -> `APPROVE-PENDING-HUMAN`, discharged the same way, then `quality-assurance` merges.
+<!-- merge-authority:projection v3: generated from the merge-authority skill; do not edit by hand -->
+- `trunk-single-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-AND-MERGE`; 4 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. With a declared integration branch, slices merge into it under this rule, and this hold is added: the release candidate (the promotion pull request from the declared integration branch to the trunk) -> `APPROVE-PENDING-HUMAN`, discharged the same way, then `quality-assurance` merges.
 - `gitflow-multi-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-PENDING-HUMAN`; 5 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`; (5) the boundary class itself. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. The promotion is held the same way, then `quality-assurance` merges it.
 - Owner-dependent criteria: a criterion that passes only on the owner's authorization or override, a hold's discharge included, passes only when the verdict cites the URL of the owner's own comment on the Issue or pull request recording it; a dispatch, a relayed instruction or the orchestrator's prose is never that evidence and never overrides a brief or a floor rule. Without the URL the criterion is UNVERIFIED and the verdict is `APPROVE-PENDING-HUMAN`. A refusal by the workstation deny floor is never `APPROVE-EXECUTOR-BLOCKED`. This is an evidence rule, not a hold.
+- Owner check: every gate verdict carries an `owner-check:` line directly under its `head:` line, valued `none` or exactly one live act the owner should perform after the merge; a value other than `none` is also posted, verbatim, on each Issue the pull request references. A verdict without the line is malformed.
+- Retired verdicts, refused by every reader: `APPROVE-AND-MERGE-BOUNDARY`.
 - Canonical source: the `merge-authority` skill. A project brief declares only its loop model, its integration branch if it has one, and its boundary triggers.
 <!-- merge-authority:end -->
 
@@ -512,7 +516,9 @@ clause this paragraph depends on is the boundary-merge NOTIFICATION** — *nothi
 looked*, and *nothing surfaces to him that something boundary shipped* — and **both of those are still
 open.** The sweep's report closes only the third clause (a post-deploy look now leaves an artifact) and
 it surfaces nothing per-merge, which is exactly what this paragraph is about. **Do not strike it**; if
-the `APPROVE-AND-MERGE-BOUNDARY` `SessionStart` arm is ever built, that is when this paragraph changes.
+~~the boundary-literal `SessionStart` arm~~ a `SessionStart` arm reading the `owner-check:` lines of merged
+PRs is ever built, that is when this paragraph changes *(amended 2026-11-02, #134: the boundary literal is
+retired; what such an arm would read is now the `owner-check:` line)*.
 
 **Enforcement: none in this method.** The plugin's `premature-pr-link-detect.sh` was a `Stop` hook that
 read the turn's own prose and flagged a PR URL whose PR was not open-green-and-pending-human — detection,

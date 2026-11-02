@@ -19,9 +19,11 @@ HEAD = "a" * 40
 OLD_HEAD = "b" * 40
 
 
-def gate(head=HEAD, literal="APPROVE-AND-MERGE", author="OWNER", prose="\n\nverdict table"):
+def gate(head=HEAD, literal="APPROVE-AND-MERGE", author="OWNER", prose="\n\nverdict table",
+         owner_check="owner-check: none"):
     return {"authorAssociation": author,
-            "body": "<!-- gatekeeper-verdict: quality-assurance -->\n" + literal + "\nhead: " + head + prose}
+            "body": ("<!-- gatekeeper-verdict: quality-assurance -->\n" + literal + "\nhead: " + head + "\n"
+                     + owner_check + prose)}
 
 
 def lens(commit=HEAD, closed=True, author="OWNER", fenced=False, state=None):
@@ -232,18 +234,24 @@ class DeliveryTests(unittest.TestCase):
         # The same plugin lines 1-2 with this repository's line 3 are accepted.
         lines = plugin_lens.split("\n")
         d.lens_closed([raw("\n".join(lines[:2] + ["the lens is CLOSED"] + lines[2:5]))], HEAD)
-        # The plugin's quality-assurance shape already pins lines 1-3, including its closes: line after.
+        # The plugin's quality-assurance shape pins lines 1-3 and puts its closes: line after them. Since
+        # #134 the method's shape pins line 4 too (owner-check:), so the plugin shape alone is refused
+        # (malformed), and the same lines with the owner-check line inserted are accepted.
         plugin_gate = ("<!-- gatekeeper-verdict: quality-assurance -->\n"
                        "APPROVE-AND-MERGE\n"
                        "head: " + HEAD + "\n"
                        "closes: 52\n"
                        "\n"
                        "| criterion | verdict |")
-        d.gate_approves([raw(plugin_gate)], HEAD)
+        with self.assertRaisesRegex(d.Pending, "no owner-check line"):
+            d.gate_approves([raw(plugin_gate)], HEAD)
+        lines = plugin_gate.split("\n")
+        d.gate_approves([raw("\n".join(lines[:3] + ["owner-check: none"] + lines[3:]))], HEAD)
 
     def test_strict_header_spoofs_are_refused(self):
         marker = "<!-- harness-lead-verdict: x -->\ncommit: " + HEAD + "\nthe lens is CLOSED"
-        verdict = "<!-- gatekeeper-verdict: quality-assurance -->\nAPPROVE-AND-MERGE\nhead: " + HEAD
+        verdict = ("<!-- gatekeeper-verdict: quality-assurance -->\nAPPROVE-AND-MERGE\nhead: " + HEAD
+                   + "\nowner-check: none")
         lens_spoofs = {
             # Lens round 2, finding 1: a ~~~ fence holding a ``` line, then a quoted marker.
             "mixed fences": raw("quoting round 1:\n~~~\n```\n" + marker + "\n~~~"),
@@ -271,10 +279,10 @@ class DeliveryTests(unittest.TestCase):
                                                         prose="\nAPPROVE-AND-MERGE would be premature"),
             "literal with trailing prose": gate(literal="APPROVE-AND-MERGE would be premature"),
             "unknown literal": gate(literal="APPROVE"),
-            "literal on line 4": raw(verdict.replace("\nAPPROVE-AND-MERGE\nhead: " + HEAD,
+            "literal on line 3": raw(verdict.replace("\nAPPROVE-AND-MERGE\nhead: " + HEAD,
                                                      "\nhead: " + HEAD + "\nAPPROVE-AND-MERGE")),
             "one-line verdict": raw("<!-- gatekeeper-verdict: quality-assurance --> APPROVE-AND-MERGE\n"
-                                    "head: " + HEAD),
+                                    "head: " + HEAD + "\nowner-check: none"),
             "quoted inside a fence": raw("see:\n```\n" + verdict + "\n```"),
             "blockquoted": raw("> " + verdict.replace("\n", "\n> ")),
             "head with trailing text": gate(head=HEAD + " (approx)"),
@@ -296,12 +304,55 @@ class DeliveryTests(unittest.TestCase):
         d.lens_closed([raw(marker.replace("\n", "\r\n"))], HEAD)
         d.gate_approves([raw(verdict)], HEAD)
         d.gate_approves([raw(verdict.replace("\n", "\r\n"))], HEAD)
-        d.gate_approves([gate(literal="REQUEST-CHANGES"), gate(literal="APPROVE-AND-MERGE-BOUNDARY")], HEAD)
+        d.gate_approves([gate(literal="REQUEST-CHANGES"), gate(literal="APPROVE-AND-MERGE")], HEAD)
         # A later comment that only QUOTES a marker is neither a verdict nor a withdrawal of one.
         quoting = raw("context:\n```\n" + verdict.replace("APPROVE-AND-MERGE", "REQUEST-CHANGES") + "\n"
                       + marker.replace("CLOSED", "OPEN") + "\n```")
         d.gate_approves([raw(verdict), quoting], HEAD)
         d.lens_closed([raw(marker), quoting], HEAD)
+
+    def test_the_retired_boundary_literal_is_refused_at_a_new_head(self):
+        # #134: one clearance literal. The retired one is refused by name, with no transition window,
+        # well formed and at the current head; the one clearance literal at the same head merges.
+        with self.assertRaisesRegex(d.Pending, "retired literal APPROVE-AND-MERGE-BOUNDARY"):
+            d.gate_approves([gate(literal="APPROVE-AND-MERGE-BOUNDARY")], HEAD)
+        with self.assertRaisesRegex(d.Pending, "retired literal"):
+            d.gate_approves([gate(), gate(literal="APPROVE-AND-MERGE-BOUNDARY")], HEAD)
+        with self.assertRaises(d.Pending):
+            self.drive("merge", dict(self.slice, comments=[gate(literal="APPROVE-AND-MERGE-BOUNDARY")]),
+                       "feat/x")
+        d.gate_approves([gate(literal="APPROVE-AND-MERGE")], HEAD)
+        calls, _ = self.drive("merge", self.slice, "feat/x")
+        self.assertEqual(len(self.merged(calls)), 1)
+        self.assertEqual(d.MERGE_LITERALS, ("APPROVE-AND-MERGE",))
+
+    def test_a_verdict_without_its_owner_check_line_is_malformed(self):
+        # #134: line 4 is `owner-check: none` or one live act; anything else is malformed, whatever the
+        # literal, and the refusal comes before the literal is read.
+        bad = {
+            "absent": "",
+            "blank line 4": "\nowner-check: none",
+            "empty value": "owner-check:",
+            "empty value with space": "owner-check: ",
+            "double space": "owner-check:  none",
+            "trailing space": "owner-check: none ",
+            "capitalised key": "Owner-check: none",
+            "other key": "owner check: none",
+            "closes on line 4": "closes: 52\nowner-check: none",
+            "fenced": "```\nowner-check: none\n```",
+        }
+        for name, line in bad.items():
+            for literal in ("APPROVE-AND-MERGE", "APPROVE-AND-MERGE-BOUNDARY"):
+                with self.subTest(case=name, literal=literal), \
+                        self.assertRaisesRegex(d.Pending, "no owner-check line"):
+                    d.gate_approves([gate(literal=literal, owner_check=line)], HEAD)
+        with self.assertRaises(d.Pending):
+            self.drive("merge", dict(self.slice, comments=[gate(owner_check="")]), "feat/x")
+        # Calibration: none, and one live act, pass; CRLF too.
+        for line in ("owner-check: none", "owner-check: open /en/ and confirm the new card renders"):
+            with self.subTest(good=line):
+                d.gate_approves([gate(owner_check=line)], HEAD)
+                d.gate_approves([raw(gate(owner_check=line)["body"].replace("\n", "\r\n"))], HEAD)
 
     def test_main_calls_every_gate_before_merging(self):
         # One gate fails at a time while every other passes; main() must refuse and never merge.

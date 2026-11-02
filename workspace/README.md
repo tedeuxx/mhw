@@ -14,8 +14,10 @@ The owner's rule (2026-10-05, Issue #60): *"os agentes mergeiam no rc/next, só 
   posted, and the gate's verdict at the PR's current head. No repeated owner approval is needed for
   this.
 - **The release candidate** is the pull request `rc/next` → `main`. It waits for the owner: no agent
-  merges it without his explicit go. After his merge, the install and the fresh-session canary are
-  his too.
+  merges it without his explicit go. His go is his own comment authorizing the merge; once the gate's
+  verdict at the same head cites that comment's URL, `quality-assurance` executes the merge (#133, the
+  `merge-authority` contract). ~~After his merge~~ After that merge, the install and the fresh-session
+  canary are his.
 
 Every merge is a real merge commit, never a squash or a rebase. A blocked or unfinished slice stays
 pending; a pause for questions publishes nothing.
@@ -41,14 +43,18 @@ pending; a pause for questions publishes nothing.
    comment counts. Lines are compared whole, and nothing below the header is read, so text in a
    fence, a blockquote or the prose can neither supply nor override a verdict. The newest trusted
    comment that opens with each envelope wins, so a later `REQUEST-CHANGES`, a later open lens or a
-   later malformed header refuses. `quality-assurance` must open its comment with these three lines,
-   which are exactly the plugin's own required verdict shape. Line 2 is `APPROVE-AND-MERGE` or
-   `APPROVE-AND-MERGE-BOUNDARY`; any other literal refuses. Anything may follow line 3.
+   later malformed header refuses. `quality-assurance` must open its comment with these four lines,
+   the method's required verdict shape. Line 2 is `APPROVE-AND-MERGE`, the one clearance literal;
+   any other literal refuses, and the boundary literal retired at #134 is refused by name with no
+   transition window (a verdict is head-scoped, so a merge always needs a fresh one). Line 4 is
+   `owner-check: none` or `owner-check:` followed by the one live act the owner should do after the
+   merge; a verdict without it is malformed and refuses. Anything may follow line 4.
 
    ```
    <!-- gatekeeper-verdict: quality-assurance -->
    APPROVE-AND-MERGE
    head: <the full 40-character head SHA>
+   owner-check: none
    ```
 
    When the diff from the merge base touches a harness path (`.claude/`, `.codex/`, `.github/`,

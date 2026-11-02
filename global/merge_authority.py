@@ -82,10 +82,14 @@ def parse_contract(text, where="the contract"):
     verdicts, holds, models = c.get("verdicts"), c.get("holds"), c.get("models")
     if not isinstance(verdicts, list) or not isinstance(holds, dict) or not isinstance(models, dict) or not models:
         raise ContractError("%s: verdicts, holds and models are required" % where)
-    # Optional (#133): a copy installed before the evidence rule or the discharge rule still parses.
-    for key in ("owner-evidence", "hold-discharge"):
+    # Optional (#133, #134): a copy installed before the evidence, discharge or owner-check rule still parses.
+    for key in ("owner-evidence", "hold-discharge", "owner-check"):
         if key in c and (not isinstance(c[key], str) or not c[key].strip()):
             raise ContractError("%s: %s must be a non-empty string" % (where, key))
+    retired = c.get("retired-verdicts", [])
+    if (not isinstance(retired, list) or not all(isinstance(v, str) and v.strip() for v in retired)
+            or set(retired) & set(verdicts)):
+        raise ContractError("%s: retired-verdicts must be a list of literals none of which is a live verdict" % where)
     for name, m in models.items():
         for key in ("executor", "safe", "boundary", "holds", "on-hold", "hold-executor", "executor-blocked",
                     "changes"):
@@ -136,6 +140,11 @@ def projection(c):
         out.append(line)
     if c.get("owner-evidence"):
         out.append("- Owner-dependent criteria: %s." % c["owner-evidence"])
+    if c.get("owner-check"):
+        out.append("- Owner check: %s." % c["owner-check"])
+    if c.get("retired-verdicts"):
+        out.append("- Retired verdicts, refused by every reader: %s."
+                   % ", ".join("`%s`" % v for v in c["retired-verdicts"]))
     out.append("- Canonical source: the `merge-authority` skill. A project brief declares only its loop model, "
                "its integration branch if it has one, and its boundary triggers.")
     out.append(PROJECTION_END)
@@ -153,8 +162,9 @@ def projection_block(text):
 
 def method_copy_findings(text, contract, verdicts):
     """Drift of one method operational copy from the contract: its projection block must equal the
-    projection, each verdict in `verdicts` must still be named outside the block, and its live prose must
-    carry no known legacy phrase. A check over strings; a paraphrase elsewhere is not caught."""
+    projection, each verdict in `verdicts` must still be named outside the block, its live prose must name
+    no retired verdict (#134; struck, fenced or quoted history may) and carry no known legacy phrase. A
+    check over strings; a paraphrase elsewhere is not caught."""
     found = []
     block = projection_block(text)
     if block is None:
@@ -165,6 +175,10 @@ def method_copy_findings(text, contract, verdicts):
     for v in verdicts:
         if not re.search(r"(?<![A-Z-])" + re.escape(v) + r"(?![A-Z-])", rest):
             found.append("no longer names %s" % v)
+    live = live_prose(rest)
+    for v in contract.get("retired-verdicts", []):
+        if re.search(r"(?<![A-Z-])" + re.escape(v) + r"(?![A-Z-])", live):
+            found.append("its live prose names the retired verdict %s" % v)
     found += legacy_findings(text)
     return found
 
