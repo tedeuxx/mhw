@@ -33,7 +33,7 @@ SKILL = REPO / "method" / "skills" / "merge-authority" / "SKILL.md"
 CONTRACT = ma.parse_contract(SKILL.read_text(encoding="utf-8"), "source")
 TRUNK = CONTRACT["models"]["trunk-single-env"]
 # Each operational copy, and the verdicts it must still name outside its projection block. quality-gates
-# names only the boundary literal in its prose; the projection block carries the rest.
+# names only the clearance literal in its prose; the projection block carries the rest.
 CONSUMERS = {
     "method/agents/quality-assurance.md": CONTRACT["verdicts"],
     "method/skills/agents-configuration/SKILL.md": CONTRACT["verdicts"],
@@ -140,7 +140,11 @@ class MethodCopiesMatchTheContract(unittest.TestCase):
         self.assertEqual(sorted(CONTRACT["models"]), ["gitflow-multi-env", "trunk-single-env"])
         self.assertEqual(TRUNK["executor"], "quality-assurance")
         self.assertEqual(TRUNK["holds"], ["gate-authority", "harness-marker", "iac", "lens-escalate"])
-        self.assertEqual(TRUNK["boundary"], "APPROVE-AND-MERGE-BOUNDARY")
+        # #134 (contract v3): one clearance literal for both classes; the boundary literal is retired.
+        self.assertEqual(TRUNK["boundary"], "APPROVE-AND-MERGE")
+        self.assertEqual(TRUNK["safe"], TRUNK["boundary"])
+        self.assertEqual(CONTRACT["retired-verdicts"], ["APPROVE-AND-MERGE-BOUNDARY"])
+        self.assertNotIn("APPROVE-AND-MERGE-BOUNDARY", CONTRACT["verdicts"])
         gitflow = CONTRACT["models"]["gitflow-multi-env"]
         # The trunk executor rule is not imported: in gitflow the boundary class is itself a hold.
         self.assertEqual(gitflow["boundary"], "APPROVE-PENDING-HUMAN")
@@ -165,7 +169,7 @@ class MethodCopiesMatchTheContract(unittest.TestCase):
         # Scenario 6: an executor, a verdict literal and a hold, mutated in each copy independently.
         mutations = [
             ("`quality-assurance` merges what it clears", "`owner` merges what it clears", "executor"),
-            ("boundary class -> `APPROVE-AND-MERGE-BOUNDARY`", "boundary class -> `APPROVE-PENDING-HUMAN`",
+            ("boundary class -> `APPROVE-AND-MERGE`", "boundary class -> `APPROVE-PENDING-HUMAN`",
              "verdict"),
             ("(3) anything in `iac/`; ", "", "hold removed"),
             ("4 holds -> ", "5 holds -> ", "hold count"),
@@ -202,7 +206,158 @@ class MethodCopiesMatchTheContract(unittest.TestCase):
         self.assertIn("the %s holds" % words[len(TRUNK["holds"])], desc)
 
     def test_the_delivery_route_merges_on_exactly_the_trunk_clearances(self):
-        self.assertEqual(tuple(delivery.MERGE_LITERALS), (TRUNK["safe"], TRUNK["boundary"]))
+        self.assertEqual(tuple(delivery.MERGE_LITERALS), tuple(dict.fromkeys((TRUNK["safe"], TRUNK["boundary"]))))
+        self.assertEqual(tuple(delivery.RETIRED_LITERALS), tuple(CONTRACT["retired-verdicts"]))
+
+
+class OneClearanceLiteral(unittest.TestCase):
+    """#134: one clearance literal plus a mandatory owner-check line. The retired literal is named by no
+    copy's live prose (struck, fenced or quoted history may), and the owner-check rule is projected into
+    every copy and stated where the gate writes its verdict."""
+
+    def test_the_contract_is_version_3_and_carries_the_owner_check_rule(self):
+        self.assertEqual(CONTRACT["version"], 3)
+        rule = CONTRACT["owner-check"]
+        for needle in ("`owner-check:` line directly under its `head:` line", "`none`",
+                       "exactly one live act", "each Issue the pull request references", "malformed"):
+            self.assertIn(needle, rule)
+        text = ma.projection(CONTRACT)
+        self.assertIn("- Owner check: %s." % rule, text)
+        self.assertIn("- Retired verdicts, refused by every reader: `APPROVE-AND-MERGE-BOUNDARY`.", text)
+
+    def test_each_copy_goes_red_when_the_retired_literal_returns_to_its_live_prose(self):
+        for rel, verdicts in CONSUMERS.items():
+            original = (REPO / rel).read_text(encoding="utf-8")
+            live = original + "\n\nBoundary class merges under `APPROVE-AND-MERGE-BOUNDARY`.\n"
+            # History stays green. Appended text is fenced or quoted rather than struck: a copy whose
+            # earlier prose carries an odd number of `~~` (quality-assurance.md does, in code spans) would
+            # pair an appended strike with the wrong opener, which tests the copy, not the rule.
+            fenced = original + "\n\n```\nBoundary class merged under `APPROVE-AND-MERGE-BOUNDARY`.\n```\n"
+            quoted = original + "\n\n> Boundary class merged under `APPROVE-AND-MERGE-BOUNDARY`.\n"
+            with self.subTest(rel=rel):
+                self.assertIn("its live prose names the retired verdict APPROVE-AND-MERGE-BOUNDARY",
+                              ma.method_copy_findings(live, CONTRACT, verdicts))
+                self.assertEqual(ma.method_copy_findings(fenced, CONTRACT, verdicts), [])
+                self.assertEqual(ma.method_copy_findings(quoted, CONTRACT, verdicts), [])
+                self.assertEqual(ma.method_copy_findings(original, CONTRACT, verdicts), [])
+
+    def test_a_retired_literal_planted_above_any_heading_of_any_copy_goes_red(self):
+        # Gate round 2 on PR #423 (B2): live_prose once recognised only fences indented up to three spaces,
+        # so a list-indented fence in quality-assurance.md left an odd `~~` count and inverted every strike
+        # pairing after it; a retired literal planted there stayed green. A `## ` heading is never inside a
+        # fence or a strike, so a plant above each one must be found, in every copy.
+        plant = "Boundary class merges under `APPROVE-AND-MERGE-BOUNDARY` again.\n\n"
+        for rel, verdicts in CONSUMERS.items():
+            original = (REPO / rel).read_text(encoding="utf-8")
+            positions = [m.start() for m in re.finditer(r"(?m)^## ", original)]
+            self.assertTrue(positions, rel)
+            for pos in positions:
+                heading = original[pos:original.index("\n", pos)]
+                mutated = original[:pos] + plant + original[pos:]
+                with self.subTest(rel=rel, heading=heading[:50]):
+                    self.assertIn("its live prose names the retired verdict APPROVE-AND-MERGE-BOUNDARY",
+                                  ma.method_copy_findings(mutated, CONTRACT, verdicts))
+            self.assertEqual(ma.method_copy_findings(original, CONTRACT, verdicts), [])
+
+    def test_each_copy_goes_red_when_the_owner_check_rule_is_dropped_from_its_block(self):
+        line = "- Owner check: %s.\n" % CONTRACT["owner-check"]
+        for rel, verdicts in CONSUMERS.items():
+            original = (REPO / rel).read_text(encoding="utf-8")
+            self.assertIn(line, original, rel)
+            weakened = line.replace("A verdict without the line is malformed", "A verdict without the line is fine")
+            for what, mutated in (("dropped", original.replace(line, "", 1)),
+                                  ("weakened", original.replace(line, weakened, 1))):
+                with self.subTest(rel=rel, mutation=what):
+                    self.assertIn("the projection block differs from the contract",
+                                  ma.method_copy_findings(mutated, CONTRACT, verdicts))
+
+    def test_no_method_or_workspace_file_names_the_retired_literal_in_live_prose(self):
+        # The acceptance grep, as a test: every hit is struck, fenced, quoted, in a projection block's
+        # retired line, or in the contract's own retired list.
+        files = [p for p in (REPO / "method").rglob("*.md")] + [REPO / "workspace" / "README.md"]
+        for path in files:
+            text = path.read_text(encoding="utf-8")
+            if "APPROVE-AND-MERGE-BOUNDARY" not in text:
+                continue
+            block = ma.projection_block(text)
+            rest = text.replace(block, "") if block else text
+            with self.subTest(path=str(path.relative_to(REPO))):
+                self.assertNotRegex(ma.live_prose(rest), r"(?<![A-Z-])APPROVE-AND-MERGE-BOUNDARY(?![A-Z-])")
+
+    def test_the_gate_template_and_rules_carry_the_owner_check_line(self):
+        text = (REPO / "method/agents/quality-assurance.md").read_text(encoding="utf-8")
+        template = text[text.index("<!-- gatekeeper-verdict: quality-assurance -->"):]
+        template = template[:template.index("```")]
+        lines = template.split("\n")
+        self.assertTrue(lines[2].startswith("head: "), lines[2])
+        self.assertTrue(lines[3].startswith("owner-check: none"), lines[3])
+        flat = ma.flatten(text)
+        for needle in ("The owner-check: line is mandatory, on line 4, in every verdict whatever its literal (#134).",
+                       "When the value is not none, post it verbatim on each Issue the PR references, before you merge",
+                       "A verdict without the line is malformed, and workspace/delivery.py refuses it."):
+            with self.subTest(needle=needle[:40]):
+                self.assertIn(needle, flat)
+        readme = (REPO / "workspace/README.md").read_text(encoding="utf-8")
+        self.assertIn("APPROVE-AND-MERGE\n   head: <the full 40-character head SHA>\n   owner-check: none\n", readme)
+
+    TEMPLATE_FILES = ("method/agents/quality-assurance.md", "workspace/README.md")
+    # Live claims that the verdict literal records the class (gate round 1 on PR #423, selector b).
+    CLASS_CLAIMS = re.compile(r"sets the verdict literal|verdict literal is posted|which literal ends up|"
+                              r"its own verdict literal|whether anything shipped", re.I)
+
+    @staticmethod
+    def fenced_templates(text):
+        """(line number, the four lines from the envelope) for every gate envelope inside a fence."""
+        found, fence, lines = [], None, text.split("\n")
+        for i, line in enumerate(lines):
+            m = re.match(r"^\s*(`{3,}|~{3,})", line)
+            if m:
+                fence = None if fence else m.group(1)
+                continue
+            if fence and line.strip() == "<!-- gatekeeper-verdict: quality-assurance -->":
+                found.append((i + 1, [x.strip() for x in lines[i:i + 4]]))
+        return found
+
+    def test_every_fenced_verdict_template_carries_owner_check_on_line_4(self):
+        total = 0
+        for rel in self.TEMPLATE_FILES:
+            templates = self.fenced_templates((REPO / rel).read_text(encoding="utf-8"))
+            self.assertTrue(templates, rel)
+            for number, lines in templates:
+                total += 1
+                with self.subTest(template="%s:%d" % (rel, number)):
+                    self.assertTrue(lines[2].startswith("head: "), lines)
+                    self.assertTrue(lines[3].startswith("owner-check:"), lines)
+        # The QA brief carries two templates (the verdict shape and the copy-verdict relay), the README one.
+        self.assertGreaterEqual(total, 3)
+
+    def test_no_live_prose_claims_the_literal_records_the_class(self):
+        files = list((REPO / "method").rglob("*.md")) + [REPO / "workspace" / "README.md"]
+        for path in files:
+            flat = ma.flatten(ma.live_prose(path.read_text(encoding="utf-8")))
+            with self.subTest(path=str(path.relative_to(REPO))):
+                self.assertEqual(self.CLASS_CLAIMS.findall(flat), [])
+
+    def test_hold_discharge_and_owner_check_are_validated(self):
+        # Advisory from #133's gate: a malformed hold-discharge must not parse. Same for owner-check and
+        # retired-verdicts (#134); a copy installed before either rule still parses.
+        source = SKILL.read_text(encoding="utf-8")
+        for key in ("hold-discharge", "owner-check"):
+            start = source.index('  "%s"' % key)
+            older = source[:start] + source[source.index("\n", start) + 1:]
+            self.assertNotIn(key, ma.parse_contract(older, "older"))
+            for bad in ('""', '"  "', '["x"]', "1", "null"):
+                with self.subTest(key=key, bad=bad):
+                    broken = source[:start] + '  "%s": %s,' % (key, bad) + source[source.index("\n", start):]
+                    with self.assertRaises(ma.ContractError):
+                        ma.parse_contract(broken, "broken")
+        start = source.index('  "retired-verdicts"')
+        end = source.index("\n", start)
+        for bad in ('"APPROVE-AND-MERGE-BOUNDARY"', '[""]', "[1]", '["APPROVE-AND-MERGE"]'):
+            with self.subTest(key="retired-verdicts", bad=bad):
+                broken = source[:start] + '  "retired-verdicts": %s,' % bad + source[end:]
+                with self.assertRaises(ma.ContractError):
+                    ma.parse_contract(broken, "broken")
 
 
 class OwnerEvidenceRule(unittest.TestCase):
@@ -272,8 +427,9 @@ class HeldMergeExecutor(unittest.TestCase):
     OLD = re.compile(r"\bthe owner merges\b|the owner only on the four surviving holds|"
                      r"gate still never merges them|promotion is the owner's|only the owner merges it", re.I)
 
-    def test_the_contract_is_version_2_and_names_the_discharge(self):
-        self.assertEqual(CONTRACT["version"], 2)
+    def test_the_contract_names_the_discharge(self):
+        # Version 2 introduced the discharge (#133); #134 bumped the verdict set to version 3.
+        self.assertGreaterEqual(CONTRACT["version"], 2)
         self.assertEqual(CONTRACT["hold-discharge"],
                          "the owner's own comment authorizes the merge and a verdict at the same head cites its URL")
         self.assertEqual(CONTRACT["declaration-versions"], [1])
@@ -287,7 +443,7 @@ class HeldMergeExecutor(unittest.TestCase):
                 self.assertEqual(block.count(rule), 2)
                 self.assertIn("discharged the same way, then `quality-assurance` merges", block)
                 self.assertIn("The promotion is held the same way, then `quality-assurance` merges it.", block)
-                self.assertTrue(block.startswith(ma.PROJECTION_BEGIN + " v2:"))
+                self.assertTrue(block.startswith(ma.PROJECTION_BEGIN + " v%d:" % CONTRACT["version"]))
 
     def test_the_old_owner_merges_wording_is_gone_or_struck(self):
         for rel in self.COPIES:
@@ -421,7 +577,7 @@ class ProjectBrief(unittest.TestCase):
         self.env.brief(CORRECTED_SECTION)
         kiro = ma.installed_skill_paths(self.env.home)[2][1]
         original = kiro.read_text(encoding="utf-8")
-        kiro.write_text(original.replace('"version": 2', '"version": 0'), encoding="utf-8")
+        kiro.write_text(original.replace('"version": %d' % CONTRACT["version"], '"version": 0'), encoding="utf-8")
         self.assertRed("disagree", code=2)
         kiro.write_text(original.replace("```merge-authority-contract", "```json"), encoding="utf-8")
         self.assertRed("expected one", code=2)
@@ -437,6 +593,10 @@ class ProjectBrief(unittest.TestCase):
         self.assertRed("never closed")
         self.env.brief(CORRECTED_SECTION.replace("- contract: merge-authority v1\n", ""))
         self.assertRed("exactly one `contract")
+        # B2 (PR #423): a fence opened inside a list item, indented past three spaces, is still a fence, so
+        # a quoted example block inside it is not a second declaration.
+        self.env.brief(CORRECTED_SECTION + "\n- an example, quoted:\n\n    ```\n" + BLOCK + "    ```\n")
+        self.assertGreen()
         # A marker not at column 0 (here inside a list item) is not a declaration.
         self.env.brief(CORRECTED_SECTION.replace(BLOCK, "\n".join("  " + l for l in BLOCK.split("\n"))))
         self.assertRed("no `<!-- merge-authority:begin -->` block")

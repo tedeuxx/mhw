@@ -776,6 +776,73 @@ gate's. PR #419 had been merged that way before the method allowed it; this make
 **Evidence level.** *Written and tested* (`global/merge_authority_test.py`: the executor rule in every
 copy, the old wording gone or struck, mutation-checked). Not installed on the reference machine.
 
+## Amendment 2026-11-02: one clearance literal plus an owner-check line (#134)
+
+Status unchanged (proposed). This amends the merge-authority contract recorded above (#195, as amended
+for #133) on its verdict set. It reverses the boundary-literal design of the methodology library's
+ADR-0002 amendment #16 on one point, the separate literal, and leaves its decision, that the gate
+merges the boundary class, in force.
+
+**Context.** Under `trunk-single-env` the gate merged the boundary class under its own literal, so the
+record would say which class shipped without a pre-publication check. The `-skills` sprint-05
+retrospective (quality-assurance, finding 2) measured that 30 of 36 merges in its window carried the
+boundary literal: the literal no longer told the owner whether he saw a change before it went live. In
+this repository the last verdict on the 40 most recent merged slices into `rc/next` was the boundary
+literal 28 times, `APPROVE-AND-MERGE` 11 times and `APPROVE-PENDING-HUMAN` once (measured 2026-11-02
+with `gh pr list --repo tedeuxx/mhw --state merged --limit 40 --base rc/next --json number,comments`
+and the second line of each PR's newest `gatekeeper-verdict` comment). The owner ruled for the
+proposal at the sprint-06 planning, 2026-10-10 (*"de acordo com as sugestoes"*), recorded on #134.
+
+**Decision.**
+
+- ~~Boundary class → `APPROVE-AND-MERGE-BOUNDARY`~~. The contract's `version` goes from 2 to 3: the
+  verdict set changes. `APPROVE-AND-MERGE` is the one clearance literal for the safe and the boundary
+  class; the contract lists the old literal under a new `retired-verdicts` key, every reader refuses
+  it, and no operational copy's live prose names it (struck, fenced or quoted history may).
+- Every gate verdict carries an `owner-check:` line on line 4, directly under `head:`, valued `none` or
+  exactly one live act the owner should perform after the merge. A value other than `none` is also
+  posted, verbatim, on each Issue the pull request references. A verdict without the line is malformed.
+  The rule is a new `owner-check` key in the contract, projected into every operational copy.
+- The safe/boundary classification survives: it still decides which holds can apply. The holds, the
+  executor, `APPROVE-PENDING-HUMAN`, `APPROVE-EXECUTOR-BLOCKED` and `REQUEST-CHANGES` are unchanged,
+  and `declaration-versions` stays `[1]`, so no project brief changes. ~~Hold 1 does not apply: one literal
+  instead of two widens nothing the gate may merge.~~ *(Struck in gate round 1 on PR #423: hold 1 also
+  covers a diff that changes the gate's *Classify — who may merge* section, which this one does, so the
+  merge waits for the owner's own comment, cited by URL, as #133 provides.)*
+- `workspace/delivery.py` accepts only `APPROVE-AND-MERGE` and refuses the retired literal by name, with
+  no transition window, and refuses a verdict without its `owner-check:` line.
+
+**Considered options.**
+
+- **Chosen: one literal plus a mandatory `owner-check:` line**, refused without a transition. Trade-off:
+  every reader and every gate habit changes at once, and an existing verdict stops matching; a verdict
+  is head-scoped, so a merge already needs a fresh one, and no pull request was open when this was
+  measured (`gh pr list --repo tedeuxx/mhw --state open` returned `[]`).
+- **Rejected: accept the retired literal during a transition.** It strands nothing that a fresh verdict
+  does not already fix, and it would keep two vocabularies in the one reader whose job is to be strict.
+- **Rejected: keep the boundary literal and add the line.** The literal carries no information the
+  line does not, and 30 of 36 merges show it was being read as noise.
+- **Rejected: rename the clearance literal.** Every reader would change for no added information;
+  `APPROVE-AND-MERGE` already means a cleared merge.
+
+**Consequences.**
+
+- Good: what the owner should check after a merge is a field he can read, and the Issue carries it; the
+  verdict set is smaller; a retired literal returning to a copy's live prose goes red, anywhere in it.
+  That needed one repair (gate round 2 on PR #423): the live-prose reader recognised a fence only when
+  it was indented at most three spaces, so a fence inside a list item inverted the strike pairing after
+  it and the check was blind over about 300 lines of the gate's brief. A fence is now recognised at any
+  indentation, and a test plants the retired literal above every `## ` heading of the four copies.
+- Bad: the merge record no longer says, from the literal alone, that a change shipped without a
+  pre-publication check; that now rests on the gate writing an honest `owner-check:`. A consuming project
+  brief that still names the retired literal is not flagged by `mhw check --project`, which reads only
+  the declaration block and the known legacy phrases.
+- Residual, unchanged: `workspace/delivery.py` reads no verdict on a pull request into `main`.
+
+**Evidence level.** *Written and tested* (`global/merge_authority_test.py` and
+`workspace/delivery_test.py`, each new negative case mutated on the source, red, restored, green). Not
+installed on the reference machine.
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)

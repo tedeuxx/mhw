@@ -32,10 +32,11 @@ MERGEABLE_STATES = {"CLEAN", "HAS_HOOKS"}
 # Only a strict header at the very top of a comment counts; nothing in the prose below it is read, so
 # a fence, a blockquote or a sentence can never supply or override a verdict. Lines are compared whole
 # (a trailing CR from a CRLF body is the only thing removed), never as substrings.
-#   quality-assurance (the plugin's own required shape, lines 1-3 exactly as its brief fixes them):
+#   quality-assurance (the method's required shape, lines 1-4 exactly as its brief fixes them):
 #     line 1  <!-- gatekeeper-verdict: quality-assurance -->
 #     line 2  one verdict literal, alone on the line
 #     line 3  head: <full 40-character head SHA>
+#     line 4  owner-check: none | <one live act for the owner>   (#134: mandatory; absent = malformed)
 #   agents-lead: lines 1-2 are the plugin's required shape. LINE 3 IS THIS REPOSITORY'S CONTRACT, NOT
 #   THE PLUGIN'S: the plugin brief asks for "the lens is CLOSED" in those words but fixes no position,
 #   so a marker that only follows the plugin brief is refused here (fail closed) until line 3 says it.
@@ -49,9 +50,15 @@ GATE_HEADER = "<!-- gatekeeper-verdict: quality-assurance -->"
 LENS_PREFIX = "<!-- harness-lead-verdict"
 LENS_HEADER = re.compile(r"<!-- harness-lead-verdict: (?:(?!-->).)* -->")
 LENS_CLOSED = "the lens is CLOSED"
-# The plugin's verdict enum also has APPROVE-PENDING-HUMAN, APPROVE-EXECUTOR-BLOCKED and
-# REQUEST-CHANGES; only these two exact lines authorize a merge, anything else on line 2 refuses.
-MERGE_LITERALS = ("APPROVE-AND-MERGE", "APPROVE-AND-MERGE-BOUNDARY")
+# The verdict enum also has APPROVE-PENDING-HUMAN, APPROVE-EXECUTOR-BLOCKED and REQUEST-CHANGES; only
+# this exact line authorizes a merge, anything else on line 2 refuses (the merge-authority contract, v3).
+# #134 retired the boundary literal with no transition window: a verdict is head-scoped, so every merge
+# already needs a fresh verdict at the current head, and accepting the retired literal would only accept
+# a verdict written under the rule it replaced. It is refused by name so the refusal says what to do.
+MERGE_LITERALS = ("APPROVE-AND-MERGE",)
+RETIRED_LITERALS = ("APPROVE-AND-MERGE-BOUNDARY",)
+# `none` or one live act: both are a value that starts and ends with a non-space.
+OWNER_CHECK_LINE = re.compile(r"owner-check: \S(?:.*\S)?")
 TRUSTED_AUTHORS = ("OWNER", "MEMBER", "COLLABORATOR")
 HEAD_LINE = re.compile(r"head: ([0-9a-f]{40})")
 COMMIT_LINE = re.compile(r"commit: ([0-9a-f]{40})")
@@ -182,12 +189,17 @@ def gate_approves(comments, head):
     verdict = newest(comments, GATE_PREFIX)
     if verdict is None:
         raise Pending("no quality-assurance gatekeeper-verdict on the PR")
-    envelope, literal, head_line = header(verdict)
+    envelope, literal, head_line, owner_check = header(verdict, 4)
     named = HEAD_LINE.fullmatch(head_line)
     if envelope != GATE_HEADER or not named:
         raise Pending("the newest gatekeeper-verdict is not in the strict header format")
+    if not OWNER_CHECK_LINE.fullmatch(owner_check):
+        raise Pending("the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)")
     if named[1] != head:
         raise Pending("the newest gatekeeper-verdict does not name the current head")
+    if literal in RETIRED_LITERALS:
+        raise Pending("the newest gatekeeper-verdict carries the retired literal " + literal
+                      + "; re-verdict at this head with APPROVE-AND-MERGE and an owner-check line")
     if literal not in MERGE_LITERALS:
         raise Pending("the newest gatekeeper-verdict does not authorize a merge: " + literal)
 

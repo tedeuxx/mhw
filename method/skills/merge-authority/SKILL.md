@@ -25,10 +25,11 @@ this block, and a method test checks every operational copy against the **source
 ```merge-authority-contract
 {
   "contract": "merge-authority",
-  "version": 2,
+  "version": 3,
   "declaration-versions": [1],
-  "verdicts": ["APPROVE-AND-MERGE", "APPROVE-AND-MERGE-BOUNDARY", "APPROVE-PENDING-HUMAN",
-               "APPROVE-EXECUTOR-BLOCKED", "REQUEST-CHANGES"],
+  "verdicts": ["APPROVE-AND-MERGE", "APPROVE-PENDING-HUMAN", "APPROVE-EXECUTOR-BLOCKED", "REQUEST-CHANGES"],
+  "retired-verdicts": ["APPROVE-AND-MERGE-BOUNDARY"],
+  "owner-check": "every gate verdict carries an `owner-check:` line directly under its `head:` line, valued `none` or exactly one live act the owner should perform after the merge; a value other than `none` is also posted, verbatim, on each Issue the pull request references. A verdict without the line is malformed",
   "holds": {
     "gate-authority": "an expansion of the gate's own authority",
     "harness-marker": "a harness diff with no `agents-lead` verdict marker at the head being merged",
@@ -43,7 +44,7 @@ this block, and a method test checks every operational copy against the **source
     "trunk-single-env": {
       "executor": "quality-assurance",
       "safe": "APPROVE-AND-MERGE",
-      "boundary": "APPROVE-AND-MERGE-BOUNDARY",
+      "boundary": "APPROVE-AND-MERGE",
       "holds": ["gate-authority", "harness-marker", "iac", "lens-escalate"],
       "on-hold": "APPROVE-PENDING-HUMAN",
       "hold-executor": "quality-assurance",
@@ -70,7 +71,10 @@ this block, and a method test checks every operational copy against the **source
 changes. ~~**`owner-evidence`** (#133) is none of those three, so adding it left `version` at 1~~
 *(struck 2026-11-01, #133 round 2: the owner then decided that the gate executes a held merge once his
 cited comment discharges the hold, which changes the executor of every held diff, so `version` is 2.)*
-The operational copies carry `owner-evidence` and `hold-discharge`, because their projection blocks are
+*(2026-11-02, #134: one clearance literal replaces two and every verdict carries an `owner-check:` line,
+which changes the verdict set, so `version` is 3.)* **`retired-verdicts`** names literals no verdict may
+carry any more; a reader refuses them, and no copy's live prose names them.
+The operational copies carry `owner-evidence`, `hold-discharge` and `owner-check`, because their projection blocks are
 generated from the whole contract. **`declaration-versions`** lists the project-declaration formats this contract understands. They
 are separate on purpose: a change to the verdict set does not force every project to edit its brief, and
 a project declaring a format the installed method does not know is refused rather than guessed at.
@@ -79,9 +83,12 @@ a project declaring a format the installed method does not know is refused rathe
 
 **`trunk-single-env`** (one long-lived branch, merge is deploy):
 
-- `quality-assurance` executes every cleared merge. Safe class → `APPROVE-AND-MERGE`. Boundary class →
-  `APPROVE-AND-MERGE-BOUNDARY`, and the owner reviews live after deploy (ADR-0002 amendment #16 in the
-  methodology library).
+- `quality-assurance` executes every cleared merge. Safe class and boundary class alike →
+  `APPROVE-AND-MERGE` ~~Boundary class → its own boundary literal~~ *(struck 2026-11-02, #134: 30 of 36
+  merges in the measured window carried it, so it no longer told the owner whether he saw a change
+  before it went live)*. The classification survives: it still decides which holds can apply. What the
+  owner should look at after deploy is now the verdict's `owner-check:` line (below), and the owner
+  reviews live after deploy (ADR-0002 amendment #16 in the methodology library).
 - **Four holds**, plus the release candidate when an integration branch is declared (below); on any
   of them the verdict is `APPROVE-PENDING-HUMAN` ~~and the owner merges~~ until the owner's own comment
   authorizes the merge; the gate then re-verdicts at the same head citing that comment's URL and
@@ -117,12 +124,27 @@ included. So for every hold, in both models:
 - the first verdict is `APPROVE-PENDING-HUMAN`, naming the hold: it means *waiting for the owner's
   comment*, not *a merge by the owner*;
 - once his own comment authorizes the merge, the gate re-verdicts **at the same head**, cites the
-  comment's URL on an `authorization:` line, posts the clearance literal the class earns
-  (`APPROVE-AND-MERGE` or `APPROVE-AND-MERGE-BOUNDARY`), and merges;
+  comment's URL on an `authorization:` line, posts the clearance literal `APPROVE-AND-MERGE`, and
+  merges;
 - a moved head needs a fresh verdict, and an authorization names the head or the pull request it covers;
   the gate does not stretch it past that;
 - the holds stay four (plus the release candidate where declared): a cited comment **discharges** a
   hold, it never removes one, and without the citation the hold stands.
+
+### The `owner-check:` line (#134, owner ruling 2026-10-10)
+
+**Every gate verdict carries it, on the line directly under `head:`**, whatever the literal:
+
+- `owner-check: none` when nothing needs the owner's eyes after the merge;
+- otherwise `owner-check: <one live act>`: exactly one thing the owner should do on the running system
+  after the merge (open a page, run a command, read a published piece), stated so he can do it without
+  opening the pull request;
+- a value other than `none` is also posted, verbatim, on each Issue the pull request references (a
+  closing keyword or `Refs #N`), so it reaches him where the work is tracked;
+- a verdict without the line is malformed: `workspace/delivery.py` refuses it, and so must any reader.
+
+It replaces what the retired boundary literal was meant to say. It is not a hold: it adds nothing to the
+hold set and stops no merge; it only records what the owner should check once the change is live.
 
 ### The evidence rule for owner-dependent criteria (#133)
 
@@ -208,9 +230,9 @@ The executor, the verdicts and the holds must reach whoever acts at runtime, so 
 act: `quality-assurance` (*Classify — who may merge* and its verdict list, and its description),
 `agents-configuration` (*The merge is the go/no-go*), `quality-gates` (the `trunk-single-env` table),
 `/autonomy` (what *ready for him* means) and the workspace delivery route (`workspace/delivery.py`'s
-clearance literals). Each method copy carries a projection block generated from the contract above,
+clearance literal and its `owner-check:` line). Each method copy carries a projection block generated from the contract above,
 between `<!-- merge-authority:projection` and `<!-- merge-authority:end -->`, and
-`global/merge_authority_test.py` asserts every block equals the projection, that each copy still names every verdict, and that no
-copy's live prose carries a known legacy phrase. **That is a check over strings**: it catches a changed
+`global/merge_authority_test.py` asserts every block equals the projection, that each copy still names every verdict, that no
+copy's live prose names a retired verdict, and that no copy's live prose carries a known legacy phrase. **That is a check over strings**: it catches a changed
 executor, verdict or hold in a projection block, and a deleted verdict literal, but not a paraphrase
 elsewhere in a long brief.
