@@ -1978,9 +1978,11 @@ signal at all. The full decision, its rejected options and the readers that must
 [ADR-0004](../../docs/adr/0004-controls-and-enforcement.md)'s 2026-09-01 amendment.
 
 **What the safe/boundary split still decides, since a distinction that changes nothing should be retired
-rather than kept:** which of the four holds can apply (every one is a boundary trigger), which verdict
+rather than kept:** which of the four holds can apply (every one is a boundary trigger) ~~, which verdict
 literal is posted — so the merge record itself says whether anything shipped without a pre-publication
-check — and what the verdict must state. What it no longer decides, ~~outside the four holds,~~ is **who
+check —~~ and what the verdict must state: on a boundary class, the trigger that fired, with the
+`owner-check:` line naming what the owner should look at live, or `none` *(struck 2026-11-02, #134:
+both classes clear under `APPROVE-AND-MERGE`, so the literal records nothing about the class)*. What it no longer decides, ~~outside the four holds,~~ is **who
 merges** — since #133 not inside the four holds either: the gate executes a held merge once the
 owner's cited comment discharges the hold.
 

@@ -282,6 +282,63 @@ class OneClearanceLiteral(unittest.TestCase):
         readme = (REPO / "workspace/README.md").read_text(encoding="utf-8")
         self.assertIn("APPROVE-AND-MERGE\n   head: <the full 40-character head SHA>\n   owner-check: none\n", readme)
 
+    TEMPLATE_FILES = ("method/agents/quality-assurance.md", "workspace/README.md")
+    # Live claims that the verdict literal records the class (gate round 1 on PR #423, selector b).
+    CLASS_CLAIMS = re.compile(r"sets the verdict literal|verdict literal is posted|which literal ends up|"
+                              r"its own verdict literal|whether anything shipped", re.I)
+
+    @staticmethod
+    def fenced_templates(text):
+        """(line number, the four lines from the envelope) for every gate envelope inside a fence."""
+        found, fence, lines = [], None, text.split("\n")
+        for i, line in enumerate(lines):
+            m = re.match(r"^\s*(`{3,}|~{3,})", line)
+            if m:
+                fence = None if fence else m.group(1)
+                continue
+            if fence and line.strip() == "<!-- gatekeeper-verdict: quality-assurance -->":
+                found.append((i + 1, [x.strip() for x in lines[i:i + 4]]))
+        return found
+
+    def test_every_fenced_verdict_template_carries_owner_check_on_line_4(self):
+        total = 0
+        for rel in self.TEMPLATE_FILES:
+            templates = self.fenced_templates((REPO / rel).read_text(encoding="utf-8"))
+            self.assertTrue(templates, rel)
+            for number, lines in templates:
+                total += 1
+                with self.subTest(template="%s:%d" % (rel, number)):
+                    self.assertTrue(lines[2].startswith("head: "), lines)
+                    self.assertTrue(lines[3].startswith("owner-check:"), lines)
+        # The QA brief carries two templates (the verdict shape and the copy-verdict relay), the README one.
+        self.assertGreaterEqual(total, 3)
+
+    @staticmethod
+    def without_indented_fences(text):
+        """Drop fenced blocks at any indentation. ma.live_prose recognises a fence indented at most three
+        spaces, so a fence inside a list item (quality-assurance.md has one, holding a `~~~` pattern)
+        leaves an odd `~~` in its input and shifts every strike pairing after it."""
+        kept, fence = [], None
+        for line in text.split("\n"):
+            m = re.match(r"^\s*(`{3,}|~{3,})", line)
+            if fence:
+                if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence):
+                    fence = None
+                continue
+            if m:
+                fence = m.group(1)
+                continue
+            kept.append(line)
+        return "\n".join(kept)
+
+    def test_no_live_prose_claims_the_literal_records_the_class(self):
+        files = list((REPO / "method").rglob("*.md")) + [REPO / "workspace" / "README.md"]
+        for path in files:
+            text = self.without_indented_fences(path.read_text(encoding="utf-8"))
+            flat = ma.flatten(ma.live_prose(text))
+            with self.subTest(path=str(path.relative_to(REPO))):
+                self.assertEqual(self.CLASS_CLAIMS.findall(flat), [])
+
     def test_hold_discharge_and_owner_check_are_validated(self):
         # Advisory from #133's gate: a malformed hold-discharge must not parse. Same for owner-check and
         # retired-verdicts (#134); a copy installed before either rule still parses.

@@ -39,8 +39,9 @@ pending; a pause for questions publishes nothing.
    because that workflow runs only on PRs into `main`. A pending check, a missing `tests` run (a
    "CLEAN" PR on which no tests ran) and a merge state other than clean (DIRTY, BEHIND, UNKNOWN...)
    are refused. It also reads the review gate from the PR's comments, because the plugin's merge
-   floor cannot see this script's own merge. Only a strict header on the **first three lines** of a
-   comment counts. Lines are compared whole, and nothing below the header is read, so text in a
+   floor cannot see this script's own merge. Only a strict header at the very top of a comment
+   counts: the **first four lines** of the gate's verdict, the **first three lines** of the lens
+   marker. Lines are compared whole, and nothing below the header is read, so text in a
    fence, a blockquote or the prose can neither supply nor override a verdict. The newest trusted
    comment that opens with each envelope wins, so a later `REQUEST-CHANGES`, a later open lens or a
    later malformed header refuses. `quality-assurance` must open its comment with these four lines,

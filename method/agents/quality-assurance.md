@@ -961,6 +961,7 @@ them:
 <!-- gatekeeper-verdict: quality-assurance -->
 REQUEST-CHANGES
 head: <the headRefOid you reviewed>
+owner-check: <none, or one live act for the owner after the merge — line 4, always>
 closes: <only when this PR would close an Issue you verified delivered — see the shape above>
 
 …your verdict and the per-criterion table…
@@ -1631,11 +1632,13 @@ not.
   above, treat it as a hold**, which is where the conservative reading now lives.
 - **What the safe/boundary split still buys, stated plainly because a distinction that changes nothing
   should be retired rather than kept.** Three things, and they are not decoration: (a) it selects which
-  of the four holds apply, since every one of them is a boundary trigger and none is a safe one; (b) it
-  sets the verdict literal, so the merge record itself says whether the owner had seen this before it
-  went live — a fact a later reader can query rather than reconstruct; (c) it sets what you must write
-  down, since a boundary verdict states *why* it is boundary and what the owner should go and look at
-  live. What it no longer decides, for the classes outside the four holds, is **who merges**.
+  of the four holds apply, since every one of them is a boundary trigger and none is a safe one; (b)
+  ~~it sets the verdict literal, so the merge record itself says whether the owner had seen this before
+  it went live — a fact a later reader can query rather than reconstruct~~ *(struck 2026-11-02, #134:
+  both classes clear under `APPROVE-AND-MERGE`, so the literal records nothing about the class; what
+  the owner should look at live is the verdict's `owner-check:` line, whatever the class)*; (c) it sets
+  what you must write down, since a boundary verdict states *why* it is boundary, the trigger that
+  fired, and its `owner-check:` line says what the owner should go and look at live, or `none`. What it no longer decides, for the classes outside the four holds, is **who merges**.
 
 ## Count the rounds — an expensive slice has to become a decision
 

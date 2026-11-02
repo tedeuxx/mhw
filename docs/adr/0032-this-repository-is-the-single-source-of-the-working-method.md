@@ -805,8 +805,10 @@ proposal at the sprint-06 planning, 2026-10-10 (*"de acordo com as sugestoes"*),
   The rule is a new `owner-check` key in the contract, projected into every operational copy.
 - The safe/boundary classification survives: it still decides which holds can apply. The holds, the
   executor, `APPROVE-PENDING-HUMAN`, `APPROVE-EXECUTOR-BLOCKED` and `REQUEST-CHANGES` are unchanged,
-  and `declaration-versions` stays `[1]`, so no project brief changes. Hold 1 does not apply: one literal
-  instead of two widens nothing the gate may merge.
+  and `declaration-versions` stays `[1]`, so no project brief changes. ~~Hold 1 does not apply: one literal
+  instead of two widens nothing the gate may merge.~~ *(Struck in gate round 1 on PR #423: hold 1 also
+  covers a diff that changes the gate's *Classify — who may merge* section, which this one does, so the
+  merge waits for the owner's own comment, cited by URL, as #133 provides.)*
 - `workspace/delivery.py` accepts only `APPROVE-AND-MERGE` and refuses the retired literal by name, with
   no transition window, and refuses a verdict without its `owner-check:` line.
 
