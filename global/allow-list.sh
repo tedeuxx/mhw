@@ -244,47 +244,59 @@ allow_claude() {
   esac
 }
 
-# ---- The user-level allow entries the policy retired (Issue #145; ADR-0035 decision 4): allow-retired.conf.
-# They are not mhw's (no ownership key holds them), so they are removed by name: exactly the listed rules,
-# from permissions.allow only, with the previous file kept as settings.json.pmhwc-allow-backup and each
-# removal reported old -> new. The backup is the restore route: uninstall does not re-add a rule the policy
-# retired.
+# ---- The user-level allow and deny entries the policy retired: allow-retired.conf (Issue #145; ADR-0035
+# decision 4) and deny-retired.conf (Issue #242, owner ruling 2026-11-01). They are not mhw's (no ownership
+# key holds them), so they are removed by name: exactly the listed rules, from permissions.<kind> only, with
+# the previous file kept as settings.json.pmhwc-<kind>-backup and each removal reported old -> new. The
+# backup is the restore route: uninstall does not re-add a rule the policy retired. A deny rule the floor
+# renders ($floor_claude) is never removed, whatever the list says, so retiring a deny cannot open a floor
+# prefix.
 allow_retired_src="$script_dir/allow-retired.conf"
-allow_retire() {
-  [ -f "$allow_retired_src" ] || { echo "source not found: $allow_retired_src" >&2; raise 2; return 0; }
+deny_retired_src="$script_dir/deny-retired.conf"
+settings_retire() { # $1 allow|deny, $2 the source list, $3 the reason printed with each change
+  sr_kind=$1; sr_src=$2; sr_why=$3; sr_backup="$settings.pmhwc-$1-backup"
+  [ -f "$sr_src" ] || { echo "source not found: $sr_src" >&2; raise 2; return 0; }
   [ -f "$settings" ] || return 0
   jq -e 'type == "object"' "$settings" >/dev/null 2>&1 || return 0   # merge_settings already refused it
-  ar_list=$(grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$allow_retired_src" | jq -cR -s 'split("\n") | map(select(length > 0))')
-  if ! ar_hit=$(jq -c --argjson r "$ar_list" '[(.permissions.allow? // []) | if type == "array" then .[] else empty end
-                                               | select(. as $x | $r | index($x))] | unique' "$settings" 2>/dev/null); then
-    return 0   # allow_claude refuses a permissions section of the wrong shape
+  sr_list=$(grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$sr_src" | jq -cR -s 'split("\n") | map(select(length > 0))')
+  if [ "$sr_kind" = deny ]; then
+    sr_floor=$(jq -cR -s 'split("\n") | map(select(length > 0))' "$floor_claude")
+    sr_list=$(jq -cn --argjson r "$sr_list" --argjson f "$sr_floor" '[$r[] | select(. as $x | $f | index($x) | not)]')
   fi
-  if [ "$ar_hit" = "[]" ]; then
-    echo "OK      $settings: no allow entry the policy retired"
+  if ! sr_hit=$(jq -c --arg k "$sr_kind" --argjson r "$sr_list" '[(.permissions[$k]? // []) | if type == "array" then .[] else empty end
+                                               | select(. as $x | $r | index($x))] | unique' "$settings" 2>/dev/null); then
+    return 0   # allow_claude and merge_settings refuse a permissions section of the wrong shape
+  fi
+  if [ "$sr_hit" = "[]" ]; then
+    echo "OK      $settings: no $sr_kind entry the policy retired"
     return 0
   fi
-  ar_what=$(printf '%s' "$ar_hit" | jq -r 'map(. + " present -> absent") | join("; ")')
+  sr_what=$(printf '%s' "$sr_hit" | jq -r 'map(. + " present -> absent") | join("; ")')
   case $mode in
     check)
-      echo "DRIFT   $settings: install would change permissions.allow $ar_what (retired, ADR-0035 decision 4)"
+      echo "DRIFT   $settings: install would change permissions.$sr_kind $sr_what (retired, $sr_why)"
       raise 1
       ;;
     dry-run)
-      echo "WOULD CHANGE $settings: permissions.allow $ar_what (backup $settings.pmhwc-allow-backup)"
+      echo "WOULD CHANGE $settings: permissions.$sr_kind $sr_what (backup $sr_backup)"
       ;;
-    install|*)   # uninstall never calls allow_retire
-      if ! jq --indent 4 --argjson r "$ar_list" '.permissions.allow |= map(select(. as $x | $r | index($x) | not))
-            | if .permissions.allow == [] then del(.permissions.allow) else . end
-            | if .permissions == {} then del(.permissions) else . end' "$settings" > "$work/allow.retired.json" 2>/dev/null; then
-        echo "REFUSE  $settings: the retired allow entries could not be removed; left untouched" >&2
+    install|*)   # uninstall never calls settings_retire
+      if ! jq --indent 4 --arg k "$sr_kind" --argjson r "$sr_list" '.permissions[$k] |= map(select(. as $x | $r | index($x) | not))
+            | if .permissions[$k] == [] then del(.permissions[$k]) else . end
+            | if .permissions == {} then del(.permissions) else . end' "$settings" > "$work/$sr_kind.retired.json" 2>/dev/null; then
+        echo "REFUSE  $settings: the retired $sr_kind entries could not be removed; left untouched" >&2
         raise 3
         return 0
       fi
-      private_copy "$settings" "$settings.pmhwc-allow-backup"
-      cat "$work/allow.retired.json" > "$settings"
-      echo "CHANGED $settings: permissions.allow $ar_what (retired, ADR-0035 decision 4; previous file kept as $settings.pmhwc-allow-backup)"
+      private_copy "$settings" "$sr_backup"
+      cat "$work/$sr_kind.retired.json" > "$settings"
+      echo "CHANGED $settings: permissions.$sr_kind $sr_what (retired, $sr_why; previous file kept as $sr_backup)"
       ;;
   esac
+}
+allow_retire() {
+  settings_retire allow "$allow_retired_src" "ADR-0035 decision 4"
+  settings_retire deny "$deny_retired_src" "Issue #242, owner ruling 2026-11-01"
 }
 
 # ---- A managed file of ours (Codex rules, Kiro agent): written whole, never over an unmanaged file.
@@ -401,6 +413,9 @@ allow_uninstall() {
   done
   if [ -f "$settings.pmhwc-allow-backup" ]; then
     echo "NOTE    $settings: the allow entries the policy retired are in $settings.pmhwc-allow-backup; uninstall does not re-add them (ADR-0035 decision 4)"
+  fi
+  if [ -f "$settings.pmhwc-deny-backup" ]; then
+    echo "NOTE    $settings: the deny entries the policy retired are in $settings.pmhwc-deny-backup; uninstall does not re-add them (Issue #242)"
   fi
   [ -f "$settings" ] && command -v jq >/dev/null 2>&1 || return 0
   if jq -e --arg ok "$ALLOW_OWN_KEY" 'type == "object" and has($ok)' "$settings" >/dev/null 2>&1; then

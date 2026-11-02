@@ -449,42 +449,47 @@ Invoke-PyStep 'the session-start model defaults' 'models\model_defaults.py' @("-
 # wildcard spelling), listed in global\allow-retired.conf: removed by name from permissions.allow only, as
 # install.sh's allow_retire does, with the previous file kept as settings.json.pmhwc-allow-backup. Nothing
 # else is removed; install.ps1 renders no allow list of its own (ADR-0031 is POSIX only).
-function Remove-RetiredAllow([string]$settings) {
-    $src = Join-Path $scriptDir 'allow-retired.conf'
+# The deny entries the policy retired (Issue #242, owner ruling 2026-11-01: the broad gh api deny), listed
+# in global\deny-retired.conf, go the same way from permissions.deny, with settings.json.pmhwc-deny-backup;
+# a rule the deny floor renders ($claudeRules) is never removed, whatever the list says.
+function Remove-Retired([string]$settings, [string]$kind, [string]$file, [string]$why) {
+    $src = Join-Path $scriptDir $file
     if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { [Console]::Error.WriteLine("source not found: $src"); Set-Status 2; return }
     $retired = @(Get-Content -LiteralPath $src | Where-Object { $_ -notmatch '^\s*(#|$)' })
+    if ($kind -eq 'deny') { $retired = @($retired | Where-Object { -not $claudeRules.Contains($_) }) }
     if (-not (Test-Path -LiteralPath $settings -PathType Leaf)) { return }
     try { $obj = Get-Content -LiteralPath $settings -Raw | ConvertFrom-Json } catch { return }   # Merge-DenyFloor refused it
     if ($obj -isnot [System.Management.Automation.PSCustomObject]) { return }
     $perms = $obj.PSObject.Properties['permissions']
     if (-not $perms -or $perms.Value -isnot [System.Management.Automation.PSCustomObject]) { return }
-    $allowProp = $perms.Value.PSObject.Properties['allow']
-    $allow = @()
-    if ($allowProp -and $allowProp.Value -is [System.Array]) { $allow = @($allowProp.Value) }
-    $hits = @($allow | Where-Object { $_ -is [string] -and $retired -ccontains $_ } | Select-Object -Unique)
-    if ($hits.Count -eq 0) { Write-Output "OK      ${settings}: no allow entry the policy retired"; return }
+    $listProp = $perms.Value.PSObject.Properties[$kind]
+    $list = @()
+    if ($listProp -and $listProp.Value -is [System.Array]) { $list = @($listProp.Value) }
+    $hits = @($list | Where-Object { $_ -is [string] -and $retired -ccontains $_ } | Select-Object -Unique)
+    if ($hits.Count -eq 0) { Write-Output "OK      ${settings}: no $kind entry the policy retired"; return }
     $what = ($hits | ForEach-Object { "$_ present -> absent" }) -join '; '
-    $backup = "$settings.pmhwc-allow-backup"
+    $backup = "$settings.pmhwc-$kind-backup"
     switch ($mode) {
         'check' {
-            Write-Output "DRIFT   ${settings}: install would change permissions.allow $what (retired, ADR-0035 decision 4)"
+            Write-Output "DRIFT   ${settings}: install would change permissions.$kind $what (retired, $why)"
             Set-Status 1
         }
-        'dry-run' { Write-Output "WOULD CHANGE ${settings}: permissions.allow $what (backup $backup)" }
+        'dry-run' { Write-Output "WOULD CHANGE ${settings}: permissions.$kind $what (backup $backup)" }
         'install' {
-            $keep = @($allow | Where-Object { -not ($_ -is [string] -and $retired -ccontains $_) })
-            if ($keep.Count -eq 0) { $perms.Value.PSObject.Properties.Remove('allow') }
-            else { $perms.Value | Add-Member -NotePropertyName allow -NotePropertyValue ([object[]]$keep) -Force }
+            $keep = @($list | Where-Object { -not ($_ -is [string] -and $retired -ccontains $_) })
+            if ($keep.Count -eq 0) { $perms.Value.PSObject.Properties.Remove($kind) }
+            else { $perms.Value | Add-Member -NotePropertyName $kind -NotePropertyValue ([object[]]$keep) -Force }
             if (@($perms.Value.PSObject.Properties).Count -eq 0) { $obj.PSObject.Properties.Remove('permissions') }
             Copy-Private $settings $backup
             $tmp = "$settings.new.$PID"
             [System.IO.File]::WriteAllText($tmp, ($obj | ConvertTo-Json -Depth 100), $utf8)
             Move-Item -LiteralPath $tmp -Destination $settings -Force
-            Write-Output "CHANGED ${settings}: permissions.allow $what (retired, ADR-0035 decision 4; previous file kept as $backup)"
+            Write-Output "CHANGED ${settings}: permissions.$kind $what (retired, $why; previous file kept as $backup)"
         }
     }
 }
-Remove-RetiredAllow $settingsFile
+Remove-Retired $settingsFile 'allow' 'allow-retired.conf' 'ADR-0035 decision 4'
+Remove-Retired $settingsFile 'deny' 'deny-retired.conf' 'Issue #242, owner ruling 2026-11-01'
 
 # The fourth #145 item, the paste wrapper's shell start-up block, has nothing to write here: the wrapper
 # needs a POSIX pty and /usr/bin/python3 and is not ported to Windows (ADR-0011, ADR-0033).

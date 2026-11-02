@@ -591,9 +591,15 @@ what follows discharges it.
 **Milestones, and the choice is closer to a measurement than to a preference.** A GitHub Projects v2
 iteration field cannot be driven from inside this harness at all: `gh project field-create --data-type`
 accepts `{TEXT|SINGLE_SELECT|DATE|NUMBER}` and `ITERATION` is not in the set, `gh project list` fails on
-a missing `read:project` token scope, and the GraphQL escape hatch is denied by the global permission
-floor (`Bash(gh api:*)`). A milestone needs none of that: `gh issue edit --milestone`,
-`gh issue list --milestone` and `gh issue list --json milestone` are all allowlisted already.
+a missing `read:project` token scope, ~~and the GraphQL escape hatch is denied by the global permission
+floor (`Bash(gh api:*)`)~~ **(struck 2026-11-02, mhw#242: that broad deny was an owner-written user
+rule, never a floor entry, and `mhw install` now removes it on his ruling; the workstation floor denies
+only the `gh api -X`/`--method` write prefixes, so a `gh api` read, GraphQL included, runs)**. A
+milestone needs none of that: `gh issue edit --milestone`, `gh issue list --milestone` and
+`gh issue list --json milestone` ~~are all allowlisted already~~ **need no token scope and no API
+route. Whether they prompt is the settings layers' answer, not this file's: the workstation allow list
+(`global/allow-list.conf` and the overlay's, in mhw) pre-authorises `gh issue list` and
+`gh issue view` and not `gh issue edit` (struck 2026-11-02, mhw#242).**
 
 | requirement (#326) | milestone |
 |---|---|
@@ -661,9 +667,15 @@ Close reads first and refuses a milestone that is not open. All fail non-zero wh
 
 ~~**What stands there now is an ABSENCE:** `scripts/` matches no allow entry, so running the script
 prompts the orchestrator and refuses a subagent.~~ **Struck 2026-09-29 (#537): the reviewed milestone
-family now uses the already-allowlisted `python3` interpreter.** Read, create, update and close execute
+family now uses the ~~already-allowlisted~~ `python3` interpreter.** ~~Read, create, update and close execute
 without a prompt for the orchestrator and every persona holding Bash. No settings layer changed; the
-reach is the accepted consequence of the owner's non-critical pricing of milestone acts.
+reach is the accepted consequence of the owner's non-critical pricing of milestone acts.~~ **Struck
+2026-11-02 (mhw#242): `python3` is not allowlisted by the workstation.** Its allow list
+(`global/allow-list.conf` plus the overlay's, in mhw) names `python3` only as a `runner` of specific
+repository test scripts (`python3 -B <script>`, wide tier, Claude Code only), never as an interpreter,
+and no milestone script is among them. So whether a `milestone-*.py` call prompts is decided by
+whatever other settings layer allows it, or by the permission prompt; nothing in this method grants it.
+The owner's non-critical pricing of milestone acts is unchanged.
 
 **One measurement that could make the route unnecessary is still NOT taken, and one obstacle to taking
 it is gone:** whether `gh issue edit --milestone "<new title>"` *creates* a missing milestone. `--help`
@@ -890,8 +902,10 @@ lack of an alternative and it is stated as such rather than as a design:
   instead: no hook resolves a milestone, and the way to falsify that is to find a `gh issue`/`gh api`
   call in a registered hook that reads one, not to count the word.
 - **It is not versioned where this loop can see it.** A description edit produces no commit, no diff and
-  no Issue-timeline event this harness can read — `gh api` is denied by the global permission floor, so
-  the route that would expose the edit history is unavailable by construction.
+  no Issue-timeline event this harness can read — ~~`gh api` is denied by the global permission floor, so
+  the route that would expose the edit history is unavailable by construction~~ **struck 2026-11-02
+  (mhw#242): a `gh api` read is no longer denied by the workstation; whether any endpoint exposes a
+  milestone description's edit history is not established here.**
 - **It contradicts the paragraph directly above.** *"The planning artifact is an ITERATION ISSUE"* is
   what this skill specifies, and **there is no iteration Issue.** The specified object was not built;
   the milestone description is standing in for it. That gap is named here rather than papered over,
@@ -1222,8 +1236,10 @@ date, state, and nothing else. One label per Fibonacci value, closed set:
 sp:1  sp:2  sp:3  sp:5  sp:8  sp:13
 ```
 
-`gh label` and `gh issue edit` are both already allowlisted and `gh issue list --json labels` reads them
-back, so this needs **no permission change and no token scope** — the same test that chose the milestone
+`gh label` and `gh issue edit` ~~are both already allowlisted~~ need no API route (struck 2026-11-02,
+mhw#242: the workstation allow list grants neither; whether they prompt is another settings layer's
+answer) and `gh issue list --json labels` reads them back, so this needs **no ~~permission change and
+no~~ token scope** — the same test that chose the milestone
 over a Projects v2 field. Aggregation is one `jq` expression over the query the pool predicate already
 runs:
 
@@ -1416,7 +1432,9 @@ carried over), not a gate.
   milestone is rule 11's~~ **struck 2026-09-04 (#383): both rules are deleted. Admission is now a
   SILENT edit (the command is allowlisted), and ~~creating the milestone still prompts only because
   `scripts/` is in no allow list — an absence, not a control~~ struck 2026-09-29 (#537): creation now
-  runs through the already-allowlisted `python3` interpreter without a prompt; no guard inspection is
+  runs through the ~~already-allowlisted~~ `python3` interpreter ~~without a prompt~~ (struck 2026-11-02,
+  mhw#242: the workstation allow list grants neither `python3` as an interpreter nor `gh issue edit`, so
+  whether either prompts is another settings layer's answer); no guard inspection is
   needed under the owner's non-critical pricing, so review plus the blocking regression carry it.
   "Composition stays his" is now held by the rite's own procedure and by his presence at it, not by
   any layer.**

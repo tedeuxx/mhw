@@ -79,7 +79,7 @@
     {
       "id": "allow-list",
       "layer": "user",
-      "paths": ["global/allow-list.conf", "global/allow-list.sh", "global/allow-retired.conf"]
+      "paths": ["global/allow-list.conf", "global/allow-list.sh", "global/allow-retired.conf", "global/deny-retired.conf"]
     },
     {
       "id": "github-repo-settings",

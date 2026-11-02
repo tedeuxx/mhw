@@ -424,6 +424,28 @@ $s.permissions.allow = [object[]]@('Bash(ls:*)', 'Bash(find *)')
 $out = Run $h @('-Check', '-Overlay', $repoOverlay); Expect 'check flags a re-added retired allow' 1 $script:rc
 Check 'check names the retired allow as DRIFT' ([bool]($out | Where-Object { $_ -clike 'DRIFT   *settings.json: install would change permissions.allow Bash(find `*) present -> absent*' }))
 
+# 15. Issue #242: the broad gh api deny the policy retired leaves permissions.deny, every spelling, with a
+# backup and old -> new; the floor's gh api write-method denies and the owner's other deny rules stay.
+$h = Join-Path $Base 'home-242'
+New-Item -ItemType Directory -Force -Path (Join-Path $h '.claude') | Out-Null
+$sf = Join-Path $h '.claude\settings.json'
+[System.IO.File]::WriteAllText($sf, '{ "permissions": { "deny": [ "Bash(gh api:*)", "Bash(gh api *)", "Bash(gh api*)", "Bash(gh pr close:*)" ] } }')
+$out = Run $h @('-Check', '-Overlay', $repoOverlay); Expect 'check flags the retired gh api deny' 1 $script:rc
+Check 'check names the retired gh api deny as DRIFT' ([bool]($out | Where-Object {
+            $_ -clike 'DRIFT   *settings.json: install would change permissions.deny Bash(gh api:`*) present -> absent; Bash(gh api `*) present -> absent; Bash(gh api`*) present -> absent (retired, Issue #242*' }))
+$out = Run $h @('-Overlay', $repoOverlay); Expect 'install removes the retired gh api deny' 0 $script:rc
+$s = Settings $h
+$deny = @($s.permissions.deny)
+Check 'the broad gh api deny is gone in every spelling' (
+    -not ($deny -ccontains 'Bash(gh api:*)') -and -not ($deny -ccontains 'Bash(gh api *)') -and -not ($deny -ccontains 'Bash(gh api*)'))
+Check 'the floor gh api write-method denies and the owner rule stay' (
+    ($deny -ccontains 'Bash(gh api -X POST:*)') -and ($deny -ccontains 'Bash(gh api --method DELETE:*)') -and ($deny -ccontains 'Bash(gh pr close:*)'))
+Check 'the deny backup holds the retired entry and is owner-only' (
+    (Test-Path -LiteralPath "$sf.pmhwc-deny-backup") -and [System.IO.File]::ReadAllText("$sf.pmhwc-deny-backup").Contains('Bash(gh api:*)') -and (Test-OwnerOnly "$sf.pmhwc-deny-backup"))
+Check 'the deny change is printed old -> new' ([bool]($out | Where-Object {
+            $_ -clike 'CHANGED *settings.json: permissions.deny Bash(gh api:`*) present -> absent;*(retired, Issue #242, owner ruling 2026-11-01; previous file kept as *pmhwc-deny-backup)' }))
+$out = Run $h @('-Check', '-Overlay', $repoOverlay); Expect 'check is clean after the gh api deny leaves' 0 $script:rc
+
 Write-Output "$($script:pass) passed, $($script:fail) failed"
 if ($script:fail -ne 0) { exit 1 }
 exit 0
