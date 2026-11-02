@@ -69,6 +69,7 @@ jobs:
             global/profile/profile.py global/profile/profile_test.py \
             global/workstation.py global/workstation_test.py \
             global/scan.py global/scan_test.py \
+            global/merge_authority.py global/merge_authority_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
             global/models/model_defaults.py global/models/model_defaults_test.py \
@@ -153,6 +154,13 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
+      # Issue #195: the merge-authority contract. The method's operational copies against the canonical
+      # contract, and ./mhw check --project=DIR against synthetic project briefs in throwaway HOMEs and
+      # directories. Checks over strings and one bounded block, not a gate's behaviour.
+      - name: merge-authority suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: python3 -B global/merge_authority_test.py
       # Issue #224: Chrome's remote-debugging key in Local State, on a fixture file only.
       - name: Chrome remote-debugging suite
         env:

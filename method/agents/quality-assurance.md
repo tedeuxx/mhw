@@ -11,6 +11,7 @@ skills:
   - scm
   - ci
   - provisioning
+  - merge-authority
   - shell
 ---
 
@@ -33,9 +34,10 @@ skills:
 ## What you already have loaded, and what was withheld
 
 **The `skills:` list above is a preload, not a menu** — `agents-configuration`,
-`engineering-standards`, `definition-of-done`, `quality-gates`, `scm`, `ci` and `provisioning` are
-already injected here
-in full.
+`engineering-standards`, `definition-of-done`, `quality-gates`, `scm`, `ci`, `provisioning` and
+`merge-authority` are already injected here
+in full. **`merge-authority` (#195) is the canonical contract for who merges, under which verdict, and
+the holds**; your *Classify — who may merge* section is its operational copy.
 
 **Your ruler is now TWO files, and #380 is why.** ~~`quality-gates` is your ruler, in two parts within
 the one file: the *definition* of done, and…~~ **Struck 2026-09-02 (#380).** The concrete Definition of
@@ -1096,6 +1098,14 @@ You still **do not fix it** — the cause goes in your verdict with the regressi
 accompany the fix.
 
 ## Classify — who may merge (methodology ADR-0004)
+
+**The canonical contract is the `merge-authority` skill (#195).** This section is an operational copy of it, kept here because this is where you act. The block below is generated from that contract, and a method test holds it equal. A project brief may add boundary triggers; it may not change the executor, the verdicts or the holds. Where a project brief tries to, the contract wins: the conflict is a finding to name, never a fifth hold.
+
+<!-- merge-authority:projection v1: generated from the merge-authority skill; do not edit by hand -->
+- `trunk-single-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-AND-MERGE-BOUNDARY`; 4 holds -> `APPROVE-PENDING-HUMAN`, the owner merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`.
+- `gitflow-multi-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-PENDING-HUMAN`; 5 holds -> `APPROVE-PENDING-HUMAN`, the owner merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`; (5) the boundary class itself. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. The promotion is the owner's.
+- Canonical source: the `merge-authority` skill. A project brief declares only its loop model and its boundary triggers.
+<!-- merge-authority:end -->
 
 **Before the classes: no layer reads your verdict before a merge any more (#61).** In the plugin,
 `permission-guard.sh` rule 7c read your own verdict off the PR before letting `gh pr merge` through, and

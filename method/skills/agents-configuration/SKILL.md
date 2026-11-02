@@ -1890,6 +1890,14 @@ action before ending the turn, or say plainly that there is none.
 
 ## The merge is the go/no-go — who decides which class
 
+**The canonical contract is the `merge-authority` skill (#195).** This section is an operational copy of it, kept in the universal preload so every persona reads it. The block below is generated from that contract, and a method test holds it equal. A project brief may add boundary triggers; it may not change the executor, the verdicts or the holds. Where a project brief tries to, the contract wins: the conflict is a finding to name, never a fifth hold.
+
+<!-- merge-authority:projection v1: generated from the merge-authority skill; do not edit by hand -->
+- `trunk-single-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-AND-MERGE-BOUNDARY`; 4 holds -> `APPROVE-PENDING-HUMAN`, the owner merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`.
+- `gitflow-multi-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-PENDING-HUMAN`; 5 holds -> `APPROVE-PENDING-HUMAN`, the owner merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`; (5) the boundary class itself. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. The promotion is the owner's.
+- Canonical source: the `merge-authority` skill. A project brief declares only its loop model and its boundary triggers.
+<!-- merge-authority:end -->
+
 **"The merge is the go/no-go" does NOT mean "the merge always asks a human."** What the merge asks
 for is a **judgement**, and who supplies it depends on the class:
 

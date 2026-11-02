@@ -1,0 +1,152 @@
+---
+name: "merge-authority"
+description: "The method's canonical merge-authority contract: for each loop model, who executes a merge, the verdict literals, the complete human-hold set and how the safe and boundary classes relate; and the one block a project brief declares instead of restating it (its loop model and its own boundary triggers). Use when classifying a merge, writing or reading a gate verdict, deciding who merges, or writing a project brief's merge section. A project may add boundary triggers; it may not change the executor, the verdicts or the holds."
+purpose: "keep who merges, under which verdict, and the four human holds in one method-owned place, so a project brief can classify its own boundary triggers without overriding them"
+---
+
+# Merge authority — the canonical contract
+
+**This file is the one canonical source of merge authority in this method** (#195). Before it, the rule
+lived in prose in several method files and in each project's root brief, and the closer brief won. Three
+fully green merge requests in a consuming web-product project returned `APPROVE-PENDING-HUMAN` because
+its brief said the gate escalates the boundary class to the owner, although none of the four holds
+applied. The owner chose canonicalization with verification (2026-10-17).
+
+**The split, in one sentence: the method owns who merges, under which verdict, and which holds stop a
+merge; a project owns what counts as boundary in it.** A project's boundary triggers are legitimate and
+are its own. They change a diff's class; they never add a hold, change the executor or change a verdict.
+
+## The contract
+
+The block below is the contract. Everything else in this file, and every operational copy elsewhere in
+the method, is a reading of it. `mhw check --project=<workspace-root>` reads the **installed** copy of
+this block, and a method test checks every operational copy against the **source** copy.
+
+```merge-authority-contract
+{
+  "contract": "merge-authority",
+  "version": 1,
+  "declaration-versions": [1],
+  "verdicts": ["APPROVE-AND-MERGE", "APPROVE-AND-MERGE-BOUNDARY", "APPROVE-PENDING-HUMAN",
+               "APPROVE-EXECUTOR-BLOCKED", "REQUEST-CHANGES"],
+  "holds": {
+    "gate-authority": "an expansion of the gate's own authority",
+    "harness-marker": "a harness diff with no `agents-lead` verdict marker at the head being merged",
+    "iac": "anything in `iac/`",
+    "lens-escalate": "an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`",
+    "boundary-class": "the boundary class itself"
+  },
+  "models": {
+    "trunk-single-env": {
+      "executor": "quality-assurance",
+      "safe": "APPROVE-AND-MERGE",
+      "boundary": "APPROVE-AND-MERGE-BOUNDARY",
+      "holds": ["gate-authority", "harness-marker", "iac", "lens-escalate"],
+      "on-hold": "APPROVE-PENDING-HUMAN",
+      "hold-executor": "owner",
+      "executor-blocked": "APPROVE-EXECUTOR-BLOCKED",
+      "changes": "REQUEST-CHANGES"
+    },
+    "gitflow-multi-env": {
+      "executor": "quality-assurance",
+      "safe": "APPROVE-AND-MERGE",
+      "boundary": "APPROVE-PENDING-HUMAN",
+      "holds": ["gate-authority", "harness-marker", "iac", "lens-escalate", "boundary-class"],
+      "on-hold": "APPROVE-PENDING-HUMAN",
+      "hold-executor": "owner",
+      "executor-blocked": "APPROVE-EXECUTOR-BLOCKED",
+      "changes": "REQUEST-CHANGES",
+      "promotion-executor": "owner"
+    }
+  }
+}
+```
+
+**`version`** is the contract's content version: it changes whenever an executor, a verdict or a hold
+changes. **`declaration-versions`** lists the project-declaration formats this contract understands. They
+are separate on purpose: a change to the verdict set does not force every project to edit its brief, and
+a project declaring a format the installed method does not know is refused rather than guessed at.
+
+## The contract in words
+
+**`trunk-single-env`** (one long-lived branch, merge is deploy):
+
+- `quality-assurance` executes every cleared merge. Safe class → `APPROVE-AND-MERGE`. Boundary class →
+  `APPROVE-AND-MERGE-BOUNDARY`, and the owner reviews live after deploy (ADR-0002 amendment #16 in the
+  methodology library).
+- **Exactly four holds**, and on any of them the verdict is `APPROVE-PENDING-HUMAN` and the owner
+  merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict
+  marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a
+  `BLOCKING` truth finding from `product-lead`.
+- Cleared but the merge could not be executed → `APPROVE-EXECUTOR-BLOCKED`; this is not a hold. An
+  unmet Definition of Done → `REQUEST-CHANGES`.
+
+**`gitflow-multi-env`** (an integration branch and more than one environment): the trunk rule is **not**
+imported. An integration branch is a place to hold a change and look at it, so the boundary class itself
+is a hold: safe class → `APPROVE-AND-MERGE` into the integration branch, executed by
+`quality-assurance`; boundary class → `APPROVE-PENDING-HUMAN`, the owner merges; the four holds apply as
+well; and the promotion to the release branch is the owner's, behind manual approval (the
+`gitflow-multi-env` table in `quality-gates`).
+
+**When it is unclear whether a hold applies, it applies.** When the class is unclear, it is boundary.
+
+## What a project declares — and nothing more
+
+A project's root brief (`AGENTS.md`) carries **one** block, at column 0 and outside any code fence:
+
+```
+<!-- merge-authority:begin -->
+- contract: merge-authority v1
+- loop-model: trunk-single-env
+- boundary-trigger: a merge touching `iac/`
+- boundary-trigger: publishing an article in the owner's voice
+<!-- merge-authority:end -->
+```
+
+- **`contract`** — required, once: the reference to this contract and the declaration format it uses
+  (`v1` today).
+- **`loop-model`** — required, once: one of the models in the contract.
+- **`boundary-trigger`** — any number: a condition, path or semantic, that makes a diff boundary in this
+  project. It classifies; it may not say who merges, what verdict follows or what the owner must do.
+
+**Any other key is refused**, and a key that names an executor, a verdict, a hold or a class mapping is
+named as that override. A project brief may say more about its merges in prose (how to read its plan,
+what to look at live), but it **references this contract instead of restating it**, and it never claims
+that its own text wins over the method on merge authority.
+
+## What `mhw check --project=<workspace-root>` enforces, at its real evidence level
+
+It reads the project's root `AGENTS.md` and the installed copies of this skill. It exits non-zero when:
+
+- the installed method carries no readable contract, its copies disagree, or none understands the
+  declared format: **fail closed**, with the install instruction, rather than validating against a
+  missing or older contract;
+- the block is absent, appears more than once, lacks `contract` or `loop-model`, names an unknown
+  model, or carries any other key (executor, verdict, hold or class keys are named as overrides);
+- a `boundary-trigger` value uses authority vocabulary (`APPROVE-`, ratify, escalate, hold, merges,
+  go/no-go);
+- the live prose carries one of the **known** legacy phrases: the gate escalating, holding or not
+  merging the boundary class, or the brief claiming it wins over the method;
+- the live prose names a loop model other than the declared one.
+
+**Live prose** excludes struck spans (`~~…~~`), code fences, blockquotes, HTML comments and quoted
+text, so history and quoted evidence never read as a declaration.
+
+**What it does not enforce, stated so a green is not read as more.** It parses one bounded block and
+diagnoses a short list of known phrases; it does **not** understand natural language. A paraphrase of
+the same override outside the block, worded differently from the known phrases, passes: that is a
+review-level false negative, held by review. It reads only the root `AGENTS.md`, not other instruction
+files or ADRs. It is a check you run, not a hook; nothing runs it on its own.
+
+## Operational copies, and what keeps them in step
+
+The executor, the verdicts and the holds must reach whoever acts at runtime, so a copy stays where they
+act: `quality-assurance` (*Classify — who may merge* and its verdict list, and its description),
+`agents-configuration` (*The merge is the go/no-go*), `quality-gates` (the `trunk-single-env` table),
+`/autonomy` (what *ready for him* means) and the workspace delivery route (`workspace/delivery.py`'s
+clearance literals). Each method copy carries a projection block generated from the contract above,
+between `<!-- merge-authority:projection` and `<!-- merge-authority:end -->`, and the method renderer
+suite asserts every block equals the projection, that each copy still names every verdict, and that no
+copy's live prose carries a known legacy phrase. **That is a check over strings**: it catches a changed
+executor, verdict or hold in a projection block, and a deleted verdict literal, but not a paraphrase
+elsewhere in a long brief.

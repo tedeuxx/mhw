@@ -454,6 +454,14 @@ the decision made, only the act outstanding.
 builder. `APPROVE-AND-MERGE` and `APPROVE-AND-MERGE-BOUNDARY` are clearances the gate acts on itself
 (ADR-0002 amendment #16), which is why almost every open PR is one he has nothing to do with.
 
+**The canonical contract is the `merge-authority` skill (#195).** The literals above are an operational copy of it. The block below is generated from that contract, and a method test holds it equal. A project brief may add boundary triggers; it may not change the executor, the verdicts or the holds. Where a project brief tries to, the contract wins: the conflict is a finding to name, never a fifth hold.
+
+<!-- merge-authority:projection v1: generated from the merge-authority skill; do not edit by hand -->
+- `trunk-single-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-AND-MERGE-BOUNDARY`; 4 holds -> `APPROVE-PENDING-HUMAN`, the owner merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`.
+- `gitflow-multi-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-PENDING-HUMAN`; 5 holds -> `APPROVE-PENDING-HUMAN`, the owner merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`; (5) the boundary class itself. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. The promotion is the owner's.
+- Canonical source: the `merge-authority` skill. A project brief declares only its loop model and its boundary triggers.
+<!-- merge-authority:end -->
+
 **And the rule has an inverse (#374).** A turn that ends while one of those two
 literals sits at an open, green PR's head, and surfaces no link, is a turn that ended owing him one —
 `agents-configuration`'s end-of-turn check 7 (formerly the plugin's `owed-pr-link-detect.sh`). **It does not address the incident that produced it**, and saying
