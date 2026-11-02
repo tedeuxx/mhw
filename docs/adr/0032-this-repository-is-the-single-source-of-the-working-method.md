@@ -652,6 +652,75 @@ on every harness follow directly; see ADR-0021's amendment of this date.
 
 **Evidence level.** *Written and tested.* Not installed on the reference machine.
 
+## Amendment 2026-11-01: the method owns merge authority, and a project brief only classifies (#195)
+
+Status unchanged (proposed). This extends the 2026-10-15 amendment (#176), which moved the method-wide
+orchestration rules out of each project's root brief, to the one rule it left behind: who merges.
+
+**Context.** Three fully green merge requests in a consuming web-product project returned
+`APPROVE-PENDING-HUMAN` although none of the method's four holds applied. That project's root brief said
+the gate escalates the boundary class to the owner and that the brief wins where a platform skill
+disagrees; the closer brief wins in a session, so the method's executor and verdict mapping were
+overridden. The owner chose canonicalization with verification (2026-10-17, recorded on #195).
+
+**Decision.**
+
+- **The canonical contract is the `merge-authority` skill** (`method/skills/merge-authority/SKILL.md`):
+  a fenced, machine-readable block mapping each supported loop model to its executor, its verdict
+  literals, its complete hold set and the relation between the safe and boundary classes.
+  `trunk-single-env` keeps the 2026-08-23 rule (the gate merges safe and boundary, four holds).
+  `gitflow-multi-env` keeps the method's earlier rule and does not import the trunk one: the boundary
+  class is itself a hold there, and the promotion is the owner's. The `rc/next` variant of
+  `trunk-single-env` (`scm`) is modelled too: a project that declares `integration-branch` gets the
+  contract's release-candidate hold, so the promotion pull request into the trunk waits for the owner's
+  explicit go. A project can turn that hold on and cannot turn it off; a trunk brief that describes a
+  release candidate without declaring the branch is a finding.
+- **A project declares, in one bounded block of its root `AGENTS.md`, only its loop model, the contract
+  reference, its integration branch if it has one, and its own boundary triggers.** It may not declare an executor, a verdict, a hold or a class
+  mapping.
+- **Operational copies stay where an actor reads them** (`quality-assurance`, `agents-configuration`,
+  `quality-gates`, `/autonomy`, and the workspace delivery route's clearance literals). Each method copy
+  carries a projection block generated from the contract; `global/merge_authority_test.py` asserts each
+  block equals the projection, each copy still names its verdicts, the gate's description carries the
+  trunk mapping, and no copy's live prose carries a known legacy phrase.
+- **`mhw check --project=<workspace-root>`** validates the project's block against the **installed**
+  contract (`global/merge_authority.py`). It fails closed (exit 2) when the installed method carries no
+  readable contract, its copies disagree, or none understands the declared format; it exits 1 on a
+  finding. The contract's content `version` and its `declaration-versions` are separate, so a change to
+  the verdict set does not force every project to edit its brief.
+
+**Considered options.**
+
+- **Chosen: a machine-readable contract plus a bounded declaration and a check.** Trade-off: it parses
+  one block and a short list of known phrases; an unrelated paraphrase outside the block is a
+  review-level false negative, and the suite asserts that limit so it stays visible.
+- **Rejected: prose canonicalization only** (point every brief at a skill section, as #176 did). Cheaper,
+  but it is exactly the state that let a project brief override the method unnoticed: nothing would go
+  red.
+- **Rejected: a semantic check over the whole brief.** Natural language cannot be proven complete by a
+  pattern; it would claim enforcement it does not have.
+- **Rejected: a hook.** The workstation's hook budget admits hooks only for existential risk, and a
+  merge-authority drift is not one.
+
+**Consequences.**
+
+- Good: one place decides who merges; a project's boundary triggers stay its own; the regression (a
+  project turning boundary into a fifth hold) goes red in the check and in the suite.
+- Bad: a new skill in every carrier; consuming projects must add the block before the check is green;
+  the check reads only the root `AGENTS.md`; Windows (`install.ps1`) does not run the project section.
+- Residual: in this repository the release-candidate hold is an instruction. `workspace/delivery.py`
+  runs its review gate only for a pull request into `rc/next`, and its route into `main` reads no
+  verdict and no owner artifact. This slice does not change that route.
+- Seam: #133 (an owner authorization must cite his comment) and #134 (one clearance literal plus an
+  owner-check line) will edit the contract's verdicts and the gate's evidence rule. They change the
+  contract `version`, regenerate the projection blocks and update `workspace/delivery.py`'s clearance
+  literals; the project declaration format does not change for them.
+- The consumer correction is a second, serial merge request in the consuming project; #195 stays open
+  until it merges and the project passes the installed check.
+
+**Evidence level.** *Written and tested* (`global/merge_authority_test.py`, every negative case mutated,
+red, restored, green). Not installed on the reference machine; no real project carries the block yet.
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)
