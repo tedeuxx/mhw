@@ -19,6 +19,9 @@ checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./wo
                                           (the admin layer included, stamped or from an earlier release),
                                           or a required prerequisite is missing (global/prerequisites.json)
     ./mhw check --prerequisites         the prerequisites section only (Issue #89); never applies anything
+    ./mhw check --project=DIR           also check DIR's root AGENTS.md merge-authority declaration against
+                                          the installed method contract (Issue #195): exit 1 on a finding,
+                                          2 when the installed method cannot validate it (fail closed)
     ./mhw update [vX.Y.Z] [--yes]       fetch tags, check out the newest release (or the one given), install;
                                           in an npm install (no .git, Issue #68) run the npm update, then
                                           the new package's install (Issue #113)
@@ -39,7 +42,8 @@ checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./wo
                                           `mhw install`; it installs nothing (Issue #113)
 
 Options for every subcommand: --overlay=DIR|none (default: the repository's overlay/), and
---project=DIR for status (default: the git root of the current directory).
+--project=DIR for status (default: the git root of the current directory) and for check (no default:
+the project-brief section runs only when it is given).
 
 global/install.sh and global/install-managed.sh stay the internals: this file decides their flags and
 summarises their output, it renders nothing itself. Version key (Issue #57): a project declares the
@@ -1586,7 +1590,7 @@ def cmd_uninstall(verbose=False, yes=False):
     return 1 if failed or left else 0
 
 
-def cmd_check(prerequisites_only=False):
+def cmd_check(prerequisites_only=False, project=None):
     code = 0
     if not prerequisites_only:
         hooks_mode = "managed" if admin_installed() else "user"
@@ -1604,7 +1608,23 @@ def cmd_check(prerequisites_only=False):
     import prerequisites
     pcode, lines = prerequisites.report()
     print("\n".join(lines), flush=True)
-    return max(code, pcode)
+    code = max(code, pcode)
+    if project is not None:
+        # Issue #195: the project brief against the installed merge-authority contract. Read-only.
+        code = max(code, check_project_brief(project))
+    return code
+
+
+def check_project_brief(project):
+    """The --project section of check: exit 0, 1 (findings) or 2 (cannot validate, fail closed)."""
+    import merge_authority
+    root = Path(project).expanduser().resolve()
+    if not root.is_dir():
+        print("PROJECT %s is not a directory" % project, flush=True)
+        return 2
+    mcode, lines = merge_authority.check_project(root, Path.home())
+    print("\n".join(lines), flush=True)
+    return mcode
 
 
 def valid_overlay(value):
@@ -1634,7 +1654,7 @@ def main(argv):
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
-        elif arg.startswith("--project=") and command == "status":
+        elif arg.startswith("--project=") and command in ("status", "check"):
             project = arg[len("--project="):]
         elif arg in ("-v", "--verbose") and command in ("status", "install", "update", "uninstall"):
             verbose = True
@@ -1671,7 +1691,7 @@ def main(argv):
     if command == "postinstall":
         return cmd_postinstall(method)
     if command == "check":
-        return cmd_check(prereq_only)
+        return cmd_check(prereq_only, project)
     if command == "update":
         return cmd_update(wanted, verbose, yes)
     if command == "uninstall":
