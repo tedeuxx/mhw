@@ -136,6 +136,18 @@ if [ "$overlay_allow" != /dev/null ] && [ "$(jq '[.permissions.allow[]? | select
   miss=1; echo "  no repository suite in the wide allow list"
 fi
 if [ "$miss" -eq 0 ]; then ok "wide tier: read/build routes, pinned add and commit, suites, escaping options denied"; else ko "wide tier entries wrong"; fi
+# The installed milestone read route (Issue #242): pre-authorised by its absolute installed path in the
+# wide tier, Claude Code only, with an Edit deny on that file; no other milestone script, no Codex rule.
+mr="$h/.local/share/personal-multi-harness-workstation-configuration/method/scripts/milestone-read.py"
+if [ "$(jq --arg r "Bash(python3 $mr:*)" '[.permissions.allow[]? | select(. == $r)] | length' "$s")" -eq 1 ] \
+   && [ "$(jq --arg r "Edit(/$mr)" '[.permissions.deny[]? | select(. == $r)] | length' "$s")" -eq 1 ] \
+   && [ "$(jq '[.permissions.allow[]? | select(test("milestone-(create|update|close)"))] | length' "$s")" -eq 0 ] \
+   && ! grep -q milestone "$h/.codex/rules/workstation-allow-list.rules" \
+   && ! grep -q milestone "$h/.kiro/agents/workstation.json"; then
+  ok "wide tier: python3 <installed>/milestone-read.py is pre-authorised (Claude Code only), its file Edit-denied, no other milestone script"
+else
+  ko "the milestone read route is not pre-authorised as expected: $(jq -c '[.permissions.allow[]? | select(test("milestone"))]' "$s")"
+fi
 
 # 3. The admin floor gone again: a wide list without the barrier is drift, and install narrows it.
 HOME="$h" sh "$inst" --check --managed-root="$empty" > "$base/g.out" 2>&1; expect "wide list without the admin floor is drift" 1 $?
@@ -212,7 +224,11 @@ for bad in "wide cmd git push" "narrow cmd sudo -n" "narrow cmd git *" "loose cm
            "narrow cmd gh -R" "wide cmd gh pr -R" "narrow cmd gh issue -R" "wide cmd gh pr --repo" \
            "wide cmd gh pr --repo=o" "wide cmd gh pr view -Ro" \
            "wide cmd GIT_CONFIG_PARAMETERS=x git log" "narrow cmd GIT_PAGER=x git status" \
-           "wide deny GIT_PAGER=x git diff"; do
+           "wide deny GIT_PAGER=x git diff" \
+           "narrow script python3 milestone-read.py" "wide script node milestone-read.py" \
+           "wide script python3 scripts/milestone-read.py" "wide script python3 /abs/milestone-read.py" \
+           "wide script python3 milestone.test.py" "wide script python3 no-such-script.py" \
+           "wide script python3 -c milestone-read.py" "wide script python3 milestone-read.txt"; do
   ov="$base/ov-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"; hb="$base/home-bad-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"
   mkdir -p "$ov" "$hb"
   printf '%s\n' "$bad" > "$ov/allow-list.conf"

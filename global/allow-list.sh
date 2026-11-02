@@ -17,6 +17,9 @@ allow_src="$script_dir/allow-list.conf"
 allow_codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-allow-list.rules"
 allow_codex_profile="${CODEX_HOME:-$HOME/.codex}/workstation.config.toml"
 allow_kiro_agent="$HOME/.kiro/agents/workstation.json"
+# Where method_render.py installs method/scripts (the same ${XDG_DATA_HOME:-~/.local/share} rule): a
+# "script" entry renders with this absolute path (Issue #242).
+allow_method_scripts="$data_dir/method/scripts"
 
 # Parse and validate. Output: $work/allow.<tier>.<kind>, one word list per line. An entry that is a word
 # prefix of a floor entry, or that a floor entry covers, stops the run before anything is written.
@@ -26,8 +29,10 @@ allow_parse() {
   if [ -n "$overlay" ] && [ -f "$overlay/allow-list.conf" ]; then
     cat "$overlay/allow-list.conf" >> "$work/allow.conf"
   fi
-  for t in narrow wide; do for k in cmd runner deny; do : > "$work/allow.$t.$k"; done; done
-  if ! awk -v dir="$work" -v floor="$floor_codex" '
+  for t in narrow wide; do for k in cmd runner script deny; do : > "$work/allow.$t.$k"; done; done
+  mhave=0
+  [ -d "$repo_root/method/scripts" ] && mhave=1
+  if ! awk -v dir="$work" -v floor="$floor_codex" -v msrc="$repo_root/method/scripts" -v mdst="$allow_method_scripts" -v mhave="$mhave" '
       BEGIN { while ((getline line < floor) > 0) { nf++; fl[nf] = line } }
       function prefix(a, b,   na, nb, x, y, i) { # 1 when word list a is a word prefix of b
         na = split(a, x, " "); nb = split(b, y, " ")
@@ -45,10 +50,30 @@ allow_parse() {
       {
         why = ""
         if ($1 != "narrow" && $1 != "wide") why = "tier must be narrow or wide"
-        else if ($2 != "cmd" && $2 != "runner" && $2 != "deny") why = "kind must be cmd, runner or deny"
+        else if ($2 != "cmd" && $2 != "runner" && $2 != "script" && $2 != "deny") why = "kind must be cmd, runner, script or deny"
         else if (NF < 3) why = "no words"
         w = $3; for (i = 4; i <= NF; i++) w = w " " $i
-        if (why == "" && $2 == "runner") {
+        if (why == "" && $2 == "script") {
+          # A script names ONE installed method script (method/scripts/<name>, Issue #242) by its bare name,
+          # through sh, bash or python3, with no option but -B or -I. It renders with the installed absolute
+          # path, where the rendered method runs it from any repository.
+          if ($1 != "wide") why = "a script runs installed code, so it belongs to the wide tier only"
+          else if ($3 !~ /^(sh|bash|python3)$/) why = "a script starts with sh, bash or python3"
+          else if ($NF !~ /^[A-Za-z0-9_-][A-Za-z0-9._-]*\.(sh|py)$/ || $NF ~ /\.test\./)
+            why = "a script ends with one bare .sh or .py name of method/scripts/, never a test"
+          for (i = 4; i < NF && why == ""; i++) if ($i != "-B" && $i != "-I") why = "a script takes no option but -B or -I"
+          # A copy of the sources without method/ (not a full checkout) has nothing to install there.
+          if (why == "" && mhave != 1) {
+            printf "NOTE    allow list: %s is not pre-authorised: this copy has no method/scripts/\n", $NF
+            next
+          }
+          if (why == "") { if ((getline probe < (msrc "/" $NF)) < 0) why = "no method/scripts/" $NF " to install"; close(msrc "/" $NF) }
+          if (why == "" && mdst !~ /^\/[A-Za-z0-9._\/@+~-]+$/) {
+            printf "NOTE    allow list: %s is not pre-authorised: the installed scripts path holds a character a rule cannot carry\n", $NF
+            next
+          }
+          if (why == "") { w = $3; for (i = 4; i < NF; i++) w = w " " $i; w = w " " mdst "/" $NF }
+        } else if (why == "" && $2 == "runner") {
           # A runner names ONE repository script, by relative path, through sh, bash or python3, with
           # no option but -B or -I: an exact suite, never the interpreter (ADR-0031, owner 2026-10-05).
           if ($1 != "wide") why = "a runner runs repository code, so it belongs to the wide tier only"
@@ -153,10 +178,13 @@ allow_protect() {
       "**/.git/config" "**/.git/hooks/**"; do
     printf 'Edit(%s)\n' "$r"
   done
+  # Each installed method script the wide tier pre-authorises (Issue #242): its last word is the
+  # absolute path, so an agent cannot rewrite the code it may run without a prompt.
+  awk '{ print "Edit(/" $NF ")" }' "$work/allow.wide.script"
 }
 
 allow_claude_render() { # $1 tier, $2 input settings, $3 output
-  ac_want=$(allow_words "$1" "cmd runner" | jq -cR -s 'split("\n") | map(select(length > 0) | "Bash(" + . + ":*)")')
+  ac_want=$(allow_words "$1" "cmd runner script" | jq -cR -s 'split("\n") | map(select(length > 0) | "Bash(" + . + ":*)")')
   ac_protect=$({ allow_protect; allow_words "$1" deny | sed 's/.*/Bash(&:*)/'; } | jq -cR -s 'split("\n") | map(select(length > 0))')
   ac_mode=null
   [ "$1" = wide ] && ac_mode='"acceptEdits"'
@@ -244,59 +272,47 @@ allow_claude() {
   esac
 }
 
-# ---- The user-level allow and deny entries the policy retired: allow-retired.conf (Issue #145; ADR-0035
-# decision 4) and deny-retired.conf (Issue #242, owner ruling 2026-11-01). They are not mhw's (no ownership
-# key holds them), so they are removed by name: exactly the listed rules, from permissions.<kind> only, with
-# the previous file kept as settings.json.pmhwc-<kind>-backup and each removal reported old -> new. The
-# backup is the restore route: uninstall does not re-add a rule the policy retired. A deny rule the floor
-# renders ($floor_claude) is never removed, whatever the list says, so retiring a deny cannot open a floor
-# prefix.
+# ---- The user-level allow entries the policy retired (Issue #145; ADR-0035 decision 4): allow-retired.conf.
+# They are not mhw's (no ownership key holds them), so they are removed by name: exactly the listed rules,
+# from permissions.allow only, with the previous file kept as settings.json.pmhwc-allow-backup and each
+# removal reported old -> new. The backup is the restore route: uninstall does not re-add a rule the policy
+# retired.
 allow_retired_src="$script_dir/allow-retired.conf"
-deny_retired_src="$script_dir/deny-retired.conf"
-settings_retire() { # $1 allow|deny, $2 the source list, $3 the reason printed with each change
-  sr_kind=$1; sr_src=$2; sr_why=$3; sr_backup="$settings.pmhwc-$1-backup"
-  [ -f "$sr_src" ] || { echo "source not found: $sr_src" >&2; raise 2; return 0; }
+allow_retire() {
+  [ -f "$allow_retired_src" ] || { echo "source not found: $allow_retired_src" >&2; raise 2; return 0; }
   [ -f "$settings" ] || return 0
   jq -e 'type == "object"' "$settings" >/dev/null 2>&1 || return 0   # merge_settings already refused it
-  sr_list=$(grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$sr_src" | jq -cR -s 'split("\n") | map(select(length > 0))')
-  if [ "$sr_kind" = deny ]; then
-    sr_floor=$(jq -cR -s 'split("\n") | map(select(length > 0))' "$floor_claude")
-    sr_list=$(jq -cn --argjson r "$sr_list" --argjson f "$sr_floor" '[$r[] | select(. as $x | $f | index($x) | not)]')
-  fi
-  if ! sr_hit=$(jq -c --arg k "$sr_kind" --argjson r "$sr_list" '[(.permissions[$k]? // []) | if type == "array" then .[] else empty end
+  ar_list=$(grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$allow_retired_src" | jq -cR -s 'split("\n") | map(select(length > 0))')
+  if ! ar_hit=$(jq -c --argjson r "$ar_list" '[(.permissions.allow? // []) | if type == "array" then .[] else empty end
                                                | select(. as $x | $r | index($x))] | unique' "$settings" 2>/dev/null); then
-    return 0   # allow_claude and merge_settings refuse a permissions section of the wrong shape
+    return 0   # allow_claude refuses a permissions section of the wrong shape
   fi
-  if [ "$sr_hit" = "[]" ]; then
-    echo "OK      $settings: no $sr_kind entry the policy retired"
+  if [ "$ar_hit" = "[]" ]; then
+    echo "OK      $settings: no allow entry the policy retired"
     return 0
   fi
-  sr_what=$(printf '%s' "$sr_hit" | jq -r 'map(. + " present -> absent") | join("; ")')
+  ar_what=$(printf '%s' "$ar_hit" | jq -r 'map(. + " present -> absent") | join("; ")')
   case $mode in
     check)
-      echo "DRIFT   $settings: install would change permissions.$sr_kind $sr_what (retired, $sr_why)"
+      echo "DRIFT   $settings: install would change permissions.allow $ar_what (retired, ADR-0035 decision 4)"
       raise 1
       ;;
     dry-run)
-      echo "WOULD CHANGE $settings: permissions.$sr_kind $sr_what (backup $sr_backup)"
+      echo "WOULD CHANGE $settings: permissions.allow $ar_what (backup $settings.pmhwc-allow-backup)"
       ;;
-    install|*)   # uninstall never calls settings_retire
-      if ! jq --indent 4 --arg k "$sr_kind" --argjson r "$sr_list" '.permissions[$k] |= map(select(. as $x | $r | index($x) | not))
-            | if .permissions[$k] == [] then del(.permissions[$k]) else . end
-            | if .permissions == {} then del(.permissions) else . end' "$settings" > "$work/$sr_kind.retired.json" 2>/dev/null; then
-        echo "REFUSE  $settings: the retired $sr_kind entries could not be removed; left untouched" >&2
+    install|*)   # uninstall never calls allow_retire
+      if ! jq --indent 4 --argjson r "$ar_list" '.permissions.allow |= map(select(. as $x | $r | index($x) | not))
+            | if .permissions.allow == [] then del(.permissions.allow) else . end
+            | if .permissions == {} then del(.permissions) else . end' "$settings" > "$work/allow.retired.json" 2>/dev/null; then
+        echo "REFUSE  $settings: the retired allow entries could not be removed; left untouched" >&2
         raise 3
         return 0
       fi
-      private_copy "$settings" "$sr_backup"
-      cat "$work/$sr_kind.retired.json" > "$settings"
-      echo "CHANGED $settings: permissions.$sr_kind $sr_what (retired, $sr_why; previous file kept as $sr_backup)"
+      private_copy "$settings" "$settings.pmhwc-allow-backup"
+      cat "$work/allow.retired.json" > "$settings"
+      echo "CHANGED $settings: permissions.allow $ar_what (retired, ADR-0035 decision 4; previous file kept as $settings.pmhwc-allow-backup)"
       ;;
   esac
-}
-allow_retire() {
-  settings_retire allow "$allow_retired_src" "ADR-0035 decision 4"
-  settings_retire deny "$deny_retired_src" "Issue #242, owner ruling 2026-11-01"
 }
 
 # ---- A managed file of ours (Codex rules, Kiro agent): written whole, never over an unmanaged file.
@@ -413,9 +429,6 @@ allow_uninstall() {
   done
   if [ -f "$settings.pmhwc-allow-backup" ]; then
     echo "NOTE    $settings: the allow entries the policy retired are in $settings.pmhwc-allow-backup; uninstall does not re-add them (ADR-0035 decision 4)"
-  fi
-  if [ -f "$settings.pmhwc-deny-backup" ]; then
-    echo "NOTE    $settings: the deny entries the policy retired are in $settings.pmhwc-deny-backup; uninstall does not re-add them (Issue #242)"
   fi
   [ -f "$settings" ] && command -v jq >/dev/null 2>&1 || return 0
   if jq -e --arg ok "$ALLOW_OWN_KEY" 'type == "object" and has($ok)' "$settings" >/dev/null 2>&1; then

@@ -591,11 +591,11 @@ what follows discharges it.
 **Milestones, and the choice is closer to a measurement than to a preference.** A GitHub Projects v2
 iteration field cannot be driven from inside this harness at all: `gh project field-create --data-type`
 accepts `{TEXT|SINGLE_SELECT|DATE|NUMBER}` and `ITERATION` is not in the set, `gh project list` fails on
-a missing `read:project` token scope, ~~and the GraphQL escape hatch is denied by the global permission
-floor (`Bash(gh api:*)`)~~ **(struck 2026-11-02, mhw#242: that broad deny was an owner-written user
-rule, never a floor entry, and `mhw install` now removes it on his ruling; the workstation floor denies
-only the `gh api -X`/`--method` write prefixes, so a `gh api` read, GraphQL included, runs)**. A
-milestone needs none of that: `gh issue edit --milestone`, `gh issue list --milestone` and
+a missing `read:project` token scope, and the GraphQL escape hatch is denied by ~~the global permission
+floor~~ the owner's own user-level rule (`Bash(gh api:*)`) **(corrected 2026-11-02, mhw#242: it is a
+rule he wrote in his user settings, not a workstation floor entry; the floor carries only the
+`gh api -X`/`--method` write prefixes. He decided to keep the broad rule, because a prefix cannot tell
+a read from the many write spellings `gh api` accepts)**. A milestone needs none of that: `gh issue edit --milestone`, `gh issue list --milestone` and
 `gh issue list --json milestone` ~~are all allowlisted already~~ **need no token scope and no API
 route. Whether they prompt is the settings layers' answer, not this file's: the workstation allow list
 (`global/allow-list.conf` and the overlay's, in mhw) pre-authorises `gh issue list` and
@@ -671,11 +671,13 @@ family now uses the ~~already-allowlisted~~ `python3` interpreter.** ~~Read, cre
 without a prompt for the orchestrator and every persona holding Bash. No settings layer changed; the
 reach is the accepted consequence of the owner's non-critical pricing of milestone acts.~~ **Struck
 2026-11-02 (mhw#242): `python3` is not allowlisted by the workstation.** Its allow list
-(`global/allow-list.conf` plus the overlay's, in mhw) names `python3` only as a `runner` of specific
-repository test scripts (`python3 -B <script>`, wide tier, Claude Code only), never as an interpreter,
-and no milestone script is among them. So whether a `milestone-*.py` call prompts is decided by
-whatever other settings layer allows it, or by the permission prompt; nothing in this method grants it.
-The owner's non-critical pricing of milestone acts is unchanged.
+(`global/allow-list.conf` plus the overlay's, in mhw) names `python3` only for specific scripts, never as
+an interpreter. **Of this family only the READ is pre-authorised**: a `script` entry renders
+`Bash(python3 {{method-scripts}}/milestone-read.py:*)` into the Claude Code user settings, in the wide
+tier only (the one rendered behind a complete admin deny floor), with an `Edit` deny on that installed
+file. Codex and Kiro get no rule for it. Create, update and close are not pre-authorised, so they reach
+the permission prompt unless another settings layer allows them. The owner's non-critical pricing of
+milestone acts is unchanged; the read is the one he chose to pre-authorise (mhw#242, 2026-11-02).
 
 **One measurement that could make the route unnecessary is still NOT taken, and one obstacle to taking
 it is gone:** whether `gh issue edit --milestone "<new title>"` *creates* a missing milestone. `--help`
@@ -902,10 +904,9 @@ lack of an alternative and it is stated as such rather than as a design:
   instead: no hook resolves a milestone, and the way to falsify that is to find a `gh issue`/`gh api`
   call in a registered hook that reads one, not to count the word.
 - **It is not versioned where this loop can see it.** A description edit produces no commit, no diff and
-  no Issue-timeline event this harness can read — ~~`gh api` is denied by the global permission floor, so
-  the route that would expose the edit history is unavailable by construction~~ **struck 2026-11-02
-  (mhw#242): a `gh api` read is no longer denied by the workstation; whether any endpoint exposes a
-  milestone description's edit history is not established here.**
+  no Issue-timeline event this harness can read — `gh api` is denied by ~~the global permission floor~~
+  the owner's user-level `Bash(gh api:*)` rule (corrected 2026-11-02, mhw#242: not a floor entry, and
+  kept by his decision), so the route that would expose the edit history is unavailable by construction.
 - **It contradicts the paragraph directly above.** *"The planning artifact is an ITERATION ISSUE"* is
   what this skill specifies, and **there is no iteration Issue.** The specified object was not built;
   the milestone description is standing in for it. That gap is named here rather than papered over,

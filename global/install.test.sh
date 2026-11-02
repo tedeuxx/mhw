@@ -1154,61 +1154,6 @@ else
   ko "uninstall and the retired entries: $(jq -c '.permissions.allow' "$ha/.claude/settings.json")"
 fi
 
-# 18b. the user-level deny entry the policy retired (Issue #242, owner ruling 2026-11-01): the broad
-# Bash(gh api:*) deny, in each wildcard spelling, leaves ~/.claude/settings.json with a backup, old -> new;
-# the floor's gh api write-method denies stay, and so does every other deny rule of the owner's. A rule the
-# floor itself renders is never removed, even when the retired list names it (an overlay floor entry
-# "cmd gh api" renders exactly Bash(gh api:*)).
-hd="$base/home-deny-retired"; mkdir -p "$hd/.claude"
-printf '%s\n' '{"permissions": {"deny": ["Bash(gh api:*)", "Bash(gh api *)", "Bash(gh api*)", "Bash(gh apiary:*)", "Bash(gh pr close:*)"]}, "theme": "dark"}' > "$hd/.claude/settings.json"
-deny_seed=$(cksum < "$hd/.claude/settings.json")
-deny_what='Bash(gh api *) present -> absent; Bash(gh api*) present -> absent; Bash(gh api:*) present -> absent'
-floor_api='["Bash(gh api --method DELETE:*)","Bash(gh api --method PATCH:*)","Bash(gh api --method POST:*)","Bash(gh api --method PUT:*)","Bash(gh api -X DELETE:*)","Bash(gh api -X PATCH:*)","Bash(gh api -X POST:*)","Bash(gh api -X PUT:*)"]'
-HOME="$hd" sh "$inst" --check > "$base/deny-r1.out" 2>&1; expect "check reports the retired deny entry" 1 $?
-if grep -qF "DRIFT   $hd/.claude/settings.json: install would change permissions.deny $deny_what (retired, Issue #242, owner ruling 2026-11-01)" "$base/deny-r1.out"; then
-  ok "check names the retired gh api deny, all three spellings, present -> absent"
-else
-  ko "check did not name the retired deny entry"; grep 'permissions.deny' "$base/deny-r1.out"
-fi
-HOME="$hd" sh "$inst" --dry-run > /dev/null 2>&1
-if [ "$(cksum < "$hd/.claude/settings.json")" = "$deny_seed" ]; then ok "dry-run leaves the retired deny in place"; else ko "dry-run changed the settings"; fi
-HOME="$hd" sh "$inst" > "$base/deny-r2.out" 2>&1; expect "install removes the retired deny entry" 0 $?
-s_api=$(jq -c '[.permissions.deny[] | select(startswith("Bash(gh api") and . != "Bash(gh apiary:*)")] | sort' "$hd/.claude/settings.json")
-if [ "$s_api" = "$floor_api" ] \
-   && [ "$(jq '[.permissions.deny[] | select(. == "Bash(gh apiary:*)" or . == "Bash(gh pr close:*)")] | length' "$hd/.claude/settings.json")" -eq 2 ] \
-   && [ "$(jq -r .theme "$hd/.claude/settings.json")" = dark ] \
-   && [ "$(jq '[.permissions.deny[] | select(. == "Bash(gh api:*)" or . == "Bash(gh api *)" or . == "Bash(gh api*)")] | length' "$hd/.claude/settings.json.pmhwc-deny-backup")" -eq 3 ] \
-   && [ "$(stat -c %a "$hd/.claude/settings.json.pmhwc-deny-backup" 2>/dev/null || stat -f %Lp "$hd/.claude/settings.json.pmhwc-deny-backup")" = 600 ] \
-   && grep -qF "CHANGED $hd/.claude/settings.json: permissions.deny $deny_what (retired, Issue #242, owner ruling 2026-11-01; previous file kept as $hd/.claude/settings.json.pmhwc-deny-backup)" "$base/deny-r2.out"; then
-  ok "install removes the broad gh api deny, keeps the floor's eight write-method denies and the owner's others, a 0600 backup holds it, prints old -> new"
-else
-  ko "retired deny entry: $s_api"; grep 'permissions.deny' "$base/deny-r2.out"
-fi
-HOME="$hd" sh "$inst" --check > /dev/null 2>&1; expect "check is clean after the retired deny leaves" 0 $?
-HOME="$hd" sh "$inst" > "$base/deny-r3.out" 2>&1
-if ! grep -q '^CHANGED .*permissions.deny' "$base/deny-r3.out"; then ok "a second install removes no deny entry"; else ko "a second install reported a deny removal again"; fi
-HOME="$hd" sh "$inst" --uninstall > "$base/deny-r4.out" 2>&1
-if [ "$(jq -c '[.permissions.deny[] | select(startswith("Bash(gh api") and . != "Bash(gh apiary:*)")]' "$hd/.claude/settings.json")" = '[]' ] \
-   && [ "$(jq '[.permissions.deny[] | select(. == "Bash(gh apiary:*)" or . == "Bash(gh pr close:*)")] | length' "$hd/.claude/settings.json")" -eq 2 ] \
-   && grep -qF "NOTE    $hd/.claude/settings.json: the deny entries the policy retired are in $hd/.claude/settings.json.pmhwc-deny-backup" "$base/deny-r4.out"; then
-  ok "uninstall removes the floor it added, does not re-add the retired deny, keeps the owner's rules, and names the backup"
-else
-  ko "uninstall and the retired deny: $(jq -c '.permissions.deny' "$hd/.claude/settings.json")"
-fi
-# The floor guard: an overlay whose floor carries "cmd gh api" renders Bash(gh api:*) as a floor rule, so
-# install keeps it although deny-retired.conf lists it, and removes only the two other spellings.
-hf="$base/home-deny-floor-guard"; mkdir -p "$hf/.claude"
-ov_api="$base/overlay-gh-api-floor"; mkdir -p "$ov_api"; printf '%s\n' 'cmd gh api' > "$ov_api/deny-floor.conf"
-printf '%s\n' '{"permissions": {"deny": ["Bash(gh api:*)", "Bash(gh api *)", "Bash(gh api*)"]}}' > "$hf/.claude/settings.json"
-HOME="$hf" sh "$inst" --overlay="$ov_api" > "$base/deny-g1.out" 2>&1; expect "install with a floor that renders Bash(gh api:*)" 0 $?
-if [ "$(jq '[.permissions.deny[] | select(. == "Bash(gh api:*)")] | length' "$hf/.claude/settings.json")" -eq 1 ] \
-   && [ "$(jq '[.permissions.deny[] | select(. == "Bash(gh api *)" or . == "Bash(gh api*)")] | length' "$hf/.claude/settings.json")" -eq 0 ] \
-   && grep -qF "CHANGED $hf/.claude/settings.json: permissions.deny Bash(gh api *) present -> absent; Bash(gh api*) present -> absent (retired" "$base/deny-g1.out"; then
-  ok "a retired deny the floor renders is kept; only the spellings outside the floor leave"
-else
-  ko "the floor guard: $(jq -c '.permissions.deny' "$hf/.claude/settings.json")"; grep 'permissions.deny' "$base/deny-g1.out"
-fi
-
 # 19. the retired-server removal is gone (Issue #206; it was #145, ADR-0035 decision 2): install no
 # longer edits a hand-written aws-api table in the Codex user configuration, writes no MCP backup and
 # prints nothing about it. Removing a leftover table is a manual step.
