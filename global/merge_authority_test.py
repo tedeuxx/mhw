@@ -241,6 +241,24 @@ class OneClearanceLiteral(unittest.TestCase):
                 self.assertEqual(ma.method_copy_findings(quoted, CONTRACT, verdicts), [])
                 self.assertEqual(ma.method_copy_findings(original, CONTRACT, verdicts), [])
 
+    def test_a_retired_literal_planted_above_any_heading_of_any_copy_goes_red(self):
+        # Gate round 2 on PR #423 (B2): live_prose once recognised only fences indented up to three spaces,
+        # so a list-indented fence in quality-assurance.md left an odd `~~` count and inverted every strike
+        # pairing after it; a retired literal planted there stayed green. A `## ` heading is never inside a
+        # fence or a strike, so a plant above each one must be found, in every copy.
+        plant = "Boundary class merges under `APPROVE-AND-MERGE-BOUNDARY` again.\n\n"
+        for rel, verdicts in CONSUMERS.items():
+            original = (REPO / rel).read_text(encoding="utf-8")
+            positions = [m.start() for m in re.finditer(r"(?m)^## ", original)]
+            self.assertTrue(positions, rel)
+            for pos in positions:
+                heading = original[pos:original.index("\n", pos)]
+                mutated = original[:pos] + plant + original[pos:]
+                with self.subTest(rel=rel, heading=heading[:50]):
+                    self.assertIn("its live prose names the retired verdict APPROVE-AND-MERGE-BOUNDARY",
+                                  ma.method_copy_findings(mutated, CONTRACT, verdicts))
+            self.assertEqual(ma.method_copy_findings(original, CONTRACT, verdicts), [])
+
     def test_each_copy_goes_red_when_the_owner_check_rule_is_dropped_from_its_block(self):
         line = "- Owner check: %s.\n" % CONTRACT["owner-check"]
         for rel, verdicts in CONSUMERS.items():
@@ -313,29 +331,10 @@ class OneClearanceLiteral(unittest.TestCase):
         # The QA brief carries two templates (the verdict shape and the copy-verdict relay), the README one.
         self.assertGreaterEqual(total, 3)
 
-    @staticmethod
-    def without_indented_fences(text):
-        """Drop fenced blocks at any indentation. ma.live_prose recognises a fence indented at most three
-        spaces, so a fence inside a list item (quality-assurance.md has one, holding a `~~~` pattern)
-        leaves an odd `~~` in its input and shifts every strike pairing after it."""
-        kept, fence = [], None
-        for line in text.split("\n"):
-            m = re.match(r"^\s*(`{3,}|~{3,})", line)
-            if fence:
-                if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence):
-                    fence = None
-                continue
-            if m:
-                fence = m.group(1)
-                continue
-            kept.append(line)
-        return "\n".join(kept)
-
     def test_no_live_prose_claims_the_literal_records_the_class(self):
         files = list((REPO / "method").rglob("*.md")) + [REPO / "workspace" / "README.md"]
         for path in files:
-            text = self.without_indented_fences(path.read_text(encoding="utf-8"))
-            flat = ma.flatten(ma.live_prose(text))
+            flat = ma.flatten(ma.live_prose(path.read_text(encoding="utf-8")))
             with self.subTest(path=str(path.relative_to(REPO))):
                 self.assertEqual(self.CLASS_CLAIMS.findall(flat), [])
 
@@ -594,6 +593,10 @@ class ProjectBrief(unittest.TestCase):
         self.assertRed("never closed")
         self.env.brief(CORRECTED_SECTION.replace("- contract: merge-authority v1\n", ""))
         self.assertRed("exactly one `contract")
+        # B2 (PR #423): a fence opened inside a list item, indented past three spaces, is still a fence, so
+        # a quoted example block inside it is not a second declaration.
+        self.env.brief(CORRECTED_SECTION + "\n- an example, quoted:\n\n    ```\n" + BLOCK + "    ```\n")
+        self.assertGreen()
         # A marker not at column 0 (here inside a list item) is not a declaration.
         self.env.brief(CORRECTED_SECTION.replace(BLOCK, "\n".join("  " + l for l in BLOCK.split("\n"))))
         self.assertRed("no `<!-- merge-authority:begin -->` block")

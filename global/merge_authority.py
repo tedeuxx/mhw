@@ -202,10 +202,12 @@ def method_copy_findings(text, contract, verdicts):
 
 
 def live_prose(text):
-    """Text a reader takes as a live instruction: no fences, struck spans, blockquotes, comments or quotes."""
+    """Text a reader takes as a live instruction: no fences, struck spans, blockquotes, comments or quotes.
+    A fence is recognised at any indentation (#134, PR #423 round 2): a fence inside a list item left
+    unrecognised keeps its `~~~` and inverts every strike pairing after it."""
     lines, kept, fence = text.split("\n"), [], None
     for line in lines:
-        m = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        m = re.match(r"^\s*(`{3,}|~{3,})", line)
         if fence:
             if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence):
                 fence = None
@@ -246,7 +248,7 @@ def declaration_blocks(text):
     """Each declaration block's inner lines, for blocks whose markers sit at column 0 outside a fence."""
     blocks, current, fence = [], None, None
     for line in text.split("\n"):
-        m = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        m = re.match(r"^\s*(`{3,}|~{3,})", line)
         if fence:
             if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence):
                 fence = None

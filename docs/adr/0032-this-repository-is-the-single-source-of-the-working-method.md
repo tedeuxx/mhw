@@ -828,7 +828,11 @@ proposal at the sprint-06 planning, 2026-10-10 (*"de acordo com as sugestoes"*),
 **Consequences.**
 
 - Good: what the owner should check after a merge is a field he can read, and the Issue carries it; the
-  verdict set is smaller; a retired literal returning to a copy goes red.
+  verdict set is smaller; a retired literal returning to a copy's live prose goes red, anywhere in it.
+  That needed one repair (gate round 2 on PR #423): the live-prose reader recognised a fence only when
+  it was indented at most three spaces, so a fence inside a list item inverted the strike pairing after
+  it and the check was blind over about 300 lines of the gate's brief. A fence is now recognised at any
+  indentation, and a test plants the retired literal above every `## ` heading of the four copies.
 - Bad: the merge record no longer says, from the literal alone, that a change shipped without a
   pre-publication check; that now rests on the gate writing an honest `owner-check:`. A consuming project
   brief that still names the retired literal is not flagged by `mhw check --project`, which reads only
