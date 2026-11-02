@@ -528,6 +528,23 @@ against a wall clock makes the same commit build differently tomorrow, and break
 that differs from a build, not an error. A commit is strictly more auditable and is the honest
 replacement.
 
+**The release is not the publication, and the social pair is drafted before it, not after (mhw#238).**
+Step 10 defines *published*; this is the order that lets the release and the posts ship in one batch:
+
+1. **Before the release merge**, draft the text of both posts and read them for step 10's language
+   hints and length. The share URL cannot be resolved yet: step 10's generator resolves it by lookup in
+   the prerendered routes, and a held piece has none until the release build, so a refusal at this
+   point is the lookup working, not a defect. Leave the URL to be filled after the deploy.
+2. **The release merge**, after his comment (step 8). It references the piece's Issue with `Refs #N`,
+   never with a closing keyword: a closing keyword closes the Issue at the merge, before the pair
+   exists.
+3. **Right after the deploy passes, in the same attended session**, resolve the share URL, run step
+   10's checks (the OG card, the scan) and post to both networks. Only then is the piece published.
+
+The step was drafted after the deploy until this order was written, and on the occasion that produced
+mhw#238 a session reported the piece as published at the deploy and only then began drafting the pair.
+*Held by: an instruction.* Nothing reads the order of these acts.
+
 ### A correction to an already-published piece · **AFK to build, HITL to read, two merges**
 
 **The owner's ruling (mhw#180): *«Construir modo revisão»*.** He chose a pending revision rendered by the
@@ -592,6 +609,24 @@ the only thing standing behind it.*
 
 **A publication is not done until it exists on both networks the platform publishes to.** Same batch as
 the release — not "later", which in practice means one of the two never ships.
+
+**What *published* means on this lane, stated once and pointed at from everywhere else (mhw#238).**
+The owner's words: *«o fluxo de publicacao nao esta completo sem a publicacao em redes sociais.»*
+
+- **A new piece is published when its release is live AND both posts exist, each with its URL.** The
+  release merge and its passing deploy are the *release*; they are not the publication.
+- **Until both post URLs exist, report the piece as "released, social pair pending"**, never as
+  published, done or reached: in a reply to the owner, in `what-else`, in a session's close line, in a
+  worklog event and on the Issue.
+- **A `content` Issue closes only with a comment that records both post URLs.** That comment is the
+  one trace that the pair shipped; nothing else in this lane leaves one. Step 9 says why the release
+  merge request references the Issue rather than closing it.
+- **A correction to an already-published piece is out of this definition**: it is not posted again, so
+  it is live when its release merge deploys.
+
+*Held by: an instruction.* No check reads a reply's wording, and under the workstation's ADR-0035 this
+cannot be a hook. The `orchestration` skill, which the main session loads before it puts anything to
+the owner, carries one sentence pointing here.
 
 ~~**The fan-out is deliberately NOT automated**, and the reason is worth carrying rather than
 rediscovering: automating it means holding credentials for a class of unattended public writes.~~
@@ -742,7 +777,8 @@ is hand-voiced after generation, and regenerating over it at this cadence buys n
 | the orchestrator is the only publisher | **the agents' tool lists** keep publishing connectors from every persona in Claude Code and Kiro (an instruction in Codex); **nothing** holds the orchestrator itself, and the browser-extension route has no matcher at all |
 | a post is preceded by the OG-card check | **an instruction.** No layer sees page state |
 | the share URL carries its campaign | **an instruction**, measurable after the fact as a lower bound only |
-| both halves of the pair shipped | **nothing at post time.** Unchanged by any of this |
+| both halves of the pair shipped | **nothing at post time.** Unchanged by any of this. After the fact, the Issue's closing comment carries both post URLs (mhw#238), and that is **an instruction**: nothing refuses a close without it |
+| a piece is reported as published only once both post URLs exist, and the pair is drafted before the release merge | **an instruction** (mhw#238). No check reads a reply, a close line or a worklog event, and nothing reads the order of the acts |
 | a bilingual post carries its two language hints, and sits under the length target | **an instruction** (`published-voice` rules 19–20, 2026-09-19). The gate arm asserts the clauses are WRITTEN; nothing reads a draft, and no copy hold reaches this lane to refuse a post that dropped them |
 | the share URL is locale-neutral | **an instruction** (rule 21, 2026-09-19), and it is **inert until the neutral form resolves** — so today what holds it is the precondition the rule states first. An MCP call carries the typed URL, which made a detector conceivable on that route; none exists in this method, and the route that has actually published is the browser extension no matcher sees |
 | the publish act is accounted for | **an instruction**: `agents-configuration`'s end-of-turn check 9, after the act, gating nothing |
@@ -827,7 +863,9 @@ this repository blocks on a mechanism presented as stronger than it is.**
   **posting is the orchestrator's (#399)** and leaves no trace any gate reads. **Do not read the
   correction as a tightening** — it is the opposite: the act moved from a human's hands into the
   harness's, and the only thing watching it is a `Stop` hook that fires after the fact, covers the MCP
-  route and is blind to the browser-extension route that has actually published.
+  route and is blind to the browser-extension route that has actually published. **Since mhw#238 the
+  Issue's closing comment, carrying both post URLs, is the trace**; it is written by instruction, and
+  no gate reads it.
 - **Nothing observes a dispatch.** A piece drafted with no review round is indistinguishable from one
   whose rounds were clear until you open the branch's file list.
 - **Nothing asks whether the SOURCE exists.** The source test above is an interview question; no hook
