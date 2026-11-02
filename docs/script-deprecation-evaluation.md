@@ -23,11 +23,12 @@ here.** Each deprecation the owner accepts becomes its own slice.
 | --- | --- |
 | **measured** | Run or read on this tree today, with the command named in [Measurements](#measurements). |
 | **documented** | Taken from vendor documentation. Not re-read today and not exercised on any agent harness build. |
+| **cited** | Taken from an earlier record in this repository (the README or a script's header), with its date where known. It may have been measured then; it was not re-run today. |
 | **assumed** | Neither measured nor documented. The reason is stated where it matters. |
 
 Repository facts (which scripts exist, who calls them, what the deny floor lists) are **measured**. No
 claim about a native mechanism was exercised on an agent harness build for this evaluation, so every
-native cell is **documented** or **assumed**, never stronger.
+native cell is **documented**, **cited** or **assumed**, never stronger.
 
 **Recommendations.** There are three, and the difference between the last two matters:
 
@@ -72,7 +73,7 @@ Measured by searching the tree for each script's name, test files and decision r
 | `mhw` | POSIX entry point: checks for `python3`, then runs `global/workstation.py`. | The owner; `outbound-scan.yml`; `bin/mhw.js` on macOS and Linux. | None. CC `/status`, Cx `/status` and K `/context show` report the session, not the workstation (documented). | The one door to install, status, check, scan, update and uninstall. | **keep** |
 | `bin/mhw.js` | The npm package's command: runs `./mhw`, or `install.ps1` on Windows. | npm, which links it onto `PATH`. | None. npm is a distribution channel, not an agent harness. | The npm install route ([ADR-0034](adr/0034-npm-distribution-from-github-by-tag.md)). | **keep** |
 | `global/workstation.py` | The logic behind `mhw`: install, status (stamp, version key, drift), check, scan, update, uninstall. | `mhw`. | None. No agent harness compares installed configuration with a versioned source (assumed: no vendor documents one). | Status, drift report and version key. | **keep** |
-| `bin/postinstall.js` | npm postinstall: repairs a dangling global install from a git dependency, then prints one next-step line. | npm. | None. It works around an npm defect (measured on npm 11.13.0, per the script's header), not an agent harness gap. | A broken global install on affected npm versions. | **keep as the exception** |
+| `bin/postinstall.js` | npm postinstall: repairs a dangling global install from a git dependency, then prints one next-step line. | npm. | None. It works around an npm defect (cited: measured earlier on npm 11.13.0 under Issue #68, 2026-10-06, per the script's header; not re-run today), not an agent harness gap. | A broken global install on affected npm versions. | **keep as the exception** |
 
 ### Rendering into each agent harness
 
@@ -80,9 +81,9 @@ Measured by searching the tree for each script's name, test files and decision r
 | --- | --- | --- | --- | --- | --- |
 | `global/install.sh` | Renders the brief, deny floor, hooks, overlay and other settings into each user layer, with owner-only backups. | `global/workstation.py`. | None. It writes the native carriers. No agent harness syncs user configuration from a versioned source (assumed). | Rendering, and so the whole source-to-machine contract. | **keep** |
 | `global/install.ps1` | The Windows form of the installer. | `bin/mhw.js` on Windows. | None, as above. | The Windows route. | **keep** |
-| `global/install-managed.sh` | Installs the admin (managed) layer: the floor no lower layer can override. | `mhw install --admin`. | The managed-settings files it writes are the native target (CC, Cx documented; K read from the bundle). Nothing produces them from the policy. | The non-overridable floor. | **keep** |
+| `global/install-managed.sh` | Installs the admin (managed) layer: the floor no lower layer can override. | `mhw install --admin`. | The managed-settings files it writes are the native target (CC, Cx documented; K cited: the README records it as read from the installed Kiro bundle, not documented by the vendor). Nothing produces them from the policy. | The non-overridable floor. | **keep** |
 | `global/allow-list.sh` | Merges the pre-authorisation allow list and removes retired allow entries. | `install.sh`. | The allow list is a native setting (CC documented). Nothing writes it from the policy. | The managed allow list. | **keep** |
-| `global/private_copy.py` | Shared helper: every backup of an agent harness configuration is owner-only (0600). | `kiro_permissions.py`, `mcp_render.py`, `model_defaults.py`; a shell form in `install.sh`. | Not applicable: a helper of other scripts. | Owner-only backups, which can hold configuration values. | **keep** |
+| `global/private_copy.py` | Shared helper: every backup of an agent harness configuration is owner-only (0600). | `kiro_permissions.py`, `mcp_render.py`, `model_defaults.py`; a shell form in `install.sh`, also used by `allow-list.sh`; a PowerShell form (`Copy-Private`) in `install.ps1`. | Not applicable: a helper of other scripts. | Owner-only backups, which can hold configuration values. | **keep** |
 | `global/profile/profile.py` | Renders the owner overlay (language, decision tone, limits) into the brief. | `install.sh`, `install.ps1`, CI. | None. The brief is a native carrier; nothing renders a profile into it. | The owner overlay. | **keep** |
 | `global/kiro/kiro_permissions.py` | Merges the deny floor into Kiro `permissions.yaml` and the Kiro admin file. | `install.sh`, `install.ps1`, `install-managed.sh`. | The target file is native (K documented). Nothing produces it from the floor. | The Kiro floor. | **keep** |
 | `global/models/model_defaults.py` | Pins each agent harness's model and effort, reports old to new, restores on uninstall. | `install.sh`, `install.ps1`. | The keys are native in all three (documented). Nothing sets them from policy. | Uniform session-start defaults and their restore. | **keep** |
@@ -102,8 +103,8 @@ Measured by searching the tree for each script's name, test files and decision r
 
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
-| `global/clipboard/clipboard_guard.py` | The prompt hook body: blocks a prompt carrying an employer or client reference, a credential or personal data, and shows a redacted copy. Also stores salted term hashes. | The native prompt hook (CC `UserPromptSubmit`, Cx `hooks.json`), registered by `install.sh` and `install-managed.sh`. | The prompt hook itself is native on CC and Cx (documented) and meets the existential-risk rule. No agent harness filters prompt content natively (assumed). K IDE has no prompt hook (per README). | The safety net of the confidentiality floor ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). | **keep as the exception** (gap: K) |
-| `global/clipboard/paste_wrapper.py` | pty launcher that replaces sensitive content in a bracketed paste before the agent harness sees it. | Shell functions `install.sh` adds to the owner's shell start file. | None: no agent harness redacts a paste (assumed). Gaps: the K V3 engine does not enable bracketed paste (observed per README); desktop apps and the K IDE are not reached. | The primary cleaner of the confidentiality floor. | **keep as the exception** (gaps: K V3, IDEs, desktop apps) |
+| `global/clipboard/clipboard_guard.py` | The prompt hook body: blocks a prompt carrying an employer or client reference, a credential or personal data, and shows a redacted copy. Also stores salted term hashes. | The native prompt hook (CC `UserPromptSubmit`, Cx `hooks.json`), registered by `install.sh` and `install-managed.sh`. | The prompt hook itself is native on CC and Cx (documented) and meets the existential-risk rule. No agent harness filters prompt content natively (assumed). K IDE has no prompt hook (cited: README). | The safety net of the confidentiality floor ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). | **keep as the exception** (gap: K) |
+| `global/clipboard/paste_wrapper.py` | pty launcher that replaces sensitive content in a bracketed paste before the agent harness sees it. | Shell functions `install.sh` adds to the owner's shell start file. | None: no agent harness redacts a paste (assumed). Gaps: the K V3 engine does not enable bracketed paste (cited: the README records it as observed on 2026-10-11); desktop apps and the K IDE are not reached. | The primary cleaner of the confidentiality floor. | **keep as the exception** (gaps: K V3, IDEs, desktop apps) |
 | `global/scan.py` | `mhw scan`: checks a branch's files and unpushed commits and prints file, line, category and length, never the text. | `workstation.py`; `outbound-scan.yml`; the global brief before every push. | Forge push protection covers secrets only (documented). Nothing native covers personal data or employer and client terms (assumed). | Outbound coverage beyond secrets. | **keep as the exception** |
 
 ### Checks and reports
@@ -128,10 +129,10 @@ skills and commands.
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
 | `method/scripts/milestone_common.py` | Shared code of the milestone family. | The four milestone scripts. | Follows the family. | Follows the family. | **keep as the exception** |
-| `method/scripts/milestone-read.py` | Reads a milestone by number: state, description, open and closed counts. | `sprint-planning`, `sprint-retrospective`, `agents-configuration`, `agents-lead`, `scrum-master`, `funnel-review.sh`. | `gh` has no milestone subcommand (measured). A GitHub MCP server configured natively could read it (configuration documented; its milestone tools assumed). | The reviewed milestone route. | **keep as the exception** |
-| `method/scripts/milestone-create.py` | Creates a milestone. | As above. | As above. Raw `gh api` writes are denied by the deny floor (measured). | As above. | **keep as the exception** |
-| `method/scripts/milestone-update.py` | Updates a milestone description from a file, refusing a value already stale. | As above. | As above. | As above. | **keep as the exception** |
-| `method/scripts/milestone-close.py` | Closes an open milestone. | As above. | As above. | As above. | **keep as the exception** |
+| `method/scripts/milestone-read.py` | Reads a milestone by number: state, description, open and closed counts. | `sprint-planning`, `sprint-retrospective`, `agents-configuration`. | `gh` has no milestone subcommand (measured). A GitHub MCP server configured natively could read it (configuration documented; its milestone tools assumed). | The reviewed milestone route. | **keep as the exception** |
+| `method/scripts/milestone-create.py` | Creates a milestone. | `sprint-planning`, `agents-configuration`. | `gh` has no milestone subcommand (measured), and raw `gh api` writes are denied by the deny floor (measured). A GitHub MCP server could write it (configuration documented; its milestone tools assumed; see hypothesis 1). | The reviewed milestone route. | **keep as the exception** |
+| `method/scripts/milestone-update.py` | Updates a milestone description from a file, refusing a value already stale. | `sprint-planning`, `agents-configuration`. | Same as `milestone-create.py`. | The reviewed milestone route and its stale-value refusal. | **keep as the exception** |
+| `method/scripts/milestone-close.py` | Closes an open milestone. | `sprint-planning`, `sprint-retrospective`, `agents-configuration`. | Same as `milestone-create.py`. | The reviewed milestone route. | **keep as the exception** |
 | `method/scripts/confine.py` | Shared helper: refuses an input path outside the work tree or the temporary directory, for content that gets published. | `milestone_common.py`, `worklog.py`, `launch-line.py`. | Not applicable: a helper of other scripts. | Path confinement of published content. | **keep** |
 | `method/scripts/worklog.py` | Validates worklog events and produces a deterministic report. | `autonomy`, `sprint-planning`, `agents-configuration`. | Native usage reporting (CC and Cx tokens, K credits; documented) is a different instrument. | A computed, not generated, report. | **keep as the exception** |
 | `method/scripts/rite-cadence.py` | Dates a rite by the commits that added its ran-marker. | `agents-configuration` (session check 3), `funnel-review`. | A plain `git log` dates scaffolding too (the #128 defect). | Marker-correct dating. | **keep as the exception** |
@@ -196,8 +197,11 @@ Run on `rc/next` at `f76c0af01963748632cf7cfb5b8969bec16ee84c`:
 
 - Script inventory: `git ls-files`, filtered to `.py`, `.sh`, `.ps1`, `.js` and the extension-less
   `mhw`, then split into the 35 scripts and 26 test files.
-- Callers: a fixed-string search of the tree for each script name, test files and `docs/adr/`
-  excluded.
+- Callers: a fixed-string search of the tree for each script's full file name, test files and
+  `docs/adr/` excluded, then a check that each named caller file contains that name. A mention in a
+  comment is not a call. (The first version of this document searched the milestone family by the
+  prefix `milestone-`, which matched files that call none of them; the gate caught it and the four
+  rows were corrected.)
 - `gh milestone --help` prints `unknown command "milestone" for "gh"`.
 - `global/deny-floor.conf` lists `gh api -X POST|PUT|PATCH|DELETE` and the `--method` forms.
 - `global/install.sh` registers the paste filter as a Claude Code `UserPromptSubmit` entry and in the
