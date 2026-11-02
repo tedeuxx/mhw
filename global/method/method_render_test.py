@@ -456,6 +456,25 @@ class OwnerReadIsThePreviewMode(unittest.TestCase):
         self.assertIn("**What records his validation is his comment on the release merge request, naming the "
                       "preview URLs he read.**", step8)
 
+    def test_published_needs_the_social_pair(self):
+        # Issue #238 (owner, 2026-10-30): a content piece is not published until both social posts exist.
+        # Drift checks over STRINGS: they assert the rule is written where the deciding actors read it,
+        # never that a session reported a piece correctly.
+        step10 = markdown_section(CONTENT_PUBLISHING, "10 · The social pair")
+        for clause in ("**A new piece is published when its release is live AND both posts exist, each with its URL.**",
+                       "\"released, social pair pending\"",
+                       "**A `content` Issue closes only with a comment that records both post URLs.**",
+                       "Each post's text is SCANNED before it is posted"):
+            self.assertIn(clause, step10)
+        step9 = markdown_section(CONTENT_PUBLISHING, "9 · Release")
+        for clause in ("**Before the release merge**, draft the text of both posts",
+                       "never with a closing keyword", "Only then is the piece published."):
+            self.assertIn(clause, step9)
+        section = orchestration_section("How to ask the owner")
+        self.assertIn("**Do not report a new `content` piece as published, done or reached until both of its social "
+                      "post URLs exist;", section)
+        self.assertIn("The definition is `content-publishing` step 10", section)
+
     def test_the_descriptions_carry_the_owner_read(self):
         for path in (CONTENT_PUBLISHING, ORCHESTRATION):
             fields, _ = mr.split_front_matter(path.read_text(encoding="utf-8"), path.parent.name)

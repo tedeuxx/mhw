@@ -111,6 +111,11 @@ An acceptance criterion or a remembered note that names an Artifact for his read
 not an instruction. His record of the read is his own comment on the release merge request, naming the
 URLs he read. The sequence, including a correction to a published piece, is in `content-publishing`.
 
+**Do not report a new `content` piece as published, done or reached until both of its social post URLs
+exist; until then it is "released, social pair pending"**, in a reply, in `what-else`, in the
+`Objective reached` close line and in a worklog event. A release that deployed is not a publication.
+The definition is `content-publishing` step 10, and it is not restated here (mhw#238).
+
 **Rule 4 was once built as an automatic control and removed. Do not rebuild it.** It classified by the
 spelling of option labels, not by the shape of the choice. A preventive control whose false positives
 are invisible to the person it protects is worse than none.
@@ -130,4 +135,6 @@ method files (ten repointed from a root brief, one added) names this skill, and 
 root-brief wording. A pointer written elsewhere, in new wording, is not checked. The same test asserts
 that the owner-read sentence is identical in its three copies and that no method file matches the
 pattern `ARTIFACT_READ` in that test, which recognises two phrasings of an Artifact for the owner's
-read. Other phrasings pass. It asserts the rules are *written*, never that a session followed them.
+read. Other phrasings pass. It also asserts that the sentence on reporting a `content` piece as
+published is in *How to ask the owner*, and that `content-publishing` steps 9 and 10 carry the
+definition and the order (mhw#238). It asserts the rules are *written*, never that a session followed them.
