@@ -365,7 +365,10 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
   exercised ([enforcement matrix](#10-native-enforcement-matrix)). The instruction is the user brief's
   section *Session goal anchor*; ~~`/handover` tells a child session to anchor its objective the same way.~~
   (`/handover` was removed at [#196](https://github.com/tedeuxx/mhw/issues/196); `/handoff`, [#198](https://github.com/tedeuxx/mhw/issues/198), replaces it:
-  the prompt it prints opens with the native `/goal`, so the fresh session anchors the same objective.)
+  ~~the prompt it prints opens with the native `/goal`, so the fresh session anchors the same objective.~~
+  *Struck 2026-11-01 ([#198](https://github.com/tedeuxx/mhw/issues/198), owner: a fresh session does
+  not start with `/goal`):* the prompt opens with the objective as plain text, and `launch-line.py`
+  refuses one whose first line opens with `/goal`.)
   `/what-else` is [#74](https://github.com/tedeuxx/mhw/issues/74). This continues
   [#11](https://github.com/tedeuxx/mhw/issues/11).
 
@@ -374,7 +377,8 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
 - ~~`/handover`: branches a focused child session, which anchors its objective with the native `/goal`
   where it exists, and brings its result back through a return prompt
   ([#73](https://github.com/tedeuxx/mhw/issues/73)).~~ Command removed at [#196](https://github.com/tedeuxx/mhw/issues/196); `/handoff`, [#198](https://github.com/tedeuxx/mhw/issues/198), replaces it.
-- `/handoff`: prints a prompt and the shell line that open a fresh session continuing this one, with the
+- `/handoff`: prints one command that opens a fresh session continuing this one: `cd` into the
+  checkout, then the agent harness's start command with the prompt inline (owner, 2026-11-01), with the
   objective, the anchored Issue, its revision, handoff state and next act re-derived from the tracker. It
   posts nothing and launches nothing (owner, 2026-10-18: print only, never publish)
   ([#198](https://github.com/tedeuxx/mhw/issues/198)).
@@ -566,7 +570,7 @@ a technology stack; **Reference** holds unused patterns.
 | 6 | `/what-else` ([#74](https://github.com/tedeuxx/mhw/issues/74)) | Restates the session's objective and answers what is still missing: what is done (with its evidence), what is left, what is blocked on the owner (that ask first) and the next step. | user | The owner can check at any moment how far the session is from its goal. |
 | 7 | `/blueprint` ([#75](https://github.com/tedeuxx/mhw/issues/75)) | `export` writes the project's effective agent harness configuration as a requirements document; `import` brings one into another project. | user | Carries a project's setup to other projects. The text it exports, and the text it accepts, is a requirements document in the [5a](#5a-documentation-standards-user-layer-every-repository) format: target behaviour and why, in English, with Mermaid diagrams, named `<repo>-product-requirements-document-*`. Import applies nothing before an expectation-alignment interview with the person running the session. |
 | 8 | ~~`/breaking-glass`~~ | ~~Prints the `sudo` line that switches a hook layer off, with expiry~~ Removed ([ADR-0028](adr/0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md)): the [runbook](runbooks/breaking-glass.md) gives the `sudo` route | user | ~~Exists only if the paste prompt hook stays ([4a](#4a-hook-budget), #58).~~ No expiring waiver is allowed; `install-managed.sh --uninstall` already prints the removal line. |
-| 9 | `/handoff` ([#198](https://github.com/tedeuxx/mhw/issues/198)) | Prints one fenced block the owner pastes into a new terminal: the launch environment and the target agent harness's start command, with the continuation prompt inline: the objective (opened with `/goal`), the anchored Issue with its revision, handoff state and next act re-derived from the tracker. With no Issue anchored it still prints, from the objective. The block is quoted by a script; the target is the first word of the arguments when it names an agent harness, else the one the copy was rendered for. For Kiro one line before the block covers the IDE, whose `kiro chat` takes the same prompt (read from its `--help`, not run). | user | A heavy session continues in a clean one without losing its anchor. It prints only and posts nothing (owner, 2026-10-18); every field is one line of at most 280 characters with no machine-local path, under the worklog continuity contract. |
+| 9 | `/handoff` ([#198](https://github.com/tedeuxx/mhw/issues/198)) | Prints one fenced block holding exactly one command the owner pastes into any terminal: `cd` into the checkout the work stands in, then the launch environment and the target agent harness's start command, with the continuation prompt inline: the objective (~~opened with `/goal`~~ plain text; a `/goal` first line is refused since 2026-11-01), the anchored Issue with its revision, handoff state and next act re-derived from the tracker. With no Issue anchored it still prints, from the objective. The block is quoted by a script; the target is the first word of the arguments when it names an agent harness, else the one the copy was rendered for. ~~For Kiro one line before the block covers the IDE, whose `kiro chat` takes the same prompt (read from its `--help`, not run).~~ Nothing is printed around the block (2026-11-01); the Kiro IDE's `kiro chat` is named in the command's prose. | user | A heavy session continues in a clean one without losing its anchor. It prints only and posts nothing (owner, 2026-10-18); every field is one line of at most 280 characters with no machine-local path, under the worklog continuity contract. |
 | 10 | `/need-me` | Answers the owner's "do you need me for anything?": gathers what is pending on him (this session, the session's Issues and pull requests, the open `owner-action` Issues in this repository) and puts each item to him one at a time under the user brief's *Escalating to the owner* and the owner overlay: a decision as one native picker with exactly three options (two extremes and the middle ground, each with risk and benefit, one recommended), an action as one line with the act and the link. Records his answer on the Issue or pull request it belongs to, then offers the next. With nothing pending it says so in one line. | user | The owner pulls every pending ask on demand, in his own words (2026-10-26): *"eu quero ter um comando aqui para te perguntar se precisa de mim para alguma coisa e entrar no modo de escalonamento de pendencias hitl com a disciplina existente hoje com 3 opcoes de resposta."* It adds no escalation rule and never manufactures an ask; it writes only the record of his answer and never merges, publishes or releases. |
 
 Not in the command set, because they were never designed for the owner's use of the loop: sprint
@@ -600,12 +604,14 @@ it is a skill. One source text per command is rendered into each format.
   name its own agent harness, its body carries the token `{{agent-harness}}`, which the renderer replaces
   in each carrier with `claude-code`, `codex` or `kiro` ([#198](https://github.com/tedeuxx/mhw/issues/198)).
   `/handoff` uses it as the default target and prints one fenced block for the target agent harness:
-  the launch environment, then `claude '…'`, `codex '…'` or `kiro-cli chat '…'` with the prompt inline.
+  `cd '<checkout>' &&`, the launch environment, then `claude '…'`, `codex '…'` or `kiro-cli chat '…'`
+  with the prompt inline (the `cd` since 2026-11-01, #198).
   The owner can name another target as the first word of the arguments (`claude-code`, `claude`,
   `codex`, `kiro`, `kiro-cli`). The prompt argument is read from `claude --help` (2.1.311), `codex
   --help` (0.163.0) and `kiro-cli chat --help` (2.34.1) on the reference machine; none launched. The
-  Kiro IDE's `kiro chat [prompt]` is read from `kiro chat --help` (1.3.11), not run, and the Kiro output
-  says in one line before the block that the IDE takes it with `kiro chat` in place of `kiro-cli chat`.
+  Kiro IDE's `kiro chat [prompt]` is read from `kiro chat --help` (1.3.11), not run. ~~and the Kiro output
+  says in one line before the block that the IDE takes it with `kiro chat` in place of `kiro-cli chat`.~~
+  *Struck 2026-11-01 (#198): nothing is printed around the block; the command's prose names the IDE.*
 - **Arguments:** commands work with free text after the name, so nothing depends on syntax that Codex
   lacks.
 - **Gaps:** the Codex desktop app's syntax is not documented; Kiro Web has no user-level files; Codex
