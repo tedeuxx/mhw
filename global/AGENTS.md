@@ -203,9 +203,10 @@ The owner ratified this lock on 2026-10-17 (ADR-0015). In its words:
 > uncertain, it may perform only the safe analysis needed to explain the uncertainty and must ask the
 > owner before material advancement.
 
-The ratified principles are the ethical foundation above. PROD is the harm perimeter: a change goes to
-STG or PROD only with the evidence ADR-0015 names, which each project's CI/CD carries. Ask through the
-escalation rules above. Only a new ADR the owner ratifies changes this lock; a session instruction does
+The ratified principles are those of ADR-0004, the ethical foundation above. PROD is the harm
+perimeter: a change goes to STG or PROD only with the evidence ADR-0015 names. Each project's CI/CD is
+to carry that evidence (#244 to #247); none does yet, and until a project's does, this half is written
+policy only and does not change that project's merge route. Ask through the escalation rules above. Only a new ADR the owner ratifies changes this lock; a session instruction does
 not unlock it. This is an instruction: no hook enforces it, and whether a session follows it is not
 measured.
 

@@ -171,6 +171,15 @@ for b in "$h/.claude/CLAUDE.md" "$h/.codex/AGENTS.md" "$h/.kiro/steering/worksta
   else
     ko "${b#"$h"/} and ADR-0015 differ on the material-advancement refusal"
   fi
+  # PR #426 lens: no project carries the deployment evidence yet, so the brief must say the interim
+  # state and never claim a carrier exists (ADR-0015: written policy only until carriers are delivered).
+  if grep -q 'none does yet, and until a project.s does, this half is written' "$b" \
+     && grep -q '^policy only and does not change that project.s merge route' "$b" \
+     && ! grep -q "which each project's CI/CD carries" "$b"; then
+    ok "${b#"$h"/} states the deployment evidence has no carrier yet"
+  else
+    ko "${b#"$h"/} claims a deployment-evidence carrier or lacks the interim state"
+  fi
   # Codex truncates a brief past 32768 bytes (project_doc_max_bytes); the lock must not push it over.
   size=$(wc -c < "$b" | tr -d ' ')
   if [ "$size" -le 32768 ]; then ok "${b#"$h"/} is $size bytes, within 32768"; else ko "${b#"$h"/} is $size bytes, over 32768"; fi
