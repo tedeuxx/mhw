@@ -2,6 +2,6 @@
   "schema_version": 2,
   "integration_branch": "rc/next",
   "slice_merge": "agents-after-review-gate",
-  "release_merge": "owner",
+  "release_merge": "quality-assurance-on-owner-comment",
   "delivery_requires": ["clean-worktree", "pushed-head", "successful-ci", "merged-pr", "new-semver-tag", "published-release"]
 }

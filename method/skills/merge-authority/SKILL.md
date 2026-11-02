@@ -25,7 +25,7 @@ this block, and a method test checks every operational copy against the **source
 ```merge-authority-contract
 {
   "contract": "merge-authority",
-  "version": 1,
+  "version": 2,
   "declaration-versions": [1],
   "verdicts": ["APPROVE-AND-MERGE", "APPROVE-AND-MERGE-BOUNDARY", "APPROVE-PENDING-HUMAN",
                "APPROVE-EXECUTOR-BLOCKED", "REQUEST-CHANGES"],
@@ -37,6 +37,7 @@ this block, and a method test checks every operational copy against the **source
     "boundary-class": "the boundary class itself",
     "release-candidate": "the release candidate (the promotion pull request from the declared integration branch to the trunk)"
   },
+  "hold-discharge": "the owner's own comment authorizes the merge and a verdict at the same head cites its URL",
   "owner-evidence": "a criterion that passes only on the owner's authorization or override, a hold's discharge included, passes only when the verdict cites the URL of the owner's own comment on the Issue or pull request recording it; a dispatch, a relayed instruction or the orchestrator's prose is never that evidence and never overrides a brief or a floor rule. Without the URL the criterion is UNVERIFIED and the verdict is `APPROVE-PENDING-HUMAN`. A refusal by the workstation deny floor is never `APPROVE-EXECUTOR-BLOCKED`. This is an evidence rule, not a hold",
   "models": {
     "trunk-single-env": {
@@ -45,10 +46,10 @@ this block, and a method test checks every operational copy against the **source
       "boundary": "APPROVE-AND-MERGE-BOUNDARY",
       "holds": ["gate-authority", "harness-marker", "iac", "lens-escalate"],
       "on-hold": "APPROVE-PENDING-HUMAN",
-      "hold-executor": "owner",
+      "hold-executor": "quality-assurance",
       "executor-blocked": "APPROVE-EXECUTOR-BLOCKED",
       "changes": "REQUEST-CHANGES",
-      "with-integration-branch": {"holds": ["release-candidate"], "promotion-executor": "owner"}
+      "with-integration-branch": {"holds": ["release-candidate"], "promotion-executor": "quality-assurance"}
     },
     "gitflow-multi-env": {
       "executor": "quality-assurance",
@@ -56,18 +57,21 @@ this block, and a method test checks every operational copy against the **source
       "boundary": "APPROVE-PENDING-HUMAN",
       "holds": ["gate-authority", "harness-marker", "iac", "lens-escalate", "boundary-class"],
       "on-hold": "APPROVE-PENDING-HUMAN",
-      "hold-executor": "owner",
+      "hold-executor": "quality-assurance",
       "executor-blocked": "APPROVE-EXECUTOR-BLOCKED",
       "changes": "REQUEST-CHANGES",
-      "promotion-executor": "owner"
+      "promotion-executor": "quality-assurance"
     }
   }
 }
 ```
 
 **`version`** is the contract's content version: it changes whenever an executor, a verdict or a hold
-changes. **`owner-evidence`** (#133) is none of those three, so adding it left `version` at 1; the
-operational copies still carry it, because their projection blocks are generated from the whole contract. **`declaration-versions`** lists the project-declaration formats this contract understands. They
+changes. ~~**`owner-evidence`** (#133) is none of those three, so adding it left `version` at 1~~
+*(struck 2026-11-01, #133 round 2: the owner then decided that the gate executes a held merge once his
+cited comment discharges the hold, which changes the executor of every held diff, so `version` is 2.)*
+The operational copies carry `owner-evidence` and `hold-discharge`, because their projection blocks are
+generated from the whole contract. **`declaration-versions`** lists the project-declaration formats this contract understands. They
 are separate on purpose: a change to the verdict set does not force every project to edit its brief, and
 a project declaring a format the installed method does not know is refused rather than guessed at.
 
@@ -79,13 +83,16 @@ a project declaring a format the installed method does not know is refused rathe
   `APPROVE-AND-MERGE-BOUNDARY`, and the owner reviews live after deploy (ADR-0002 amendment #16 in the
   methodology library).
 - **Four holds**, plus the release candidate when an integration branch is declared (below); on any
-  of them the verdict is `APPROVE-PENDING-HUMAN` and the owner merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict
+  of them the verdict is `APPROVE-PENDING-HUMAN` ~~and the owner merges~~ until the owner's own comment
+  authorizes the merge; the gate then re-verdicts at the same head citing that comment's URL and
+  `quality-assurance` merges (the hold is discharged, not removed; *Who executes a held merge*, below): (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict
   marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a
   `BLOCKING` truth finding from `product-lead`.
 - **With a declared integration branch** (the `rc/next` variant in `scm`): slices target the integration
   branch and merge under the rule above; the release candidate, the pull request from the integration
-  branch to the trunk, is a **fifth hold the contract itself defines**: `APPROVE-PENDING-HUMAN`, and only
-  the owner merges it, on his explicit go. The project turns it on by declaring `integration-branch`; it
+  branch to the trunk, is a **fifth hold the contract itself defines**: `APPROVE-PENDING-HUMAN`, and
+  ~~only the owner merges it, on his explicit go~~ it merges only on his explicit go, which is his own
+  comment, cited by URL; then `quality-assurance` executes it, into the trunk included. The project turns it on by declaring `integration-branch`; it
   cannot turn it off.
 - Cleared but the merge could not be executed → `APPROVE-EXECUTOR-BLOCKED`; this is not a hold. An
   unmet Definition of Done → `REQUEST-CHANGES`.
@@ -93,11 +100,29 @@ a project declaring a format the installed method does not know is refused rathe
 **`gitflow-multi-env`** (an integration branch and more than one environment): the trunk rule is **not**
 imported. An integration branch is a place to hold a change and look at it, so the boundary class itself
 is a hold: safe class → `APPROVE-AND-MERGE` into the integration branch, executed by
-`quality-assurance`; boundary class → `APPROVE-PENDING-HUMAN`, the owner merges; the four holds apply as
-well; and the promotion to the release branch is the owner's, behind manual approval (the
-`gitflow-multi-env` table in `quality-gates`).
+`quality-assurance`; boundary class → `APPROVE-PENDING-HUMAN`, ~~the owner merges~~ discharged by his
+cited comment, then `quality-assurance` merges; the four holds apply as well; and the promotion to the
+release branch is ~~the owner's~~ held the same way, behind manual approval (the `gitflow-multi-env`
+table in `quality-gates`). An environment approval the forge itself requires stays his act there.
 
 **When it is unclear whether a hold applies, it applies.** When the class is unclear, it is boundary.
+
+### Who executes a held merge (#133, owner decision 2026-11-01)
+
+**The owner's comment is his go; the act is the gate's.** In his words, recorded on #133
+(https://github.com/tedeuxx/mhw/issues/133#issuecomment-6567109882): with his authorization comment cited
+by URL, `quality-assurance` executes a held merge on **any** branch, the release candidate into the trunk
+included. So for every hold, in both models:
+
+- the first verdict is `APPROVE-PENDING-HUMAN`, naming the hold: it means *waiting for the owner's
+  comment*, not *a merge by the owner*;
+- once his own comment authorizes the merge, the gate re-verdicts **at the same head**, cites the
+  comment's URL on an `authorization:` line, posts the clearance literal the class earns
+  (`APPROVE-AND-MERGE` or `APPROVE-AND-MERGE-BOUNDARY`), and merges;
+- a moved head needs a fresh verdict, and an authorization names the head or the pull request it covers;
+  the gate does not stretch it past that;
+- the holds stay four (plus the release candidate where declared): a cited comment **discharges** a
+  hold, it never removes one, and without the citation the hold stands.
 
 ### The evidence rule for owner-dependent criteria (#133)
 

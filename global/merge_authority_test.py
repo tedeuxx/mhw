@@ -13,6 +13,7 @@ observe a gate follow the contract, and a paraphrase outside the parsed surface 
 import contextlib
 import io
 import os
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -144,10 +145,14 @@ class MethodCopiesMatchTheContract(unittest.TestCase):
         # The trunk executor rule is not imported: in gitflow the boundary class is itself a hold.
         self.assertEqual(gitflow["boundary"], "APPROVE-PENDING-HUMAN")
         self.assertIn("boundary-class", gitflow["holds"])
-        self.assertEqual(gitflow["promotion-executor"], "owner")
+        # #133 (contract v2): held merges, the promotion included, are executed by the gate on the owner's
+        # cited comment.
+        self.assertEqual(gitflow["promotion-executor"], "quality-assurance")
+        self.assertEqual(gitflow["hold-executor"], "quality-assurance")
+        self.assertEqual(TRUNK["hold-executor"], "quality-assurance")
         # The rc/next variant (scm): a declared integration branch adds the release-candidate hold.
         variant = TRUNK["with-integration-branch"]
-        self.assertEqual(variant, {"holds": ["release-candidate"], "promotion-executor": "owner"})
+        self.assertEqual(variant, {"holds": ["release-candidate"], "promotion-executor": "quality-assurance"})
         self.assertIn("release candidate", ma.projection(CONTRACT))
 
     def test_every_operational_copy_is_green(self):
@@ -258,6 +263,66 @@ class OwnerEvidenceRule(unittest.TestCase):
         self.assertIn("one line per owner authorization", template)
 
 
+class HeldMergeExecutor(unittest.TestCase):
+    """#133 round 2, owner decision 2026-11-01: with his authorization comment cited by URL, quality-assurance
+    executes a held merge on any branch. The holds stay four; the old 'the owner merges held diffs' wording
+    is gone from every copy's live prose (struck history may stay)."""
+
+    COPIES = list(CONSUMERS) + ["method/skills/merge-authority/SKILL.md"]
+    OLD = re.compile(r"\bthe owner merges\b|the owner only on the four surviving holds|"
+                     r"gate still never merges them|promotion is the owner's|only the owner merges it", re.I)
+
+    def test_the_contract_is_version_2_and_names_the_discharge(self):
+        self.assertEqual(CONTRACT["version"], 2)
+        self.assertEqual(CONTRACT["hold-discharge"],
+                         "the owner's own comment authorizes the merge and a verdict at the same head cites its URL")
+        self.assertEqual(CONTRACT["declaration-versions"], [1])
+        self.assertEqual(len(TRUNK["holds"]), 4)
+
+    def test_every_copy_carries_the_executor_rule_for_both_models(self):
+        rule = "until %s, then `quality-assurance` merges" % CONTRACT["hold-discharge"]
+        for rel in CONSUMERS:
+            block = ma.projection_block((REPO / rel).read_text(encoding="utf-8"))
+            with self.subTest(rel):
+                self.assertEqual(block.count(rule), 2)
+                self.assertIn("discharged the same way, then `quality-assurance` merges", block)
+                self.assertIn("The promotion is held the same way, then `quality-assurance` merges it.", block)
+                self.assertTrue(block.startswith(ma.PROJECTION_BEGIN + " v2:"))
+
+    def test_the_old_owner_merges_wording_is_gone_or_struck(self):
+        for rel in self.COPIES:
+            flat = ma.flatten(ma.live_prose((REPO / rel).read_text(encoding="utf-8")))
+            with self.subTest(rel):
+                self.assertEqual(self.OLD.findall(flat), [])
+
+    def test_a_v1_contract_still_renders_the_v1_wording(self):
+        old = dict(CONTRACT, version=1)
+        del old["hold-discharge"]
+        text = ma.projection(old)
+        self.assertIn("the quality-assurance merges", text)
+        self.assertNotIn("until the owner's own comment", text)
+
+    def test_the_gate_and_the_states_table_say_who_executes(self):
+        gate = ma.flatten((REPO / "method/agents/quality-assurance.md").read_text(encoding="utf-8"))
+        self.assertIn("His go is his own comment authorizing the merge; the act stays yours", gate)
+        self.assertIn("It means waiting for the owner's comment, not a merge by the owner", gate)
+        blocked = gate[gate.index("APPROVE-EXECUTOR-BLOCKED \u2014 DoD green"):]
+        blocked = blocked[:blocked.index("REQUEST-CHANGES \u2014 one or more")]
+        self.assertIn("Never for a refusal by the workstation deny floor.", blocked)
+        conf = ma.flatten((REPO / "method/skills/agents-configuration/SKILL.md").read_text(encoding="utf-8"))
+        for needle in ("on the four surviving holds, quality-assurance too, once the owner's own comment authorizes "
+                       "the merge",
+                       "until the owner's own comment authorizes the merge; then it re-verdicts at the same head",
+                       "A refusal by the workstation deny floor is never this state (#133)",
+                       "only a cited URL of his own comment counts, and without it the verdict is APPROVE-PENDING-HUMAN",
+                       "With the URL cited, the gate executes the held merge itself."):
+            with self.subTest(needle=needle[:40]):
+                self.assertIn(needle, conf)
+        auto = ma.flatten((REPO / "method/commands/autonomy.md").read_text(encoding="utf-8"))
+        self.assertIn("what it waits for is his own comment authorizing the merge, after which the gate "
+                      "re-verdicts citing that comment's URL and executes the merge itself", auto)
+
+
 class ProjectBrief(unittest.TestCase):
     def setUp(self):
         self.env = Env()
@@ -356,7 +421,7 @@ class ProjectBrief(unittest.TestCase):
         self.env.brief(CORRECTED_SECTION)
         kiro = ma.installed_skill_paths(self.env.home)[2][1]
         original = kiro.read_text(encoding="utf-8")
-        kiro.write_text(original.replace('"version": 1', '"version": 0'), encoding="utf-8")
+        kiro.write_text(original.replace('"version": 2', '"version": 0'), encoding="utf-8")
         self.assertRed("disagree", code=2)
         kiro.write_text(original.replace("```merge-authority-contract", "```json"), encoding="utf-8")
         self.assertRed("expected one", code=2)

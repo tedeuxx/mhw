@@ -79,7 +79,10 @@ pending; a pause for questions publishes nothing.
 
 1. Open or update the PR `rc/next` → `main` with one semver label.
 2. On the owner's go, run `python3 -B workspace/delivery.py merge --pr NUMBER` from a checkout of
-   `rc/next`. It refuses a head branch other than `rc/next`, dirty workspaces, a different/unpushed
+   `rc/next`. His go is his own comment on the PR authorizing the merge; `quality-assurance` then posts
+   a verdict at the same head citing that comment's URL and runs the command (#133, owner decision
+   2026-11-01). **This route does not check either**: for a PR into `main` it reads no gate verdict and
+   no owner comment, so the go is an instruction here, not a check. It refuses a head branch other than `rc/next`, dirty workspaces, a different/unpushed
    head, a stale base, a non-clean merge state, missing labels, a missing `tests` run and
    incomplete or failed checks. The stable `delivery-ci` job requires every test matrix to pass; the
    semver and Sonar checks must also be present and successful. Only the most recent run of each
