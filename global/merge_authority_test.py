@@ -145,6 +145,10 @@ class MethodCopiesMatchTheContract(unittest.TestCase):
         self.assertEqual(gitflow["boundary"], "APPROVE-PENDING-HUMAN")
         self.assertIn("boundary-class", gitflow["holds"])
         self.assertEqual(gitflow["promotion-executor"], "owner")
+        # The rc/next variant (scm): a declared integration branch adds the release-candidate hold.
+        variant = TRUNK["with-integration-branch"]
+        self.assertEqual(variant, {"holds": ["release-candidate"], "promotion-executor": "owner"})
+        self.assertIn("release candidate", ma.projection(CONTRACT))
 
     def test_every_operational_copy_is_green(self):
         for rel, verdicts in CONSUMERS.items():
@@ -314,6 +318,49 @@ class ProjectBrief(unittest.TestCase):
         self.env.brief(CORRECTED_SECTION.replace(BLOCK, "\n".join("  " + l for l in BLOCK.split("\n"))))
         self.assertRed("no `<!-- merge-authority:begin -->` block")
         self.env.brief(CORRECTED_SECTION)
+        self.assertGreen()
+
+    def test_an_integration_branch_brief_keeps_the_release_candidate_hold(self):
+        # Lens on PR #419: the rc/next variant's release-candidate hold must be the contract's, not a
+        # project hold the contract would call a finding. This repository's own brief is the subject.
+        own = (REPO / "AGENTS.md").read_text(encoding="utf-8")
+        declared = BLOCK.replace("- loop-model: trunk-single-env\n",
+                                 "- loop-model: trunk-single-env\n- integration-branch: rc/next\n")
+        (self.env.project / "AGENTS.md").write_text(own + "\n" + declared, encoding="utf-8")
+        self.assertGreen()
+        (self.env.project / "AGENTS.md").write_text(own + "\n" + BLOCK, encoding="utf-8")
+        self.assertRed("no `integration-branch`")
+        (self.env.project / "AGENTS.md").write_text(own + "\n" + declared, encoding="utf-8")
+        self.assertGreen()
+
+    def test_the_release_candidate_hold_cannot_be_turned_off(self):
+        rc = CORRECTED_SECTION.replace("- loop-model: trunk-single-env\n",
+                                       "- loop-model: trunk-single-env\n- integration-branch: rc/next\n")
+        cases = [
+            ("- rc-hold: none", "hold override"),
+            ("- promotion-executor: quality-assurance", "executor override"),
+            ("- integration-branch: rc/other", "at most one"),
+        ]
+        for line, needle in cases:
+            with self.subTest(line):
+                self.env.brief(rc.replace("- loop-model:", line + "\n- loop-model:"))
+                self.assertRed(needle)
+                self.env.brief(rc)
+                self.assertGreen()
+        self.env.brief(rc.replace("trunk-single-env", "gitflow-multi-env"))
+        self.assertRed("no integration-branch variant")
+        self.env.brief(rc + "\nSlices merge into rc/next; the release candidate waits for the owner.\n")
+        self.assertGreen()
+
+    def test_an_undecodable_copy_or_empty_declaration_versions_fails_closed(self):
+        self.env.brief(CORRECTED_SECTION)
+        kiro = ma.installed_skill_paths(self.env.home)[2][1]
+        original = kiro.read_bytes()
+        kiro.write_bytes(b"\xff\xfe\x00not utf-8")
+        self.assertRed("cannot be read", code=2)
+        kiro.write_bytes(original.replace(b'"declaration-versions": [1]', b'"declaration-versions": []'))
+        self.assertRed("non-empty list", code=2)
+        kiro.write_bytes(original)
         self.assertGreen()
 
     def test_no_agents_md_is_red(self):

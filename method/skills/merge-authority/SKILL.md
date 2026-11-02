@@ -34,7 +34,8 @@ this block, and a method test checks every operational copy against the **source
     "harness-marker": "a harness diff with no `agents-lead` verdict marker at the head being merged",
     "iac": "anything in `iac/`",
     "lens-escalate": "an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`",
-    "boundary-class": "the boundary class itself"
+    "boundary-class": "the boundary class itself",
+    "release-candidate": "the release candidate (the promotion pull request from the declared integration branch to the trunk)"
   },
   "models": {
     "trunk-single-env": {
@@ -45,7 +46,8 @@ this block, and a method test checks every operational copy against the **source
       "on-hold": "APPROVE-PENDING-HUMAN",
       "hold-executor": "owner",
       "executor-blocked": "APPROVE-EXECUTOR-BLOCKED",
-      "changes": "REQUEST-CHANGES"
+      "changes": "REQUEST-CHANGES",
+      "with-integration-branch": {"holds": ["release-candidate"], "promotion-executor": "owner"}
     },
     "gitflow-multi-env": {
       "executor": "quality-assurance",
@@ -74,10 +76,15 @@ a project declaring a format the installed method does not know is refused rathe
 - `quality-assurance` executes every cleared merge. Safe class → `APPROVE-AND-MERGE`. Boundary class →
   `APPROVE-AND-MERGE-BOUNDARY`, and the owner reviews live after deploy (ADR-0002 amendment #16 in the
   methodology library).
-- **Exactly four holds**, and on any of them the verdict is `APPROVE-PENDING-HUMAN` and the owner
-  merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict
+- **Four holds**, plus the release candidate when an integration branch is declared (below); on any
+  of them the verdict is `APPROVE-PENDING-HUMAN` and the owner merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict
   marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a
   `BLOCKING` truth finding from `product-lead`.
+- **With a declared integration branch** (the `rc/next` variant in `scm`): slices target the integration
+  branch and merge under the rule above; the release candidate, the pull request from the integration
+  branch to the trunk, is a **fifth hold the contract itself defines**: `APPROVE-PENDING-HUMAN`, and only
+  the owner merges it, on his explicit go. The project turns it on by declaring `integration-branch`; it
+  cannot turn it off.
 - Cleared but the merge could not be executed → `APPROVE-EXECUTOR-BLOCKED`; this is not a hold. An
   unmet Definition of Done → `REQUEST-CHANGES`.
 
@@ -106,6 +113,10 @@ A project's root brief (`AGENTS.md`) carries **one** block, at column 0 and outs
 - **`contract`** — required, once: the reference to this contract and the declaration format it uses
   (`v1` today).
 - **`loop-model`** — required, once: one of the models in the contract.
+- **`integration-branch`** — optional, once, under `trunk-single-env`: the branch slices target. It
+  turns on the contract's release-candidate hold. A trunk brief that describes a release candidate or an
+  `rc/` branch without declaring it is refused, because the hold would then rest on prose the contract
+  does not see.
 - **`boundary-trigger`** — any number: a condition, path or semantic, that makes a diff boundary in this
   project. It classifies; it may not say who merges, what verdict follows or what the owner must do.
 
@@ -125,6 +136,8 @@ It reads the project's root `AGENTS.md` and the installed copies of this skill. 
   model, or carries any other key (executor, verdict, hold or class keys are named as overrides);
 - a `boundary-trigger` value uses authority vocabulary (`APPROVE-`, ratify, escalate, hold, merges,
   go/no-go);
+- a `trunk-single-env` brief describes a release candidate or an `rc/` branch in its live prose without
+  declaring `integration-branch`, or a brief declares one under a model with no such variant;
 - the live prose carries one of the **known** legacy phrases: the gate escalating, holding or not
   merging the boundary class, or the brief claiming it wins over the method;
 - the live prose names a loop model other than the declared one.
@@ -145,8 +158,8 @@ act: `quality-assurance` (*Classify — who may merge* and its verdict list, and
 `agents-configuration` (*The merge is the go/no-go*), `quality-gates` (the `trunk-single-env` table),
 `/autonomy` (what *ready for him* means) and the workspace delivery route (`workspace/delivery.py`'s
 clearance literals). Each method copy carries a projection block generated from the contract above,
-between `<!-- merge-authority:projection` and `<!-- merge-authority:end -->`, and the method renderer
-suite asserts every block equals the projection, that each copy still names every verdict, and that no
+between `<!-- merge-authority:projection` and `<!-- merge-authority:end -->`, and
+`global/merge_authority_test.py` asserts every block equals the projection, that each copy still names every verdict, and that no
 copy's live prose carries a known legacy phrase. **That is a check over strings**: it catches a changed
 executor, verdict or hold in a projection block, and a deleted verdict literal, but not a paraphrase
 elsewhere in a long brief.

@@ -8,7 +8,9 @@ INSTALLED copies of that skill and the project's root AGENTS.md, and reports:
   - fail closed (exit 2) when no installed copy carries a readable contract, the copies disagree, or the
     installed contract does not understand the declared format;
   - findings (exit 1) when the project's one declaration block is absent, duplicated, incomplete, names an
-    unknown loop model or carries any key other than contract, loop-model and boundary-trigger; when a
+    unknown loop model or carries any key other than contract, loop-model, integration-branch and
+    boundary-trigger; when a trunk brief describes a release candidate without declaring its integration
+    branch (the contract's release-candidate hold then rests on prose); when a
     boundary trigger uses authority vocabulary; when the live prose carries a known legacy phrase; and when
     the live prose names a loop model other than the declared one.
 
@@ -28,7 +30,11 @@ END = "<!-- merge-authority:end -->"
 PROJECTION_BEGIN = "<!-- merge-authority:projection"
 PROJECTION_END = "<!-- merge-authority:end -->"
 INSTALL = "run `mhw install --method` (./mhw install --method in a checkout), then check again"
-ALLOWED = ("contract", "loop-model", "boundary-trigger")
+ALLOWED = ("contract", "loop-model", "integration-branch", "boundary-trigger")
+# Live prose that describes a release candidate or an rc/ branch: the release-candidate hold must then be
+# declared, so it rests on the contract and not on prose the contract does not see.
+RC_PROSE = re.compile(r"\brelease candidate\b|(?<![\w/])rc/[A-Za-z0-9._-]+", re.I)
+BRANCH = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]*")
 
 # A key a project may not declare, by what it would override. Matched on the key, case-insensitive.
 OVERRIDE_KEYS = (
@@ -69,8 +75,10 @@ def parse_contract(text, where="the contract"):
         raise ContractError("%s: the contract is not valid JSON (%s)" % (where, exc))
     if not isinstance(c, dict) or c.get("contract") != "merge-authority":
         raise ContractError("%s: not a merge-authority contract" % where)
-    if not isinstance(c.get("version"), int) or not isinstance(c.get("declaration-versions"), list):
-        raise ContractError("%s: version and declaration-versions are required" % where)
+    dv = c.get("declaration-versions")
+    if (not isinstance(c.get("version"), int) or not isinstance(dv, list) or not dv
+            or not all(isinstance(v, int) for v in dv)):
+        raise ContractError("%s: version and a non-empty list of integer declaration-versions are required" % where)
     verdicts, holds, models = c.get("verdicts"), c.get("holds"), c.get("models")
     if not isinstance(verdicts, list) or not isinstance(holds, dict) or not isinstance(models, dict) or not models:
         raise ContractError("%s: verdicts, holds and models are required" % where)
@@ -82,7 +90,14 @@ def parse_contract(text, where="the contract"):
         for key in ("safe", "boundary", "on-hold", "executor-blocked", "changes"):
             if m[key] not in verdicts:
                 raise ContractError("%s: model %s maps %s to an unknown verdict %s" % (where, name, key, m[key]))
-        for h in m["holds"]:
+        variant = m.get("with-integration-branch")
+        extra = []
+        if variant is not None:
+            if not isinstance(variant, dict) or not isinstance(variant.get("holds"), list) \
+                    or not variant["holds"] or "promotion-executor" not in variant:
+                raise ContractError("%s: model %s has a malformed with-integration-branch" % (where, name))
+            extra = variant["holds"]
+        for h in list(m["holds"]) + extra:
             if h not in holds:
                 raise ContractError("%s: model %s names an unknown hold %s" % (where, name, h))
     return c
@@ -100,9 +115,16 @@ def projection(c):
                    m["hold-executor"], holds, m["executor-blocked"], m["changes"]))
         if "promotion-executor" in m:
             line += " The promotion is the %s's." % m["promotion-executor"]
+        variant = m.get("with-integration-branch")
+        if variant:
+            line += (" With a declared integration branch, slices merge into it under this rule, and %s: %s -> "
+                     "`%s`, the %s merges."
+                     % ("these holds are added" if len(variant["holds"]) > 1 else "this hold is added",
+                        "; ".join(c["holds"][h] for h in variant["holds"]), m["on-hold"],
+                        variant["promotion-executor"]))
         out.append(line)
-    out.append("- Canonical source: the `merge-authority` skill. A project brief declares only its loop model "
-               "and its boundary triggers.")
+    out.append("- Canonical source: the `merge-authority` skill. A project brief declares only its loop model, "
+               "its integration branch if it has one, and its boundary triggers.")
     out.append(PROJECTION_END)
     return "\n".join(out)
 
@@ -200,7 +222,7 @@ def declaration_blocks(text):
 
 
 def check_declaration(lines, contract):
-    """(findings, unsupported, loop model) for one block's lines against the installed contract."""
+    """(findings, unsupported, loop model, integration branch declared) for one block's lines against the installed contract."""
     findings, entries = [], []
     for raw in lines:
         s = raw.strip()
@@ -223,6 +245,7 @@ def check_declaration(lines, contract):
             findings.append("unknown key `%s`: the declaration carries only %s" % (key, ", ".join(ALLOWED)))
     contracts = [v for k, v in entries if k == "contract"]
     models = [v for k, v in entries if k == "loop-model"]
+    branches = [v for k, v in entries if k == "integration-branch"]
     unsupported = None
     if len(contracts) != 1:
         findings.append("the declaration needs exactly one `contract: merge-authority vN` line (found %d)"
@@ -242,6 +265,15 @@ def check_declaration(lines, contract):
     elif models[0] not in contract["models"]:
         findings.append("loop model `%s` is not one the contract maps (%s)"
                         % (models[0], ", ".join(sorted(contract["models"]))))
+    if len(branches) > 1:
+        findings.append("the declaration carries %d `integration-branch` lines; at most one" % len(branches))
+    for b in branches:
+        if not BRANCH.fullmatch(b.strip("`")):
+            findings.append("`integration-branch: %s` is not a branch name" % b[:60])
+    if branches and len(models) == 1 and models[0] in contract["models"] \
+            and not contract["models"][models[0]].get("with-integration-branch"):
+        findings.append("`integration-branch` is declared, but the contract gives `%s` no integration-branch "
+                        "variant" % models[0])
     for key, value in entries:
         if key == "boundary-trigger":
             if not value:
@@ -249,7 +281,7 @@ def check_declaration(lines, contract):
             elif AUTHORITY_WORDS.search(value):
                 findings.append("a boundary trigger may classify, not assign authority: %r uses %r"
                                 % (value[:60], AUTHORITY_WORDS.search(value).group(0)))
-    return findings, unsupported, (models[0] if len(models) == 1 else None)
+    return findings, unsupported, (models[0] if len(models) == 1 else None), bool(branches)
 
 
 def installed_skill_paths(home):
@@ -264,7 +296,11 @@ def installed_contract(home):
     found = []
     for harness, path in installed_skill_paths(home):
         if path.is_file():
-            found.append((harness, parse_contract(path.read_text(encoding="utf-8"), "%s copy %s" % (harness, path))))
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as exc:
+                raise ContractError("%s copy %s cannot be read (%s)" % (harness, path, exc.__class__.__name__))
+            found.append((harness, parse_contract(text, "%s copy %s" % (harness, path))))
     if not found:
         raise ContractError("no installed copy of the method's merge-authority contract (the method is not "
                             "installed, or it predates #195)")
@@ -297,7 +333,7 @@ def check_project(root, home):
     elif blocks[0] is None:
         findings.append("the declaration block is opened and never closed with `%s`" % END)
     else:
-        block_findings, unsupported, model = check_declaration(blocks[0], contract)
+        block_findings, unsupported, model, branch = check_declaration(blocks[0], contract)
         if unsupported:
             n, known = unsupported
             if n > max(known):
@@ -308,6 +344,12 @@ def check_project(root, home):
                                   "(it reads %s); update the `contract` line"
                                   % (n, ", ".join("v%d" % k for k in known)))
         findings += block_findings
+        if model and contract["models"].get(model, {}).get("with-integration-branch") and not branch:
+            rc = RC_PROSE.search(flatten(live_prose(text)))
+            if rc:
+                findings.append("the prose describes a release candidate or an integration branch (%r) but the "
+                                "declaration has no `integration-branch`; declare it so the contract's "
+                                "release-candidate hold applies" % rc.group(0))
         if model:
             for m in LOOP_MODEL_PROSE.finditer(flatten(live_prose(text))):
                 if m.group(1).lower() != model:
