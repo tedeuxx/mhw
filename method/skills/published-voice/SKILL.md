@@ -1169,8 +1169,12 @@ this rule arrived with:**
    below**, blank line between. **And it appears in the EN edition only** — the PT edition carries the
    original alone, because there the original is already in the reader's language. A rule written for
    *"the gloss inside the block"* would describe a form the site has never used.
-2. **No attributing precedent in the BLOG corpus — and exactly ONE outside it, which settles the
-   typography this section was about to leave open.** ~~There is NO attributing precedent at all.~~
+2. ~~**No attributing precedent in the BLOG corpus — and exactly ONE outside it, which settles the
+   typography this section was about to leave open.**~~ **Struck 2026-11-01 (mhw#140): the blog half
+   went stale. As of 2026-11-01 the selector below returns 8 attribution lines — 2 in the content root
+   and 6 in the blog — so the published pages carry 4 attributed external quotations, each in both
+   editions: one outside the blog, which still settles the typography, and three in it.**
+   ~~There is NO attributing precedent at all.~~
    **Struck, and struck rather than silently rewritten because the merge gate quoted it verbatim on
    the pull request, so it has a reader.** The measurement behind it was right and its SCOPE was not:
    it was taken over the blog and published over *the corpus*, and the conclusion drawn on the
@@ -1180,9 +1184,11 @@ this rule arrived with:**
    published quotation-block figure runs `grep -cE '^> ' <content-dir>/*.en.md`, and `<content-dir>`
    is the **blog** directory — re-derived by running it against both candidates rather than assumed:
    the blog returns `40, 1, 0, 0, 0, 0` across six files, which is the published shape exactly, and
-   the content **root** returns `3` and `1` across two, which matches nothing. **Within the blog the
+   the content **root** returns `3` and `1` across two, which matches nothing. ~~**Within the blog the
    struck claim holds** — every quotation block there is the owner's own prompt, its gloss or
-   generated text, and not one names an external author.
+   generated text, and not one names an external author.~~ **Struck 2026-11-01 (mhw#140): true when
+   written, false now — the blog carries three attributed external quotations (6 attribution lines
+   over two pieces, both editions), measured with the selector below.**
 
    **But rule 18's subject is *a VERBATIM quotation from an external source*, with no blog
    restriction**, so the blog is not the corpus that answers it. **The non-blog published pages carry
@@ -1198,10 +1204,16 @@ this rule arrived with:**
    for p in sorted(glob.glob('<content-root>/*.md')) + sorted(glob.glob('<content-dir>/*.md')):
        for i, l in enumerate(open(p, encoding='utf-8'), 1):
            if l.startswith('> —'): print(p, i, l.strip())"
-   # -> both editions of the architecture page, same line number, the same attribution line
-   # CONTROL: the <content-dir> half returns NOTHING, which is why the blog-scoped claim above is
-   #          also true — one selector produces both halves of this correction.
+   # -> 2026-11-01: 8 lines. <content-root>: both editions of the architecture page, same line
+   #    number, the same attribution line. <content-dir>: 6 lines, two pieces, both editions.
    ```
+
+   ~~`# -> both editions of the architecture page, same line number, the same attribution line`~~
+   ~~`# CONTROL: the <content-dir> half returns NOTHING, which is why the blog-scoped claim above is
+   also true — one selector produces both halves of this correction.`~~ **Struck 2026-11-01
+   (mhw#140): the expected output and its control no longer held. The `<content-dir>` half now returns
+   6 lines, so it is no longer a control for a blog-scoped absence; the `<content-root>` half still
+   returns the one instance this correction names.**
 
    *(The concrete content paths are facts about the consuming repo and are cited in the brief of the
    persona that reads it; the rule here depends on neither.)*
@@ -1234,8 +1246,10 @@ as matching the existing page** — a reviewer applying rule 18 to a new article
 architecture page must not find two different attribution shapes, which is the cross-surface coherence
 this ruler exists to hold.
 
-**What this does NOT settle, so the correction is not over-read:** the house form is ONE instance, on
-one page, in two editions, and **nothing gates it** — no layer reads a draft, and no arm pins the
+**What this does NOT settle, so the correction is not over-read:** ~~the house form is ONE instance, on
+one page, in two editions,~~ **struck 2026-11-01 (mhw#140): as of that date the house form has 4
+instances on 3 pages, each in two editions — three end on `— Name, year`, and one ends on a title, a
+description and a source link instead of a year, which is a deviation from it** — and **nothing gates it** — no layer reads a draft, and no arm pins the
 attribution shape. It is a precedent to match, not a measured convention; if the owner rules a
 different shape, the page is what moves with it.
 

@@ -395,7 +395,8 @@ raise a finding against."* Inventing a house style is the failure this whole des
      tell, treat it as such and remove it. **Write the finding without the span**: the review file is
      tracked and public, so record the clause and that a span was removed, never its text, its source
      or anything that lets a reader rebuild it, and tell the owner in your return that you removed
-     it and under which condition.
+     it, naming the rule (global brief rule 1, through rule 18a condition 4), the category (employer,
+     client or NDA material) and where (the draft file and its edition) — never the span itself.
 
    A rendered or paraphrased idea is not a quotation, so these four do not apply to it; rule 18's
    verbatim clause decides which it is, and where you cannot tell, ask.
