@@ -746,8 +746,11 @@ requirement: a falsifier you cannot run is a rhetorical device.
 > *A correction worth keeping, because it is a live example of the rule it sits under.* This passage
 > briefly justified itself by saying the old example (`gh api …/protection`) "named a command the loop
 > cannot execute", because a blanket `Bash(gh api:*)` deny had just landed in the floor. **That deny
-> was withdrawn hours later as too broad** — reading through `gh api` is open, and
-> `…/branches/main/protection` is a read — so the justification was false almost immediately, while
+> was withdrawn hours later as too broad** — ~~reading through `gh api` is open, and
+> `…/branches/main/protection` is a read — so the justification was false almost immediately~~
+> *(struck 2026-11-02, mhw#242: on this workstation the broad `Bash(gh api:*)` deny is the owner's own
+> user-level rule, not a floor entry, and he decided to keep it, so a `gh api` read is denied here
+> today; the floor carries only the `gh api -X`/`--method` write prefixes)*, while
 > the example change it justified was fine on its own merits (`gh pr checks` is simpler and needs no
 > endpoint). What survives is the requirement, not the anecdote: **check that your falsifier runs, in
 > the loop as it is configured today**, rather than reasoning about whether it should.

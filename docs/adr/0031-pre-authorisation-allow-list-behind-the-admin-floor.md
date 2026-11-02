@@ -200,6 +200,24 @@ removed (8), Codex forbidden rendering removed (2), one deny entry dropped from 
 standalone-interpreter refusal removed (2), the never-list shortened (1). The earlier rounds' mutants
 (floor-prefix refusal, tier selection, Kiro tail, `/` in a word, `Edit` protections) cover unchanged code.
 
+## Amendment, 2026-11-02: a `script` kind for one installed method script (Issue #242)
+
+The owner kept his broad user-level `Bash(gh api:*)` deny and chose to pre-authorise the milestone read
+route instead ([#242](https://github.com/tedeuxx/mhw/issues/242#issuecomment-6576468808)). A `runner`
+names a repository path relative to the checkout, which the rendered method never uses: it runs
+`python3 <installed method/scripts>/milestone-read.py` from any repository. So a fourth kind, `script`,
+names one file of `method/scripts/` by its bare name and renders it with the installed absolute path,
+`Bash(<program> <path>:*)`, Claude Code only, in the wide tier only. It also renders an `Edit` deny on
+that file, in every tier. The installer refuses a script entry in the narrow tier, a program other than
+sh, bash or python3, an option other than -B or -I, a path, a test file, or a name with no file in
+`method/scripts/`. A copy without `method/`, or an installed path holding a character a rule cannot carry,
+renders no rule and says so in a NOTE. The one entry is `milestone-read.py`; create, update and close
+still ask.
+
+What it does not close, stated: the script runs `gh api` in a subprocess, which no settings rule sees;
+that is the read path the owner chose. A Bash write to the installed file is not covered by the `Edit`
+deny, the same residual the repository runners carry. Windows renders no allow list.
+
 ## Links
 
 

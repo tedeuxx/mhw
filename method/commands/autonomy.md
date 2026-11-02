@@ -631,8 +631,10 @@ admission, rule 11 for creating the iteration).~~ **Struck 2026-09-04 (#383): bo
 ~~An admission is now a silent allowlisted write, and creating the iteration prompts only because
 `scripts/` is in no allow list — an absence rather than a control. The rule that composition is his
 did not change; the mechanism did, and there is none.~~ **Struck 2026-09-29 (#537, round 4): the owner
-confirms the composition; creation and admission then execute without another prompt through the
-already-allowlisted reviewed routes. The ownership rule remains procedural, while review plus the
+confirms the composition; creation and admission then execute ~~without another prompt~~ through the
+~~already-allowlisted~~ reviewed routes (struck 2026-11-02, mhw#242: the workstation allow list grants
+neither `python3` as an interpreter nor `gh issue edit`, so whether they prompt is another settings
+layer's answer). The ownership rule remains procedural, while review plus the
 blocking behavioral regression carry the unguarded route contract.**
 
 **Nothing fires it either**, for the reason stated one paragraph up: no layer here reads the queue. Read
