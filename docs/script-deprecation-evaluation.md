@@ -9,7 +9,7 @@ asks one question: can a native mechanism that works across Claude Code, Codex a
 This is the deliverable of [#206](https://github.com/tedeuxx/mhw/issues/206). **No script is removed
 here.** Each deprecation the owner accepts becomes its own slice.
 
-- **Tree evaluated:** `rc/next` at `f76c0af01963748632cf7cfb5b8969bec16ee84c`, 2026-11-01.
+- **Tree evaluated:** `rc/next` at `37937f8b2af5397068ed6d26e0daff78335c1ba5`, 2026-11-01.
 - **Earlier pass:** a first evaluation, pinned to `v6.0.0`, is on the Issue. The owner accepted its
   four clean deprecations on 2026-10-18 and PR #208 removed them (see
   [What the first pass already removed](#what-the-first-pass-already-removed)). This document
@@ -45,8 +45,8 @@ native cell is **documented**, **cited** or **assumed**, never stronger.
 
 ## Result
 
-**35 scripts evaluated, one row each: 0 deprecate, 18 keep as the exception, 17 keep.** The 26 test
-files are one grouped row at the end and are not counted in the 35.
+**36 scripts evaluated, one row each: 0 deprecate, 19 keep as the exception, 17 keep.** The 27 test
+files are one grouped row at the end and are not counted in the 36.
 
 No clean deprecation is left. The first pass found four, and they are already gone. Every remaining
 script either writes the native carriers (keep) or covers a gap that at least one agent harness has no
@@ -112,6 +112,7 @@ Measured by searching the tree for each script's name, test files and decision r
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
 | `global/prerequisites.py` | `mhw check --prerequisites`: tools and subscriptions present, authenticated, and repository merge settings matching the standard. | `workstation.py`. | CC `/doctor` (documented), CC only. None on Cx or K (assumed). | One report across tools and agent harnesses. | **keep** |
+| `global/merge_authority.py` | `mhw check --project=DIR`: validates a project's root `AGENTS.md` declaration block against the merge-authority contract in the installed `merge-authority` skill. Fails closed when the installed contract is missing or its copies disagree; reports a missing, duplicated or overriding block and known legacy phrases. | `workstation.py` (`mhw check --project`); the `merge-authority` skill tells agents to run it. | None. Briefs and skills are native carriers on all three agent harnesses (each at the level the [native enforcement matrix](native-enforcement-matrix.md) gives), but none checks a brief's content against a skill's contract (assumed: no vendor documents one). | The only check that a project brief matches the installed merge-authority contract (#195). | **keep as the exception** |
 | `global/owner_actions.py` | Counts open `owner-action` Issues for `mhw status`, and says "not read" instead of a false 0. | `workstation.py`. | `gh issue list --label owner-action` (documented). That is the forge CLI, not an agent harness mechanism. | The false-0 guard. | **keep** |
 
 ### Delivery and CI
@@ -143,7 +144,7 @@ skills and commands.
 
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
-| The 26 test files (`*_test.py`, `*.test.py`, `*.test.sh`, `install.test.ps1`, `keychain_test_guard.py`, `security.test.stub`) | Exercise each script and its install in throwaway homes. | `tests.yml`. | Not applicable: they check scripts; they anchor no agent behaviour. | The regression suite. A test leaves with the script it tests. | **keep** |
+| The 27 test files (`*_test.py`, `*.test.py`, `*.test.sh`, `install.test.ps1`, `keychain_test_guard.py`, `security.test.stub`) | Exercise each script and its install in throwaway homes. | `tests.yml`. | Not applicable: they check scripts; they anchor no agent behaviour. | The regression suite. A test leaves with the script it tests. | **keep** |
 
 ## What the first pass already removed
 
@@ -169,6 +170,7 @@ carrier. The change to watch for:
 | `chrome_debugging.py` | The `chrome-devtools` server no longer needs the preference, or the owner prefers his own click. |
 | `clipboard_guard.py`, `paste_wrapper.py` | Native prompt-content filtering on all three, including the Kiro IDE and the Kiro V3 engine. |
 | `scan.py` | Forge or agent harness outbound scanning that covers personal data and owner-defined terms. |
+| `merge_authority.py` | An agent harness that validates a project brief against a declared schema or a skill's contract. |
 | `delivery.py` | A forge rule that requires a verdict pinned to the head before merge. |
 | `method_issue_sync.py` | A CI agent allow list that can limit writes to one Issue. |
 | Milestone family | A `gh milestone` subcommand, or a GitHub MCP server the deny floor can see (see hypothesis 1). |
@@ -193,10 +195,10 @@ carrier. The change to watch for:
 
 ## Measurements
 
-Run on `rc/next` at `f76c0af01963748632cf7cfb5b8969bec16ee84c`:
+Run on `rc/next` at `37937f8b2af5397068ed6d26e0daff78335c1ba5`:
 
 - Script inventory: `git ls-files`, filtered to `.py`, `.sh`, `.ps1`, `.js` and the extension-less
-  `mhw`, then split into the 35 scripts and 26 test files.
+  `mhw`, then split into the 36 scripts and 27 test files.
 - Callers: a fixed-string search of the tree for each script's full file name, test files and
   `docs/adr/` excluded, then a check that each named caller file contains that name. A mention in a
   comment is not a call. (The first version of this document searched the milestone family by the
