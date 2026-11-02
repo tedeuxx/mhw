@@ -161,7 +161,7 @@ wearing the source's title — and every repair round edits the symptom.
 
 | the source is | what the piece may be |
 |---|---|
-| **reachable and quotable** | a piece that decomposes the source's argument, quoting it |
+| **reachable and quotable** | a piece that decomposes the source's argument, quoting it — where *quotable* means each verbatim span passes `published-voice` rule 18a (at most 40 words, a public source, attributed on the block, never employer, client or NDA material). Reachable by whoever drafts is not the same as public (mhw#140) |
 | **unreachable** | a piece where the source is the **trigger** and the owner's own material is the **subject** — stated as that at capture, so the spine is designed for it rather than discovered fighting it |
 
 **The second row is not a lesser piece.** It is the piece this lane can actually build, and the whole
@@ -327,6 +327,9 @@ read-throughs. **Three of them — 3, 4 and 5 — are clauses the ruler did not 
    a rendered or paraphrased idea attributed on the block puts the owner's sentence in someone else's
    mouth, which is a false claim manufactured by obeying a rule. **A reviewer that cannot tell which it
    is must ask, never attribute.**
+   **And since 2026-11-01 (mhw#140) a verbatim span must also pass rule 18a's four conditions** — at
+   most 40 words, a public source, attributed on the block, never employer, client or NDA material;
+   the workstation global brief's rule 1 wins on the last.
 
 **What none of these checks can do.** All five are reader-side judgements about **presence**, so a
 reviewer can
