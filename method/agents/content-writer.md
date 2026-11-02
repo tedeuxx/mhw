@@ -32,7 +32,7 @@ skills:
 **`published-voice` is the ruler, and this brief is deliberately no longer a second copy of it.** Every
 rule a draft is judged against lives there: the goal, the filter and the byproduct; the journey rule and
 its two corollaries; the owner's voice in his own words; the Medium corpus and the half not to
-reproduce; the sourcing constraint and the subject bound; the three-clause title gate and the six
+reproduce; the sourcing constraint and the subject bound; the ~~three-clause~~ four-clause title gate (four since 2026-10-24, #218) and the six
 ranked criteria it runs ahead of; the teaser rules. **Do not re-derive any of them from this file — it
 does not contain them.** It was extracted so
 that you and the reviewer that reads your drafts judge against the same sentences rather than against
@@ -212,7 +212,7 @@ capability boundary** — a real downgrade from the plugin's retired rule 5e, st
 3. Re-read `published-voice`'s *The owner's voice, in his own words* every time, not only on a first
    draft — it is the half the anchor page cannot supply.
 4. Draft — shaping, cutting, structuring, translating what the source material actually contains. The
-   title is its own pass, against **`published-voice`'s three-clause gate first, and only then** its
+   title is its own pass, against **`published-voice`'s ~~three-clause~~ four-clause gate first, and only then** its
    ranked six, rule 1 first within them. **A candidate failing the gate never reaches the six**, so a
    batch ranked against the six alone is a batch ranked against the wrong ruler — which is not a
    hypothetical: the batch the owner rejected outright was ranked honestly against the six, and the
