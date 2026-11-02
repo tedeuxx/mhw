@@ -284,8 +284,11 @@ it never was, and the table above is the cheapest form of saying so.
 **This is a DISCLOSURE, not a tenth row, and the distinction is the whole of it.** The DoD governs a
 **diff and its Issue**. On the content lane the *piece* keeps travelling after the merge — promotion,
 then the social pair on both networks — and **nothing carries that remainder**: no criterion, no gate,
-no hook, and no artifact that says it happened. So on that lane the DoD's exit gate is the **merge**,
-and the merge is not the audience.
+no hook, ~~and no artifact that says it happened~~. *(Struck 2026-11-02, mhw#238: the lane now asks
+for one artifact, the Issue's closing comment carrying both post URLs. It is written by instruction
+and no gate reads it.)* So on that lane the DoD's exit gate is the **merge**, and the merge is not the
+audience. A met DoD there is a *release*, never a publication: `/content-publishing` step 10 defines
+*published*.
 
 **Do not close this by adding a posting criterion.** It would put an obligation on the gatekeeper that
 it cannot check, on **every** lane, to cover one — and a criterion with no ruler behind it is the exact
