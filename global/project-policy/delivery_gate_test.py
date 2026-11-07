@@ -509,7 +509,72 @@ class Workflows(unittest.TestCase):
             self.assertNotRegex(text(path), r"(?m)^\s+environment:", path.name)
 
     def test_the_workflow_never_turns_the_container_check_off(self):
-        self.assertNotIn("--no-container-check", text(WORKFLOWS[0]))
+        # Neither workflow nor the caller template a project copies; the opt-out is the suite's only.
+        for path in WORKFLOWS + [TEMPLATE]:
+            self.assertNotIn("--no-container-check", text(path), path.name)
+
+    # Least privilege, pinned per job (QA advisory A1 on #449): a scope added to any job, or a job
+    # added with any permission, fails here. None means the job declares none and inherits the
+    # top level, which must be `permissions: {}`.
+    PERMISSIONS = {
+        WORKFLOWS[0]: {"contract": {"contents": "read"}, "containerised": {"contents": "read"},
+                       "installed-stg": {"contents": "read"},
+                       "authorisation": {"contents": "read", "actions": "read"}},
+        WORKFLOWS[1]: {"before-stg": {"contents": "read", "actions": "read"},
+                       "before-prod": {"contents": "read", "actions": "read"}, "report": None},
+        TEMPLATE: {"gates-before-stg": {"contents": "read", "actions": "read"},
+                   "deploy-stg": {"contents": "read", "id-token": "write"},
+                   "risk-rules": {"contents": "read", "pull-requests": "read"},
+                   "gates-before-prod": {"contents": "read", "actions": "read"},
+                   "recovery-plan": {"contents": "read"},
+                   "deploy-prod": {"contents": "read", "id-token": "write"},
+                   "validate-prod": {"contents": "read"},
+                   "recover": {"contents": "read", "id-token": "write"}},
+    }
+
+    @staticmethod
+    def permissions(body):
+        """(top level, {job: permissions or None}, count of permissions keys) from the file's text.
+
+        A small reader for this repository's own layout (two-space jobs, four-space job keys); any
+        permissions key it does not place is still counted, so one hidden elsewhere fails."""
+        def value(lines, start, indent):
+            inline = lines[start].split("permissions:", 1)[1].strip()
+            if inline:
+                if inline == "{}":
+                    return {}
+                match = re.fullmatch(r"\{(.*)\}", inline)
+                if not match:
+                    return inline  # write-all, read-all: never equal to a pinned mapping
+                return dict(part.strip().split(": ", 1) for part in match.group(1).split(","))
+            scopes = {}
+            for line in lines[start + 1:]:
+                match = re.fullmatch(r" {%d}([\w-]+): (\S+)" % (indent + 2), line)
+                if not match:
+                    break
+                scopes[match.group(1)] = match.group(2)
+            return scopes
+        lines = body.split("\n")
+        top, jobs, job, in_jobs = None, {}, None, False
+        for index, line in enumerate(lines):
+            if line == "jobs:":
+                in_jobs = True
+            elif in_jobs and re.fullmatch(r"  [\w-]+:", line):
+                job = line.strip()[:-1]
+                jobs[job] = None
+            elif line.startswith("permissions:"):
+                top = value(lines, index, 0)
+            elif in_jobs and job and line.startswith("    permissions:"):
+                jobs[job] = value(lines, index, 4)
+        count = len(re.findall(r"(?m)^\s*permissions:", body))
+        return top, jobs, count
+
+    def test_every_job_has_least_privilege(self):
+        for path, pinned in self.PERMISSIONS.items():
+            top, jobs, count = self.permissions(text(path))
+            self.assertEqual(top, {}, path.name)
+            self.assertEqual(jobs, pinned, path.name)
+            self.assertEqual(count, 1 + sum(1 for p in pinned.values() if p is not None), path.name)
 
     def test_the_gate_calls_the_validator_and_every_gate(self):
         body = text(WORKFLOWS[0])

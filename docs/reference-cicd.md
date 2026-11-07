@@ -9,7 +9,7 @@ each gate, a caller template with the deployment jobs, and a dry run against a s
 | --- | --- |
 | `.github/workflows/reference-delivery-gate.yml` | The gates, as a reusable workflow (`workflow_call` only). It deploys nothing and names no environment |
 | `global/project-policy/delivery_gate.py` | The script each gate runs: it applies a valid contract to one revision's evidence |
-| `global/project-policy/delivery_gate_test.py` | Its suite: a benign pass per gate and one test per blocking class, plus the workflows' pins |
+| `global/project-policy/delivery_gate_test.py` | Its suite: a benign pass per gate and one test per blocking class, plus the workflows' pins: every action by SHA, and each job's permissions in both workflows and the caller template, so a scope added to any job fails |
 | `global/project-policy/reference/caller-workflow.yml` | A template a project copies, with the STG and PROD deployment jobs. Not live in mhw |
 | `global/project-policy/reference/fixture/` | The synthetic project the dry run gates |
 | `.github/workflows/reference-delivery-dry-run.yml` | The dry run: the gate workflow against the fixture, on pull requests that change these files |
