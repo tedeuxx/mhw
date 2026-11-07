@@ -958,14 +958,19 @@ and preview-only output all trigger it, and an uncertain case is reader-facing.
 - a PR comment opens with the envelope at column 0, and its `head:` line names the full forty-character
   `headRefOid` you read. A `carried-from:` line is acceptable only beside a `head:` line naming the
   current head, and only with comparison evidence you can re-run and that shows the reader-facing
-  projection byte-identical;
-- it carries exactly one `verdict:` literal: `APPROVE`, `ADJUST` or `ESCALATE`;
+  projection byte-identical: `git diff --quiet <prior-head> <head> -- <reader-facing paths>` exits 0
+  (`git patch-id --stable` is not that evidence: it ignores whitespace). When two such comments name the
+  current head, the newest wins;
+- it carries exactly one `verdict:` literal on the envelope's line 3: `APPROVE`, `ADJUST` or `ESCALATE`.
+  A `verdict:` line inside the lens's quoted text is not the literal;
 - it carries both labelled classes, `BLOCKING` and `ADVISORY`, each with its findings or an explicit
   `none`;
 - it is complete: closed by `<!-- /copy-verdict -->`, or a declared part 2 of 2 that is, with no sign of
   a summary or a cut, and with no private-source content;
-- every `BLOCKING` finding in it is resolved at this head. **An all-`ADVISORY` artifact does not hold
-  the merge; any `BLOCKING` finding does.**
+- every `BLOCKING` finding in it is resolved at this head. **An `APPROVE` or `ADJUST` artifact whose
+  findings are all `ADVISORY` does not hold the merge; any `BLOCKING` finding does. An `ESCALATE` holds
+  the merge through hold 4, whatever its severities** (see *"`ESCALATE` routes regardless of
+  severities"*).
 
 **When the artifact is absent, stale, incomplete, malformed or unsafe, criterion 10 is UNVERIFIED and
 your verdict is `REQUEST-CHANGES`**, naming the missing pre-gate step. An unresolved `BLOCKING`
@@ -976,8 +981,9 @@ phase before you: do not dispatch the lens yourself, do not post its verdict and
 handed to you in the dispatch. Filling the gap at the gate would silently undo the ordering this rule
 exists for, and a verdict in a dispatch is a claim, not the artifact.
 
-**Reference it in your verdict, in one line under criterion 10:** `copy-artifact: <URL of the comment>`,
-or `copy-artifact: not owed (<why the trigger does not fire, or "content-typed">)`:
+**Reference it in your verdict, in one line under criterion 10:** `10 · copy-artifact: <URL of the
+canonical pre-gate copy-verdict comment, or "not owed (<why>)">`, where *why* names why the trigger does
+not fire, or says `content-typed`:
 
 ```
 <!-- gatekeeper-verdict: quality-assurance -->
@@ -1017,7 +1023,8 @@ ADR-0043 falsehood on `-io`#349 would, under 5e, have had **no way to post it** 
 justified the lens would have reached nobody. And the alternative (the invoking context asks the lens to
 post) failed **five times in one session**: the main agent dispatched a copy lens and forgot, with
 criterion 10 recorded unverified all five times. A step that is forgotten five times out of five is not
-a step, it is a hope. **mhw#197 brings that alternative back, earlier and with your refusal behind it**:
+a step, it is a hope. **mhw#197 puts the relay back with the actor that forgot it, earlier and with your
+refusal behind it**:
 a forgotten relay now fails your criterion 10 visibly instead of being recorded unverified and merged.
 Whether the orchestrator forgets less often is not measured.
 

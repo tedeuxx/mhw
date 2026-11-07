@@ -501,13 +501,17 @@ PRE_GATE_CLAUSES = (
     "never paraphrase it in transit.",
     "If the comment cannot be posted, the phase is incomplete and the gate waits.",
     "A moved head needs a new artifact at the new head.",
-    "prove the reader-facing projection byte-identical",
+    "prove the reader-facing projection byte-identical: `git diff --quiet <prior-head> <head> -- <reader-facing "
+    "paths>` exits 0.",
+    "**Only the envelope's line-3 `verdict:` is the literal**",
+    "**When two `copy-verdict` comments name the same head, the newest wins.**",
     "the round is complete only when the pull request carries a `gatekeeper-verdict` comment whose `head:` "
     "line names the current full head.",
     "No available layer can intercept an agent dispatch.",
     "a relay by the orchestrator has failed before.",
 )
-PRE_GATE_TEMPLATE = ("<!-- copy-verdict: product-lead -->", "head: <the full 40-character head SHA the lens read>",
+PRE_GATE_TEMPLATE = ("<!-- copy-verdict: product-lead -->",
+                     "head: <the full 40-character head this artifact attests (on a carry-forward, the new head)>",
                      "verdict: <exactly one of APPROVE, ADJUST, ESCALATE>",
                      "carried-from: <only on a carry-forward: the prior head, then the comparison evidence>",
                      "<!-- /copy-verdict -->")
@@ -522,7 +526,10 @@ PRE_GATE_CONSUMERS = (
       "**The relay is no longer yours.**", "Re-derive the trigger yourself, from the diff at the head you review.",
       "your verdict is `REQUEST-CHANGES`**", "**Refuse, do not relay.**",
       "do not dispatch the lens yourself, do not post its verdict",
-      "**An all-`ADVISORY` artifact does not hold the merge; any `BLOCKING` finding does.**",
+      "**An `APPROVE` or `ADJUST` artifact whose findings are all `ADVISORY` does not hold the merge; any "
+      "`BLOCKING` finding does. An `ESCALATE` holds the merge through hold 4, whatever its severities**",
+      "`git diff --quiet <prior-head> <head> -- <reader-facing paths>` exits 0",
+      "When two such comments name the current head, the newest wins;",
       "10 · copy-artifact: <URL of the canonical pre-gate copy-verdict comment",
       "*its text is on the PR* means the canonical pre-gate copy artifact at the current head"),
      ("So you relay it, and the relay is now mandatory rather than permitted.",
