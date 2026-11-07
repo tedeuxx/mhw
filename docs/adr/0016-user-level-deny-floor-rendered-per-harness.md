@@ -549,8 +549,13 @@ he is away.*
   renew a secret or a token (D2) through his browser, copying without reading (D3). Presence is
   observed by no layer, so this is written only, not enforced.
 - **Deleting a secret is not covered**, and neither is any other floor item.
-- **The canary is owed.** Until it passes, no claim is made that the value stays out of the model's
-  context, and no real use happens before it does (D3).
+- ~~**The canary is owed.** Until it passes, no claim is made that the value stays out of the model's
+  context, and no real use happens before it does (D3).~~ *(Struck 2026-11-07.)* **The canary passed
+  once and is owed again.** Route (b) through `chrome-devtools` passed on the real forge page on
+  2026-10-29 (`canary=0`, calibrated), under that day's two-origin launch. ADR-0038's D8 removed the
+  origin bound after it, so a rerun under the installed launch is owed before the first real secret,
+  and route (a) through Claude in Chrome has passed nowhere (ADR-0040, amendment "2026-11-07: the
+  real-page canary result, and what D8 leaves owed"). The entries above are unchanged by either run.
 
 ## Links
 

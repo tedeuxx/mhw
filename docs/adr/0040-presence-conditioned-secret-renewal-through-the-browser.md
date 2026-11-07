@@ -2,10 +2,15 @@
 
 - **Status:** proposed. The five decisions it records (D1 to D5) are the owner's own, given on
   [Issue #220](https://github.com/tedeuxx/mhw/issues/220) on 2026-10-24. The record waits for his
-  ratification. **The canary has run in local emulation only; the canary on the real forge page is
+  ratification. ~~**The canary has run in local emulation only; the canary on the real forge page is
   owed, not passed** (see the amendment "2026-10-24: canary results in local emulation"). No part of
   this record may be read as a claim that a secret value stays out of the model's context on the real
-  page.
+  page.~~ *(Struck 2026-11-07: the real-page canary ran and passed on 2026-10-29, before D8.)* **Route
+  (b), the script, through `chrome-devtools`, passed on the real forge page on 2026-10-29, under the
+  launch of that day** (two declared origins, D7). **Route (a), the paste, through Claude in Chrome,
+  has not passed.** The pass says nothing about the launch without an origin bound (ADR-0038, D8),
+  which is the one installed now; a rerun under it is owed before the first real secret. See the
+  amendment "2026-11-07: the real-page canary result, and what D8 leaves owed".
 - **Date:** 2026-10-24
 - **Deciders:** the owner (D1 to D5); written by `agents-lead`
 - **Issue:** [#220](https://github.com/tedeuxx/mhw/issues/220)
@@ -63,7 +68,7 @@ What the rule protects against, and what each threat costs:
 | Threat | What goes wrong | Covered by |
 | --- | --- | --- |
 | An unattended run writes a secret | A drain, a scheduled run or a subagent replaces a credential nobody asked for; the owner learns of it from a failing deploy, or never | The closed away list below; the Bash denies |
-| The value enters the model's context | A screenshot, a page snapshot, a page-text read or a script that returns the value carries the token to the model provider and into the session transcript on disk, against the workstation brief's rule 2 (sanitise secrets) | D3 and D5, copy without reading; the canary, run in local emulation only, **owed on the real page** |
+| The value enters the model's context | A screenshot, a page snapshot, a page-text read or a script that returns the value carries the token to the model provider and into the session transcript on disk, against the workstation brief's rule 2 (sanitise secrets) | D3 and D5, copy without reading; the canary, ~~run in local emulation only, **owed on the real page**~~ passed on the real page for route (b) under the 2026-10-29 launch, **owed again under the D8 launch** (amendment "2026-11-07") |
 | The browser tool captures the screen on its own | Some browser tools return a screenshot after a click without being asked; the value would enter context even under D3 | **Nothing yet.** The canary must cover it (owner, D3) |
 | The agent reads the clipboard | A clipboard read (`pbpaste` or a tool equivalent) after the copy puts the value into context | Instruction: the agent never reads the clipboard while it holds a secret |
 | Scope creep | "Present" is read as a general licence for other floor items | D2: secrets only, create or renew only |
@@ -129,7 +134,9 @@ browser**, driving the flow with Chrome DevTools or Claude in Chrome, on these c
    tool argument.
 5. **No real use before the canary passes.** The canary below is a precondition of the first real use
    (D3), run through each browser tool and each route of rule 3 that will be used (D5); if it fails,
-   that route stays closed.
+   that route stays closed. *(Added 2026-11-07:)* and run under the launch that will really be used: a
+   pass under one `chrome-devtools` launch does not count for another (D6's standard; amendment
+   "2026-11-07: the real-page canary result, and what D8 leaves owed").
 
 ### Away: a closed list
 
@@ -156,7 +163,7 @@ never the absence of an item on this list.
 | The Bash secret-store denies | Native deny rules from `global/deny-floor.conf`, four installed layers (ADR-0016) | Unchanged: installed and enforced as before |
 | Presence (D1, D4) and the away list | **Instruction.** No layer observes whether the owner is watching | Written only |
 | Scope (D2) | Instruction | Written only |
-| Copy without reading (D3, D5) | Instruction | Written only. Canary in local emulation only: the script route through `chrome-devtools` passed; the paste route through Claude in Chrome did not. **The canary on the real page is owed** (amendment "2026-10-24: canary results in local emulation") |
+| Copy without reading (D3, D5) | Instruction | Written only. ~~Canary in local emulation only: the script route through `chrome-devtools` passed; the paste route through Claude in Chrome did not. **The canary on the real page is owed** (amendment "2026-10-24: canary results in local emulation")~~ Canary on the real page, 2026-10-29: the script route through `chrome-devtools` passed end to end, `canary=0` with a positive control, under that day's two-origin launch. The paste route through Claude in Chrome has passed nowhere. **Under the D8 launch, installed now, a rerun is owed before the first real use** (amendment "2026-11-07: the real-page canary result, and what D8 leaves owed") |
 | The browser route itself | Instruction. No deny entry matches a browser or MCP tool | Written only, as today |
 
 ~~The `chrome-devtools` server this repository installs is bound to the consuming project's declared
@@ -227,8 +234,67 @@ record leaned on it, and both are reconciled here:
   pages is now an instruction only, held with D1 by the owner watching.
 - **The canary rerun needs no launch variable.** It runs in any session, and the forge's asset host is
   reachable, which the single-origin bound had blocked.
-- **Evidence level:** unchanged for this record, *written only*. The canary on the real page is still
-  owed, and nothing here was measured against the unbounded launch.
+- **Evidence level:** unchanged for this record, *written only*. ~~The canary on the real page is still
+  owed, and~~ *(struck 2026-11-07: false when written. The real-page canary passed at 23:17Z on
+  2026-10-29 and D8 was given at 23:53Z the same day, so this sentence post-dates its own refutation.)*
+  Nothing here was measured against the unbounded launch.
+
+#### Amendment 2026-11-07: the real-page canary result, and what D8 leaves owed
+
+Recorded from the run reports on Issue #220:
+[route (b) blocked by the single-origin bound](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6509543202)
+and [route (b) passed end to end](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6510782445).
+Two earlier attempts that day ran nothing
+([bound failed closed](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6509191688),
+[attach refused](https://github.com/tedeuxx/mhw/issues/220#issuecomment-6509288916)).
+
+**What ran.** `rc/next` at `5239f87`, installed with `mhw install`; `chrome-devtools-mcp@1.8.0` with
+`--autoConnect`, attached to the owner's main Chrome profile after he allowed the connection, and one
+`--allowedUrlPattern` per declared origin: `https://github.com/*` and `https://github.githubassets.com/*`
+(D7). The target was the throwaway private repository `tedeuxx/mhw-canary-220`.
+
+| Run (2026-10-29) | Launch bound | Fill | Seal and create | Counts |
+| --- | --- | --- | --- | --- |
+| Route (b), 4 runs | `https://github.com/*` only | done | **failed**: the asset host that seals the value was blocked, *"Failed to add secret"* | runs 1 and 4: **`canary=0`**, positive control 11 and 15 |
+| Reverse calibration | same | a script returned a fresh fake value on purpose | n/a | `canary=2`, positive control 14: non-zero, so the zeros are real negatives |
+| Route (b), 1 run | the two D7 origins | done | **done**: `CANARY_220` listed by `gh secret list --repo tedeuxx/mhw-canary-220` | **`canary=0`** in the transcripts, the task outputs and the session JSONL; positive control 1 |
+
+- **The procedure** kept D3 and D5: one in-page script generated a fake value (`mhwcanary220_` plus 40
+  hex) in a hidden element, moved it into the secret field, saved a count copy by a Blob download and
+  returned only lengths and booleans. One snapshot was taken, of the empty form; no screenshot, and no
+  snapshot while a value was on the page. The count used `grep -F -f` with the pattern file outside the
+  scanned trees (a first count read `canary=1` because the pattern file sat inside one; fixed).
+- **Proven:** route (b) through `chrome-devtools`, on the real forge page, fill, seal and create, puts
+  the value into no transcript or tool output, under the two-origin launch of that day. Issue #220's
+  acceptance criterion 6 is met as written: *0 occurrences … on a throwaway repo secret*.
+- **Not proven:** route (a) through Claude in Chrome (it failed at the paste in emulation and was not
+  run on the real page, so it stays closed by rule 5); the MCP server's own logs, never searched; the
+  owner's other tabs.
+
+**Why the pass does not clear the first real use under the D8 launch.** D8 (ADR-0038, 2026-10-29,
+36 minutes after the pass) removed the origin bound, and it is the launch installed now: the reference
+machine's `~/.claude.json` carries `chrome-devtools` with no `--allowedUrlPattern` (read on 2026-11-07,
+workstation v9.0.1). Two things differ from the run that passed, and neither was measured:
+
+- the server no longer detaches from tabs outside the bound, so `new_page` and `list_pages` return every
+  open tab of the owner's, where they returned only forge tabs;
+- hosts the bound refused now load on the secret page (`api.github.com` failed 3 times in the pass).
+
+Neither is a known route for the value into context: the value moves inside the page and the script
+returns nothing that carries it. **That is a reading, not a measurement.** The owner's own standard for
+this canary decides it: in D6 he ruled that the real-page canary waits for the launch change *"so that
+it measures the route as it will really be used. An isolated-profile run would not count."* By the
+same rule, a run under the two-origin launch does not count for the unbounded one. **So rule 5 now
+reads: before the first real secret, route (b) is rerun through `chrome-devtools` on
+`tedeuxx/mhw-canary-220` under the D8 launch, with the same counter and a positive control, and passes
+only on `canary=0`.** The rerun is the owner's act (his browser and his approval of the connection),
+not an agent's. The first real use still repeats the count.
+
+**Cross-repository restatement of rule 4 (acceptance criterion 2).** The two Issues this record cited,
+`tadeumendonca-skills#576` and `tadeumendonca-io#781`, were transferred into this repository as #250
+and #252 and closed on 2026-11-01 as duplicates of #220. Both root briefs still read *"Never write a
+secret into this repository or into a forge secret store"* (read from the local checkouts on
+2026-11-07). The restatement is therefore untracked, and an Issue in each target repository is owed.
 
 ## Consequences
 
@@ -240,11 +306,14 @@ record leaned on it, and both are reconciled here:
   nothing else. An away run that drives the browser is stopped by no layer, as today.
 - **Bad:** the route cannot be used until the canary passes, and a failing canary keeps it closed (D3).
 - **Bad:** rule 4 in the two project root briefs still says "never"; it is restated in their own repos,
-  tracked by tedeuxx/tadeumendonca-skills#576 and tedeuxx/tadeumendonca-io#781.
+  ~~tracked by tedeuxx/tadeumendonca-skills#576 and tedeuxx/tadeumendonca-io#781~~ *(struck 2026-11-07:
+  both were transferred here as #250 and #252 and closed as duplicates of #220, so nothing tracks the
+  restatement; an Issue in each target repository is owed)*.
 
 ## Links
 
-- Issue [#220](https://github.com/tedeuxx/mhw/issues/220), its intake, the owner's D1 to D5 and the canary run reports.
+- Issue [#220](https://github.com/tedeuxx/mhw/issues/220), its intake, the owner's D1 to D7 and the canary run reports.
 - ADR-0016 (the deny floor), ADR-0035 (hooks only for existential risk), ADR-0038 (the
   `chrome-devtools` server, ~~bounded by origin~~ with no origin bound since its D8 amendment).
-- tedeuxx/tadeumendonca-skills#576, tedeuxx/tadeumendonca-io#781.
+- ~~tedeuxx/tadeumendonca-skills#576, tedeuxx/tadeumendonca-io#781.~~ Transferred here as #250 and
+  #252, closed 2026-11-01 as duplicates of #220.
