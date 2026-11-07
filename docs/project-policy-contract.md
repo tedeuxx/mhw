@@ -11,32 +11,65 @@ values, ratified in its own MADR.
 | `global/project-policy/project-policy.example.json` | A valid example for a synthetic project |
 | `global/project-policy/project-policy.invalid.json` | An invalid example that weakens seven parts of the floor |
 | `global/project-policy/project_policy_test.py` | The suite: the valid example passes, removing each required field fails, each floor is held |
+| `global/project-policy/project_policy.py` | The fail-closed validator behind `mhw policy check` ([#245](https://github.com/tedeuxx/mhw/issues/245)) |
+| `global/project-policy/project_policy_check_test.py` | The validator's suite: one test per failure class |
 
 ## Evidence level, said first
 
-**Written and tested; nothing reads it.** This slice ships the schema and its examples only
-([#244](https://github.com/tedeuxx/mhw/issues/244)). No `mhw` command validates a project's file
-yet: the fail-closed validator is [#245](https://github.com/tedeuxx/mhw/issues/245), the reference
-CI/CD that calls it is [#246](https://github.com/tedeuxx/mhw/issues/246), and the recovery reference is
-[#247](https://github.com/tedeuxx/mhw/issues/247). No project declares this contract. No project's
-CI/CD carries ADR-0015's evidence either, and the lock's deployment half stays written policy only.
+**Written and tested; no project runs it.** The schema and its examples are
+[#244](https://github.com/tedeuxx/mhw/issues/244); `mhw policy check`, the fail-closed validator, is
+[#245](https://github.com/tedeuxx/mhw/issues/245). The reference CI/CD that calls the validator is
+[#246](https://github.com/tedeuxx/mhw/issues/246), and the recovery reference is
+[#247](https://github.com/tedeuxx/mhw/issues/247). No project declares this contract and no project's
+CI/CD runs the validator, so it is not installed, loaded or enforced anywhere. No project's CI/CD
+carries ADR-0015's evidence either, and the lock's deployment half stays written policy only.
 
-The suite checks the schema with a small JSON Schema evaluator that lives in the test file. It is not
-a tool and does not stand in for #245. It refuses any schema keyword it does not implement, so the
-schema cannot carry a rule the suite skips.
+The validator and both suites use one small JSON Schema evaluator, in `project_policy.py`. It refuses
+any schema keyword it does not implement, so the schema cannot carry a rule the validator skips.
 
-**Patterns need full-match semantics, and the #245 validator must use them.** JSON Schema patterns
+**Patterns need full-match semantics, and the validator uses them.** JSON Schema patterns
 are ECMA-262 regular expressions, where a final `$` does not match before a trailing newline. Python's
 `re.search` with the same `$` does, so `"@handle\n"` or a MADR path ending in a newline would pass.
-Every pattern here is anchored with `^` and `$`; the suite's evaluator refuses one that is not and
-matches with `re.fullmatch`, and it tests one trailing-newline case per pattern. A validator in
+Every pattern here is anchored with `^` and `$`; the evaluator refuses one that is not (the validator
+then exits 2) and matches with `re.fullmatch`, never `re.search`. It also compiles no pattern from a
+file: the five patterns the schema uses are compiled from literals in `project_policy.py`, and any
+other pattern exits 2. A schema pattern edit therefore lands in both files, and a test holds the two
+sets equal. The suites test one trailing-newline
+case per pattern, and the validator's suite repeats four of them through the command. A validator in
 another language must reach the same answer: an ECMA engine, or a full match.
 
 ## Where a project puts it
 
-The contract has no fixed path in a consumer repository yet: #245 settles where the validator looks.
-The file is plain JSON, so a project can keep it in version control next to the MADR that ratifies its
-values.
+`project-policy.json` at the repository root, version-controlled beside the MADR that ratifies its
+values. `mhw policy check --project=DIR` reads `DIR/project-policy.json` (the current directory by
+default); `--file=PATH` reads another path instead.
+
+## Validating it: `mhw policy check`
+
+```
+mhw policy check [--project=DIR | --file=PATH]
+```
+
+It exits 0 only when the file is a valid contract. Everything else is non-zero, with one reason per
+line on standard error, each naming its class:
+
+| Exit | When |
+| --- | --- |
+| 0 | the file is a valid `schema_version` 1 contract |
+| 1 | **missing** (no file, or a directory); **unreadable** (the file exists but cannot be read); **malformed** (not UTF-8, not JSON, not an object, a repeated key, or `NaN`/`Infinity`); **unknown version** (no `schema_version`, or one this validator does not know); or the contract is broken, each finding classed as one of: missing or invalid risk classification, missing mandatory evidence, medium-or-higher findings tolerated, unknown severity, inconclusive evidence does not block, risk-based approval weakened, low finding without a bug Issue, project MADR not ratified, recovery not prepared, contract invalid |
+| 2 | a usage error, or the validator cannot decide: its own schema is unreadable, is not strict JSON (`NaN`, `Infinity` or a repeated key, refused exactly as in the project file), uses a keyword, a keyword value or a type its evaluator does not implement, or a pattern outside its known set. It walks the whole schema before it reads the file, so a defect in a branch the file never reaches still exits 2. It does not answer "valid" when it cannot check |
+
+A repeated key fails because JSON readers disagree on which copy wins, and one file must not mean two
+things. `NaN` fails because it compares false with every bound, so `threshold_percent` NaN would pass
+every range check.
+
+Beyond the schema, it checks one thing the pattern cannot: `recovery.runbook.last_tested` must be a
+real calendar date (not `2026-02-30`) and not later than tomorrow on the validator's clock (one day of
+slack for time zones). A runbook cannot have been tested in the future.
+
+On macOS and Linux it is `mhw policy check`. On Windows, where `mhw` does not dispatch it, run
+`python global/project-policy/project_policy.py check` with the same options. It needs Python 3.9 or
+later and nothing else.
 
 ## Versioning
 
@@ -57,14 +90,16 @@ them any other way. A project may be stricter where the schema allows it, never 
 - the seven minimum security controls are named;
 - the file declares the project MADR accepted;
 - manual recovery carries a recovery-time objective, a runbook with a last-tested date, and an
-  operator handle named as available for the deployment.
+  operator handle named as available for the deployment and the observation period.
 
 One more constraint is **mhw's own guard, not ADR-0015 text**: the risk model must name at least one
 high-risk rule. Without one, the high-risk approval rule above would have nothing to apply to, so this
-guard is what makes ADR-0015's high-risk rule enforceable.
+guard is what makes ADR-0015's high-risk rule applicable. `mhw policy check` refuses a model without
+one; that holds only where a project's CI/CD runs the check, and none does yet.
 
-The schema names these things; it checks no evidence. Whether the controls ran, the MADR is really
-accepted or the runbook was really tested is for a validator to read (#245, #246).
+The schema names these things; it checks no evidence, and neither does the validator. Whether the
+controls ran, the MADR is really accepted or the runbook was really tested is for the reference CI/CD
+to read (#246).
 
 ## Fields
 
@@ -150,7 +185,8 @@ What happens when a critical production validation fails.
   stated in the project's MADR.
 - `runbook`: required for `manual`. An object with:
   - `path`: a repository-relative `.md` path, with the same rules as the MADR's;
-  - `last_tested`: the date the runbook was last tested, as `YYYY-MM-DD`.
+  - `last_tested`: the date the runbook was last tested, as `YYYY-MM-DD`. The schema checks the shape;
+    `mhw policy check` also refuses a date that does not exist or lies in the future.
 - `operator`: required for `manual`. The account handle of the operator available for the deployment
   and the observation period, as `@handle`. Never contact details.
 
@@ -158,12 +194,23 @@ The contract only names the mode. What a runbook must contain is #247.
 
 ## What this contract does not cover
 
-- **No check reads a project's file.** That is #245. Until then a file that breaks the schema fails
-  nowhere.
-- **The schema checks shape, not truth.** It cannot tell whether the MADR at `madr.path` exists or is
-  really accepted, whether the runbook was really tested on `last_tested`, or whether the operator is
-  available. Those need evidence a validator reads, which is #245 and #246.
+- **No project runs the check.** `mhw policy check` exists (#245), but a file that breaks the
+  contract fails only where a project's CI/CD calls it. Wiring it in as a required step is #246's
+  reference, and adopting that in any repository needs that repository's own Issue.
+- **The validator reads no evidence and no findings.** It checks the contract a project declares,
+  not a deployment. Applying the contract to a revision's actual findings and test results, and
+  binding them to the exact revision, is #246 (with #193's evidence binding).
+- **The schema checks shape, not truth.** Neither it nor the validator can tell whether the MADR at
+  `madr.path` exists or is really accepted, whether the runbook was really tested on `last_tested`,
+  how long ago that may be, or whether the operator is available. Those need evidence, which is #246.
+- **`when` is free text, and nothing resolves a conflict between rules.** The validator does not read
+  a change, so it cannot apply a rule. When a change matches both a `low` and a `high` rule, which wins
+  is undefined in `schema_version` 1. The conservative reading is that `high` wins and no match blocks;
+  defining that, or a machine-readable `when`, belongs with whatever classifies a real change (#246)
+  and, if it changes what a version 1 file means, a `schema_version` 2.
+- **`operator` names one account, never a team.** `@org/team` fails the pattern on purpose: ADR-0015
+  asks for an identified operator, and a team handle does not identify who is available.
 - **Which test layers a project runs** (unit, API, end to end, installed-STG) is not a field. ADR-0015
   asks for every applicable layer; how the reference CI/CD records them is #246.
-- **No enforcement anywhere.** By the workstation's evidence words, this is *written* and tested. It is
-  not installed in any project, not loaded and not enforced.
+- **No enforcement anywhere.** By the workstation's evidence words, the contract and its validator are
+  *written* and tested. Neither is installed in any project, loaded or enforced.

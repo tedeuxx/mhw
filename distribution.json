@@ -90,7 +90,7 @@
       "id": "project-policy-contract",
       "layer": "user",
       "paths": ["global/project-policy/"],
-      "gap": "A contract a deploying project declares, not a harness carrier: install.sh renders nothing from it. Written and tested only; no validator reads a project's copy yet (#245) and no project declares one (ADR-0015, #244)."
+      "gap": "A contract a deploying project declares, not a harness carrier: install.sh renders nothing from it. Written and tested only; mhw policy check validates a project's copy (#245), but no project declares one or runs the check (ADR-0015, #244)."
     },
     {
       "id": "model-defaults",

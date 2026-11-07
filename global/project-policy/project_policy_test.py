@@ -3,18 +3,20 @@
 
     python3 -B global/project-policy/project_policy_test.py
 
-This suite checks the contract's SHAPE only. The JSON Schema subset evaluator below lives in this test
-and is not a tool: mhw ships no validator for the contract yet (that is Issue #245, which also decides
-what a project's CI runs). The evaluator refuses any schema keyword it does not implement, so the
-schema cannot grow a rule this suite silently ignores.
+This suite checks the contract's SHAPE. Its JSON Schema subset evaluator is the validator's own
+(project_policy.py, Issue #245; its fail-closed command is tested in project_policy_check_test.py), so
+the schema this suite passes is the schema `mhw policy check` applies. The evaluator refuses any schema
+keyword it does not implement, so the schema cannot grow a rule this suite silently ignores.
 """
 import copy
 import json
 from pathlib import Path
-import re
+import sys
 import unittest
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from project_policy import evaluate  # noqa: E402  the validator's own evaluator (Issue #245)
 ROOT = HERE.parent.parent
 SCHEMA = HERE / "project-policy.schema.json"
 VALID = HERE / "project-policy.example.json"
@@ -54,96 +56,6 @@ REQUIRED_PATHS = sorted(ISSUE_FIELDS + [
     "recovery.mode", "recovery.recovery_time_objective_minutes", "recovery.runbook", "recovery.operator",
     "recovery.runbook.path", "recovery.runbook.last_tested",
 ])
-
-ANNOTATIONS ={"$schema", "title", "description", "$comment"}
-KEYWORDS = ANNOTATIONS | {
-    "type", "const", "enum", "required", "properties", "additionalProperties", "items", "minItems",
-    "maxItems", "uniqueItems", "contains", "allOf", "if", "then", "minimum", "maximum",
-    "exclusiveMinimum", "minLength", "pattern",
-}
-TYPES = {
-    "object": lambda v: isinstance(v, dict),
-    "array": lambda v: isinstance(v, list),
-    "string": lambda v: isinstance(v, str),
-    "boolean": lambda v: isinstance(v, bool),
-    "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
-    "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
-}
-
-
-def same(a, b):
-    """JSON equality: true is not 1."""
-    if isinstance(a, bool) or isinstance(b, bool):
-        return type(a) is type(b) and a == b
-    return a == b
-
-
-def evaluate(value, schema, path="$"):
-    """Errors, as (path, keyword) pairs, of value against the subset of draft 2020-12 used here."""
-    unknown = set(schema) - KEYWORDS
-    if unknown:
-        raise ValueError("%s: schema keyword not implemented by this suite: %s" % (path, sorted(unknown)))
-    errors = []
-    kind = schema.get("type")
-    if kind is not None and not TYPES[kind](value):
-        return [(path, "type")]
-    if "const" in schema and not same(value, schema["const"]):
-        errors.append((path, "const"))
-    if "enum" in schema and not any(same(value, option) for option in schema["enum"]):
-        errors.append((path, "enum"))
-    if isinstance(value, dict):
-        properties = schema.get("properties", {})
-        for key in schema.get("required", []):
-            if key not in value:
-                errors.append((path + "." + key, "required"))
-        if schema.get("additionalProperties", True) is False:
-            for key in value:
-                if key not in properties:
-                    errors.append((path + "." + key, "additionalProperties"))
-        elif "additionalProperties" in schema and schema["additionalProperties"] is not True:
-            raise ValueError("%s: only additionalProperties false is implemented" % path)
-        for key, sub in properties.items():
-            if key in value:
-                errors.extend(evaluate(value[key], sub, path + "." + key))
-    if isinstance(value, list):
-        if len(value) < schema.get("minItems", 0):
-            errors.append((path, "minItems"))
-        if "maxItems" in schema and len(value) > schema["maxItems"]:
-            errors.append((path, "maxItems"))
-        if schema.get("uniqueItems") and any(
-                any(same(item, earlier) for earlier in value[:i]) for i, item in enumerate(value)):
-            errors.append((path, "uniqueItems"))
-        if "items" in schema:
-            for i, item in enumerate(value):
-                errors.extend(evaluate(item, schema["items"], "%s[%d]" % (path, i)))
-        if "contains" in schema and not any(not evaluate(item, schema["contains"], path) for item in value):
-            errors.append((path, "contains"))
-    if TYPES["number"](value):
-        if "minimum" in schema and value < schema["minimum"]:
-            errors.append((path, "minimum"))
-        if "maximum" in schema and value > schema["maximum"]:
-            errors.append((path, "maximum"))
-        if "exclusiveMinimum" in schema and value <= schema["exclusiveMinimum"]:
-            errors.append((path, "exclusiveMinimum"))
-    if "pattern" in schema and not (schema["pattern"].startswith("^") and schema["pattern"].endswith("$")):
-        raise ValueError("%s: only patterns anchored with ^ and $ are implemented" % path)
-    if isinstance(value, str):
-        if len(value) < schema.get("minLength", 0):
-            errors.append((path, "minLength"))
-        # fullmatch, not search: under Python re a final $ also matches before a trailing newline,
-        # where ECMA-262 (the dialect of JSON Schema) does not. On an anchored pattern, fullmatch
-        # gives the ECMA answer.
-        if "pattern" in schema and not re.fullmatch(schema["pattern"], value):
-            errors.append((path, "pattern"))
-    for sub in schema.get("allOf", []):
-        errors.extend(evaluate(value, sub, path))
-    if "if" in schema:
-        if not evaluate(value, schema["if"], path):
-            errors.extend(evaluate(value, schema.get("then", {}), path))
-    elif "then" in schema:
-        raise ValueError("%s: then without if" % path)
-    return errors
-
 
 def required_paths(value, schema, trail=()):
     """Every required key reachable in value, including one a satisfied if/then makes required."""
@@ -371,10 +283,32 @@ class ProjectPolicyContractTests(unittest.TestCase):
         self.assertRejects(self.mutate(("schema_version",), True), "$.schema_version", "type")
         self.assertRejects(self.mutate(("skip_gates",), True), "$.skip_gates", "additionalProperties")
 
+    def test_every_object_rejects_an_unknown_key(self):
+        # QA advisory A1 on #447: dropping additionalProperties false from one nested object left the
+        # suite green. Each object is pinned here, not read from the schema, so dropping it turns red.
+        manual = manual_recovery(self.valid)
+        objects = [
+            (), ("madr",), ("coverage",), ("mandatory_scenarios",),
+            ("mandatory_scenarios", "critical_user_journeys", 0), ("mandatory_scenarios", "risk_scenarios", 0),
+            ("severity",), ("low_findings",), ("risk_classification",), ("risk_classification", "rules", 0),
+            ("approval",), ("recovery",), ("recovery", "runbook"),
+        ]
+        self.assertEqual(len(objects), json.dumps(self.schema).count('"additionalProperties": false'),
+                         "one case per object that declares it")
+        for trail in objects:
+            where = "$" + "".join("[%d]" % s if isinstance(s, int) else "." + s for s in trail)
+            with self.subTest(object=where):
+                doc = copy.deepcopy(manual)
+                parent = doc
+                for step in trail:
+                    parent = parent[step]
+                parent["skip_gates"] = True
+                self.assertRejects(doc, where + ".skip_gates", "additionalProperties")
+
     # -- calibration of the evaluator itself, and the field reference -----------------------------
 
     def test_the_evaluator_refuses_keywords_it_does_not_implement(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # SchemaError is a ValueError
             evaluate({}, {"type": "object", "oneOf": []})
 
     def test_every_schema_field_is_described_in_the_docs_page(self):
