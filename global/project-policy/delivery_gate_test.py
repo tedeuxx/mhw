@@ -34,6 +34,11 @@ WORKFLOWS = [ROOT / ".github/workflows/reference-delivery-gate.yml",
 TEMPLATE = HERE / "reference" / "caller-workflow.yml"
 
 
+def text(path):
+    """A file's text with LF line ends: a Windows checkout writes CRLF, and `$` stops before \\n only."""
+    return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+
 def container_evidence():
     return {
         "layer": "container", "revision": REV, "container_image": IMAGE,
@@ -385,7 +390,7 @@ class Workflows(unittest.TestCase):
 
     def test_every_action_is_pinned_by_sha(self):
         for path in WORKFLOWS + [TEMPLATE]:
-            refs = self.USES.findall(path.read_text(encoding="utf-8"))
+            refs = self.USES.findall(text(path))
             self.assertTrue(refs, path)
             for ref in refs:
                 if ref.startswith("./") or ref == "tedeuxx/mhw/.github/workflows/reference-delivery-gate.yml@<mhw-commit-sha>":
@@ -395,17 +400,17 @@ class Workflows(unittest.TestCase):
     def test_the_gate_and_the_dry_run_name_no_environment(self):
         # A job that names a missing environment creates it, unprotected: neither file may name one.
         for path in WORKFLOWS:
-            self.assertNotRegex(path.read_text(encoding="utf-8"), r"(?m)^\s+environment:", path.name)
+            self.assertNotRegex(text(path), r"(?m)^\s+environment:", path.name)
 
     def test_the_gate_calls_the_validator_and_every_gate(self):
-        text = WORKFLOWS[0].read_text(encoding="utf-8")
-        self.assertIn("project_policy.py check", text)
+        body = text(WORKFLOWS[0])
+        self.assertIn("project_policy.py check", body)
         for gate in ("contract", "container", "installed-stg", "classify", "environment"):
-            self.assertIn("delivery_gate.py %s " % gate, text)
+            self.assertIn("delivery_gate.py %s " % gate, body)
 
     def test_the_dry_run_has_no_deployment_job(self):
-        text = WORKFLOWS[1].read_text(encoding="utf-8").split("\njobs:\n", 1)[1]
-        self.assertEqual(sorted(re.findall(r"(?m)^  ([\w-]+):$", text)),
+        body = text(WORKFLOWS[1]).split("\njobs:\n", 1)[1]
+        self.assertEqual(sorted(re.findall(r"(?m)^  ([\w-]+):$", body)),
                          ["before-prod", "before-stg", "report"])
 
 
