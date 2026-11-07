@@ -292,3 +292,4 @@ Every installation on the owner's machine is his act, in a fresh session.
 - [Agent harness baseline vocabulary](docs/harness-baseline.md)
 - [Local persistence inventory](docs/persistence-inventory.md)
 - [Support script deprecation evaluation](docs/script-deprecation-evaluation.md)
+- [Evidence provenance study](docs/evidence-provenance-study.md)
