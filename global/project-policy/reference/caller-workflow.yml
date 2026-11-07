@@ -21,8 +21,11 @@ concurrency:
 
 jobs:
   gates-before-stg:
+    # actions: read is for the called workflow's authorisation job, which GitHub checks even when the
+    # stg call skips it.
     permissions:
       contents: read
+      actions: read
     # The same mhw commit in uses: and mhw-revision.
     uses: tedeuxx/mhw/.github/workflows/reference-delivery-gate.yml@<mhw-commit-sha>
     with:

@@ -21,8 +21,11 @@ permissions: {}
 
 jobs:
   before-stg:
+    # The called workflow's authorisation job asks actions: read. GitHub checks every job of a called
+    # workflow against the caller's grant, skipped ones included, so the stg call grants it too.
     permissions:
       contents: read
+      actions: read
     uses: ./.github/workflows/reference-delivery-gate.yml
     with:
       stage: stg
