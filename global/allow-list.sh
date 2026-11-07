@@ -17,6 +17,9 @@ allow_src="$script_dir/allow-list.conf"
 allow_codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-allow-list.rules"
 allow_codex_profile="${CODEX_HOME:-$HOME/.codex}/workstation.config.toml"
 allow_kiro_agent="$HOME/.kiro/agents/workstation.json"
+# Where method_render.py installs method/scripts (the same ${XDG_DATA_HOME:-~/.local/share} rule): a
+# "script" entry renders with this absolute path (Issue #242).
+allow_method_scripts="$data_dir/method/scripts"
 
 # Parse and validate. Output: $work/allow.<tier>.<kind>, one word list per line. An entry that is a word
 # prefix of a floor entry, or that a floor entry covers, stops the run before anything is written.
@@ -26,8 +29,10 @@ allow_parse() {
   if [ -n "$overlay" ] && [ -f "$overlay/allow-list.conf" ]; then
     cat "$overlay/allow-list.conf" >> "$work/allow.conf"
   fi
-  for t in narrow wide; do for k in cmd runner deny; do : > "$work/allow.$t.$k"; done; done
-  if ! awk -v dir="$work" -v floor="$floor_codex" '
+  for t in narrow wide; do for k in cmd runner script deny; do : > "$work/allow.$t.$k"; done; done
+  mhave=0
+  [ -d "$repo_root/method/scripts" ] && mhave=1
+  if ! awk -v dir="$work" -v floor="$floor_codex" -v msrc="$repo_root/method/scripts" -v mdst="$allow_method_scripts" -v mhave="$mhave" '
       BEGIN { while ((getline line < floor) > 0) { nf++; fl[nf] = line } }
       function prefix(a, b,   na, nb, x, y, i) { # 1 when word list a is a word prefix of b
         na = split(a, x, " "); nb = split(b, y, " ")
@@ -45,10 +50,30 @@ allow_parse() {
       {
         why = ""
         if ($1 != "narrow" && $1 != "wide") why = "tier must be narrow or wide"
-        else if ($2 != "cmd" && $2 != "runner" && $2 != "deny") why = "kind must be cmd, runner or deny"
+        else if ($2 != "cmd" && $2 != "runner" && $2 != "script" && $2 != "deny") why = "kind must be cmd, runner, script or deny"
         else if (NF < 3) why = "no words"
         w = $3; for (i = 4; i <= NF; i++) w = w " " $i
-        if (why == "" && $2 == "runner") {
+        if (why == "" && $2 == "script") {
+          # A script names ONE installed method script (method/scripts/<name>, Issue #242) by its bare name,
+          # through sh, bash or python3, with no option but -B or -I. It renders with the installed absolute
+          # path, where the rendered method runs it from any repository.
+          if ($1 != "wide") why = "a script runs installed code, so it belongs to the wide tier only"
+          else if ($3 !~ /^(sh|bash|python3)$/) why = "a script starts with sh, bash or python3"
+          else if ($NF !~ /^[A-Za-z0-9_-][A-Za-z0-9._-]*\.(sh|py)$/ || $NF ~ /\.test\./)
+            why = "a script ends with one bare .sh or .py name of method/scripts/, never a test"
+          for (i = 4; i < NF && why == ""; i++) if ($i != "-B" && $i != "-I") why = "a script takes no option but -B or -I"
+          # A copy of the sources without method/ (not a full checkout) has nothing to install there.
+          if (why == "" && mhave != 1) {
+            printf "NOTE    allow list: %s is not pre-authorised: this copy has no method/scripts/\n", $NF
+            next
+          }
+          if (why == "") { if ((getline probe < (msrc "/" $NF)) < 0) why = "no method/scripts/" $NF " to install"; close(msrc "/" $NF) }
+          if (why == "" && mdst !~ /^\/[A-Za-z0-9._\/@+~-]+$/) {
+            printf "NOTE    allow list: %s is not pre-authorised: the installed scripts path holds a character a rule cannot carry\n", $NF
+            next
+          }
+          if (why == "") { w = $3; for (i = 4; i < NF; i++) w = w " " $i; w = w " " mdst "/" $NF }
+        } else if (why == "" && $2 == "runner") {
           # A runner names ONE repository script, by relative path, through sh, bash or python3, with
           # no option but -B or -I: an exact suite, never the interpreter (ADR-0031, owner 2026-10-05).
           if ($1 != "wide") why = "a runner runs repository code, so it belongs to the wide tier only"
@@ -153,10 +178,13 @@ allow_protect() {
       "**/.git/config" "**/.git/hooks/**"; do
     printf 'Edit(%s)\n' "$r"
   done
+  # Each installed method script the wide tier pre-authorises (Issue #242): its last word is the
+  # absolute path, so an agent cannot rewrite the code it may run without a prompt.
+  awk '{ print "Edit(/" $NF ")" }' "$work/allow.wide.script"
 }
 
 allow_claude_render() { # $1 tier, $2 input settings, $3 output
-  ac_want=$(allow_words "$1" "cmd runner" | jq -cR -s 'split("\n") | map(select(length > 0) | "Bash(" + . + ":*)")')
+  ac_want=$(allow_words "$1" "cmd runner script" | jq -cR -s 'split("\n") | map(select(length > 0) | "Bash(" + . + ":*)")')
   ac_protect=$({ allow_protect; allow_words "$1" deny | sed 's/.*/Bash(&:*)/'; } | jq -cR -s 'split("\n") | map(select(length > 0))')
   ac_mode=null
   [ "$1" = wide ] && ac_mode='"acceptEdits"'

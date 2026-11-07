@@ -449,10 +449,13 @@ never what the piece is about. A draft whose subject is him has misread this cal
 
 **Not a fourth topic**: the goal, the sourcing constraint and the truth rules all land at once, on eight
 words. **Six rules, RANKED and not a checklist** — 1 is a gate the other five never buy their way past.
-**And the six are not the first thing a candidate meets: a gate of three clauses runs AHEAD of them,
-immediately below.**
+**And the six are not the first thing a candidate meets: a gate of ~~three~~ four clauses runs AHEAD of
+them, immediately below.** *(Three until 2026-10-24; clause 4 added at #218.)*
 
-### The gate that runs BEFORE the six — three clauses, ratified 2026-09-16
+### The gate that runs BEFORE the six — four clauses, ratified 2026-09-16 and 2026-10-24
+
+*(This heading read "three clauses, ratified 2026-09-16" until 2026-10-24, when the owner ruled clause 4
+below; #218.)*
 
 **The six measure the sentence's CONSTRUCTION. Not one of them asks whose situation the sentence is
 about**, which is how a candidate wins on all six and addresses nobody. That is not a hypothetical: a
@@ -502,6 +505,14 @@ strong candidate can outweigh, and none of these three may be outweighed.
 3. **It must make the reader want to RUN AN EXPERIMENT** — *«tem que ser algo que torne o leitor
    interessado em fazer um experimento»*. **The operational test: what would the reader go and DO after
    reading this?** If the honest answer is *nod*, it fails.
+4. **It must name the PRODUCT the reader holds by the end of the piece** — ruled 2026-10-24, on reading
+   a held preview whose title he rejected: *«eu achei o titulo ruim. nao conecta com o que o nosso
+   leitor ganha ao ler o artigo ate o final. precisa deixar bem claro no titulo o produto que o leitor
+   ganha. lembre-se disso em disciplina de harness.»* · *«deve ser um comportamento repetido nas
+   proximas producoes de conteudo.»* **The operational test: name the deliverable the reader holds at
+   the piece's last line. If a reader cannot predict it from the title, stop.** A title that hints at a
+   stance, a provocation or a turn without naming what the reader leaves with fails here, however it
+   scores on the six.
 
 **Clause 3 is what makes 1 and 2 checkable rather than tasteful, and that is the reason it is worth
 its place.** A title about the author gives the reader nothing to try — there is no experiment inside
@@ -509,6 +520,14 @@ somebody else's identity, only agreement or indifference. A title too constructe
 instead of an experiment: the reader's next act is *work out what this means*, which is work done on
 the title rather than work done on their own machine. So where 1 and 2 read as taste, ask 3 and both
 resolve into something observable.
+
+**Clause 4 names what the reader GETS; clause 3 makes them want to TRY it. Clause 4 does not replace
+clause 3, and a title needs both.** The order inside a passing title is the product named, then the
+experiment provoked: a title that names a deliverable nobody would go and try fails 3, and one that
+provokes an experiment without saying what the reader leaves with fails 4. **The two are checked
+separately**, because each is the one a strong candidate most easily satisfies while missing the other.
+Clause 4 is also what ties the title to the body: the deliverable it names has to be there at the last
+line, so a title that passes 4 makes a promise the body can be read against.
 
 **Clause 1 is NOT new to this file — it is an existing rule arriving at the title for the first time,
 and that is why nothing above contradicts it.** *The subject is bounded* already says *«o tom pessoal e
@@ -526,7 +545,7 @@ because a title about the author is not repaired by disclosing more of him.**
 
 **The ratification:** *«essa a calibracao dos titulos que quero ancorar no nosso harness.»*
 
-**And the practice that produced these three clauses, because the MOVE is worth more than the result:
+**And the practice that produced clauses 1–3 (clause 4 came later, from one held-preview reading), because the MOVE is worth more than the result:
 when a batch is rejected, do not answer with another batch.** Ask what the reader is doing at that
 moment. A second batch ranked against the same criteria reproduces the same failure in new words —
 the criteria were never what was wrong. The interview is what surfaced the criterion the criteria were
@@ -617,7 +636,8 @@ applying it correctly, and *"but this one is good"* is not an exemption.
 **Numbered from 9 deliberately, and it is the only unambiguous span in this file.** ~~Three other
 sequences here restart at 1 — the register rules (1–4), the title rules (1–6) and the post rules
 (1–8)~~ — **struck: there are FOUR, and the fourth is the one most likely to be cited.** The title
-**gate** ratified 2026-09-16 restarts at 1 for its three clauses, and the sentence beneath it was never
+**gate** ratified 2026-09-16 restarts at 1 for its ~~three~~ four clauses (three until clause 4 landed on
+2026-10-24, #218), and the sentence beneath it was never
 re-derived — so the published selector returned **4** while the text beside it claimed 3, at head and
 before this slice. The claim the figure supports gets **stronger**, which is exactly why nobody
 re-ran it: *"rule 3"* now names **four** different clauses, one of them a gate.
@@ -813,7 +833,9 @@ stops connecting*) has no instance in this corpus. **Only clause 3 — *what wou
 DO* — has no body counterpart, and it is the clause four of these six fail against.** So this section
 is not the three clauses restated one layer down; it is the one of them that never reached prose, plus
 two defects that are not gate clauses at all. **Do not read rules 12–18 as a second copy of the gate.**
-**Rule 15 is a fifth thing again** — it came out of the same episode but not out of a rejection
+*(Clause 4 of the gate, the product the reader holds by the end, was ruled on 2026-10-24, after this
+section; the analysis above covers clauses 1–3 only and makes no claim about a body counterpart for
+4.)* **Rule 15 is a fifth thing again** — it came out of the same episode but not out of a rejection
 sentence, and it is about which SURFACE carries the piece rather than about the prose.
 
 **Provenance, stated because half of it is weaker than the other half — and a rule quoting a rejection
@@ -1079,6 +1101,59 @@ it, because no clause existed to raise it with** — the same shape as the takea
 own ruling, so **the prose attribution is now the reader's only signal of whose words those are.** The
 name on the block is doing work it would not have had to do before.
 
+#### Which verbatim spans may be quoted at all — four conditions, and where the IP rule wins (mhw#140)
+
+**The owner's ruling, 2026-11-01**, choosing *short and attributed* over *paraphrase only* and over
+*any public passage if attributed*: a verbatim third-party quote is allowed only when it is short, from
+a public source, attributed, and never employer, client or NDA material.
+
+> **18a. A verbatim quotation from an external source is allowed only when ALL FOUR hold:**
+>
+> 1. **Short — at most 40 words**, counted as whitespace-separated words of the quoted span in its
+>    original language. The attribution line and any gloss block do not count. Splitting one passage
+>    into adjacent blocks does not reset the count: blocks quoting one continuous passage count
+>    together.
+> 2. **From a public source** — published where a reader can reach it without an account, a
+>    subscription obtained through an employer, or any access granted under confidentiality.
+> 3. **Attributed** — on the block itself, in the form rule 18 sets above. Attribution in the prose
+>    alone does not satisfy this condition.
+> 4. **Never employer, client or NDA material** — from any direct employer or client, current or past,
+>    or covered by a confidentiality agreement, **even where a copy of it is public**. When it is
+>    unclear whether a source is one of these, treat it as one.
+>
+> **Precedence: the workstation global brief's rule 1 (third-party property never enters the work)
+> wins on any employer, client or NDA material; rule 18 governs public sources.** Such material is not
+> quoted, not paraphrased and not attributed: it does not enter the piece in any form, so no rendering
+> or shortening turns it into a quotable span. Everything else that is quoted verbatim must pass the
+> four conditions above.
+
+**Why 40 words, stated so the number can be checked rather than inherited.** The ruling says
+*short* and gives no figure. 40 is the ceiling because it keeps a quotation at the scale of one to two
+sentences, which is the scale of every attributed quotation the consuming site has published: measured
+2026-11-01 over its published pages, the attributed external quotations run **11, 23, 27 and 38
+words**, each the same in both editions (punctuation and emphasis marks count with the word they touch), so the ceiling makes no published piece non-compliant while it refuses a paragraph. Re-derive
+it in the consuming repo, counting the lines of each quotation block above its `> —` attribution line:
+
+```
+# <content-root> and <content-dir> as in rule 18's falsifier below
+python3 -c "
+import glob
+for p in sorted(glob.glob('<content-root>/*.md')) + sorted(glob.glob('<content-dir>/*.md')):
+    lines = open(p, encoding='utf-8').read().splitlines()
+    for i, l in enumerate(lines):
+        if l.startswith('> —'):
+            j = i - 1
+            while j >= 0 and lines[j].startswith('>'): j -= 1
+            span = ' '.join(x[1:].strip() for x in lines[j+1:i] if x[1:].strip())
+            print(p, i + 1, len(span.split()))"
+```
+
+**What the number does NOT measure.** It bounds the length of the span, not its share of the source:
+a 38-word passage can be the whole of a short work, such as a complete opening narration. Whether that
+is still *short* in the owner's sense is his call per piece, and a reviewer meeting it has a question
+to raise, not a repair ground. **And the count is a ceiling, not a target**: the sourcing judgement
+below still cuts a quotation that is within 40 words but does not need to be verbatim.
+
 #### The word VERBATIM is load-bearing, and applying this rule without it PRODUCES a false claim
 
 **Measured on the piece itself.** Its blockquote is introduced *"his argument, my sentence"* and reads
@@ -1116,8 +1191,12 @@ this rule arrived with:**
    below**, blank line between. **And it appears in the EN edition only** — the PT edition carries the
    original alone, because there the original is already in the reader's language. A rule written for
    *"the gloss inside the block"* would describe a form the site has never used.
-2. **No attributing precedent in the BLOG corpus — and exactly ONE outside it, which settles the
-   typography this section was about to leave open.** ~~There is NO attributing precedent at all.~~
+2. ~~**No attributing precedent in the BLOG corpus — and exactly ONE outside it, which settles the
+   typography this section was about to leave open.**~~ **Struck 2026-11-01 (mhw#140): the blog half
+   went stale. As of 2026-11-01 the selector below returns 8 attribution lines — 2 in the content root
+   and 6 in the blog — so the published pages carry 4 attributed external quotations, each in both
+   editions: one outside the blog, which still settles the typography, and three in it.**
+   ~~There is NO attributing precedent at all.~~
    **Struck, and struck rather than silently rewritten because the merge gate quoted it verbatim on
    the pull request, so it has a reader.** The measurement behind it was right and its SCOPE was not:
    it was taken over the blog and published over *the corpus*, and the conclusion drawn on the
@@ -1127,9 +1206,11 @@ this rule arrived with:**
    published quotation-block figure runs `grep -cE '^> ' <content-dir>/*.en.md`, and `<content-dir>`
    is the **blog** directory — re-derived by running it against both candidates rather than assumed:
    the blog returns `40, 1, 0, 0, 0, 0` across six files, which is the published shape exactly, and
-   the content **root** returns `3` and `1` across two, which matches nothing. **Within the blog the
+   the content **root** returns `3` and `1` across two, which matches nothing. ~~**Within the blog the
    struck claim holds** — every quotation block there is the owner's own prompt, its gloss or
-   generated text, and not one names an external author.
+   generated text, and not one names an external author.~~ **Struck 2026-11-01 (mhw#140): true when
+   written, false now — the blog carries three attributed external quotations (6 attribution lines
+   over two pieces, both editions), measured with the selector below.**
 
    **But rule 18's subject is *a VERBATIM quotation from an external source*, with no blog
    restriction**, so the blog is not the corpus that answers it. **The non-blog published pages carry
@@ -1145,10 +1226,16 @@ this rule arrived with:**
    for p in sorted(glob.glob('<content-root>/*.md')) + sorted(glob.glob('<content-dir>/*.md')):
        for i, l in enumerate(open(p, encoding='utf-8'), 1):
            if l.startswith('> —'): print(p, i, l.strip())"
-   # -> both editions of the architecture page, same line number, the same attribution line
-   # CONTROL: the <content-dir> half returns NOTHING, which is why the blog-scoped claim above is
-   #          also true — one selector produces both halves of this correction.
+   # -> 2026-11-01: 8 lines. <content-root>: both editions of the architecture page, same line
+   #    number, the same attribution line. <content-dir>: 6 lines, two pieces, both editions.
    ```
+
+   ~~`# -> both editions of the architecture page, same line number, the same attribution line`~~
+   ~~`# CONTROL: the <content-dir> half returns NOTHING, which is why the blog-scoped claim above is
+   also true — one selector produces both halves of this correction.`~~ **Struck 2026-11-01
+   (mhw#140): the expected output and its control no longer held. The `<content-dir>` half now returns
+   6 lines, so it is no longer a control for a blog-scoped absence; the `<content-root>` half still
+   returns the one instance this correction names.**
 
    *(The concrete content paths are facts about the consuming repo and are cited in the brief of the
    persona that reads it; the rule here depends on neither.)*
@@ -1181,22 +1268,33 @@ as matching the existing page** — a reviewer applying rule 18 to a new article
 architecture page must not find two different attribution shapes, which is the cross-surface coherence
 this ruler exists to hold.
 
-**What this does NOT settle, so the correction is not over-read:** the house form is ONE instance, on
-one page, in two editions, and **nothing gates it** — no layer reads a draft, and no arm pins the
+**What this does NOT settle, so the correction is not over-read:** ~~the house form is ONE instance, on
+one page, in two editions,~~ **struck 2026-11-01 (mhw#140): as of that date the house form has 4
+instances on 3 pages, each in two editions — three end on `— Name, year`, and one ends on a title, a
+description and a source link instead of a year, which is a deviation from it** — and **nothing gates it** — no layer reads a draft, and no arm pins the
 attribution shape. It is a precedent to match, not a measured convention; if the owner rules a
 different shape, the page is what moves with it.
 
 #### How it composes with the rule UPSTREAM of it
 
-**Rule 18 does not decide whether a span should be quoted at all.** That is this file's existing
+~~**Rule 18 does not decide whether a span should be quoted at all.**~~ **Struck 2026-11-01 (mhw#140):
+since 18a, rule 18 decides whether a span MAY be quoted — the four conditions. It still does not decide
+whether a span SHOULD be quoted.** That is this file's existing
 sourcing judgement — *quote only where the wording is the artifact* — which on this piece cut
-seventeen quoted spans to five. **That rule runs FIRST**: it selects what is quoted; rule 18 governs
-how what survives is presented. **A reviewer reaching for rule 18 on a span that should not have been
-quoted is repairing the wrong layer.**
+seventeen quoted spans to five. ~~**That rule runs FIRST**: it selects what is quoted; rule 18 governs
+how what survives is presented.~~ **The order is: the global brief's rule 1 first (employer, client or
+NDA material leaves the piece entirely), then the four conditions of 18a (may it be quoted), then the
+sourcing judgement (should it be), and rule 18 governs how what survives is presented.** **A reviewer
+reaching for rule 18's block-and-name on a span that should not have been quoted is repairing the
+wrong layer.**
 
 #### What rule 18 CANNOT do
 
-It can require the block and require the name. **It cannot tell whether the quotation earns being
+It can require the block and require the name~~.~~ *(amended 2026-11-01, mhw#140)*, and since 18a it
+can refuse a span over 40 words. **It cannot see whether a source is public, or whether it is
+employer, client or NDA material, by reading the draft** — only the drafter's material and the owner
+say which, so a reviewer that cannot tell treats the span as failing condition 4, removes it, and asks.
+**It cannot tell whether the quotation earns being
 quoted** — upstream, above. **It cannot verify the name is the right one**, which is the sourcing
 constraint's second repair ground and needs the source. **It cannot tell a verbatim span from a
 rendered one by looking** — only the drafter's own material says which, so a reviewer that cannot tell

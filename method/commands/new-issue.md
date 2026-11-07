@@ -290,10 +290,14 @@ touching `iac/` or the site's continuity, a change to the dev-loop's own rules, 
 
 **What the class decides changed on 2026-08-23 (ADR-0002 amendment #16), so state it for the right
 reason.** `boundary` no longer means *the owner merges it*: the gate merges the boundary class too,
-under its own verdict literal, and the owner reviews live after deploy. It still selects which of the
-four surviving holds can apply, which literal ends up in the merge record, and what the verdict must
-write down. **Do not drop the field** — an Issue whose class is unstated is one whose merge record
-cannot say whether anything shipped unseen.
+~~under its own verdict literal~~ under `APPROVE-AND-MERGE`, the one clearance literal since #134, and
+the owner reviews live after deploy. It still selects which of the four surviving holds can apply
+~~, which literal ends up in the merge record,~~ and what the verdict must write down: the trigger that
+fired, and an `owner-check:` line naming what the owner should look at live. **Do not drop the field**
+— ~~an Issue whose class is unstated is one whose merge record cannot say whether anything shipped
+unseen~~ an Issue whose class is unstated leaves the gate guessing which holds can apply and whether
+its `owner-check:` owes the owner a look *(struck and amended 2026-11-02, #134: the literal no longer
+records the class)*.
 
 ### 6 · Open it
 
@@ -404,9 +408,12 @@ iteration. ~~no milestone exists in either repository~~ — **struck 2026-08-28:
 above returns `sprint-01` in this repository, and the same query against the product repo returns
 `sprint-01` there too — **two distinct milestone objects sharing a title**, which is the concrete form of
 *"the current iteration is two objects"* and the reason the repo is named in the predicate rather than
-assumed. **Do not invent a milestone and do not create one**: `gh api` is denied in the global
-settings, deny from any layer wins, and there is no `gh milestone` subcommand, so **creating an iteration
-is an owner-only act performed in the browser**. An unassigned `loop` Issue is not lost — it is counted by
+assumed. **Do not invent a milestone and do not create one**: `gh api` is denied in the ~~global~~ owner's
+user-level settings (`Bash(gh api:*)`, kept by his decision, mhw#242), deny from any layer wins, and there
+is no `gh milestone` subcommand, so ~~**creating an iteration is an owner-only act performed in the
+browser**~~ **creating an iteration belongs to `/sprint-planning`, which runs
+`{{method-scripts}}/milestone-create.py` with the owner present (struck 2026-11-02, mhw#242: the
+browser clause went stale at #537, when that route landed); filing never creates one**. An unassigned `loop` Issue is not lost — it is counted by
 `/autonomy on`'s *"`ready` items carrying NO milestone"* line at session open, which exists for exactly
 this.
 

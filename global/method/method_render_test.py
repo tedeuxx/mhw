@@ -114,6 +114,8 @@ class SourceShape(unittest.TestCase):
                                          "quality-gates", "published-voice", "scm", "ci", "provisioning",
                                          "planning-poker", "code-review", "content-publishing",
                                          "orchestration",
+                                         # #195: the canonical merge-authority contract.
+                                         "merge-authority",
                                          # The four rites moved at #130 (owner, 2026-10-12) and became skills
                                          # on 2026-10-26 (owner: "para mim sao skills").
                                          "sprint-planning", "sprint-review", "sprint-retrospective",
@@ -454,11 +456,169 @@ class OwnerReadIsThePreviewMode(unittest.TestCase):
         self.assertIn("**What records his validation is his comment on the release merge request, naming the "
                       "preview URLs he read.**", step8)
 
+    def test_published_needs_the_social_pair(self):
+        # Issue #238 (owner, 2026-10-30): a content piece is not published until both social posts exist.
+        # Drift checks over STRINGS: they assert the rule is written where the deciding actors read it,
+        # never that a session reported a piece correctly.
+        step10 = markdown_section(CONTENT_PUBLISHING, "10 · The social pair")
+        for clause in ("**A new piece is published when its release is live AND both posts exist, each with its URL.**",
+                       "\"released, social pair pending\"",
+                       "**A `content` Issue closes only with a comment that records both post URLs.**",
+                       "Each post's text is SCANNED before it is posted"):
+            self.assertIn(clause, step10)
+        step9 = markdown_section(CONTENT_PUBLISHING, "9 · Release")
+        for clause in ("**Before the release merge**, draft the text of both posts",
+                       "never with a closing keyword", "Only then is the piece published."):
+            self.assertIn(clause, step9)
+        section = orchestration_section("How to ask the owner")
+        self.assertIn("**Do not report a new `content` piece as published, done or reached until both of its social "
+                      "post URLs exist;", section)
+        self.assertIn("The definition is `content-publishing` step 10", section)
+
     def test_the_descriptions_carry_the_owner_read(self):
         for path in (CONTENT_PUBLISHING, ORCHESTRATION):
             fields, _ = mr.split_front_matter(path.read_text(encoding="utf-8"), path.parent.name)
             self.assertIn("what the owner reads before a content merge", fields["description"], path.parent.name)
             self.assertIn("never a Claude Artifact", fields["description"], path.parent.name)
+
+
+# Issue #197 (owner, 2026-10-18: no support script; the method's native carriers hold the rule): the
+# reader-facing lens leaves its artifact on the PR before the gate is dispatched, and the gate verifies it
+# and refuses rather than relaying. Drift checks over STRINGS, at the *written* level: they assert the rule
+# is in the four sources and in every agent harness's installed carrier, never that a session followed it.
+PRE_GATE_HEADING = "Before the gate: the reader-facing lens leaves its artifact"
+PRE_GATE_CLAUSES = (
+    "Do not dispatch `quality-assurance` before it is.",
+    "Read the actual diff at its full current head.",
+    "a path list and a file extension are signals only",
+    "output visible only in a preview",
+    "When you cannot tell, it is reader-facing.",
+    "dispatch `product-lead` as the copy lens, whatever the type, `loop` included.",
+    "You relay its returned verdict verbatim into one pull request comment, before you dispatch the gate.",
+    "That comment is the canonical copy artifact; the gate verifies and references it and does not post a "
+    "second copy.",
+    "On a `content` diff, no copy verdict is owed.",
+    "never paraphrase it in transit.",
+    "If the comment cannot be posted, the phase is incomplete and the gate waits.",
+    "A moved head needs a new artifact at the new head.",
+    "prove the reader-facing projection byte-identical: `git diff --quiet <prior-head> <head> -- <reader-facing "
+    "paths>` exits 0, where `<reader-facing paths>` is the union of the reader-facing paths in both heads' diffs, so a "
+    "reader-facing file first touched at the new head cannot escape the check.",
+    "**Only the envelope's line-3 `verdict:` is the literal**",
+    "**When two `copy-verdict` comments name the same head, the newest wins.**",
+    "the round is complete only when the pull request carries a `gatekeeper-verdict` comment whose `head:` "
+    "line names the current full head.",
+    "No available layer can intercept an agent dispatch.",
+    "a relay by the orchestrator has failed before.",
+)
+PRE_GATE_TEMPLATE = ("<!-- copy-verdict: product-lead -->",
+                     "head: <the full 40-character head this artifact attests (on a carry-forward, the new head)>",
+                     "verdict: <exactly one of APPROVE, ADJUST, ESCALATE>",
+                     "carried-from: <only on a carry-forward: the prior head, then the comparison evidence>",
+                     "<!-- /copy-verdict -->")
+# Per consumer: (file under method/, clauses its live prose must carry, clauses it must no longer carry live).
+PRE_GATE_CONSUMERS = (
+    ("commands/autonomy.md",
+     ("the lens runs, and leaves its artifact, before the gate.", "**before you dispatch `quality-assurance`**",
+      "the `orchestration` skill, *%s*" % PRE_GATE_HEADING, "the gate's refusal of criterion 10 is the backstop."),
+     ("so an undispatched lens fails silently",)),
+    ("agents/quality-assurance.md",
+     ("### Since mhw#197: verify the pre-gate copy artifact; refuse, do not relay",
+      "**The relay is no longer yours.**", "Re-derive the trigger yourself, from the diff at the head you review.",
+      "your verdict is `REQUEST-CHANGES`**", "**Refuse, do not relay.**",
+      "do not dispatch the lens yourself, do not post its verdict",
+      "**An `APPROVE` or `ADJUST` artifact whose findings are all `ADVISORY` does not hold the merge; any "
+      "`BLOCKING` finding does. An `ESCALATE` holds the merge through hold 4, whatever its severities**",
+      "`git diff --quiet <prior-head> <head> -- <reader-facing paths>` exits 0",
+      "When two such comments name the current head, the newest wins;",
+      "where `<reader-facing paths>` is the union of the reader-facing paths in both heads' diffs, so a "
+      "reader-facing file first touched at the new head cannot escape the check",
+      "10 · copy-artifact: <URL of the canonical pre-gate copy-verdict comment",
+      "*its text is on the PR* means the canonical pre-gate copy artifact at the current head"),
+     ("So you relay it, and the relay is now mandatory rather than permitted.",
+      "This adds no comment and no marker vocabulary", "you quote it **verbatim inside the `copy-verdict` fence**")),
+    ("agents/product-lead.md",
+     ("Since mhw#197 the ORCHESTRATOR quotes your verdict onto the PR VERBATIM",
+      "BEFORE it dispatches `quality-assurance`", "You still post nothing."),
+     ("`quality-assurance` quotes your verdict onto the PR VERBATIM", "verbatim quote inside the gate's own marker")),
+    ("agents/agents-lead.md",
+     ("the orchestrator's pre-gate copy artifact, one comment per head under the `copy-verdict` envelope.",),
+     ("verbatim quote inside the gate's own marker",)),
+)
+
+
+def live_text(path):
+    """A file's paragraphs with struck spans removed, whitespace-flattened, joined."""
+    return " ".join(unstruck_paragraphs(path))
+
+
+def pre_gate_carriers(home):
+    """Per agent harness: the installed orchestration skill and quality-assurance agent, flattened."""
+    out = {}
+    for harness, skill, agent in (("claude-code", ".claude/skills/orchestration/SKILL.md", ".claude/agents/quality-assurance.md"),
+                                  ("codex", ".agents/skills/orchestration/SKILL.md", ".codex/agents/quality-assurance.toml"),
+                                  ("kiro", ".kiro/skills/orchestration/SKILL.md", ".kiro/agents/quality-assurance.json")):
+        agent_text = home.p(agent).read_text(encoding="utf-8")
+        if agent.endswith(".toml"):
+            agent_text = parse_toml(agent_text)["developer_instructions"]
+        elif agent.endswith(".json"):
+            agent_text = json.loads(agent_text)["prompt"]
+        out[harness] = (" ".join(home.p(skill).read_text(encoding="utf-8").split()), " ".join(agent_text.split()))
+    return out
+
+
+class ReaderFacingLensBeforeTheGate(unittest.TestCase):
+    def test_the_skill_carries_the_pre_gate_phase(self):
+        section = orchestration_section("Review is routed by type")
+        self.assertIn("### " + PRE_GATE_HEADING + " (#197)", section)
+        for clause in PRE_GATE_CLAUSES:
+            with self.subTest(clause=clause[:50]):
+                self.assertIn(clause, section)
+
+    def test_the_artifact_template_keeps_its_lines_in_order(self):
+        section = orchestration_section("Review is routed by type", flat=False)
+        lines = [line.strip() for line in section.split("\n")]
+        at = [lines.index(want) for want in PRE_GATE_TEMPLATE]
+        self.assertEqual(at, sorted(at), "the copy artifact template lines are out of order")
+        self.assertEqual(at[1], at[0] + 1, "head: must be the line directly under the envelope")
+
+    def test_every_consumer_carries_the_rule_and_drops_the_gate_relay(self):
+        for rel, keep, drop in PRE_GATE_CONSUMERS:
+            text = live_text(SOURCE / rel)
+            for clause in keep:
+                with self.subTest(file=rel, keep=clause[:50]):
+                    self.assertIn(clause, text)
+            for clause in drop:
+                with self.subTest(file=rel, drop=clause[:50]):
+                    self.assertNotIn(clause, text)
+
+    def test_the_rule_reaches_every_agent_harness_carrier(self):
+        home = Home()
+        code, out = home.run("--mode=install")
+        self.assertEqual(code, 0, out)
+        for harness, (skill, agent) in pre_gate_carriers(home).items():
+            for clause in PRE_GATE_CLAUSES:
+                with self.subTest(harness=harness, clause=clause[:50]):
+                    self.assertIn(clause, skill)
+            for clause in PRE_GATE_CONSUMERS[1][1]:
+                with self.subTest(harness=harness, agent_clause=clause[:50]):
+                    self.assertIn(clause, agent)
+
+    def test_a_clause_deleted_from_the_source_is_missing_from_all_three_carriers(self):
+        # The source-mutation pair, run inside the suite: delete one clause from a copy of method/, install,
+        # and each of the three carriers loses it; the unmutated install above carries it in all three.
+        src = Path(tempfile.mkdtemp(prefix="src-", dir=BASE)) / "method"
+        shutil.copytree(SOURCE, src)
+        clause = "Do not dispatch `quality-assurance` before it is."
+        skill = src / "skills" / "orchestration" / "SKILL.md"
+        text = skill.read_text(encoding="utf-8")
+        self.assertEqual(text.count(clause), 1)
+        skill.write_text(text.replace(clause, ""), encoding="utf-8")
+        home = Home()
+        code, out = home.run("--mode=install", "--source=" + str(src))
+        self.assertEqual(code, 0, out)
+        missing = [h for h, (rendered, _) in pre_gate_carriers(home).items() if clause not in rendered]
+        self.assertEqual(missing, ["claude-code", "codex", "kiro"])
 
 
 class Render(unittest.TestCase):

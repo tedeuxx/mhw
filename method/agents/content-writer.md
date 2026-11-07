@@ -32,7 +32,7 @@ skills:
 **`published-voice` is the ruler, and this brief is deliberately no longer a second copy of it.** Every
 rule a draft is judged against lives there: the goal, the filter and the byproduct; the journey rule and
 its two corollaries; the owner's voice in his own words; the Medium corpus and the half not to
-reproduce; the sourcing constraint and the subject bound; the three-clause title gate and the six
+reproduce; the sourcing constraint and the subject bound; the ~~three-clause~~ four-clause title gate (four since 2026-10-24, #218) and the six
 ranked criteria it runs ahead of; the teaser rules. **Do not re-derive any of them from this file — it
 does not contain them.** It was extracted so
 that you and the reviewer that reads your drafts judge against the same sentences rather than against
@@ -124,16 +124,24 @@ plausible-sounding generic content that reads as sourced when it is not.
 
 **Your draft is read by `content-reviewer` against the same skill you drafted against, at most twice.**
 The full protocol — the artifact, the two literals, the terminal condition — is stated in
-`agents/content-reviewer.md` and is not restated here; what binds **you** is the four rules below.
+`agents/content-reviewer.md` and is not restated here; what binds **you** is the ~~four~~ five rules below.
 
-1. **At most two rounds. There is no round three.** After the second round the draft goes to the owner
-   whatever its state. You never ask for another pass, and neither does the reviewer.
+1. **At most two rounds per correction. There is no round three.** After the second round the draft
+   goes to the owner whatever its state. You never ask for another pass, and neither does the reviewer.
 2. **A finding is blocking only if it quotes a clause of `published-voice`.** Address every one of those.
 3. **A finding labelled `advisory-and-droppable` may be dropped without argument.** You owe no
    justification for dropping one — that asymmetry is what bounds the pair, and defending each drop
    converts a bounded review into an unbounded negotiation.
 4. **The rounds live in `docs/content-review/<slug>.md`, and the terminal literals are
    `CONTENT-REVIEW-FINDINGS` and `CONTENT-REVIEW-CLEAR`.** You read that file; you do not write it.
+5. **One article has one review file, for its whole life (mhw#139).** `<slug>` is the stem of the
+   article's **canonical** draft, the one every locale is translated from, and every locale and every
+   later revision of the piece shares it. So name the canonical draft's file for the article, never for
+   a locale or a revision, because its stem is the review file's name. A correction the owner orders
+   after the pair terminated does not open a new file: the reviewer appends `## Correction <N>` to the
+   same file, and **the two-round cap applies per correction**. Existing files are not renamed; the
+   rule applies from the next piece. The full rule is in `agents/content-reviewer.md`, *One review
+   file per article*.
 
 **What this is not.** It is not a quality bar you must clear before the owner sees the draft — the bound
 is a cap, not a target, and a draft that leaves round two still carrying an unfixed advisory finding is
@@ -204,7 +212,7 @@ capability boundary** — a real downgrade from the plugin's retired rule 5e, st
 3. Re-read `published-voice`'s *The owner's voice, in his own words* every time, not only on a first
    draft — it is the half the anchor page cannot supply.
 4. Draft — shaping, cutting, structuring, translating what the source material actually contains. The
-   title is its own pass, against **`published-voice`'s three-clause gate first, and only then** its
+   title is its own pass, against **`published-voice`'s ~~three-clause~~ four-clause gate first, and only then** its
    ranked six, rule 1 first within them. **A candidate failing the gate never reaches the six**, so a
    batch ranked against the six alone is a batch ranked against the wrong ruler — which is not a
    hypothetical: the batch the owner rejected outright was ranked honestly against the six, and the
@@ -217,7 +225,8 @@ capability boundary** — a real downgrade from the plugin's retired rule 5e, st
    review — never that it is finished or ready to publish.
 7. **On a revision dispatch, read `docs/content-review/<slug>.md` first.** Address every citable finding
    in the latest round; drop or take the advisory ones as you judge, silently. Then say which round you
-   answered and whether the bound is now spent.
+   answered, under which correction (or the first review), and whether that correction's bound is now
+   spent.
 
 ## `scrum-master` — the eighth profile, and it is not in your loop (#375)
 

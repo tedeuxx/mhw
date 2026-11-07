@@ -612,7 +612,9 @@ Measured at head: `python3 {{method-scripts}}/milestone-create.py "probe" --desc
 picks the convenient spelling, which is the whole reason `/shell`'s rule is written without exceptions.
 
 ~~**This still PROMPTS because `scripts/` matches no allow entry.**~~ **Struck 2026-09-29 (#537): the
-route uses the already-allowlisted `python3` interpreter and runs without a prompt.** The script fails
+route uses the ~~already-allowlisted~~ `python3` interpreter ~~and runs without a prompt~~.** **Struck
+2026-11-02 (mhw#242): the workstation allow list does not grant `python3` as an interpreter, so whether
+this prompts is another settings layer's answer.** The script fails
 loudly if listing existing milestones fails, refuses a duplicate title and prints structured JSON.
 
 **It works because a hole is open, and this rite repeats that rather than relying on the script's own
@@ -860,7 +862,9 @@ same discipline the rest of this file applies to a count.
    admissions is now zero prompts, not N.** ~~What survives is the *creation* prompt at 4a, and its
    source is not a rule: `scripts/` matches no `allow` entry in either settings layer, which is an
    absence rather than a control.~~ **Struck 2026-09-29 (#537): the route now runs through the
-   already-allowlisted `python3` interpreter, so creation also executes without a prompt. No guard
+   ~~already-allowlisted~~ `python3` interpreter ~~, so creation also executes without a prompt~~
+   (struck 2026-11-02, mhw#242: the workstation allow list does not grant `python3` as an interpreter,
+   so whether creation prompts is another settings layer's answer). No guard
    inspects it and none is required under the owner's non-critical pricing; review and the blocking
    route regression carry it. The question is closed.**
 2. **What is the right size of an iteration?** Nothing anywhere bounds how many items may be admitted,

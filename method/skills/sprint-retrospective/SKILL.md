@@ -134,6 +134,12 @@ held by the harness — so with no authenticated session it reads nothing and sa
 literal. **A funnel report reading `FUNNEL-REVIEW-NOT-COLLECTED` is not a finding about the funnel and
 must not be fed to step 3 as one.**
 
+**The audience analysis is part of every retrospective, and an unreachable browser is a blocker for
+the owner, not a reason to proceed without it (#131).** `/funnel-review`'s step 0 asks him before
+anything is written; a not-collected report is legitimate only after his Skip or his confirmation
+that the route cannot be made reachable. Do not start step 1 of this rite while that question is
+unanswered. *Evidence level: an instruction; nothing checks the order.*
+
 ## Step 1 — the scope record, written before any consultation
 
 **`agents-lead` writes `docs/retrospective/<iteration>/00-scope.md` first**, and it contains **query
@@ -160,13 +166,23 @@ The scope record carries, each with the command that produced it:
   a defect signal — it is the size of the backlog awaiting composition, and reporting it is how that
   backlog stays visible between plannings rather than how a rule-break gets caught;
 - **the derived consult set**, from step 2, with the limits step 2 states;
+- **the review cost per merged PR** — gate rounds, lens rounds and the wall-clock ceiling — from
+  step 2's round command, with that command printed beside the figures (#138);
 - **the fact that this is a lower bound**, in those words.
 
 ## Step 2 — the consult set is DERIVED, and it is a lower bound
 
-**Do not consult a fixed set.** `hooks/scripts/dispatch-metrics-stop.sh` posts one comment **per stop,
+**Do not consult a fixed set.** ~~`hooks/scripts/dispatch-metrics-stop.sh` posts one comment **per stop,
 onto every Issue the dispatch resolved**, under the marker
-`<!-- dispatch-metrics: <plugin>:<agent_type> #<issue> -->`. Per Issue in the iteration:
+`<!-- dispatch-metrics: <plugin>:<agent_type> #<issue> -->`. Per Issue in the iteration:~~
+
+**Struck 2026-11-01 (#138): nothing writes `dispatch-metrics` comments any more.** Their producer was
+a plugin hook, retired with the plugin (#61), and no harness this method installs to registers it.
+**The live source is the PR verdict markers**, in the next subsection; derive the set from them and
+read the round command below for review cost. The query and the six limits that follow are kept as
+history: they explain the comments an iteration before the retirement carries, and they say how far
+those comments can be trusted. **Do not run the query as a live source.** On an iteration after the
+retirement it returns `{}` for every Issue, and an empty result reads as *nobody ran*.
 
 ```
 gh issue view <n> --repo <owner>/<repo> --json comments \
@@ -252,9 +268,11 @@ here adjusted their reading of `sprint-01`'s numbers by it:**
    **An iteration run on Codex derives an EMPTY set from this source by construction**, which is the
    reason the second source below is not optional there.
 
-### The SECOND source — the PR verdict markers, and it answers for two personas only (#513)
+### ~~The SECOND source~~ The live source — the PR verdict markers, and it answers for two personas only (#513)
 
-**Read the verdict markers on the iteration's merged PRs and UNION them with the records above.** A
+~~**Read the verdict markers on the iteration's merged PRs and UNION them with the records above.**~~
+**Read the verdict markers on the iteration's merged PRs.** *(Struck 2026-11-01, #138: there are no
+records after #61 to union with. On an older iteration that still carries them, the union stands.)* A
 marker is posted by the persona itself, on the PR, and names nothing about a working tree, so it
 survives every failure in limit 5 and does not depend on the host at all:
 
@@ -274,15 +292,92 @@ no such marker exists.
 
 **What it attests, exactly: `gatekeeper-verdict` → `quality-assurance` ran; `harness-lead-verdict` →
 `agents-lead` ran.** Nothing else. `product-lead` posts no marker (rule 5e denies it the comment
-subcommands), and `developer`, `tech-lead` and the content pair post none either, so **their presence
+subcommands), and `developer`, `tech-lead` and the content pair post none either, so ~~**their presence
 still comes from the records alone** — the second source raises the floor for two personas and leaves
-the lower bound a lower bound. It is per repository, exactly as the records are.
+the lower bound a lower bound.~~ **no live source attests their presence** *(struck 2026-11-01, #138:
+the records stopped with #61)*. Add each of them by hand when the owner or the iteration's PRs show
+it ran, and say in the scope record that you did. It is per repository.
+
+**The `contains` selector above is a presence test, and it is looser than the round command below.**
+It also matches a marker quoted inside a fence or mid-line, such as a gate verdict discussing hold 2.
+For *which personas ran* that over-reads in the safe direction, a persona already shown to run. For
+*how many rounds* it would over-count, so rounds use the column-0 reader below and never this one.
+
+### Review cost per PR — rounds and a wall-clock ceiling, from the same markers (#138)
+
+**Measure what each merged PR cost in review from the markers already on it, one read per PR:**
+
+- **gate rounds** = comments carrying a line that opens with `<!-- gatekeeper-verdict` at column 0;
+- **lens rounds** = comments carrying a line that opens with `<!-- harness-lead-verdict` at column 0,
+  counted separately and never added to the gate rounds;
+- **the wall-clock ceiling** = the time from the PR's creation to its last marker, with the gaps
+  between consecutive markers (the first gap runs from creation to the first marker).
+
+**The column-0 rule is hold 2's reading, and the reader is hold 2's `def`** (`agents/quality-assurance.md`,
+*WHICH COMMENTS ARE LENS MARKERS*): the line opens with the envelope at column 0, outside a fenced code
+block, and the comment's author association is `OWNER`, `MEMBER` or `COLLABORATOR`. A marker quoted
+inside a fence, indented, put in a blockquote or written mid-line does not count. One deliberate
+difference: a comment is counted once, and a gatekeeper line wins, so a gate verdict that quotes a lens
+marker at column 0 is a gate round and not a lens round. Hold 2 excludes only a comment whose body
+*opens* with the gatekeeper envelope. The command is read-only:
+
+```
+gh pr view <n> --repo <owner>/<repo> --json comments,createdAt --jq 'def marker($env):
+  ((.authorAssociation // "") as $a | ["OWNER","MEMBER","COLLABORATOR"] | index($a) != null)
+  and ((.body // "") | reduce (split("\n")[]) as $l ({f: false, h: false};
+        if ($l | test("^ {0,3}(```|~~~)")) then .f = (.f | not)
+        elif (.f | not) and ($l | startswith($env)) then .h = true
+        else . end) | .h);
+(.createdAt | fromdateiso8601) as $t0
+| [ .comments[]
+    | (.createdAt | fromdateiso8601) as $t
+    | if marker("<!-- gatekeeper-verdict") then {k: "gate", t: $t}
+      elif marker("<!-- harness-lead-verdict") then {k: "lens", t: $t}
+      else empty end ] as $m
+| { created: .createdAt,
+    gate_rounds: ([$m[] | select(.k == "gate")] | length),
+    lens_rounds: ([$m[] | select(.k == "lens")] | length),
+    ceiling_h: (if ($m | length) == 0 then null
+                else (($m | last).t - $t0) / 36 | round / 100 end),
+    gaps_h: ([$t0] + [$m[].t] | [range(1; length) as $i | (.[$i] - .[$i - 1]) / 36 | round / 100]) }'
+```
+
+Hours are rounded to two decimals. `ceiling_h` is `null` on a PR with no counted marker.
+
+**Calibrated 2026-11-01 on `tedeuxx/mhw`:** PR 409, with two gate verdicts, returns
+`gate_rounds: 2, lens_rounds: 0, ceiling_h: 0.89, gaps_h: [0.68, 0.21]`; PR 411, with one lens marker
+and one gate verdict, returns `gate_rounds: 1, lens_rounds: 1, ceiling_h: 1.55, gaps_h: [1.2, 0.35]`.
+A fixture with one real gate marker, one real lens marker, and the same two envelopes quoted in a fence,
+indented, blockquoted, mid-line and posted by an account with association `NONE` returns one round of
+each. With the fence limb removed from the filter, the same fixture returns two gate rounds, so the limb
+is what keeps the quote out.
+
+**Read the ceiling as work plus waiting, never as effort.** A gap holds the build, the review, the
+author's next push and any time nobody was working. It bounds review time from above; it does not
+measure it.
+
+**The limits, stated with the figures and not only here:**
+
+1. **Markers count review rounds, not tokens.** Consumption per Issue is a different instrument
+   (mhw#76), and neither converts into the other.
+2. **A gate or lens run that never posted is invisible.** A run that crashed, was refused, or returned
+   only in a chat leaves no marker, so the counts are a lower bound on rounds and the ceiling can hide a
+   run between two markers.
+3. **Codex and Kiro runs count exactly as Claude Code runs do.** The marker is a PR comment the persona
+   writes, whatever harness ran it, so the count does not depend on the host. That is also why it
+   replaced the records, which Codex never produced (limit 6).
+4. **`product-lead`, `tech-lead`, `developer` and the content pair post no marker**, so their rounds are
+   not in these figures.
+5. **The comment list is the PR's conversation only.** A verdict posted as a review or on the Issue is
+   not read, and hold 2 does not read it either.
 
 **And the date window is the derivation's own weak limb, not the marker's.** `merged:<start>..<end>`
 selects by merge date, so a PR reviewed in the iteration and merged after it is outside the set.
 Where the iteration's PRs can be listed by Issue instead, prefer that list.
 
-**And the whole set is a LOWER BOUND, never the set.** That is unchanged by #382 — the repair narrowed
+**And the whole set is a LOWER BOUND, never the set.** *(Since #138 the reason is the markers' own
+limit 2 above: a persona that ran and posted nothing is indistinguishable from one that never ran. The
+rest of this paragraph is about the retired records and is history.)* That is unchanged by #382 — the repair narrowed
 the silent set, it did not close it. `dispatch-metrics-stop.sh` exits 0 silently on several paths, and
 since #382 each one is **named in the source** rather than estimated here — read the members, not a
 count:
@@ -326,7 +421,9 @@ full"* — never a relay arranged here.
 Dispatch the personas in the derived set **one at a time**. Each dispatch carries, for that persona and
 that iteration only:
 
-- its own `dispatch-metrics` comments — durations, tool calls, token cost, output size;
+- ~~its own `dispatch-metrics` comments — durations, tool calls, token cost, output size;~~ *(struck
+  2026-11-01, #138: nothing writes them since #61)*
+- for the gate and the machinery lens, the round command's figures on the PRs it reviewed (step 2);
 - its own verdict markers — `gatekeeper-verdict` for the gate, `harness-lead-verdict` for the machinery
   lens;
 - its own review-file sections — `docs/content-review/<slug>.md` for the content pair;
@@ -360,10 +457,13 @@ earlier answer in its context — **the isolation would survive the dispatch and
 one file each, no consulted persona ever reads another's answer, and the property is held by the shape
 of the artifact instead of by an instruction.
 
-**There is no index and no summary, deliberately.** The directory is the artifact; `ls
-docs/retrospective/<iteration>/` answers *"did the rite run"*. Anyone composing the sections into one
+~~**There is no index and no summary, deliberately.**~~ **There is no index in this directory,
+deliberately.** The directory is the artifact; `ls
+docs/retrospective/<iteration>/` answers *"did the rite run"*. ~~Anyone composing the sections into one
 narrative would be performing the aggregation the isolation exists to prevent, which is why no step here
-asks for one.
+asks for one.~~ *(Struck 2026-11-01, #131: Step 6 now asks for one composition.)* **Step 6 is the only
+composition: it runs after every per-persona file has landed, so no consulted persona reads it, and it
+adds no findings of its own.**
 
 **A comment was NOT chosen, and four of the eight personas are why.** `permission-guard.sh` rule 5e
 allowlists `gh pr comment` / `gh issue comment` / `gh issue create` to the orchestrator, `developer`,
@@ -419,6 +519,50 @@ and the rite adds no second control over it.
 **Only the owner opens work.** A rite that filed its own findings would convert one decision into a
 queue, which is `/agents-configuration`'s *Review does not open work* applied to a ceremony.
 
+## Step 6 — the closing rites end in ONE executive report, a Claude Artifact, reviewed by three leads (#131)
+
+**Owner requirements, 2026-10-10, verbatim:** *«o resultado consolidado dos ritos de encerramento de
+sprint deve ser sempre um claude artifact para leitura minha visao executiva»* · *«o relatorio de
+final do sprint precisa ser em portugues»* · *«o relatorio de final de sprint tem que ser revisado tbm
+pelos rosters/perfis de lideranca dentro do time»*. On the sprint-05 close the first consolidated
+report went out in English and without lead review, and he corrected both in the same session.
+
+**This rite is the consolidation point** because it runs after `/sprint-review` and `/funnel-review`,
+so all three closing rites' outputs exist when it ends. `/sprint-planning` is not part of the report:
+it is where he rules on it.
+
+1. **The main session drafts one consolidated report** from the three rites' own artifacts: the
+   sweep report, the funnel report (or its not-collected literal, with his recorded answer), and the
+   per-persona retrospective files. It is an executive view: what was delivered, what the audience
+   did, what the method should change, and the decisions waiting for him at planning, each pointing at
+   the artifact it came from. Drafting is consolidation, not new findings: a line the sources do not
+   carry does not go in. This is the one step of this rite the orchestrator authors, and the next item
+   is what checks it.
+2. **`tech-lead`, `product-lead` and `agents-lead` each review the draft, in isolated dispatches**,
+   against the same source artifacts, each from its own angle: the system and its cost, the reader and
+   the market, the machinery of the loop. Each returns corrections, not a rewrite. **Apply their
+   corrections before he sees anything.** Where two leads disagree, the disagreement goes in the report
+   as a decision for him, not resolved underneath.
+3. **The report names which leads reviewed it.** If a lead could not be dispatched or returned
+   nothing, the report says so by name; a review that did not happen is never implied.
+4. **It is delivered as a Claude Artifact**, the native rendered surface for a document he reads.
+   Where the agent harness has none, use the nearest native rendered surface it offers, and say in the
+   message which surface it is and why. **Chat text, or links to repository files, do not count as
+   delivering it.** The repository files stay the record; the Artifact is how he reads it.
+5. **It is written in Brazilian Portuguese**, by the owner overlay's language rule: everything made
+   for him to read is in Portuguese, and only text for an outside audience is in English. The
+   per-persona files under `docs/retrospective/` are public repository text and stay in English; the
+   Artifact is for him and is not.
+
+**This does not conflict with the owner-read rule for publications.** The `orchestration` skill's
+owner-read sentence forbids an Artifact for his read of a piece before it publishes, and carves out
+*"an Artifact he asked for elsewhere, such as a closing-rite report"*. This step is that carve-out.
+
+**Evidence level: an instruction, in every item.** Nothing fires this rite, nothing checks that three
+leads were dispatched, that their corrections were applied, that the language is Portuguese, or that
+the result reached him as an Artifact rather than as chat text. A report delivered any other way is
+indistinguishable, from the repository, from one delivered correctly.
+
 ## What this costs the NEXT iteration — the amplification, stated where the rite is defined
 
 **A retrospective finding is `loop`-typed, and every link of the chain that follows is already merged.**
@@ -467,7 +611,9 @@ twenty-sixth amendment, not an omission to be repaired later by someone who assu
 - **Anything no persona met.** Each reports only what it saw in its own context, and no persona saw the
   whole iteration except the orchestrator — whose contribution is precisely what the isolation excludes.
   **A defect that lived between two contexts is invisible to this rite by construction.**
-- **Anything a persona that left no `dispatch-metrics` comment saw.** See step 2's lower bound.
+- ~~**Anything a persona that left no `dispatch-metrics` comment saw.**~~ **Anything a persona that left
+  no verdict marker saw, unless it was added by hand.** *(Struck 2026-11-01, #138: the records stopped
+  with #61.)* See step 2's lower bound.
 - **Every defect a reader would meet.** Those are the review half's class, and the review half is
   **`/sprint-review`, which runs before this rite** (#379). This rite finds defects in the **method**; a
   browser sweep finds none of them, and this finds none of a browser sweep's. **The complementarity is

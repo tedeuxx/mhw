@@ -14,8 +14,10 @@ The owner's rule (2026-10-05, Issue #60): *"os agentes mergeiam no rc/next, só 
   posted, and the gate's verdict at the PR's current head. No repeated owner approval is needed for
   this.
 - **The release candidate** is the pull request `rc/next` → `main`. It waits for the owner: no agent
-  merges it without his explicit go. After his merge, the install and the fresh-session canary are
-  his too.
+  merges it without his explicit go. His go is his own comment authorizing the merge; once the gate's
+  verdict at the same head cites that comment's URL, `quality-assurance` executes the merge (#133, the
+  `merge-authority` contract). ~~After his merge~~ After that merge, the install and the fresh-session
+  canary are his.
 
 Every merge is a real merge commit, never a squash or a rebase. A blocked or unfinished slice stays
 pending; a pause for questions publishes nothing.
@@ -37,18 +39,23 @@ pending; a pause for questions publishes nothing.
    because that workflow runs only on PRs into `main`. A pending check, a missing `tests` run (a
    "CLEAN" PR on which no tests ran) and a merge state other than clean (DIRTY, BEHIND, UNKNOWN...)
    are refused. It also reads the review gate from the PR's comments, because the plugin's merge
-   floor cannot see this script's own merge. Only a strict header on the **first three lines** of a
-   comment counts. Lines are compared whole, and nothing below the header is read, so text in a
+   floor cannot see this script's own merge. Only a strict header at the very top of a comment
+   counts: the **first four lines** of the gate's verdict, the **first three lines** of the lens
+   marker. Lines are compared whole, and nothing below the header is read, so text in a
    fence, a blockquote or the prose can neither supply nor override a verdict. The newest trusted
    comment that opens with each envelope wins, so a later `REQUEST-CHANGES`, a later open lens or a
-   later malformed header refuses. `quality-assurance` must open its comment with these three lines,
-   which are exactly the plugin's own required verdict shape. Line 2 is `APPROVE-AND-MERGE` or
-   `APPROVE-AND-MERGE-BOUNDARY`; any other literal refuses. Anything may follow line 3.
+   later malformed header refuses. `quality-assurance` must open its comment with these four lines,
+   the method's required verdict shape. Line 2 is `APPROVE-AND-MERGE`, the one clearance literal;
+   any other literal refuses, and the boundary literal retired at #134 is refused by name with no
+   transition window (a verdict is head-scoped, so a merge always needs a fresh one). Line 4 is
+   `owner-check: none` or `owner-check:` followed by the one live act the owner should do after the
+   merge; a verdict without it is malformed and refuses. Anything may follow line 4.
 
    ```
    <!-- gatekeeper-verdict: quality-assurance -->
    APPROVE-AND-MERGE
    head: <the full 40-character head SHA>
+   owner-check: none
    ```
 
    When the diff from the merge base touches a harness path (`.claude/`, `.codex/`, `.github/`,
@@ -79,7 +86,10 @@ pending; a pause for questions publishes nothing.
 
 1. Open or update the PR `rc/next` → `main` with one semver label.
 2. On the owner's go, run `python3 -B workspace/delivery.py merge --pr NUMBER` from a checkout of
-   `rc/next`. It refuses a head branch other than `rc/next`, dirty workspaces, a different/unpushed
+   `rc/next`. His go is his own comment on the PR authorizing the merge; `quality-assurance` then posts
+   a verdict at the same head citing that comment's URL and runs the command (#133, owner decision
+   2026-11-01). **This route does not check either**: for a PR into `main` it reads no gate verdict and
+   no owner comment, so the go is an instruction here, not a check. It refuses a head branch other than `rc/next`, dirty workspaces, a different/unpushed
    head, a stale base, a non-clean merge state, missing labels, a missing `tests` run and
    incomplete or failed checks. The stable `delivery-ci` job requires every test matrix to pass; the
    semver and Sonar checks must also be present and successful. Only the most recent run of each

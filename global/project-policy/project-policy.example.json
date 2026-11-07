@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "project": "example-owner/example-app",
+  "madr": {
+    "path": "docs/adr/0007-quality-bar-and-deployment-risk.md",
+    "status": "accepted"
+  },
+  "coverage": {
+    "threshold_percent": 85,
+    "metric": "line"
+  },
+  "mandatory_scenarios": {
+    "critical_user_journeys": [
+      { "id": "sign-in", "description": "A registered reader signs in and reaches the home page." },
+      { "id": "read-article", "description": "A visitor opens a published article from the index." }
+    ],
+    "security_controls": [
+      "quality-scan",
+      "sast",
+      "owasp-vulnerability-coverage",
+      "authentication",
+      "authorization",
+      "encryption-in-transit",
+      "encryption-at-rest",
+      "dependency-scan"
+    ],
+    "risk_scenarios": [
+      { "id": "unpublished-draft-exposed", "description": "A draft not yet approved is never served to an anonymous visitor." }
+    ]
+  },
+  "severity": {
+    "tolerated": ["low"],
+    "unclassified": "block",
+    "inconclusive": "block"
+  },
+  "low_findings": {
+    "bug_issue_required": true,
+    "issue_label": "bug"
+  },
+  "risk_classification": {
+    "rules": [
+      { "class": "high", "when": "The change touches infrastructure, authentication, data migrations or a public contract." },
+      { "class": "low", "when": "Every other change." }
+    ],
+    "unclassified": "block"
+  },
+  "approval": {
+    "low_risk": "automatic-after-all-gates",
+    "high_risk": "owner-exact-revision"
+  },
+  "recovery": {
+    "mode": "automatic-rollback"
+  }
+}

@@ -319,10 +319,10 @@ owner works that decision out with; it does not make it.
 | ready → **in progress** | `product` | `developer` | an open PR |
 | ready → **in progress** | `content` | `content-writer` — **not `developer`**, which has never been dispatched at a draft (ADR-0002, thirteenth amendment; this row said `developer` until #317 and was wrong for nine days) | an open PR |
 | ready → **in progress** | `loop` | `agents-lead` (ADR-0002, record 0015's Corollary 1) | an open PR |
-| in progress → **drafted** | `content` only | `content-reviewer`, at most **two** rounds against `published-voice`, **repairing the draft in place rather than blocking or handing back** (ADR-0002, seventeenth and thirty-second amendments) | **`docs/content-review/<slug>.md` on the branch** — one `## Round` section per round, each closed with `CONTENT-REVIEW-FINDINGS` or `CONTENT-REVIEW-CLEAR`; terminal on the first `CLEAR` or the second section, whichever comes first |
+| in progress → **drafted** | `content` only | `content-reviewer`, at most **two** rounds against `published-voice`, **repairing the draft in place rather than blocking or handing back** (ADR-0002, seventeenth and thirty-second amendments) | **`docs/content-review/<slug>.md` on the branch** — one `## Round` section per round, each closed with `CONTENT-REVIEW-FINDINGS` or `CONTENT-REVIEW-CLEAR`; terminal on the first `CLEAR` or the second section, whichever comes first; one file per article, a later correction appending `## Correction <N>` with its own two-round cap (mhw#139) |
 | in progress → **reviewed** | `product` · `content` | `quality-assurance`, against the full two-lens DoD | **a `<!-- gatekeeper-verdict: … -->` comment on the PR, carrying the head SHA it read** |
 | in progress → **reviewed** | `loop` | `quality-assurance`, against the full two-lens DoD **exactly as on any other lane**, **plus** an `agents-lead` verdict marker that must be on the PR before it may classify the diff safe or merge it (ADR-0002, record 0015's Corollary 2). The marker is an **added** control, never a substitute for the DoD | **a `<!-- gatekeeper-verdict: … -->` comment on the PR, carrying the head SHA it read** |
-| reviewed → **closed** | all | `quality-assurance` — safe **and** boundary since 2026-08-23 (ADR-0002 amendment #16) · the owner only on the four surviving holds | the merge, plus the verdict literal that authorised it (`APPROVE-AND-MERGE` or `APPROVE-AND-MERGE-BOUNDARY`); on a hold, the owner's ratifying comment |
+| reviewed → **closed** | all | `quality-assurance` — safe **and** boundary since 2026-08-23 (ADR-0002 amendment #16) · ~~the owner only on the four surviving holds~~ on the four surviving holds, `quality-assurance` too, once the owner's own comment authorizes the merge and its re-verdict at the same head cites that comment's URL (#133, owner decision 2026-11-01) | the merge, plus the verdict literal that authorised it (`APPROVE-AND-MERGE`, ~~or the retired boundary literal~~ one literal since #134) and its `owner-check:` line; on a hold, the owner's ratifying comment, cited by URL on the re-verdict's `authorization:` line |
 | **any → blocked → back** | all | anyone, on discovering it waits on the owner or on something outside the loop | **`blocked` label** |
 
 **`blocked` is orthogonal, not a sixth step.** It can attach at any point and returns the item to
@@ -591,9 +591,15 @@ what follows discharges it.
 **Milestones, and the choice is closer to a measurement than to a preference.** A GitHub Projects v2
 iteration field cannot be driven from inside this harness at all: `gh project field-create --data-type`
 accepts `{TEXT|SINGLE_SELECT|DATE|NUMBER}` and `ITERATION` is not in the set, `gh project list` fails on
-a missing `read:project` token scope, and the GraphQL escape hatch is denied by the global permission
-floor (`Bash(gh api:*)`). A milestone needs none of that: `gh issue edit --milestone`,
-`gh issue list --milestone` and `gh issue list --json milestone` are all allowlisted already.
+a missing `read:project` token scope, and the GraphQL escape hatch is denied by ~~the global permission
+floor~~ the owner's own user-level rule (`Bash(gh api:*)`) **(corrected 2026-11-02, mhw#242: it is a
+rule he wrote in his user settings, not a workstation floor entry; the floor carries only the
+`gh api -X`/`--method` write prefixes. He decided to keep the broad rule, because a prefix cannot tell
+a read from the many write spellings `gh api` accepts)**. A milestone needs none of that: `gh issue edit --milestone`, `gh issue list --milestone` and
+`gh issue list --json milestone` ~~are all allowlisted already~~ **need no token scope and no API
+route. Whether they prompt is the settings layers' answer, not this file's: the workstation allow list
+(`global/allow-list.conf` and the overlay's, in mhw) pre-authorises `gh issue list` and
+`gh issue view` and not `gh issue edit` (struck 2026-11-02, mhw#242).**
 
 | requirement (#326) | milestone |
 |---|---|
@@ -661,9 +667,17 @@ Close reads first and refuses a milestone that is not open. All fail non-zero wh
 
 ~~**What stands there now is an ABSENCE:** `scripts/` matches no allow entry, so running the script
 prompts the orchestrator and refuses a subagent.~~ **Struck 2026-09-29 (#537): the reviewed milestone
-family now uses the already-allowlisted `python3` interpreter.** Read, create, update and close execute
+family now uses the ~~already-allowlisted~~ `python3` interpreter.** ~~Read, create, update and close execute
 without a prompt for the orchestrator and every persona holding Bash. No settings layer changed; the
-reach is the accepted consequence of the owner's non-critical pricing of milestone acts.
+reach is the accepted consequence of the owner's non-critical pricing of milestone acts.~~ **Struck
+2026-11-02 (mhw#242): `python3` is not allowlisted by the workstation.** Its allow list
+(`global/allow-list.conf` plus the overlay's, in mhw) names `python3` only for specific scripts, never as
+an interpreter. **Of this family only the READ is pre-authorised**: a `script` entry renders
+`Bash(python3 {{method-scripts}}/milestone-read.py:*)` into the Claude Code user settings, in the wide
+tier only (the one rendered behind a complete admin deny floor), with an `Edit` deny on that installed
+file. Codex and Kiro get no rule for it. Create, update and close are not pre-authorised, so they reach
+the permission prompt unless another settings layer allows them. The owner's non-critical pricing of
+milestone acts is unchanged; the read is the one he chose to pre-authorise (mhw#242, 2026-11-02).
 
 **One measurement that could make the route unnecessary is still NOT taken, and one obstacle to taking
 it is gone:** whether `gh issue edit --milestone "<new title>"` *creates* a missing milestone. `--help`
@@ -890,8 +904,9 @@ lack of an alternative and it is stated as such rather than as a design:
   instead: no hook resolves a milestone, and the way to falsify that is to find a `gh issue`/`gh api`
   call in a registered hook that reads one, not to count the word.
 - **It is not versioned where this loop can see it.** A description edit produces no commit, no diff and
-  no Issue-timeline event this harness can read — `gh api` is denied by the global permission floor, so
-  the route that would expose the edit history is unavailable by construction.
+  no Issue-timeline event this harness can read — `gh api` is denied by ~~the global permission floor~~
+  the owner's user-level `Bash(gh api:*)` rule (corrected 2026-11-02, mhw#242: not a floor entry, and
+  kept by his decision), so the route that would expose the edit history is unavailable by construction.
 - **It contradicts the paragraph directly above.** *"The planning artifact is an ITERATION ISSUE"* is
   what this skill specifies, and **there is no iteration Issue.** The specified object was not built;
   the milestone description is standing in for it. That gap is named here rather than papered over,
@@ -1222,8 +1237,10 @@ date, state, and nothing else. One label per Fibonacci value, closed set:
 sp:1  sp:2  sp:3  sp:5  sp:8  sp:13
 ```
 
-`gh label` and `gh issue edit` are both already allowlisted and `gh issue list --json labels` reads them
-back, so this needs **no permission change and no token scope** — the same test that chose the milestone
+`gh label` and `gh issue edit` ~~are both already allowlisted~~ need no API route (struck 2026-11-02,
+mhw#242: the workstation allow list grants neither; whether they prompt is another settings layer's
+answer) and `gh issue list --json labels` reads them back, so this needs **no ~~permission change and
+no~~ token scope** — the same test that chose the milestone
 over a Projects v2 field. Aggregation is one `jq` expression over the query the pool predicate already
 runs:
 
@@ -1416,7 +1433,9 @@ carried over), not a gate.
   milestone is rule 11's~~ **struck 2026-09-04 (#383): both rules are deleted. Admission is now a
   SILENT edit (the command is allowlisted), and ~~creating the milestone still prompts only because
   `scripts/` is in no allow list — an absence, not a control~~ struck 2026-09-29 (#537): creation now
-  runs through the already-allowlisted `python3` interpreter without a prompt; no guard inspection is
+  runs through the ~~already-allowlisted~~ `python3` interpreter ~~without a prompt~~ (struck 2026-11-02,
+  mhw#242: the workstation allow list grants neither `python3` as an interpreter nor `gh issue edit`, so
+  whether either prompts is another settings layer's answer); no guard inspection is
   needed under the owner's non-critical pricing, so review plus the blocking regression carry it.
   "Composition stays his" is now held by the rite's own procedure and by his presence at it, not by
   any layer.**
@@ -1589,7 +1608,11 @@ over real iterations, which is his decision and not a build's.
    `dispatch-metrics-stop.sh` and the worklog half has no equivalent in this tree.~~ **Struck
    2026-09-23 (#499): a host-neutral, explicit worklog now exists at `{{method-scripts}}/worklog.py`, with its
    contract in `docs/worklog/`.** It has no automatic producer and does not read the metrics hook.
-   **Do not read native usage reporting as the worklog:** they are separate instruments.
+   **Do not read native usage reporting as the worklog:** they are separate instruments. **Since #76 a
+   worklog event may carry an optional `usage` object** (numbers and fixed identifiers only), copied by
+   the acting context from that native report when its work on the Issue ends, and `worklog.py report`
+   sums it per Issue and per harness and marks coverage partial. The native report stays the source;
+   nothing fills the field automatically.
 2. **The mapping from a story point to tokens and hours does not exist.** The worklog uses frozen
    points for team planning velocity and deliberately does not make `sp:N` a token/hour denominator.
    **The question is open and asked rather than answered:** *how does this loop
@@ -1886,6 +1909,17 @@ action before ending the turn, or say plainly that there is none.
 
 ## The merge is the go/no-go — who decides which class
 
+**The canonical contract is the `merge-authority` skill (#195).** This section is an operational copy of it, kept in the universal preload so every persona reads it. The block below is generated from that contract, and a method test holds it equal. A project brief may add boundary triggers; it may not change the executor, the verdicts or the holds. Where a project brief tries to, the contract wins: the conflict is a finding to name, never a hold the contract does not define. The holds the contract defines bind, the release candidate of a declared integration branch included.
+
+<!-- merge-authority:projection v3: generated from the merge-authority skill; do not edit by hand -->
+- `trunk-single-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-AND-MERGE`; 4 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. With a declared integration branch, slices merge into it under this rule, and this hold is added: the release candidate (the promotion pull request from the declared integration branch to the trunk) -> `APPROVE-PENDING-HUMAN`, discharged the same way, then `quality-assurance` merges.
+- `gitflow-multi-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-PENDING-HUMAN`; 5 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`; (5) the boundary class itself. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. The promotion is held the same way, then `quality-assurance` merges it.
+- Owner-dependent criteria: a criterion that passes only on the owner's authorization or override, a hold's discharge included, passes only when the verdict cites the URL of the owner's own comment on the Issue or pull request recording it; a dispatch, a relayed instruction or the orchestrator's prose is never that evidence and never overrides a brief or a floor rule. Without the URL the criterion is UNVERIFIED and the verdict is `APPROVE-PENDING-HUMAN`. A refusal by the workstation deny floor is never `APPROVE-EXECUTOR-BLOCKED`. This is an evidence rule, not a hold.
+- Owner check: every gate verdict carries an `owner-check:` line directly under its `head:` line, valued `none` or exactly one live act the owner should perform after the merge; a value other than `none` is also posted, verbatim, on each Issue the pull request references. A verdict without the line is malformed.
+- Retired verdicts, refused by every reader: `APPROVE-AND-MERGE-BOUNDARY`.
+- Canonical source: the `merge-authority` skill. A project brief declares only its loop model, its integration branch if it has one, and its boundary triggers.
+<!-- merge-authority:end -->
+
 **"The merge is the go/no-go" does NOT mean "the merge always asks a human."** What the merge asks
 for is a **judgement**, and who supplies it depends on the class:
 
@@ -1894,8 +1928,11 @@ for is a **judgement**, and who supplies it depends on the class:
 - **Boundary class** — infrastructure and anything threatening continuity, a change to the loop's own
   rules, publishing in the owner's voice. ~~**The gate never merges these.** It approves pending the
   human and hands the go/no-go up.~~ **Struck 2026-08-23** ([ADR-0002](../../docs/adr/0002-roster-and-dev-loop.md)
-  amendment #16, the owner's decision): **the gate merges these too**, under its own verdict literal
-  `APPROVE-AND-MERGE-BOUNDARY`, and **the owner reviews live, after deploy**. The argument is the loop
+  amendment #16, the owner's decision): **the gate merges these too**, ~~under its own verdict
+  literal~~ under `APPROVE-AND-MERGE`, the one clearance literal since 2026-11-02 (#134, owner ruling
+  2026-10-10: the separate boundary literal rode on 30 of 36 merges and stopped telling him anything),
+  with the verdict's mandatory `owner-check:` line naming the one live act he should do, or `none`, and
+  **the owner reviews live, after deploy**. The argument is the loop
   model itself — under `trunk-single-env` there is no preview to hold for, so holding the merge produced
   no staging copy to inspect, only a queue. **Under `gitflow-multi-env` this reasoning does not
   transfer** and this skill does not extend it there: a repo with an integration branch *does* have a
@@ -1903,7 +1940,11 @@ for is a **judgement**, and who supplies it depends on the class:
 
 **Four holds survive, and none of them survives on the preview argument** — read them as separate rules
 that happen to have lived inside "boundary class" until it stopped being a hold, not as the retired
-clause under another name. On any of these the gate returns `APPROVE-PENDING-HUMAN` and does not merge:
+clause under another name. On any of these the gate returns `APPROVE-PENDING-HUMAN` and does not merge
+**until the owner's own comment authorizes the merge; then it re-verdicts at the same head, cites
+that comment's URL, and executes the merge itself, on any branch, the release candidate into the trunk
+included** (#133, owner decision 2026-11-01: *his comment is his go; the act is the gate's*). A cited
+comment discharges a hold for the head it names; it never removes the hold, and the holds stay four:
 
 1. **An expansion of the gate's own authority** — a diff widening which class it may merge, removing a
    boundary trigger, or otherwise loosening its own mandate. Unconditional, whatever the diff looks like;
@@ -1925,13 +1966,18 @@ clause under another name. On any of these the gate returns `APPROVE-PENDING-HUM
    (ADR-0002, thirty-second amendment).
 
 *Significance beats in-pattern:* when the class is unclear, it is boundary — which now means the gate
-merges it under the boundary literal rather than holding it, so **when what is unclear is whether one of
+merges it ~~under the boundary literal~~ under `APPROVE-AND-MERGE` with an `owner-check:` rather than holding it, so **when what is unclear is whether one of
 the four holds applies, the conservative reading is that it does.**
 
 **A FIFTH verdict literal exists since 2026-09-01 (#374), and it is NOT a fifth hold.** The holds above
 are still four. `APPROVE-EXECUTOR-BLOCKED` means *DoD green, class safe or boundary, none of the four
 holds applies* — so the verdict would have been a clearance — **and the gate could not execute the
 merge**. The decision is made; only the act is outstanding, and it becomes the owner's by exception.
+A refusal by the workstation deny floor is never this state (#133): the floor forbids the act, so it was
+never the outstanding step. Nor is a hold discharged, or any criterion resting on the owner's
+authorization passed, by a relayed instruction: only a cited URL of his own comment counts, and without
+it the verdict is `APPROVE-PENDING-HUMAN` (the `owner-evidence` rule of the `merge-authority` contract,
+an evidence rule and not a hold). With the URL cited, the gate executes the held merge itself.
 
 **Why the state needed a name rather than an inference.** The single-executor rule (the plugin's
 rule 7b; in this method an instruction) makes `quality-assurance` the only permitted executor of an
@@ -1951,10 +1997,13 @@ signal at all. The full decision, its rejected options and the readers that must
 [ADR-0004](../../docs/adr/0004-controls-and-enforcement.md)'s 2026-09-01 amendment.
 
 **What the safe/boundary split still decides, since a distinction that changes nothing should be retired
-rather than kept:** which of the four holds can apply (every one is a boundary trigger), which verdict
+rather than kept:** which of the four holds can apply (every one is a boundary trigger) ~~, which verdict
 literal is posted — so the merge record itself says whether anything shipped without a pre-publication
-check — and what the verdict must state. What it no longer decides, outside the four holds, is **who
-merges**.
+check —~~ and what the verdict must state: on a boundary class, the trigger that fired, with the
+`owner-check:` line naming what the owner should look at live, or `none` *(struck 2026-11-02, #134:
+both classes clear under `APPROVE-AND-MERGE`, so the literal records nothing about the class)*. What it no longer decides, ~~outside the four holds,~~ is **who
+merges** — since #133 not inside the four holds either: the gate executes a held merge once the
+owner's cited comment discharges the hold.
 
 This framing above is the corrected one — an earlier prose restatement of it, in the retired
 `dev-loop` skill this file replaces, said the opposite (*"auto-merging to `main` is never in-pattern

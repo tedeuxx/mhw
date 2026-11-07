@@ -29,6 +29,18 @@ CPF = "123.456" + ".789-09"                                     # the common tes
 SECRETS = (AWS_EXAMPLE, EMAIL, CPF)
 TERM = "Quillmoor" + "vex"                                      # invented; matched only through its hash
 SALT = "5a" * 32                                                # a fixed test salt, never a real one
+# Issue #36: one obviously fake value per new category, split the same way.
+NEW_FIXTURES = {
+    "phone": "+55 (11) 9" + "0000-0001",
+    "postal-address": "CEP 01" + "000-000",
+    "contract-value": "salary " + "US$" + " 90,000",
+    "health": "CID F" + "32.1",
+    "colleague-name": "my colleague " + "Quillo Zyxwer",
+}
+NEW_SPANS = {"phone": "+55 (11) 9" + "0000-0001", "postal-address": "01" + "000-000",
+             "contract-value": "US$" + " 90,000", "health": "CID F" + "32.1", "colleague-name": "Quillo Zyxwer"}
+HEALTH_TERM = "Zyxwitis" + "Quill"                              # invented; matched only through its hash
+COLLEAGUE_TERM = "Quellara " + "Zyxwood"                        # invented; matched only through its hash
 
 
 class Sandbox:
@@ -385,7 +397,7 @@ class OutboundScan(unittest.TestCase):
         self.assertNoLeak(r)
 
     # agents-lead finding 2: employer-client-term is never skipped without a word.
-    def _configure_terms(self, terms, salt):
+    def _configure_terms(self, terms, salt, health=None, colleague=None):
         data = self.box.home / "data" / scan.core.PROJECT
         overlay = data / "local-overlay"
         overlay.mkdir(parents=True)
@@ -395,6 +407,10 @@ class OutboundScan(unittest.TestCase):
         hashes = [scan.core.term_hash(SALT, f) for t in terms for f in scan.core.term_forms(t)]
         (overlay / "clipboard-terms").write_text(scan.core.TERMS_HEADER + "".join(h + "\n" for h in hashes),
                                                  encoding="ascii")
+        for name, words in (("clipboard-terms-health", health), ("clipboard-terms-colleague", colleague)):
+            if words is not None:
+                h = [scan.core.term_hash(SALT, f) for t in words for f in scan.core.term_forms(t)]
+                (overlay / name).write_text(scan.core.TERMS_HEADER + "".join(x + "\n" for x in h), encoding="ascii")
 
     def test_note_when_no_term_list(self):
         r = self.box.mhw("clean.txt")
@@ -413,7 +429,7 @@ class OutboundScan(unittest.TestCase):
         self.assertNotIn("no employer and client term list", r.stdout)
 
     def test_synthetic_term_is_found_without_a_note(self):
-        self._configure_terms([TERM], SALT)
+        self._configure_terms([TERM], SALT, health=[HEALTH_TERM], colleague=[COLLEAGUE_TERM])
         self.box.write("memo.txt", "one\nmet the " + TERM + " people\n")
         r = self.box.mhw("memo.txt")
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -421,6 +437,97 @@ class OutboundScan(unittest.TestCase):
         self.assertNotIn("NOTE", r.stdout)
         for i in range(len(TERM) - 4):
             self.assertNotIn(TERM[i:i + 5], r.stdout + r.stderr)
+
+    # Issue #36: the five new categories reach mhw scan through the shared engine, by category and
+    # length only, and the private health and colleague-name lists are named when they cannot be read.
+    def test_new_categories_are_reported_by_line_category_and_length(self):
+        self.box.write("contacts.txt", "".join("%s\n" % v for v in NEW_FIXTURES.values()))
+        r = self.box.mhw("contacts.txt")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for line, cat in enumerate(NEW_FIXTURES, 1):
+            self.assertIn("contacts.txt:%d: %s, %d chars" % (line, cat, len(NEW_SPANS[cat])), r.stdout.splitlines())
+        self.assertIn("mhw scan: 5 finding(s); 1 of 1 scanned file(s) had one;", r.stdout)
+        for value in NEW_SPANS.values():
+            for i in range(len(value) - 4):
+                self.assertNotIn(value[i:i + 5], r.stdout + r.stderr, "an excerpt of a finding was printed")
+
+    def test_note_names_each_private_list_that_cannot_be_read(self):
+        self._configure_terms([TERM], SALT)
+        r = self.box.mhw("clean.txt")
+        for cat in ("health", "colleague-name"):
+            self.assertIn("NOTE    no %s term list could be read (absent, empty or unreadable); %s was checked "
+                          "by its pattern only, NOT against a term list" % (cat, cat), r.stdout)
+        self.assertNotIn("employer-client-term was NOT checked", r.stdout)
+
+    def test_private_list_terms_are_found(self):
+        self._configure_terms([], SALT, health=[HEALTH_TERM], colleague=[COLLEAGUE_TERM])
+        self.box.write("notes.txt", "a\n" + HEALTH_TERM.lower() + " and " + COLLEAGUE_TERM.upper() + "\n")
+        r = self.box.mhw("notes.txt")
+        self.assertIn("notes.txt:2: health, %d chars" % len(HEALTH_TERM), r.stdout)
+        self.assertIn("notes.txt:2: colleague-name, %d chars" % len(COLLEAGUE_TERM), r.stdout)
+        self.assertIn("employer-client-term was NOT checked", r.stdout)
+        for term in (HEALTH_TERM, COLLEAGUE_TERM):
+            for i in range(len(term) - 4):
+                self.assertNotIn(term[i:i + 5].lower(), (r.stdout + r.stderr).lower())
+
+    # Issue #34: --file=PATH scans one text file git does not track, such as a post written to a
+    # scratch file before it is published. Same engine, same report format, same exit codes.
+    def _outside(self, name, content):
+        scratch = self.box.root / "scratch"
+        scratch.mkdir(exist_ok=True)
+        path = scratch / name
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def _mhw_outside_git(self, *args):
+        """mhw scan run from a directory no git repository contains."""
+        env = dict(self.box.env, GIT_CEILING_DIRECTORIES=str(self.box.root))
+        return subprocess.run(["/bin/sh", str(MHW), "scan"] + list(args), cwd=str(self.box.root / "scratch"),
+                              capture_output=True, text=True, env=env)
+
+    def test_file_untracked_and_outside_git_is_reported(self):
+        post = self._outside("post.txt", "a draft post\n\nwrite to " + EMAIL + "\nkey " + AWS_EXAMPLE + "\n")
+        # From inside the repository by absolute path, and from a directory no repository contains.
+        runs = ((str(post), self.box.mhw("--file=" + str(post))),
+                ("post.txt", self._mhw_outside_git("--file=post.txt")))
+        for label, r in runs:
+            self.assertEqual(r.returncode, 0, r.stderr)   # findings never block
+            lines = r.stdout.splitlines()
+            self.assertIn("%s:3: email, %d chars" % (label, len(EMAIL)), lines)
+            self.assertIn("%s:4: credential, %d chars" % (label, len(AWS_EXAMPLE)), lines)
+            self.assertIn("mhw scan: 2 finding(s); 1 of 1 scanned file(s) had one;", r.stdout)
+            self.assertNoLeak(r)
+
+    def test_file_untracked_inside_the_repository_is_reported(self):
+        self.box.write("draft.txt", "x\ncpf " + CPF + "\n")      # untracked, never added
+        r = self.box.mhw("--file=draft.txt")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("draft.txt:2: cpf, %d chars" % len(CPF), r.stdout)
+        self.assertNoLeak(r)
+
+    def test_file_clean_reports_nothing(self):
+        self._outside("clean-post.txt", "nothing sensitive in this post\n")
+        r = self._mhw_outside_git("--file=clean-post.txt")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("mhw scan: 0 finding(s); 0 of 1 scanned file(s) had one;", r.stdout)
+        self.assertNotIn("SKIPPED", r.stdout)
+
+    def test_file_missing_or_misused_exits_two(self):
+        self._outside("present.txt", "x\n")
+        r = self._mhw_outside_git("--file=absent.txt")
+        self.assertEqual(r.returncode, 2)
+        self.assertEqual(r.stderr, "mhw scan: --file=absent.txt: no such regular file\n")
+        self.assertEqual(r.stdout, "")
+        self.assertEqual(self._mhw_outside_git("--file=.").returncode, 2)          # a directory
+        self.assertEqual(self._mhw_outside_git("--file=").returncode, 2)
+        self.assertEqual(self._mhw_outside_git("--file=present.txt", "--file=present.txt").returncode, 2)
+        self.assertEqual(self.box.mhw("--file=new.txt", "clean.txt").returncode, 2)
+        self.assertEqual(self.box.mhw("--file=new.txt", "--base=base").returncode, 2)
+
+    def test_file_binary_is_skipped_with_the_reason(self):
+        r = self.box.mhw("--file=blob.bin")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("SKIPPED blob.bin: binary, not scanned", r.stdout)
 
 
 class ScanText(unittest.TestCase):

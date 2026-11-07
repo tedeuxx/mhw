@@ -19,6 +19,9 @@ checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./wo
                                           (the admin layer included, stamped or from an earlier release),
                                           or a required prerequisite is missing (global/prerequisites.json)
     ./mhw check --prerequisites         the prerequisites section only (Issue #89); never applies anything
+    ./mhw check --project=DIR           also check DIR's root AGENTS.md merge-authority declaration against
+                                          the installed method contract (Issue #195): exit 1 on a finding,
+                                          2 when the installed method cannot validate it (fail closed)
     ./mhw update [vX.Y.Z] [--yes]       fetch tags, check out the newest release (or the one given), install;
                                           in an npm install (no .git, Issue #68) run the npm update, then
                                           the new package's install (Issue #113)
@@ -30,12 +33,24 @@ checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./wo
                                           (or REF, or the paths given) and over every unpushed commit's
                                           added lines and message; prints file:line, category and match
                                           length, never the matched text; exit 0 with findings;
-                                          needs a git repository in every mode (exit 2 outside one)
+                                          needs a git repository in these modes (exit 2 outside one)
+    ./mhw scan --file=PATH              the same detectors and report over one text file, whether or
+                                          not git tracks it, inside a repository or outside one (a post
+                                          before it is published, Issue #34); exit 2 when PATH names no
+                                          regular file
+    ./mhw policy check [--project=DIR | --file=PATH]
+                                        validate a project's ADR-0015 project-policy contract (Issue
+                                          #245): DIR/project-policy.json (default: the current
+                                          directory) or PATH; exit 0 only when it is valid, 1 when it is
+                                          missing, malformed, of an unknown schema_version or breaks the
+                                          contract, 2 when it cannot validate (fail closed); reads no
+                                          evidence, which is the reference CI/CD's (#246)
     ./mhw postinstall                   what npm's postinstall runs (bin/postinstall.js): one line naming
                                           `mhw install`; it installs nothing (Issue #113)
 
 Options for every subcommand: --overlay=DIR|none (default: the repository's overlay/), and
---project=DIR for status (default: the git root of the current directory).
+--project=DIR for status (default: the git root of the current directory) and for check (no default:
+the project-brief section runs only when it is given).
 
 global/install.sh and global/install-managed.sh stay the internals: this file decides their flags and
 summarises their output, it renders nothing itself. Version key (Issue #57): a project declares the
@@ -400,6 +415,56 @@ def cannot_override(f):
     return " · ".join(parts)
 
 
+# Issue #38: the summary names --check drift by CATEGORY only, never a path or a file's content. The
+# categories are read from the installers' own target lines, in this order; a line none of them matches
+# is still counted, as "other", so a drift is never dropped for want of a name.
+_DRIFT_LINE = re.compile(r"(DRIFT|MISSING|STALE|REFUSE)\s")
+_DRIFT_CATEGORIES = (
+    ("paste wrapper", ("paste",)),
+    ("allow list", ("allow list", "permissions.allow", "allow-list")),
+    ("deny floor", ("deny-floor", "deny floor", "/.claude/settings.json", "permissions.yaml",
+                    "managed-settings", "requirements.toml")),
+    ("hooks", ("hooks.json", "clipboard", "hook")),
+    ("MCP", ("mcp", "claude.json", "codex:", "kiro:", "claude-code:")),
+    ("models", ("model",)),
+    ("method", ("/skills/", "/agents/", "/commands/", "/prompts/", "/method/")),
+)
+
+
+def drift_category(line):
+    """The category of one --check problem line: removed controls (every STALE line names what an earlier
+    release installed and this one removes), brief, paste wrapper, deny floor, hooks, ..., or other."""
+    if line.startswith("STALE"):
+        return "removed controls"
+    if any(str(p) in line for p in brief_paths().values()):
+        return "brief"
+    low = line.lower()
+    for name, needles in _DRIFT_CATEGORIES:
+        if any(n.lower() in low for n in needles):
+            return name
+    return "other"
+
+
+def drift_text(user_lines, admin_lines, admin_code=0):
+    """'drift: <n> target(s) in <categories> — next: <CMD> install', or '' when both layers are clean.
+    The admin layer's categories carry an 'admin ' prefix; an admin --check that exits non-zero with no
+    target line still counts as one target."""
+    cats, count = [], 0
+    for prefix, lines in (("", user_lines), ("admin ", admin_lines)):
+        hits = [line for line in lines if _DRIFT_LINE.match(line)]
+        if prefix and not hits and admin_code:
+            hits, names = [None], ["admin layer"]
+        else:
+            names = [prefix + drift_category(line) for line in hits]
+        count += len(hits)
+        for name in names:
+            if name not in cats:
+                cats.append(name)
+    if not count:
+        return ""
+    return "drift: %d target(s) in %s — next: %s install" % (count, ", ".join(cats), CMD)
+
+
 def render_summary(f):
     """At most ten lines: what is in effect, each item at the evidence level this view has."""
     present = [h for h, v in f["harnesses"].items() if v is not None]
@@ -432,8 +497,11 @@ def render_summary(f):
     lines.append("  overrides        %s" % ("; ".join(overrides) if overrides
                                            else "no workspace setting overrides a user default"))
     lines.append("  cannot override  %s" % cannot_override(f))
-    lines.append("  protections      brief %s · hooks %s · evidence: installed; loaded and enforced "
-                 "need a session canary" % (f["brief"], f["hooks"]))
+    # The installers' --check drift rides on the protections item (Issue #38), so the summary keeps its
+    # ten-line limit and a session never reads clean while part of the firewall stopped applying.
+    drift = drift_text(f.get("user_lines", []), f.get("admin_lines", []), f.get("admin_code", 0))
+    lines.append("  protections      brief %s · hooks %s%s · evidence: installed; loaded and enforced "
+                 "need a session canary" % (f["brief"], f["hooks"], " · " + drift if drift else ""))
     lines.append("  permission mode  %s; session flags: %s" % (
         _settings_text(settings, MODE_KEYS, shown), ", ".join("%s %s" % (h, NATIVE_VIEW[h]) for h in shown)))
     lines.append("  runtime          %s" % f["runtime"])
@@ -1529,7 +1597,7 @@ def cmd_uninstall(verbose=False, yes=False):
     return 1 if failed or left else 0
 
 
-def cmd_check(prerequisites_only=False):
+def cmd_check(prerequisites_only=False, project=None):
     code = 0
     if not prerequisites_only:
         hooks_mode = "managed" if admin_installed() else "user"
@@ -1547,7 +1615,23 @@ def cmd_check(prerequisites_only=False):
     import prerequisites
     pcode, lines = prerequisites.report()
     print("\n".join(lines), flush=True)
-    return max(code, pcode)
+    code = max(code, pcode)
+    if project is not None:
+        # Issue #195: the project brief against the installed merge-authority contract. Read-only.
+        code = max(code, check_project_brief(project))
+    return code
+
+
+def check_project_brief(project):
+    """The --project section of check: exit 0, 1 (findings) or 2 (cannot validate, fail closed)."""
+    import merge_authority
+    root = Path(project).expanduser().resolve()
+    if not root.is_dir():
+        print("PROJECT %s is not a directory" % project, flush=True)
+        return 2
+    mcode, lines = merge_authority.check_project(root, Path.home())
+    print("\n".join(lines), flush=True)
+    return mcode
 
 
 def valid_overlay(value):
@@ -1572,12 +1656,20 @@ def main(argv):
         # Its own arguments (paths, --base=REF); it reads files and installs nothing (ADR-0035).
         import scan
         return scan.main(rest)
+    if command == "policy":
+        # ADR-0015 lock 3 (Issue #245): validate a project's contract; reads one file, installs nothing.
+        if not rest or rest[0] != "check":
+            print("mhw: policy takes one subcommand, check [--project=DIR | --file=PATH]", file=sys.stderr)
+            return 2
+        sys.path.insert(0, str(HERE / "project-policy"))
+        import project_policy
+        return project_policy.main(rest)
     overlay, project, verbose, admin, wanted, summary, method = None, None, False, False, None, False, False
     prereq_only, yes, no_admin, connect = False, False, False, None
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
-        elif arg.startswith("--project=") and command == "status":
+        elif arg.startswith("--project=") and command in ("status", "check"):
             project = arg[len("--project="):]
         elif arg in ("-v", "--verbose") and command in ("status", "install", "update", "uninstall"):
             verbose = True
@@ -1614,7 +1706,7 @@ def main(argv):
     if command == "postinstall":
         return cmd_postinstall(method)
     if command == "check":
-        return cmd_check(prereq_only)
+        return cmd_check(prereq_only, project)
     if command == "update":
         return cmd_update(wanted, verbose, yes)
     if command == "uninstall":
@@ -1625,7 +1717,7 @@ def main(argv):
         for line in lines:
             print(line)
         return mcp_connect_status(connect) if connect else 0
-    print("mhw: unknown subcommand %s (install, install --admin, status, check, scan, update, uninstall)"
+    print("mhw: unknown subcommand %s (install, install --admin, status, check, scan, policy check, update, uninstall)"
           % command, file=sys.stderr)
     return 2
 

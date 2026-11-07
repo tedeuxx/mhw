@@ -161,7 +161,7 @@ wearing the source's title — and every repair round edits the symptom.
 
 | the source is | what the piece may be |
 |---|---|
-| **reachable and quotable** | a piece that decomposes the source's argument, quoting it |
+| **reachable and quotable** | a piece that decomposes the source's argument, quoting it — where *quotable* means each verbatim span passes `published-voice` rule 18a (at most 40 words, a public source, attributed on the block, never employer, client or NDA material). Reachable by whoever drafts is not the same as public (mhw#140) |
 | **unreachable** | a piece where the source is the **trigger** and the owner's own material is the **subject** — stated as that at capture, so the spine is designed for it rather than discovered fighting it |
 
 **The second row is not a lesser piece.** It is the piece this lane can actually build, and the whole
@@ -231,6 +231,34 @@ rule produce two opinions rather than a conflict.
   exists only where the draft changed by another hand.**
 - The rounds land in a **tracked review file on the branch**, one section per round, each closed with one
   of two literals. That file is the artifact; there is no comment and no relayed claim.
+- **One article has one review file, for its whole life (mhw#139).** It is
+  `docs/content-review/<slug>.md`, where `<slug>` is the stem of the article's canonical draft, shared
+  by every locale and every later revision. A correction the owner orders after the pair terminated
+  appends `## Correction <N>` to the same file, and **the two-round cap applies per correction**: the
+  rounds above the first `## Correction` heading are the first review, and each correction gets its
+  own two. Existing files are not renamed; the rule applies from the next piece. The full rule is in
+  the reviewing persona's brief.
+
+**Count the rounds per correction, not per file.** A per-file total no longer says whether the cap
+held, because a file with two corrections legitimately carries up to six rounds. Run this in the repo
+the drafts live in; it prints one line per section and flags any section past the cap:
+
+```
+awk '
+  FNR == 1 { c = "first review"; k[++m] = FILENAME ": " c }
+  /^## Correction / { c = "correction " $3; k[++m] = FILENAME ": " c }
+  /^## Round/ { n[FILENAME ": " c]++ }
+  END { for (i = 1; i <= m; i++) { r = n[k[i]] + 0
+        print k[i] " = " r (r > 2 ? "  OVER THE CAP" : "") } }
+' docs/content-review/*.md
+```
+
+Calibrated 2026-11-01 (mhw#139) on a fixture file holding a first review of one round and two
+corrections of two rounds and one round. It printed `first review = 1`, `correction 1 = 2` and
+`correction 2 = 1`, where the per-file `grep -c` below printed `4`. A third round added under
+correction 1 printed `correction 1 = 3  OVER THE CAP`; removing it restored `= 2`. The command reads
+headings only: a correction heading without a number prints whatever word follows `Correction` in
+place of the number (`correction —` for `## Correction — <date>`), and an empty file prints nothing. It is a count you run; nothing runs it for you.
 
 **This half of the pair is the least exercised thing in the lane, and the skill says so rather than
 describing it as routine.** Read the two facts together, because separately each one misleads:
@@ -299,6 +327,9 @@ read-throughs. **Three of them — 3, 4 and 5 — are clauses the ruler did not 
    a rendered or paraphrased idea attributed on the block puts the owner's sentence in someone else's
    mouth, which is a false claim manufactured by obeying a rule. **A reviewer that cannot tell which it
    is must ask, never attribute.**
+   **And since 2026-11-01 (mhw#140) a verbatim span must also pass rule 18a's four conditions** — at
+   most 40 words, a public source, attributed on the block, never employer, client or NDA material;
+   the workstation global brief's rule 1 wins on the last.
 
 **What none of these checks can do.** All five are reader-side judgements about **presence**, so a
 reviewer can
@@ -317,9 +348,13 @@ is not a bound.*
 
 **Both readings are defensible and that is the problem.** Rounds spent on an artifact that no longer
 exists are not rounds spent on this draft; equally, *"the piece changed"* is available on every piece
-and turns a bound into a formality. **This is with the owner and unanswered. It is recorded here and
+and turns a bound into a formality. ~~**This is with the owner and unanswered. It is recorded here and
 deliberately not decided** — the lane does not get to settle its own stopping rule, and nothing in this
-skill changes the bound.
+skill changes the bound.~~ *(Struck 2026-11-01, mhw#139.)* **Answered in part by the owner's ruling on
+mhw#139:** an owner-ordered change opens `## Correction <N>` in the same file, with its own two
+rounds, and its `ordered:` line names where he asked. **What stays open:** the heading is still written
+by the party the bound constrains, so nothing distinguishes a correction he ordered from a third round
+under a new heading except the `ordered:` line a reader follows.
 
 **When the rounds terminate, the TEXT is closed and the piece is NOT finished.** By the owner's rule
 above, the next act is the first deploy — steps 6 and 7 — not a message to him carrying the words. **Do
@@ -493,6 +528,23 @@ against a wall clock makes the same commit build differently tomorrow, and break
 that differs from a build, not an error. A commit is strictly more auditable and is the honest
 replacement.
 
+**The release is not the publication, and the social pair is drafted before it, not after (mhw#238).**
+Step 10 defines *published*; this is the order that lets the release and the posts ship in one batch:
+
+1. **Before the release merge**, draft the text of both posts and read them for step 10's language
+   hints and length. The share URL cannot be resolved yet: step 10's generator resolves it by lookup in
+   the prerendered routes, and a held piece has none until the release build, so a refusal at this
+   point is the lookup working, not a defect. Leave the URL to be filled after the deploy.
+2. **The release merge**, after his comment (step 8). It references the piece's Issue with `Refs #N`,
+   never with a closing keyword: a closing keyword closes the Issue at the merge, before the pair
+   exists.
+3. **Right after the deploy passes, in the same attended session**, resolve the share URL, run step
+   10's checks (the OG card, the scan) and post to both networks. Only then is the piece published.
+
+The step was drafted after the deploy until this order was written, and on the occasion that produced
+mhw#238 a session reported the piece as published at the deploy and only then began drafting the pair.
+*Held by: an instruction.* Nothing reads the order of these acts.
+
 ### A correction to an already-published piece · **AFK to build, HITL to read, two merges**
 
 **The owner's ruling (mhw#180): *«Construir modo revisão»*.** He chose a pending revision rendered by the
@@ -558,6 +610,24 @@ the only thing standing behind it.*
 **A publication is not done until it exists on both networks the platform publishes to.** Same batch as
 the release — not "later", which in practice means one of the two never ships.
 
+**What *published* means on this lane, stated once and pointed at from everywhere else (mhw#238).**
+The owner's words: *«o fluxo de publicacao nao esta completo sem a publicacao em redes sociais.»*
+
+- **A new piece is published when its release is live AND both posts exist, each with its URL.** The
+  release merge and its passing deploy are the *release*; they are not the publication.
+- **Until both post URLs exist, report the piece as "released, social pair pending"**, never as
+  published, done or reached: in a reply to the owner, in `what-else`, in a session's close line, in a
+  worklog event and on the Issue.
+- **A `content` Issue closes only with a comment that records both post URLs.** That comment is the
+  one trace that the pair shipped; nothing else in this lane leaves one. Step 9 says why the release
+  merge request references the Issue rather than closing it.
+- **A correction to an already-published piece is out of this definition**: it is not posted again, so
+  it is live when its release merge deploys.
+
+*Held by: an instruction.* No check reads a reply's wording, and under the workstation's ADR-0035 this
+cannot be a hook. The `orchestration` skill, which the main session loads before it puts anything to
+the owner, carries one sentence pointing here.
+
 ~~**The fan-out is deliberately NOT automated**, and the reason is worth carrying rather than
 rediscovering: automating it means holding credentials for a class of unattended public writes.~~
 **Struck 2026-09-11 (#399, owner's ruling 2026-09-10 — «O orquestrador, exceção registrada»).** Struck
@@ -604,7 +674,8 @@ this section.
 fourth and fifth both landed 2026-09-19, with rules 19–20 and rule 21; the count is stated here rather
 than left to be counted, because a reader who takes a stale number from this sentence stops at that
 bullet. **It has now moved twice in one day, which is the argument for stating it rather than for
-dropping it.**
+dropping it.** ~~Five~~ **Six since 2026-11-01 (mhw#34)**: the outbound scan before the post is the
+last bullet.
 
 - **The share URL is FORMED locale-neutral, and only then tagged.** This is where
   `published-voice`'s rule 21 binds — **at formation, textually, before anything is posted**, which is
@@ -677,6 +748,23 @@ dropping it.**
   matcher sees at all — so this cannot be more than a written precondition, exactly like the OG-card
   check above. **Neither rule is a merge hold**: no copy hold reaches this lane (step 6), so a post
   missing its hints ships unless somebody reads for it here.
+- **Each post's text is SCANNED before it is posted, and a finding is rewritten, never masked
+  (mhw#34).** Write the exact text of each post, as it will be typed, to a scratch file in the session
+  scratchpad, one file per network, and run `mhw scan --file=<that file>` (`./mhw scan --file=…` in a
+  checkout). It is the workstation's outbound scan: the same detection engine as the push check, a
+  report of `file:line`, category and length, never the matched text. **On a finding, rewrite that
+  passage toward the abstract** (a sector or a role instead of a name, a description instead of an
+  identifier) and scan again until it reports nothing. **A `[REDACTED:…]` marker never appears in a
+  public post**: a marker is itself visible, and odd, to every reader. **Tell the owner the category
+  only**, never the text that was found. This follows his ruling on the outbound response, *"limpar
+  sozinho e publicar"* (mhw#34): clean, then publish, with no hold. **What it does not reach, said
+  here so the scan is not read as covering the publication:** an e-mail or any other cloud connector,
+  and any text typed straight into a desktop or web application rather than written to a file first.
+  The scan reads only the file; if the typed post differs from it, the difference was never scanned.
+  Employer and client terms are matched only where the owner's term list is readable; otherwise the
+  scan prints a NOTE that the category was not checked, and that NOTE is part of what the owner is
+  told. *Held by: an instruction. Nothing observes the post, and nothing compares it with the scanned
+  file.*
 
 **The drafts are written to a private, ignored location**, because pre-publication copy in a public
 repository lets anyone read tomorrow's post today. **Existing files are never overwritten** — the prose
@@ -689,10 +777,12 @@ is hand-voiced after generation, and regenerating over it at this cadence buys n
 | the orchestrator is the only publisher | **the agents' tool lists** keep publishing connectors from every persona in Claude Code and Kiro (an instruction in Codex); **nothing** holds the orchestrator itself, and the browser-extension route has no matcher at all |
 | a post is preceded by the OG-card check | **an instruction.** No layer sees page state |
 | the share URL carries its campaign | **an instruction**, measurable after the fact as a lower bound only |
-| both halves of the pair shipped | **nothing at post time.** Unchanged by any of this |
+| both halves of the pair shipped | **nothing at post time.** Unchanged by any of this. After the fact, the Issue's closing comment carries both post URLs (mhw#238), and that is **an instruction**: nothing refuses a close without it |
+| a piece is reported as published only once both post URLs exist, and the pair is drafted before the release merge | **an instruction** (mhw#238). No check reads a reply, a close line or a worklog event, and nothing reads the order of the acts |
 | a bilingual post carries its two language hints, and sits under the length target | **an instruction** (`published-voice` rules 19–20, 2026-09-19). The gate arm asserts the clauses are WRITTEN; nothing reads a draft, and no copy hold reaches this lane to refuse a post that dropped them |
 | the share URL is locale-neutral | **an instruction** (rule 21, 2026-09-19), and it is **inert until the neutral form resolves** — so today what holds it is the precondition the rule states first. An MCP call carries the typed URL, which made a detector conceivable on that route; none exists in this method, and the route that has actually published is the browser extension no matcher sees |
 | the publish act is accounted for | **an instruction**: `agents-configuration`'s end-of-turn check 9, after the act, gating nothing |
+| each post's text is scanned before it is posted, and a finding is rewritten rather than masked | **an instruction** (mhw#34). `mhw scan --file` reports and never blocks; nothing checks that the scan ran, or that the posted text is the scanned file |
 
 **By this loop's own test — *would something stop me, or only my memory?* — nothing on this step is
 engineered**: the only native layer is the agents' tool lists, and they do not hold the orchestrator. That
@@ -773,7 +863,9 @@ this repository blocks on a mechanism presented as stronger than it is.**
   **posting is the orchestrator's (#399)** and leaves no trace any gate reads. **Do not read the
   correction as a tightening** — it is the opposite: the act moved from a human's hands into the
   harness's, and the only thing watching it is a `Stop` hook that fires after the fact, covers the MCP
-  route and is blind to the browser-extension route that has actually published.
+  route and is blind to the browser-extension route that has actually published. **Since mhw#238 the
+  Issue's closing comment, carrying both post URLs, is the trace**; it is written by instruction, and
+  no gate reads it.
 - **Nothing observes a dispatch.** A piece drafted with no review round is indistinguishable from one
   whose rounds were clear until you open the branch's file list.
 - **Nothing asks whether the SOURCE exists.** The source test above is an interview question; no hook

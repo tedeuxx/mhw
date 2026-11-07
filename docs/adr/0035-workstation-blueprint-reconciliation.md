@@ -718,10 +718,154 @@ migrations this record and ADR-0032 added, and the retired-server policy file wi
   owner's read-only check on #206). Replicator installs were not checked; the release notes ask them to
   run `mhw status` and remove a leftover table by hand.
 
+## Amendment 2026-11-01: decision 7 reaches a post before it is published (Issue #34)
+
+Status unchanged (accepted). This extends decision 7's control to the second exit path the owner
+named, posts on the social networks; it changes no detector and no category.
+
+**Context.** The owner's answer on Issue #34 (2026-10-01), on a finding in a post about to go out:
+*"limpar sozinho e publicar"*. Decision 7 already informs and never blocks, which matches it, but the
+scan reached only what git tracks. A social post is text the orchestrator types through a browser
+extension (`content-publishing` step 10), so no scan reached it.
+
+**1. A fourth mode.** `mhw scan --file=PATH` scans exactly one text file, whether or not git tracks it,
+inside a repository or outside one. Same engine (`find_spans`, through `scan_text`), same report
+(`path:line: category, N chars`, never the matched text), same exit codes: 0 with or without findings;
+2 when `PATH` names no regular file (missing, a directory), when `--file` is empty or given twice, or
+when it is combined with `--base` or with `PATH` arguments. A binary, too large or unreadable file is
+`SKIPPED` with the reason, as in the other modes.
+
+**2. What it gives up, on purpose.** Item 4's 2026-10-10 append made an explicit `PATH` unable to reach
+`open()`: only git's own entry is opened. `--file` cannot keep that property, because the file it
+exists for is one git does not list. The path the caller names is resolved with `realpath` (a symlink
+is followed to the file it names), must be a regular file, and is then read. Reading it only produces
+positions and categories. If SonarCloud reports S8707 on this path, that is this trade, stated here
+rather than hidden; the other three modes keep item 4's construction unchanged.
+
+**3. The step that uses it.** `content-publishing` step 10 adds a bullet: write each post's exact text
+to a scratch file, run `mhw scan --file`, rewrite any finding toward the abstract
+([ADR-0012](0012-operational-judgement-delegated-to-the-harness.md)) and scan again; a `[REDACTED:…]`
+marker never appears in a public post; the owner is told the category only. It is an instruction.
+
+**4. Declared gaps.** Out of reach: e-mail and other cloud connectors, and text typed straight into a
+desktop or web application. Nothing checks that the scan ran or that the posted text is the scanned
+file. Employer and client terms are checked only where the term list is readable, with the NOTE line
+of item 3 otherwise. macOS and Linux only, as item 7 states for every mode.
+
+**5. Evidence level.** *Written and tested*: `global/scan_test.py` covers an untracked finding inside
+and outside a repository, a clean file, a binary file and the exit-2 cases, and it goes red when the
+`--file` branch or its regular-file check is disabled in the source. Not installed on the reference
+machine; no post has been scanned through it yet.
+
+## Amendment 2026-11-01: five more detection categories (Issue #36)
+
+Status unchanged (accepted). This adds categories to the one detection engine that decision 7 reuses,
+`find_spans` in `global/clipboard/clipboard_guard.py`. The paste wrapper, the prompt hook and `mhw scan`
+all call it, so all three get the categories at once. It changes no surface's response: the wrapper
+still replaces, the hook still blocks, and the scan still informs and never blocks.
+
+**Context.** The owner's ruling on Issue #36 (2026-11-01): a detector for each of five categories, phone,
+postal address, contract and salary values, health and colleague names. The first three are patterns.
+Health and colleague names are patterns seeded by a private term list where a pattern cannot tell, and
+that list stays out of the repository.
+
+**1. The categories.** The engine reports eleven categories, in this order: `employer-client-term`,
+`credential`, `email`, `payment-card`, `cpf`, `cnpj`, and since this amendment `phone`, `postal-address`,
+`contract-value`, `health` and `colleague-name`. Each new pattern needs a cue that a plain number, date
+or identifier does not carry:
+
+- `phone`: the Brazilian `+55` code or a parenthesised Brazilian area code (two digits 1 to 9) and a
+  hyphenated number, or another `+` country code; 10 to 15 digits.
+- `postal-address`: a hyphenated CEP, `CEP` and eight digits, a Brazilian street line (the street word,
+  a capitalised name, the number) or an English one (the number, capitalised words, the street word).
+- `contract-value`: an amount with a currency symbol or code (`R$`, `US$`, `€`, `£`, `BRL`, `USD`,
+  `EUR`, `GBP`, or `$` with a thousands separator or `k`), counted only with a contract or salary word
+  on the same line within 80 characters. A price or a budget alone is not reported.
+- `health`: a CID-10 or ICD-10 code with its prefix. A "diagnosed with" pattern was tried and dropped,
+  because it is ordinary engineering text. ICD-11 codes are not covered, because their shape collides
+  with hexadecimal.
+- `colleague-name`: one to four capitalised words right after a possessive and a colleague word ("my
+  colleague", "minha gestora" and similar).
+
+**2. The private lists.** Health terms and colleague names that no pattern can tell are matched against
+two more term lists, loaded the same way as the employer and client list: salted HMAC hashes, never
+plaintext, the same salt, the same matching (up to six words, accents and case folded). Each list has its
+own file beside the first: `clipboard-terms-health` and `clipboard-terms-colleague` in the local overlay.
+They are written only by `clipboard_guard.py add-term --list health|colleague-name`, from the terminal
+with echo off. Where a list or the salt cannot be read, the hook says term matching was not checked,
+and `mhw scan` prints a NOTE that names each list and says its category was checked by its pattern
+only.
+
+**3. Report-only.** A new setting, `report_categories`, makes a category report-only when it is also
+removed from `block_categories`. The prompt hook names it in a notice and sends the prompt unchanged.
+The paste wrapper forwards it unchanged and counts it in its session summary, because a notice in the
+middle of a session would corrupt the CLI's screen. `mhw scan` reports every category whatever either
+setting says. A category in both lists blocks. A name that is not a category empties the setting.
+
+**4. The false-positive threshold, and what it measured.** Threshold: a category ships report-only if
+the engine reports even one false positive on the measured corpus. On a false positive the wrapper and
+the hook rewrite or block the owner's own prompt. Measured on 2026-11-01 at `98b04f7e6632`, before
+this change's own fixtures and comments: 0 findings for each of the five categories over every tracked
+text file, 0 over the 80,369 lines added in the history and 0 over its 576 commit messages. The
+instrument was checked on the same corpus: the email category, run the same way, reported 12 and 399.
+~~So all five block by default, and `report_categories` is empty.~~ *Struck 2026-11-01, gate round 1: two categories are report-only by default; see the next amendment.* The corpus is English engineering text,
+not the owner's Portuguese conversation, where these patterns are more likely to fire. That is the gap
+the setting exists for: one line makes a noisy category report-only.
+
+**5. Evidence level.** *Written and tested*: `clipboard_guard_test.py` holds synthetic positives, each with
+its exact span, and near-miss negatives for each category, plus the private lists, report-only and
+`add-term --list` through a pty. `paste_wrapper_test.py` covers a report-only paste through a real
+wrapper process, and `scan_test.py` covers the new categories and the list NOTEs. Each detector's source
+was mutated to turn its tests red, then restored. Not installed on the reference machine; not probed
+in a harness. macOS and Linux, as before.
+
+## Amendment 2026-11-01: two categories ship report-only (Issue #36, gate round 1)
+
+Status unchanged (accepted). This corrects the outcome of item 4 of the amendment above, keeping its
+threshold: a category ships report-only if the engine reports even one false positive on the measured
+corpus.
+
+**Context.** Item 4 measured English repository text, and it named that corpus as unrepresentative. The
+merge gate (`quality-assurance`, round 1 on PR #412) measured the corpus the wrapper and the hook actually
+receive: 54 synthetic Portuguese work lines, covering meetings, streets mentioned in passing, prices,
+versions, dates, ticket numbers, ID ranges, a colleague by name and code-like tokens. Each hit was
+classified as a realistic false positive, a contrived one (deliberately adversarial) or a true finding.
+
+| Category | Lines hit | Realistic false positives | Contrived | True |
+| --- | --- | --- | --- | --- |
+| `contract-value` | 13 | 12 | 0 | 1 |
+| `postal-address` | 12 | 10 | 0 | 2 |
+| `phone` | 2 | 1 | 1 | 0 |
+| `colleague-name` | 7 | 0 | 6 | 1 |
+| `health` | 1 | 0 | 1 | 0 |
+
+**Cause.** In `contract-value`, several cue words also name a price, a plan or a vendor deal, and no
+pattern separates a person's pay from a price. In `postal-address`, the bare CEP shape is also the
+shape of a five-three ticket or ID number, and the street arm reads a count after a street name as a
+house number.
+
+**Decision.** `postal-address` and `contract-value` are report-only by default. They are removed from
+`block_categories` and listed in `report_categories`, in `global/clipboard.conf` and in `DEFAULTS` in
+`clipboard_guard.py`. `DEFAULTS` is also what a typo falls back to, so a typo never makes them block.
+The prompt hook names them and sends the prompt. The paste wrapper forwards them and counts them in its
+session summary. `mhw scan` reports them as before. `phone`, `health` and `colleague-name` stay
+blocking. `phone`'s one realistic hit was a growth figure, through the arm for other country codes,
+and it stays a candidate for report-only if it trips in practice. The default mode of `colleague-name`
+is a separate question for the owner.
+
+**Tests.** The suites cover the new default. A default configuration reports, and does not block, each
+of the two, with the exact notice line. A typo falls back to the same nine blocking categories. A
+category in both lists blocks, with no report-only notice. Each contract cue word is pinned one by one,
+and there are near-misses for a phone number over 15 digits and a one-digit health code. Each new test
+was turned red by mutating the source, then restored. *Written and tested*; not installed.
+
 ## Links
 
 - Issues: none (owner request in session, 2026-10-10);
-  [#145](https://github.com/tedeuxx/mhw/issues/145) (install applies every setting itself, 2026-10-11)
+  [#145](https://github.com/tedeuxx/mhw/issues/145) (install applies every setting itself, 2026-10-11);
+  [#34](https://github.com/tedeuxx/mhw/issues/34) (decision 7 reaches a post before it is published,
+  2026-11-01); [#36](https://github.com/tedeuxx/mhw/issues/36) (five more detection categories,
+  2026-11-01)
 - Pull requests: #118 (slice A), #119 (slice B), #120 (slice F), #121 (decision 9, owner-action queue),
   #126 (decisions 6 and 10), #132 (decision 1, mhw sphere line)
 - Amends: [ADR-0007](0007-session-start-model-and-effort-defaults.md),

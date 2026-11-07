@@ -77,7 +77,7 @@ PHRASES = {
                   "Nothing is changed before the alignment interview is complete"],
     "handoff": ["re-derive the state from the tracker", "It prints only", "launch-line.py",
                 "at most 280 characters", "Then stop working in this session", "--resolve",
-                "--env NAME=VALUE", "and nothing after it"],
+                "--env NAME=VALUE", "and nothing after it", "--cd <the checkout>"],
     # The owner's request (2026-10-26): HITL escalation on demand, under today's discipline, three options.
     "need-me": ["**Escalating to the owner**", "**owner overlay**", "Exactly **three** authored, mutually exclusive",
                 "one line, the act and the link", "Put **only the first** to him", "**Never manufacture an ask**",
@@ -498,7 +498,7 @@ TOKEN_RE = re.compile(r"\{\{[a-z][a-z-]*\}\}")
 # A prompt the template could produce, with the characters that break a hand-quoted line: a single quote,
 # a newline, `$` (an expansion), backticks (a substitution and, three of them, a Markdown fence), a
 # backslash, a double quote and `!`. Built from public, synthetic values.
-PROMPT = ("/goal ship the owner's handoff command\n"
+PROMPT = ("Objective: ship the owner's handoff command\n"
           "Continue owner/repo#12 in this fresh session; the session that printed this prompt stops now.\n"
           "Next act: run the suite; it's green when 'OK' prints, not $HOME or $(date) or `id`.\n"
           "Evidence: ```fence``` and \\n and \"quoted\" and !! and \\'' stay as typed.\n"
@@ -507,13 +507,19 @@ SHELLS = ["sh", "bash"] + (["zsh"] if shutil.which("zsh") else [])
 
 
 PROBE_VAR = "MHW_PROBE_LAUNCH_VAR"  # declared only in the test's probe copy of launch-line.py
+# The checkout the block changes into (#198, owner 2026-11-01). Its name carries the characters that break a
+# hand-quoted path: a space, a single quote, `$` and backticks. Created by Handoff.setUpClass under BASE.
+CHECKOUT_NAME = "it's a $HOME `id` checkout"
+CHECKOUT = None
 
 
-def run_launch_line(script, harness, prompt, base, *extra):
+def run_launch_line(script, harness, prompt, base, *extra, cd=True):
+    """Run the script on a prompt file; --cd CHECKOUT is passed unless cd is False (then extra carries it)."""
     f = Path(tempfile.mkdtemp(prefix="prompt-", dir=base)) / "prompt.txt"
     f.write_text(prompt, encoding="utf-8")
-    return subprocess.run([sys.executable, "-B", str(script), harness, str(f)] + list(extra), capture_output=True,
-                          text=True)
+    where = ["--cd", str(CHECKOUT)] if cd else []
+    return subprocess.run([sys.executable, "-B", str(script), harness, str(f)] + where + list(extra),
+                          capture_output=True, text=True)
 
 
 def the_block(stdout):
@@ -529,8 +535,9 @@ def the_block(stdout):
 def argv_through(shell, line, command, env_names=()):
     """Run the block's line with the agent harness's command defined as a shell function that prints each
     argument (and the named environment variables) NUL-separated: what the agent harness would receive.
-    A function, like the workstation's paste wrapper, so the environment prefix is measured through one."""
-    printer = "".join('printf "%%s=%%s\\0" %s "$%s"; ' % (n, n) for n in env_names)
+    A function, like the workstation's paste wrapper, so the environment prefix is measured through one.
+    Each call first prints PWD=<the directory it runs in>, so the block's `cd` is measured too (#198)."""
+    printer = 'printf "PWD=%s\\0" "$PWD"; ' +"".join('printf "%%s=%%s\\0" %s "$%s"; ' % (n, n) for n in env_names)
     # sh refuses a function named kiro-cli, so the command word is swapped for a valid name first.
     head = command.split()[0] + " "
     if head not in line:
@@ -550,6 +557,9 @@ class Handoff(unittest.TestCase):
         cls.home = Path(tempfile.mkdtemp(prefix="home-", dir=BASE))
         cls.code, cls.out = render(cls.home)
         cls.script = cls.home / SCRIPTS_REL / "launch-line.py"
+        global CHECKOUT
+        CHECKOUT = Path(tempfile.mkdtemp(prefix="checkouts-", dir=BASE)) / CHECKOUT_NAME
+        (CHECKOUT / ".git").mkdir(parents=True)
         # mhw#224 D8: the method declares no launch variable today, so the accepted-variable path is
         # measured through a sibling copy in the throwaway home that declares one probe name. Only the
         # allowlist differs; the copy imports the same confine.py and worklog.py beside it.
@@ -559,6 +569,12 @@ class Handoff(unittest.TestCase):
             raise AssertionError("the LAUNCH_ENV allowlist is not where the probe copy expects it")
         cls.probe = cls.script.with_name("launch-line-probe.py")
         cls.probe.write_text(source.replace(anchor, anchor + '    "%s",\n' % PROBE_VAR), encoding="utf-8")
+
+    def after_cd(self, line):
+        """The block's line with its leading `cd '<checkout>' && ` removed; fails unless it opens with it."""
+        cd = "cd '%s' && " % str(CHECKOUT).replace("'", "'\\''")
+        self.assertTrue(line.startswith(cd), line[:80])
+        return line[len(cd):]
 
     def resolve(self, *argv):
         return subprocess.run([sys.executable, "-B", str(self.script), "--resolve"] + list(argv),
@@ -579,8 +595,9 @@ class Handoff(unittest.TestCase):
             out = run_launch_line(self.script, expected[carrier], PROMPT, BASE)
             self.assertEqual(out.returncode, 0, out.stderr)
             _, line = the_block(out.stdout)
-            self.assertTrue(line.startswith(LAUNCH_PREFIX[expected[carrier]]), (carrier, line[:40]))
-            (self.assertIn if carrier == "kiro" else self.assertNotIn)(IDE_PHRASE, out.stdout, carrier)
+            self.assertTrue(self.after_cd(line).startswith(LAUNCH_PREFIX[expected[carrier]]), (carrier, line[:40]))
+            # #198 (owner, 2026-11-01): no text around the command, so no Kiro IDE line either.
+            self.assertNotIn(IDE_PHRASE, out.stdout, carrier)
 
     def test_an_explicit_target_overrides_the_current_harness(self):
         names = {"claude-code": "claude-code", "claude": "claude-code", "codex": "codex", "kiro": "kiro",
@@ -593,6 +610,7 @@ class Handoff(unittest.TestCase):
             out = run_launch_line(self.script, word, PROMPT, BASE)
             self.assertEqual(out.returncode, 0, out.stderr)
             _, line = the_block(out.stdout)
+            line = self.after_cd(line)
             self.assertTrue(line.startswith(LAUNCH_PREFIX[target]), (word, line[:40]))
             for other, prefix in LAUNCH_PREFIX.items():
                 if other != target:
@@ -605,16 +623,61 @@ class Handoff(unittest.TestCase):
             out = run_launch_line(self.script, target, PROMPT, BASE)
             self.assertEqual(out.returncode, 0, out.stderr)
             before, line = the_block(out.stdout)
-            self.assertEqual(len(before), 1 if target == "kiro" else 0, target)
-            # The prompt is printed nowhere outside the block.
-            self.assertNotIn("/goal", "\n".join(before), target)
+            # #198 (owner, 2026-11-01): nothing is printed outside the block, for every target.
+            self.assertEqual(before, [], target)
             command = prefix[:-2]
             for shell in SHELLS:
                 p = subprocess.run([shell, "-n", "-c", line], capture_output=True, text=True)
                 self.assertEqual(p.returncode, 0, (target, shell, p.stderr))
                 p = argv_through(shell, line, command)
                 self.assertEqual(p.returncode, 0, (target, shell, p.stderr))
-                self.assertEqual(p.stdout.split("\0")[:-1], command.split()[1:] + [PROMPT], (target, shell))
+                self.assertEqual(p.stdout.split("\0")[:-1], ["PWD=%s" % CHECKOUT] + command.split()[1:] + [PROMPT],
+                                 (target, shell))
+
+    def test_the_block_is_exactly_one_command(self):
+        """#198 acceptance (owner, 2026-11-01): the printed block is ONE command, the `cd` into the target
+        checkout, then the launch environment and the start command with the prompt inline. Measured
+        through each shell: the harness runs exactly once, inside the checkout, and the block opens with
+        the `cd` and nothing else; the checkout's name carries a space, `'`, `$` and backticks."""
+        for target, prefix in LAUNCH_PREFIX.items():
+            out = run_launch_line(self.script, target, PROMPT, BASE)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            before, line = the_block(out.stdout)
+            self.assertEqual(before, [], target)
+            self.assertTrue(self.after_cd(line).startswith(prefix), (target, line[:80]))
+            for shell in SHELLS:
+                p = argv_through(shell, line, prefix[:-2])
+                fields = p.stdout.split("\0")[:-1]
+                self.assertEqual([f for f in fields if f.startswith("PWD=")], ["PWD=%s" % CHECKOUT], (target, shell))
+
+    def test_the_cd_is_required_and_checked(self):
+        """--cd is required once; a relative path, a missing directory, a directory with no `.git` entry and
+        a path carrying a line break are refused, and nothing reaches stdout."""
+        self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE, cd=False).returncode, 2)
+        self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE, "--cd", str(CHECKOUT)).returncode, 2)
+        plain = Path(tempfile.mkdtemp(prefix="plain-", dir=BASE))
+        for label, path, needle in (("relative", "some/checkout", "not an absolute path"),
+                                    ("missing", str(plain / "absent"), "not an existing directory"),
+                                    ("no .git", str(plain), "not a git checkout"),
+                                    ("newline", str(CHECKOUT) + "\nid", "control character or a line break")):
+            out = run_launch_line(self.script, "codex", PROMPT, BASE, "--cd", path, cd=False)
+            self.assertEqual(out.returncode, 1, label)
+            self.assertEqual(out.stdout, "", label)
+            self.assertIn(needle, out.stderr, label)
+
+    def test_a_prompt_opening_with_goal_is_refused(self):
+        """#198 (owner, 2026-11-01): a fresh session does not start with /goal, so the old requirement is
+        reversed: a prompt with no /goal line is accepted and one whose first line opens with it is refused."""
+        self.assertFalse(PROMPT.startswith("/goal"))
+        self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE).returncode, 0)
+        for prompt in ("/goal ship it\nNext act: run it.", "/goal", "/goal  x"):
+            out = run_launch_line(self.script, "codex", prompt, BASE)
+            self.assertEqual(out.returncode, 1, prompt)
+            self.assertEqual(out.stdout, "", prompt)
+        out = run_launch_line(self.script, "codex", "/goal ship it", BASE)
+        self.assertIn("the first line opens with /goal", out.stderr)
+        # Only the first line is the session's first input; /goal inside a later line is plain text.
+        self.assertEqual(run_launch_line(self.script, "codex", "Objective: x\nmention /goal here", BASE).returncode, 0)
 
     def test_the_launch_environment_is_part_of_the_block(self):
         # Measured through the probe copy, which declares PROBE_VAR (mhw#224 D8: the method declares none).
@@ -622,10 +685,10 @@ class Handoff(unittest.TestCase):
             out = run_launch_line(self.probe, "claude", PROMPT, BASE, "--env", PROBE_VAR + "=" + value)
             self.assertEqual(out.returncode, 0, out.stderr)
             _, line = the_block(out.stdout)
-            self.assertTrue(line.startswith(PROBE_VAR + "='"), line[:60])
+            self.assertTrue(self.after_cd(line).startswith(PROBE_VAR + "='"), line[:60])
             for shell in SHELLS:
                 p = argv_through(shell, line, "claude", (PROBE_VAR,))
-                self.assertEqual(p.stdout.split("\0")[:-1], [PROBE_VAR + "=" + value, PROMPT], shell)
+                self.assertEqual(p.stdout.split("\0")[:-1], ["PWD=%s" % CHECKOUT, PROBE_VAR + "=" + value, PROMPT], shell)
         for bad in ("1X=a", "X-Y=a", PROBE_VAR + "=" + "/Use" + "rs/someone", PROBE_VAR + "=a\nb"):
             out = run_launch_line(self.probe, "codex", PROMPT, BASE, "--env", bad)
             self.assertEqual(out.returncode, 1, bad)
@@ -643,7 +706,7 @@ class Handoff(unittest.TestCase):
         hostile = {"^C": "\x03", "ESC[201~": "\x1b[201~", "^U": "\x15", "TAB": "\t", "CR": "\r", "DEL": "\x7f",
                    "U+202E": "\u202e", "U+2066": "\u2066"}
         for label, ch in hostile.items():
-            prompt = "/goal fix it\nNext act: %s %s; touch pwned" % (ch, secret)
+            prompt = "Objective: fix it\nNext act: %s %s; touch pwned" % (ch, secret)
             out = run_launch_line(self.script, "claude-code", prompt, BASE)
             self.assertEqual(out.returncode, 1, label)
             self.assertEqual(out.stdout, "", label)
@@ -686,12 +749,12 @@ class Handoff(unittest.TestCase):
                           out.stderr, name)
 
     def test_a_backtick_run_cannot_close_the_fence(self):
-        prompt = "/goal keep ```` four and ````` five backticks"
+        prompt = "Objective: keep ```` four and ````` five backticks"
         out = run_launch_line(self.script, "codex", prompt, BASE)
         self.assertEqual(out.returncode, 0, out.stderr)
         _, line = the_block(out.stdout)
         self.assertTrue(out.stdout.startswith("``````\n"), out.stdout[:10])
-        self.assertEqual(argv_through("sh", line, "codex").stdout.split("\0")[:-1], [prompt])
+        self.assertEqual(argv_through("sh", line, "codex").stdout.split("\0")[:-1], ["PWD=%s" % CHECKOUT, prompt])
 
     def test_no_rendering_token_survives(self):
         left = []
@@ -704,6 +767,22 @@ class Handoff(unittest.TestCase):
     def test_the_claude_command_carries_the_argument_hint(self):
         head = carriers(self.home, "handoff")["claude"].read_text(encoding="utf-8").split("\n---\n")[0]
         self.assertIn('argument-hint: "[claude-code|claude|codex|kiro|kiro-cli] ', head)
+
+    def test_the_old_two_step_rules_survive_only_struck(self):
+        """#198 (owner, 2026-11-01): the /goal requirement, the 'open the terminal in a different checkout'
+        step and the Kiro IDE line before the block are struck in place. Outside ~~...~~ none survives, in the
+        source or any carrier, and the one-command rule is there instead. Text check; not behaviour."""
+        flat = lambda text: re.sub(r"\s+", " ", re.sub(r"~~.*?~~", "", text, flags=re.S))
+        texts = {"source": (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")}
+        texts.update({c: p.read_text(encoding="utf-8") for c, p in carriers(self.home, "handoff").items()})
+        for where, text in texts.items():
+            body = flat(text)
+            for old in ("does not open with `/goal`", "carries its own `/goal` line", "/goal <the objective",
+                        "open the terminal in a different checkout", "output opens with one line for the Kiro IDE",
+                        "Do not work in the same checkout as the old session"):
+                self.assertNotIn(old, body, (where, old))
+            self.assertIn("The block is exactly one command: `cd` into the checkout", body, where)
+            self.assertIn("prompt whose first line opens with `/goal`", body, where)
 
     def test_windows_ends_with_the_prompt_in_one_fenced_block(self):
         """QA B1 on #230: Windows renders /handoff (install.ps1) and PowerShell reads the POSIX '\\'' as two
@@ -723,8 +802,8 @@ class Handoff(unittest.TestCase):
 
     def test_unsafe_prompts_are_refused_without_echo(self):
         local = "/Use" + "rs/someone/notes.txt"
-        cases = {"no goal": "Continue owner/repo#12.", "long": "/goal " + "x" * 300,
-                 "local path": "/goal fix it\nEvidence: " + local, "empty": "\n"}
+        cases = {"goal first": "/goal continue owner/repo#12.", "long": "Objective: " + "x" * 300,
+                 "local path": "Objective: fix it\nEvidence: " + local, "empty": "\n"}
         for label, prompt in cases.items():
             out = run_launch_line(self.script, "codex", prompt, BASE)
             self.assertEqual(out.returncode, 1, label)
@@ -738,11 +817,12 @@ class Handoff(unittest.TestCase):
         inside = Path(tempfile.mkdtemp(prefix="prompt-", dir=BASE))
         traversal = str(inside) + "/.." * 40 + "/etc/hosts"
         big = inside / "big.txt"
-        big.write_text("/goal x\n" + ("y" * 200 + "\n") * 400, encoding="utf-8")
+        big.write_text("Objective: x\n" + ("y" * 200 + "\n") * 400, encoding="utf-8")
         for label, path, needle in (("traversal", traversal, "outside the repository work tree"),
                                     ("directory", str(inside), "not a regular file"),
                                     ("size", str(big), "over 65536 bytes")):
-            out = subprocess.run([sys.executable, "-B", str(self.script), "codex", path], capture_output=True,
+            out = subprocess.run([sys.executable, "-B", str(self.script), "codex", path, "--cd", str(CHECKOUT)],
+                                 capture_output=True,
                                  text=True)
             self.assertEqual(out.returncode, 1, label)
             self.assertEqual(out.stdout, "", label)
@@ -751,7 +831,9 @@ class Handoff(unittest.TestCase):
     def test_the_prompt_template_carries_no_secret_or_personal_data(self):
         text = (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")
         template = re.search(r"## The prompt\n.*?```\n(.*?)```", text, re.S).group(1)
-        self.assertTrue(template.startswith("/goal "))
+        # #198 (owner, 2026-11-01): the prompt carries no /goal line.
+        self.assertTrue(template.startswith("Objective: "))
+        self.assertNotIn("/goal", template)
         self.assertEqual(guard.find_spans(template), [])
         self.assertEqual(guard.find_spans(PROMPT), [])
 

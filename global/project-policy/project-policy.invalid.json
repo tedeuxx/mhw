@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "project": "example-owner/example-app",
+  "madr": {
+    "path": "docs/adr/0007-quality-bar-and-deployment-risk.md",
+    "status": "proposed"
+  },
+  "coverage": {
+    "threshold_percent": 85,
+    "metric": "line"
+  },
+  "mandatory_scenarios": {
+    "critical_user_journeys": [
+      { "id": "sign-in", "description": "A registered reader signs in and reaches the home page." }
+    ],
+    "security_controls": ["quality-scan", "authentication", "authorization"],
+    "risk_scenarios": [
+      { "id": "unpublished-draft-exposed", "description": "A draft not yet approved is never served to an anonymous visitor." }
+    ]
+  },
+  "severity": {
+    "tolerated": ["low", "medium"],
+    "unclassified": "block",
+    "inconclusive": "block"
+  },
+  "low_findings": {
+    "bug_issue_required": false,
+    "issue_label": "bug"
+  },
+  "risk_classification": {
+    "rules": [
+      { "class": "low", "when": "Every change." }
+    ],
+    "unclassified": "block"
+  },
+  "approval": {
+    "low_risk": "automatic-after-all-gates",
+    "high_risk": "automatic-after-all-gates"
+  },
+  "recovery": {
+    "mode": "manual",
+    "recovery_time_objective_minutes": 30
+  }
+}

@@ -382,9 +382,18 @@ Follow `/agents-configuration`. Nothing here relaxes it:
   route. This is an instruction, not automatic capture; unknown runtime or plugin evidence stays
   unknown, and `dispatch-metrics` remains a separate instrument.
 - `product-lead` on reader-facing copy, long-form prose included — it holds the copy lens since
-  `marketing-lead` merged into it (2026-08-04), and its **truth findings block**. **Nothing enforces this
+  `marketing-lead` merged into it (2026-08-04), and its **truth findings block**. ~~**Nothing enforces this
   dispatch** — no check, job or hook — so an undispatched lens fails silently. Where the repo's guide
-  makes this the only review of copy, an undispatched one is the whole gate missing.
+  makes this the only review of copy, an undispatched one is the whole gate missing.~~ **Struck
+  2026-11-07 (mhw#197): the lens runs, and leaves its artifact, before the gate.** Derive the trigger
+  from the pull request's actual diff at its full current head, never from the type, the label or a
+  path list alone; when unsure, it is reader-facing. Post the lens's verdict verbatim as the one
+  canonical copy artifact on the pull request **before you dispatch `quality-assurance`**, and treat the
+  gate's round as complete only when a `gatekeeper-verdict` comment names the current head. The steps,
+  the artifact's shape, the carry-forward rule and the `content` exception are in the `orchestration`
+  skill, *Before the gate: the reader-facing lens leaves its artifact*. **Still nothing enforces the
+  dispatch**: it is an instruction, a forgotten one is now visible as a missing comment, and the gate's
+  refusal of criterion 10 is the backstop.
 - Adjacent debt is **named in the report**, never filed *by the review* — a review has no way to
   know whether anyone wants the work. *(The plugin's retired guard denied `gh issue create` to every
   subagent but `developer`; in this method that is an instruction.)* The **main loop may open
@@ -447,12 +456,29 @@ loop's to fix without involving him.
 
 **Mechanically, "ready for him" is a verdict literal, not a hold count.** `agents/quality-assurance.md`'s
 *"Your verdict — exactly one of"* enumerates **five** since #374, and **two** of them mean the remaining
-act is the owner's: **`APPROVE-PENDING-HUMAN`**, posted when one of the four surviving holds fired, and
+~~act~~ step is the owner's: **`APPROVE-PENDING-HUMAN`**, posted when one of the four surviving holds fired or a
+criterion resting on his authorization has no cited comment URL (the contract's evidence rule, #133;
+not a hold) — what it waits for is his own comment authorizing the merge, after which the gate
+re-verdicts citing that comment's URL and executes the merge itself (#133, owner decision 2026-11-01) —
+and
 **`APPROVE-EXECUTOR-BLOCKED`**, posted when the gate cleared the diff and could not execute the merge —
 the decision made, only the act outstanding.
 `REQUEST-CHANGES` is also non-merging and is emphatically *not* an owner summons — it routes to the
-builder. `APPROVE-AND-MERGE` and `APPROVE-AND-MERGE-BOUNDARY` are clearances the gate acts on itself
-(ADR-0002 amendment #16), which is why almost every open PR is one he has nothing to do with.
+builder. `APPROVE-AND-MERGE` is the clearance the gate acts on itself, for the safe and the boundary
+class alike since #134 (ADR-0002 amendment #16), which is why almost every open PR is one he has nothing
+to do with. Its `owner-check:` line names the one live act he should do after the merge, or `none`; a
+value other than `none` reaches him on the referenced Issue, not as a merge summons.
+
+**The canonical contract is the `merge-authority` skill (#195).** The literals above are an operational copy of it. The block below is generated from that contract, and a method test holds it equal. A project brief may add boundary triggers; it may not change the executor, the verdicts or the holds. Where a project brief tries to, the contract wins: the conflict is a finding to name, never a hold the contract does not define. The holds the contract defines bind, the release candidate of a declared integration branch included.
+
+<!-- merge-authority:projection v3: generated from the merge-authority skill; do not edit by hand -->
+- `trunk-single-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-AND-MERGE`; 4 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. With a declared integration branch, slices merge into it under this rule, and this hold is added: the release candidate (the promotion pull request from the declared integration branch to the trunk) -> `APPROVE-PENDING-HUMAN`, discharged the same way, then `quality-assurance` merges.
+- `gitflow-multi-env`: `quality-assurance` merges what it clears; safe class -> `APPROVE-AND-MERGE`; boundary class -> `APPROVE-PENDING-HUMAN`; 5 holds -> `APPROVE-PENDING-HUMAN` until the owner's own comment authorizes the merge and a verdict at the same head cites its URL, then `quality-assurance` merges: (1) an expansion of the gate's own authority; (2) a harness diff with no `agents-lead` verdict marker at the head being merged; (3) anything in `iac/`; (4) an explicit lens `ESCALATE`, or a `BLOCKING` truth finding from `product-lead`; (5) the boundary class itself. Cleared but not executable -> `APPROVE-EXECUTOR-BLOCKED`; unmet Definition of Done -> `REQUEST-CHANGES`. The promotion is held the same way, then `quality-assurance` merges it.
+- Owner-dependent criteria: a criterion that passes only on the owner's authorization or override, a hold's discharge included, passes only when the verdict cites the URL of the owner's own comment on the Issue or pull request recording it; a dispatch, a relayed instruction or the orchestrator's prose is never that evidence and never overrides a brief or a floor rule. Without the URL the criterion is UNVERIFIED and the verdict is `APPROVE-PENDING-HUMAN`. A refusal by the workstation deny floor is never `APPROVE-EXECUTOR-BLOCKED`. This is an evidence rule, not a hold.
+- Owner check: every gate verdict carries an `owner-check:` line directly under its `head:` line, valued `none` or exactly one live act the owner should perform after the merge; a value other than `none` is also posted, verbatim, on each Issue the pull request references. A verdict without the line is malformed.
+- Retired verdicts, refused by every reader: `APPROVE-AND-MERGE-BOUNDARY`.
+- Canonical source: the `merge-authority` skill. A project brief declares only its loop model, its integration branch if it has one, and its boundary triggers.
+<!-- merge-authority:end -->
 
 **And the rule has an inverse (#374).** A turn that ends while one of those two
 literals sits at an open, green PR's head, and surfaces no link, is a turn that ended owing him one —
@@ -499,7 +525,9 @@ clause this paragraph depends on is the boundary-merge NOTIFICATION** — *nothi
 looked*, and *nothing surfaces to him that something boundary shipped* — and **both of those are still
 open.** The sweep's report closes only the third clause (a post-deploy look now leaves an artifact) and
 it surfaces nothing per-merge, which is exactly what this paragraph is about. **Do not strike it**; if
-the `APPROVE-AND-MERGE-BOUNDARY` `SessionStart` arm is ever built, that is when this paragraph changes.
+~~the boundary-literal `SessionStart` arm~~ a `SessionStart` arm reading the `owner-check:` lines of merged
+PRs is ever built, that is when this paragraph changes *(amended 2026-11-02, #134: the boundary literal is
+retired; what such an arm would read is now the `owner-check:` line)*.
 
 **Enforcement: none in this method.** The plugin's `premature-pr-link-detect.sh` was a `Stop` hook that
 read the turn's own prose and flagged a PR URL whose PR was not open-green-and-pending-human — detection,
@@ -612,8 +640,10 @@ admission, rule 11 for creating the iteration).~~ **Struck 2026-09-04 (#383): bo
 ~~An admission is now a silent allowlisted write, and creating the iteration prompts only because
 `scripts/` is in no allow list — an absence rather than a control. The rule that composition is his
 did not change; the mechanism did, and there is none.~~ **Struck 2026-09-29 (#537, round 4): the owner
-confirms the composition; creation and admission then execute without another prompt through the
-already-allowlisted reviewed routes. The ownership rule remains procedural, while review plus the
+confirms the composition; creation and admission then execute ~~without another prompt~~ through the
+~~already-allowlisted~~ reviewed routes (struck 2026-11-02, mhw#242: the workstation allow list grants
+neither `python3` as an interpreter nor `gh issue edit`, so whether they prompt is another settings
+layer's answer). The ownership rule remains procedural, while review plus the
 blocking behavioral regression carry the unguarded route contract.**
 
 **Nothing fires it either**, for the reason stated one paragraph up: no layer here reads the queue. Read

@@ -38,10 +38,16 @@ skills:
   is not revertible by deleting the comment. `quality-assurance` reviewing this persona's output
   afterwards cannot unpublish it.
 
-  YOUR FINDING STILL REACHES THE PR. `quality-assurance` quotes your verdict onto the PR VERBATIM, under
-  its own marker (ADR-0006 in the plugin's library), and its criterion 10 is not satisfied until that
-  text is there. So write it to be quoted as it stands: no dependency on context only you can see, and
-  nothing from `.brand/` that the reference-by-pointer rule below would keep out of a public comment.
+  YOUR FINDING STILL REACHES THE PR. ~~`quality-assurance` quotes your verdict onto the PR VERBATIM,
+  under its own marker (ADR-0006 in the plugin's library).~~ Since mhw#197 the ORCHESTRATOR quotes your
+  verdict onto the PR VERBATIM, as one comment under the `copy-verdict` envelope, BEFORE it dispatches
+  `quality-assurance` (the `orchestration` skill, *Before the gate: the reader-facing lens leaves its
+  artifact*). You still post nothing. The gate's criterion 10 is not satisfied until that comment is
+  there at the current head. So write it to be quoted as it stands: lead with exactly one verdict,
+  APPROVE, ADJUST or ESCALATE; carry both labelled classes, BLOCKING and ADVISORY, each with "none"
+  where empty; no dependency on context only you can see; and nothing from `.brand/` that the
+  reference-by-pointer rule below would keep out of a public comment. A verdict that cannot safely be
+  posted is not an artifact: you will be re-dispatched for a public-safe one, never paraphrased.
 
   What IS native: your tool list. Your browser grant (`mcp__chrome-devtools`) excludes the
   input-carrying tools through `disallowedTools` in Claude Code and `excludedTools` in Kiro; in Codex,
@@ -257,7 +263,8 @@ orchestrator remembering to type it.
 
 **The precedent is `agents/content-reviewer.md`'s round protocol, and half of it is deliberately NOT
 transplanted.** That protocol pairs a terminal condition with a **mechanical cap** — the pair is over at
-a `CONTENT-REVIEW-CLEAR` literal, **or** when a second `## Round` section exists, whichever comes first.
+a `CONTENT-REVIEW-CLEAR` literal, **or** when a second `## Round` section exists under the current
+correction, whichever comes first.
 The terminal condition is what is copied here. **The cap is not**, on #393's own refusal: *a standard
 that blocks on off-by-one in round 2 and waves through off-by-three in round 7 decays with the count.*
 A cap and a bar-lowering rule are different things, and the distinction survives only while somebody is
@@ -269,7 +276,8 @@ marker. `agents-lead` does —
 `gh pr view <n> --json comments --jq '[.comments[]|select(.body|test("harness-lead-verdict"))]|length'`
 returns 1, 2 and 1 on `-skills`#417, #415 and #414, and 3 on #348. **`product-lead` posts nothing**:
 its brief keeps it off the comment subcommands (an instruction since the plugin's rule 5e retired), so its findings reach the PR only as a
-verbatim quote inside the gate's own marker. **The repository check is narrower: no product-lens
+verbatim quote ~~inside the gate's own marker~~ that another actor posts: since mhw#197 the
+orchestrator's pre-gate copy artifact, one comment per head under the `copy-verdict` envelope. **The repository check is narrower: no product-lens
 verdict marker envelope with the spelling checked below occurs in `hooks/` or `agents/`.**
 `rg -n '<!-- [p]roduct-lead-verdict:' hooks/ agents/` returns no output (exit 1);
 `rg -n '<!-- [h]arness-lead-verdict:' hooks/ agents/` is the positive control and returns the existing
@@ -833,6 +841,30 @@ Not "is it well argued" — is it **untrue**, against something you can check ri
 - **Cross-surface contradiction.** The presence spans several surfaces (site, LinkedIn, a designed CV,
   the public repo catalog, a newsletter). A number, title or claim that differs between two of them is
   false on at least one.
+
+### A loop-describing block is re-read WHOLE, not hunk by hunk (mhw#135)
+
+**When a reader-facing diff touches any part of a block that describes the loop** (a diagram, a table,
+a section about how work flows from intake to merge), **re-read the whole enclosing block against the
+canonical current source, not only the changed hunks.** A claim in that block which the current source
+contradicts is a Check 1 finding **even when it sits outside the diff**: the diff made the block current
+in one place and left it stale in the next line, and a reader takes the block as one statement.
+
+- **The block, defined operationally:** the enclosing Markdown section, from its heading up to the next
+  heading of the same or higher level; or, for a diagram, the whole fence (` ```mermaid ` to its
+  closing fence). If the touched lines sit in a diagram inside a section, re-read both.
+- **The two canonical sources, and they are the only ruler:** the **states table** in the
+  `agents-configuration` skill (*The states* — who acts at each transition and what artifact records
+  it) and the **review route** in the `orchestration` skill (*Review is routed by type*). Read them
+  live, at the version installed for this session, not from memory of an earlier version. Where the
+  block and those sources disagree, the sources win and the block is the finding.
+- **Severity follows the usual test:** a claim the sources contradict is false now, so it blocks; a
+  block that is merely incomplete against them is advisory.
+
+**Evidence level: an instruction.** Nothing checks that you read beyond the hunks. No hook, test or
+gate observes how much of a block a lens re-read, and a review that read only the diff looks identical
+from the PR to one that read the whole block. Whether this lens runs before the gate and leaves an
+artifact is mhw#197's question, not this rule's.
 
 ## Check 2 — claims the author has not earned
 
