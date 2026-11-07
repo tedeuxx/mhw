@@ -30,7 +30,7 @@ loaded or enforced in any repository.
 
 The project's contract names one mode in `recovery.mode` ([docs/project-policy-contract.md](project-policy-contract.md)).
 
-| | `automatic-rollback` (the default) | `manual` |
+| | `automatic-rollback` (ADR-0015's default) | `manual` |
 | --- | --- | --- |
 | When it is allowed | always | only when automatic rollback is not reliable for this project, and the conditions below all hold |
 | What returns PROD | the `recover` job, with no human step | the operator, following the runbook |
@@ -57,7 +57,9 @@ deployment when they fail; the rest are the project's to keep and nothing reads 
    checked*: whether the test really happened, and how old it may be (the contract has no maximum age;
    a project's MADR can set one, and nothing reads it).
 5. **An identified operator is available for the deployment and the observation period.** *Checked*
-   only that the contract names one account handle (`mhw policy check`). *Not checked*: availability.
+   only that the contract names one account handle (`mhw policy check`). *Not checked*: availability,
+   and whether the `by @handle` of the runbook's test record is that operator (`recovery-plan` reads
+   the date and minutes of a record, never its handle, so a test run by someone else counts).
    No gate can read whether a person is present. The template prints the operator, the runbook and
    the objective in the failed run's summary.
 
@@ -114,12 +116,25 @@ STG and before PROD, and this file decides only whether the exposed revision wor
   red and the operator acts. A mode it does not know fails too.
 - **The rollback names an environment with no required reviewer.** A rollback reduces exposure, and
   waiting for an approval would defeat *automatic*. The project chooses that environment; the gate
-  cannot check it has no reviewer.
+  cannot check it has no reviewer. **That environment is a standing PROD path without the owner's
+  approval** (see *What it does not cover*). Narrow it in the project:
+  - give it a credential that can only point PROD at an artifact already deployed there, never build
+    or push a new one;
+  - limit its deployment branches to the trunk;
+  - pin the cloud's OIDC trust for that credential to the environment and to the `job_workflow_ref`
+    of the project's delivery workflow, so no other workflow file can assume it.
+
+  The OIDC claims are documented by GitHub, not measured here.
 - **`concurrency: delivery`** with `cancel-in-progress: false` keeps a second delivery from starting
   over a recovery.
 
 ## What it does not cover
 
+- **The reviewer-free rollback environment bypasses the owner's approval.** `recover` needs it, with
+  `id-token: write` and a free `run:`, so any trunk job that names it deploys to PROD without a
+  reviewer, whatever the change's risk class. Only review of the project's workflows holds that path;
+  no gate here reads which job names which environment. The narrowing above reduces what such a job
+  could do, and is not measured.
 - **No rollback has ever run here.** The template's recovery jobs are placeholders until a project
   writes its deployment commands. Whether a rollback is *reliable*, which is what allows the default
   mode, is the project's to measure.
@@ -128,7 +143,7 @@ STG and before PROD, and this file decides only whether the exposed revision wor
   correctly.
 - **The owner rejecting an approval.** Whether GitHub reports a rejected `production-owner-approval`
   deployment as failed or as skipped is not measured. If failed, `recover` runs and redeploys the
-  revision PROD already runs, which is harmless but not needed.
+  revision PROD already runs, which should change nothing but is not needed; not measured.
 - **Observation after validation.** The observation period ADR-0015 names is the operator's; nothing
   in the reference watches PROD after `validate-prod` passes.
 - **Progressive rollouts.** "Stop further exposure" is one placeholder step; a project with staged

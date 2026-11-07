@@ -25,10 +25,10 @@ measured* (run in mhw's CI against a synthetic fixture, deploying nothing), *ins
 | #192 capability | Carrier | Agent harness | OS | Evidence level |
 | --- | --- | --- | --- | --- |
 | 1. The material-advancement refusal and its uncertainty rule (#243) | the global brief, rendered per agent harness | Claude Code, Codex, Kiro: the user brief; desktop apps: pasted by hand | macOS, Linux; Windows rendering only | written and tested (generated-source drift); not installed on the reference machine. An instruction: no agent harness can check intent, so never *enforced* |
-| 2. The versioned project-policy contract (#244) | `global/project-policy/project-policy.schema.json` and its examples ([contract](project-policy-contract.md)) | none: a file a project's CI/CD reads | any (the suite runs on macOS, Linux, Windows) | written and tested. No project declares it |
-| 3. Conservative validation, fail closed (#245) | `mhw policy check` | none: a command a project's CI/CD runs | macOS, Linux (`mhw`); Windows (`python global/project-policy/project_policy.py check`) | written and tested; mutation-checked. Run by mhw's dry run only; by no project |
+| 2. The versioned project-policy contract (#244) | `global/project-policy/project-policy.schema.json` and its examples ([contract](project-policy-contract.md)) | none: a file a project's CI/CD is meant to read | any (the suite runs on macOS, Linux, Windows) | written and tested. No project declares it |
+| 3. Conservative validation, fail closed (#245) | `mhw policy check` | none: a command a project's CI/CD is meant to run | macOS, Linux (`mhw`); Windows (`python global/project-policy/project_policy.py check`) | written and tested; mutation-checked. Run by mhw's dry run only; by no project |
 | 4. Exact-revision containerised evidence before STG and PROD, installed-STG evidence before PROD (#246) | `reference-delivery-gate.yml`, `delivery_gate.py`, the caller template ([reference CI/CD](reference-cicd.md)) | none: GitHub Actions | GitHub Actions `ubuntu-latest` (the dry run); the gate suite on macOS, Linux, Windows | written and tested; dry-run measured against a synthetic fixture, the installed STG a local stand-in. The caller's deployment jobs never ran. Adopted by no project |
-| 5. Risk-based authorisation: low risk automatic, high risk the owner's approval of the exact revision (#246) | the `classify` and `environment` gates; the project's environment with a required reviewer | none | as row 4 | low-risk path dry-run measured; high-risk path and the environment check in the suite only; never against a real protected environment |
+| 5. Risk-based authorisation: low risk automatic, high risk the owner's approval of the exact revision (#246) | the `classify` and `environment` gates; the project's environment with a required reviewer | none | as row 4 | low-risk path dry-run measured; high-risk path and the environment check in the suite only; never against a real protected environment. Residual: the recovery reference's reviewer-free rollback environment (row 6) is a standing PROD path without the owner's approval, held only by workflow review |
 | 6. Recovery: automatic rollback by default, manual only with an objective, a tested runbook and an operator (#247) | the `recovery-plan` and `prod-validation` gates, the template's recovery jobs, the runbook template ([recovery reference](recovery-reference.md)) | none | the suite on macOS, Linux, Windows | written and tested: both paths and each blocking class in the suite. No dry run reaches it and no rollback has run anywhere |
 | 7. This coverage report (#247) | this page and the README's Current state rows | none | n/a | written. A report, not a control |
 
@@ -38,6 +38,11 @@ measured* (run in mhw's CI against a synthetic fixture, deploying nothing), *ins
   floor. A project command that writes `pass` without testing passes.
 - **People.** Whether the owner ratified a project MADR, whether a reviewer is the owner, whether an
   operator is available: names and settings are read, presence is not.
+- **The reviewer-free rollback environment.** The recovery reference's `recover` job names a PROD
+  environment with no required reviewer, with `id-token: write` and a free `run:`. Any job on the
+  trunk that names that environment deploys to PROD without the owner's approval, whatever its risk
+  class. Only review of the project's workflows holds that path; no gate reads it.
+  [docs/recovery-reference.md](recovery-reference.md) recommends how to narrow it.
 - **Another repository.** Nothing here installs a carrier in a project, and nothing here can see
   whether a project's CI/CD runs one.
 - **Kiro and the desktop apps, for the deployment half.** The deployment half has no agent harness

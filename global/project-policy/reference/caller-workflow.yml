@@ -1,4 +1,4 @@
-# TEMPLATE, NOT LIVE (ADR-0015 lock 4 of 5, mhw Issue #246). A project copies this into its own
+# TEMPLATE, NOT LIVE (ADR-0015 locks 4 and 5 of 5, mhw Issues #246 and #247). A project copies this into its own
 # .github/workflows/ through its own adoption Issue; nothing in mhw runs it. The angle-bracket values
 # are the project's. It has never run anywhere: the dry run exercises the gate workflow it calls, not
 # these deployment jobs. Read docs/reference-cicd.md in mhw before adopting it.
@@ -12,7 +12,8 @@
 # and fixes the version to return to; validate-prod runs after it; recover runs when the deployment
 # failed, was cancelled or did not validate. The project must also expose the commit PROD runs, and
 # name an environment for the rollback that has no required reviewer, so an automatic rollback never
-# waits for one.
+# waits for one. That environment is a PROD path without the owner's approval: narrow it as
+# docs/recovery-reference.md recommends, and review every workflow that names it.
 name: delivery
 
 on:
