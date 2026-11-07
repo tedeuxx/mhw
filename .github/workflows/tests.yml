@@ -67,7 +67,8 @@ jobs:
             global/mcp/mcp_render.py global/mcp/mcp_active.py global/mcp/mcp_connect.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/kiro/kiro_permissions.py global/kiro/kiro_permissions_test.py \
             global/profile/profile.py global/profile/profile_test.py \
-            global/project-policy/project_policy_test.py \
+            global/project-policy/project_policy.py global/project-policy/project_policy_test.py \
+            global/project-policy/project_policy_check_test.py \
             global/workstation.py global/workstation_test.py \
             global/scan.py global/scan_test.py \
             global/merge_authority.py global/merge_authority_test.py \
@@ -109,11 +110,13 @@ jobs:
           python -B global/profile/profile_test.py
           python -B global/profile/profile.py check --source overlay/profile.json --output overlay
           python -B workspace/delivery_test.py
-      # Issue #244, ADR-0015 lock 2: the project-policy contract's schema, examples and field docs.
-      # Shape only, with an evaluator that lives in the test; no validator ships yet (#245).
-      - name: project-policy contract suite
+      # Issues #244 and #245, ADR-0015 locks 2 and 3: the project-policy contract's schema, examples and
+      # field docs, and the fail-closed validator behind `mhw policy check`.
+      - name: project-policy contract and validator suites
         shell: bash
-        run: python -B global/project-policy/project_policy_test.py
+        run: |
+          python -B global/project-policy/project_policy_test.py
+          python -B global/project-policy/project_policy_check_test.py
 
   suites:
     strategy:

@@ -38,6 +38,13 @@ checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./wo
                                           not git tracks it, inside a repository or outside one (a post
                                           before it is published, Issue #34); exit 2 when PATH names no
                                           regular file
+    ./mhw policy check [--project=DIR | --file=PATH]
+                                        validate a project's ADR-0015 project-policy contract (Issue
+                                          #245): DIR/project-policy.json (default: the current
+                                          directory) or PATH; exit 0 only when it is valid, 1 when it is
+                                          missing, malformed, of an unknown schema_version or breaks the
+                                          contract, 2 when it cannot validate (fail closed); reads no
+                                          evidence, which is the reference CI/CD's (#246)
     ./mhw postinstall                   what npm's postinstall runs (bin/postinstall.js): one line naming
                                           `mhw install`; it installs nothing (Issue #113)
 
@@ -1649,6 +1656,14 @@ def main(argv):
         # Its own arguments (paths, --base=REF); it reads files and installs nothing (ADR-0035).
         import scan
         return scan.main(rest)
+    if command == "policy":
+        # ADR-0015 lock 3 (Issue #245): validate a project's contract; reads one file, installs nothing.
+        if not rest or rest[0] != "check":
+            print("mhw: policy takes one subcommand, check [--project=DIR | --file=PATH]", file=sys.stderr)
+            return 2
+        sys.path.insert(0, str(HERE / "project-policy"))
+        import project_policy
+        return project_policy.main(rest)
     overlay, project, verbose, admin, wanted, summary, method = None, None, False, False, None, False, False
     prereq_only, yes, no_admin, connect = False, False, False, None
     for arg in rest:
@@ -1702,7 +1717,7 @@ def main(argv):
         for line in lines:
             print(line)
         return mcp_connect_status(connect) if connect else 0
-    print("mhw: unknown subcommand %s (install, install --admin, status, check, scan, update, uninstall)"
+    print("mhw: unknown subcommand %s (install, install --admin, status, check, scan, policy check, update, uninstall)"
           % command, file=sys.stderr)
     return 2
 

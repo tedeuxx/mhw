@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Project-policy contract, schema_version 1 (ADR-0015, Issue #244)",
-  "description": "What a deploying project declares so that its CI/CD can apply ADR-0015's lock at the STG/PROD boundary. The constants encode the common floor that no project may weaken; the other values are the project's own, set by its ratified MADR. This file is the shape only: nothing in mhw reads a project's copy yet (the validator is Issue #245). Field reference: docs/project-policy-contract.md.",
+  "description": "What a deploying project declares so that its CI/CD can apply ADR-0015's lock at the STG/PROD boundary. The constants encode the common floor that no project may weaken; the other values are the project's own, set by its ratified MADR. `mhw policy check` validates a project's copy against it (Issue #245); no project runs that check yet. Field reference: docs/project-policy-contract.md.",
   "type": "object",
   "additionalProperties": false,
   "required": [
