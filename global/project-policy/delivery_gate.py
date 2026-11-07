@@ -8,6 +8,15 @@
                 --revision=SHA --checkout-head=SHA
     python3 -B global/project-policy/delivery_gate.py classify    --project=DIR --rules=I[,J...]
     python3 -B global/project-policy/delivery_gate.py environment --name=ENV --protection=FILE
+    python3 -B global/project-policy/delivery_gate.py recovery-plan --project=DIR --revision=SHA
+                --prod-revision=SHA|none
+    python3 -B global/project-policy/delivery_gate.py prod-validation --project=DIR --evidence=FILE
+                --revision=SHA --checkout-head=SHA
+
+The last two are the recovery reference (ADR-0015 lock 5 of 5, Issue #247, docs/recovery-reference.md):
+`recovery-plan` runs before the PROD deployment and prints `mode=`, `rollback_target=` and, for manual
+recovery, `runbook=`, `recovery_time_objective_minutes=` and `operator=` lines for $GITHUB_OUTPUT;
+`prod-validation` runs after it, and any exit other than 0 is the caller's signal to recover.
 
 `mhw policy check` (lock 3) validates the contract a project declares and reads no evidence. This
 script is what reads evidence: it applies a valid contract to one revision's results. Every command
@@ -325,6 +334,114 @@ def gate_environment(name, protection):
     return []
 
 
+# -- recovery (ADR-0015 lock 5 of 5, Issue #247) --------------------------------------------------
+
+# One test record in a manual-recovery runbook, a whole line (see reference/runbook-template.md).
+# [0-9], not \d: Python's \d also matches non-ASCII digits. Matched with fullmatch, never search.
+TESTED = re.compile(r"(?:[-*] )?Tested: ([0-9]{4}-[0-9]{2}-[0-9]{2}); recovered in ([0-9]{1,6}) "
+                    r"minutes?; by (@[A-Za-z0-9-]+)")
+PROD_KEYS = {"layer", "revision", "prod_deployed_revision", "critical_user_journeys", "risk_scenarios"}
+
+
+def runbook_records(text):
+    """[(date, minutes)] of the runbook's test records, CRLF or LF.
+
+    Only a whole line in the record form counts: an indented, struck (`~~...~~`) or annotated line
+    does not, so nothing is read from a line that is not exactly a record."""
+    records = []
+    for line in text.splitlines():
+        match = TESTED.fullmatch(line)
+        if match:
+            records.append((match.group(1), int(match.group(2))))
+    return records
+
+
+def recovery_plan(project, revision, prod_revision):
+    """(outputs, blocks). Recovery is prepared before PROD exposure, or the deployment does not start.
+
+    automatic-rollback: the version to return to is the one PROD runs now, a full SHA other than the
+    revision, or `none` before the first deployment (recovery is then to withdraw it).
+    manual: the runbook is a file in the project with a test record dated the contract's
+    `last_tested`, every such record within the recovery-time objective."""
+    gate = "recovery-plan"
+    if not SHA.fullmatch(revision or ""):
+        raise Usage("--revision must be a full 40-character commit SHA")
+    contract, blocks = load_contract(project)
+    if blocks:
+        return None, blocks
+    recovery = contract["recovery"]
+    if prod_revision == "none":
+        target = "none"
+    elif not SHA.fullmatch(prod_revision or ""):
+        blocks.append("%s: PROD reports it runs %s, not a full commit SHA or none (an unreadable "
+                      "PROD revision blocks: there would be nothing known to return to)"
+                      % (gate, json.dumps(prod_revision)))
+        target = None
+    elif prod_revision == revision:
+        blocks.append("%s: PROD already runs %s, so there is no previous version to return to"
+                      % (gate, revision))
+        target = None
+    else:
+        target = prod_revision
+    outputs = ["mode=%s" % recovery["mode"], "rollback_target=%s" % target]
+    if recovery["mode"] == "manual":
+        runbook = recovery["runbook"]
+        path = inside(project, runbook["path"])
+        text = None
+        if path is not None:
+            try:
+                with open(path, encoding="utf-8") as handle:
+                    text = handle.read()
+            except (OSError, UnicodeDecodeError):
+                text = None
+        rto = recovery["recovery_time_objective_minutes"]
+        if text is None:
+            blocks.append("%s: the runbook %s is missing, unreadable or outside the project"
+                          % (gate, runbook["path"]))
+        else:
+            dated = [minutes for date, minutes in runbook_records(text) if date == runbook["last_tested"]]
+            if not dated:
+                blocks.append("%s: the runbook %s has no test record dated %s, the contract's "
+                              "last_tested (an untested runbook blocks)"
+                              % (gate, runbook["path"], runbook["last_tested"]))
+            elif max(dated) > rto:
+                blocks.append("%s: the runbook's test on %s recovered in %d minutes, over the "
+                              "recovery-time objective of %d" % (gate, runbook["last_tested"],
+                                                                 max(dated), rto))
+        outputs += ["runbook=%s" % runbook["path"], "recovery_time_objective_minutes=%d" % rto,
+                    "operator=%s" % recovery["operator"]]
+    return (None if blocks else outputs), blocks
+
+
+def gate_prod_validation(project, evidence, revision, checkout_head):
+    """PROD runs the exact revision and every critical validation passes; anything else recovers.
+
+    A malformed or missing evidence file blocks with exit 1, not 2: a PROD that cannot be validated
+    is treated as a failed validation, so the caller's recovery job runs."""
+    gate = "prod-validation"
+    contract, blocks = load_contract(project)
+    if blocks:
+        return blocks
+    doc, blocks = read_evidence(evidence)
+    if blocks:
+        return blocks
+    _binding(gate, doc, revision, checkout_head, blocks)
+    unknown = sorted(set(doc) - PROD_KEYS)
+    if unknown:
+        blocks.append("%s: evidence carries unknown key(s) %s" % (gate, ", ".join(unknown)))
+    if doc.get("layer") != "prod":
+        blocks.append("%s: evidence layer is %s, not prod" % (gate, json.dumps(doc.get("layer"))))
+    deployed = doc.get("prod_deployed_revision")
+    if deployed != revision:
+        blocks.append("%s: PROD reports it runs %s, not %s (an unreadable revision blocks too)"
+                      % (gate, json.dumps(deployed), revision))
+    scenarios = contract["mandatory_scenarios"]
+    _results(gate, doc, "critical_user_journeys",
+             [j["id"] for j in scenarios["critical_user_journeys"]], blocks)
+    _results(gate, doc, "risk_scenarios", [r["id"] for r in scenarios["risk_scenarios"]], blocks)
+    return blocks
+
+
 # -- command line ---------------------------------------------------------------------------------
 
 def parse(args, allowed, flags=()):
@@ -379,8 +496,24 @@ def main(argv):
                 raise Usage("environment needs --name and --protection")
             blocks = gate_environment(v["name"], v["protection"])
             passed = ["OK  environment: %s requires a reviewer" % v["name"]]
+        elif command == "recovery-plan":
+            v = parse(args, {"--project", "--revision", "--prod-revision"})
+            for key in ("revision", "prod-revision"):
+                if key not in v:
+                    raise Usage("recovery-plan needs --%s" % key)
+            passed, blocks = recovery_plan(v.get("project", "."), v["revision"], v["prod-revision"])
+        elif command == "prod-validation":
+            v = parse(args, {"--project", "--evidence", "--revision", "--checkout-head"})
+            for key in ("evidence", "revision", "checkout-head"):
+                if key not in v:
+                    raise Usage("prod-validation needs --%s" % key)
+            blocks = gate_prod_validation(v.get("project", "."), v["evidence"], v["revision"],
+                                          v["checkout-head"])
+            passed = ["OK  prod-validation: PROD runs %s and its critical validations pass"
+                      % v["revision"]]
         else:
-            raise Usage("a gate: contract, container, installed-stg, classify or environment")
+            raise Usage("a gate: contract, container, installed-stg, classify, environment, "
+                        "recovery-plan or prod-validation")
     except Usage as exc:
         print("delivery_gate: %s" % exc, file=sys.stderr)
         return 2

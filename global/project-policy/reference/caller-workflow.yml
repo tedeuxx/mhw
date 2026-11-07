@@ -7,6 +7,12 @@
 # `production` and `production-owner-approval`, the last with the owner as required reviewer; label
 # each merged pull request with the risk rules it matches, `risk-rule:<index>`; and expose the
 # commit the installed STG runs, so its STG test command can report it.
+#
+# Recovery (mhw Issue #247, docs/recovery-reference.md): recovery-plan runs before the PROD deployment
+# and fixes the version to return to; validate-prod runs after it; recover runs when the deployment
+# failed, was cancelled or did not validate. The project must also expose the commit PROD runs, and
+# name an environment for the rollback that has no required reviewer, so an automatic rollback never
+# waits for one.
 name: delivery
 
 on:
@@ -82,8 +88,42 @@ jobs:
       stg-test-command: <the command that tests the installed STG, reads the commit it runs and writes $DELIVERY_EVIDENCE>
       risk-rules: ${{ needs.risk-rules.outputs.rules }}
 
-  deploy-prod:
+  recovery-plan:
     needs: gates-before-prod
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
+      rollback-target: ${{ steps.plan.outputs.rollback_target }}
+      runbook: ${{ steps.plan.outputs.runbook }}
+      recovery-time-objective-minutes: ${{ steps.plan.outputs.recovery_time_objective_minutes }}
+      operator: ${{ steps.plan.outputs.operator }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          path: project
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: tedeuxx/mhw
+          ref: <mhw-commit-sha>
+          path: mhw
+          persist-credentials: false
+      - id: prod
+        # The commit PROD runs now: a full SHA, or `none` before the first PROD deployment. Anything
+        # else (an error, an empty line, a release name) blocks the deployment.
+        run: echo "revision=$(<the command that reads the commit PROD runs, or prints none>)" >> "$GITHUB_OUTPUT"
+      - id: plan
+        env:
+          PROD_REVISION: ${{ steps.prod.outputs.revision }}
+        run: |
+          python3 -B mhw/global/project-policy/delivery_gate.py recovery-plan --project=project \
+            --revision="$GITHUB_SHA" --prod-revision="$PROD_REVISION" >> "$GITHUB_OUTPUT"
+
+  deploy-prod:
+    needs: [gates-before-prod, recovery-plan]
     runs-on: ubuntu-latest
     # production for a low-risk change with automatic approval; production-owner-approval otherwise,
     # which waits for the owner to approve this run, at this revision.
@@ -96,4 +136,66 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - run: <deploy this revision to PROD; on a failed critical validation, the recovery reference (#247)>
+      - run: <deploy this revision to PROD>
+
+  validate-prod:
+    needs: deploy-prod
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          path: project
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: tedeuxx/mhw
+          ref: <mhw-commit-sha>
+          path: mhw
+          persist-credentials: false
+      - env:
+          DELIVERY_EVIDENCE: ${{ runner.temp }}/prod-evidence.json
+        run: |
+          <the command that runs every critical user journey and risk scenario against PROD, reads the commit PROD runs and writes $DELIVERY_EVIDENCE>
+          python3 -B mhw/global/project-policy/delivery_gate.py prod-validation --project=project \
+            --evidence="$DELIVERY_EVIDENCE" --revision="$GITHUB_SHA" \
+            --checkout-head="$(git -C project rev-parse HEAD)"
+
+  recover:
+    # Any outcome after exposure other than a validated PROD: the deployment failed or was cancelled,
+    # or validate-prod blocked, failed or could not run. A deployment that never started needs none.
+    needs: [recovery-plan, deploy-prod, validate-prod]
+    if: ${{ always() && needs.recovery-plan.result == 'success' && needs.deploy-prod.result != 'skipped' && needs.validate-prod.result != 'success' }}
+    runs-on: ubuntu-latest
+    environment: <the PROD environment with no required reviewer>
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      MODE: ${{ needs.recovery-plan.outputs.mode }}
+      ROLLBACK_TARGET: ${{ needs.recovery-plan.outputs.rollback-target }}
+      RUNBOOK: ${{ needs.recovery-plan.outputs.runbook }}
+      RTO: ${{ needs.recovery-plan.outputs.recovery-time-objective-minutes }}
+      OPERATOR: ${{ needs.recovery-plan.outputs.operator }}
+    steps:
+      - name: automatic-rollback, the default
+        if: ${{ needs.recovery-plan.outputs.mode == 'automatic-rollback' }}
+        run: |
+          echo "PROD did not validate; rolling back to $ROLLBACK_TARGET (none: withdraw the first deployment)"
+          <stop further exposure, then redeploy $ROLLBACK_TARGET to PROD, or withdraw the deployment when it is none>
+          <confirm PROD runs $ROLLBACK_TARGET and its critical validations pass again>
+      - name: manual recovery
+        if: ${{ needs.recovery-plan.outputs.mode == 'manual' }}
+        run: |
+          {
+            echo "## PROD did not validate: manual recovery"
+            echo "Operator $OPERATOR: follow $RUNBOOK and return PROD to $ROLLBACK_TARGET within $RTO minutes."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+      - name: an unknown mode never passes
+        if: ${{ needs.recovery-plan.outputs.mode != 'automatic-rollback' && needs.recovery-plan.outputs.mode != 'manual' }}
+        run: |
+          echo "recovery-plan printed mode '$MODE'; nothing recovered PROD" >&2
+          exit 1

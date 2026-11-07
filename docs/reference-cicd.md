@@ -123,8 +123,11 @@ was deployed.
   out `tedeuxx/mhw` by name; a fork must change that line.
 - **Risk labels are read at run time.** A label changed on the merged pull request before the run
   changes the class. The class is printed in the run log.
-- **Recovery is not here.** What happens when a critical PROD validation fails is the recovery
-  reference, [#247](https://github.com/tedeuxx/mhw/issues/247).
+- ~~**Recovery is not here.** What happens when a critical PROD validation fails is the recovery
+  reference, [#247](https://github.com/tedeuxx/mhw/issues/247).~~ **Recovery is in
+  [docs/recovery-reference.md](recovery-reference.md)** (#247): two more gates in the same script,
+  `recovery-plan` before the PROD deployment and `prod-validation` after it, and three jobs in the
+  caller template. The gate workflow above runs neither.
 - **Local runs authorise nothing.** `delivery_gate.py` runs anywhere, but only the containerised run in
   the pipeline is evidence; outside a container the `container` gate blocks.
 
