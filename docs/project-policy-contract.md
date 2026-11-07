@@ -31,7 +31,10 @@ any schema keyword it does not implement, so the schema cannot carry a rule the 
 are ECMA-262 regular expressions, where a final `$` does not match before a trailing newline. Python's
 `re.search` with the same `$` does, so `"@handle\n"` or a MADR path ending in a newline would pass.
 Every pattern here is anchored with `^` and `$`; the evaluator refuses one that is not (the validator
-then exits 2) and matches with `re.fullmatch`, never `re.search`. The suites test one trailing-newline
+then exits 2) and matches with `re.fullmatch`, never `re.search`. It also compiles no pattern from a
+file: the five patterns the schema uses are compiled from literals in `project_policy.py`, and any
+other pattern exits 2. A schema pattern edit therefore lands in both files, and a test holds the two
+sets equal. The suites test one trailing-newline
 case per pattern, and the validator's suite repeats four of them through the command. A validator in
 another language must reach the same answer: an ECMA engine, or a full match.
 
@@ -54,7 +57,7 @@ line on standard error, each naming its class:
 | --- | --- |
 | 0 | the file is a valid `schema_version` 1 contract |
 | 1 | **missing** (no file, or a directory); **malformed** (not UTF-8, not JSON, not an object, a repeated key, or `NaN`/`Infinity`); **unknown version** (no `schema_version`, or one this validator does not know); or the contract is broken, each finding classed as one of: missing or invalid risk classification, missing mandatory evidence, medium-or-higher findings tolerated, unknown severity, inconclusive evidence does not block, risk-based approval weakened, low finding without a bug Issue, project MADR not ratified, recovery not prepared, contract invalid |
-| 2 | a usage error, or the validator cannot decide: its own schema is unreadable or uses a keyword its evaluator does not implement. It does not answer "valid" when it cannot check |
+| 2 | a usage error, or the validator cannot decide: its own schema is unreadable, uses a keyword or type its evaluator does not implement, or a pattern outside its known set. It does not answer "valid" when it cannot check |
 
 A repeated key fails because JSON readers disagree on which copy wins, and one file must not mean two
 things. `NaN` fails because it compares false with every bound, so `threshold_percent` NaN would pass

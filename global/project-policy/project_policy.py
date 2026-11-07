@@ -45,6 +45,23 @@ TYPES = {
 }
 
 
+# Every pattern the schema may use, compiled here from literals. A schema pattern is never compiled
+# from the file: a pattern outside this set is refused (exit 2), so no regular expression read from a
+# file reaches the engine (no ReDoS by file content), and an edit to a schema pattern must land here too.
+# [0-9], not \d: Python's \d also matches non-ASCII digits.
+KNOWN_PATTERNS = {p: re.compile(p) for p in (
+    r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+    r"^(?!/)(?!.*(^|/)\.\.(/|$))[A-Za-z0-9_./-]+\.md$",
+    r"^[a-z0-9][a-z0-9-]*$",
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+    r"^@[A-Za-z0-9-]+$",
+)}
+# What a broken schema can raise inside evaluate(): a type name the evaluator lacks (KeyError), a list
+# where a name belongs (TypeError), a non-string pattern (AttributeError), a schema that is not an object.
+CANNOT_EVALUATE = (KeyError, TypeError, AttributeError, ValueError, RecursionError)
+PROJECT_OPT, FILE_OPT = "--project=", "--file="
+
+
 class SchemaError(ValueError):
     """The schema uses something this evaluator does not implement: the validator cannot decide."""
 
@@ -103,15 +120,19 @@ def evaluate(value, schema, path="$"):
             errors.append((path, "maximum"))
         if "exclusiveMinimum" in schema and value <= schema["exclusiveMinimum"]:
             errors.append((path, "exclusiveMinimum"))
-    if "pattern" in schema and not (schema["pattern"].startswith("^") and schema["pattern"].endswith("$")):
-        raise SchemaError("%s: only patterns anchored with ^ and $ are implemented" % path)
+    pattern = schema.get("pattern")
+    if pattern is not None:
+        if not (isinstance(pattern, str) and pattern.startswith("^") and pattern.endswith("$")):
+            raise SchemaError("%s: only patterns anchored with ^ and $ are implemented" % path)
+        if pattern not in KNOWN_PATTERNS:
+            raise SchemaError("%s: pattern not in the validator's known set: %s" % (path, pattern))
     if isinstance(value, str):
         if len(value) < schema.get("minLength", 0):
             errors.append((path, "minLength"))
         # fullmatch, never search: under Python re a final $ also matches before a trailing newline,
         # where ECMA-262 (the dialect of JSON Schema) does not. On an anchored pattern, fullmatch
         # gives the ECMA answer.
-        if "pattern" in schema and not re.fullmatch(schema["pattern"], value):
+        if pattern is not None and not KNOWN_PATTERNS[pattern].fullmatch(value):
             errors.append((path, "pattern"))
     for sub in schema.get("allOf", []):
         errors.extend(evaluate(value, sub, path))
@@ -146,6 +167,9 @@ def _no_constant(name):
 
 def read(path):
     """The parsed file, or Refusal with the reason."""
+    # A directory is tested first: Windows raises PermissionError, not IsADirectoryError, on reading one.
+    if Path(path).is_dir():
+        raise Refusal("missing: %s is a directory, not a file" % path)
     try:
         raw = Path(path).read_bytes()
     except FileNotFoundError:
@@ -176,7 +200,7 @@ def classify(path, keyword, doc):
         return "missing or invalid risk classification"
     if path.startswith("$.approval"):
         return "risk-based approval weakened"
-    if path.startswith("$.mandatory_scenarios") or path.startswith("$.coverage"):
+    if path.startswith(("$.mandatory_scenarios", "$.coverage")):
         return "missing mandatory evidence"
     if path.startswith("$.madr"):
         return "project MADR not ratified"
@@ -247,8 +271,9 @@ def check(path, schema_path=SCHEMA, today=None):
                    % (json.dumps(version), ", ".join(str(v) for v in KNOWN_VERSIONS))]
     try:
         errors = evaluate(doc, schema)
-    except SchemaError as exc:
-        return 2, ["ERROR  the validator cannot evaluate its schema: %s" % exc]
+    except CANNOT_EVALUATE as exc:
+        # A schema this evaluator cannot apply is no answer: never a pass, and not a contract failure.
+        return 2, ["ERROR  the validator cannot evaluate its schema: %s: %s" % (type(exc).__name__, exc)]
     errors += semantic_errors(doc, today or datetime.date.today())
     if not errors:
         return 0, ["OK  %s is a valid project-policy contract, schema_version %d" % (path, version)]
@@ -263,10 +288,10 @@ def main(argv):
         args = args[1:]
     project, file_ = None, None
     for arg in args:
-        if arg.startswith("--project=") and arg != "--project=":
-            project = arg[len("--project="):]
-        elif arg.startswith("--file=") and arg != "--file=":
-            file_ = arg[len("--file="):]
+        if arg.startswith(PROJECT_OPT) and arg != PROJECT_OPT:
+            project = arg[len(PROJECT_OPT):]
+        elif arg.startswith(FILE_OPT) and arg != FILE_OPT:
+            file_ = arg[len(FILE_OPT):]
         else:
             print("mhw policy check: unknown argument %s (--project=DIR or --file=PATH)" % arg,
                   file=sys.stderr)
