@@ -56,8 +56,8 @@ line on standard error, each naming its class:
 | Exit | When |
 | --- | --- |
 | 0 | the file is a valid `schema_version` 1 contract |
-| 1 | **missing** (no file, or a directory); **malformed** (not UTF-8, not JSON, not an object, a repeated key, or `NaN`/`Infinity`); **unknown version** (no `schema_version`, or one this validator does not know); or the contract is broken, each finding classed as one of: missing or invalid risk classification, missing mandatory evidence, medium-or-higher findings tolerated, unknown severity, inconclusive evidence does not block, risk-based approval weakened, low finding without a bug Issue, project MADR not ratified, recovery not prepared, contract invalid |
-| 2 | a usage error, or the validator cannot decide: its own schema is unreadable, uses a keyword or type its evaluator does not implement, or a pattern outside its known set. It does not answer "valid" when it cannot check |
+| 1 | **missing** (no file, or a directory); **unreadable** (the file exists but cannot be read); **malformed** (not UTF-8, not JSON, not an object, a repeated key, or `NaN`/`Infinity`); **unknown version** (no `schema_version`, or one this validator does not know); or the contract is broken, each finding classed as one of: missing or invalid risk classification, missing mandatory evidence, medium-or-higher findings tolerated, unknown severity, inconclusive evidence does not block, risk-based approval weakened, low finding without a bug Issue, project MADR not ratified, recovery not prepared, contract invalid |
+| 2 | a usage error, or the validator cannot decide: its own schema is unreadable, uses a keyword, a keyword value or a type its evaluator does not implement, or a pattern outside its known set. It walks the whole schema before it reads the file, so a defect in a branch the file never reaches still exits 2. It does not answer "valid" when it cannot check |
 
 A repeated key fails because JSON readers disagree on which copy wins, and one file must not mean two
 things. `NaN` fails because it compares false with every bound, so `threshold_percent` NaN would pass

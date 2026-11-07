@@ -266,6 +266,56 @@ class PolicyCheckTests(unittest.TestCase):
                     self.assertFails(self.check_doc(VALID, schema=bad), "not in the validator's known set",
                                      code=2)
 
+    def test_a_defect_anywhere_in_the_schema_is_exit_2_whatever_the_file_reaches(self):
+        # QA B1 on #448: evaluate() refuses only where the document goes. The rows come from walking
+        # the shipped schema, so every subschema location is covered, and the document is the
+        # automatic-rollback example, which skips every manual-recovery branch.
+        shipped = json.loads(project_policy.SCHEMA.read_text(encoding="utf-8"))
+
+        def locations(node, trail=()):
+            yield trail
+            for key, sub in node.get("properties", {}).items():
+                yield from locations(sub, trail + ("properties", key))
+            for key in ("items", "contains", "if", "then"):
+                if key in node:
+                    yield from locations(node[key], trail + (key,))
+            for i, sub in enumerate(node.get("allOf", [])):
+                yield from locations(sub, trail + ("allOf", i))
+
+        defects = [
+            ("unknown keyword", "dependentRequired", {}),
+            ("type null", "type", "null"),
+            ("type as a list", "type", ["string", "null"]),
+            ("unknown anchored pattern", "pattern", "^(a+)+$"),
+            ("additionalProperties not a boolean", "additionalProperties", {"type": "string"}),
+            ("keyword value of the wrong type", "minLength", "1"),
+        ]
+        rows = list(locations(shipped))
+        self.assertGreater(len([r for r in rows if "recovery" in r]), 4, "the walk reaches recovery")
+        bad = self.dir / "schema.json"
+        self.assertEqual(self.check_doc(VALID)[0], 0, "control: the shipped schema passes")
+        for trail in rows:
+            for name, key, value in defects:
+                with self.subTest(at="/".join(map(str, trail)) or "(root)", defect=name):
+                    schema = copy.deepcopy(shipped)
+                    node = schema
+                    for step in trail:
+                        node = node[step]
+                    node[key] = value
+                    bad.write_text(json.dumps(schema), encoding="utf-8")
+                    # The reason names the walk's location, so a row passes only when the up-front
+                    # walk refused it, not when evaluate() happened to visit the site.
+                    where = "$" + "".join("[%d]" % s if isinstance(s, int) else "." + s for s in trail)
+                    self.assertFails(self.check_doc(VALID, schema=bad), "SchemaError: %s: " % where, code=2)
+
+    def test_then_without_if_in_an_unvisited_branch_is_exit_2(self):
+        schema = json.loads(project_policy.SCHEMA.read_text(encoding="utf-8"))
+        schema["properties"]["recovery"]["properties"]["runbook"]["then"] = {"required": ["path"]}
+        bad = self.dir / "schema.json"
+        bad.write_text(json.dumps(schema), encoding="utf-8")
+        self.assertFails(self.check_doc(VALID, schema=bad),
+                         "SchemaError: $.properties.recovery.properties.runbook: then without if", code=2)
+
     def test_every_schema_pattern_is_in_the_known_set(self):
         # The validator compiles no pattern from a file; the shipped schema must use only known ones.
         def patterns(node):

@@ -62,6 +62,24 @@ CANNOT_EVALUATE = (KeyError, TypeError, AttributeError, ValueError, RecursionErr
 PROJECT_OPT, FILE_OPT = "--project=", "--file="
 
 
+def _count(v):
+    return isinstance(v, int) and not isinstance(v, bool) and v >= 0
+
+
+def _number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+# The value each applied keyword needs; a schema with another value cannot be evaluated.
+VALUE_SHAPES = {
+    "required": lambda v: isinstance(v, list) and all(isinstance(k, str) for k in v),
+    "enum": lambda v: isinstance(v, list),
+    "minItems": _count, "maxItems": _count, "minLength": _count,
+    "minimum": _number, "maximum": _number, "exclusiveMinimum": _number,
+    "uniqueItems": lambda v: isinstance(v, bool),
+}
+
+
 class SchemaError(ValueError):
     """The schema uses something this evaluator does not implement: the validator cannot decide."""
 
@@ -71,6 +89,50 @@ def same(a, b):
     if isinstance(a, bool) or isinstance(b, bool):
         return type(a) is type(b) and a == b
     return a == b
+
+
+def validate_schema(schema, path="$"):
+    """Raise SchemaError on any construct evaluate() cannot apply, anywhere in the schema.
+
+    evaluate() visits only the subschemas a document reaches, so its own refusals are lazy: a defect in
+    a branch the file skips (recovery under automatic-rollback, say) would go unseen and the file would
+    pass. This walk runs once over the whole schema before any file is read, so the validator refuses
+    to answer whatever the file contains. The checks in evaluate() stay as a second line.
+    """
+    if not isinstance(schema, dict):
+        raise SchemaError("%s: a subschema must be an object" % path)
+    unknown = set(schema) - KEYWORDS
+    if unknown:
+        raise SchemaError("%s: schema keyword not implemented: %s" % (path, sorted(unknown)))
+    kind = schema.get("type")
+    if kind is not None and not (isinstance(kind, str) and kind in TYPES):
+        raise SchemaError("%s: type not implemented: %s" % (path, json.dumps(kind)))
+    if "additionalProperties" in schema and not isinstance(schema["additionalProperties"], bool):
+        raise SchemaError("%s: only additionalProperties true or false is implemented" % path)
+    pattern = schema.get("pattern")
+    if pattern is not None:
+        if not (isinstance(pattern, str) and pattern.startswith("^") and pattern.endswith("$")):
+            raise SchemaError("%s: only patterns anchored with ^ and $ are implemented" % path)
+        if pattern not in KNOWN_PATTERNS:
+            raise SchemaError("%s: pattern not in the validator's known set: %s" % (path, pattern))
+    if "then" in schema and "if" not in schema:
+        raise SchemaError("%s: then without if" % path)
+    for key, ok in VALUE_SHAPES.items():
+        if key in schema and not ok(schema[key]):
+            raise SchemaError("%s: %s has a value this evaluator cannot apply" % (path, key))
+    properties = schema.get("properties", {})
+    if not isinstance(properties, dict):
+        raise SchemaError("%s: properties must be an object" % path)
+    for key, sub_schema in properties.items():
+        validate_schema(sub_schema, path + ".properties." + key)
+    for key in ("items", "contains", "if", "then"):
+        if key in schema:
+            validate_schema(schema[key], path + "." + key)
+    all_of = schema.get("allOf", [])
+    if not isinstance(all_of, list):
+        raise SchemaError("%s: allOf must be an array" % path)
+    for i, sub_schema in enumerate(all_of):
+        validate_schema(sub_schema, "%s.allOf[%d]" % (path, i))
 
 
 def evaluate(value, schema, path="$"):
@@ -257,6 +319,10 @@ def check(path, schema_path=SCHEMA, today=None):
         schema = json.loads(Path(schema_path).read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         return 2, ["ERROR  cannot read the contract schema: %s" % exc]
+    try:
+        validate_schema(schema)
+    except CANNOT_EVALUATE as exc:
+        return 2, ["ERROR  the validator cannot evaluate its schema: %s: %s" % (type(exc).__name__, exc)]
     try:
         doc = read(path)
     except Refusal as exc:
