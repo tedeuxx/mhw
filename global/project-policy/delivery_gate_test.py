@@ -178,6 +178,12 @@ class Contract(Base):
         madr.write_text("- **Status:** ~~accepted~~ proposed\n", encoding="utf-8")
         self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "no status line")
 
+    def test_madr_status_is_an_exact_match(self):
+        self.assertTrue(delivery_gate.madr_status_accepted("- **Status:** Accepted.\n"))
+        for text in ("Status: accepted later", "Status: accepted, then superseded",
+                     "Status: acceptedx", "Status:"):
+            self.assertFalse(delivery_gate.madr_status_accepted(text), text)
+
     def test_madr_status_reading(self):
         self.assertTrue(delivery_gate.madr_status_accepted("status: accepted\n"))
         self.assertTrue(delivery_gate.madr_status_accepted("- **Status:** ~~proposed~~ **Accepted.**"))
@@ -197,6 +203,14 @@ class Contract(Base):
 class Container(Base):
     def test_complete_green_evidence_passes(self):
         self.assertEqual(self.container(container_evidence()), [])
+
+    def test_container_check_is_on_by_default(self):
+        # No require_container argument at all: a host run of green evidence still blocks.
+        self.addCleanup(setattr, delivery_gate, "DOCKERENV", delivery_gate.DOCKERENV)
+        delivery_gate.DOCKERENV = self.tmp / "absent"
+        blocks = delivery_gate.gate_container(str(self.project), self.write("ev.json", container_evidence()),
+                                              REV, REV, IMAGE)
+        self.assertBlocks(blocks, "not running in a container")
 
     def test_not_in_a_container_blocks(self):
         self.assertBlocks(self.container(container_evidence(), in_container=False), "not running in a container")
@@ -233,13 +247,34 @@ class Container(Base):
         ev["coverage"]["metric"] = "branch"
         self.assertBlocks(self.container(ev), "the contract counts line")
 
+    def test_coverage_outside_0_to_100_blocks(self):
+        for percent in (100.5, -1):
+            ev = container_evidence()
+            ev["coverage"]["percent"] = percent
+            self.assertBlocks(self.container(ev), "not a percentage from 0 to 100")
+        ev = container_evidence()
+        ev["coverage"]["percent"] = 100
+        self.assertEqual(self.container(ev), [])
+
+    def test_non_finite_coverage_blocks(self):
+        # The JSON read already refuses Infinity and NaN; the bound holds even for a reader that did not.
+        for percent in (float("inf"), float("nan")):
+            ev = container_evidence()
+            ev["coverage"]["percent"] = percent
+            original = delivery_gate.read_evidence
+            delivery_gate.read_evidence = lambda path, doc=ev: (doc, [])
+            try:
+                self.assertBlocks(self.container(container_evidence()), "not a percentage from 0 to 100")
+            finally:
+                delivery_gate.read_evidence = original
+
     def test_coverage_missing_or_boolean_blocks(self):
         ev = container_evidence()
         del ev["coverage"]
         self.assertBlocks(self.container(ev), "coverage missing")
         ev = container_evidence()
         ev["coverage"]["percent"] = True
-        self.assertBlocks(self.container(ev), "below the threshold")
+        self.assertBlocks(self.container(ev), "not a percentage")
 
     def test_journey_without_result_blocks(self):
         ev = container_evidence()
@@ -424,6 +459,18 @@ class CommandLine(Base):
             code = delivery_gate.main(list(args))
         return code, out.getvalue(), err.getvalue()
 
+    def test_container_command_checks_the_container_unless_told_not_to(self):
+        self.addCleanup(setattr, delivery_gate, "DOCKERENV", delivery_gate.DOCKERENV)
+        delivery_gate.DOCKERENV = self.tmp / "absent"
+        args = ["container", "--project=%s" % self.project,
+                "--evidence=%s" % self.write("ev.json", container_evidence()),
+                "--revision=%s" % REV, "--checkout-head=%s" % REV, "--container-image=%s" % IMAGE]
+        code, _, err = self.main(*args)
+        self.assertEqual(code, 1)
+        self.assertIn("not running in a container", err)
+        self.assertEqual(self.main(*args, "--no-container-check")[0], 0)
+        self.assertEqual(self.main(*args, "--require-container")[0], 2)  # the old flag is gone
+
     def test_exit_codes(self):
         project = "--project=%s" % self.project
         self.assertEqual(self.main("contract", project)[0], 0)
@@ -460,6 +507,9 @@ class Workflows(unittest.TestCase):
         # A job that names a missing environment creates it, unprotected: neither file may name one.
         for path in WORKFLOWS:
             self.assertNotRegex(text(path), r"(?m)^\s+environment:", path.name)
+
+    def test_the_workflow_never_turns_the_container_check_off(self):
+        self.assertNotIn("--no-container-check", text(WORKFLOWS[0]))
 
     def test_the_gate_calls_the_validator_and_every_gate(self):
         body = text(WORKFLOWS[0])

@@ -155,7 +155,7 @@ jobs:
           head=$(git -C project rev-parse HEAD)
           python3 -B mhw/global/project-policy/delivery_gate.py container --project="project/$PROJECT_DIR" \
             --evidence="$EVIDENCE" --revision="$REVISION" --checkout-head="$head" \
-            --container-image="$IMAGE" --require-container
+            --container-image="$IMAGE"
       # actions/upload-artifact v4.6.2 (verified with git ls-remote 2026-11-07)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -241,7 +241,7 @@ jobs:
           out=$(python3 -B mhw/global/project-policy/delivery_gate.py classify --project="project/$PROJECT_DIR" --rules="$RISK_RULES")
           echo "$out"
           echo "$out" >> "$GITHUB_OUTPUT"
-      - name: the environment the PROD job must name (owner approval is checked to exist)
+      - name: the environment the PROD job must name (a required reviewer is checked)
         id: environment
         env:
           APPROVAL: ${{ steps.classify.outputs.approval }}
