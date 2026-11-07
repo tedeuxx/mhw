@@ -114,6 +114,40 @@ class Contract(Base):
         (self.project / "docs/adr/0001-fixture-quality-bar.md").unlink()
         self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "is missing, unreadable or outside")
 
+    def broken_schema(self, text):
+        schema = self.tmp / "schema.json"
+        schema.write_text(text, encoding="utf-8")
+        self.addCleanup(setattr, delivery_gate, "SCHEMA", delivery_gate.SCHEMA)
+        delivery_gate.SCHEMA = schema
+
+    def test_schema_with_an_unknown_keyword_cannot_decide(self):
+        # validate_schema walks the whole schema before the file is read.
+        self.broken_schema('{"type": "object", "properties": {"x": {"format": "date"}}}')
+        with self.assertRaises(delivery_gate.Usage):
+            delivery_gate.gate_contract(str(self.project))
+
+    def test_schema_with_a_nan_bound_cannot_decide(self):
+        self.broken_schema('{"type": "object", "maximum": NaN}')
+        with self.assertRaises(delivery_gate.Usage):
+            delivery_gate.gate_contract(str(self.project))
+
+    def test_contract_with_a_repeated_key_blocks(self):
+        path = self.project / "project-policy.json"
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text.replace('"schema_version": 1,', '"schema_version": 1,\n  "schema_version": 1,', 1),
+                        encoding="utf-8")
+        self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "malformed")
+
+    def test_gates_read_the_contract_strictly(self):
+        # Even if a looser validator passed it, the gate's own read refuses a repeated key.
+        path = self.project / "project-policy.json"
+        path.write_text(path.read_text(encoding="utf-8").replace(
+            '"schema_version": 1,', '"schema_version": 1,\n  "schema_version": 1,', 1), encoding="utf-8")
+        original = delivery_gate.project_policy.check
+        delivery_gate.project_policy.check = lambda *a, **k: (0, ["OK"])
+        self.addCleanup(setattr, delivery_gate.project_policy, "check", original)
+        self.assertBlocks(delivery_gate.load_contract(str(self.project))[1], "malformed")
+
     def test_madr_linked_outside_the_project_blocks(self):
         outside = self.tmp / "elsewhere.md"
         outside.write_text("- **Status:** accepted\n", encoding="utf-8")
@@ -405,7 +439,7 @@ class CommandLine(Base):
 
     def test_validator_that_cannot_decide_is_exit_2(self):
         original = delivery_gate.project_policy.check
-        delivery_gate.project_policy.check = lambda path: (2, ["ERROR  schema"])
+        delivery_gate.project_policy.check = lambda *a, **k: (2, ["ERROR  schema"])
         self.addCleanup(setattr, delivery_gate.project_policy, "check", original)
         self.assertEqual(self.main("contract", "--project=%s" % self.project)[0], 2)
 
