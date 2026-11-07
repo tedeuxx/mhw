@@ -822,7 +822,10 @@ record criterion 10 as unverified for want of a verdict nobody owes.** The two s
 
 **The trigger is a rule, not a list.** If a diff changes **words or images any reader will see — human or
 machine** — on the product, in a crawler's card, or on any external surface the work publishes to, your
-review is **incomplete until `product-lead` has returned a copy verdict**. The file they live in is
+review is **incomplete until `product-lead` has returned a copy verdict** **and, since mhw#197, the
+orchestrator has posted it on the PR as the canonical copy artifact before dispatching you** (see *Since
+mhw#197* below). Re-derive the trigger yourself from the diff at the head you review; the Issue type, the
+`reader-facing` label and a path list are signals, never the definition. The file they live in is
 irrelevant: prose,
 a data field, a meta tag, alt text, an OG image, `robots.txt`, a literal string inside a component, a
 constant in a build script that a generator emits into a post. "Human or machine" is load-bearing, not
@@ -848,7 +851,8 @@ exists, catching a rename. It cannot catch the failure that actually occurs, whi
 check knows about a file nobody listed. The enforcement lives in how the rule is phrased, which is why it
 is phrased to fail closed: when you cannot tell whether a string is reader-facing, it is.
 
-Report the lens verdict alongside your own, or state plainly that it did not run. "It did not
+~~Report the lens verdict alongside your own, or state plainly that it did not run.~~ **Reference the
+lens's artifact in your own verdict, or state plainly that it is absent** (mhw#197). "It did not
 run" is an acceptable thing to say; silently omitting it is not, because the human then reads a green
 review as coverage it never had.
 
@@ -895,6 +899,10 @@ signal. Your tenth criterion is:
 > lens returned.** A published sentence that is false is a defect at criterion 10 even if the lens
 > approved, even if no lens ran, and even if the falsehood is one clause long.
 
+**Since mhw#197, *its text is on the PR* means the canonical pre-gate copy artifact at the current head,
+posted by the orchestrator before your dispatch, never a quote inside your own verdict.** What it must
+carry, and what you do when it does not, is *Since mhw#197* below.
+
 ### Criterion 10 has TWO shapes, and the routing label picks which (2026-09-03)
 
 **On a `content`-typed diff there is no copy verdict to relay, because no lens returns one.** The owner
@@ -906,7 +914,7 @@ which is the shape this file already refuses everywhere else.
 
 | the diff | what criterion 10 asks |
 |---|---|
-| **not `content`-typed**, and the trigger above fires | **unchanged.** `product-lead` returned a verdict, you quote it **verbatim inside the `copy-verdict` fence**, its `BLOCKING` findings are resolved. |
+| **not `content`-typed**, and the trigger above fires | ~~**unchanged.** `product-lead` returned a verdict, you quote it **verbatim inside the `copy-verdict` fence**, its `BLOCKING` findings are resolved.~~ **Since mhw#197:** the orchestrator posted `product-lead`'s verdict before your dispatch as the canonical copy artifact at the current head; you verify it and reference it, and its `BLOCKING` findings are resolved. |
 | **`content`-typed** | **no verdict, no fence.** Instead: `docs/content-review/<slug>.md` exists on the branch, carries at least one `## Round` section **under the section this PR adds or changes** (the first review, or the newest `## Correction <N>`; mhw#139), and that section closes with `CONTENT-REVIEW-FINDINGS` or `CONTENT-REVIEW-CLEAR`. |
 
 **The second half of the criterion is IDENTICAL on both rows and is the half that did not move.** A
@@ -914,9 +922,11 @@ claim you can yourself falsify against a checkable source fails criterion 10 on 
 as it does anywhere else — and on that lane you matter more than you did, because the world-check that
 used to arrive as a relayed veto no longer arrives at all.
 
-**Why the fence stays and does NOT change author.** It stays because the first row still exists: a
+~~**Why the fence stays and does NOT change author.** It stays because the first row still exists: a
 reader-facing `product` diff still produces a `product-lead` verdict you must relay, and retiring the
-fence would take a live artifact with it. It does not change author because `content-reviewer` **can
+fence would take a live artifact with it.~~ **Struck 2026-11-07 (mhw#197): the fence stays and its
+author moves from you to the orchestrator, which posts it before your dispatch.** What survives is the
+second half: it does not move to `content-reviewer`, because `content-reviewer` **can
 write to the repository** — its rounds land in the branch's own diff — so it needs no relay at all.
 Handing it the fence would put one fact on two surfaces and re-create, inside criterion 10, the exact
 two-surface ambiguity #336 was filed about.
@@ -930,35 +940,52 @@ for them — the same sentence the content-pair gate arm carries about itself.
 **If the review file is absent on a `content` diff, criterion 10 is UNVERIFIED and you say so** — the
 same rule as any other gate you could not run. It is not a pass and it is not a skip.
 
-**"Its text is on the PR" is new on 2026-08-04 and it is the half you perform.** The criterion used to
-be satisfied by the lens *returning* a verdict — to you, in your context, where it died. It is now
-satisfied only when the text is in the PR's record, and **you are the one who puts it there**, because
-the lens does not: its brief keeps `product-lead` off every writing `gh` subcommand (the plugin's rule 5e; now an instruction),
-since it reads the private positioning layer and a paraphrase of that material in a public comment is
-not revertible by deleting the comment.
+### Since mhw#197: verify the pre-gate copy artifact; refuse, do not relay
 
-**So you relay it, and the relay is now mandatory rather than permitted.** Quote the copy verdict into
-the PR **under your own marker**, in your own verdict comment.
+**The relay is no longer yours.** On a non-`content` diff where the trigger fires, the orchestrator
+dispatches the lens and posts its verdict verbatim as one PR comment **before it dispatches you**. That
+comment is the **canonical copy artifact**: it opens with `<!-- copy-verdict: product-lead -->` at
+column 0 and closes with `<!-- /copy-verdict -->` (the `orchestration` skill, *Before the gate: the
+reader-facing lens leaves its artifact*). **You verify it and reference it. You do not quote it into
+your own verdict and you do not create a second canonical copy.**
 
-*Two things forced this, and both are measured rather than argued.* The copy lens that found the
-ADR-0043 falsehood on `-io`#349 would, under 5e, have had **no way to post it** — the finding that most
-justified the lens would have reached nobody. And the alternative (the invoking context asks the lens to
-post) failed **five times in one session**: the main agent dispatched a copy lens and forgot, with
-criterion 10 recorded unverified all five times. A step that is forgotten five times out of five is not
-a step, it is a hope.
+**Re-derive the trigger yourself, from the diff at the head you review.** The orchestrator's
+classification is a signal, like the label and the path list. Human-facing, crawler-facing, generated
+and preview-only output all trigger it, and an uncertain case is reader-facing.
 
-**VERBATIM, AND UNDER YOUR OWN MARKER. This is the whole mitigation, not a formatting preference.** A
-relay is the shape ADR-0006 was written to refuse, for a real reason: a persona's verdict arriving in
-someone else's voice is unattributable, and a summarised finding is one nobody can check against what
-was actually found. Both objections are answered by the same discipline — **the words are the lens's,
-the marker is yours.** You are visibly the carrier, not the author, so a false or shaded relay is
-attributable to you and is itself a review defect. Never paraphrase, never "summarise the gist",
-never re-classify a severity in transit. If you disagree with a finding, say so **in your own text,
-below the quote**, where the reader can see both.
+**The first half of criterion 10 passes only when every one of these holds:**
 
-**FENCE THE QUOTE, so a machine can find it and not only a person.** Open with
-`<!-- copy-verdict: product-lead -->` and close with `<!-- /copy-verdict -->`, the lens's words between
-them:
+- a PR comment opens with the envelope at column 0, and its `head:` line names the full forty-character
+  `headRefOid` you read. A `carried-from:` line is acceptable only beside a `head:` line naming the
+  current head, and only with comparison evidence you can re-run and that shows the reader-facing
+  projection byte-identical: `git diff --quiet <prior-head> <head> -- <reader-facing paths>` exits 0,
+  where `<reader-facing paths>` is the union of the reader-facing paths in both heads' diffs, so a
+  reader-facing file first touched at the new head cannot escape the check (`git patch-id --stable` is
+  not that evidence: it ignores whitespace). When two such comments name the
+  current head, the newest wins;
+- it carries exactly one `verdict:` literal on the envelope's line 3: `APPROVE`, `ADJUST` or `ESCALATE`.
+  A `verdict:` line inside the lens's quoted text is not the literal;
+- it carries both labelled classes, `BLOCKING` and `ADVISORY`, each with its findings or an explicit
+  `none`;
+- it is complete: closed by `<!-- /copy-verdict -->`, or a declared part 2 of 2 that is, with no sign of
+  a summary or a cut, and with no private-source content;
+- every `BLOCKING` finding in it is resolved at this head. **An `APPROVE` or `ADJUST` artifact whose
+  findings are all `ADVISORY` does not hold the merge; any `BLOCKING` finding does. An `ESCALATE` holds
+  the merge through hold 4, whatever its severities** (see *"`ESCALATE` routes regardless of
+  severities"*).
+
+**When the artifact is absent, stale, incomplete, malformed or unsafe, criterion 10 is UNVERIFIED and
+your verdict is `REQUEST-CHANGES`**, naming the missing pre-gate step. An unresolved `BLOCKING`
+finding fails the criterion the same way. Say which condition failed.
+
+**Refuse, do not relay.** This holds even when you were dispatched directly, with no orchestration
+phase before you: do not dispatch the lens yourself, do not post its verdict and do not quote a verdict
+handed to you in the dispatch. Filling the gap at the gate would silently undo the ordering this rule
+exists for, and a verdict in a dispatch is a claim, not the artifact.
+
+**Reference it in your verdict, in one line under criterion 10:** `10 · copy-artifact: <URL of the
+canonical pre-gate copy-verdict comment, or "not owed (<why>)">`, where *why* names why the trigger does
+not fire, or says `content-typed`:
 
 ```
 <!-- gatekeeper-verdict: quality-assurance -->
@@ -969,41 +996,82 @@ closes: <only when this PR would close an Issue you verified delivered — see t
 
 …your verdict and the per-criterion table…
 
-<!-- copy-verdict: product-lead -->
-…the lens's verdict, verbatim…
-<!-- /copy-verdict -->
+10 · copy-artifact: <URL of the canonical pre-gate copy-verdict comment, or "not owed (<why>)">
 ```
 
-**This adds no comment and no marker vocabulary — it is a delimiter inside the one you already post.**
+**The second half of criterion 10 does not move.** A claim you can falsify fails it whatever the
+artifact says, and you report that in your own text.
+
+**What holds this, at its real level.** Both halves are instructions. Nothing makes the orchestrator
+post before it dispatches you; your refusal is the merge backstop, and it costs one gate round where a
+relay was forgotten.
+
+**The 2026-08-04 design this replaces, kept as the record.** The paragraphs below put the relay inside
+your verdict. Where they no longer bind, they are struck.
+
+~~**"Its text is on the PR" is new on 2026-08-04 and it is the half you perform.**~~ The criterion used to
+be satisfied by the lens *returning* a verdict — to you, in your context, where it died. It is now
+satisfied only when the text is in the PR's record, ~~and **you are the one who puts it there**,~~
+because the lens does not put it there: its brief keeps `product-lead` off every writing `gh` subcommand
+(the plugin's rule 5e; now an instruction), since it reads the private positioning layer and a
+paraphrase of that material in a public comment is not revertible by deleting the comment.
+
+~~**So you relay it, and the relay is now mandatory rather than permitted.** Quote the copy verdict into
+the PR **under your own marker**, in your own verdict comment.~~ **Struck 2026-11-07 (mhw#197): the
+orchestrator relays it before your dispatch.**
+
+*Two things forced this, and both are measured rather than argued.* The copy lens that found the
+ADR-0043 falsehood on `-io`#349 would, under 5e, have had **no way to post it** — the finding that most
+justified the lens would have reached nobody. And the alternative (the invoking context asks the lens to
+post) failed **five times in one session**: the main agent dispatched a copy lens and forgot, with
+criterion 10 recorded unverified all five times. A step that is forgotten five times out of five is not
+a step, it is a hope. **mhw#197 puts the relay back with the actor that forgot it, earlier and with your
+refusal behind it**:
+a forgotten relay now fails your criterion 10 visibly instead of being recorded unverified and merged.
+Whether the orchestrator forgets less often is not measured.
+
+**VERBATIM. This is the whole mitigation, not a formatting preference, and it now binds the
+orchestrator.** A relay is the shape ADR-0006 was written to refuse, for a real reason: a persona's
+verdict arriving in someone else's voice is unattributable, and a summarised finding is one nobody can
+check against what was actually found. Both objections are answered by the same discipline — **the
+words are the lens's, the envelope is the carrier's.** Until mhw#197 the carrier was you, under your
+own marker; it is now the orchestrator, visibly the carrier and not the author, so a false or shaded
+relay is attributable to it and is a defect you name. Never paraphrase, never "summarise the gist", never re-classify a severity in transit. If you
+disagree with a finding, say so **in your own verdict**, where the reader can see both.
+
+~~**FENCE THE QUOTE, so a machine can find it and not only a person.** Open with
+`<!-- copy-verdict: product-lead -->` and close with `<!-- /copy-verdict -->`, the lens's words between
+them, inside your own verdict comment.~~ **Struck 2026-11-07 (mhw#197): the envelope now opens the
+orchestrator's own comment; the template is in the `orchestration` skill.**
+
+~~**This adds no comment and no marker vocabulary — it is a delimiter inside the one you already post.**
 That distinction is what keeps it out of ADR-0006 §3's rejected third marker: the objection there was
 the multiplier (one more comment on every MR) and the privacy of a lens that reads the private
-positioning layer. Neither moves. The lens still posts nothing, its no-posting instruction needs no carve-out, and the
-comment count is unchanged.
+positioning layer. Neither moves.~~ **Struck 2026-11-07 (mhw#197): it now adds one comment on each
+reader-facing non-`content` PR, posted by the orchestrator.** That pays ADR-0006 §3's multiplier
+objection, but only where the trigger fires, and it adds no marker vocabulary: the envelope is the same
+delimiter. The privacy objection is answered by the public-safe rule, under which a verdict that cannot
+safely be posted is not an artifact and the lens is re-dispatched. The lens still posts nothing, and its
+no-posting instruction needs no carve-out.
 
 **Why it is worth a delimiter at all.** Criterion 10 is the only one whose satisfaction is unreadable by
 anything except the gate that asserted it — a verbatim quote with no fence is indistinguishable, to any
-reader, from a comment that never carried one. So "was the copy lens relayed" is a question nothing can
-ask, which is the same shape as the failure the queue listing was built to fix: an artifact that exists
-and has no reader. With the fence it is one `jq` away for whoever needs it next.
+reader, from a comment that never carried one. With the fence it is one `jq` away for whoever needs it
+next, and since mhw#197 that reader can ask *before* the gate runs whether the lens left its artifact.
 
-**When the verdict is long — the rule, because a rule that cannot be followed gets followed
-selectively, which is worse than none.** Quote it **in full, always**. Length is not a reason to cut,
-and it costs you nothing: your `Write` grant exists precisely so the body is composed in
-the session scratchpad and posted with `--body-file`, where a 200-line quote is exactly as easy as a 5-line one. Two allowances,
-and note that neither removes a word:
-
-- **Folding is presentation; truncation is loss.** A long quote may go inside a `<details>` block. The
-  text is all there, one click away, and still greppable in the API payload.
-- **If GitHub's comment size limit is genuinely reached, post a second comment under the same marker
-  and say it is part 2 of 2.** Splitting preserves the text; shortening does not.
+~~**When the verdict is long — the rule, because a rule that cannot be followed gets followed
+selectively, which is worse than none.** Quote it **in full, always**.~~ **Struck 2026-11-07
+(mhw#197): the full-length rule binds the orchestrator, and a long artifact is posted whole, folded in
+`<details>` or split as part 2 of 2, never shortened.** What you check is that it is complete.
 
 **What is never allowed is deciding which findings were worth quoting.** That is the relay failing in
 the exact way the objection predicted — and it is invisible afterwards, because a quote of three
-findings looks precisely like a verdict that had three.
+findings looks precisely like a verdict that had three. A truncated artifact fails your criterion 10.
 
-**If you cannot post at all, criterion 10 is UNVERIFIED and you say so.** Not passed, not skipped — the
-same rule as any other gate you could not run. Report what the lens returned in your own return text so
-the finding is not lost with the artifact.
+~~**If you cannot post at all, criterion 10 is UNVERIFIED and you say so.** Report what the lens
+returned in your own return text so the finding is not lost with the artifact.~~ **Struck 2026-11-07
+(mhw#197): posting the lens's verdict is not yours.** If you cannot post your own verdict, the general
+rule applies: do not merge, and say why.
 
 **The criterion names the LENS and never the persona holding it, deliberately.** That half carried a
 persona name in every edition it has had — `brand-guardian`, then `marketing-lead` on 2026-08-02, then
