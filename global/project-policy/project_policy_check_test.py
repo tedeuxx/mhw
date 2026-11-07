@@ -308,6 +308,26 @@ class PolicyCheckTests(unittest.TestCase):
                     where = "$" + "".join("[%d]" % s if isinstance(s, int) else "." + s for s in trail)
                     self.assertFails(self.check_doc(VALID, schema=bad), "SchemaError: %s: " % where, code=2)
 
+    def test_the_schema_is_parsed_as_strictly_as_the_file(self):
+        # Lens finding on #448 at ae8f19c: a plain json.loads let these loosen coverage.maximum, and a
+        # file with threshold_percent 1000 then exited 0. The control, the shipped schema, exits 1.
+        doc = put(VALID, ("coverage", "threshold_percent"), 1000)
+        self.assertFails(self.check_doc(doc), "$.coverage.threshold_percent: maximum")
+        text = project_policy.SCHEMA.read_text(encoding="utf-8")
+        needle = '"maximum": 100 }'
+        self.assertEqual(text.count(needle), 1, "the schema still carries the bound this test edits")
+        bad = self.dir / "schema.json"
+        for name, edited, reason in [
+            ("NaN", text.replace(needle, '"maximum": NaN }'), "NaN is not JSON"),
+            ("Infinity", text.replace(needle, '"maximum": Infinity }'), "Infinity is not JSON"),
+            ("repeated key", text.replace(needle, '"maximum": 100, "maximum": 1e9 }'),
+             'repeated key "maximum"'),
+        ]:
+            with self.subTest(case=name):
+                bad.write_text(edited, encoding="utf-8")
+                self.assertFails(self.check_doc(doc, schema=bad), "cannot read the contract schema", code=2)
+                self.assertFails(self.check_doc(doc, schema=bad), reason, code=2)
+
     def test_then_without_if_in_an_unvisited_branch_is_exit_2(self):
         schema = json.loads(project_policy.SCHEMA.read_text(encoding="utf-8"))
         schema["properties"]["recovery"]["properties"]["runbook"]["then"] = {"required": ["path"]}
