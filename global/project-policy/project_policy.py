@@ -45,6 +45,41 @@ TYPES = {
 }
 
 
+# Every pattern the schema may use, compiled here from literals. A schema pattern is never compiled
+# from the file: a pattern outside this set is refused (exit 2), so no regular expression read from a
+# file reaches the engine (no ReDoS by file content), and an edit to a schema pattern must land here too.
+# [0-9], not \d: Python's \d also matches non-ASCII digits.
+KNOWN_PATTERNS = {p: re.compile(p) for p in (
+    r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+    r"^(?!/)(?!.*(^|/)\.\.(/|$))[A-Za-z0-9_./-]+\.md$",
+    r"^[a-z0-9][a-z0-9-]*$",
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+    r"^@[A-Za-z0-9-]+$",
+)}
+# What a broken schema can raise inside evaluate(): a type name the evaluator lacks (KeyError), a list
+# where a name belongs (TypeError), a non-string pattern (AttributeError), a schema that is not an object.
+CANNOT_EVALUATE = (KeyError, TypeError, AttributeError, ValueError, RecursionError)
+PROJECT_OPT, FILE_OPT = "--project=", "--file="
+
+
+def _count(v):
+    return isinstance(v, int) and not isinstance(v, bool) and v >= 0
+
+
+def _number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+# The value each applied keyword needs; a schema with another value cannot be evaluated.
+VALUE_SHAPES = {
+    "required": lambda v: isinstance(v, list) and all(isinstance(k, str) for k in v),
+    "enum": lambda v: isinstance(v, list),
+    "minItems": _count, "maxItems": _count, "minLength": _count,
+    "minimum": _number, "maximum": _number, "exclusiveMinimum": _number,
+    "uniqueItems": lambda v: isinstance(v, bool),
+}
+
+
 class SchemaError(ValueError):
     """The schema uses something this evaluator does not implement: the validator cannot decide."""
 
@@ -54,6 +89,50 @@ def same(a, b):
     if isinstance(a, bool) or isinstance(b, bool):
         return type(a) is type(b) and a == b
     return a == b
+
+
+def validate_schema(schema, path="$"):
+    """Raise SchemaError on any construct evaluate() cannot apply, anywhere in the schema.
+
+    evaluate() visits only the subschemas a document reaches, so its own refusals are lazy: a defect in
+    a branch the file skips (recovery under automatic-rollback, say) would go unseen and the file would
+    pass. This walk runs once over the whole schema before any file is read, so the validator refuses
+    to answer whatever the file contains. The checks in evaluate() stay as a second line.
+    """
+    if not isinstance(schema, dict):
+        raise SchemaError("%s: a subschema must be an object" % path)
+    unknown = set(schema) - KEYWORDS
+    if unknown:
+        raise SchemaError("%s: schema keyword not implemented: %s" % (path, sorted(unknown)))
+    kind = schema.get("type")
+    if kind is not None and not (isinstance(kind, str) and kind in TYPES):
+        raise SchemaError("%s: type not implemented: %s" % (path, json.dumps(kind)))
+    if "additionalProperties" in schema and not isinstance(schema["additionalProperties"], bool):
+        raise SchemaError("%s: only additionalProperties true or false is implemented" % path)
+    pattern = schema.get("pattern")
+    if pattern is not None:
+        if not (isinstance(pattern, str) and pattern.startswith("^") and pattern.endswith("$")):
+            raise SchemaError("%s: only patterns anchored with ^ and $ are implemented" % path)
+        if pattern not in KNOWN_PATTERNS:
+            raise SchemaError("%s: pattern not in the validator's known set: %s" % (path, pattern))
+    if "then" in schema and "if" not in schema:
+        raise SchemaError("%s: then without if" % path)
+    for key, ok in VALUE_SHAPES.items():
+        if key in schema and not ok(schema[key]):
+            raise SchemaError("%s: %s has a value this evaluator cannot apply" % (path, key))
+    properties = schema.get("properties", {})
+    if not isinstance(properties, dict):
+        raise SchemaError("%s: properties must be an object" % path)
+    for key, sub_schema in properties.items():
+        validate_schema(sub_schema, path + ".properties." + key)
+    for key in ("items", "contains", "if", "then"):
+        if key in schema:
+            validate_schema(schema[key], path + "." + key)
+    all_of = schema.get("allOf", [])
+    if not isinstance(all_of, list):
+        raise SchemaError("%s: allOf must be an array" % path)
+    for i, sub_schema in enumerate(all_of):
+        validate_schema(sub_schema, "%s.allOf[%d]" % (path, i))
 
 
 def evaluate(value, schema, path="$"):
@@ -103,15 +182,19 @@ def evaluate(value, schema, path="$"):
             errors.append((path, "maximum"))
         if "exclusiveMinimum" in schema and value <= schema["exclusiveMinimum"]:
             errors.append((path, "exclusiveMinimum"))
-    if "pattern" in schema and not (schema["pattern"].startswith("^") and schema["pattern"].endswith("$")):
-        raise SchemaError("%s: only patterns anchored with ^ and $ are implemented" % path)
+    pattern = schema.get("pattern")
+    if pattern is not None:
+        if not (isinstance(pattern, str) and pattern.startswith("^") and pattern.endswith("$")):
+            raise SchemaError("%s: only patterns anchored with ^ and $ are implemented" % path)
+        if pattern not in KNOWN_PATTERNS:
+            raise SchemaError("%s: pattern not in the validator's known set: %s" % (path, pattern))
     if isinstance(value, str):
         if len(value) < schema.get("minLength", 0):
             errors.append((path, "minLength"))
         # fullmatch, never search: under Python re a final $ also matches before a trailing newline,
         # where ECMA-262 (the dialect of JSON Schema) does not. On an anchored pattern, fullmatch
         # gives the ECMA answer.
-        if "pattern" in schema and not re.fullmatch(schema["pattern"], value):
+        if pattern is not None and not KNOWN_PATTERNS[pattern].fullmatch(value):
             errors.append((path, "pattern"))
     for sub in schema.get("allOf", []):
         errors.extend(evaluate(value, sub, path))
@@ -146,6 +229,9 @@ def _no_constant(name):
 
 def read(path):
     """The parsed file, or Refusal with the reason."""
+    # A directory is tested first: Windows raises PermissionError, not IsADirectoryError, on reading one.
+    if Path(path).is_dir():
+        raise Refusal("missing: %s is a directory, not a file" % path)
     try:
         raw = Path(path).read_bytes()
     except FileNotFoundError:
@@ -176,7 +262,7 @@ def classify(path, keyword, doc):
         return "missing or invalid risk classification"
     if path.startswith("$.approval"):
         return "risk-based approval weakened"
-    if path.startswith("$.mandatory_scenarios") or path.startswith("$.coverage"):
+    if path.startswith(("$.mandatory_scenarios", "$.coverage")):
         return "missing mandatory evidence"
     if path.startswith("$.madr"):
         return "project MADR not ratified"
@@ -234,6 +320,10 @@ def check(path, schema_path=SCHEMA, today=None):
     except (OSError, ValueError) as exc:
         return 2, ["ERROR  cannot read the contract schema: %s" % exc]
     try:
+        validate_schema(schema)
+    except CANNOT_EVALUATE as exc:
+        return 2, ["ERROR  the validator cannot evaluate its schema: %s: %s" % (type(exc).__name__, exc)]
+    try:
         doc = read(path)
     except Refusal as exc:
         return 1, ["FAIL  %s" % exc]
@@ -247,8 +337,9 @@ def check(path, schema_path=SCHEMA, today=None):
                    % (json.dumps(version), ", ".join(str(v) for v in KNOWN_VERSIONS))]
     try:
         errors = evaluate(doc, schema)
-    except SchemaError as exc:
-        return 2, ["ERROR  the validator cannot evaluate its schema: %s" % exc]
+    except CANNOT_EVALUATE as exc:
+        # A schema this evaluator cannot apply is no answer: never a pass, and not a contract failure.
+        return 2, ["ERROR  the validator cannot evaluate its schema: %s: %s" % (type(exc).__name__, exc)]
     errors += semantic_errors(doc, today or datetime.date.today())
     if not errors:
         return 0, ["OK  %s is a valid project-policy contract, schema_version %d" % (path, version)]
@@ -263,10 +354,10 @@ def main(argv):
         args = args[1:]
     project, file_ = None, None
     for arg in args:
-        if arg.startswith("--project=") and arg != "--project=":
-            project = arg[len("--project="):]
-        elif arg.startswith("--file=") and arg != "--file=":
-            file_ = arg[len("--file="):]
+        if arg.startswith(PROJECT_OPT) and arg != PROJECT_OPT:
+            project = arg[len(PROJECT_OPT):]
+        elif arg.startswith(FILE_OPT) and arg != FILE_OPT:
+            file_ = arg[len(FILE_OPT):]
         else:
             print("mhw policy check: unknown argument %s (--project=DIR or --file=PATH)" % arg,
                   file=sys.stderr)
