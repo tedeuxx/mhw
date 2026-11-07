@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "project": "tedeuxx/mhw",
+  "madr": {
+    "path": "docs/adr/0001-fixture-quality-bar.md",
+    "status": "accepted"
+  },
+  "coverage": {
+    "threshold_percent": 85,
+    "metric": "line"
+  },
+  "mandatory_scenarios": {
+    "critical_user_journeys": [
+      { "id": "greet-reader", "description": "The fixture app greets a reader by name." }
+    ],
+    "security_controls": [
+      "quality-scan",
+      "sast",
+      "owasp-vulnerability-coverage",
+      "authentication",
+      "authorization",
+      "encryption-in-transit",
+      "encryption-at-rest"
+    ],
+    "risk_scenarios": [
+      { "id": "no-unescaped-name", "description": "The fixture app never echoes markup from a name unescaped." }
+    ]
+  },
+  "severity": {
+    "tolerated": ["low"],
+    "unclassified": "block",
+    "inconclusive": "block"
+  },
+  "low_findings": {
+    "bug_issue_required": true,
+    "issue_label": "bug"
+  },
+  "risk_classification": {
+    "rules": [
+      { "class": "high", "when": "The change touches how the fixture app escapes a name." },
+      { "class": "low", "when": "Every other change." }
+    ],
+    "unclassified": "block"
+  },
+  "approval": {
+    "low_risk": "automatic-after-all-gates",
+    "high_risk": "owner-exact-revision"
+  },
+  "recovery": {
+    "mode": "automatic-rollback"
+  }
+}

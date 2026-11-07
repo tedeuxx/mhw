@@ -1,0 +1,68 @@
+# ADR-0015 lock 4 of 5 (Issue #246): the dry run of the reference CI/CD.
+#
+# It calls reference-delivery-gate.yml, the exact file a project would adopt, against the synthetic
+# fixture in global/project-policy/reference/fixture/, at this pull request's head. It DEPLOYS NOTHING:
+# there is no deployment job here and no job names an environment, so no environment is created.
+# The prod call reads installed-STG evidence from a local stand-in on the runner, not from an STG.
+# The fixture's seven security results are constants; docs/reference-cicd.md says what that leaves
+# unmeasured. Not a required check: it runs only when the reference or the policy files change.
+name: reference delivery dry run
+
+on:
+  pull_request:
+    branches: [main, rc/next]
+    paths:
+      - ".github/workflows/reference-delivery-gate.yml"
+      - ".github/workflows/reference-delivery-dry-run.yml"
+      - "global/project-policy/**"
+      - "docs/reference-cicd.md"
+
+permissions: {}
+
+jobs:
+  before-stg:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reference-delivery-gate.yml
+    with:
+      stage: stg
+      revision: ${{ github.event.pull_request.head.sha }}
+      mhw-revision: ${{ github.event.pull_request.head.sha }}
+      # python:3.12-bookworm (it carries git), digest read from Docker Hub 2026-11-07
+      container-image: python@sha256:4209fae09a3e20afd863e528bfddc235da5fd5977983e1996cd54cc9a72e6267
+      project-dir: global/project-policy/reference/fixture
+      test-command: python3 -B container_tests.py
+      evidence-retention-days: 7
+
+  before-prod:
+    needs: before-stg
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/reference-delivery-gate.yml
+    with:
+      stage: prod
+      revision: ${{ github.event.pull_request.head.sha }}
+      mhw-revision: ${{ github.event.pull_request.head.sha }}
+      container-image: python@sha256:4209fae09a3e20afd863e528bfddc235da5fd5977983e1996cd54cc9a72e6267
+      project-dir: global/project-policy/reference/fixture
+      test-command: python3 -B container_tests.py
+      stg-test-command: python3 -B stg_stand_in_tests.py
+      # Rule 1 of the fixture's contract, "Every other change": low risk, automatic approval, so this
+      # run reads no environment. The high-risk branch is in delivery_gate_test.py, not in this run.
+      risk-rules: "1"
+      evidence-retention-days: 7
+
+  report:
+    needs: before-prod
+    runs-on: ubuntu-latest
+    steps:
+      - name: what the dry run decided
+        env:
+          RISK_CLASS: ${{ needs.before-prod.outputs.risk-class }}
+          APPROVAL: ${{ needs.before-prod.outputs.approval }}
+          PROD_ENV: ${{ needs.before-prod.outputs.prod-environment }}
+        run: |
+          echo "risk class: $RISK_CLASS; approval: $APPROVAL; a PROD job would name: $PROD_ENV"
+          echo "Nothing was deployed: this workflow has no deployment job."
+          [ "$RISK_CLASS" = low ] && [ "$APPROVAL" = automatic-after-all-gates ] && [ "$PROD_ENV" = production ]
