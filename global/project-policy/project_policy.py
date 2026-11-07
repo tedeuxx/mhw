@@ -316,8 +316,11 @@ def semantic_errors(doc, today):
 def check(path, schema_path=SCHEMA, today=None):
     """(code, lines): 0 and one OK line only when the file is a valid contract."""
     try:
-        schema = json.loads(Path(schema_path).read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
+        # The same strict parse as the project file: a NaN or Infinity bound, or a repeated key, in the
+        # validator's own schema would otherwise loosen a check silently (a NaN maximum passes 1000).
+        schema = json.loads(Path(schema_path).read_text(encoding="utf-8"),
+                            object_pairs_hook=_no_duplicates, parse_constant=_no_constant)
+    except (OSError, ValueError, RecursionError, Refusal) as exc:
         return 2, ["ERROR  cannot read the contract schema: %s" % exc]
     try:
         validate_schema(schema)
