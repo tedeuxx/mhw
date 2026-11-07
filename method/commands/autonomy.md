@@ -382,9 +382,18 @@ Follow `/agents-configuration`. Nothing here relaxes it:
   route. This is an instruction, not automatic capture; unknown runtime or plugin evidence stays
   unknown, and `dispatch-metrics` remains a separate instrument.
 - `product-lead` on reader-facing copy, long-form prose included — it holds the copy lens since
-  `marketing-lead` merged into it (2026-08-04), and its **truth findings block**. **Nothing enforces this
+  `marketing-lead` merged into it (2026-08-04), and its **truth findings block**. ~~**Nothing enforces this
   dispatch** — no check, job or hook — so an undispatched lens fails silently. Where the repo's guide
-  makes this the only review of copy, an undispatched one is the whole gate missing.
+  makes this the only review of copy, an undispatched one is the whole gate missing.~~ **Struck
+  2026-11-07 (mhw#197): the lens runs, and leaves its artifact, before the gate.** Derive the trigger
+  from the pull request's actual diff at its full current head, never from the type, the label or a
+  path list alone; when unsure, it is reader-facing. Post the lens's verdict verbatim as the one
+  canonical copy artifact on the pull request **before you dispatch `quality-assurance`**, and treat the
+  gate's round as complete only when a `gatekeeper-verdict` comment names the current head. The steps,
+  the artifact's shape, the carry-forward rule and the `content` exception are in the `orchestration`
+  skill, *Before the gate: the reader-facing lens leaves its artifact*. **Still nothing enforces the
+  dispatch**: it is an instruction, a forgotten one is now visible as a missing comment, and the gate's
+  refusal of criterion 10 is the backstop.
 - Adjacent debt is **named in the report**, never filed *by the review* — a review has no way to
   know whether anyone wants the work. *(The plugin's retired guard denied `gh issue create` to every
   subagent but `developer`; in this method that is an instruction.)* The **main loop may open

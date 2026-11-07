@@ -843,6 +843,70 @@ proposal at the sprint-06 planning, 2026-10-10 (*"de acordo com as sugestoes"*),
 `workspace/delivery_test.py`, each new negative case mutated on the source, red, restored, green). Not
 installed on the reference machine.
 
+## Amendment 2026-11-07: the reader-facing lens leaves its artifact before the gate (#197)
+
+Status unchanged (proposed). This extends the method-owned review route recorded in the 2026-10-15
+amendment (#176). It changes no hold, no verdict literal and no merge executor (#195, #133, #134).
+
+**Context.** The sprint-06 retrospective of the site repository recorded two pull requests that reached
+the gate with every other check green and came back `REQUEST-CHANGES` only because the reader-facing
+copy artifact was absent; the next gate verdict at the same head carried it and cleared. The cost was a
+gate round with no diff change. The method stated both halves of the gap: `autonomy` said nothing
+enforces the copy-lens dispatch, and the gate's brief made the gate itself relay the copy verdict, which
+can only happen after the gate is already running.
+
+**Decision.**
+
+- The `orchestration` skill gains *Before the gate: the reader-facing lens leaves its artifact*. Before
+  it dispatches `quality-assurance`, the orchestrator reads the pull request's actual diff at its full
+  current head; the type, the `reader-facing` label, path lists and extensions are signals only, and an
+  uncertain case is reader-facing. On a non-`content` diff that triggers, it dispatches `product-lead`
+  as the copy lens whatever the type and relays the verdict verbatim into one pull request comment
+  under the existing `copy-verdict` envelope: the full head, exactly one verdict literal, both labelled
+  classes and the complete public-safe text. That comment is the canonical copy artifact. A `content`
+  diff keeps its tracked review file. A moved head needs a fresh artifact; carry-forward needs proof
+  that the reader-facing projection is byte-identical. After the gate returns, the round is complete
+  only when a `gatekeeper-verdict` comment names the current head.
+- `quality-assurance` stops relaying. It re-derives the trigger, verifies and references the
+  pre-gate artifact, and returns criterion 10 unverified with `REQUEST-CHANGES` when the artifact is
+  absent, stale, incomplete, malformed or unsafe, or when a `BLOCKING` finding is unresolved. Dispatched
+  directly, it refuses rather than filling the gap. `product-lead` still posts nothing; `autonomy`
+  points at the skill.
+- The owner, 2026-10-18, on the build's open scope question: *"Toda solucao nao deveria dependenr de
+  scripts de suporte, tratando como exeção, preferindo recuros nativos de cada harness como mecanismo
+  de ancora de comportamento."* So `workspace/delivery.py` is not changed and no checker script is
+  added: the rule is carried by the method's native carriers (the skill, the command and two agent
+  briefs), and the gate's refusal is the backstop.
+
+**Considered options.**
+
+- **Chosen: orchestrator relays before the gate, gate refuses.** Trade-off: the relay returns to the
+  actor that once forgot it five times in one session (the gate's brief records it); the refusal turns
+  each lapse into one visible gate round instead of an unverified criterion.
+- **Rejected: a merge refusal in `workspace/delivery.py`, or a checker script beside it.** It would
+  make a missing or late artifact refusable in this repository, but only here, and it is a support
+  script, which the owner's ruling makes the exception.
+- **Rejected: keep the relay inside the gate.** It is the arrangement that produced the round cost.
+
+**Consequences.**
+
+- Good: whether the lens ran is readable on the pull request before the gate runs; the gate checks an
+  artifact instead of producing it; the open scenario is stated in every carrier.
+- Bad: one more comment on each reader-facing non-`content` pull request, posted by the orchestrator
+  under the same credential as the gate, so only the envelope distinguishes them. Public-safety of the
+  relayed text is a judgement, and a leak in a comment is not undone by deleting it; `mhw scan` reads
+  files and commits, not comment bodies. In this repository almost every slice touches Markdown, so the
+  copy lens runs on nearly every slice.
+- Breaking: a verdict that relays the copy fence inside the gate's own comment no longer satisfies
+  criterion 10. The cut is **major**.
+- Residual: nothing intercepts a dispatch; the ordering is an instruction. The orchestrator relay has
+  failed before, and whether it fails less often now is not measured.
+
+**Evidence level.** *Written*: `global/method/method_render_test.py` pins each new clause in the four
+method sources and in the rendered skill of all three agent harness carriers, each pin mutated on the
+source, red, restored, green. Not *enforced*: no layer reads the artifact before a dispatch or a merge.
+Not installed on the reference machine.
+
 ## Links
 
 - [Requirements document, section 6](../mhw-product-requirements-document-project.md#6-working-method-user-layer)
