@@ -112,7 +112,7 @@ class Contract(Base):
 
     def test_missing_madr_blocks(self):
         (self.project / "docs/adr/0001-fixture-quality-bar.md").unlink()
-        self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "missing or unreadable")
+        self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "is missing, unreadable or outside")
 
     def test_madr_linked_outside_the_project_blocks(self):
         outside = self.tmp / "elsewhere.md"
@@ -123,7 +123,21 @@ class Contract(Base):
             madr.symlink_to(outside)
         except (OSError, NotImplementedError):
             self.skipTest("this system cannot create a symbolic link")
-        self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "resolves outside the project")
+        self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "outside the project")
+
+    def test_madr_path_in_another_case_blocks(self):
+        # A case-insensitive file system would open it; the gate matches each name exactly, so the
+        # contract names the file the repository tracks.
+        self.contract(lambda d: d["madr"].update(path="docs/ADR/0001-fixture-quality-bar.md"))
+        self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "is missing, unreadable or outside")
+
+    def test_runbook_that_is_a_directory_blocks(self):
+        self.contract(lambda d: d.update(recovery={
+            "mode": "manual", "recovery_time_objective_minutes": 30,
+            "runbook": {"path": "docs/runbook.md", "last_tested": "2026-01-01"},
+            "operator": "@someone"}))
+        (self.project / "docs/runbook.md").mkdir()
+        self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "runbook docs/runbook.md")
 
     def test_madr_not_accepted_blocks(self):
         madr = self.project / "docs/adr/0001-fixture-quality-bar.md"

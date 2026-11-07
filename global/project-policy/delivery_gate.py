@@ -81,37 +81,47 @@ def gate_contract(project, repository=None):
     if repository is not None and contract["project"] != repository:
         blocks.append("contract: it governs %s, this run is in %s" % (contract["project"], repository))
     madr = inside(project, contract["madr"]["path"])
-    if madr is None:
-        blocks.append("contract: the project MADR %s resolves outside the project" % contract["madr"]["path"])
-    else:
+    text = None
+    if madr is not None:
         try:
             with open(madr, encoding="utf-8") as handle:
                 text = handle.read()
         except (OSError, UnicodeDecodeError):
-            blocks.append("contract: the project MADR %s is missing or unreadable"
-                          % contract["madr"]["path"])
-        else:
-            if not madr_status_accepted(text):
-                blocks.append("contract: the project MADR %s has no status line reading accepted"
-                              % contract["madr"]["path"])
+            text = None
+    if text is None:
+        blocks.append("contract: the project MADR %s is missing, unreadable or outside the project"
+                      % contract["madr"]["path"])
+    elif not madr_status_accepted(text):
+        blocks.append("contract: the project MADR %s has no status line reading accepted"
+                      % contract["madr"]["path"])
     recovery = contract["recovery"]
-    if recovery["mode"] == "manual":
-        runbook = inside(project, recovery["runbook"]["path"])
-        if runbook is None or not os.path.isfile(runbook):
-            blocks.append("contract: the recovery runbook %s is missing or outside the project"
-                          % recovery["runbook"]["path"])
+    if recovery["mode"] == "manual" and inside(project, recovery["runbook"]["path"]) is None:
+        blocks.append("contract: the recovery runbook %s is missing or outside the project"
+                      % recovery["runbook"]["path"])
     return blocks
 
 
 def inside(project, relative):
-    """The real path of relative under project, or None when it resolves outside it.
+    """The real path of the file relative names under project, or None when it is missing or leaves it.
 
-    The schema already refuses `..` and a leading `/`; this also refuses a symbolic link that leaves the
-    project, so a contract cannot make the gate read another file and call it the project's MADR."""
+    The path is rebuilt from directory listings, one component at a time, so the file opened is one
+    the listing returned, never a string from the contract. The schema already refuses `..` and a
+    leading `/`; the last check also refuses a symbolic link that leaves the project, so a contract
+    cannot make the gate read another file and call it the project's MADR."""
     root = os.path.realpath(project)
-    target = os.path.realpath(os.path.join(root, relative))
+    current = root
+    for part in relative.replace("\\", "/").split("/"):
+        try:
+            with os.scandir(current) as entries:
+                match = next((entry.name for entry in entries if entry.name == part), None)
+        except OSError:
+            return None
+        if match is None:
+            return None
+        current = os.path.join(current, match)
+    target = os.path.realpath(current)
     try:
-        if os.path.commonpath([root, target]) != root:
+        if os.path.commonpath([root, target]) != root or not os.path.isfile(target):
             return None
     except ValueError:  # Windows: another drive
         return None
