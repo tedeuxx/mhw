@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project-policy contract, schema_version 1 (ADR-0015, Issue #244)",
+  "description": "What a deploying project declares so that its CI/CD can apply ADR-0015's lock at the STG/PROD boundary. The constants encode the common floor that no project may weaken; the other values are the project's own, set by its ratified MADR. This file is the shape only: nothing in mhw reads a project's copy yet (the validator is Issue #245). Field reference: docs/project-policy-contract.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project",
+    "madr",
+    "coverage",
+    "mandatory_scenarios",
+    "severity",
+    "low_findings",
+    "risk_classification",
+    "approval",
+    "recovery"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "project": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "madr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "status"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))[A-Za-z0-9_./-]+\\.md$"
+        },
+        "status": { "type": "string", "const": "accepted" }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["threshold_percent", "metric"],
+      "properties": {
+        "threshold_percent": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 },
+        "metric": { "type": "string", "enum": ["line", "branch", "statement"] }
+      }
+    },
+    "mandatory_scenarios": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["critical_user_journeys", "security_controls", "risk_scenarios"],
+      "properties": {
+        "critical_user_journeys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "description"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+              "description": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "security_controls": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "quality-scan",
+              "sast",
+              "owasp-vulnerability-coverage",
+              "authentication",
+              "authorization",
+              "encryption-in-transit",
+              "encryption-at-rest",
+              "dast",
+              "dependency-scan",
+              "secret-scan"
+            ]
+          },
+          "allOf": [
+            { "contains": { "const": "quality-scan" } },
+            { "contains": { "const": "sast" } },
+            { "contains": { "const": "owasp-vulnerability-coverage" } },
+            { "contains": { "const": "authentication" } },
+            { "contains": { "const": "authorization" } },
+            { "contains": { "const": "encryption-in-transit" } },
+            { "contains": { "const": "encryption-at-rest" } }
+          ]
+        },
+        "risk_scenarios": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "description"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+              "description": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "severity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tolerated", "unclassified", "inconclusive"],
+      "properties": {
+        "tolerated": {
+          "type": "array",
+          "maxItems": 1,
+          "items": { "type": "string", "const": "low" }
+        },
+        "unclassified": { "type": "string", "const": "block" },
+        "inconclusive": { "type": "string", "const": "block" }
+      }
+    },
+    "low_findings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bug_issue_required", "issue_label"],
+      "properties": {
+        "bug_issue_required": { "type": "boolean", "const": true },
+        "issue_label": { "type": "string", "minLength": 1 }
+      }
+    },
+    "risk_classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rules", "unclassified"],
+      "properties": {
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "contains": {
+            "type": "object",
+            "required": ["class"],
+            "properties": { "class": { "const": "high" } }
+          },
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["class", "when"],
+            "properties": {
+              "class": { "type": "string", "enum": ["low", "high"] },
+              "when": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "unclassified": { "type": "string", "const": "block" }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["low_risk", "high_risk"],
+      "properties": {
+        "low_risk": { "type": "string", "enum": ["automatic-after-all-gates", "owner-exact-revision"] },
+        "high_risk": { "type": "string", "const": "owner-exact-revision" }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["automatic-rollback", "manual"] },
+        "recovery_time_objective_minutes": { "type": "integer", "minimum": 1 },
+        "runbook": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "last_tested"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))[A-Za-z0-9_./-]+\\.md$"
+            },
+            "last_tested": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+          }
+        },
+        "operator": { "type": "string", "pattern": "^@[A-Za-z0-9-]+$" }
+      },
+      "if": { "properties": { "mode": { "const": "manual" } } },
+      "then": { "required": ["recovery_time_objective_minutes", "runbook", "operator"] }
+    }
+  }
+}
