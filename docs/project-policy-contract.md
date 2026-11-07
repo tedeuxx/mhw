@@ -18,8 +18,8 @@ values, ratified in its own MADR.
 ([#244](https://github.com/tedeuxx/mhw/issues/244)). No `mhw` command validates a project's file
 yet: the fail-closed validator is [#245](https://github.com/tedeuxx/mhw/issues/245), the reference
 CI/CD that calls it is [#246](https://github.com/tedeuxx/mhw/issues/246), and the recovery reference is
-[#247](https://github.com/tedeuxx/mhw/issues/247). No project declares this contract, so no project's
-CI/CD carries ADR-0015's evidence, and the lock's deployment half stays written policy only.
+[#247](https://github.com/tedeuxx/mhw/issues/247). No project declares this contract. No project's
+CI/CD carries ADR-0015's evidence either, and the lock's deployment half stays written policy only.
 
 The suite checks the schema with a small JSON Schema evaluator that lives in the test file. It is not
 a tool and does not stand in for #245. It refuses any schema keyword it does not implement, so the
@@ -52,11 +52,19 @@ them any other way. A project may be stricter where the schema allows it, never 
 - only `low` findings are tolerated, or none;
 - an unclassified or inconclusive finding blocks;
 - every tolerated low finding needs a bug Issue;
-- an unclassified change blocks, and the risk model names at least one high-risk rule;
+- an unclassified change blocks;
 - a high-risk PROD deployment needs the owner's approval for the exact revision;
-- the minimum security evidence is present;
-- the project MADR is accepted;
-- manual recovery carries a recovery-time objective, a tested runbook and a named operator.
+- the seven minimum security controls are named;
+- the file declares the project MADR accepted;
+- manual recovery carries a recovery-time objective, a runbook with a last-tested date, and an
+  operator handle named as available for the deployment.
+
+One more constraint is **mhw's own guard, not ADR-0015 text**: the risk model must name at least one
+high-risk rule. Without one, the high-risk approval rule above would have nothing to apply to, so this
+guard is what makes ADR-0015's high-risk rule enforceable.
+
+The schema names these things; it checks no evidence. Whether the controls ran, the MADR is really
+accepted or the runbook was really tested is for a validator to read (#245, #246).
 
 ## Fields
 
@@ -119,7 +127,8 @@ What happens to a tolerated low finding.
 How the project classifies a deployment as low or high risk.
 
 - `rules`: at least one rule, and at least one of them of class `high`. A model with only `low`
-  rules would make the high-risk approval constant gate nothing. Each rule is an object with:
+  rules would make the high-risk approval constant gate nothing. This is mhw's own guard, not
+  ADR-0015 text. Each rule is an object with:
   - `class`: `low` or `high`;
   - `when`: the condition, in the words of the project's MADR.
 - `unclassified`: always `block`. A change no rule classifies blocks before approval.
@@ -135,7 +144,7 @@ Who authorises a PROD deployment, per risk class.
 
 What happens when a critical production validation fails.
 
-- `mode`: `automatic-rollback`, the default, which returns to the previous known-good version; or
+- `mode`: `automatic-rollback`, the ADR's default (the schema declares none), which returns to the previous known-good version; or
   `manual`, allowed only when automatic rollback is not reliable.
 - `recovery_time_objective_minutes`: required for `manual`. A whole number of minutes, at least 1,
   stated in the project's MADR.
