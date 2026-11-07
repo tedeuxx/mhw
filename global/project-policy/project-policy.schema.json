@@ -135,6 +135,11 @@
         "rules": {
           "type": "array",
           "minItems": 1,
+          "contains": {
+            "type": "object",
+            "required": ["class"],
+            "properties": { "class": { "const": "high" } }
+          },
           "items": {
             "type": "object",
             "additionalProperties": false,

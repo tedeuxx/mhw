@@ -9,7 +9,7 @@ values, ratified in its own MADR.
 | --- | --- |
 | `global/project-policy/project-policy.schema.json` | The contract, a JSON Schema (draft 2020-12), `schema_version` 1 |
 | `global/project-policy/project-policy.example.json` | A valid example for a synthetic project |
-| `global/project-policy/project-policy.invalid.json` | An invalid example that weakens six parts of the floor |
+| `global/project-policy/project-policy.invalid.json` | An invalid example that weakens seven parts of the floor |
 | `global/project-policy/project_policy_test.py` | The suite: the valid example passes, removing each required field fails, each floor is held |
 
 ## Evidence level, said first
@@ -24,6 +24,13 @@ CI/CD carries ADR-0015's evidence, and the lock's deployment half stays written 
 The suite checks the schema with a small JSON Schema evaluator that lives in the test file. It is not
 a tool and does not stand in for #245. It refuses any schema keyword it does not implement, so the
 schema cannot carry a rule the suite skips.
+
+**Patterns need full-match semantics, and the #245 validator must use them.** JSON Schema patterns
+are ECMA-262 regular expressions, where a final `$` does not match before a trailing newline. Python's
+`re.search` with the same `$` does, so `"@handle\n"` or a MADR path ending in a newline would pass.
+Every pattern here is anchored with `^` and `$`; the suite's evaluator refuses one that is not and
+matches with `re.fullmatch`, and it tests one trailing-newline case per pattern. A validator in
+another language must reach the same answer: an ECMA engine, or a full match.
 
 ## Where a project puts it
 
@@ -45,7 +52,7 @@ them any other way. A project may be stricter where the schema allows it, never 
 - only `low` findings are tolerated, or none;
 - an unclassified or inconclusive finding blocks;
 - every tolerated low finding needs a bug Issue;
-- an unclassified change blocks;
+- an unclassified change blocks, and the risk model names at least one high-risk rule;
 - a high-risk PROD deployment needs the owner's approval for the exact revision;
 - the minimum security evidence is present;
 - the project MADR is accepted;
@@ -111,7 +118,8 @@ What happens to a tolerated low finding.
 
 How the project classifies a deployment as low or high risk.
 
-- `rules`: at least one rule, each an object with:
+- `rules`: at least one rule, and at least one of them of class `high`. A model with only `low`
+  rules would make the high-risk approval constant gate nothing. Each rule is an object with:
   - `class`: `low` or `high`;
   - `when`: the condition, in the words of the project's MADR.
 - `unclassified`: always `block`. A change no rule classifies blocks before approval.

@@ -125,10 +125,15 @@ def evaluate(value, schema, path="$"):
             errors.append((path, "maximum"))
         if "exclusiveMinimum" in schema and value <= schema["exclusiveMinimum"]:
             errors.append((path, "exclusiveMinimum"))
+    if "pattern" in schema and not (schema["pattern"].startswith("^") and schema["pattern"].endswith("$")):
+        raise ValueError("%s: only patterns anchored with ^ and $ are implemented" % path)
     if isinstance(value, str):
         if len(value) < schema.get("minLength", 0):
             errors.append((path, "minLength"))
-        if "pattern" in schema and not re.search(schema["pattern"], value):
+        # fullmatch, not search: under Python re a final $ also matches before a trailing newline,
+        # where ECMA-262 (the dialect of JSON Schema) does not. On an anchored pattern, fullmatch
+        # gives the ECMA answer.
+        if "pattern" in schema and not re.fullmatch(schema["pattern"], value):
             errors.append((path, "pattern"))
     for sub in schema.get("allOf", []):
         errors.extend(evaluate(value, sub, path))
@@ -245,6 +250,7 @@ class ProjectPolicyContractTests(unittest.TestCase):
             ("$.severity.tolerated[1]", "const"),
             ("$.low_findings.bug_issue_required", "const"),
             ("$.approval.high_risk", "const"),
+            ("$.risk_classification.rules", "contains"),
             ("$.recovery.runbook", "required"),
             ("$.recovery.operator", "required"),
         ]:
@@ -293,6 +299,35 @@ class ProjectPolicyContractTests(unittest.TestCase):
                            "$.risk_classification.rules", "minItems")
         self.assertRejects(self.mutate(("risk_classification", "rules"), [{"class": "medium", "when": "x"}]),
                            "$.risk_classification.rules[0].class", "enum")
+
+    def test_the_risk_model_names_at_least_one_high_risk_rule(self):
+        # An all-low model would make approval.high_risk a constant that gates nothing.
+        all_low = [{"class": "low", "when": "Every change."}, {"class": "low", "when": "Docs only."}]
+        self.assertRejects(self.mutate(("risk_classification", "rules"), all_low),
+                           "$.risk_classification.rules", "contains")
+        one_high = [{"class": "high", "when": "Every change."}]
+        self.assertEqual(self.errors(self.mutate(("risk_classification", "rules"), one_high)), [],
+                         "an all-high model is stricter and allowed")
+
+    def test_patterns_refuse_a_trailing_newline(self):
+        # One negative case per pattern in the schema. ECMA-262 $ does not match before a final
+        # newline; Python re.search with $ does, so the #245 validator must use full-match semantics.
+        manual = manual_recovery(self.valid)
+        cases = [
+            (("project",), "example-owner/example-app\n", None, "$.project"),
+            (("madr", "path"), "docs/adr/0007-quality-bar-and-deployment-risk.md\n", None, "$.madr.path"),
+            (("mandatory_scenarios", "critical_user_journeys", 0, "id"), "sign-in\n", None,
+             "$.mandatory_scenarios.critical_user_journeys[0].id"),
+            (("mandatory_scenarios", "risk_scenarios", 0, "id"), "unpublished-draft-exposed\n", None,
+             "$.mandatory_scenarios.risk_scenarios[0].id"),
+            (("recovery", "runbook", "path"), "docs/runbooks/rollback.md\n", manual, "$.recovery.runbook.path"),
+            (("recovery", "runbook", "last_tested"), "2026-10-30\n", manual, "$.recovery.runbook.last_tested"),
+            (("recovery", "operator"), "@example-operator\n", manual, "$.recovery.operator"),
+        ]
+        self.assertEqual(len(cases), json.dumps(self.schema).count('"pattern"'), "one case per pattern")
+        for path, value, base, where in cases:
+            with self.subTest(field=where):
+                self.assertRejects(self.mutate(path, value, base), where, "pattern")
 
     def test_the_minimum_security_evidence_is_present(self):
         floor = ["quality-scan", "sast", "owasp-vulnerability-coverage", "authentication",
