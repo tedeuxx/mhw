@@ -40,6 +40,60 @@ The routing labels type an item by what it changes. Each type gets this chain:
   `product` by `product-lead` and `tech-lead` together. Who applies `ready`, and what records each
   transition, is the state table in `agents-configuration`. This list does not restate that table.
 
+### Before the gate: the reader-facing lens leaves its artifact (#197)
+
+**The pre-gate phase is incomplete until the copy artifact the diff requires is on the pull request.
+Do not dispatch `quality-assurance` before it is.**
+
+1. **Read the actual diff at its full current head.** Take `headRefOid` and `baseRefName` from
+   `gh pr view <n> --json headRefOid,baseRefName`, then read `git diff --no-renames
+   origin/<base>...<head>`. The Issue type, the `reader-facing` label, a path list and a file
+   extension are signals only. None of them is the definition, and none of them settles the question.
+2. **The trigger: the diff changes words or images a reader sees, human or machine.** That includes
+   crawler-facing text, generated output and output visible only in a preview. **When you cannot tell,
+   it is reader-facing.**
+3. **On a non-`content` diff that triggers, dispatch `product-lead` as the copy lens, whatever the
+   type, `loop` included.** It posts nothing. **You relay its returned verdict verbatim into one pull
+   request comment, before you dispatch the gate.** That comment is the canonical copy artifact; the
+   gate verifies and references it and does not post a second copy.
+4. **On a `content` diff, no copy verdict is owed.** The artifact is `docs/content-review/<slug>.md` at
+   the reviewed head, with its round section and terminal literal (the `content` row above).
+5. **The artifact's shape.** The comment opens with the envelope at column 0 and carries, in order, the
+   full forty-character head the lens read, exactly one lens verdict, and the lens's complete text with
+   its two labelled classes, each with its findings or `none`:
+
+   ```
+   <!-- copy-verdict: product-lead -->
+   head: <the full 40-character head SHA the lens read>
+   verdict: <exactly one of APPROVE, ADJUST, ESCALATE>
+   carried-from: <only on a carry-forward: the prior head, then the comparison evidence>
+
+   <the lens's verdict, verbatim and complete: BLOCKING (…or none), then ADVISORY (…or none)>
+   <!-- /copy-verdict -->
+   ```
+
+6. **What is not an artifact.** A verdict without both labelled classes, without exactly one verdict
+   literal, shortened, summarised, re-classified or carrying private-source content. **A verdict that
+   cannot safely be posted does not complete the phase: re-dispatch the lens for a public-safe verdict;
+   never paraphrase it in transit.** A long verdict is posted whole: a `<details>` fold is
+   presentation, and past the forge's comment limit a second comment under the same envelope says it
+   is part 2 of 2. **If the comment cannot be posted, the phase is incomplete and the gate waits.**
+7. **A moved head needs a new artifact at the new head.** Carry forward only when you prove the
+   reader-facing projection byte-identical, for example by equal `git patch-id --stable` output over
+   the reader-facing part of the diff at both heads, and post a fresh artifact for the new head whose
+   `carried-from:` line names the prior head and that evidence. Otherwise the lens runs again.
+8. **After the gate returns, the round is complete only when the pull request carries a
+   `gatekeeper-verdict` comment whose `head:` line names the current full head.** Returned text alone
+   completes nothing. Never post the gate's verdict yourself; re-dispatch it or report the failure.
+
+**What holds this, at its real level: an instruction.** No available layer can intercept an agent
+dispatch. The pull request comment makes compliance observable, and the gate's refusal of criterion 10
+on a missing, stale, incomplete or unsafe artifact is the merge backstop. **The open scenario, stated
+rather than hidden:** a relay by the orchestrator has failed before. The gate's brief records it
+forgotten five times in one session, which is why the relay moved into the gate. This rule moves it
+back to the orchestrator and earlier; a forgotten relay now costs one gate round, not a silently
+unverified criterion.
+
 ## The loop-mode contract
 
 The **record** of which mode is in force is `docs/loop-mode.md` in each repository. It carries the
@@ -137,4 +191,6 @@ that the owner-read sentence is identical in its three copies and that no method
 pattern `ARTIFACT_READ` in that test, which recognises two phrasings of an Artifact for the owner's
 read. Other phrasings pass. It also asserts that the sentence on reporting a `content` piece as
 published is in *How to ask the owner*, and that `content-publishing` steps 9 and 10 carry the
-definition and the order (mhw#238). It asserts the rules are *written*, never that a session followed them.
+definition and the order (mhw#238). It also pins the clauses of *Before the gate* here, the matching
+clauses in `autonomy`, `quality-assurance` and `product-lead`, and the rendered skill in the Claude
+Code, Codex and Kiro carriers (mhw#197). It asserts the rules are *written*, never that a session followed them.

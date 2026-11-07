@@ -324,7 +324,8 @@ marker. `agents-lead` does —
 `gh pr view <n> --json comments --jq '[.comments[]|select(.body|test("harness-lead-verdict"))]|length'`
 returns 1, 2 and 1 on `-skills`#417, #415 and #414, and 3 on #348. **`product-lead` posts nothing**:
 its brief tells it not to use the comment subcommands (formerly the plugin's rule 5e; now an instruction), so its findings reach the PR only as a
-verbatim quote inside the gate's own marker. **The repository check is narrower: no product-lens
+verbatim quote ~~inside the gate's own marker~~ that another actor posts: since mhw#197 the
+orchestrator's pre-gate copy artifact, one comment per head under the `copy-verdict` envelope. **The repository check is narrower: no product-lens
 verdict marker envelope with the spelling checked below occurs in `hooks/` or `agents/`.**
 `rg -n '<!-- [p]roduct-lead-verdict:' hooks/ agents/` returns no output (exit 1);
 `rg -n '<!-- [h]arness-lead-verdict:' hooks/ agents/` is the positive control and returns the existing
