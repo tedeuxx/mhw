@@ -1,0 +1,262 @@
+# ADR-0015 lock 4 of 5 (Issue #246): the reference CI/CD's gates, as a reusable workflow.
+#
+# REFERENCE ONLY. Nothing in this repository deploys through it, and no repository calls it except
+# reference-delivery-dry-run.yml, which runs it against a synthetic fixture and deploys nothing. A
+# project adopts it through its own Issue (docs/reference-cicd.md, "Adopting it"). It has no trigger
+# of its own (workflow_call only) and no job here names an environment, so calling it creates none.
+#
+# One call per boundary:
+#   stage: stg   the contract gate, then containerised evidence for the exact revision. Run it before
+#                the STG deployment.
+#   stage: prod  the same two, then installed-STG evidence for that revision, then the risk class and
+#                the environment the PROD deployment job must name. Run it after STG, before PROD.
+# The caller's deployment jobs `needs:` this one; see global/project-policy/reference/caller-workflow.yml.
+#
+# Every gate is global/project-policy/delivery_gate.py from mhw at `mhw-revision`, and every gate
+# fails closed: exit 1 blocks, exit 2 (cannot decide) blocks too. Inputs reach scripts through env,
+# never by expression interpolation into a run block.
+name: reference delivery gate
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        description: "stg (before the STG deployment) or prod (after STG, before PROD)"
+        type: string
+        required: true
+      revision:
+        description: "The exact commit under test, the full 40-character SHA"
+        type: string
+        required: true
+      mhw-revision:
+        description: "The mhw commit whose validator and gates run, the full 40-character SHA (the same one as in uses:)"
+        type: string
+        required: true
+      container-image:
+        description: "The image the containerised evidence runs in, pinned by digest (name@sha256:...)"
+        type: string
+        required: true
+      project-dir:
+        description: "The directory holding project-policy.json, relative to the repository root"
+        type: string
+        default: "."
+      test-command:
+        description: "Runs in the container in project-dir; writes the evidence file named by $DELIVERY_EVIDENCE"
+        type: string
+        required: true
+      stg-test-command:
+        description: "stage prod only: runs on the runner against the installed STG; writes $DELIVERY_EVIDENCE"
+        type: string
+        default: ""
+      risk-rules:
+        description: "stage prod only: the contract's risk rules this change matches, as indices (0,2); empty blocks"
+        type: string
+        default: ""
+      prod-environment:
+        description: "The environment a low-risk PROD deployment with automatic approval names"
+        type: string
+        default: "production"
+      owner-approval-environment:
+        description: "The environment that requires the owner's review; a high-risk PROD deployment names it"
+        type: string
+        default: "production-owner-approval"
+      evidence-retention-days:
+        description: "How long the evidence artifacts are kept"
+        type: number
+        default: 30
+    outputs:
+      risk-class:
+        description: "stage prod: low or high"
+        value: ${{ jobs.authorisation.outputs.risk-class }}
+      approval:
+        description: "stage prod: automatic-after-all-gates or owner-exact-revision"
+        value: ${{ jobs.authorisation.outputs.approval }}
+      prod-environment:
+        description: "stage prod: the environment the PROD deployment job must name"
+        value: ${{ jobs.authorisation.outputs.prod-environment }}
+
+permissions: {}
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: inputs are exact (fail closed)
+        env:
+          STAGE: ${{ inputs.stage }}
+          REVISION: ${{ inputs.revision }}
+          MHW_REVISION: ${{ inputs.mhw-revision }}
+          IMAGE: ${{ inputs.container-image }}
+        run: |
+          case "$STAGE" in stg|prod) ;; *) echo "BLOCK  stage must be stg or prod, not '$STAGE'"; exit 1 ;; esac
+          [[ "$REVISION" =~ ^[0-9a-f]{40}$ ]] || { echo "BLOCK  revision is not a full commit SHA"; exit 1; }
+          [[ "$MHW_REVISION" =~ ^[0-9a-f]{40}$ ]] || { echo "BLOCK  mhw-revision is not a full commit SHA"; exit 1; }
+          [[ "$IMAGE" =~ ^[^@[:space:]]+@sha256:[0-9a-f]{64}$ ]] || { echo "BLOCK  container-image is not pinned by digest"; exit 1; }
+      # actions/checkout v6.1.0 (the pin tests.yml uses)
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ inputs.revision }}
+          path: project
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: tedeuxx/mhw
+          ref: ${{ inputs.mhw-revision }}
+          path: mhw
+          persist-credentials: false
+      - name: the validator, a required step (mhw policy check)
+        env:
+          PROJECT_DIR: ${{ inputs.project-dir }}
+        run: python3 -B mhw/global/project-policy/project_policy.py check --project="project/$PROJECT_DIR"
+      - name: the contract gate (bound to this repository; the MADR exists and is accepted)
+        env:
+          PROJECT_DIR: ${{ inputs.project-dir }}
+        run: python3 -B mhw/global/project-policy/delivery_gate.py contract --project="project/$PROJECT_DIR" --repository="$GITHUB_REPOSITORY"
+
+  containerised:
+    needs: contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: ${{ inputs.container-image }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ inputs.revision }}
+          path: project
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: tedeuxx/mhw
+          ref: ${{ inputs.mhw-revision }}
+          path: mhw
+          persist-credentials: false
+      - name: the project's tests, in the container, on the exact revision
+        working-directory: project/${{ inputs.project-dir }}
+        env:
+          TEST_COMMAND: ${{ inputs.test-command }}
+          DELIVERY_EVIDENCE: ${{ runner.temp }}/evidence-container.json
+          DELIVERY_REVISION: ${{ inputs.revision }}
+          DELIVERY_CONTAINER_IMAGE: ${{ inputs.container-image }}
+        shell: bash
+        run: bash -c "$TEST_COMMAND"
+      - name: the containerised evidence gate
+        env:
+          PROJECT_DIR: ${{ inputs.project-dir }}
+          EVIDENCE: ${{ runner.temp }}/evidence-container.json
+          REVISION: ${{ inputs.revision }}
+          IMAGE: ${{ inputs.container-image }}
+        shell: bash
+        run: |
+          git config --global --add safe.directory "$PWD/project"
+          head=$(git -C project rev-parse HEAD)
+          python3 -B mhw/global/project-policy/delivery_gate.py container --project="project/$PROJECT_DIR" \
+            --evidence="$EVIDENCE" --revision="$REVISION" --checkout-head="$head" \
+            --container-image="$IMAGE"
+      # actions/upload-artifact v4.6.2 (verified with git ls-remote 2026-11-07)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: evidence-${{ inputs.stage }}-container-${{ inputs.revision }}
+          path: ${{ runner.temp }}/evidence-container.json
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: warn
+
+  installed-stg:
+    if: inputs.stage == 'prod'
+    needs: containerised
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ inputs.revision }}
+          path: project
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: tedeuxx/mhw
+          ref: ${{ inputs.mhw-revision }}
+          path: mhw
+          persist-credentials: false
+      - name: the project's tests against the installed STG
+        working-directory: project/${{ inputs.project-dir }}
+        env:
+          STG_TEST_COMMAND: ${{ inputs.stg-test-command }}
+          DELIVERY_EVIDENCE: ${{ runner.temp }}/evidence-installed-stg.json
+          DELIVERY_REVISION: ${{ inputs.revision }}
+        run: |
+          [ -n "$STG_TEST_COMMAND" ] || { echo "BLOCK  stage prod needs stg-test-command (installed-STG evidence)"; exit 1; }
+          bash -c "$STG_TEST_COMMAND"
+      - name: the installed-STG evidence gate
+        env:
+          PROJECT_DIR: ${{ inputs.project-dir }}
+          EVIDENCE: ${{ runner.temp }}/evidence-installed-stg.json
+          REVISION: ${{ inputs.revision }}
+        run: |
+          head=$(git -C project rev-parse HEAD)
+          python3 -B mhw/global/project-policy/delivery_gate.py installed-stg --project="project/$PROJECT_DIR" \
+            --evidence="$EVIDENCE" --revision="$REVISION" --checkout-head="$head"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: evidence-prod-installed-stg-${{ inputs.revision }}
+          path: ${{ runner.temp }}/evidence-installed-stg.json
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: warn
+
+  authorisation:
+    if: inputs.stage == 'prod'
+    needs: installed-stg
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      risk-class: ${{ steps.classify.outputs.class }}
+      approval: ${{ steps.classify.outputs.approval }}
+      prod-environment: ${{ steps.environment.outputs.name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ inputs.revision }}
+          path: project
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: tedeuxx/mhw
+          ref: ${{ inputs.mhw-revision }}
+          path: mhw
+          persist-credentials: false
+      - name: classify the change (a high rule wins; no rule blocks)
+        id: classify
+        env:
+          PROJECT_DIR: ${{ inputs.project-dir }}
+          RISK_RULES: ${{ inputs.risk-rules }}
+        run: |
+          out=$(python3 -B mhw/global/project-policy/delivery_gate.py classify --project="project/$PROJECT_DIR" --rules="$RISK_RULES")
+          echo "$out"
+          echo "$out" >> "$GITHUB_OUTPUT"
+      - name: the environment the PROD job must name (a required reviewer is checked)
+        id: environment
+        env:
+          APPROVAL: ${{ steps.classify.outputs.approval }}
+          LOW_ENV: ${{ inputs.prod-environment }}
+          OWNER_ENV: ${{ inputs.owner-approval-environment }}
+          GH_TOKEN: ${{ github.token }}
+          PROTECTION: ${{ runner.temp }}/environment.json
+        run: |
+          if [ "$APPROVAL" = "automatic-after-all-gates" ]; then
+            echo "name=$LOW_ENV" >> "$GITHUB_OUTPUT"
+            echo "automatic approval after every gate: $LOW_ENV"
+            exit 0
+          fi
+          [ "$APPROVAL" = "owner-exact-revision" ] || { echo "BLOCK  unknown approval '$APPROVAL'"; exit 1; }
+          # A job that names a missing environment creates it unprotected, so its protection is read first.
+          gh api "repos/$GITHUB_REPOSITORY/environments/$OWNER_ENV" > "$PROTECTION" || echo '{}' > "$PROTECTION"
+          python3 -B mhw/global/project-policy/delivery_gate.py environment --name="$OWNER_ENV" --protection="$PROTECTION"
+          echo "name=$OWNER_ENV" >> "$GITHUB_OUTPUT"

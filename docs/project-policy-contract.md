@@ -19,7 +19,7 @@ values, ratified in its own MADR.
 **Written and tested; no project runs it.** The schema and its examples are
 [#244](https://github.com/tedeuxx/mhw/issues/244); `mhw policy check`, the fail-closed validator, is
 [#245](https://github.com/tedeuxx/mhw/issues/245). The reference CI/CD that calls the validator is
-[#246](https://github.com/tedeuxx/mhw/issues/246), and the recovery reference is
+[#246](https://github.com/tedeuxx/mhw/issues/246) ([docs/reference-cicd.md](reference-cicd.md)), and the recovery reference is
 [#247](https://github.com/tedeuxx/mhw/issues/247). No project declares this contract and no project's
 CI/CD runs the validator, so it is not installed, loaded or enforced anywhere. No project's CI/CD
 carries ADR-0015's evidence either, and the lock's deployment half stays written policy only.
@@ -99,7 +99,7 @@ one; that holds only where a project's CI/CD runs the check, and none does yet.
 
 The schema names these things; it checks no evidence, and neither does the validator. Whether the
 controls ran, the MADR is really accepted or the runbook was really tested is for the reference CI/CD
-to read (#246).
+to read (#246, [docs/reference-cicd.md](reference-cicd.md); it reads what it can and names the rest).
 
 ## Fields
 
@@ -195,22 +195,25 @@ The contract only names the mode. What a runbook must contain is #247.
 ## What this contract does not cover
 
 - **No project runs the check.** `mhw policy check` exists (#245), but a file that breaks the
-  contract fails only where a project's CI/CD calls it. Wiring it in as a required step is #246's
-  reference, and adopting that in any repository needs that repository's own Issue.
+  contract fails only where a project's CI/CD calls it. #246's reference workflow runs it as a
+  required step; adopting that in any repository needs that repository's own Issue.
 - **The validator reads no evidence and no findings.** It checks the contract a project declares,
   not a deployment. Applying the contract to a revision's actual findings and test results, and
-  binding them to the exact revision, is #246 (with #193's evidence binding).
+  binding them to the exact revision, is #246's `delivery_gate.py` (see
+  [docs/reference-cicd.md](reference-cicd.md)).
 - **The schema checks shape, not truth.** Neither it nor the validator can tell whether the MADR at
   `madr.path` exists or is really accepted, whether the runbook was really tested on `last_tested`,
-  how long ago that may be, or whether the operator is available. Those need evidence, which is #246.
+  how long ago that may be, or whether the operator is available. #246's contract gate reads that
+  the MADR and a manual-recovery runbook exist and that the MADR's status line reads accepted; the
+  rest stays unchecked.
 - **`when` is free text, and nothing resolves a conflict between rules.** The validator does not read
   a change, so it cannot apply a rule. When a change matches both a `low` and a `high` rule, which wins
-  is undefined in `schema_version` 1. The conservative reading is that `high` wins and no match blocks;
-  defining that, or a machine-readable `when`, belongs with whatever classifies a real change (#246)
-  and, if it changes what a version 1 file means, a `schema_version` 2.
+  is undefined in `schema_version` 1. #246's `classify` gate applies the conservative reading: `high`
+  wins and no match blocks; a person still applies each rule's words. A machine-readable `when`
+  would change what a version 1 file means, so it needs a `schema_version` 2.
 - **`operator` names one account, never a team.** `@org/team` fails the pattern on purpose: ADR-0015
   asks for an identified operator, and a team handle does not identify who is available.
 - **Which test layers a project runs** (unit, API, end to end, installed-STG) is not a field. ADR-0015
-  asks for every applicable layer; how the reference CI/CD records them is #246.
+  asks for every applicable layer; #246's evidence file records them as `test_layers`.
 - **No enforcement anywhere.** By the workstation's evidence words, the contract and its validator are
   *written* and tested. Neither is installed in any project, loaded or enforced.

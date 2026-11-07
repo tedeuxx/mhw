@@ -1,0 +1,100 @@
+# TEMPLATE, NOT LIVE (ADR-0015 lock 4 of 5, mhw Issue #246). A project copies this into its own
+# .github/workflows/ through its own adoption Issue; nothing in mhw runs it. The angle-bracket values
+# are the project's. It has never run anywhere: the dry run exercises the gate workflow it calls, not
+# these deployment jobs. Read docs/reference-cicd.md in mhw before adopting it.
+#
+# The project must, in its own repository and by its owner's act: create an environment `staging`,
+# `production` and `production-owner-approval`, the last with the owner as required reviewer; label
+# each merged pull request with the risk rules it matches, `risk-rule:<index>`; and expose the
+# commit the installed STG runs, so its STG test command can report it.
+name: delivery
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: delivery
+  cancel-in-progress: false
+
+jobs:
+  gates-before-stg:
+    # actions: read is for the called workflow's authorisation job, which GitHub checks even when the
+    # stg call skips it.
+    permissions:
+      contents: read
+      actions: read
+    # The same mhw commit in uses: and mhw-revision.
+    uses: tedeuxx/mhw/.github/workflows/reference-delivery-gate.yml@<mhw-commit-sha>
+    with:
+      stage: stg
+      revision: ${{ github.sha }}
+      mhw-revision: <mhw-commit-sha>
+      container-image: <image>@sha256:<digest>
+      test-command: <the command that runs every containerisable test layer and writes $DELIVERY_EVIDENCE>
+
+  deploy-stg:
+    needs: gates-before-stg
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - run: <deploy this revision to STG>
+
+  risk-rules:
+    needs: deploy-stg
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      rules: ${{ steps.labels.outputs.rules }}
+    steps:
+      - id: labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # The risk-rule:<index> labels of the pull request this commit merged. None -> empty -> blocks.
+        run: |
+          rules=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+            --jq '[.[0].labels[].name | select(startswith("risk-rule:")) | ltrimstr("risk-rule:")] | join(",")')
+          echo "rules=$rules" >> "$GITHUB_OUTPUT"
+
+  gates-before-prod:
+    needs: risk-rules
+    permissions:
+      contents: read
+      actions: read
+    uses: tedeuxx/mhw/.github/workflows/reference-delivery-gate.yml@<mhw-commit-sha>
+    with:
+      stage: prod
+      revision: ${{ github.sha }}
+      mhw-revision: <mhw-commit-sha>
+      container-image: <image>@sha256:<digest>
+      test-command: <the same containerised test command>
+      stg-test-command: <the command that tests the installed STG, reads the commit it runs and writes $DELIVERY_EVIDENCE>
+      risk-rules: ${{ needs.risk-rules.outputs.rules }}
+
+  deploy-prod:
+    needs: gates-before-prod
+    runs-on: ubuntu-latest
+    # production for a low-risk change with automatic approval; production-owner-approval otherwise,
+    # which waits for a required reviewer (the owner, if the project set it so) to approve this run,
+    # at this revision.
+    environment: ${{ needs.gates-before-prod.outputs.prod-environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - run: <deploy this revision to PROD; on a failed critical validation, the recovery reference (#247)>

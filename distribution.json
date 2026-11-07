@@ -90,7 +90,7 @@
       "id": "project-policy-contract",
       "layer": "user",
       "paths": ["global/project-policy/"],
-      "gap": "A contract a deploying project declares, not a harness carrier: install.sh renders nothing from it. Written and tested only; mhw policy check validates a project's copy (#245), but no project declares one or runs the check (ADR-0015, #244)."
+      "gap": "A contract a deploying project declares, not a harness carrier: install.sh renders nothing from it. Written and tested only; mhw policy check validates a project's copy (#245) and delivery_gate.py applies it to a revision's evidence in the reference CI/CD (#246, docs/reference-cicd.md), but no project declares one or runs either (ADR-0015, #244)."
     },
     {
       "id": "model-defaults",
