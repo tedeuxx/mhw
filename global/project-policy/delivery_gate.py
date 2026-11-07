@@ -47,6 +47,7 @@ IMAGE = re.compile(r"[^@\s]+@sha256:[0-9a-f]{64}")
 BUG_ISSUE = re.compile(r"#[0-9]+|https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/issues/[0-9]+")
 SEVERITIES = project_policy.SEVERITIES
 DOCKERENV = Path("/.dockerenv")
+SCHEMA = project_policy.SCHEMA
 
 CONTAINER_KEYS = {"layer", "revision", "container_image", "test_layers", "coverage",
                   "critical_user_journeys", "risk_scenarios", "security_controls", "findings"}
@@ -64,12 +65,17 @@ class Usage(Exception):
 def load_contract(project):
     """(contract, blocks). The contract is valid only when blocks is empty."""
     path = Path(project) / project_policy.FILE_NAME
-    code, lines = project_policy.check(str(path))
+    # check() is lock 3's whole route: the strict parse and the walk of its own schema, then the file.
+    code, lines = project_policy.check(str(path), schema_path=SCHEMA)
     if code == 2:
         raise Usage("the validator cannot decide on %s: %s" % (path, "; ".join(lines)))
     if code != 0:
         return None, ["contract: %s" % line for line in lines]
-    return json.loads(path.read_text(encoding="utf-8")), []
+    # The gates read the contract through the same strict parse check() used, never a looser second one.
+    try:
+        return project_policy.read(str(path)), []
+    except project_policy.Refusal as exc:
+        return None, ["contract: FAIL  %s" % exc]
 
 
 def madr_status_accepted(text):
