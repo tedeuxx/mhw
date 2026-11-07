@@ -283,6 +283,28 @@ class ProjectPolicyContractTests(unittest.TestCase):
         self.assertRejects(self.mutate(("schema_version",), True), "$.schema_version", "type")
         self.assertRejects(self.mutate(("skip_gates",), True), "$.skip_gates", "additionalProperties")
 
+    def test_every_object_rejects_an_unknown_key(self):
+        # QA advisory A1 on #447: dropping additionalProperties false from one nested object left the
+        # suite green. Each object is pinned here, not read from the schema, so dropping it turns red.
+        manual = manual_recovery(self.valid)
+        objects = [
+            (), ("madr",), ("coverage",), ("mandatory_scenarios",),
+            ("mandatory_scenarios", "critical_user_journeys", 0), ("mandatory_scenarios", "risk_scenarios", 0),
+            ("severity",), ("low_findings",), ("risk_classification",), ("risk_classification", "rules", 0),
+            ("approval",), ("recovery",), ("recovery", "runbook"),
+        ]
+        self.assertEqual(len(objects), json.dumps(self.schema).count('"additionalProperties": false'),
+                         "one case per object that declares it")
+        for trail in objects:
+            where = "$" + "".join("[%d]" % s if isinstance(s, int) else "." + s for s in trail)
+            with self.subTest(object=where):
+                doc = copy.deepcopy(manual)
+                parent = doc
+                for step in trail:
+                    parent = parent[step]
+                parent["skip_gates"] = True
+                self.assertRejects(doc, where + ".skip_gates", "additionalProperties")
+
     # -- calibration of the evaluator itself, and the field reference -----------------------------
 
     def test_the_evaluator_refuses_keywords_it_does_not_implement(self):
