@@ -24,6 +24,7 @@ project's own test command told the truth; see docs/reference-cicd.md, "What it 
 Standard library only, Python 3.9+, any operating system.
 """
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -79,21 +80,42 @@ def gate_contract(project, repository=None):
         return blocks
     if repository is not None and contract["project"] != repository:
         blocks.append("contract: it governs %s, this run is in %s" % (contract["project"], repository))
-    madr = Path(project) / contract["madr"]["path"]
-    try:
-        text = madr.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        blocks.append("contract: the project MADR %s is missing or unreadable" % contract["madr"]["path"])
+    madr = inside(project, contract["madr"]["path"])
+    if madr is None:
+        blocks.append("contract: the project MADR %s resolves outside the project" % contract["madr"]["path"])
     else:
-        if not madr_status_accepted(text):
-            blocks.append("contract: the project MADR %s has no status line reading accepted"
+        try:
+            with open(madr, encoding="utf-8") as handle:
+                text = handle.read()
+        except (OSError, UnicodeDecodeError):
+            blocks.append("contract: the project MADR %s is missing or unreadable"
                           % contract["madr"]["path"])
+        else:
+            if not madr_status_accepted(text):
+                blocks.append("contract: the project MADR %s has no status line reading accepted"
+                              % contract["madr"]["path"])
     recovery = contract["recovery"]
     if recovery["mode"] == "manual":
-        runbook = Path(project) / recovery["runbook"]["path"]
-        if not runbook.is_file():
-            blocks.append("contract: the recovery runbook %s is missing" % recovery["runbook"]["path"])
+        runbook = inside(project, recovery["runbook"]["path"])
+        if runbook is None or not os.path.isfile(runbook):
+            blocks.append("contract: the recovery runbook %s is missing or outside the project"
+                          % recovery["runbook"]["path"])
     return blocks
+
+
+def inside(project, relative):
+    """The real path of relative under project, or None when it resolves outside it.
+
+    The schema already refuses `..` and a leading `/`; this also refuses a symbolic link that leaves the
+    project, so a contract cannot make the gate read another file and call it the project's MADR."""
+    root = os.path.realpath(project)
+    target = os.path.realpath(os.path.join(root, relative))
+    try:
+        if os.path.commonpath([root, target]) != root:
+            return None
+    except ValueError:  # Windows: another drive
+        return None
+    return target
 
 
 # -- evidence -------------------------------------------------------------------------------------

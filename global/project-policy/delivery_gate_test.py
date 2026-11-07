@@ -114,6 +114,17 @@ class Contract(Base):
         (self.project / "docs/adr/0001-fixture-quality-bar.md").unlink()
         self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "missing or unreadable")
 
+    def test_madr_linked_outside_the_project_blocks(self):
+        outside = self.tmp / "elsewhere.md"
+        outside.write_text("- **Status:** accepted\n", encoding="utf-8")
+        madr = self.project / "docs/adr/0001-fixture-quality-bar.md"
+        madr.unlink()
+        try:
+            madr.symlink_to(outside)
+        except (OSError, NotImplementedError):
+            self.skipTest("this system cannot create a symbolic link")
+        self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "resolves outside the project")
+
     def test_madr_not_accepted_blocks(self):
         madr = self.project / "docs/adr/0001-fixture-quality-bar.md"
         madr.write_text("- **Status:** ~~accepted~~ proposed\n", encoding="utf-8")
