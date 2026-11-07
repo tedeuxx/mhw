@@ -18,7 +18,8 @@ each gate, a caller template with the deployment jobs, and a dry run against a s
 
 **Written and tested; dry-run measured in mhw's own CI against a synthetic fixture. No project runs
 it.** The dry run calls the exact reusable workflow a project would adopt, at the pull request's head,
-and records its run URL on the pull request that introduced it ([#246](https://github.com/tedeuxx/mhw/issues/246)).
+and its run URL is recorded in the body of the pull request that introduced it
+([#246](https://github.com/tedeuxx/mhw/issues/246)).
 It deploys nothing, so it measures the gates and their binding, never a deployment. The deployment jobs
 in the caller template have never run anywhere. No project calls the workflow, so the lock's deployment
 half is not installed, loaded or enforced in any repository.
@@ -36,8 +37,8 @@ Each gate is one `delivery_gate.py` command. Every one re-validates the contract
 | Gate | When | Evidence it reads | It blocks when | What it does not cover |
 | --- | --- | --- | --- | --- |
 | `mhw policy check` (lock 3) | first, before STG and before PROD | the contract, `project-policy.json` | the contract is missing, malformed, of an unknown version, or breaks the floor | anything but the contract |
-| `contract` | right after it | the contract, the MADR file at `madr.path`, the runbook file for manual recovery | the contract governs another repository; the MADR is missing, resolves outside the project (a symbolic link included) or its status line does not read `accepted`; a manual-recovery runbook file is missing or outside the project | whether the owner really ratified the MADR, or the runbook was really tested on `last_tested` |
-| `container` | before STG and before PROD | the evidence the project's test command writes in the digest-pinned container | the image is not pinned by digest or differs from the evidence's; the step is not in a container (`/.dockerenv`); the checkout, the evidence and the requested revision are not the same full SHA; any test layer, journey, risk scenario or one of the contract's security controls lacks a `pass`; coverage is missing, of another metric or below the threshold; a finding breaks the severity rules | whether the project's command told the truth (below) |
+| `contract` | right after it | the contract, the MADR file at `madr.path`, the runbook file for manual recovery | the contract governs another repository; the MADR is missing, resolves outside the project (a symbolic link included) or its first status line does not read exactly `accepted`; a manual-recovery runbook file is missing or outside the project | whether the owner really ratified the MADR, or the runbook was really tested on `last_tested` |
+| `container` | before STG and before PROD | the evidence the project's test command writes in the digest-pinned container | the image is not pinned by digest or differs from the evidence's; the step is not in a container (`/.dockerenv`; checked by default, and the workflow never turns it off); the checkout, the evidence and the requested revision are not the same full SHA; any test layer, journey, risk scenario or one of the contract's security controls lacks a `pass`; coverage is missing, of another metric, not a finite percentage from 0 to 100, or below the threshold; a finding breaks the severity rules | whether the project's command told the truth (below) |
 | `installed-stg` | after the STG deployment, before PROD | the evidence the project's STG test command writes on the runner | STG does not report the revision under test, or it cannot be read; any reported test layer, every journey and every risk scenario lacks a `pass`; no security validation is reported, or one is not in the contract; a finding breaks the severity rules | which security controls apply to an installed environment: only the reported ones are read |
 | `classify` | after `installed-stg` | the rule indices the change matches (`risk-rules`) | no rule is given (an unclassified change blocks); an index is not a rule of the contract | whether the indices are the right ones: `when` is free text a person applies |
 | `environment` | for an owner-approval deployment | the environment's protection, read with `gh api` | the environment does not exist (a job that names a missing one creates it unprotected), or it has no required reviewer | that the reviewer is the owner |
@@ -70,7 +71,7 @@ The class and the contract's `approval` give the environment the PROD job names:
 - high risk, or low risk where the contract asks `owner-exact-revision`: `owner-approval-environment`
   (default `production-owner-approval`), which must have a required reviewer. GitHub then holds the
   deployment job until a reviewer approves **that run**, which runs at that revision, so the approval
-  is for the exact revision and deployment.
+  is for the exact revision and deployment (documented by GitHub; not exercised here).
 
 ## The evidence file
 
@@ -129,7 +130,8 @@ was deployed.
   `recovery-plan` before the PROD deployment and `prod-validation` after it, and three jobs in the
   caller template. The gate workflow above runs neither.
 - **Local runs authorise nothing.** `delivery_gate.py` runs anywhere, but only the containerised run in
-  the pipeline is evidence; outside a container the `container` gate blocks.
+  the pipeline is evidence; outside a container the `container` gate blocks. Its
+  `--no-container-check` flag exists for the suite only, and the reference workflow never passes it.
 
 ## Adopting it
 

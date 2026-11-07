@@ -3,7 +3,7 @@
 
     python3 -B global/project-policy/delivery_gate.py contract    --project=DIR [--repository=OWNER/NAME]
     python3 -B global/project-policy/delivery_gate.py container   --project=DIR --evidence=FILE
-                --revision=SHA --checkout-head=SHA --container-image=IMAGE [--require-container]
+                --revision=SHA --checkout-head=SHA --container-image=IMAGE [--no-container-check]
     python3 -B global/project-policy/delivery_gate.py installed-stg --project=DIR --evidence=FILE
                 --revision=SHA --checkout-head=SHA
     python3 -B global/project-policy/delivery_gate.py classify    --project=DIR --rules=I[,J...]
@@ -79,12 +79,13 @@ def load_contract(project):
 
 
 def madr_status_accepted(text):
-    """True when the record's status line, with struck text removed, begins with `accepted`."""
+    """True when the record's first status line, with struck text and emphasis removed, reads exactly
+    `accepted` (one final period allowed). `accepted later` or `accepted, then superseded` do not."""
     for line in text.splitlines():
         plain = re.sub(r"~~.*?~~", "", line).replace("*", "").strip().lstrip("-").strip()
         match = re.match(r"(?i)status\s*:\s*(.*)", plain)
         if match:
-            return match.group(1).strip().lower().startswith("accepted")
+            return match.group(1).strip().lower().removesuffix(".").strip() == "accepted"
     return False
 
 
@@ -233,8 +234,12 @@ def _common(gate, doc, contract, keys, layer, blocks):
     _findings(gate, doc, contract, blocks)
 
 
-def gate_container(project, evidence, revision, checkout_head, image, require_container, dockerenv=None):
-    """Containerised evidence for the exact revision, before STG and before PROD."""
+def gate_container(project, evidence, revision, checkout_head, image, require_container=True,
+                   dockerenv=None):
+    """Containerised evidence for the exact revision, before STG and before PROD.
+
+    The in-container check is on unless the caller turns it off; only the suite does, to exercise
+    the other branches on a host. The reference workflow never passes --no-container-check."""
     gate = "container"
     contract, blocks = load_contract(project)
     if blocks:
@@ -259,7 +264,10 @@ def gate_container(project, evidence, revision, checkout_head, image, require_co
         blocks.append("%s: coverage is %s, the contract counts %s"
                       % (gate, json.dumps(coverage["metric"]), wanted["metric"]))
     elif (isinstance(coverage["percent"], bool) or not isinstance(coverage["percent"], (int, float))
-          or coverage["percent"] < wanted["threshold_percent"]):
+          or not 0 <= coverage["percent"] <= 100):  # also refuses NaN and infinity
+        blocks.append("%s: coverage %s is not a percentage from 0 to 100"
+                      % (gate, json.dumps(coverage["percent"])))
+    elif coverage["percent"] < wanted["threshold_percent"]:
         blocks.append("%s: coverage %s is below the threshold %s"
                       % (gate, json.dumps(coverage["percent"]), wanted["threshold_percent"]))
     # The full minimum: every control the contract names reports pass in the container.
@@ -472,13 +480,13 @@ def main(argv):
             passed = ["OK  contract: valid, bound to this repository, MADR accepted"]
         elif command == "container":
             v = parse(args, {"--project", "--evidence", "--revision", "--checkout-head",
-                             "--container-image"}, flags=("--require-container",))
+                             "--container-image"}, flags=("--no-container-check",))
             for key in ("evidence", "revision", "checkout-head", "container-image"):
                 if key not in v:
                     raise Usage("container needs --%s" % key)
             blocks = gate_container(v.get("project", "."), v["evidence"], v["revision"],
                                     v["checkout-head"], v["container-image"],
-                                    v.get("require-container", False))
+                                    not v.get("no-container-check", False))
             passed = ["OK  container: complete green evidence for %s" % v["revision"]]
         elif command == "installed-stg":
             v = parse(args, {"--project", "--evidence", "--revision", "--checkout-head"})
