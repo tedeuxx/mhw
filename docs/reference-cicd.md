@@ -9,7 +9,7 @@ each gate, a caller template with the deployment jobs, and a dry run against a s
 | --- | --- |
 | `.github/workflows/reference-delivery-gate.yml` | The gates, as a reusable workflow (`workflow_call` only). It deploys nothing and names no environment |
 | `global/project-policy/delivery_gate.py` | The script each gate runs: it applies a valid contract to one revision's evidence |
-| `global/project-policy/delivery_gate_test.py` | Its suite: a benign pass per gate and one test per blocking class, plus the workflows' pins |
+| `global/project-policy/delivery_gate_test.py` | Its suite: a benign pass per gate and one test per blocking class, plus the workflows' pins: every action by SHA, and each job's permissions in both workflows and the caller template, so a scope added to any job fails |
 | `global/project-policy/reference/caller-workflow.yml` | A template a project copies, with the STG and PROD deployment jobs. Not live in mhw |
 | `global/project-policy/reference/fixture/` | The synthetic project the dry run gates |
 | `.github/workflows/reference-delivery-dry-run.yml` | The dry run: the gate workflow against the fixture, on pull requests that change these files |
@@ -124,8 +124,11 @@ was deployed.
   out `tedeuxx/mhw` by name; a fork must change that line.
 - **Risk labels are read at run time.** A label changed on the merged pull request before the run
   changes the class. The class is printed in the run log.
-- **Recovery is not here.** What happens when a critical PROD validation fails is the recovery
-  reference, [#247](https://github.com/tedeuxx/mhw/issues/247).
+- ~~**Recovery is not here.** What happens when a critical PROD validation fails is the recovery
+  reference, [#247](https://github.com/tedeuxx/mhw/issues/247).~~ **Recovery is in
+  [docs/recovery-reference.md](recovery-reference.md)** (#247): two more gates in the same script,
+  `recovery-plan` before the PROD deployment and `prod-validation` after it, and three jobs in the
+  caller template. The gate workflow above runs neither.
 - **Local runs authorise nothing.** `delivery_gate.py` runs anywhere, but only the containerised run in
   the pipeline is evidence; outside a container the `container` gate blocks. Its
   `--no-container-check` flag exists for the suite only, and the reference workflow never passes it.

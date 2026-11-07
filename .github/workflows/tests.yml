@@ -70,6 +70,7 @@ jobs:
             global/project-policy/project_policy.py global/project-policy/project_policy_test.py \
             global/project-policy/project_policy_check_test.py \
             global/project-policy/delivery_gate.py global/project-policy/delivery_gate_test.py \
+            global/project-policy/recovery_test.py \
             global/project-policy/reference/fixture/container_tests.py global/project-policy/reference/fixture/stg_stand_in_tests.py \
             global/project-policy/reference/fixture/fixture_app.py \
             global/workstation.py global/workstation_test.py \
@@ -113,15 +114,17 @@ jobs:
           python -B global/profile/profile_test.py
           python -B global/profile/profile.py check --source overlay/profile.json --output overlay
           python -B workspace/delivery_test.py
-      # Issues #244, #245 and #246, ADR-0015 locks 2 to 4: the project-policy contract's schema, examples
-      # and field docs, the fail-closed validator behind `mhw policy check`, and the reference CI/CD's
-      # evidence gates (the dry run of the workflow itself is reference-delivery-dry-run.yml).
-      - name: project-policy contract, validator and evidence-gate suites
+      # Issues #244 to #247, ADR-0015 locks 2 to 5: the project-policy contract's schema, examples
+      # and field docs, the fail-closed validator behind `mhw policy check`, the reference CI/CD's
+      # evidence gates (the dry run of the workflow itself is reference-delivery-dry-run.yml) and the
+      # recovery reference's gates and template jobs.
+      - name: project-policy contract, validator, evidence-gate and recovery suites
         shell: bash
         run: |
           python -B global/project-policy/project_policy_test.py
           python -B global/project-policy/project_policy_check_test.py
           python -B global/project-policy/delivery_gate_test.py
+          python -B global/project-policy/recovery_test.py
 
   suites:
     strategy:

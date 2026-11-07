@@ -115,6 +115,24 @@ verified per project, this amendment is **written policy only**, not installed, 
    cost, but rejected because it provides no durable classification, no consistent gate and no proof
    that the lock was applied.
 
+#### Carriers of the concrete lock (Issue #192, 2026-11-07)
+
+Appended; nothing above is changed and the status is unchanged. Issue #192 delivered the lock's
+carriers as five slices. Where each lives, and its evidence level per agent harness, operating system
+and carrier, is [docs/deployment-lock-coverage.md](../deployment-lock-coverage.md), with one row per
+slice in the README's [Current state](../../README.md#current-state).
+
+- The refusal and its uncertainty rule: the global brief (#243).
+- The project's machine-readable configuration: [the project-policy contract](../project-policy-contract.md)
+  (#244), validated fail closed by `mhw policy check` (#245).
+- The STG/PROD evidence and risk-based authorisation: [the reference CI/CD](../reference-cicd.md) (#246).
+- Recovery prepared before exposure: [the recovery reference](../recovery-reference.md), with a
+  runbook template and the conditions for manual recovery (#247).
+
+These are carriers a deploying project adopts, not evidence that one has: **no project runs them, so
+the deployment half of this lock is still written policy only**, as the amendment above says. The
+refusal is written and tested, not installed on the reference machine.
+
 ## Consequences
 
 - **A lock on his own aims makes the firewall a two-sided control: it can refuse the owner.** To stay
@@ -148,3 +166,6 @@ verified per project, this amendment is **written policy only**, not installed, 
 - `AGENTS.md`, "Fundamental purpose". ADR-0004 (Stoic foundation). ADR-0010 (global brief).
   ADR-0013 (HITL escalation, PR #2). ADR-0014 (firewall vs plugin). Issue #25 (owner interview and
   ratification, 2026-10-17). Issue #192 (implementation intake).
+- The lock's carriers (2026-11-07): [docs/project-policy-contract.md](../project-policy-contract.md),
+  [docs/reference-cicd.md](../reference-cicd.md), [docs/recovery-reference.md](../recovery-reference.md)
+  and the coverage report [docs/deployment-lock-coverage.md](../deployment-lock-coverage.md).

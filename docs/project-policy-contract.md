@@ -20,7 +20,7 @@ values, ratified in its own MADR.
 [#244](https://github.com/tedeuxx/mhw/issues/244); `mhw policy check`, the fail-closed validator, is
 [#245](https://github.com/tedeuxx/mhw/issues/245). The reference CI/CD that calls the validator is
 [#246](https://github.com/tedeuxx/mhw/issues/246) ([docs/reference-cicd.md](reference-cicd.md)), and the recovery reference is
-[#247](https://github.com/tedeuxx/mhw/issues/247). No project declares this contract and no project's
+[#247](https://github.com/tedeuxx/mhw/issues/247) ([docs/recovery-reference.md](recovery-reference.md)). No project declares this contract and no project's
 CI/CD runs the validator, so it is not installed, loaded or enforced anywhere. No project's CI/CD
 carries ADR-0015's evidence either, and the lock's deployment half stays written policy only.
 
@@ -190,7 +190,9 @@ What happens when a critical production validation fails.
 - `operator`: required for `manual`. The account handle of the operator available for the deployment
   and the observation period, as `@handle`. Never contact details.
 
-The contract only names the mode. What a runbook must contain is #247.
+The contract only names the mode. ~~What a runbook must contain is #247.~~ What a runbook must
+contain, and the record of its test that `delivery_gate.py recovery-plan` reads against
+`last_tested` and the objective, are in [docs/recovery-reference.md](recovery-reference.md) (#247).
 
 ## What this contract does not cover
 
