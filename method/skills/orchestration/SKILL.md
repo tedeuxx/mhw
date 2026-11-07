@@ -83,7 +83,9 @@ Do not dispatch `quality-assurance` before it is.**
    is part 2 of 2. **If the comment cannot be posted, the phase is incomplete and the gate waits.**
 7. **A moved head needs a new artifact at the new head.** Carry forward only when you prove the
    reader-facing projection byte-identical: `git diff --quiet <prior-head> <head> -- <reader-facing
-   paths>` exits 0. (`git patch-id --stable` does not prove it: it ignores whitespace.) Post a fresh
+   paths>` exits 0, where `<reader-facing paths>` is the union of the reader-facing paths in both
+   heads' diffs, so a reader-facing file first touched at the new head cannot escape the check.
+   (`git patch-id --stable` does not prove it: it ignores whitespace.) Post a fresh
    artifact for the new head whose `carried-from:` line names the prior head, that command and its exit
    status. Otherwise the lens runs again.
 8. **After the gate returns, the round is complete only when the pull request carries a

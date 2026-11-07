@@ -502,7 +502,8 @@ PRE_GATE_CLAUSES = (
     "If the comment cannot be posted, the phase is incomplete and the gate waits.",
     "A moved head needs a new artifact at the new head.",
     "prove the reader-facing projection byte-identical: `git diff --quiet <prior-head> <head> -- <reader-facing "
-    "paths>` exits 0.",
+    "paths>` exits 0, where `<reader-facing paths>` is the union of the reader-facing paths in both heads' diffs, so a "
+    "reader-facing file first touched at the new head cannot escape the check.",
     "**Only the envelope's line-3 `verdict:` is the literal**",
     "**When two `copy-verdict` comments name the same head, the newest wins.**",
     "the round is complete only when the pull request carries a `gatekeeper-verdict` comment whose `head:` "
@@ -530,6 +531,8 @@ PRE_GATE_CONSUMERS = (
       "`BLOCKING` finding does. An `ESCALATE` holds the merge through hold 4, whatever its severities**",
       "`git diff --quiet <prior-head> <head> -- <reader-facing paths>` exits 0",
       "When two such comments name the current head, the newest wins;",
+      "where `<reader-facing paths>` is the union of the reader-facing paths in both heads' diffs, so a "
+      "reader-facing file first touched at the new head cannot escape the check",
       "10 · copy-artifact: <URL of the canonical pre-gate copy-verdict comment",
       "*its text is on the PR* means the canonical pre-gate copy artifact at the current head"),
      ("So you relay it, and the relay is now mandatory rather than permitted.",

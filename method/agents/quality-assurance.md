@@ -958,8 +958,10 @@ and preview-only output all trigger it, and an uncertain case is reader-facing.
 - a PR comment opens with the envelope at column 0, and its `head:` line names the full forty-character
   `headRefOid` you read. A `carried-from:` line is acceptable only beside a `head:` line naming the
   current head, and only with comparison evidence you can re-run and that shows the reader-facing
-  projection byte-identical: `git diff --quiet <prior-head> <head> -- <reader-facing paths>` exits 0
-  (`git patch-id --stable` is not that evidence: it ignores whitespace). When two such comments name the
+  projection byte-identical: `git diff --quiet <prior-head> <head> -- <reader-facing paths>` exits 0,
+  where `<reader-facing paths>` is the union of the reader-facing paths in both heads' diffs, so a
+  reader-facing file first touched at the new head cannot escape the check (`git patch-id --stable` is
+  not that evidence: it ignores whitespace). When two such comments name the
   current head, the newest wins;
 - it carries exactly one `verdict:` literal on the envelope's line 3: `APPROVE`, `ADJUST` or `ESCALATE`.
   A `verdict:` line inside the lens's quoted text is not the literal;
