@@ -41,7 +41,9 @@ import io
 MARKER = "PMHWC_PASTE_WRAPPER"           # global/clipboard/clipboard_guard.py, WRAPPER_MARKER
 NAME = "personal-multi-harness-workstation-configuration"
 WORD = re.compile(r"^[A-Za-z0-9._/~=:@+*-]+$")
-REPO = Path(__file__).resolve().parents[2]            # the checkout this script is in: the one it packs
+# `pack` reads the checkout this script sits in (.github/scripts/ -> the repository root); `run` needs
+# no checkout, so it also works from a copy of this one file, as in the container.
+SCRIPT = Path(__file__).resolve()
 CLAUDE_SETTINGS = ".claude/settings.json"
 FLOOR_FILES = ("global/deny-floor.conf", "overlay/deny-floor.conf")   # install.sh appends the overlay's
 
@@ -69,7 +71,7 @@ def known_ref(arg):
         return "HEAD"
     if re.fullmatch(r"[0-9a-f]{40}", arg):
         return "%040x" % int(arg, 16)
-    tags = subprocess.run(["git", "-C", str(REPO), "tag", "--list"], capture_output=True, text=True).stdout.split()
+    tags = subprocess.run(["git", "-C", str(SCRIPT.parents[2]), "tag", "--list"], capture_output=True, text=True).stdout.split()
     found = [t for t in tags if t == arg]
     if not found:
         die("refusing ref %r: HEAD, an existing tag or a full commit SHA only" % arg)
@@ -85,7 +87,7 @@ def cmd_pack(a):
     if src.exists():
         die("%s exists; pack into a fresh directory" % src)
     src.mkdir()
-    raw = subprocess.run(["git", "-C", str(REPO), "archive", "--format=tar", "--end-of-options", ref], capture_output=True)
+    raw = subprocess.run(["git", "-C", str(SCRIPT.parents[2]), "archive", "--format=tar", "--end-of-options", ref], capture_output=True)
     if raw.returncode:
         die("git archive %s: %s" % (ref, raw.stderr.decode(errors="replace").strip()))
     with tarfile.open(fileobj=io.BytesIO(raw.stdout)) as t:
