@@ -41,6 +41,9 @@ import io
 MARKER = "PMHWC_PASTE_WRAPPER"           # global/clipboard/clipboard_guard.py, WRAPPER_MARKER
 NAME = "personal-multi-harness-workstation-configuration"
 WORD = re.compile(r"^[A-Za-z0-9._/~=:@+*-]+$")
+REF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")   # a commit SHA, a tag or HEAD; never an option
+CLAUDE_SETTINGS = ".claude/settings.json"
+FLOOR_FILES = ("global/deny-floor.conf", "overlay/deny-floor.conf")   # install.sh appends the overlay's
 
 failures = []
 
@@ -60,16 +63,19 @@ def die(msg):
 # --- pack ------------------------------------------------------------------------------------------------
 
 def cmd_pack(a):
+    if not REF.match(a.ref) or ".." in a.ref:
+        die("refusing ref %r: a commit, a tag or HEAD only" % a.ref)
+    ref = REF.match(a.ref).group(0)
     out = Path(a.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
-    name = a.name or re.sub(r"[^A-Za-z0-9._-]", "_", a.ref)
+    name = a.name or re.sub(r"[^A-Za-z0-9._-]", "_", ref)
     src = out / ("src-" + name)
     if src.exists():
         die("%s exists; pack into a fresh directory" % src)
     src.mkdir()
-    raw = subprocess.run(["git", "-C", a.repo, "archive", "--format=tar", a.ref], capture_output=True)
+    raw = subprocess.run(["git", "-C", a.repo, "archive", "--format=tar", "--end-of-options", ref], capture_output=True)
     if raw.returncode:
-        die("git archive %s: %s" % (a.ref, raw.stderr.decode(errors="replace").strip()))
+        die("git archive %s: %s" % (ref, raw.stderr.decode(errors="replace").strip()))
     with tarfile.open(fileobj=io.BytesIO(raw.stdout)) as t:
         if hasattr(tarfile, "data_filter"):    # Python 3.12+: refuse links and paths out of the tree
             t.extractall(src, filter="data")
@@ -89,8 +95,11 @@ def cmd_pack(a):
 
 def floor_entries(source):
     entries = []
-    for rel in ("global/deny-floor.conf", "overlay/deny-floor.conf"):     # install.sh appends the overlay's
-        path = Path(source) / rel
+    root = os.path.realpath(source)
+    for rel in FLOOR_FILES:
+        path = Path(os.path.realpath(os.path.join(root, rel)))
+        if os.path.commonpath([root, str(path)]) != root:
+            die("%s resolves outside the source tree" % rel)
         if not path.is_file():
             continue
         for raw in path.read_text(encoding="utf-8").splitlines():
@@ -201,7 +210,7 @@ OWNER_KIRO = "owner-canary-tool --only-mine *"
 def seed(home):
     """What the owner already has before mhw arrives: uninstall must give it back byte for byte."""
     files = {
-        ".claude/settings.json": json.dumps({"theme": "dark", "permissions": {"deny": [OWNER_DENY]},
+        CLAUDE_SETTINGS: json.dumps({"theme": "dark", "permissions": {"deny": [OWNER_DENY]},
                                              "model": "owner-chosen-model"}, indent=2) + "\n",
         ".codex/config.toml": 'model = "owner-chosen-model"\n\n[tui]\nnotifications = false\n',
         ".kiro/settings/permissions.yaml": 'rules:\n  - capability: "shell"\n    effect: "deny"\n'
@@ -270,7 +279,7 @@ class Box:
 
 def check_floor(box, exp):
     claude, codex, kiro = exp
-    s = read_json(box.home / ".claude/settings.json")
+    s = read_json(box.home / CLAUDE_SETTINGS)
     deny = set(s.get("permissions", {}).get("deny", []))
     owned = set(s.get(NAME + "-owned-deny", []))
     check(claude <= deny, "Claude Code user settings.json carries every floor rule (%d)" % len(claude),
@@ -410,7 +419,7 @@ def check_uninstall(box, before, seeded, exp):
     check(snapshot(box.root) == {}, "uninstall removes the admin layer from the throwaway root",
           "left: %s" % list(snapshot(box.root))[:10])
     claude = exp[0]
-    s = read_json(box.home / ".claude/settings.json")
+    s = read_json(box.home / CLAUDE_SETTINGS)
     check(not (claude & set(s.get("permissions", {}).get("deny", []))), "no floor rule is left in Claude Code settings")
     p = box.run("npm", "uninstall", "-g", "mhw")
     check(p.returncode == 0, "npm uninstall -g mhw exits 0", (p.stdout + p.stderr)[-1000:])
