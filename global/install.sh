@@ -43,7 +43,8 @@
 # managed ${CODEX_HOME:-~/.codex}/hooks.json. Codex runs it only after the owner trusts it in /hooks.
 # Kiro CLI V3 gets the same core in its own mode (Issue #455, ADR-0033 amendment 2026-11-08): one managed
 # ~/.kiro/hooks/<name>.json, a UserPromptSubmit hook that blocks with exit 2 and the redacted copy on
-# stderr, and ignores the wrapper's marker (on V3 the wrapper cleans nothing). Kiro has no admin layer for
+# stderr, and ignores the wrapper's marker (on V3 the wrapper cleans pastes, measured once on 3.1.0,
+# but never checks typed text). Kiro has no admin layer for
 # hooks (hypothesis), so it stays at user level under --hooks=managed too. Kiro runs no hook in a
 # workspace the owner did not trust. Every link is read from the bundle and NOT measured.
 # The always-on clipboard watcher is WITHDRAWN (ADR-0011): no LaunchAgent is written any more, and a
