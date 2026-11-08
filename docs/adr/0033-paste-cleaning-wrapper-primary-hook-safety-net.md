@@ -69,8 +69,10 @@ Chosen: option 1.
   five generic categories (credential, e-mail, payment card, CPF, CNPJ; `block_categories` in
   `clipboard.conf`).
 - **Coverage, stated:** Claude Code and Codex command-line sessions on macOS and Linux. Kiro CLI is
-  wrapped ~~but not measured~~, ~~and has no hook~~. *Amended 2026-10-11:* on the V3 engine the wrapper
-  cleans nothing, measured; see the amendment "Kiro CLI V3 does not enable bracketed paste". Out of reach: desktop apps, IDE extensions, files read by
+  wrapped ~~but not measured~~, ~~and has no hook~~. *Amended 2026-10-11:* ~~on the V3 engine the wrapper
+  cleans nothing, measured~~; see the amendment "Kiro CLI V3 does not enable bracketed paste".
+  *Amended 2026-11-08 (#462):* on `kiro-cli` 3.1.0 the wrapper cleaned a V3 paste, measured; see the
+  amendment "the Kiro canary results". Out of reach: desktop apps, IDE extensions, files read by
   path, pasted images, Windows. *Amended 2026-11-08:* Kiro CLI V3 has a user-level hook file; see the
   amendment of that date.
 
@@ -101,9 +103,12 @@ of each step remain in ADR-0011's amendments.
 2.29.1 started with `--agent-engine v3` through the paste wrapper. The V3 terminal UI never enabled
 bracketed paste, so after its grace period the wrapper printed its warning that pastes are **not**
 cleaned. That is the behaviour this record designed for a CLI without bracketed paste (fail open,
-visibly): every paste into a Kiro CLI V3 session reaches Kiro uncleaned. Sessions on the 2.x engine
-were not observed in the canary. Kiro has no prompt hook from this project, so on V3 **nothing** checks
-a paste. The README coverage table carries the gap.
+visibly): ~~every paste into a Kiro CLI V3 session reaches Kiro uncleaned~~ every paste into that
+build's V3 session reached Kiro uncleaned. Sessions on the 2.x engine
+were not observed in the canary. ~~Kiro has no prompt hook from this project, so on V3 **nothing** checks
+a paste.~~ *Struck 2026-11-08 (#462): both claims were true of 2.29.1 and are not current. On `kiro-cli`
+3.1.0 the wrapper cleaned a V3 paste (measured), and Kiro now has the hook of the 2026-11-08
+amendment. See the amendment "the Kiro canary results".* The README coverage table carries the gap.
 
 **A native carrier exists, read from the bundle and not wired.** The bundled V3 engine (kas 2.29.1,
 `@kiro/agent/dist/server/acp-server.js`) loads hook files (`{"version": "v1", "hooks": [{"name",
@@ -146,7 +151,9 @@ bundle* until that canary, and a link that does not hold fails open, no worse th
 
 - `clipboard_guard.py prompt-hook --harness kiro`. A finding exits 2 with the block message and the
   redacted copy on stderr; a clean prompt exits 0; **nothing is ever written to stdout**. It **ignores the
-  wrapper's marker**: on V3 the wrapper cleans nothing but still sets it, which silenced the hook
+  wrapper's marker**: ~~on V3 the wrapper cleans nothing but still sets it~~ on V3 the wrapper still
+  sets the marker, and it does not check typed text *(struck 2026-11-08, #462: on 3.1.0 it does clean
+  pastes)*; the marker silenced the hook
   (measured on the intake, scenario A). A source mutation that restores the marker short-circuit in this
   mode turns two tests red; restoring the source turns them green.
 - **Failure behaviour, chosen:** whatever stops the check (a payload that is not JSON or has no `prompt`,
@@ -168,7 +175,10 @@ bundle* until that canary, and a link that does not hold fails open, no worse th
 - `install.ps1` does not render it: Windows has no paste filter core to run (a stated gap).
 
 **Evidence level per link**, each *read from the bundle* (kas 2.35.2,
-`@kiro/agent/dist/server/acp-server.js`; `kiro-cli` 3.1.0 on the reference machine) and **not measured**:
+`@kiro/agent/dist/server/acp-server.js`; `kiro-cli` 3.1.0 on the reference machine) and **not measured**
+*(amended 2026-11-08, #462: the directory, the file and the trigger are now measured; the payload and
+the block are measured only at the hook command, outside Kiro; the trust row is overtaken, because an
+untrusted workspace opens no session; see the amendment "the Kiro canary results")*:
 
 | Link | Read from the bundle | Not measured |
 | --- | --- | --- |
@@ -182,6 +192,31 @@ bundle* until that canary, and a link that does not hold fails open, no worse th
 
 **The measurement** is the owner's canary, after the install, in a fresh session, trusted and untrusted
 workspace: [docs/runbooks/kiro-v3-prompt-hook-canary.md](../runbooks/kiro-v3-prompt-hook-canary.md).
+
+## Amendment 2026-11-08: the Kiro canary results (Issues #455 and #462)
+
+The owner ran [the canary runbook](../runbooks/kiro-v3-prompt-hook-canary.md) after installing v10.1.0
+(RC #461), on `kiro-cli` 3.1.0 with kas 2.35.2, synthetic payload only (#455). An agent then probed the
+installed hook command directly (#462). Each result at its evidence level:
+
+| Claim | Evidence level |
+| --- | --- |
+| On `kiro-cli` 3.1.0 the paste wrapper cleaned a V3 paste before Kiro received it: the model saw `[REDACTED:credential]`, and the wrapper's exit line counted the cleaned pastes. No bracketed-paste warning showed. This contradicts the 2026-10-11 observation on 2.29.1, which is struck above where it read as current; 2.29.1 was not re-run | **measured** (owner, trusted workspace) |
+| The user-level hook file in `~/.kiro/hooks/` is loaded (`hooks.reload.loaded`, one read, one registered) and invoked on each prompt (`ContextualHookInvoked`) | **measured** (Kiro's own log) |
+| The raw key is in no file under `~/.kiro` after the cleaned paste | **measured**, for a cleaned prompt only |
+| The hook command alone, fed a synthetic `UserPromptSubmit` payload with a credential, exits 2, writes nothing to stdout, and writes the block notice and the redacted copy to stderr; the key is in neither stream. A clean prompt exits 0 with no output | **measured** (direct pipe, no Kiro) |
+| A payload with no `prompt` field exits 0 and writes an internal-error notice to stderr: fail open, as decided above. Whether Kiro shows that notice to the owner is unknown | exit **measured**; visibility **not measured** |
+| An untrusted workspace opens no session on 3.1.0: "Don't trust, exit" ends Kiro without loading the folder, so no prompt can be sent there. The gap the 2026-11-08 build amendment expected (an untrusted session running without the hook) does not exist on this build | **measured** (owner) |
+| The block path inside Kiro: that a dirty prompt reaching the hook makes Kiro keep it from the model, and where the block message shows (chat, status line, log or nowhere) | **not measured**: in the canary the wrapper had already cleaned the prompt, so the hook never saw a finding |
+
+**Consequence for the measurement route.** With the wrapper cleaning V3 pastes, a paste can no longer
+reach the hook dirty. The runbook therefore sends the dirty prompt by typing it (the wrapper relays
+typed bytes unchanged) or by starting Kiro with `command kiro-cli`, which skips the wrapper's shell
+function. It also adds the direct pipe as step 0, a persistence grep after the block, and removal of the
+canary's trust entries. That interactive test is the owner's act, since it needs his login.
+
+**Known cosmetic item, out of scope here.** The hook's block notice still names ADR-0011, which this
+record superseded. It changes no behaviour; a code slice can fix the text.
 
 ## Links
 
