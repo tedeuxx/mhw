@@ -418,7 +418,10 @@ def cannot_override(f):
 # Issue #38: the summary names --check drift by CATEGORY only, never a path or a file's content. The
 # categories are read from the installers' own target lines, in this order; a line none of them matches
 # is still counted, as "other", so a drift is never dropped for want of a name.
-_DRIFT_LINE = re.compile(r"(DRIFT|MISSING|STALE|REFUSE)\s")
+# Issue #453: STAMP (content matches, another source's stamp) is read here too, so a STAMP-only --check
+# never reads clean, but drift_text words it as its own `stamp:` clause, apart from content drift.
+_DRIFT_LINE = re.compile(r"(DRIFT|MISSING|STALE|REFUSE|STAMP)\s")
+_STAMP_FROM = re.compile(r"(?:carries|recorded under) \(([^()]*)\)")
 _DRIFT_CATEGORIES = (
     ("paste wrapper", ("paste",)),
     ("allow list", ("allow list", "permissions.allow", "allow-list")),
@@ -445,24 +448,49 @@ def drift_category(line):
     return "other"
 
 
+def stamp_origin(line):
+    """The stamp a STAMP line says its target carries, short ('v3.0.0 @ bbbbbbb'), or 'another source'."""
+    m = _STAMP_FROM.search(line)
+    return short_stamp(m.group(1)) if m and m.group(1) != "none" else "another source"
+
+
 def drift_text(user_lines, admin_lines, admin_code=0):
-    """'drift: <n> target(s) in <categories> — next: <CMD> install', or '' when both layers are clean.
-    The admin layer's categories carry an 'admin ' prefix; an admin --check that exits non-zero with no
-    target line still counts as one target."""
-    cats, count = [], 0
+    """'drift: <n> target(s) in <categories>' for content drift and, apart from it (Issue #453),
+    'stamp: <n> target(s) from <other source>' for targets whose content matches but carry another
+    source's stamp, then ' — next: <CMD> install'; '' when both layers are clean. The admin layer's
+    categories and stamps carry an 'admin ' prefix; an admin --check that exits non-zero with no target
+    line still counts as one drifted target."""
+    cats, count, origins, stamped = [], 0, [], 0
     for prefix, lines in (("", user_lines), ("admin ", admin_lines)):
         hits = [line for line in lines if _DRIFT_LINE.match(line)]
+        stamps = [line for line in hits if line.startswith("STAMP")]
+        content = [line for line in hits if not line.startswith("STAMP")]
         if prefix and not hits and admin_code:
-            hits, names = [None], ["admin layer"]
+            content, names = [None], ["admin layer"]
         else:
-            names = [prefix + drift_category(line) for line in hits]
-        count += len(hits)
+            names = [prefix + drift_category(line) for line in content]
+        count += len(content)
         for name in names:
             if name not in cats:
                 cats.append(name)
-    if not count:
+        stamped += len(stamps)
+        for line in stamps:
+            origin = prefix + stamp_origin(line)
+            if origin not in origins:
+                origins.append(origin)
+    parts = []
+    if count:
+        parts.append("drift: %d target(s) in %s" % (count, ", ".join(cats)))
+    if stamped:
+        parts.append("stamp: %d target(s) from %s, content matches" % (stamped, " / ".join(origins)))
+    if not parts:
         return ""
-    return "drift: %d target(s) in %s — next: %s install" % (count, ", ".join(cats), CMD)
+    return "%s — next: %s install" % ("; ".join(parts), CMD)
+
+
+def source_text(source):
+    """The source --check compared with (Issue #453): 'package <stamp>' or 'checkout <stamp>'."""
+    return "%s %s" % (SOURCE_NAME.split()[-1], short_stamp(source))
 
 
 def render_summary(f):
@@ -481,7 +509,8 @@ def render_summary(f):
     key = f["key"]
     key_text = "no %s in the workspace" % KEY_FILE if key is None else "%s %s" % (key["required"], key["state"])
     owner = " · owner actions: " + f["owner_actions"] if f.get("owner_actions") else ""
-    lines.append("  workstation      %s · version key: %s%s" % (stamp, key_text, owner))
+    lines.append("  workstation      %s · source: %s · version key: %s%s" % (
+        stamp, source_text(f.get("source", "none")), key_text, owner))
     ws = f["workspace"]
     plugins = f["plugins"]
     # The root-brief check rides on the workspace item, so the summary keeps its ten-line limit.

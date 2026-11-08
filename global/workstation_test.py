@@ -188,11 +188,61 @@ class RuntimeSummary(unittest.TestCase):
         self.assertNotIn("bbbbbbb", row)
 
     def test_clean_check_shows_no_drift_text(self):
-        clean = ["OK      %s (x)" % ws.brief_paths()["Claude Code"], "STAMP   /h/.codex/AGENTS.md: other",
+        clean = ["OK      %s (x)" % ws.brief_paths()["Claude Code"],
                  "SKIP    something", "FLOOR   carried by: the admin layer"]
         out = ws.render_summary(facts(user_lines=clean))
         self.assertNotIn("drift", self.row(out, "protections"))
+        self.assertNotIn("stamp:", self.row(out, "protections"))
         self.assertNotIn("next:", self.row(out, "protections"))
+
+    # Issue #453: a STAMP line (content matches, another source's stamp) is its own clause, never silence
+    # and never content drift; and the summary names the source --check compared with.
+    OTHER = "release: v3.0.0; commit: " + "b" * 40
+    STAMP_LINE = ("STAMP   /h/.codex/AGENTS.md: content matches, but it carries (%s) and the source is (%s)"
+                  % (OTHER, STAMP))
+
+    def test_stamp_only_user_check_is_not_clean(self):
+        """Criterion 1: a STAMP-only user --check yields a non-empty clause (it used to return '')."""
+        text = ws.drift_text([self.STAMP_LINE], [])
+        self.assertEqual(text, "stamp: 1 target(s) from v3.0.0 @ bbbbbbb, content matches — next: %s install"
+                         % ws.CMD)
+        row = self.row(ws.render_summary(facts(user_lines=["OK      /h/x (y)", self.STAMP_LINE])),
+                       "protections")
+        self.assertIn(" · stamp: 1 target(s) from v3.0.0 @ bbbbbbb", row)
+        self.assertNotIn("/h/.codex", row)
+
+    def test_summary_names_the_compared_source(self):
+        """Criterion 2: the workstation item names the source, 'package <stamp>' or 'checkout <stamp>'."""
+        out = ws.render_summary(facts(user_stamps={"Codex": self.OTHER}))
+        self.assertEqual(self.row(out, "workstation"), "v3.0.0 @ bbbbbbb · source: checkout v3.1.0 @ aaaaaaa · "
+                                                       "version key: >=3.1 <4 match")
+        self.assertEqual(ws.source_text(STAMP), "%s v3.1.0 @ aaaaaaa" % ws.SOURCE_NAME.split()[-1])
+        self.assertIn(ws.source_text(STAMP).split()[0], ("package", "checkout"))
+        self.assertLessEqual(len(out), 10)
+
+    def test_stamp_is_worded_apart_from_content_drift(self):
+        """Criterion 3: STAMP never counts as content drift; both clauses stand side by side."""
+        stamp_only = ws.drift_text([self.STAMP_LINE], [])
+        self.assertNotIn("drift:", stamp_only)
+        drift = "DRIFT   %s (%s)" % (ws.brief_paths()["Claude Code"], self.OTHER)
+        both = ws.drift_text([drift, self.STAMP_LINE, self.STAMP_LINE.replace("codex", "kiro")], [])
+        self.assertEqual(both, "drift: 1 target(s) in brief; stamp: 2 target(s) from v3.0.0 @ bbbbbbb, "
+                               "content matches — next: %s install" % ws.CMD)
+        self.assertNotEqual(stamp_only, ws.drift_text([drift], []))
+
+    def test_admin_stamp_is_a_stamp_not_admin_drift(self):
+        """The intake's hypothesis, measured: an admin STAMP-only --check exits 1 and used to read as
+        'drift: 1 target(s) in admin layer'; with exit 0 it read clean."""
+        admin = [self.STAMP_LINE.replace("/h/.codex/AGENTS.md", "/Library/x/managed-settings.d/50-x.json")]
+        for code in (0, 1):
+            self.assertEqual(ws.drift_text([], admin, code),
+                             "stamp: 1 target(s) from admin v3.0.0 @ bbbbbbb, content matches — next: %s "
+                             "install" % ws.CMD)
+        self.assertEqual(ws.stamp_origin("STAMP   /h/x: other"), "another source")
+        # The MCP renderer words the same fact as "recorded under (...)".
+        self.assertEqual(ws.stamp_origin("STAMP   /h/.claude.json: policy MCP server(s) match, but recorded "
+                                         "under (%s) and the source is (%s)" % (self.OTHER, STAMP)),
+                         "v3.0.0 @ bbbbbbb")
 
     def test_categories_and_admin_layer(self):
         user = ["MISSING /h/.zshrc: no paste-wrapper start-up block; install adds it",
@@ -216,7 +266,8 @@ class RuntimeSummary(unittest.TestCase):
         self.assertEqual(self.row(out, "agent harness"), "Claude Code 2.1.0")
         self.assertEqual(self.row(out, "model, effort"), "Claude Code: default; the session's own values: "
                                                          "Claude Code /status")
-        self.assertEqual(self.row(out, "workstation"), "v3.1.0 @ aaaaaaa · version key: >=3.1 <4 match")
+        self.assertEqual(self.row(out, "workstation"), "v3.1.0 @ aaaaaaa · source: checkout v3.1.0 @ aaaaaaa · "
+                                                       "version key: >=3.1 <4 match")
         self.assertEqual(self.row(out, "layers"), "managed: absent · user: installed · workspace: proj · "
                                                   "plugin: none")
         self.assertEqual(self.row(out, "overrides"), "no workspace setting overrides a user default")
@@ -731,8 +782,9 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertLessEqual(len(out.splitlines()), 11, out)
         # The real gh (if any) in a throwaway HOME with no token: the owner-action count is not read, never 0.
-        self.assertIn("  workstation      %s · version key: >=999 <1000 mismatch · owner actions: not read ("
-                      % source.split(" (")[0], out)
+        short = source.split(" (")[0]
+        self.assertIn("  workstation      %s · source: %s %s · version key: >=999 <1000 mismatch · owner "
+                      "actions: not read (" % (short, ws.SOURCE_NAME.split()[-1], short), out)
         self.assertIn("· hooks admin: none · user: paste filter (Claude Code)", out)
         self.assertRegex(out, r"(?m)^  Workstation version key: required >=999 <1000, installed ")
         # No admin layer: the floor is never listed as locked, and the installer's words arrive whole.
