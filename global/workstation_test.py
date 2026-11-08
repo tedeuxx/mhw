@@ -770,7 +770,7 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("  version key      >=999 <1000: mismatch\n", out)
         self.assertIn("Workstation version key: required >=999 <1000, installed ", out)
         self.assertIn("hooks registered: admin: none · user: "
-                      "paste filter (Claude Code), paste filter (Codex)\n", out)
+                      "paste filter (Claude Code), paste filter (Codex), paste filter (Kiro CLI V3)\n", out)
         # The allow list (Issue #83): no admin floor, so the narrow tier, sized from the source itself.
         conf = (ws.HERE / "allow-list.conf").read_text(encoding="utf-8").splitlines()
         narrow = sum(1 for line in conf if line.startswith("narrow "))
@@ -791,11 +791,12 @@ class EndToEnd(unittest.TestCase):
         _, verbose = self.run_ws("status", "--verbose", "--overlay=none", project)
         carried = re.search(r"(?m)^  \| FLOOR   carried by: (.*)$", verbose).group(1)
         self.assertIn("  cannot override  nothing (no admin layer) · deny floor NOT locked: %s\n" % carried, out)
-        # The hooks moved out of the user layer with no admin layer: status must say none, not claim them.
+        # The hooks moved out of the user layer with no admin layer: status must not claim them. Kiro's
+        # stays at user level (it has no admin layer for hooks, Issue #455), so it is the only one named.
         subprocess.run(["sh", str(ws.INSTALL), "--overlay=none", "--hooks=managed"], env=self.env,
                        capture_output=True, check=False)
         code, out = self.run_ws("status", "--overlay=none", project)
-        self.assertIn("hooks registered: admin: none · user: none\n", out)
+        self.assertIn("hooks registered: admin: none · user: paste filter (Kiro CLI V3)\n", out)
         code, out = self.run_ws("install", "--yes", "--no-admin", "--overlay=none")
         # A hand edit to one installed file is a difference status must count.
         brief = self.base / "home" / ".claude" / "CLAUDE.md"
@@ -1049,6 +1050,27 @@ class Hooks(unittest.TestCase):
         self.write(Path(os.environ["HOME"]) / ".codex" / "hooks.json",
                    json.dumps(self.entry("UserPromptSubmit", "python3 %s" % (self.data / ws.PASTE))))
         self.assertEqual(ws.read_hooks()["user"], ["paste filter (Claude Code)", "paste filter (Codex)"])
+
+    def test_the_kiro_hook_file_is_present_modified_or_absent(self):
+        """Issue #455: the Kiro CLI V3 hook file, as install renders it, then edited, then gone."""
+        kiro = Path(os.environ["HOME"]) / ".kiro" / "hooks" / ws.KIRO_HOOK
+        cmd = "/usr/bin/python3 -I -B \"%s\" prompt-hook --harness kiro --config \"x\"" % (self.data / ws.PASTE)
+        doc = {"version": "v1", "hooks": [{"description": ws.MARKER + "; source: global/install.sh",
+                                           "name": "paste filter", "trigger": "UserPromptSubmit",
+                                           "action": {"type": "command", "command": cmd}, "timeout": 30}]}
+        self.assertEqual(ws.read_hooks()["user"], [])
+        self.write(kiro, json.dumps(doc))
+        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3, modified)"], "its core is missing")
+        self.write(self.data / ws.PASTE, "#\n")
+        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3)"])
+        doc["hooks"][0]["action"]["command"] = cmd.replace("--harness kiro", "--harness codex")
+        self.write(kiro, json.dumps(doc))
+        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3, modified)"])
+        self.write(kiro, "{not json")
+        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3, modified: not JSON)", "a file not read"])
+        kiro.unlink()
+        self.assertEqual(ws.read_hooks()["user"], [])
+        self.assertEqual(ws.KIRO_HOOK, os.path.basename(os.path.join("h", "personal-multi-harness-workstation-configuration-paste-filter.json")))
 
     def test_a_removed_picker_guard_entry_is_named(self):
         # Issue #60: the picker guard is removed. An entry an earlier install left behind is named as a

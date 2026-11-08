@@ -1374,5 +1374,54 @@ else
   ko "uninstall did not take back exactly the Kiro floor"
 fi
 
+# Kiro CLI V3's user-level prompt hook (Issue #455): one managed ~/.kiro/hooks file in the V3 format the
+# bundle reads (kas 2.35.2, not measured), run as Kiro runs it; idempotent, a 0600 backup of a file it
+# replaces, refused when it is not ours, removed on uninstall.
+hh="$base/kirohook"; mkdir -p "$hh"
+kh="$hh/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json"
+HOME="$hh" sh "$inst" > "$base/kh.out" 2>&1; expect "install renders the Kiro hook" 0 $?
+khc="/usr/bin/python3 -I -B \"$(data "$hh")/clipboard_guard.py\" prompt-hook --harness kiro --config \"$(data "$hh")/clipboard.conf\""
+if jq -e --arg c "$khc" '.version == "v1" and (.hooks | length == 1)
+      and (.hooks[0] | (.description | startswith("managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh"))
+        and .trigger == "UserPromptSubmit" and .action == {type: "command", command: $c} and .timeout == 30
+        and (.name | length > 0))' "$kh" >/dev/null && head -n 5 "$kh" | grep -q 'managed-by: personal-multi-harness-workstation-configuration'; then
+  ok "the Kiro hook file is valid JSON in the V3 shape and runs the installed core in kiro mode"
+else
+  ko "the Kiro hook file is wrong"
+fi
+khcmd=$(jq -r '.hooks[0].action.command' "$kh")
+payload "deploy with $synthetic_key please" | HOME="$hh" PMHWC_PASTE_WRAPPER=1 sh -c "$khcmd" > "$base/kh.o" 2> "$base/kh.e"; khrc=$?
+if [ "$khrc" -eq 2 ] && [ ! -s "$base/kh.o" ] && grep -q 'REDACTED:credential' "$base/kh.e" && ! grep -q "$synthetic_key" "$base/kh.e"; then
+  ok "the Kiro hook blocks a credential with exit 2, a redacted copy on stderr, nothing on stdout, marker set"
+else
+  ko "the Kiro hook did not block as Kiro reads it (exit $khrc)"
+fi
+payload "refactor the parser" | HOME="$hh" sh -c "$khcmd" > "$base/kh.o" 2> "$base/kh.e"; khrc=$?
+if [ "$khrc" -eq 0 ] && [ ! -s "$base/kh.o" ] && [ ! -s "$base/kh.e" ]; then ok "the Kiro hook passes a clean prompt silently"; else ko "the Kiro hook on a clean prompt: exit $khrc"; fi
+printf 'not json' | HOME="$hh" sh -c "$khcmd" > "$base/kh.o" 2> "$base/kh.e"; khrc=$?
+if [ "$khrc" -eq 0 ] && [ ! -s "$base/kh.o" ]; then ok "the Kiro hook fails open with nothing on stdout"; else ko "the Kiro hook on a bad payload: exit $khrc"; fi
+HOME="$hh" sh "$inst" --check > "$base/kh-check.out" 2>&1; expect "--check after installing the Kiro hook" 0 $?
+if grep -q "^OK      $kh (" "$base/kh-check.out"; then ok "--check names the Kiro hook as OK"; else ko "--check does not report the Kiro hook"; fi
+HOME="$hh" sh "$inst" > "$base/kh2.out" 2>&1
+if grep -q "^OK      $kh (" "$base/kh2.out" && [ ! -e "$kh.pmhwc-backup" ]; then ok "a second install leaves the Kiro hook alone, no backup"; else ko "the Kiro hook is not idempotent"; fi
+jq '.hooks[0].timeout = 1' "$kh" > "$base/kh.edit" && cat "$base/kh.edit" > "$kh"
+HOME="$hh" sh "$inst" --check > "$base/kh-check.out" 2>&1; expect "--check flags an edited Kiro hook" 1 $?
+if grep -q "^DRIFT   $kh (" "$base/kh-check.out"; then ok "the edited Kiro hook reads DRIFT"; else ko "the edited Kiro hook is not named"; fi
+HOME="$hh" sh "$inst" > "$base/kh3.out" 2>&1; expect "install repairs the Kiro hook" 0 $?
+khb_mode=$(stat -c %a "$kh.pmhwc-backup" 2>/dev/null || stat -f %Lp "$kh.pmhwc-backup" 2>/dev/null || echo absent)
+if [ "$khb_mode" = 600 ] && jq -e '.hooks[0].timeout == 1' "$kh.pmhwc-backup" >/dev/null && jq -e '.hooks[0].timeout == 30' "$kh" >/dev/null \
+   && grep -q "previous version kept as $kh.pmhwc-backup" "$base/kh3.out"; then
+  ok "the replaced Kiro hook is kept as a 0600 backup that Kiro does not load (no .json suffix)"
+else
+  ko "the Kiro hook backup is wrong (mode $khb_mode)"
+fi
+HOME="$hh" sh "$inst" --uninstall > "$base/kh-un.out" 2>&1; expect "uninstall with the Kiro hook" 0 $?
+if [ ! -e "$kh" ] && grep -q "^REMOVED $kh\$" "$base/kh-un.out"; then ok "uninstall removes the Kiro hook"; else ko "uninstall left the Kiro hook"; fi
+printf '{"version": "v1", "hooks": [{"name": "mine", "trigger": "Stop", "action": {"type": "command", "command": "true"}}]}\n' > "$kh"
+HOME="$hh" sh "$inst" > "$base/kh4.out" 2>&1; expect "install refuses a Kiro hook file of the owner's" 3 $?
+if grep -q "^REFUSE  $kh: exists and is NOT managed" "$base/kh4.out" && grep -q '"mine"' "$kh"; then ok "the owner's own file at that name is left untouched"; else ko "the owner's Kiro hook file was touched"; fi
+HOME="$hh" sh "$inst" --uninstall > "$base/kh-un2.out" 2>&1
+if grep -q '"mine"' "$kh" && grep -q "^NOTE    $kh exists and is NOT managed" "$base/kh-un2.out"; then ok "uninstall leaves an unmanaged Kiro hook file alone"; else ko "uninstall touched an unmanaged Kiro hook file"; fi
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
