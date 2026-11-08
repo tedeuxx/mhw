@@ -346,8 +346,15 @@ def check_floor(box, exp):
           and "managed-by: " + NAME in str(kentries[0].get("description", ""))
           and kentries[0].get("trigger") == "UserPromptSubmit",
           "Kiro: the user-level hook file is rendered in the V3 shape", str(kh))
-    hooks["kiro"] = [e["action"]["command"] for e in kentries if isinstance(e.get("action"), dict)
-                     and e["action"].get("type") == "command" and "--harness kiro" in e["action"].get("command", "")]
+    # The command is compared with the one install.sh must render for this HOME, and only that expected
+    # string is run: a command read from a file is never executed as given.
+    data = box.home / ".local" / "share" / NAME
+    want = '/usr/bin/python3 -I -B "%s" prompt-hook --harness kiro --config "%s"' % (
+        data / "clipboard_guard.py", data / "clipboard.conf")
+    got = [e["action"].get("command") for e in kentries if isinstance(e.get("action"), dict)
+           and e["action"].get("type") == "command"]
+    check(got == [want], "Kiro: the hook file runs the installed core in kiro mode", "got %r" % got[:2])
+    hooks["kiro"] = [want] if got == [want] else []
     return hooks
 
 
