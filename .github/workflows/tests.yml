@@ -222,6 +222,8 @@ jobs:
       # first-word target overrides it, the installed launch-line.py prints one fenced block for the
       # target, the block parses under sh, bash (and zsh where present) and carries the prompt (quotes,
       # $, backticks, newlines) and the launch environment exactly, and no rendering token survives.
+      # #454: both /handoff templates (continuation and ask) and the fallback reach every carrier, and the
+      # ask template, filled, passes launch-line.py for each target. Text checks plus one script run.
       # /need-me (owner, 2026-10-26): its headings and phrases reach every carrier; its source text (front matter included, markup stripped)
       # carries no four-option ceiling and names exactly three options; it confirms the owner-action label
       # before reading an empty list as zero, against owner_actions.py's repository and label; and its

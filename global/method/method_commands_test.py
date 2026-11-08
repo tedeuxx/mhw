@@ -41,8 +41,8 @@ REQUIRED = {
                                 "## Opening the Issues"],
     "what-else": SHARED + ["## The anchored objective", "## Read the bus", "## The answer"],
     "blueprint": SHARED + ["## export", "## import", "## Alignment interview"],
-    "handoff": SHARED + ["## The arguments", "## When to use", "## Build the prompt", "## The prompt",
-                         "## Print it"],
+    "handoff": SHARED + ["## Continuation or ask", "## The arguments", "## When to use", "## Build the prompt",
+                         "## The prompt", "## The ask prompt", "## Print it"],
     "need-me": SHARED + ["## The rules this command runs", "## Gather what is pending", "## When nothing is pending",
                          "## Ask one at a time", "## After he answers"],
 }
@@ -77,7 +77,10 @@ PHRASES = {
                   "Nothing is changed before the alignment interview is complete"],
     "handoff": ["re-derive the state from the tracker", "It prints only", "launch-line.py",
                 "at most 280 characters", "Then stop working in this session", "--resolve",
-                "--env NAME=VALUE", "and nothing after it", "--cd <the checkout>"],
+                "--env NAME=VALUE", "and nothing after it", "--cd <the checkout>",
+                # #454: the ask mode, its fallback and the owner-only routing.
+                "**For an ask, do not stop:**", "When any of these is in doubt, it is a continuation.",
+                "only its most recent unanswered ask", "*Hypothesis, not measured:*"],
     # The owner's request (2026-10-26): HITL escalation on demand, under today's discipline, three options.
     "need-me": ["**Escalating to the owner**", "**owner overlay**", "Exactly **three** authored, mutually exclusive",
                 "one line, the act and the link", "Put **only the first** to him", "**Never manufacture an ask**",
@@ -827,6 +830,79 @@ class Handoff(unittest.TestCase):
             self.assertEqual(out.returncode, 1, label)
             self.assertEqual(out.stdout, "", label)
             self.assertIn(needle, out.stderr, label)
+
+    # #454: the two templates, read from a command text by the heading of the section that holds each.
+    @staticmethod
+    def template(text, heading):
+        found = re.search(r"\n%s\n.*?```\n(.*?)```" % re.escape(heading), text, re.S)
+        if not found:
+            raise AssertionError("no template under %s" % heading)
+        return found.group(1)
+
+    def handoff_texts(self):
+        texts = {"source": (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")}
+        texts.update({c: p.read_text(encoding="utf-8") for c, p in carriers(self.home, "handoff").items()})
+        return texts
+
+    def test_both_templates_and_the_fallback_are_in_every_carrier(self):
+        """#454 criteria 1-4, as text in the source and in each carrier: the continuation template still
+        stops the printing session; the ask template keeps it running, names the Issue the result goes
+        back to, routes owner-only acts to the owner and keeps the new session out of the checkout's files;
+        and the fallback says any argument, or any doubt, gives today's continuation. Text check: whether a
+        model reads its own last message right is not tested."""
+        flat = lambda text: re.sub(r"\s+", " ", re.sub(r"~~.*?~~", "", text, flags=re.S))
+        own = {"source": "{{agent-harness}}", "claude": "claude-code", "codex": "codex", "kiro": "kiro"}
+        for where, text in self.handoff_texts().items():
+            cont = self.template(text, "## The prompt")
+            ask = self.template(text, "## The ask prompt")
+            self.assertIn("the session that printed this prompt stops now.", cont, where)
+            self.assertNotIn("keeps running", cont, where)
+            self.assertNotIn("stops now", ask, where)
+            for line in ("the session that printed this prompt keeps running and waits for the result.",
+                         "Owner-only: <the acts in the ask only the owner may perform, or none>; guide the owner "
+                         "to each one and never perform it yourself.",
+                         "Change no file in this checkout: the session that printed this prompt works in it.",
+                         "Return: post the result on <owner/repo>#<n> with gh issue comment <n> --repo "
+                         "<owner/repo> --body-file <a file>, then tell the owner it is posted."):
+                self.assertIn(line, ask, where)
+            self.assertTrue(ask.startswith("Objective: "), where)
+            body = flat(text)
+            self.assertIn("1. `$ARGUMENTS` is empty. Any argument gives a continuation, and `/handoff %s` "
+                          "(this agent harness named as the target) forces one." % own[where], body, where)
+            self.assertIn("launch-line.py --resolve %s <its id>" % own[where], body, where)
+            self.assertIn("When any of these is in doubt, it is a continuation.", body, where)
+            self.assertIn("**For an ask, do not stop:**", body, where)
+            self.assertIn("Then stop working in this session, for a continuation.", body, where)
+
+    def test_the_ask_template_filled_passes_the_script_for_every_target(self):
+        """#454: the ask template, filled with synthetic public values at full field length, is accepted by
+        the installed launch-line script for each target (280-character lines, no /goal, no machine-local
+        path, no control character) and reaches each shell's argv exactly; the forced continuation resolves
+        to the current harness."""
+        text = (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")
+        ask = self.template(text, "## The ask prompt").rstrip("\n")
+        filled = (ask.replace("<owner/repo>", "owner/repo").replace("<n>", "12")
+                  .replace("<the ask, one act, one line>", "approve the Codex prompt hook")
+                  .replace("<branch> <commit>", "loop/12-x " + "a" * 40)
+                  .replace("<the act the printing session asked the owner to carry out in this agent harness, "
+                           "one line>", "open /hooks and approve the workstation prompt hook")
+                  .replace("<the acts in the ask only the owner may perform, or none>", "approving the hook")
+                  .replace("<a file>", "result.md"))
+        self.assertNotIn("<", filled)
+        self.assertEqual(guard.find_spans(filled), [])
+        for target, prefix in LAUNCH_PREFIX.items():
+            out = run_launch_line(self.script, target, filled, BASE)
+            self.assertEqual(out.returncode, 0, (target, out.stderr))
+            before, line = the_block(out.stdout)
+            self.assertEqual(before, [], target)
+            p = argv_through("sh", line, prefix[:-2])
+            self.assertEqual(p.stdout.split("\0")[:-1], ["PWD=%s" % CHECKOUT] + prefix[:-2].split()[1:] + [filled],
+                             target)
+            # /handoff <current-harness> forces a continuation: the word is consumed and names this harness.
+            self.assertEqual(self.resolve(target, target).stdout, "%s\nconsumed\n" % target, target)
+        # An ask naming a harness the script cannot target falls back: the word is kept, not consumed.
+        for word in ("kiro-ide", "desktop", "cursor"):
+            self.assertEqual(self.resolve("codex", word).stdout, "codex\nkept\n", word)
 
     def test_the_prompt_template_carries_no_secret_or_personal_data(self):
         text = (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")
