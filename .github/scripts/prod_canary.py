@@ -5,7 +5,7 @@ mhw has no STG or PROD environment. Its PROD is the owner running `mhw install` 
 this is that install, repeated where nothing of his exists: a throwaway HOME, a throwaway npm prefix and
 a throwaway admin root, on a clean container (CI, Linux) or a throwaway HOME (CI, macOS; or by hand).
 
-    prod_canary.py pack --ref REF --out DIR [--name N] git archive REF, then npm pack: prints the .tgz path
+    prod_canary.py pack --ref REF --out DIR [--name N] git archive REF (of this checkout), then npm pack
     prod_canary.py run  --source DIR --tgz HEAD.tgz [--from-tgz OLD.tgz] --work DIR [--commit SHA]
 
 `pack` builds the package from a source archive, as GitHub serves a tag: `git archive` fills in
@@ -41,7 +41,7 @@ import io
 MARKER = "PMHWC_PASTE_WRAPPER"           # global/clipboard/clipboard_guard.py, WRAPPER_MARKER
 NAME = "personal-multi-harness-workstation-configuration"
 WORD = re.compile(r"^[A-Za-z0-9._/~=:@+*-]+$")
-REF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")   # a commit SHA, a tag or HEAD; never an option
+REPO = Path(__file__).resolve().parents[2]            # the checkout this script is in: the one it packs
 CLAUDE_SETTINGS = ".claude/settings.json"
 FLOOR_FILES = ("global/deny-floor.conf", "overlay/deny-floor.conf")   # install.sh appends the overlay's
 
@@ -62,10 +62,22 @@ def die(msg):
 
 # --- pack ------------------------------------------------------------------------------------------------
 
+def known_ref(arg):
+    """The ref as git itself spells it: HEAD, a tag that exists, or a full commit SHA rebuilt from its
+    hexadecimal value. Nothing taken from the command line reaches git's argument list as typed."""
+    if arg == "HEAD":
+        return "HEAD"
+    if re.fullmatch(r"[0-9a-f]{40}", arg):
+        return "%040x" % int(arg, 16)
+    tags = subprocess.run(["git", "-C", str(REPO), "tag", "--list"], capture_output=True, text=True).stdout.split()
+    found = [t for t in tags if t == arg]
+    if not found:
+        die("refusing ref %r: HEAD, an existing tag or a full commit SHA only" % arg)
+    return found[0]
+
+
 def cmd_pack(a):
-    if not REF.match(a.ref) or ".." in a.ref:
-        die("refusing ref %r: a commit, a tag or HEAD only" % a.ref)
-    ref = REF.match(a.ref).group(0)
+    ref = known_ref(a.ref)
     out = Path(a.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
     name = a.name or re.sub(r"[^A-Za-z0-9._-]", "_", ref)
@@ -73,7 +85,7 @@ def cmd_pack(a):
     if src.exists():
         die("%s exists; pack into a fresh directory" % src)
     src.mkdir()
-    raw = subprocess.run(["git", "-C", a.repo, "archive", "--format=tar", "--end-of-options", ref], capture_output=True)
+    raw = subprocess.run(["git", "-C", str(REPO), "archive", "--format=tar", "--end-of-options", ref], capture_output=True)
     if raw.returncode:
         die("git archive %s: %s" % (ref, raw.stderr.decode(errors="replace").strip()))
     with tarfile.open(fileobj=io.BytesIO(raw.stdout)) as t:
@@ -93,6 +105,17 @@ def cmd_pack(a):
 
 # --- what the floor must render to (read from the source, independently of the installer) ---------------
 
+def floor_line(rel, raw):
+    """One deny-floor line -> (kind, words), or None for a blank or comment line."""
+    line = raw.strip()
+    if not line or line.startswith("#"):
+        return None
+    f = line.split()
+    if f[0] not in ("cmd", "file", "glob") or len(f) < 2 or not all(WORD.match(w) for w in f[1:]):
+        die("unreadable deny-floor entry in %s: %s" % (rel, line))
+    return f[0], f[1:]
+
+
 def floor_entries(source):
     entries = []
     root = os.path.realpath(source)
@@ -100,16 +123,9 @@ def floor_entries(source):
         path = Path(os.path.realpath(os.path.join(root, rel)))
         if os.path.commonpath([root, str(path)]) != root:
             die("%s resolves outside the source tree" % rel)
-        if not path.is_file():
-            continue
-        for raw in path.read_text(encoding="utf-8").splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#"):
-                continue
-            f = line.split()
-            if f[0] not in ("cmd", "file", "glob") or len(f) < 2 or not all(WORD.match(w) for w in f[1:]):
-                die("unreadable deny-floor entry in %s: %s" % (rel, line))
-            entries.append((f[0], f[1:]))
+        if path.is_file():
+            lines = path.read_text(encoding="utf-8").splitlines()
+            entries.extend(e for e in (floor_line(rel, raw) for raw in lines) if e)
     if not entries:
         die("no deny-floor entry under %s" % source)
     return entries
@@ -458,7 +474,6 @@ def main():
     p = sub.add_parser("pack")
     p.add_argument("--ref", required=True)
     p.add_argument("--out", required=True)
-    p.add_argument("--repo", default=".")
     p.add_argument("--name", help="names the outputs mhw-NAME.tgz and src-NAME/ (default: the ref)")
     r = sub.add_parser("run")
     r.add_argument("--source", required=True, help="the source tree of the head (its deny-floor.conf is the truth)")
