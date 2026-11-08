@@ -234,12 +234,12 @@ It changes nothing.
   own denies). Unset it, or pass `--overlay=` explicitly.
 
 **Version key.** A project names the workstation release range it expects in `.workstation-version`
-(for example `>=5.4 <6`, what this repository expects since v5.4.0). `./mhw
+(for example `>=10.0 <11`, what this repository expects since v10.0.0). `./mhw
 status` compares it with the installed release, and the user brief tells the agent to do the same at
 session start. On a mismatch both print one line, required and installed, and the command to run;
 nothing blocks ([#57](https://github.com/tedeuxx/mhw/issues/57)).
-An install from an untagged checkout of `rc/next` stamps `unreleased, after v3.0.0`, which compares as
-3.0.0 and is a mismatch here until v4.0.0 is tagged.
+An install from an untagged checkout of `rc/next` stamps `unreleased, after vX.Y.Z`, which compares as
+X.Y.Z, so it matches here only when that last release is inside the range.
 
 Windows (PowerShell 5.1 and 7, tested in CI) renders the brief and the deny floor (Kiro's
 `permissions.yaml` included), and the working method with `-Method`. Since the #145 follow-up it also
