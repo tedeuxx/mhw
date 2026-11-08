@@ -119,8 +119,9 @@ amendment. See the amendment "the Kiro canary results".* The README coverage tab
 sending the hook's stderr on. The proposal, for the owner: render one user-level hook file there that
 runs the existing `clipboard_guard.py prompt-hook` with a Kiro output mode (exit 2 and the redacted
 copy on stderr). Hooks are allowed here only for existential risk; a confidentiality breach through a
-pasted prompt is that case. ~~**Not wired**~~ *(Amended 2026-11-08: wired, still not measured; see the
-amendment of that date)*, because each link is read from the bundle and none is
+pasted prompt is that case. ~~**Not wired**~~ *(Amended 2026-11-08: wired, ~~still not measured~~; see the
+amendment of that date. Amended again 2026-11-08, #462: partly measured; see the amendment "the Kiro
+canary results")*, because each link is read from the bundle and none is
 measured: whether the global directory is exactly `~/.kiro/hooks/`, the file suffix it accepts, that
 a block keeps the prompt from the model, and where the stderr text goes (to the owner or into the
 agent's context; the guard's redacted copy holds no secret, but the owner should see it). A
