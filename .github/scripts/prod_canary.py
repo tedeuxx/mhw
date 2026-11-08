@@ -17,7 +17,9 @@ over it. Then it checks, and every check prints PASS or FAIL:
      rules file, Kiro permissions.yaml), and into the admin layer under the throwaway root, equals what
      global/deny-floor.conf plus overlay/deny-floor.conf in --source say it must be;
   2. the installed prompt hook, run as the harness runs it with the paste-wrapper marker unset, blocks
-     a synthetic credential-shaped prompt and passes a clean one (Claude Code and Codex);
+     a synthetic credential-shaped prompt and passes a clean one (Claude Code and Codex); Kiro CLI V3's
+     user-level hook file (Issue #455) exists in the V3 shape, and its command blocks the same prompt with
+     exit 2, the redacted copy on stderr and nothing on stdout, with the marker SET as well;
   3. `mhw status` and `mhw check` exit 0;
   4. `mhw uninstall --yes` restores every file the owner had, removes the admin layer, and leaves no
      floor rule, brief or data directory of mhw behind.
@@ -336,6 +338,23 @@ def check_floor(box, exp):
     if drop:
         hooks["claude"] = [h["command"] for e in read_json(drop).get("hooks", {}).get("UserPromptSubmit", [])
                            for h in e.get("hooks", []) if h.get("type") == "command"]
+    # Kiro CLI V3's hook file (Issue #455): user level, the V3 shape read from the kas 2.35.2 bundle.
+    kh = box.home / ".kiro" / "hooks" / (NAME + "-paste-filter.json")
+    kdoc = read_json(kh) if kh.is_file() else {}
+    kentries = kdoc.get("hooks", []) if isinstance(kdoc.get("hooks"), list) else []
+    check(kh.is_file() and kdoc.get("version") == "v1" and len(kentries) == 1
+          and "managed-by: " + NAME in str(kentries[0].get("description", ""))
+          and kentries[0].get("trigger") == "UserPromptSubmit",
+          "Kiro: the user-level hook file is rendered in the V3 shape", str(kh))
+    # The command is compared with the one install.sh must render for this HOME, and only that expected
+    # string is run: a command read from a file is never executed as given.
+    data = box.home / ".local" / "share" / NAME
+    want = '/usr/bin/python3 -I -B "%s" prompt-hook --harness kiro --config "%s"' % (
+        data / "clipboard_guard.py", data / "clipboard.conf")
+    got = [e["action"].get("command") for e in kentries if isinstance(e.get("action"), dict)
+           and e["action"].get("type") == "command"]
+    check(got == [want], "Kiro: the hook file runs the installed core in kiro mode", "got %r" % got[:2])
+    hooks["kiro"] = [want] if got == [want] else []
     return hooks
 
 
@@ -372,6 +391,23 @@ def check_hook(box, hooks):
         # block above came from the hook judging the prompt, not from something unrelated to the marker.
         p = fire(dirty, dict(env, **{MARKER: "1"}))
         check(p.returncode == 0 and p.stdout == "", "%s: calibration, with the wrapper marker set the hook stays silent" % harness)
+    # Kiro's protocol (read from the bundle): exit 2 blocks with stderr as the reason; on exit 0 stdout is
+    # appended to the model's prompt. On V3 the wrapper cleans nothing, so the marker must NOT silence it.
+    cmds = hooks.get("kiro") or []
+    if check(len(cmds) == 1, "kiro: exactly one installed prompt hook", "found %d" % len(cmds)):
+        for label, environ in (("marker unset", env), ("marker set", dict(env, **{MARKER: "1"}))):
+            payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": dirty})
+            p = subprocess.run(["/bin/sh", "-c", cmds[0]], input=payload, env=environ, cwd=box.d / "proj",
+                               capture_output=True, text=True, timeout=60)
+            check(p.returncode == 2 and p.stdout == "" and "[REDACTED:credential]" in p.stderr
+                  and fake_key not in p.stderr,
+                  "kiro (%s): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout" % label,
+                  "exit %d, stdout %r" % (p.returncode, p.stdout[:200]))
+        payload = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": clean})
+        p = subprocess.run(["/bin/sh", "-c", cmds[0]], input=payload, env=env, cwd=box.d / "proj",
+                           capture_output=True, text=True, timeout=60)
+        check(p.returncode == 0 and p.stdout == "", "kiro: the installed hook passes a clean prompt",
+              "exit %d, stdout %r" % (p.returncode, p.stdout[:300]))
 
 
 PROBLEM = re.compile(r"^(REFUSE|STALE|DRIFT|MISSING|FAIL)\s")

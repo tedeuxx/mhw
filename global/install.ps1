@@ -488,7 +488,9 @@ Remove-RetiredAllow $settingsFile
 
 # The fourth #145 item, the paste wrapper's shell start-up block, has nothing to write here: the wrapper
 # needs a POSIX pty and /usr/bin/python3 and is not ported to Windows (ADR-0011, ADR-0033).
-Write-Output 'NOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written'
+# The Kiro CLI V3 prompt hook (Issue #455) runs that same core, which this installer does not install, so
+# it is not rendered either: Windows parity would mean porting the core first. A stated gap.
+Write-Output 'NOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)'
 
 # The working method (Issue #61, ADR-0032): agents, skills and commands from <repo>\method, rendered into
 # each agent harness's user-level carrier by global\method\method_render.py, the same step install.sh

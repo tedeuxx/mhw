@@ -22,6 +22,10 @@ whole session; `sudo`/`su` serves that purpose.
 | `/Library/Application Support/personal-multi-harness-workstation-configuration/bin/` [`/etc/personal-multi-harness-workstation-configuration/bin/`] | the hook scripts those entries run |
 
 Kiro has no admin layer for hooks and runs none of these hooks; its admin file carries only the floor.
+Since [#455](https://github.com/tedeuxx/mhw/issues/455) Kiro CLI V3 has one user-level hook of this
+project, `~/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json` (the paste
+filter). It needs no `sudo`: delete that one file, or run `mhw uninstall`; the next `mhw install` puts it
+back. Kiro also skips it in any workspace you did not trust.
 Windows installs no hook and no admin file.
 
 ## Turn every hook off

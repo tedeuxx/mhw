@@ -26,7 +26,8 @@
 #   - window size, signals, job control, the terminal modes and the exit status are relayed, and the
 #     terminal's modes are restored on every exit path;
 #   - when the CLI never enables bracketed paste, nothing can be cleaned, and the owner is told so in
-#     one line;
+#     one line; for kiro-cli that line also says whether this project's Kiro prompt hook is installed,
+#     and that Kiro runs it only in a trusted workspace (Issue #455);
 #   - every notice names categories only, never the pasted content or a matched term;
 #   - the CLI it relays for gets the session marker (clipboard_guard.WRAPPER_MARKER) in its environment,
 #     so the prompt hook, kept as the safety net, passes its prompts silently; a CLI it only execs
@@ -258,6 +259,17 @@ def notice(conf, key, **values):
     return core._format(conf, key, **values).replace("\r", " ").replace("\n", " ")
 
 
+def no_paste_notice(conf, key, argv0, home=None):
+    """A "pastes are NOT cleaned" notice. For kiro-cli it adds who checks now (Issue #455): Kiro CLI V3
+    never enables bracketed paste, so the prompt hook is the only check, and Kiro skips every hook in a
+    workspace the owner did not trust (read from the bundle, kas 2.35.2). A read of one file, no write."""
+    text = notice(conf, key, program=argv0)
+    if os.path.basename(argv0) == "kiro-cli":
+        extra = "notice_kiro_hook_on" if core.kiro_hook_installed(home) else "notice_kiro_hook_off"
+        text += " " + notice(conf, extra)
+    return text
+
+
 # ------------------------------------------------------------------------------------------- relay
 
 
@@ -448,13 +460,13 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
                     to_child.clear()
             if not warned and not mode.ever and time.monotonic() >= start + grace:
                 warned = True
-                _write_all(stdout, b"\r\n" + notice(conf, "notice_no_bracketed_paste", program=argv0).encode("utf-8") + b"\r\n")
+                _write_all(stdout, b"\r\n" + no_paste_notice(conf, "notice_no_bracketed_paste", argv0).encode("utf-8") + b"\r\n")
             # Turned off mid-session and still off after the grace period (a CLI that is merely
             # exiting turns it off too, and is gone by then): say pastes are no longer cleaned.
             if (mode.off_since is not None and warned_off != mode.off_since and status is None
                     and time.monotonic() >= mode.off_since + grace):
                 warned_off = mode.off_since
-                _write_all(stdout, b"\r\n" + notice(conf, "notice_bracketed_paste_off", program=argv0).encode("utf-8") + b"\r\n")
+                _write_all(stdout, b"\r\n" + no_paste_notice(conf, "notice_bracketed_paste_off", argv0).encode("utf-8") + b"\r\n")
             if exited_at is not None and time.monotonic() >= exited_at + EXIT_DRAIN_SECONDS:
                 break                       # the CLI exited and a process it left behind holds its terminal
         if status is None:
@@ -477,7 +489,7 @@ def relay(real, argv0, args, conf, err=None, grace=GRACE_SECONDS):
         err.write(notice(conf, "notice_session_report_only", count=cleaner.reported_pastes,
                          categories=", ".join(c for c in core.CATEGORY_ORDER if c in cleaner.reported)) + "\n")
     if not mode.ever:
-        err.write(notice(conf, "notice_no_bracketed_paste", program=argv0) + "\n")
+        err.write(no_paste_notice(conf, "notice_no_bracketed_paste", argv0) + "\n")
     if no_salt:
         err.write(notice(conf, "notice_wrapper_no_salt") + "\n")
     err.flush()

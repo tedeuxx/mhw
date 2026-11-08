@@ -909,6 +909,112 @@ class WrapperMarker(unittest.TestCase):
                 self.assertEqual(r.stdout, b"")
 
 
+class KiroHook(unittest.TestCase):
+    """Issue #455: --harness kiro speaks Kiro CLI V3's hook protocol (read from the bundle, kas 2.35.2):
+    exit 2 blocks with stderr as the reason, and on exit 0 stdout is APPENDED TO THE MODEL'S PROMPT. So
+    stdout stays empty in every case, and the wrapper's marker is ignored (on V3 it cleans nothing)."""
+
+    SENSITIVE = WrapperMarker.SENSITIVE
+
+    def run_hook(self, conf, prompt=None, environ=None, raw=None, salts=None):
+        out, err = io.StringIO(), io.StringIO()
+        if raw is None:
+            raw = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": prompt,
+                              "session_id": "s", "cwd": "/w"}).encode()
+        code = g.cmd_prompt_hook(conf, "kiro", io.BytesIO(raw), out, salts or FakeSalts(),
+                                 environ=environ if environ is not None else {}, stderr=err)
+        return code, out.getvalue(), err.getvalue()
+
+    def test_a_finding_exits_2_with_the_redacted_copy_on_stderr_only(self):
+        d, conf = hook_conf("kiro-dirty")
+        with_term(conf)
+        code, out, err = self.run_hook(conf, self.SENSITIVE)
+        self.assertEqual((code, out), (2, ""))
+        self.assertIn("[REDACTED:credential]", err)
+        self.assertIn("[REDACTED:employer-client-term]", err)
+        self.assertNotIn(CREDENTIALS["github"], err)
+        self.assertNotIn("quillon", err.lower())
+        self.assertNotIn("ana@", err)
+
+    def test_the_wrapper_marker_does_not_silence_it(self):
+        """Scenario A, measured on the intake: with the marker set the claude/codex modes pass silently."""
+        d, conf = hook_conf("kiro-marker")
+        with_term(conf)
+        for value in (g.WRAPPER_MARKER_VALUE, None, "0"):
+            env = {} if value is None else {g.WRAPPER_MARKER: value}
+            code, out, err = self.run_hook(conf, self.SENSITIVE, environ=env)
+            self.assertEqual((code, out), (2, ""), value)
+            self.assertIn("[REDACTED:credential]", err, value)
+
+    def test_a_clean_prompt_exits_0_and_writes_nothing(self):
+        d, conf = hook_conf("kiro-clean")
+        with_term(conf)
+        self.assertEqual(self.run_hook(conf, "refactor the parser and add a test"), (0, "", ""))
+
+    def test_errors_fail_open_with_nothing_on_stdout(self):
+        """Scenarios C and E: whatever stops the check exits 0, and stdout (the model's prompt) stays empty."""
+        d, conf = hook_conf("kiro-errors", max_bytes="50")
+        for raw in (b"not json", b"[]", b'{"prompt": 7}', b'{"hook_event_name": "UserPromptSubmit"}',
+                    b"\xff\xfe", b"", b"x" * (50 * 6 + 65536 + 2)):
+            code, out, err = self.run_hook(conf, raw=raw)
+            self.assertEqual((code, out), (0, ""), raw[:20])
+            self.assertIn("Paste filter", err, raw[:20])
+        code, out, err = self.run_hook(conf, "a" * 60)        # over max_bytes: not checked, fail open
+        self.assertEqual((code, out), (0, ""))
+        self.assertIn("NOT checked", err)
+
+    def test_warnings_never_reach_stdout(self):
+        d, conf = hook_conf("kiro-warn")
+        with_term(conf)
+        code, out, err = self.run_hook(conf, "refactor the parser", salts=FakeSalts(None))
+        self.assertEqual((code, out), (0, ""))
+        self.assertIn("salt", err)
+        code, out, err = self.run_hook(conf, "already cleaned: [REDACTED:email]")
+        self.assertEqual((code, out), (0, ""))
+
+    def test_a_real_hook_process_as_kiro_runs_it(self):
+        """Through the CLI, with the marker inherited from a wrapped kiro-cli and a settings file that cannot
+        be read: exit codes and streams as Kiro reads them."""
+        d, conf_unused = hook_conf("kiro-proc")
+        conf_path = os.path.join(d, "clipboard.conf")
+        py = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
+        env = {"HOME": os.path.join(d, "home"), "PATH": "/usr/bin:/bin", g.WRAPPER_MARKER: g.WRAPPER_MARKER_VALUE}
+        dirty = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": "use " + CREDENTIALS["aws"]}).encode()
+        clean = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": "refactor the parser"}).encode()
+        argv = [py, "-I", "-B", g.__file__, "prompt-hook", "--harness", "kiro", "--config", conf_path]
+        r = subprocess.run(argv, input=dirty, capture_output=True, env=env, timeout=60)
+        self.assertEqual((r.returncode, r.stdout), (2, b""))
+        self.assertIn(b"[REDACTED:credential]", r.stderr)
+        self.assertNotIn(CREDENTIALS["aws"].encode(), r.stderr)
+        r = subprocess.run(argv, input=clean, capture_output=True, env=env, timeout=60)
+        self.assertEqual((r.returncode, r.stdout, r.stderr), (0, b"", b""))
+        # An unreadable settings file (checked in process: the keychain guard reads a child's --config).
+        bad = os.path.join(d, "bad.conf")
+        with open(bad, "w") as fh:
+            fh.write("keychain_path=relative/path\n")
+        out, err = io.StringIO(), io.StringIO()
+        saved = sys.stdout, sys.stderr
+        try:
+            sys.stdout, sys.stderr = out, err
+            code = g.main(["clipboard_guard.py", "prompt-hook", "--harness", "kiro", "--config", bad])
+        finally:
+            sys.stdout, sys.stderr = saved
+        self.assertEqual((code, out.getvalue()), (0, ""), "an unreadable settings file fails open, not on stdout")
+        self.assertIn("internal error", err.getvalue())
+
+    def test_kiro_hook_installed_reads_the_managed_file_only(self):
+        home = os.path.join(BASE, "kiro-hook-home")
+        self.assertFalse(g.kiro_hook_installed(home))
+        os.makedirs(os.path.dirname(g.kiro_hook_path(home)), exist_ok=True)
+        with open(g.kiro_hook_path(home), "w") as fh:
+            fh.write('{"description": "a hook of my own", "command": "prompt-hook --harness kiro"}')
+        self.assertFalse(g.kiro_hook_installed(home), "unmanaged")
+        with open(g.kiro_hook_path(home), "w") as fh:
+            fh.write('{"description": "managed-by: %s; x", "command": "prompt-hook --harness kiro"}' % g.PROJECT)
+        self.assertTrue(g.kiro_hook_installed(home))
+        self.assertEqual(os.path.basename(g.kiro_hook_path(home)), g.PROJECT + "-paste-filter.json")
+
+
 class Config(unittest.TestCase):
     def test_invalid_values_fall_back(self):
         d = os.path.join(BASE, "conf")

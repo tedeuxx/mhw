@@ -69,9 +69,10 @@ Chosen: option 1.
   five generic categories (credential, e-mail, payment card, CPF, CNPJ; `block_categories` in
   `clipboard.conf`).
 - **Coverage, stated:** Claude Code and Codex command-line sessions on macOS and Linux. Kiro CLI is
-  wrapped ~~but not measured~~, and has no hook. *Amended 2026-10-11:* on the V3 engine the wrapper
+  wrapped ~~but not measured~~, ~~and has no hook~~. *Amended 2026-10-11:* on the V3 engine the wrapper
   cleans nothing, measured; see the amendment "Kiro CLI V3 does not enable bracketed paste". Out of reach: desktop apps, IDE extensions, files read by
-  path, pasted images, Windows.
+  path, pasted images, Windows. *Amended 2026-11-08:* Kiro CLI V3 has a user-level hook file; see the
+  amendment of that date.
 
 ## Consequences
 
@@ -113,7 +114,8 @@ a paste. The README coverage table carries the gap.
 sending the hook's stderr on. The proposal, for the owner: render one user-level hook file there that
 runs the existing `clipboard_guard.py prompt-hook` with a Kiro output mode (exit 2 and the redacted
 copy on stderr). Hooks are allowed here only for existential risk; a confidentiality breach through a
-pasted prompt is that case. **Not wired**, because each link is read from the bundle and none is
+pasted prompt is that case. ~~**Not wired**~~ *(Amended 2026-11-08: wired, still not measured; see the
+amendment of that date)*, because each link is read from the bundle and none is
 measured: whether the global directory is exactly `~/.kiro/hooks/`, the file suffix it accepts, that
 a block keeps the prompt from the model, and where the stderr text goes (to the owner or into the
 agent's context; the guard's redacted copy holds no secret, but the owner should see it). A
@@ -132,6 +134,54 @@ default.~~ *Struck 2026-11-01 (gate round 1):* `postal-address` and `contract-va
 default; the other three block. The patterns, the false-positive threshold and its measurement are in
 [ADR-0035](0035-workstation-blueprint-reconciliation.md), amendment of 2026-11-01 (Issue #36).
 *Written and tested*; not installed.
+
+## Amendment 2026-11-08: Kiro CLI V3 gets the prompt hook, built now and measured at the RC (Issue #455)
+
+**Decision (the owner, on #455, 2026-11-08):** build the hook with tests now and measure it in the
+release candidate's post-install canary, rather than measure first with a probe hook in his
+`~/.kiro/hooks`. Consequence, stated so nothing over-claims: every Kiro link below stays *read from the
+bundle* until that canary, and a link that does not hold fails open, no worse than before.
+
+**What is built** (*written and tested* in throwaway homes; *not installed*):
+
+- `clipboard_guard.py prompt-hook --harness kiro`. A finding exits 2 with the block message and the
+  redacted copy on stderr; a clean prompt exits 0; **nothing is ever written to stdout**. It **ignores the
+  wrapper's marker**: on V3 the wrapper cleans nothing but still sets it, which silenced the hook
+  (measured on the intake, scenario A). A source mutation that restores the marker short-circuit in this
+  mode turns two tests red; restoring the source turns them green.
+- **Failure behaviour, chosen:** whatever stops the check (a payload that is not JSON or has no `prompt`,
+  an oversized prompt, an unreadable settings file, an internal error) exits 0, so the prompt passes
+  unchecked: fail open, as on the other two harnesses. The notice goes to stderr only. Kiro drops stderr
+  on exit 0, so **the owner sees no warning** on Kiro; putting it on stdout would send it to the model as
+  part of his prompt, which is worse. Report-only categories and the unreadable-salt warning are lost the
+  same way.
+- `install.sh` renders `~/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json`
+  (`version: v1`, one `UserPromptSubmit` hook, a 30-second timeout, the marker and stamp in its
+  `description`). Idempotent; a content change keeps the replaced file as `<file>.pmhwc-backup`, 0600,
+  which Kiro does not load (no `.json` suffix); an unmanaged file at that name is refused; uninstall
+  removes it. It stays at user level under `--hooks=managed` (no admin layer for Kiro hooks,
+  hypothesis F). `mhw status` names it as `paste filter (Kiro CLI V3)`, or `…, modified`, or not at all
+  when absent; `--check` reports `OK`, `DRIFT` or `MISSING`. The PROD install canary (#452) asserts it is
+  rendered and blocks with the marker set and unset.
+- The paste wrapper's "bracketed paste not enabled" warning, for `kiro-cli`, now says whether this hook
+  is installed and that Kiro runs it only in a trusted workspace.
+- `install.ps1` does not render it: Windows has no paste filter core to run (a stated gap).
+
+**Evidence level per link**, each *read from the bundle* (kas 2.35.2,
+`@kiro/agent/dist/server/acp-server.js`; `kiro-cli` 3.1.0 on the reference machine) and **not measured**:
+
+| Link | Read from the bundle | Not measured |
+| --- | --- | --- |
+| directory | user hooks dir is `<userConfigDir>/hooks`, and `userConfigDir` defaults to `~/.kiro` | that this session's `userConfigDir` is `~/.kiro` |
+| file | every `*.json` file there; schema `{version: "v1", hooks: [{name, trigger, action: {type: "command", command}, timeout?, description?}]}`, timeout in seconds, default 60 | that the file validates and loads |
+| trigger and payload | `UserPromptSubmit` (alias `promptSubmit`); stdin is `{…, "hook_event_name": "UserPromptSubmit", "prompt": …}` | that `prompt` arrives as the pasted text |
+| environment | the hook process inherits Kiro's environment plus `KIRO_SESSION_ID`, so the wrapper's marker reaches it | that it does in a wrapped session |
+| block | exit 2 on `UserPromptSubmit` blocks, and the reason is stderr only; exit 0 appends stdout to the prompt; any other exit or a timeout does not block | that the model never sees a blocked prompt, and where the owner sees the reason (scenario D) |
+| trust | hooks run only in a trusted workspace; untrusted logs one info line | that an untrusted workspace runs none (scenario B) |
+| engines and surfaces | the V3 engine reads it | the 2.x engine (`--v2`) and Kiro IDE: hypothesis, they do not (scenario H) |
+
+**The measurement** is the owner's canary, after the install, in a fresh session, trusted and untrusted
+workspace: [docs/runbooks/kiro-v3-prompt-hook-canary.md](../runbooks/kiro-v3-prompt-hook-canary.md).
 
 ## Links
 

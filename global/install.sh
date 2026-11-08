@@ -41,6 +41,11 @@
 # left beside it.
 # The paste filter is a UserPromptSubmit hook: one entry merged into ~/.claude/settings.json and a
 # managed ${CODEX_HOME:-~/.codex}/hooks.json. Codex runs it only after the owner trusts it in /hooks.
+# Kiro CLI V3 gets the same core in its own mode (Issue #455, ADR-0033 amendment 2026-11-08): one managed
+# ~/.kiro/hooks/<name>.json, a UserPromptSubmit hook that blocks with exit 2 and the redacted copy on
+# stderr, and ignores the wrapper's marker (on V3 the wrapper cleans nothing). Kiro has no admin layer for
+# hooks (hypothesis), so it stays at user level under --hooks=managed too. Kiro runs no hook in a
+# workspace the owner did not trust. Every link is read from the bundle and NOT measured.
 # The always-on clipboard watcher is WITHDRAWN (ADR-0011): no LaunchAgent is written any more, and a
 # managed plist left by an earlier version is removed on install. launchctl is never run: the installer
 # prints the bootout command for the owner. The term list is never written by this installer (only
@@ -138,6 +143,9 @@ snippet_dest="$data_dir/paste-filter.sh"
 clip_plist="$HOME/Library/LaunchAgents/$CLIP_LABEL.plist"
 codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-deny-floor.rules"
 codex_hooks="${CODEX_HOME:-$HOME/.codex}/hooks.json"
+# Kiro CLI V3's user-level hook file (Issue #455): the engine loads every *.json in ~/.kiro/hooks (read
+# from the bundle, kas 2.35.2; not measured). The name is clipboard_guard.KIRO_HOOK_FILE.
+kiro_hook="$HOME/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json"
 
 sha256_of() {
   if command -v sha256sum >/dev/null 2>&1; then
@@ -565,7 +573,7 @@ shell_rc_uninstall() {
 }
 
 render() {
-  # $1 = kind (plain|kiro|codexrules|clipscript|clipconf|wrapscript|snippet|codexhooks), $2 = output file
+  # $1 = kind (plain|kiro|codexrules|clipscript|clipconf|wrapscript|snippet|codexhooks|kirohook), $2 = output file
   case $1 in
     plain|kiro)
       {
@@ -638,6 +646,21 @@ render() {
         printf '        ]\n      }\n    ]\n  }\n}\n'
       } > "$2"
       ;;
+    kirohook)
+      # Kiro CLI V3's hook file format, read from the bundle (kas 2.35.2): {"version": "v1", "hooks": [{
+      # "name", "description", "trigger", "action": {"type": "command", "command"}, "timeout"}]}, the
+      # timeout in seconds (default 60). The marker and the stamp sit in "description", which the schema
+      # defines as optional text, and land on line 5, inside is_managed's first five lines.
+      {
+        printf '{\n  "version": "v1",\n  "hooks": [\n    {\n'
+        printf '      "description": "%s; source: global/install.sh (paste filter, ADR-0033); %s; do not edit, re-run the installer",\n' \
+          "$MARKER_ID" "$stamp"
+        printf '      "name": "paste filter (personal-multi-harness-workstation-configuration)",\n'
+        printf '      "trigger": "UserPromptSubmit",\n'
+        printf '      "action": {"type": "command", "command": "%s"},\n' "$(paste_cmd kiro | sed 's/"/\\"/g')"
+        printf '      "timeout": 30\n    }\n  ]\n}\n'
+      } > "$2"
+      ;;
   esac
 }
 
@@ -684,6 +707,7 @@ stamp_of() {
 process() {
   kind=$1
   dest=$2
+  keep_backup=${3:-}   # "backup": install keeps the file it replaces as <dest>.pmhwc-backup, 0600
   tmp="$work/render"
   render "$kind" "$tmp"
 
@@ -721,9 +745,14 @@ process() {
       ;;
     install)
       mkdir -p "$(dirname "$dest")"
+      kept=
+      if [ "$keep_backup" = backup ] && [ -z "$restamp" ] && [ -f "$dest" ]; then   # a restamp changes no content
+        private_copy "$dest" "$dest.pmhwc-backup" || { raise 3; return 0; }
+        kept=" (previous version kept as $dest.pmhwc-backup)"
+      fi
       cp "$tmp" "$dest.new.$$"
       mv "$dest.new.$$" "$dest"
-      if [ -n "$restamp" ]; then echo "RESTAMPED $dest ($stamp)"; else echo "WROTE   $dest ($stamp)"; fi
+      if [ -n "$restamp" ]; then echo "RESTAMPED $dest ($stamp)$kept"; else echo "WROTE   $dest ($stamp)$kept"; fi
       ;;
   esac
 }
@@ -891,7 +920,7 @@ merge_settings() {
 uninstall_user() {
   for u_dest in "$HOME/.claude/CLAUDE.md" "${CODEX_HOME:-$HOME/.codex}/AGENTS.md" \
       "$HOME/.kiro/steering/workstation-global-brief.md" "$hook_dest" "$hook_conf_dest" "$codex_rules" \
-      "$clip_dest" "$clip_conf_dest" "$codex_hooks" "$wrap_dest" "$snippet_dest" "$restart_dest" \
+      "$clip_dest" "$clip_conf_dest" "$codex_hooks" "$kiro_hook" "$wrap_dest" "$snippet_dest" "$restart_dest" \
       "$glass_dest" "$glasscmd_dest" "$clip_plist"; do
     if [ -f "$u_dest" ] && is_managed "$u_dest"; then
       rm -f "$u_dest"
@@ -905,6 +934,7 @@ uninstall_user() {
     rmdir "$data_dir/restart-state" 2>/dev/null && echo "REMOVED $data_dir/restart-state"
   fi
   rmdir "$data_dir" 2>/dev/null && echo "REMOVED $data_dir (empty)"
+  [ -f "$kiro_hook.pmhwc-backup" ] && echo "NOTE    $kiro_hook.pmhwc-backup kept (a 0600 copy of a hook file install replaced; Kiro does not load it)"
   [ -e "$settings" ] || { echo "ABSENT  $settings"; return 0; }
   command -v jq >/dev/null 2>&1 || { echo "REFUSE  $settings: jq is required to remove our entries" >&2; raise 2; return 0; }
   deny=$(jq -cR -s 'split("\n") | map(select(length > 0))' "$floor_claude")
@@ -1069,12 +1099,14 @@ if [ "$paste_ok" = 1 ]; then
   else
     retire "$codex_hooks" "the user-level Codex hooks, now registered in the admin layer (ADR-0025)"
   fi
+  process kirohook "$kiro_hook" backup
   process wrapscript "$wrap_dest"
   process snippet "$snippet_dest"
   shell_rc_line
 else
   raise 2
   echo "SKIP    $codex_hooks: the paste filter cannot run here (see the REFUSE line above)"
+  echo "SKIP    $kiro_hook: the paste filter cannot run here either"
   echo "SKIP    $wrap_dest and $snippet_dest: the paste wrapper cannot run here either"
 fi
 

@@ -2,7 +2,7 @@
 # Paste filter at the harness-CLI prompt (ADR-0011, amendment "the always-on watcher is withdrawn").
 # The detection core (term hashes, salt store, generic categories) as a library, plus a small CLI:
 #
-#   clipboard_guard.py prompt-hook --harness claude|codex [--config FILE]
+#   clipboard_guard.py prompt-hook --harness claude|codex|kiro [--config FILE]
 #                                        the user-level UserPromptSubmit hook: reads the hook payload
 #                                        on stdin and blocks a prompt carrying a finding
 #   clipboard_guard.py add-term [--config FILE]     add one term to the hashed list, typed at the terminal
@@ -20,6 +20,11 @@
 #     probe says unlocked, with a timeout (SaltStore(interactive=False));
 #   - the prompt hook prints nothing in a session the paste wrapper started (WRAPPER_MARKER set to
 #     WRAPPER_MARKER_VALUE in its environment), and judges every prompt otherwise (Issue #58);
+#   - except with --harness kiro (Issue #455): Kiro CLI V3 never enables bracketed paste, so the wrapper
+#     cleans nothing there and the marker is IGNORED. Kiro's own protocol (read from the bundle, kas
+#     2.35.2): exit 2 blocks the prompt and carries stderr as the reason; on exit 0 stdout is appended to
+#     the prompt sent to the model. So that mode writes NOTHING to stdout, ever: a finding exits 2 with
+#     the redacted copy on stderr, and everything else, an error included, exits 0 (fail open);
 #   - a notice names categories and the mitigation, never the original content or the matched term;
 #   - each term list (employer and client terms; since Issue #36 also health terms and colleague names,
 #     one file each) holds salted hashes of normalised terms, never plaintext, and add-term reads the
@@ -84,6 +89,10 @@ DEFAULTS = {
     "notice_paste_error": "[paste filter (ADR-0011): internal error ({error}), the paste was NOT forwarded]",
     "notice_no_bracketed_paste": "Paste filter (ADR-0011): {program} has not enabled bracketed paste, so pastes in "
                                  "this session are NOT cleaned.",
+    # Appended to the two notices above when the CLI is kiro-cli (Issue #455).
+    "notice_kiro_hook_on": "The Kiro prompt hook checks each prompt instead, but only in a trusted workspace: in "
+                           "an untrusted one Kiro runs no hooks, so nothing checks.",
+    "notice_kiro_hook_off": "No Kiro prompt hook from this project is installed, so nothing checks a prompt.",
     "notice_bracketed_paste_off": "Paste filter (ADR-0011): {program} turned bracketed paste off, so pastes are "
                                   "NOT cleaned until it turns it back on.",
     "notice_session_summary": "Paste filter (ADR-0011): {count} paste(s) cleaned in this session ({categories}); "
@@ -102,7 +111,27 @@ DEFAULTS = {
     "notice_session_report_only": "Paste filter (ADR-0011): {count} paste(s) in this session carried report-only "
                                   "categories ({categories}) and were forwarded unchanged.",
 }
-HARNESSES = ("claude", "codex")
+HARNESSES = ("claude", "codex", "kiro")
+
+# The user-level Kiro hook file install.sh renders (Issue #455): Kiro CLI V3 loads every "*.json" in
+# <userConfigDir>/hooks, and userConfigDir is ~/.kiro (read from the bundle, kas 2.35.2; not measured).
+# paste_wrapper.py reads it to say whether the prompt hook is the one checking a Kiro session.
+KIRO_HOOK_FILE = PROJECT + "-paste-filter.json"
+
+
+def kiro_hook_path(home=None):
+    return os.path.join(home or os.path.expanduser("~"), ".kiro", "hooks", KIRO_HOOK_FILE)
+
+
+def kiro_hook_installed(home=None):
+    """True when the managed Kiro hook file is there and runs this core in its kiro mode. A read only:
+    the file can be present and still not run (an untrusted workspace, a V2 engine)."""
+    try:
+        with open(kiro_hook_path(home), encoding="utf-8") as fh:
+            text = fh.read(65536)
+    except (OSError, ValueError):
+        return False
+    return ("managed-by: " + PROJECT) in text and "prompt-hook --harness kiro" in text
 
 # The paste wrapper's session marker (ADR-0011, amendment 2026-10-05, Issue #58). paste_wrapper.py exports
 # it into the harness CLI it starts on a pseudo-terminal, and only there; the CLI passes its environment
@@ -645,11 +674,51 @@ def prompt_decision(conf, prompt, harness, salts=None):
     return out
 
 
-def cmd_prompt_hook(conf, harness, stdin=None, stdout=None, salts=None, environ=None):
+def cmd_prompt_hook_kiro(conf, stdin, stderr, salts=None):
+    """The Kiro CLI V3 mode (Issue #455). Returns the exit code; never writes to stdout.
+
+    Kiro's hook protocol, read from the bundle (kas 2.35.2), not measured: the payload is
+    {"hook_event_name": "UserPromptSubmit", "prompt": ..., ...} on stdin; exit 2 blocks the prompt and
+    keeps stderr as the block reason; exit 0 appends stdout to the prompt the MODEL receives and drops
+    stderr; any other exit, or a timeout, does not block. So:
+      - a finding: exit 2, the block message (categories and a redacted copy) on stderr;
+      - a clean prompt: exit 0, nothing anywhere;
+      - anything that stops the check (too large, unparseable payload, internal error) and every warning
+        (salt unreadable, report-only categories): exit 0, the notice on stderr only. That fails OPEN, as
+        the other two harnesses do, but the notice does not reach the owner: Kiro drops stderr on exit 0.
+        Putting it on stdout instead would send it to the model as part of his prompt.
+    The paste wrapper's marker is deliberately NOT read: on V3 the wrapper cleans nothing."""
+    limit = int(conf["max_bytes"]) * 6 + 65536
+    try:
+        raw = stdin.read(limit + 1)
+        if len(raw) > limit:
+            out = {"systemMessage": _format(conf, "notice_too_large", max=conf["max_bytes"])}
+        else:
+            payload = json.loads(raw.decode("utf-8"))
+            prompt = payload.get("prompt") if isinstance(payload, dict) else None
+            if not isinstance(prompt, str):
+                raise ValueError("no prompt field")
+            out = prompt_decision(conf, prompt, "kiro", salts)
+    except Exception as exc:
+        out = {"systemMessage": _format(conf, "notice_error", error=type(exc).__name__)}
+    if out is None:
+        return 0
+    try:
+        stderr.write((out["reason"] if out.get("decision") == "block" else out["systemMessage"]) + "\n")
+        stderr.flush()
+    except Exception:
+        pass
+    return 2 if out.get("decision") == "block" else 0
+
+
+def cmd_prompt_hook(conf, harness, stdin=None, stdout=None, salts=None, environ=None, stderr=None):
     """Read one UserPromptSubmit payload from stdin, print the decision (or nothing), exit 0.
     An error is reported by its exception CLASS only, because a message can quote the input.
-    In a session the paste wrapper started (wrapped_session), it reads the payload and prints nothing."""
+    In a session the paste wrapper started (wrapped_session), it reads the payload and prints nothing.
+    --harness kiro has its own protocol and ignores the marker: cmd_prompt_hook_kiro."""
     stdin = stdin if stdin is not None else sys.stdin.buffer
+    if harness == "kiro":
+        return cmd_prompt_hook_kiro(conf, stdin, stderr if stderr is not None else sys.stderr, salts)
     stdout = stdout if stdout is not None else sys.stdout
     limit = int(conf["max_bytes"]) * 6 + 65536     # JSON escaping can inflate the prompt (\uXXXX)
     try:
@@ -675,8 +744,9 @@ def cmd_prompt_hook(conf, harness, stdin=None, stdout=None, salts=None, environ=
 # ------------------------------------------------------------------------------------------ CLI
 
 USAGE = """usage:
-  clipboard_guard.py prompt-hook --harness claude|codex [--config FILE]
-                                                   the UserPromptSubmit hook (payload on stdin)
+  clipboard_guard.py prompt-hook --harness claude|codex|kiro [--config FILE]
+                                                   the UserPromptSubmit hook (payload on stdin);
+                                                   kiro blocks with exit 2 and stderr, never stdout
   clipboard_guard.py add-term [--list LIST] [--config FILE]
                                                    add one term, typed at your terminal with echo off;
                                                    LIST is employer-client-term (default), health or
@@ -800,6 +870,9 @@ def main(argv):
     except Exception as exc:          # an unreadable settings file: visible, and the prompt passes
         if command != "prompt-hook":
             raise
+        if harness == "kiro":           # fail open; stdout would reach the model (Issue #455)
+            sys.stderr.write(DEFAULTS["notice_error"].format(error=type(exc).__name__) + "\n")
+            return 0
         sys.stdout.write(json.dumps({"systemMessage": DEFAULTS["notice_error"].format(error=type(exc).__name__)}) + "\n")
         return 0
     if command == "prompt-hook":

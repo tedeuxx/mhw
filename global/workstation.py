@@ -964,6 +964,33 @@ def _json(path):
         return None, "not read"
 
 
+KIRO_HOOK = NAME + "-paste-filter.json"     # clipboard_guard.KIRO_HOOK_FILE (Issue #455)
+
+
+def kiro_hook_state(data):
+    """(label or None, read state) for Kiro CLI V3's user-level hook file, ~/.kiro/hooks/<KIRO_HOOK>.
+    present: managed, and a UserPromptSubmit command running the installed core in its kiro mode;
+    modified: the file is there but is not that (an edit, or the core it runs is gone); absent: None.
+    Exact content drift is install --check's DRIFT line. Present is not loaded: Kiro runs the file only in
+    a trusted workspace, on the V3 engine (read from the bundle, not measured)."""
+    path = Path.home() / ".kiro" / "hooks" / KIRO_HOOK
+    if not path.exists():
+        return None, "absent"
+    doc, state = _json(path)
+    if state == "not read":
+        return "paste filter (Kiro CLI V3, modified: not JSON)", state
+    hooks = doc.get("hooks") if isinstance(doc, dict) else None
+    ours = [h for h in hooks if isinstance(h, dict)] if isinstance(hooks, list) else []
+    good = (doc.get("version") == "v1" and len(ours) == 1
+            and MARKER in str(ours[0].get("description", ""))
+            and ours[0].get("trigger") in ("UserPromptSubmit", "promptSubmit")
+            and isinstance(ours[0].get("action"), dict) and ours[0]["action"].get("type") == "command"
+            and PASTE in str(ours[0]["action"].get("command", ""))
+            and "--harness kiro" in str(ours[0]["action"].get("command", ""))
+            and (data / PASTE).is_file())
+    return ("paste filter (Kiro CLI V3)" if good else "paste filter (Kiro CLI V3, modified)"), state
+
+
 def read_hooks():
     """Which of our hooks each layer actually registers, read from the installed files. A hook counts
     only when its entry is registered AND the script it runs is present; a removed hook's entry is named
@@ -991,6 +1018,10 @@ def read_hooks():
         found.append(restart_leftover("Codex"))
     if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (data / PASTE).is_file():
         found.append("paste filter (Codex)")
+    kiro, state = kiro_hook_state(data)
+    unread |= state == "not read"
+    if kiro:
+        found.append(kiro)
     result["user"] = "not read" if unread and not found else found + (["a file not read"] if unread else [])
 
     found, unread = [], False
