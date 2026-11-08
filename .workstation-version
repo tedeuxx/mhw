@@ -1,6 +1,6 @@
 # The managed-workstation release range this repository expects (Issue #57). One range, comparators
 # separated by blanks, all of which must hold. Compared with the installed provenance stamp at session
 # start (an instruction in the user brief) and by ./mhw status. A mismatch prints one line and
-# never blocks. The latest release is v5.4.0 (published 2026-10-12), so this repository expects a 5.x
-# install from v5.4 on (the range read >=4.0 <5 until then; Issue #62).
->=5.4 <6
+# never blocks. The latest release is v10.0.0 (published 2026-11-07), so this repository expects a 10.x
+# install from v10.0 on (the range read >=4.0 <5 until Issue #62, then >=5.4 <6 until 2026-11-08).
+>=10.0 <11
