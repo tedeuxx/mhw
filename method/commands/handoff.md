@@ -1,15 +1,37 @@
 ---
 name: "handoff"
-description: "Print one block the owner pastes into a new terminal to open a fresh session continuing this one: one command that changes into the checkout and runs the target agent harness's start command with the continuation prompt inline (objective, anchored Issue, revision, state and next act re-derived from the tracker). The target defaults to the current agent harness. Use when the context is heavy or the owner wants to resume in a clean session. Prints only; posts nothing. Not for asking what is left (see what-else)."
+description: "Print one block the owner pastes into a new terminal to open a fresh session continuing this one: one command that changes into the checkout and runs the target agent harness's start command with the continuation prompt inline (objective, anchored Issue, revision, state and next act re-derived from the tracker). The target defaults to the current agent harness. With no argument, when this session's last message asks the owner to do something in another agent harness, the block targets that harness with the ask inline instead, and this session keeps running. Use when the context is heavy, the owner wants to resume in a clean session, or he must act in another agent harness. Prints only; posts nothing. Not for asking what is left (see what-else)."
 argument-hint: "[claude-code|claude|codex|kiro|kiro-cli] [objective, used only when none is anchored]"
 purpose: "a session can be continued in a fresh one without losing its anchor or publishing anything"
 ---
 
-Print one block that opens a fresh session continuing this one. The block is exactly one command: `cd`
+Print one block that opens a fresh session continuing this one, or, in the one case *Continuation or
+ask* names, a session in another agent harness that carries out an ask of this one. The block is exactly one command: `cd`
 into the checkout the work stands in, then the launch environment and the target agent harness's own
-start command with the continuation prompt inline as its argument. Pasted into any terminal, it starts
+start command with the prompt inline as its argument. Pasted into any terminal, it starts
 the right session; nothing else is typed.
 This copy is rendered for the agent harness `{{agent-harness}}`.
+
+## Continuation or ask
+
+Decide this first, before *The arguments*. The prompt is an **ask** only when all of these hold;
+otherwise it is a **continuation**, exactly as below, and nothing in this section applies:
+
+1. `$ARGUMENTS` is empty. Any argument gives a continuation, and `/handoff {{agent-harness}}` (this
+   agent harness named as the target) forces one.
+2. Your own last message to the owner carries an ask he has not answered yet, and the ask is an act he
+   must carry out in another agent harness (for example: open Codex and approve its prompt hook with
+   `/hooks`). Read only that message and only its most recent unanswered ask; an ask from earlier in
+   the session, or one you would infer from the work, does not count.
+3. That ask names exactly one agent harness, and the script resolves it to a target other than this
+   one: run `python3 {{method-scripts}}/launch-line.py --resolve {{agent-harness}} <its id>`, with the
+   id written as one of `claude-code`, `codex` or `kiro`. The second output line must be `consumed` and
+   the first line, the target, must differ from `{{agent-harness}}`. A harness the script cannot target
+   (the Kiro IDE, a desktop app) or an ask naming two harnesses fails this.
+4. The ask is tied to an Issue, so the result has somewhere to go back to.
+
+When any of these is in doubt, it is a continuation. This is a judgement you make from your own last
+message, not a check: nothing stores a pending ask, and nothing verifies that you read it right.
 
 ## The arguments
 
@@ -22,12 +44,15 @@ the word named the target, so the objective is the rest of `$ARGUMENTS`, or `kep
 the target is this agent harness and the objective is the whole of `$ARGUMENTS`. To give an objective
 that starts with one of those words, name the target first: `/handoff claude-code codex settings fix`.
 The objective from the arguments is used only when none was anchored.
+For an ask, there are no arguments: the target is the one *Continuation or ask* resolved.
 
 ## When to use
 
 - The context is heavy, or the owner wants to resume the same work in a clean session.
-- Not to ask what is left: that is `what-else`. Not to branch a second, parallel session: the fresh
-  session replaces this one.
+- The owner must do something in another agent harness that this session asked of him: he types
+  `/handoff` alone and gets that harness's start command with the ask inline (*Continuation or ask*).
+- Not to ask what is left: that is `what-else`. Not to branch a second, parallel session: a
+  continuation replaces this one. An ask is the one exception, and it changes no file in the checkout.
 
 ## Build the prompt
 
@@ -84,6 +109,31 @@ With no Issue anchored, the second line reads `No Issue is anchored; continue th
 this fresh session; the session that printed this prompt stops now.`, and the tracker line names the
 open pull requests and Issues the objective mentions instead.
 
+## The ask prompt
+
+For an ask, fill this template instead of the continuation one. Every line stays: write `none` in the
+`Owner-only:` field when the ask holds no act reserved to the owner. The `Objective:`, `Revision:` and
+Issue fields come from *Build the prompt*, with the ask as the objective.
+
+```
+Objective: <the ask, one act, one line>
+Carry out this one ask for <owner/repo>#<n>; the session that printed this prompt keeps running and waits for the result.
+Revision: <owner/repo> <branch> <commit>
+Ask: <the act the printing session asked the owner to carry out in this agent harness, one line>
+Owner-only: <the acts in the ask only the owner may perform, or none>; guide the owner to each one and never perform it yourself.
+Change no file in this checkout: the session that printed this prompt works in it.
+Return: post the result on <owner/repo>#<n> with gh issue comment <n> --repo <owner/repo> --body-file <a file>, then tell the owner it is posted.
+Before acting, read the Issue: gh issue view <n> --repo <owner/repo> --comments.
+```
+
+Owner-only acts include granting hook trust (the workstation brief: never grant hook trust yourself),
+a merge he holds, a credential and an act on an external surface only he can reach. The prompt routes them to the owner;
+it never asks the new session to perform them.
+
+The template opens with `Objective:` and never with a slash command. *Hypothesis, not measured:* a
+prompt passed as the start command's argument that opens with `/` (such as `/hooks`) may run as that
+agent harness's own command instead of reaching it as a message. Do not put a slash command first.
+
 ## Print it
 
 1. **Launch environment.** Name every environment variable the next act reads only at launch. Only
@@ -120,7 +170,10 @@ open pull requests and Issues the objective mentions instead.
    apostrophe in the prompt would arrive corrupted. Run step 3 anyway so the prompt is checked, but do
    not print its output. Fence the prompt with more backticks than any run of backticks inside it. The
    owner opens a new session and pastes the prompt as its first message.
-5. Then stop working in this session. Two sessions on one checkout overwrite each other's work.
+5. Then stop working in this session, for a continuation. Two sessions on one checkout overwrite each
+   other's work. **For an ask, do not stop:** keep working and wait for the result on the Issue. The
+   ask prompt tells the new session to change no file in the checkout; that is an instruction to
+   it, and nothing enforces it.
 
 The block names the target's start command and its documented argument for an initial prompt: `claude
 '<prompt>'` (the `[prompt]` argument of `claude --help` 2.1.311), `codex '<prompt>'` (the `[PROMPT]`
@@ -143,3 +196,4 @@ instead.
 - It never launches the new session itself; the owner opens it.
 - It never merges, publishes or releases anything, and it never adds a hook.
 - It never widens the objective; new work goes to the owner as a proposal.
+- It never performs an ask's owner-only act, and its ask prompt never hands one to the new session.

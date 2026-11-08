@@ -82,6 +82,30 @@ pending; a pause for questions publishes nothing.
    merged into `rc/next` with its checks green at the exact local head; no tag or release is
    expected.
 
+## The PROD test, part of the definition of done on every PR
+
+mhw has no STG or PROD environment; its PROD is the owner running `mhw install` on his workstation
+(owner, 2026-11-07, Issue #452: *"alem dos dods atuais teria esse que é o teste PROD"*, "besides the current DoDs there would be
+this one, the PROD test"). So every PR,
+each slice and the release candidate, must also pass the `tests` job
+`prod-canary-installed-not-enforced`, which `delivery-ci` aggregates and `delivery.py` therefore
+requires (the owner chose every PR over the release candidate only, 2026-11-07). It installs the npm
+package packed from the exact head as GitHub serves a tag, fresh and as an upgrade from the latest
+published tag, in a clean digest-pinned container on Linux and in a throwaway HOME on macOS, and runs
+the canary in `.github/scripts/prod_canary.py`: the deny floor in the three user carriers and the admin
+layer (in a throwaway root) equals `global/deny-floor.conf` plus the overlay's; the installed prompt
+hook blocks a synthetic credential and passes a clean prompt with the paste-wrapper marker unset;
+`mhw status` exits 0 and `mhw check` exits 0 but for the required agent harness CLIs and `gh`, which a
+throwaway workstation cannot hold; uninstall restores the owner's files.
+
+**Its evidence level is *installed*, never *enforced*.** No agent harness session runs in it, so it shows
+nothing about what a harness loads or refuses. Outside it, and still the owner's after the release: the
+real `/Library` or `/etc` admin layer, the Keychain, the shell start-up in a real terminal, and the
+fresh-session canary in each agent harness. It is the regression evidence for the owner's install
+(ADR-0015, 2026-11-08 amendment, proposed), not the full ADR-0015 lock: there is no STG and no security
+evidence. Run it locally the same way: `python3 -B .github/scripts/prod_canary.py pack`, then `run`
+against a throwaway work directory, or `.github/scripts/prod-canary-container.sh` with podman or docker.
+
 ## Releasing the candidate (the owner's go)
 
 1. Open or update the PR `rc/next` → `main` with one semver label.

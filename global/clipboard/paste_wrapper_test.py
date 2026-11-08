@@ -685,6 +685,27 @@ class Hook(unittest.TestCase):
         self.assertIsNone(g.prompt_decision(conf, "see [REDACTED:nothing]", "claude"))
 
 
+class KiroNotice(unittest.TestCase):
+    """Issue #455, scenario B: for kiro-cli the "NOT cleaned" warning says whether the prompt hook checks
+    now, and that Kiro skips every hook in an untrusted workspace."""
+
+    def test_kiro_cli_says_who_checks(self):
+        conf = g.load_config(conf_in(os.path.join(BASE, "kiro-notice")))
+        home = os.path.join(BASE, "kiro-notice-home")
+        for key in ("notice_no_bracketed_paste", "notice_bracketed_paste_off"):
+            plain = w.notice(conf, key, program="claude")
+            self.assertEqual(w.no_paste_notice(conf, key, "claude", home), plain, "other CLIs are unchanged")
+            off = w.no_paste_notice(conf, key, "kiro-cli", home)
+            self.assertIn("No Kiro prompt hook", off)
+            self.assertNotIn("\n", off)
+        os.makedirs(os.path.dirname(g.kiro_hook_path(home)))
+        with open(g.kiro_hook_path(home), "w") as fh:
+            fh.write('{"description": "managed-by: %s", "command": "x prompt-hook --harness kiro"}' % g.PROJECT)
+        on = w.no_paste_notice(conf, "notice_no_bracketed_paste", "/opt/bin/kiro-cli", home)
+        self.assertIn("has not enabled bracketed paste", on)
+        self.assertIn("only in a trusted workspace", on)
+
+
 class Source(unittest.TestCase):
     def test_the_source_has_no_os_surface(self):
         with open(WRAPPER, encoding="utf-8") as fh:

@@ -13,7 +13,7 @@ jobs:
   # Stable mechanical gate for the workspace's checked merge command.
   delivery-ci:
     if: always()
-    needs: [shellcheck, profiles, suites, windows, isolation-smoke]
+    needs: [shellcheck, profiles, suites, windows, isolation-smoke, prod-canary-installed-not-enforced]
     runs-on: ubuntu-latest
     steps:
       - name: Require every suite to pass
@@ -35,7 +35,8 @@ jobs:
         run: |
           shellcheck --version
           shellcheck -s sh mhw global/install.sh global/install.test.sh \
-            global/allow-list.sh global/allow-list.test.sh global/mcp/mcp-launch.sh
+            global/allow-list.sh global/allow-list.test.sh global/mcp/mcp-launch.sh \
+            .github/scripts/prod-canary-container.sh
       # A workflow that is not valid YAML never loads: GitHub reports a "workflow file issue" on push
       # and no job runs, so nothing else in this file would notice (PR #141). Ruby and its bundled
       # YAML parser (Psych) are preinstalled on the runner image; nothing is fetched.
@@ -74,6 +75,7 @@ jobs:
             global/project-policy/reference/fixture/container_tests.py global/project-policy/reference/fixture/stg_stand_in_tests.py \
             global/project-policy/reference/fixture/fixture_app.py \
             global/workstation.py global/workstation_test.py \
+            .github/scripts/prod_canary.py \
             global/scan.py global/scan_test.py \
             global/merge_authority.py global/merge_authority_test.py \
             global/method/method_render.py global/method/method_render_test.py \
@@ -222,6 +224,8 @@ jobs:
       # first-word target overrides it, the installed launch-line.py prints one fenced block for the
       # target, the block parses under sh, bash (and zsh where present) and carries the prompt (quotes,
       # $, backticks, newlines) and the launch environment exactly, and no rendering token survives.
+      # #454: both /handoff templates (continuation and ask) and the fallback reach every carrier, and the
+      # ask template, filled, passes launch-line.py for each target. Text checks plus one script run.
       # /need-me (owner, 2026-10-26): its headings and phrases reach every carrier; its source text (front matter included, markup stripped)
       # carries no four-option ceiling and names exactly three options; it confirms the owner-action label
       # before reading an empty list as zero, against owner_actions.py's repository and label; and its
@@ -321,6 +325,72 @@ jobs:
           bwrap --version
           # Smoke test: an unprivileged user namespace actually opens. Red here names the cause.
           bwrap --unshare-user --ro-bind / / /bin/true
+
+  # Issue #452, ADR-0015 2026-11-08 amendment (proposed): the PROD install canary. mhw's PROD is the
+  # owner's own install, so this installs the npm package packed from the exact PR head the way GitHub
+  # serves a tag (git archive, then npm pack), fresh and as an upgrade from the latest published tag,
+  # then checks it: the deny floor in the Claude Code, Codex and Kiro carriers (and the admin layer, in
+  # a throwaway root) equals deny-floor.conf; the installed prompt hook blocks a synthetic credential and
+  # passes a clean prompt with the paste-wrapper marker unset; mhw status and check; uninstall restores.
+  # Linux: a clean container whose image is pinned by digest (the convention of
+  # reference-delivery-gate.yml, nothing else of that gate). macOS: the same script, throwaway HOME.
+  # EVIDENCE LEVEL: installed, never enforced. No agent harness session runs, so nothing here shows a
+  # rule is loaded or enforced; the real /Library or /etc managed layer and the Keychain are not reached.
+  prod-canary-installed-not-enforced:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - where: linux-container
+            os: ubuntu-latest
+          - where: macos-throwaway-home
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    env:
+      # node:22-bookworm, the multi-architecture index digest, read with podman 5.7.1 on 2026-11-08.
+      CANARY_IMAGE: docker.io/library/node@sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f
+    steps:
+      # actions/checkout v6.1.0 (same pin as version-main.yml, verified with git ls-remote 2026-10-01).
+      # The exact head (not the merge ref), and every tag, to find the latest published one.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: pack the head and the latest published tag (git archive, then npm pack, as GitHub serves a tag)
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          set -eu
+          node --version; npm --version
+          head=$(git rev-parse HEAD)
+          from=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
+          printf '%s\n' "$from" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "no published tag found"; exit 1; }
+          echo "head $head; upgrade from $from"
+          pkg="$RUNNER_TEMP/prod-canary-pkg"
+          python3 -B .github/scripts/prod_canary.py pack --ref "$head" --name HEAD --out "$pkg"
+          python3 -B .github/scripts/prod_canary.py pack --ref "$from" --name from --out "$pkg"
+          echo "CANARY_PKG=$pkg" >> "$GITHUB_ENV"
+          echo "CANARY_HEAD=$head" >> "$GITHUB_ENV"
+      - name: canary in a clean digest-pinned container, fresh install (installed evidence)
+        if: runner.os == 'Linux'
+        run: sh .github/scripts/prod-canary-container.sh "$CANARY_IMAGE" "$CANARY_PKG" "$CANARY_HEAD" fresh
+      - name: canary in a clean digest-pinned container, upgrade from the latest published tag (installed evidence)
+        if: runner.os == 'Linux'
+        run: sh .github/scripts/prod-canary-container.sh "$CANARY_IMAGE" "$CANARY_PKG" "$CANARY_HEAD" upgrade
+      - name: canary in a throwaway HOME on macOS, fresh and upgrade (installed evidence)
+        if: runner.os == 'macOS'
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          set -eu
+          python3 --version; jq --version
+          python3 -B .github/scripts/prod_canary.py run --source "$CANARY_PKG/src-HEAD" --tgz "$CANARY_PKG/mhw-HEAD.tgz" \
+            --work "$RUNNER_TEMP/prod-canary-fresh" --commit "$CANARY_HEAD"
+          python3 -B .github/scripts/prod_canary.py run --source "$CANARY_PKG/src-HEAD" --tgz "$CANARY_PKG/mhw-HEAD.tgz" \
+            --from-tgz "$CANARY_PKG/mhw-from.tgz" --work "$RUNNER_TEMP/prod-canary-upgrade" --commit "$CANARY_HEAD"
 
   # install.ps1 on a real Windows host (Issue #9, ADR-0010). Throwaway USERPROFILEs under RUNNER_TEMP
   # only. Runs under Windows PowerShell 5.1 (what a stock Windows has) and PowerShell 7. The runner's git
