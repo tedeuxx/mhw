@@ -133,6 +133,49 @@ These are carriers a deploying project adopts, not evidence that one has: **no p
 the deployment half of this lock is still written policy only**, as the amendment above says. The
 refusal is written and tested, not installed on the reference machine.
 
+#### Amendment — mhw's own PROD and its regression evidence (2026-11-08, Issue #452)
+
+- **Status of this amendment: proposed (agent-written, awaiting the owner's ratification).** It is
+  appended; nothing above is changed, and the record's status is unchanged. It changes no lock and
+  unlocks nothing: it records how the lock above reads for this repository itself, which the
+  ratification rule in *Consequences* still governs.
+
+The owner, 2026-11-07, on Issue #452: *"eu gostaria que vc tivesse uma regressao geral automatizada no
+ci/cd sim, com container voce pode fazer"* ("I would like you to have a general automated regression
+in the CI/CD, yes; with a container you can do it") and *"alem dos dods atuais teria esse que é o
+teste PROD"* ("besides the current definitions of done there would be this one, the PROD test"). He
+chose that it is required on every pull request, each slice and the release candidate.
+
+- **mhw's PROD is the owner's install.** mhw is a command-line tool with no STG or PROD environment.
+  The place where a defect in it reaches him is `mhw install` on his workstation, after a release.
+- **Its regression evidence is the `tests` job `prod-canary-installed-not-enforced`.** It installs
+  the npm package packed from the exact head the way GitHub serves a tag (`git archive`, then
+  `npm pack`), fresh and as an upgrade from the latest published tag, in a clean container whose image
+  is pinned by digest (Linux) and in a throwaway HOME (macOS), and runs one canary: the deny floor in
+  the Claude Code, Codex and Kiro carriers and the admin layer (in a throwaway root) equals
+  `global/deny-floor.conf` plus the overlay's; the installed prompt hook blocks a synthetic credential
+  and passes a clean prompt with the paste-wrapper marker unset; `mhw status` exits 0 and `mhw check`
+  exits 0 apart from the required agent harness CLIs and `gh`, which a throwaway workstation cannot
+  hold; and uninstall restores the owner's files. `delivery-ci` aggregates it, so `delivery.py`
+  requires it on every pull request.
+- **Its evidence level is *installed*, never *enforced*.** No agent harness session runs in it, so it
+  shows nothing about what a harness loads or refuses. The real `/Library` or `/etc` admin layer, the
+  Keychain, a real terminal's shell start-up and live sessions are outside it and stay the owner's
+  post-install checks.
+- **It does not satisfy the full lock above.** mhw has no STG, so nothing proves an installed revision
+  before PROD, and the job carries no security evidence (SAST, OWASP coverage, the blocking severity
+  rule). It reuses only the reference gate's digest-pinned image convention, not the gate. **So the
+  global brief's interim sentence, that no project's CI/CD carries the lock's evidence yet, stays as it
+  is.**
+
+Options considered: (1) **a containerised install canary required on every pull request through
+`delivery-ci` (chosen, the owner's choice)**: a defect reaches the gate at the slice that made it,
+not at the release candidate; trade-off: two more CI jobs on every pull request, and one package
+fetched inside the container (`jq`, from the image's own Debian archive). (2) **Required only on the
+release candidate**: cheaper, but a defect is found late, after it is merged with others, and it needs
+its own entry in `delivery.py`. (3) **Adopt the reference gate for mhw**: rejected; it needs a project
+MADR, a `project-policy.json` and installed-STG evidence that mhw has no environment to produce.
+
 ## Consequences
 
 - **A lock on his own aims makes the firewall a two-sided control: it can refuse the owner.** To stay
@@ -169,3 +212,6 @@ refusal is written and tested, not installed on the reference machine.
 - The lock's carriers (2026-11-07): [docs/project-policy-contract.md](../project-policy-contract.md),
   [docs/reference-cicd.md](../reference-cicd.md), [docs/recovery-reference.md](../recovery-reference.md)
   and the coverage report [docs/deployment-lock-coverage.md](../deployment-lock-coverage.md).
+- mhw's own PROD test (2026-11-08, proposed): Issue #452, `.github/workflows/tests.yml`
+  (`prod-canary-installed-not-enforced`), `.github/scripts/prod_canary.py` and
+  `.github/scripts/prod-canary-container.sh`.
