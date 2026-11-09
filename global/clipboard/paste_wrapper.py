@@ -260,8 +260,9 @@ def notice(conf, key, **values):
 
 
 def no_paste_notice(conf, key, argv0, home=None):
-    """A "pastes are NOT cleaned" notice. For kiro-cli it adds who checks now (Issue #455): Kiro CLI V3
-    never enables bracketed paste, so the prompt hook is the only check, and Kiro skips every hook in a
+    """A "pastes are NOT cleaned" notice. For kiro-cli it adds who checks now (Issue #455): when this
+    notice fires the wrapper cleans nothing (Kiro CLI 2.29.1 V3 did not enable bracketed paste; 3.1.0 V3
+    does, measured once, #455/#463), so the prompt hook is the only check, and Kiro skips every hook in a
     workspace the owner did not trust (read from the bundle, kas 2.35.2). A read of one file, no write."""
     text = notice(conf, key, program=argv0)
     if os.path.basename(argv0) == "kiro-cli":

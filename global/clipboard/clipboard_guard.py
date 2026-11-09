@@ -20,8 +20,9 @@
 #     probe says unlocked, with a timeout (SaltStore(interactive=False));
 #   - the prompt hook prints nothing in a session the paste wrapper started (WRAPPER_MARKER set to
 #     WRAPPER_MARKER_VALUE in its environment), and judges every prompt otherwise (Issue #58);
-#   - except with --harness kiro (Issue #455): Kiro CLI V3 never enables bracketed paste, so the wrapper
-#     cleans nothing there and the marker is IGNORED. Kiro's own protocol (read from the bundle, kas
+#   - except with --harness kiro (Issue #455): the marker is IGNORED. On Kiro CLI 3.1.0 (V3) the wrapper
+#     cleans a paste (measured once, #455/#463), but it does not check typed text, so the hook judges
+#     every prompt. Kiro's own protocol (read from the bundle, kas
 #     2.35.2): exit 2 blocks the prompt and carries stderr as the reason; on exit 0 stdout is appended to
 #     the prompt sent to the model. So that mode writes NOTHING to stdout, ever: a finding exits 2 with
 #     the redacted copy on stderr, and everything else, an error included, exits 0 (fail open);
@@ -74,41 +75,41 @@ DEFAULTS = {
     "health_terms_file": "",    # empty means <local overlay>/clipboard-terms-health
     "colleague_terms_file": "",  # empty means <local overlay>/clipboard-terms-colleague
     "salt_file": "",            # empty means <local overlay>/clipboard-salt (salt_store=file only)
-    "notice_blocked": "Paste filter (ADR-0011): {categories} in this prompt. It was NOT sent, and nothing "
+    "notice_blocked": "Paste filter (ADR-0033): {categories} in this prompt. It was NOT sent, and nothing "
                       "was changed. A redacted copy is below: submit that instead, or edit your prompt.",
     "notice_cleaned_too_long": "The redacted copy is {chars} characters, too long to show here.",
-    "notice_too_large": "Paste filter (ADR-0011): this prompt is over {max} bytes and was NOT checked.",
-    "notice_error": "Paste filter (ADR-0011): internal error ({error}); this prompt was NOT checked.",
-    "notice_no_salt": "Paste filter (ADR-0011): the term list exists but its salt could not be read without "
+    "notice_too_large": "Paste filter (ADR-0033): this prompt is over {max} bytes and was NOT checked.",
+    "notice_error": "Paste filter (ADR-0033): internal error ({error}); this prompt was NOT checked.",
+    "notice_no_salt": "Paste filter (ADR-0033): the term list exists but its salt could not be read without "
                       "a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for "
                       "this prompt (employer/client terms, health terms, colleague names).",
     # The paste wrapper (paste_wrapper.py), and the hook's notice for a prompt that carries its markers.
     # The first two REPLACE a paste inside the CLI's input, so they stay one line.
-    "notice_paste_too_large": "[paste filter (ADR-0011): a paste over {max} bytes was NOT forwarded, it could not "
+    "notice_paste_too_large": "[paste filter (ADR-0033): a paste over {max} bytes was NOT forwarded, it could not "
                               "be checked]",
-    "notice_paste_error": "[paste filter (ADR-0011): internal error ({error}), the paste was NOT forwarded]",
-    "notice_no_bracketed_paste": "Paste filter (ADR-0011): {program} has not enabled bracketed paste, so pastes in "
+    "notice_paste_error": "[paste filter (ADR-0033): internal error ({error}), the paste was NOT forwarded]",
+    "notice_no_bracketed_paste": "Paste filter (ADR-0033): {program} has not enabled bracketed paste, so pastes in "
                                  "this session are NOT cleaned.",
     # Appended to the two notices above when the CLI is kiro-cli (Issue #455).
     "notice_kiro_hook_on": "The Kiro prompt hook checks each prompt instead, but only in a trusted workspace: in "
                            "an untrusted one Kiro runs no hooks, so nothing checks.",
     "notice_kiro_hook_off": "No Kiro prompt hook from this project is installed, so nothing checks a prompt.",
-    "notice_bracketed_paste_off": "Paste filter (ADR-0011): {program} turned bracketed paste off, so pastes are "
+    "notice_bracketed_paste_off": "Paste filter (ADR-0033): {program} turned bracketed paste off, so pastes are "
                                   "NOT cleaned until it turns it back on.",
-    "notice_session_summary": "Paste filter (ADR-0011): {count} paste(s) cleaned in this session ({categories}); "
+    "notice_session_summary": "Paste filter (ADR-0033): {count} paste(s) cleaned in this session ({categories}); "
                               "{replaced} paste(s) replaced by a notice.",
-    "notice_wrapper_no_salt": "Paste filter (ADR-0011): the term list exists but its salt could not be read without "
+    "notice_wrapper_no_salt": "Paste filter (ADR-0033): the term list exists but its salt could not be read without "
                               "a prompt, so term matching (employer/client terms, health terms, colleague names) is NOT "
                               "applied in this session.",
-    "notice_wrapper_args_unmarked": "Paste filter (ADR-0011): a command-line argument carries {categories} or could "
+    "notice_wrapper_args_unmarked": "Paste filter (ADR-0033): a command-line argument carries {categories} or could "
                                     "not be checked, so this session is NOT marked and the prompt hook checks "
                                     "every prompt.",
-    "notice_paste_redacted": "Paste filter (ADR-0011): this prompt carries redacted text ({categories}); the "
+    "notice_paste_redacted": "Paste filter (ADR-0033): this prompt carries redacted text ({categories}); the "
                              "original was not sent.",
     # Report-only categories (Issue #36): named, never blocked or rewritten.
-    "notice_report_only": "Paste filter (ADR-0011): {categories} in this prompt (report-only: it was sent "
+    "notice_report_only": "Paste filter (ADR-0033): {categories} in this prompt (report-only: it was sent "
                           "unchanged).",
-    "notice_session_report_only": "Paste filter (ADR-0011): {count} paste(s) in this session carried report-only "
+    "notice_session_report_only": "Paste filter (ADR-0033): {count} paste(s) in this session carried report-only "
                                   "categories ({categories}) and were forwarded unchanged.",
 }
 HARNESSES = ("claude", "codex", "kiro")
@@ -687,7 +688,8 @@ def cmd_prompt_hook_kiro(conf, stdin, stderr, salts=None):
         (salt unreadable, report-only categories): exit 0, the notice on stderr only. That fails OPEN, as
         the other two harnesses do, but the notice does not reach the owner: Kiro drops stderr on exit 0.
         Putting it on stdout instead would send it to the model as part of his prompt.
-    The paste wrapper's marker is deliberately NOT read: on V3 the wrapper cleans nothing."""
+    The paste wrapper's marker is deliberately NOT read: on V3 the wrapper cleans pastes (measured once on
+    3.1.0, #455) but never checks typed text, so the hook judges every prompt."""
     limit = int(conf["max_bytes"]) * 6 + 65536
     try:
         raw = stdin.read(limit + 1)

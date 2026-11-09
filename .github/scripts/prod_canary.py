@@ -392,7 +392,8 @@ def check_hook(box, hooks):
         p = fire(dirty, dict(env, **{MARKER: "1"}))
         check(p.returncode == 0 and p.stdout == "", "%s: calibration, with the wrapper marker set the hook stays silent" % harness)
     # Kiro's protocol (read from the bundle): exit 2 blocks with stderr as the reason; on exit 0 stdout is
-    # appended to the model's prompt. On V3 the wrapper cleans nothing, so the marker must NOT silence it.
+    # appended to the model's prompt. On V3 the wrapper cleans pastes but never checks typed text, so the
+    # marker must NOT silence it.
     cmds = hooks.get("kiro") or []
     if check(len(cmds) == 1, "kiro: exactly one installed prompt hook", "found %d" % len(cmds)):
         for label, environ in (("marker unset", env), ("marker set", dict(env, **{MARKER: "1"}))):
