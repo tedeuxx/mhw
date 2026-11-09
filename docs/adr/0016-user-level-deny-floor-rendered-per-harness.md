@@ -503,7 +503,7 @@ deny list:
 | | spellings |
 | --- | --- |
 | denied on both | `git push origin main`, `… master`, `… HEAD:main`, `… main:main`, `-u origin main`, `--set-upstream origin master`, `origin main --tags`, `origin :main`, `origin --delete main`, `git push --all` |
-| open on both, and a prefix cannot reach them | `git push` and `git push origin` with the trunk checked out, `git -C <dir> push origin main`, `git push upstream main`, `git push -q origin main`, `git -c a=b push origin main` |
+| open on both, and a prefix cannot reach them | `git push` and `git push origin` with the trunk checked out, ~~`git -C <dir> push origin main`~~ (*2026-11-09, Issue #466: denied on Claude Code and Kiro for the owner's two checkouts; see that amendment*), `git push upstream main`, `git push -q origin main`, `git -c a=b push origin main` |
 | open on both, and a prefix can reach them: **added** | `git push origin +main` (a forced push of the trunk), `… refs/heads/main`, `… HEAD:refs/heads/main`, and the same for `master` |
 | open on both, as they must be | `git push origin feat/x`, `-u origin feat/x`, `origin main-fix`, `origin mainline` |
 
@@ -556,6 +556,49 @@ he is away.*
   origin bound after it, so a rerun under the installed launch is owed before the first real secret,
   and route (a) through Claude in Chrome has passed nowhere (ADR-0040, amendment "2026-11-07: the
   real-page canary result, and what D8 leaves owed"). The entries above are unchanged by either run.
+
+## Amendment 2026-11-09: the trunk push through `git -C <checkout>` (Issue #466)
+
+Status unchanged. The owner's decision of 2026-11-08 (*"Deny no #581 + Issue no mhw"*) asks the floor
+to deny `git -C <checkout> push origin main` for his real checkouts, with the paths in the overlay.
+
+- **Where the stale entries came from.** The six `Bash(git -C /Users/<owner>/git-reps/tadeumendonca.io/…
+  push origin …)` denies in the owner's `~/.claude/settings.json` were never rendered by this
+  repository: no commit on any ref of it carried them before this amendment
+  (`git log --all --until=2026-11-08 -S 'push origin HEAD:main:*'` returns nothing; the bound is there
+  because this amendment itself now carries the string). They are a hand edit made while both checkouts lived under
+  `git-reps/tadeumendonca.io/` (the move of 2026-10-01, recorded in the sibling repositories' commit
+  "point absolute paths at the new workspace location"). The oldest settings backup on the machine that
+  carries them is dated 2026-10-04; the 2026-08-03 backup does not. The checkouts later moved back to
+  `git-reps/<repo>`, and the hand edit was not updated. Install keeps every rule it did not add, so it
+  never removed them. The admin layer does not carry them (its drop-in holds no `git -C` rule).
+- **The decision.** The overlay floor gains 48 `glob` entries: twelve trunk forms (`origin main*`,
+  `origin HEAD:main*`, `origin HEAD:refs/heads/main*`, `origin refs/heads/main*`, `origin +main*`,
+  `origin :main*`, `origin --delete main*`, `-u origin main*`, `-u origin HEAD:main*`,
+  `--set-upstream origin main*`, `--set-upstream origin HEAD:main*`, `--all*`), for each of the two
+  checkouts, written with and without a trailing slash. A `glob` entry renders for Claude Code (user and
+  admin layers) and Kiro, and for Codex not at all.
+- **Why `glob` and not `cmd`.** A `cmd` entry also renders a Codex `prefix_rule`, which would put an
+  absolute home path into the Codex rules. A Codex token is exact, so it could not cover another path
+  spelling anyway. *Accepted cost:* **Codex has no `git -C` trunk-push deny** (measured:
+  `codex execpolicy check` on the rendered rules returns no decision for
+  `git -C <checkout> push origin main`, codex-cli 0.163.0).
+- **How Claude Code reads the entries.** *Read from the 2.1.319 bundle*, not measured in a live
+  session (a throwaway home has no login): a Bash rule holding `*` and not ending in `:*` is matched as
+  a regular expression anchored at both ends, with each `*` read as `.*`. So `main*` matches plain
+  `main`, `main:main` and `main --force`, and also, over-blocking, a branch named `main-x`. That
+  over-block is the price of reaching `main:main` without a Codex rule; the generic `cmd` entries above
+  keep `git push origin main-fix` open as before. The installer suite models that matcher and asserts
+  every form above denied for both checkouts and both spellings, and a feature-branch push, `status`
+  and `fetch` through `git -C` open; each assertion was mutation-checked against the overlay.
+- **Kiro:** the patterns are written as they are, ending in `*`; *written and tested*, not measured.
+- **Still not caught:** `~`, `$HOME` or a relative path (`git -C . push origin main`), another path to
+  the same checkout (a symbolic link, `/private/…`), a flag before `push` or before the remote, another
+  remote name, a bare `git -C <dir> push` with `main` checked out, any other checkout, a wrapper or a
+  script. The perimeter for the trunk is still a server-side rule on `main`.
+- **What install does not do:** it does not remove the owner's stale hand-written entries, because it
+  never removes a rule it did not add. Deleting them is his edit. Version cut: **patch** (an
+  incremental change to an existing control).
 
 ## Links
 
