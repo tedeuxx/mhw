@@ -215,9 +215,13 @@ reach the hook dirty. The runbook therefore sends the dirty prompt by typing it 
 typed bytes unchanged) or by starting Kiro with `command kiro-cli`, which skips the wrapper's shell
 function. It also adds the direct pipe as step 0, a persistence grep after the block, and removal of the
 canary's trust entries. That interactive test is the owner's act, since it needs his login.
+*Amended 2026-11-09: the test was not run. The owner accepted the measured evidence and closed #462 on
+2026-11-08 ([his comment](https://github.com/tedeuxx/mhw/issues/462#issuecomment-6728227923)), so the block path inside Kiro stays **not measured**; the runbook
+remains for an optional later run.*
 
-**Known cosmetic item, out of scope here.** The hook's block notice still names ADR-0011, which this
-record superseded. It changes no behaviour; a code slice can fix the text.
+**Known cosmetic item, out of scope here.** ~~The hook's block notice still names ADR-0011, which this
+record superseded. It changes no behaviour; a code slice can fix the text.~~ *Struck 2026-11-09 (#464,
+#465): every paste-filter notice now cites ADR-0033.*
 
 ## Links
 
