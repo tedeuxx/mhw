@@ -216,8 +216,9 @@ current repository name until then.
 
 ## Amendment 2026-10-06: the install conversation (`mhw` is the one door)
 
-- **Status:** proposed (the owner asked for the implementation on #113; the direction below was
-  written as "proposed, not ratified" there and is ratified only by his word on this record)
+- **Status:** ~~proposed (the owner asked for the implementation on #113; the direction below was
+  written as "proposed, not ratified" there and is ratified only by his word on this record)~~ accepted
+  2026-11-17, with the whole record ([ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
 - **Issue:** [#113](https://github.com/tedeuxx/mhw/issues/113), follow-up to
   [#110](https://github.com/tedeuxx/mhw/issues/110)
 
