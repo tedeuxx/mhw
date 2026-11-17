@@ -299,6 +299,50 @@ for c in 'terraform fmt -recursive' 'terraform validate' 'terraform version' 'to
   [ -n "$hit" ] && open_hit="$open_hit $c<-$hit"
 done
 if [ -z "$open_hit" ]; then ok "terraform/tofu fmt, validate and version stay open"; else ko "an open subcommand is denied:$open_hit"; fi
+# 2b''. Issue #466: the trunk push through "git -C <checkout>" for the overlay's two checkouts. cc_deny
+# models Claude Code's matcher as read from the 2.1.319 bundle: a rule ending in ":*" is a word prefix;
+# any other rule holding "*" is anchored at both ends with each "*" read as ".*" (so it also matches
+# nothing); a rule with no "*" is exact. It prints the first rule that denies the command, or nothing.
+cc_deny() { # $1 settings file, $2 command
+  jq -r --arg c "$2" 'first(.permissions.deny[] | select(startswith("Bash(")) | .[5:-1] as $b
+      | if ($b | endswith(":*")) then ($b[:-2]) as $p | select($c == $p or ($c | startswith($p + " ")))
+        elif ($b | contains("*")) then
+          ("^" + ($b | gsub("(?<m>[.+?^${}()|\\[\\]\\\\])"; "\\\(.m)") | gsub("\\*"; ".*")) + "$") as $re
+          | select($c | test($re))
+        else select($c == $b) end) // empty' "$1" 2>/dev/null
+}
+if [ "$overlay_floor" != /dev/null ]; then
+  trunk_miss=""; trunk_over=""
+  for p in /Users/tadeumen/git-reps/tadeumendonca-io /Users/tadeumen/git-reps/tadeumendonca-skills; do
+    for d in "$p" "$p/"; do
+      for f in 'origin main' 'origin main:main' 'origin main:refs/heads/main' 'origin main --force' \
+               'origin HEAD:main' 'origin HEAD:refs/heads/main' 'origin refs/heads/main' 'origin +main' \
+               'origin :main' 'origin --delete main' '-u origin main' '-u origin HEAD:main' \
+               '--set-upstream origin main' '--set-upstream origin HEAD:main' '--all'; do
+        [ -n "$(cc_deny "$s" "git -C $d push $f")" ] || trunk_miss="$trunk_miss [git -C $d push $f]"
+      done
+      for f in 'push -u origin loop/466-x' 'push origin loop/466-x' 'push origin HEAD:loop/466-x' 'status' 'fetch origin main'; do
+        hit=$(cc_deny "$s" "git -C $d $f"); [ -z "$hit" ] || trunk_over="$trunk_over [git -C $d $f <- $hit]"
+      done
+    done
+  done
+  if [ -z "$trunk_miss" ]; then ok "claude deny: every git -C trunk-push form is denied for both checkouts, with and without a trailing slash"; else ko "git -C trunk push not denied:$trunk_miss"; fi
+  if [ -z "$trunk_over" ]; then ok "claude deny: a feature-branch push, status and fetch through git -C stay open"; else ko "git -C over-denied:$trunk_over"; fi
+  # The entries are glob entries: no absolute path and no "-C" reaches the Codex rules (Issue #466).
+  if ! grep "^prefix_rule(" "$rules" | grep -q -e '"/' -e '"-C"'; then ok "codex rules carry no absolute path and no git -C entry"; else ko "an absolute path or a git -C entry leaked into the codex rules"; fi
+  kp="$h/.kiro/settings/permissions.yaml"
+  if grep -qF 'git -C /Users/tadeumen/git-reps/tadeumendonca-skills/ push origin HEAD:main*' "$kp" \
+     && grep -qF 'git -C /Users/tadeumen/git-reps/tadeumendonca-io push -u origin main*' "$kp"; then
+    ok "kiro permissions carry the git -C trunk-push patterns"
+  else
+    ko "kiro permissions lack the git -C trunk-push patterns"
+  fi
+  if command -v codex >/dev/null 2>&1; then
+    # The stated gap, measured: Codex has no form for these, so its rendered rules leave the -C push alone.
+    dc=$(codex execpolicy check --rules "$rules" git -C /Users/tadeumen/git-reps/tadeumendonca-io push origin main | jq -r '.decision // "none"')
+    if [ "$dc" = none ]; then ok "codex execpolicy: git -C <checkout> push origin main is not forbidden (the stated Codex gap)"; else ko "codex execpolicy decision for the git -C push: $dc"; fi
+  fi
+fi
 if command -v codex >/dev/null 2>&1; then
   # Credential-free: execpolicy only evaluates the rules file against argv; nothing is run.
   d1=$(codex execpolicy check --rules "$rules" git push --force origin x | jq -r '.decision // "none"')

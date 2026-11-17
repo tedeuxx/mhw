@@ -615,7 +615,7 @@ class PromptHook(unittest.TestCase):
         for cat in ("postal-address", "contract-value"):
             text, span = NEW_POSITIVES[cat][0]
             out, raw = decide(conf, text)
-            self.assertEqual(out, {"systemMessage": "Paste filter (ADR-0011): %s in this prompt (report-only: it "
+            self.assertEqual(out, {"systemMessage": "Paste filter (ADR-0033): %s in this prompt (report-only: it "
                                                     "was sent unchanged)." % cat}, cat)
             self.assertNotIn(span, raw, "the matched text reached the hook output")
 
@@ -912,7 +912,8 @@ class WrapperMarker(unittest.TestCase):
 class KiroHook(unittest.TestCase):
     """Issue #455: --harness kiro speaks Kiro CLI V3's hook protocol (read from the bundle, kas 2.35.2):
     exit 2 blocks with stderr as the reason, and on exit 0 stdout is APPENDED TO THE MODEL'S PROMPT. So
-    stdout stays empty in every case, and the wrapper's marker is ignored (on V3 it cleans nothing)."""
+    stdout stays empty in every case, and the wrapper's marker is ignored (on V3 it cleans pastes but
+    never checks typed text)."""
 
     SENSITIVE = WrapperMarker.SENSITIVE
 
@@ -1027,6 +1028,23 @@ class Config(unittest.TestCase):
         conf = g.load_config(conf_in(d, mode="sanitise", poll_seconds="1", button_keep="Keep"))
         self.assertNotIn("mode", conf)
         self.assertNotIn("button_keep", conf)
+
+    def test_every_notice_cites_the_current_record(self):
+        # Issue #464: the paste filter's notices cite ADR-0033, the record that superseded ADR-0011, in the
+        # English defaults and in both Portuguese templates (the overlay and the profile locale).
+        repo = os.path.dirname(os.path.dirname(HERE))
+        prefixes = ("Paste filter (", "[paste filter (", "Filtro de colagem (", "[filtro de colagem (")
+        sources = {"DEFAULTS": {k: v for k, v in g.DEFAULTS.items() if k.startswith("notice_")}}
+        for part in ("overlay/clipboard.conf", "global/profile/locales/pt-BR/clipboard.conf"):
+            with open(os.path.join(repo, part), encoding="utf-8") as fh:
+                sources[part] = dict(line.rstrip("\n").split("=", 1) for line in fh
+                                     if line.startswith("notice_") and "=" in line)
+        for name, notices in sources.items():
+            cited = [k for k, v in notices.items() if v.startswith(prefixes)]
+            self.assertGreaterEqual(len(cited), 14, name)
+            for key in cited:
+                self.assertIn("(ADR-0033)", notices[key], "%s %s" % (name, key))
+                self.assertNotIn("ADR-0011", notices[key], "%s %s" % (name, key))
 
     def test_shipped_configs_parse(self):
         repo = os.path.dirname(os.path.dirname(HERE))

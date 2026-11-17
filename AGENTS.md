@@ -304,6 +304,9 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
   an open option for the owner.~~ *Amended 2026-10-11 (owner's decision):* `install-managed.sh` renders
   the floor there too, and the user file stays as the fallback. The Kiro CLI V3 engine reads the same
   file (*read from its bundle*). *Written and tested* in a throwaway root; not installed; not measured.
-  The Kiro agent now carries the V3 form beside the 2.0 fields, and on the V3 engine the paste wrapper
-  cleans nothing, because that engine does not enable bracketed paste (*observed* 2026-10-11). ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
+  The Kiro agent now carries the V3 form beside the 2.0 fields~~, and on the V3 engine the paste wrapper
+  cleans nothing, because that engine does not enable bracketed paste (*observed* 2026-10-11)~~.
+  *Amended 2026-11-08 ([#455](https://github.com/tedeuxx/mhw/issues/455),
+  [#463](https://github.com/tedeuxx/mhw/pull/463)):* on Kiro CLI 3.1.0 (V3) the wrapper cleaned a
+  synthetic paste (*measured* once); it does not check typed text. ~~Windows does not render the Kiro floor.~~ *Amended 2026-10-11:*
   `install.ps1` renders it too (*written and CI-tested*; Kiro on Windows not measured).
