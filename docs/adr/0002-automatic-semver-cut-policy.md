@@ -1,6 +1,6 @@
 # 0002 — Automatic numeric SemVer on merge, with a cut policy for a policy-set artifact
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956016947); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-01
 - **Deciders:** the owner (the cut table below awaits his ratification)
 
@@ -236,3 +236,13 @@ above ("a new functionality is minor"), this clarification governs for a tighten
 
 **Consequence.** The version number does not signal that agents lost capabilities. Only the release
 notes do, and nothing checks that they say it.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956016947))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Ratificar"*; the ruling is recorded on
+[Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956016947). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+The ratified cut table is the 2026-10-10 one: **major** for a breaking change, **minor** for new functionality, **patch** for a bug fix or an incremental change, docs, tests and CI included.

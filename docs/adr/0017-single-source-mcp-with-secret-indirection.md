@@ -1,6 +1,6 @@
 # 0017 — One MCP definition, rendered per surface, with credentials read from the OS secret store at launch
 
-- **Status:** proposed. The owner asked for the mechanism (Issue #8). Installing it into his real
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956096209); see the amendment "2026-11-17: accepted" below). The owner asked for the mechanism (Issue #8). Installing it into his real
   configuration files is his act, from his own terminal, and has not happened.
 - **Date:** 2026-10-01
 - **Deciders:** the owner
@@ -278,6 +278,14 @@ A definition that carries an `active_set` key makes its servers the MCP active s
 --active`, run on every `mhw install`, turns off every other MCP server through each agent harness's own switch, and
 uninstall turns them back on. Under a declared set a server's `surfaces` must include Codex, Claude Code and Kiro
 (parity). Without the key, rendering is unchanged and nothing is turned off.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956096209))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Ratificar"*; the ruling is recorded on
+[Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956096209). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 ## Links
 

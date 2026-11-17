@@ -1,8 +1,8 @@
 # ADR-0040: With the owner present, the agent may create or renew a secret through his browser
 
-- **Status:** proposed. The five decisions it records (D1 to D5) are the owner's own, given on
-  [Issue #220](https://github.com/tedeuxx/mhw/issues/220) on 2026-10-24. The record waits for his
-  ratification. ~~**The canary has run in local emulation only; the canary on the real forge page is
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below). The five decisions it records (D1 to D5) are the owner's own, given on
+  [Issue #220](https://github.com/tedeuxx/mhw/issues/220) on 2026-10-24. ~~The record waits for his
+  ratification.~~ ~~**The canary has run in local emulation only; the canary on the real forge page is
   owed, not passed** (see the amendment "2026-10-24: canary results in local emulation"). No part of
   this record may be read as a claim that a secret value stays out of the model's context on the real
   page.~~ *(Struck 2026-11-07: the real-page canary ran and passed on 2026-10-29, before D8.)* **Route
@@ -309,6 +309,17 @@ secret into this repository or into a forge secret store"* (read from the local 
   ~~tracked by tedeuxx/tadeumendonca-skills#576 and tedeuxx/tadeumendonca-io#781~~ *(struck 2026-11-07:
   both were transferred here as #250 and #252 and closed as duplicates of #220, so nothing tracks the
   restatement; an Issue in each target repository is owed)*.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+Ratification does not discharge the owed rerun: the real-page canary under the D8 launch is still owed before the first real secret ([Issue #220](https://github.com/tedeuxx/mhw/issues/220)).
 
 ## Links
 

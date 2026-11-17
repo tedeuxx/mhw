@@ -1,8 +1,8 @@
 # ADR-0041: The MCP active set, turned off natively in each agent harness outside it
 
-- **Status:** proposed. The owner took the five decisions it rests on in his interview of 2026-10-24
-  ([Issue #219](https://github.com/tedeuxx/mhw/issues/219)); the mechanism below, its opt-in key and its
-  limits wait for his ratification.
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below). The owner took the five decisions it rests on in his interview of 2026-10-24
+  ([Issue #219](https://github.com/tedeuxx/mhw/issues/219)); ~~the mechanism below, its opt-in key and its
+  limits wait for his ratification~~ the mechanism below, its opt-in key and its limits are ratified.
 - **Date:** 2026-10-24
 - **Deciders:** the owner (decisions 1 to 5); written by the implementing agent
 - **Issues:** [#219](https://github.com/tedeuxx/mhw/issues/219)
@@ -266,6 +266,15 @@ render:
 Evidence: written and tested in throwaway homes (`global/mcp/mcp_render_test.py`, class
 `PolicyExtension`), each new assertion checked against a mutation of the source; not run on the
 reference machine.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 ## Links
 

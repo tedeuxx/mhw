@@ -1,6 +1,6 @@
 # 0009 — What is mine: individual knowledge vs third-party property
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956087463); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -49,7 +49,8 @@ content reaching a prompt, which side of the line it falls on.
 
 ## Decision outcome
 
-**Proposed: option 1.** It takes effect only on the owner's ratification.
+~~**Proposed: option 1.** It takes effect only on the owner's ratification.~~ **Chosen: option 1**,
+ratified in full on 2026-11-17.
 
 ## Consequences
 
@@ -71,8 +72,22 @@ The owner: *"conehcimento publico da industria é liberado"* ("public industry k
 "public-domain and publicly documented knowledge" row of the test.
 
 **The rest of the test stays proposed.** That covers the other "his" rows, the "not his" list and the
-grey-zone routing (which ADR-0012 and ADR-0005's amendments have since reshaped). The record's status
-stays **proposed** until the remaining rows are ratified.
+grey-zone routing (which ADR-0012 and ADR-0005's amendments have since reshaped). ~~The record's status
+stays **proposed** until the remaining rows are ratified.~~ *(Struck 2026-11-17: the remaining rows are
+ratified; see the amendment "2026-11-17: accepted" below.)*
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956087463))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Ratificar"*; the ruling is recorded on
+[Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956087463). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+**Ratified in full.** His own: public and publicly documented industry knowledge; general skills,
+techniques, patterns and judgement; his reasoning and opinions; his career story at the level of sector,
+role and outcome. His contracts still govern above it (*Consequences*). The global brief's line that read
+*"His, proposed"* now reads as ratified (`global/AGENTS.md`, *What is his and what is not*).
 
 ## Links
 

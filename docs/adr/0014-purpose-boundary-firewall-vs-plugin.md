@@ -1,7 +1,7 @@
 # 0014 — Purpose boundary: this repository is the firewall, the plugin is the way of working
 
 - **Status:** accepted (the owner's decision, 2026-10-01). The consequence "promote the firewall's
-  controls to the managed layer" is **proposed**, not decided and not done.
+  controls to the managed layer" is ~~**proposed**, not decided and not done~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below).
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -133,6 +133,17 @@ The installer then ran on the reference machine with `install.sh --check` clean.
 levels are in ADR-0016's amendment "2026-10-01: ratified by the owner and installed on the reference
 workstation". Enforcement on the reference machine itself was not re-measured. Promoting the floor to
 the managed layer is still the proposed consequence above, undecided.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+The part [ADR-0032](0032-this-repository-is-the-single-source-of-the-working-method.md) reversed stays reversed: ADR-0032 was ratified the same day.
 
 ## Links
 

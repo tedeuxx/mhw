@@ -1,8 +1,8 @@
 # ADR-0033: Paste cleaning: the wrapper cleans first, the prompt hook is the safety net
 
-- **Status:** proposed. The requirement is the owner's (accepted, carried from ADR-0011); the choice
-  of the wrapper as primary and the hook as safety net is his decision on #58 (2026-10-05). The
-  mechanism details below await ratification.
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below). The requirement is the owner's (accepted, carried from ADR-0011); the choice
+  of the wrapper as primary and the hook as safety net is his decision on #58 (2026-10-05). ~~The
+  mechanism details below await ratification.~~
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead)
 - **Supersedes:** [ADR-0011](0011-clipboard-prompt-anonymisation.md), whose original decision (an
@@ -222,6 +222,17 @@ remains for an optional later run.*
 **Known cosmetic item, out of scope here.** ~~The hook's block notice still names ADR-0011, which this
 record superseded. It changes no behaviour; a code slice can fix the text.~~ *Struck 2026-11-09 (#464,
 #465): every paste-filter notice now cites ADR-0033.*
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+The Kiro canary results amended in on 2026-11-08 (Issues #455 and #462) stay as written.
 
 ## Links
 

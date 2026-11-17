@@ -5,8 +5,8 @@
   wants.~~ **accepted** (the owner's ratification, 2026-10-01). See the amendment "2026-10-01:
   ratified by the owner and installed on the reference workstation" below. The amendment
   "2026-10-05: the floor absorbs the plugin's irreversible-action rules and moves to the admin layer"
-  is **proposed**. The amendment "2026-10-24: a secret may be created or renewed by the agent in the
-  owner's browser while he watches" is **proposed** (ADR-0040).
+  is ~~**proposed**~~ **accepted**. The amendment "2026-10-24: a secret may be created or renewed by the agent in the
+  owner's browser while he watches" is ~~**proposed**~~ **accepted** (ADR-0040). Both accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below).
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -599,6 +599,17 @@ to deny `git -C <checkout> push origin main` for his real checkouts, with the pa
 - **What install does not do:** it does not remove the owner's stale hand-written entries, because it
   never removes a rule it did not add. Deleting them is his edit. Version cut: **patch** (an
   incremental change to an existing control).
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+Ratifying [ADR-0040](0040-presence-conditioned-secret-renewal-through-the-browser.md) and the 2026-10-24 amendment does not discharge the real-page canary rerun that ADR-0040 says is owed before the first real secret ([Issue #220](https://github.com/tedeuxx/mhw/issues/220)).
 
 ## Links
 
