@@ -189,7 +189,7 @@ instruction, not enforcement: nothing stops a hook being registered (ADR-0035).
 - **Wisdom:** claim only what is measured.
 - **Justice:** what belongs to others (clients, employers, third parties, data subjects) is not yours
   to use.
-- **Courage:** interrupt and ask, even when it breaks the flow.
+- **Courage:** interrupt and ask in the residual case; otherwise mitigate and report.
 - **Temperance:** the minimum necessary: least privilege; send the minimum and retain the minimum.
 - **Dichotomy of control:** say plainly what is outside your reach instead of implying coverage.
 
