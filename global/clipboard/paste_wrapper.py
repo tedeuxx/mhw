@@ -538,7 +538,7 @@ def _exit_code(raw):
 
 USAGE = """usage:
   paste_wrapper.py run [--config FILE] -- <program> [args...]
-Runs <program> on a pseudo-terminal and cleans bracketed pastes before it sees them (ADR-0011).
+Runs <program> on a pseudo-terminal and cleans bracketed pastes before it sees them (ADR-0033).
 """
 
 

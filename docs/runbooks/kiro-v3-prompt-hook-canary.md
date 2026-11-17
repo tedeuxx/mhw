@@ -85,7 +85,8 @@ for example by opening a session that runs no hook.
 
 ## 4. Record and clean up
 
-Comment on #462: blocked or not, the model answered or not, where the message showed, what the grep of
+This run is optional: the owner accepted the measured evidence and closed #462 on 2026-11-08. If you
+run it, comment on the open Issue that tracks the canary, or open one: blocked or not, the model answered or not, where the message showed, what the grep of
 step 2 found, and the two versions from step 0. Then remove the canary's traces:
 
 ```sh
@@ -98,4 +99,4 @@ The grep lists the trust entries the canary wrote; remove each entry's directory
 written a `.kiro` folder into them).
 
 If step 1.3 was not blocked, the hook does not block inside Kiro on this build: it fails open as before,
-and the follow-up is decided with the owner on #462.
+and the follow-up is decided with the owner on that Issue.
