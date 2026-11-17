@@ -1,6 +1,6 @@
 # 0007 — Standardise the session-start default model and reasoning effort per surface
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956068065); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -46,7 +46,7 @@ dropped from the table.
 
 ## Decision outcome
 
-**Proposed: option 1.**
+~~**Proposed: option 1.**~~ **Chosen: option 1** (accepted 2026-11-17).
 
 - **The policy** is one declared default for each supported harness, one table row each, expressed as a class: *the vendor's top model
   available on the active subscription, at medium effort.*
@@ -144,3 +144,17 @@ no extra spending or paid API use. Native configuration and fresh-session verifi
 
 The 2026-10-01 rows that read `opus[1m]` and `high` remain true as dated readings of the reference
 install. Status stays **proposed**.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956068065))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Ratificar medium"*; the ruling is recorded on
+[Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956068065). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+The ratified default is **medium effort at session start on every harness that exposes an effort key,
+Codex included**, and each model pinned by ID as `overlay/model-defaults.json` installs it. That answers
+the 2026-10-01 question about Codex reading `high`: the value moves to medium, and the policy stands.
+Kiro's missing effort default stays a declared gap. This ruling also decides
+[Issue #29](https://github.com/tedeuxx/mhw/issues/29#issuecomment-6956068620).

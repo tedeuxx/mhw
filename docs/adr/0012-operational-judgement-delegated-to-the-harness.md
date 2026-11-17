@@ -1,6 +1,6 @@
 # 0012 — Operational judgement is delegated to the agent harness, to minimise human error
 
-- **Status:** accepted for the delegation (the owner's decision). The operating rule is proposed.
+- **Status:** accepted for the delegation (the owner's decision). ~~The operating rule is proposed.~~ The operating rule is accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below).
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -98,6 +98,17 @@ already says *"a current or past client or employer"*, and it is applied here fo
 The open question and its interim "narrower reading" in the first amendment are now superseded:
 ~~Until he answers, the narrower reading applies~~. The answer matches the narrower reading, so nothing
 the brief does changes, except that "direct" is now stated.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+The operating rule (mitigate and report) was already in force in the global brief, rule 4; the status line now says so.
 
 ## Links
 

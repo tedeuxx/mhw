@@ -1,6 +1,6 @@
 # ADR-0028: Remove the restart guard and the expiring switches; OS privilege is the only way to turn a hook off
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead)
 - **Supersedes in part:** [ADR-0024](0024-breaking-glass-per-layer-expiring-switches.md) (all of it: the
@@ -128,3 +128,12 @@ Option 1.
 interview of 2026-10-05 (ADR-0013, 2026-10-05 amendment). It is removed the same way as the restart
 guard here: a run of each installer deletes what an earlier version installed, and `--check` reports
 it until then. The paste prompt hook (#58) is now the only hook this repository installs.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.

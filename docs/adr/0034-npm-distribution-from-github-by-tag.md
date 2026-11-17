@@ -1,6 +1,6 @@
 # ADR-0034: Distribute the workstation through npm, installed from GitHub by tag
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962016301); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-06
 - **Deciders:** the owner (decided on #68, 2026-10-06: *"siga com a adequacao da distribuicao com
   npm"*); written by agents-lead
@@ -308,6 +308,16 @@ entry of `package.json`'s `bin` and `files`. The cut is **major**: the `workstat
   `global/npm_package_test.py`). The documented route, removing the old package first, is unchanged.
 - **What stays.** The allow-list renderer still refuses to pre-authorise a `workstation` command,
   because the v4.1.0 package can still put one on `PATH`.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962016301))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Ratificar agora"*; the ruling is recorded on
+[Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962016301). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+Later amendments (#470) change this record by appending and striking, as for any accepted record.
 
 ## Links
 

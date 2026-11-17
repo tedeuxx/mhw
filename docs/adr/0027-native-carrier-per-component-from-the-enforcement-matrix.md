@@ -1,6 +1,6 @@
 # ADR-0027: Each component class uses the native carrier the enforcement matrix names
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead, from the matrix it measured)
 - **Builds on:** [ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md),
@@ -73,6 +73,15 @@ proposed.)*
 - Bad: on the installed Kiro CLI (default `v2` engine) the admin file and `permissions.yaml` are inert;
   parity needs the owner to opt into V3.
 - Bad: no cell was exercised with a model call, so "loaded" is shown and "obeyed" is not.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 ## Links
 

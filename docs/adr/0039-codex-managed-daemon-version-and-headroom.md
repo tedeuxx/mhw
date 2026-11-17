@@ -1,6 +1,6 @@
 # ADR-0039: Review Codex daemon descriptor configuration without managing it
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-18
 - **Deciders:** the owner; written by `agents-lead`
 - **Issue:** [#200](https://github.com/tedeuxx/mhw/issues/200)
@@ -107,6 +107,15 @@ commands are inherently unsafe. They are simply outside Issue #200 as the owner 
 - **Written and tested in this correction:** permanent daemon inspection and install-time lifecycle
   actions are absent from `mhw`; unrelated workstation paths retain their existing behavior.
 - **Not installed or enforced:** this proposed correction has not been released or installed.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 ## Links
 

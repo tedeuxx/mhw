@@ -1,7 +1,8 @@
 # 0020 — Converge Claude and Codex desktop user preferences
 
-- **Status:** accepted requirement (owner, 2026-10-02); individual native settings remain proposed
-  until selected or already justified by an explicit preference.
+- **Status:** accepted requirement (owner, 2026-10-02); ~~individual native settings remain proposed
+  until selected or already justified by an explicit preference~~ the individual native settings, as they
+  stood at `rc/next`, are accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below).
 - **Date:** 2026-10-02
 - **Deciders:** the owner
 
@@ -106,3 +107,12 @@ changed or claimed verified there. For manual completion, open **Settings > Noti
 routine turn-completion alerts, and preserve action/approval prompts where the installed app offers
 separate controls. Do not disable OS notifications wholesale. Appearance, shortcuts and concrete
 model/effort mappings remain open; this record does not claim full desktop convergence.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.

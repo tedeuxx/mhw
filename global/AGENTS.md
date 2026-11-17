@@ -212,9 +212,9 @@ measured.
 
 ## What is his and what is not
 
-- **His, ratified by the owner:** public and publicly documented industry knowledge.
-- **His, proposed:** general skills, techniques, patterns and judgement; his own reasoning and
-  opinions; his career story told at the level of sector, role and outcome.
+- **His, ratified by the owner:** public and publicly documented industry knowledge; general skills,
+  techniques, patterns and judgement; his own reasoning and opinions; his career story told at the
+  level of sector, role and outcome.
 - **Not his:** the employer and client material listed in rule 1, and anything under an NDA or an
   employment IP clause.
 - **Grey zone:** treat it as not his; clean and abstract it (rule 4), and ask only in rule 4's

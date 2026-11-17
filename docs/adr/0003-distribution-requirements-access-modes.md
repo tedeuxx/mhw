@@ -1,6 +1,6 @@
 # 0003 — Distribution requirements: supported access modes
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956035497); see the amendment "2026-11-17: accepted" below); option 3 without the local sanitising proxy, which is rejected
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -80,8 +80,9 @@ is weaker evidence than *measured*. No vendor document was cited when this recor
 
 ## Decision outcome
 
-**Proposed: option 3, layered, with the proxy contingent on measurement.** No final choice until the
-hypotheses are measured and the owner ratifies.
+~~**Proposed: option 3, layered, with the proxy contingent on measurement.** No final choice until the
+hypotheses are measured and the owner ratifies.~~ **Chosen (2026-11-17): option 3, layered, without the
+proxy.** The local sanitising proxy is rejected; see the amendment "2026-11-17: accepted" below.
 
 ## Consequences
 
@@ -255,6 +256,21 @@ repository would hold a live subscription token. That puts the workstation-secur
 `AGENTS.md` directly on the proxy.
 
 Status stays **proposed**. No installer changed in this amendment.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956035497))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Ratificar sem proxy"*; the ruling is recorded on
+[Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6956035497). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+**The local sanitising proxy (option 2, and the proxy half of option 3) is rejected.** The accepted
+layers are the paste wrapper and the prompt hook ([ADR-0033](0033-paste-cleaning-wrapper-primary-hook-safety-net.md))
+and the deny floor ([ADR-0016](0016-user-level-deny-floor-rendered-per-harness.md)). Two consequences above now
+hold without a horizon: external-prompt rewriting by a proxy is not offered, and the hooks only block.
+The gap stays stated: claude.ai web and desktop, and their connectors, are outside this firewall (h4).
+This ruling also decides [Issue #28](https://github.com/tedeuxx/mhw/issues/28#issuecomment-6956036037).
 
 ## Links
 

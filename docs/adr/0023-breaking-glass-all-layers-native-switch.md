@@ -1,6 +1,6 @@
 # ADR-0023: Total breaking glass: every hook layer off through each harness's native switch
 
-- **Status:** proposed (total breaking glass in force on the reference workstation since 2026-10-04)
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below) (total breaking glass in force on the reference workstation since 2026-10-04)
 - **Date:** 2026-10-04
 - **Amends:** [ADR-0013](0013-hitl-escalation-calibration.md), [ADR-0011](0011-clipboard-prompt-anonymisation.md),
   [ADR-0022](0022-restart-after-active-customization-changes.md) (their hook controls are suspended, not withdrawn)
@@ -72,6 +72,17 @@ hook (ADR-0011), and any plugin hook, including the plugin's permission guard.
   per-layer, expiring switches.
 - Evidence level: Claude Code switch *loaded* (this session runs with hooks off). Codex switch
   *written* and parsed; not yet observed in a fresh Codex session.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+This ratifies the record as it stands: the switch it describes ended, and [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) governs what replaced it.
 
 ## Links
 

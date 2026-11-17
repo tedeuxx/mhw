@@ -1,6 +1,6 @@
 # ADR-0032: This repository is the single source of the working method, rendered into each agent harness's native user-level carriers
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6961990569); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead)
 - **Builds on:** [ADR-0014](0014-purpose-boundary-firewall-vs-plugin.md),
@@ -906,6 +906,14 @@ can only happen after the gate is already running.
 method sources and in the rendered skill of all three agent harness carriers, each pin mutated on the
 source, red, restored, green. Not *enforced*: no layer reads the artifact before a dispatch or a merge.
 Not installed on the reference machine.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6961990569))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Ratificar"*; the ruling is recorded on
+[Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6961990569). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 ## Links
 

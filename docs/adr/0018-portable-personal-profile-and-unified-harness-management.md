@@ -1,7 +1,8 @@
 # 0018 — Portable personal profile and unified harness management
 
-- **Status:** proposed implementation design. The requirements below were explicitly requested by
-  the owner on 2026-10-02; the technical design has not been ratified or installed.
+- **Status:** ~~proposed implementation design~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below). The requirements below were explicitly requested by
+  the owner on 2026-10-02; ~~the technical design has not been ratified or installed~~ the technical design was ratified on
+  2026-11-17 as it stood at `rc/next`.
 - **Date:** 2026-10-02
 - **Deciders:** the owner
 
@@ -229,3 +230,12 @@ The compiler no longer generates `hitl.conf`: the picker guard that read it is r
 generated brief as instructions. The generated artifacts are now `AGENTS.md`, `clipboard.conf`,
 `desktop-instructions.md` and `profile-plan.json`; a stale `hitl.conf` in an output directory is left
 alone and ignored.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
