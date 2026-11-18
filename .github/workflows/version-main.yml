@@ -40,21 +40,16 @@ jobs:
           # Until it exists, the default token is used and the push is refused by protection, loudly.
           token: ${{ secrets.VERSION_BUMP_TOKEN || github.token }}
 
-      # actions/setup-python v6.3.0 (lightweight tag -> commit, verified with git ls-remote 2026-10-01)
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      # actions/setup-node v7.1.0 (same pin as tests.yml; verified with git ls-remote 2026-11-18:
+      # refs/tags/v7.1.0). Node 26, the engines.node floor. No npm install runs in this job: the bump
+      # script imports only node: modules and this repository's own files (the vendored TOML parser).
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
-          python-version: "3.12"
+          node-version: 26.13.1
 
-      # Wheels only (SonarCloud S8541): no package or dependency may run a setup script while this job
-      # holds a contents: write token. Every dependency of 1.5.1 resolves as a wheel for CPython 3.12 on
-      # manylinux x86_64 (pip download --only-binary :all:, 2026-10-10); one that ever ships only an
-      # sdist fails this step loudly instead of executing code.
-      - name: Install bump-my-version
-        # A block scalar, not a plain one: ":all: " contains ": ", which ends a plain scalar and makes
-        # the whole file invalid YAML (the workflow would not load). tests.yml parses every workflow.
-        run: |
-          python -m pip install --only-binary :all: "bump-my-version==1.5.1"
-
+      # The Node bump (#473, ADR-0002 2026-11-18 amendment) replaced bump-my-version 1.5.1 here: same
+      # commit message, tag name, tag message and file diff (test/release/bump.test.js). It prints the
+      # new tag and nothing else on stdout; the step fails on any refusal, before the push.
       - name: Bump, commit and tag
         id: version
         env:
@@ -62,8 +57,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          bump-my-version bump "$PART"
-          python -c 'import os,tomllib; v=tomllib.load(open(".bumpversion.toml","rb"))["tool"]["bumpversion"]["current_version"]; open(os.environ["GITHUB_OUTPUT"],"a").write("tag=v"+v+"\n")'
+          tag="$(node src/commands/release-bump.js "$PART" --git="$(command -v git)")"
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::the bump printed no numeric tag; nothing is pushed"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Push the bump commit and tag
         env:

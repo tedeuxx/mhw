@@ -131,7 +131,8 @@ against a throwaway work directory, or `.github/scripts/prod-canary-container.sh
    check on the head counts: a re-run that passed supersedes an older failure of the same check, and
    a newer failed or still running re-run blocks. A Sonar check not yet registered is pending, not
    permission to race ahead of analysis.
-3. `version-main` bumps with bump-my-version, atomically pushes the bump commit and numeric tag, and
+3. `version-main` bumps with the Node script `src/commands/release-bump.js` (~~bump-my-version~~ until
+   #473), atomically pushes the bump commit and numeric tag, and
    creates a published GitHub Release in the same CI job. Tag-triggered downstream workflows are not
    assumed: the Actions token normally does not trigger them.
 4. Run `./mhw delivery verify --pr NUMBER` from the same checkout. Exit 0 means the

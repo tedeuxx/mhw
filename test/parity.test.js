@@ -97,9 +97,9 @@ test('live: the head matches the base revision run on its own throwaway HOMEs', 
       const original = transcript(base, c);
       // The base tree and the head tree sit at different paths; transcript() replaced each with <ROOT>.
       if (UPDATE && c.golden !== false) writeGolden(SLICE, goldenName(c.name), original);
-      // Once the base itself carries an expected addition (any base after S01 prints the NODE line), it is
-      // removed from both sides, so the comparison stays on everything else (#474: the live arm went red
-      // on every PR into rc/next after #505, because the base had the line the head's copy dropped).
+      // Once S01 itself is in the base (every slice after it, #473), the base prints the S01 intended
+      // difference too, so it is taken out of both sides here. The golden arm above still holds it
+      // against the pre-S01 transcripts.
       diffs.push(...differences(withoutExpected(original, expected), withoutExpected(transcript(HEAD, c), expected)));
     }
     assert.deepEqual(diffs, []);
