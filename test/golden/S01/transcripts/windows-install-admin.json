@@ -1,0 +1,11 @@
+{
+  "name": "windows-install-admin",
+  "args": [
+    "install",
+    "--admin"
+  ],
+  "code": 2,
+  "stdout": "",
+  "stderr": "mhw: unknown argument for install: --admin (macOS and Linux only)\n",
+  "tree": []
+}

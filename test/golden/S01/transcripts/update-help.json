@@ -1,0 +1,11 @@
+{
+  "name": "update-help",
+  "args": [
+    "update",
+    "--help"
+  ],
+  "code": 2,
+  "stdout": "",
+  "stderr": "mhw: unknown argument for update: --help\n",
+  "tree": []
+}

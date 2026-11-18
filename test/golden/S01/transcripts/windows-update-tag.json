@@ -1,0 +1,11 @@
+{
+  "name": "windows-update-tag",
+  "args": [
+    "update",
+    "v4.2.0"
+  ],
+  "code": 0,
+  "stdout": "UPDATE  run this npm line, then mhw install:\nRUN     npm install -g github:tedeuxx/mhw#v4.2.0\n",
+  "stderr": "",
+  "tree": []
+}

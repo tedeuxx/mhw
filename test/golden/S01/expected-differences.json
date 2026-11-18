@@ -1,0 +1,8 @@
+[
+  {
+    "case": "windows-status-relative-powershell",
+    "stream": "stdout",
+    "pattern": "^NODE    (ok    node|FAIL  node|FAIL  cannot compare node) ",
+    "why": "D11 of #470, AC of #472: mhw status prints a NODE line first, naming the running node against engines.node. The original printed none. It is the one intended difference of S01, allowed on the status case only, and only as an added line."
+  }
+]

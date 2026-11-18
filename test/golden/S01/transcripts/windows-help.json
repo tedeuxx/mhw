@@ -1,0 +1,10 @@
+{
+  "name": "windows-help",
+  "args": [
+    "--help"
+  ],
+  "code": 0,
+  "stdout": "mhw install [--method] [--overlay=DIR|none] | check | status | update [vX.Y.Z] | scan [--base=REF | PATH... | --file=PATH]\n(Windows: install.ps1; install --admin, scan and uninstall are macOS and Linux only)\n",
+  "stderr": "",
+  "tree": []
+}

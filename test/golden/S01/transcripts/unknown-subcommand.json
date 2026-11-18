@@ -1,0 +1,10 @@
+{
+  "name": "unknown-subcommand",
+  "args": [
+    "nope"
+  ],
+  "code": 2,
+  "stdout": "",
+  "stderr": "mhw: unknown subcommand nope (install, install --admin, status, check, scan, policy check, update, uninstall)\n",
+  "tree": []
+}
