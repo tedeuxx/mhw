@@ -135,7 +135,9 @@ refusal is written and tested, not installed on the reference machine.
 
 #### Amendment — mhw's own PROD and its regression evidence (2026-11-08, Issue #452)
 
-- **Status of this amendment: proposed (agent-written, awaiting the owner's ratification).** It is
+- **Status of this amendment:** ~~**proposed (agent-written, awaiting the owner's ratification).**~~
+  **Accepted: ratified by the owner on 2026-11-18** ([his ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978107613)): for mhw, PROD is the release
+  on main, and the evidence that clears it is the containerised PROD test in CI. It is
   appended; nothing above is changed, and the record's status is unchanged. It changes no lock and
   unlocks nothing: it records how the lock above reads for this repository itself, which the
   ratification rule in *Consequences* still governs.
@@ -212,6 +214,6 @@ MADR, a `project-policy.json` and installed-STG evidence that mhw has no environ
 - The lock's carriers (2026-11-07): [docs/project-policy-contract.md](../project-policy-contract.md),
   [docs/reference-cicd.md](../reference-cicd.md), [docs/recovery-reference.md](../recovery-reference.md)
   and the coverage report [docs/deployment-lock-coverage.md](../deployment-lock-coverage.md).
-- mhw's own PROD test (2026-11-08, proposed): Issue #452, `.github/workflows/tests.yml`
+- mhw's own PROD test (2026-11-08, ~~proposed~~ accepted 2026-11-18, [ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978107613)): Issue #452, `.github/workflows/tests.yml`
   (`prod-canary-installed-not-enforced`), `.github/scripts/prod_canary.py` and
   `.github/scripts/prod-canary-container.sh`.

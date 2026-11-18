@@ -39,7 +39,7 @@ standard". They were re-read for this record, not inherited from the brief that 
 | A decision is a picker with at most four options; an action is one line, the act and the link, with no options | his |
 | Converse in Portuguese; published artifacts in English | his |
 | Every firewall intervention is reported with category and mitigation, never the content | his (ADR-0005 amendment) |
-| "Tweet-length" read as **280 characters of question stem** | **proposed** (X's post limit; not his number) |
+| "Tweet-length" read as **280 characters of question stem** | ~~**proposed** (X's post limit; not his number)~~ **his**, ratified 2026-11-18 ([ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978101143)); X's post limit, adopted as his number |
 | ~~Question **count** and question **length** are the only parts a hook checks~~ | **proposed**, extended by ADR-0019 on 2026-10-02 |
 
 ### What already exists on this workstation (learned, not owned)
@@ -224,7 +224,8 @@ count; only the plugin's copy, while that plugin is enabled, still checks the co
   the settings, so `jq` is present at install time; its later removal is silent.
 - Bad: the agent can evade a refusal by asking in prose. The deny reason forbids it, but only the
   instruction holds it. Two asks in prose are caught by no layer, on any harness.
-- Bad: 280 characters is a proposed reading. The Portuguese notice text is the agent's wording, not
+- Bad: ~~280 characters is a proposed reading.~~ *(Struck 2026-11-18: the owner ratified the
+  280-character reading as his, [ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978101143).)* The Portuguese notice text is the agent's wording, not
   his.
 - Bad: the first merge re-serializes `~/.claude/settings.json`. It currently uses a non-jq layout
   (4-space indent, `" : "`, escaped `\/`), so whitespace and escaping change. The dry-run says so and

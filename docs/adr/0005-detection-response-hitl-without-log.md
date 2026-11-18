@@ -64,7 +64,9 @@ falls under one of the owner's policies **MUST notify the owner**. The notice st
 This adds to the decision above and does not replace it. "No auditable record" still holds; the notice
 is not a record.
 
-**Proposed constraints on the notice** (not his words, awaiting ratification):
+~~**Proposed constraints on the notice** (not his words, awaiting ratification):~~ **Constraints on the
+notice, ratified by the owner on 2026-11-18** ([his ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6977796759)); the wording below is still the
+agent's, the decision is his:
 
 - It names the **category** and **where it happened**: which surface, and whether input or output. It
   **never** names the sensitive content or term itself, because then the notice would re-leak what was
