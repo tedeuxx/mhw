@@ -1,0 +1,12 @@
+{
+  "commitMessage": "bump: 10.3.7 → 11.0.0\n",
+  "parents": 1,
+  "tags": [
+    "v11.0.0"
+  ],
+  "tagType": "tag",
+  "tagMessage": "bump: 10.3.7 → 11.0.0\n",
+  "tagPointsAtHead": true,
+  "diff": "diff --git a/.bumpversion.toml b/.bumpversion.toml\nindex 6a75bfd..7de6a95 100644\n--- a/.bumpversion.toml\n+++ b/.bumpversion.toml\n@@ -1,5 +1,5 @@\n [tool.bumpversion]\n-current_version = \"10.3.7\"\n+current_version = \"11.0.0\"\n parse           = \"(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)\"\n serialize       = [\"{major}.{minor}.{patch}\"]\n commit          = true\ndiff --git a/package.json b/package.json\nindex e7dc1d3..98c5da3 100644\n--- a/package.json\n+++ b/package.json\n@@ -1,6 +1,6 @@\n {\n   \"name\": \"mhw\",\n-  \"version\": \"10.3.7\",\n+  \"version\": \"11.0.0\",\n   \"private\": true,\n   \"type\": \"module\",\n   \"description\": \"multi-harness managed workstation\",\n",
+  "status": ""
+}

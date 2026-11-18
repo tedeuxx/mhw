@@ -135,8 +135,8 @@ Concretely, it must keep three things true on this machine:
    (Owner, 2026-10-01. Adopted in [ADR-0001](docs/adr/0001-record-decisions-as-madr.md).)
 
 3. **Automatic versioning.** Every merge to `main` cuts a **purely numeric SemVer** tag
-   (`vMAJOR.MINOR.PATCH`, no pre-release suffix) with **bump-my-version**, configured in
-   [`.bumpversion.toml`](.bumpversion.toml). The part bumped is chosen by a **predefined cut policy**
+   (`vMAJOR.MINOR.PATCH`, no pre-release suffix) with ~~**bump-my-version**~~ **the Node script
+   `src/commands/release-bump.js`** (since #473), configured in [`.bumpversion.toml`](.bumpversion.toml). The part bumped is chosen by a **predefined cut policy**
    ~~suited to a policy-set artifact~~ — ~~plain SemVer since 2026-10-06: **major** for a breaking change
    (something a consumer must change), **minor** for an incremental feature (including adding or
    removing a control when no consumer has to change anything), **patch** for a bug fix or a change with no behaviour change (docs, tests, CI)~~

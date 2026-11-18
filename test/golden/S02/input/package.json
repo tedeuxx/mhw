@@ -1,0 +1,50 @@
+{
+  "name": "mhw",
+  "version": "10.1.0",
+  "private": true,
+  "type": "module",
+  "description": "multi-harness managed workstation",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tedeuxx/mhw.git"
+  },
+  "bin": {
+    "mhw": "bin/mhw.js"
+  },
+  "scripts": {
+    "postinstall": "node bin/postinstall.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "files": [
+    "mhw",
+    ".bumpversion.toml",
+    ".workstation-archive",
+    "bin/mhw.js",
+    "bin/postinstall.js",
+    "src/",
+    "npm-shrinkwrap.json",
+    "global/",
+    "!global/**/*_test.py",
+    "!global/**/*.test.sh",
+    "!global/**/*.test.ps1",
+    "!global/**/*.test.stub",
+    "!global/keychain_test_guard.py",
+    "method/",
+    "!method/scripts/*.test.*",
+    "!method/scripts/fixtures/",
+    "!method/scripts/worklog-contract/",
+    "overlay/",
+    "!overlay/mcp-servers.json",
+    "!**/*.local.json",
+    "!**/__pycache__/"
+  ],
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "smol-toml": "1.9.1",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=26"
+  }
+}
