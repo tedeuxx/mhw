@@ -586,8 +586,8 @@ FILE first — `Write` it to the session scratchpad — and the file's PATH is w
 mhw milestone create "<iteration>" --repo <owner>/<repo> --description-file <path>
 ```
 
-(`mhw` is the npm-installed command on `PATH`; in a checkout with no npm install, run
-`node <checkout>/bin/mhw.js milestone …`. It was ~~`python3 method/scripts/milestone-create.py`~~ until
+(`mhw milestone …` is the npm-installed command on `PATH`; in a checkout of mhw with no npm install,
+`./mhw milestone …` there runs the same route. It was ~~`python3 method/scripts/milestone-create.py`~~ until
 mhw#475, with the same arguments and output.)
 
 **The ordered body NEVER travels as a shell argument, and this is a production rule rather than a style

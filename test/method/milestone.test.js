@@ -267,27 +267,55 @@ test('live: the Python routes and the Node routes side by side, on the base\'s o
   assert.deepEqual(diffs, []);
 });
 
-test('cli: bin/mhw.js milestone runs the same routes, with gh found on PATH', { skip: !POSIX && 'the stub gh is a shell script' }, () => {
+/**
+ * A stub gh on PATH, as a shell script running the Node stub, and the running node's directory first on
+ * PATH (./mhw finds node there).
+ * @param {Record<string, string>} env
+ * @param {string} base
+ */
+function stubOnPath(env, base) {
+  const bin = path.join(base, 'bin');
+  fs.mkdirSync(bin);
+  const q = (/** @type {string} */ s) => "'" + s.replace(/'/g, "'\\''") + "'";
+  fs.writeFileSync(path.join(bin, 'gh'), '#!/bin/sh\nexec ' + q(process.execPath) + ' ' + q(NODE_STUB) + ' "$@"\n');
+  fs.chmodSync(path.join(bin, 'gh'), 0o755);
+  env.PATH = bin + ':' + path.dirname(process.execPath) + ':' + env.PATH;
+}
+
+/**
+ * Every runnable case through one entry, against the golden transcripts.
+ * @param {(step: Step) => [string, string[]]} entry the program and its arguments for a step
+ */
+function goldenThrough(entry) {
   /** @type {Runner} */
-  const cli = (step, cwd, env) => {
-    const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'milestone', step.verb, ...step.args], { cwd, env, encoding: 'utf8' });
+  const runner = (step, cwd, env) => {
+    const [exe, args] = entry(step);
+    const p = spawnSync(exe, args, { cwd, env, encoding: 'utf8' });
     return { code: p.status ?? 1, stdout: p.stdout, stderr: p.stderr };
-  };
-  /** @param {Record<string, string>} env @param {string} base */
-  const prepare = (env, base) => {
-    const bin = path.join(base, 'bin');
-    fs.mkdirSync(bin);
-    const q = (/** @type {string} */ s) => "'" + s.replace(/'/g, "'\\''") + "'";
-    fs.writeFileSync(path.join(bin, 'gh'), '#!/bin/sh\nexec ' + q(process.execPath) + ' ' + q(NODE_STUB) + ' "$@"\n');
-    fs.chmodSync(path.join(bin, 'gh'), 0o755);
-    env.PATH = bin + ':' + env.PATH;
   };
   const diffs = [];
   for (const c of CASES) {
     if (skipReason(c)) continue;
-    diffs.push(...differences(readGolden(SLICE, goldenName(c.name)), transcript(c, cli, prepare)));
+    diffs.push(...differences(readGolden(SLICE, goldenName(c.name)), transcript(c, runner, stubOnPath)));
   }
-  assert.deepEqual(diffs, []);
+  return diffs;
+}
+
+test('./mhw milestone (a checkout) forwards to bin/mhw.js and runs the same routes', { skip: !POSIX && './mhw is the POSIX entry' }, () => {
+  assert.deepEqual(goldenThrough((step) => ['/bin/sh', [path.join(ROOT, 'mhw'), 'milestone', step.verb, ...step.args]]), []);
+  // Without node on PATH, ./mhw says so and never falls through to workstation.py.
+  const s = setup(CASES[0]);
+  const p = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), 'milestone', 'read', '7', '--repo', 'owner/repo'],
+    { cwd: s.base, env: { ...s.env, PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
+  if (!fs.existsSync('/usr/bin/node') && !fs.existsSync('/bin/node')) {
+    assert.equal(p.status, 2);
+    assert.equal(p.stderr, 'mhw: node (26 or later) is required for mhw milestone\n');
+  }
+  assert.ok(!fs.existsSync(s.log), 'no gh ran');
+});
+
+test('cli: bin/mhw.js milestone runs the same routes, with gh found on PATH', { skip: !POSIX && 'the stub gh is a shell script' }, () => {
+  assert.deepEqual(goldenThrough((step) => [process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'milestone', step.verb, ...step.args]]), []);
   // And with no gh on PATH, a refusal rather than a crash.
   const s = setup(CASES[0]);
   const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'milestone', 'read', '7', '--repo', 'owner/repo'],
