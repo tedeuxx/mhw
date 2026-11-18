@@ -102,7 +102,8 @@ throwaway workstation cannot hold; uninstall restores the owner's files.
 nothing about what a harness loads or refuses. Outside it, and still the owner's after the release: the
 real `/Library` or `/etc` admin layer, the Keychain, the shell start-up in a real terminal, and the
 fresh-session canary in each agent harness. It is the regression evidence for the owner's install
-(ADR-0015, 2026-11-08 amendment, proposed), not the full ADR-0015 lock: there is no STG and no security
+(ADR-0015, 2026-11-08 amendment, ~~proposed~~ accepted 2026-11-18,
+[ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978107613)), not the full ADR-0015 lock: there is no STG and no security
 evidence. Run it locally the same way: `python3 -B .github/scripts/prod_canary.py pack`, then `run`
 against a throwaway work directory, or `.github/scripts/prod-canary-container.sh` with podman or docker.
 
