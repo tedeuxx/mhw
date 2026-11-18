@@ -287,7 +287,8 @@ class Box:
                               capture_output=True, text=True)
 
     def install(self, tgz, what):
-        p = self.run("npm", "install", "-g", "--offline", "--foreground-scripts", str(tgz))
+        # --prefer-offline since #472: the package has one pinned runtime dependency to fetch.
+        p = self.run("npm", "install", "-g", "--prefer-offline", "--foreground-scripts", str(tgz))
         if not check(p.returncode == 0, "npm install -g %s" % what, (p.stdout + p.stderr)[-2000:]):
             return False
         p = self.run("mhw", "install", "--yes")
