@@ -20,7 +20,8 @@ Each is raised one at a time, when a slice reaches it.
    record in this index is proposed. Outside that list, the text of three records still uses the word
    for a part: ADR-0005 (the notice constraints), ADR-0013 (the 280-character reading of "tweet", whose
    2026-10-05 amendment ratified every limit as an instruction) and ADR-0015 (its 2026-11-08 amendment).
-   Whether each is still open is not settled here.*
+   ~~Whether each is still open is not settled here.~~ The owner ratified all three on 2026-11-18, one at
+   a time: [ADR-0005](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6977796759), [ADR-0013](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978101143) and [ADR-0015](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978107613). No ADR part is left proposed.*
 2. ~~**The ten commandments** ([#77](https://github.com/tedeuxx/mhw/issues/77)):
    edit and ratify the draft in the requirements document, section 1c. Nothing is installed before that.~~
    *Ratified on 2026-11-01; carried at the top of `global/AGENTS.md`. Installing it is the owner's act.*
