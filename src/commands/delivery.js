@@ -128,9 +128,13 @@ function pyStr(v) {
   return typeof v === 'string' ? v : JSON.stringify(v);
 }
 
+// The line boundaries str.splitlines() honours beyond \r and \n, control characters included on purpose:
+// \v \f, the file, group and record separators (0x1c-0x1e), NEL (0x85), and U+2028 and U+2029.
+const LINE_BOUNDARIES = new RegExp('[\\n' + String.fromCharCode(0x0b, 0x0c, 0x1c, 0x1d, 0x1e, 0x85, 0x2028, 0x2029) + ']');
+
 /** Python's str.splitlines() of text read with universal newlines. @param {string} text */
 function splitlines(text) {
-  const lines = text.replace(/\r\n?/g, '\n').split(/[\n\v\f\x1c\x1d\x1e\x85\u2028\u2029]/);
+  const lines = text.replace(/\r\n?/g, '\n').split(LINE_BOUNDARIES);
   if (lines.length && lines[lines.length - 1] === '') lines.pop();
   return lines;
 }
@@ -358,6 +362,40 @@ export function harnessPaths(paths) {
  */
 
 /**
+ * The history the carry-forward reads, from git in the checkout (exec runs it there).
+ * @param {import('../lib/gh.js').ToolRunner} exec @param {string} base the base branch, read as origin/<base>
+ * @returns {History}
+ */
+export function gitHistory(exec, base) {
+  /** @param {string[]} args */
+  const git = (...args) => {
+    const r = exec('git', args);
+    if (r.error) throw new Unavailable('could not run');
+    if (r.code) throw new Pending('command failed or remote unavailable: git; details omitted');
+    return r.stdout;
+  };
+  return {
+    base,
+    isAncestor: (commit, to) => {
+      const r = exec('git', ['merge-base', '--is-ancestor', commit, to]);
+      return r.error ? 2 : r.code;
+    },
+    // Every best common ancestor, as a sorted set: a criss-cross history has more than one, and plain
+    // merge-base prints only one of them (QA B3 and lens round 1 on PR #508). An empty set refuses.
+    mergeBase: (ref) => {
+      const set = splitlines(strip(git('merge-base', '--all', 'origin/' + base, ref))).sort();
+      if (!set.length) throw new Pending('cannot read the merge-base with ' + base);
+      return set.join(' ');
+    },
+    // NUL-separated, so git quotes no path the harness test reads.
+    delta: (commit, to) => nulNames(git('diff', '--no-renames', '--name-only', '-z', commit, to)),
+  };
+}
+
+/** The paths of a NUL-terminated `--name-only -z` list. @param {string} out */
+export const nulNames = (out) => out.split('\0').filter((p) => p !== '');
+
+/**
  * Whether a CLOSED lens at commit carries forward to head; null when it does, else the reason.
  * @param {string} commit @param {string} head @param {History} history
  */
@@ -535,8 +573,6 @@ function route(action, number, opts, out) {
     if (r.code) throw new Pending('command failed or remote unavailable: ' + argv[0] + '; details omitted');
     return r.stdout;
   };
-  /** The paths of a NUL-terminated --name-only -z list. @param {string} out */
-  const names = (out) => out.split('\0').filter((p) => p !== '');
   /** @param {string} repo @param {string} p @returns {any} */
   const api = (repo, p) => {
     try {
@@ -570,20 +606,8 @@ function route(action, number, opts, out) {
     if (base === INTEGRATION) {
       // A tree diff from the merge base, never the paginated PR file list.
       run('git', 'fetch', 'origin', base);
-      const paths = names(runRaw('git', 'diff', '--no-renames', '--name-only', '-z', 'origin/' + base + '...' + head));
-      /** @type {History} */
-      const history = {
-        base,
-        isAncestor: (commit, to) => {
-          const r = exec('git', ['merge-base', '--is-ancestor', commit, to]);
-          return r.error ? 2 : r.code;
-        },
-        // Every best common ancestor, as a sorted set: a criss-cross history has more than one, and git
-        // prints them in no promised order.
-        mergeBase: (ref) => splitlines(run('git', 'merge-base', '--all', 'origin/' + base, ref)).sort().join(' '),
-        delta: (commit, to) => names(runRaw('git', 'diff', '--no-renames', '--name-only', '-z', commit, to)),
-      };
-      reviewGate(pr, head, paths, history);
+      const paths = nulNames(runRaw('git', 'diff', '--no-renames', '--name-only', '-z', 'origin/' + base + '...' + head));
+      reviewGate(pr, head, paths, gitHistory(exec, base));
     }
     const branch = run('git', 'branch', '--show-current');
     if (branch === '' || branch === base || branch !== need(pr, 'headRefName')) {

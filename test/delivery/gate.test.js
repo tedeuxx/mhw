@@ -3,7 +3,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as d from '../../src/commands/delivery.js';
@@ -193,14 +192,19 @@ test('Python semantics kept where gh data could make JavaScript differ', () => {
 });
 
 test('gh and git are found on PATH as one absolute file; a relative PATH entry is never used', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-test-tool-'));
+  // Inside the checkout, beside the current directory: on Windows the system temporary directory can sit
+  // on another drive, where path.relative returns an absolute path (QA B1 on PR #508).
+  const dir = fs.mkdtempSync(path.join(process.cwd(), '.tmp-mhw-tool-'));
   try {
     const exe = path.join(dir, process.platform === 'win32' ? 'gh.exe' : 'gh');
     fs.writeFileSync(exe, '');
-    fs.chmodSync(exe, 0o755);
+    fs.chmodSync(exe, 0o700);
     const sep = process.platform === 'win32' ? ';' : ':';
     assert.equal(resolveTool('gh', { PATH: dir }, process.platform), exe);
-    assert.equal(resolveTool('gh', { PATH: path.relative(process.cwd(), dir) + sep }, process.platform), null);
+    const relative = path.relative(process.cwd(), dir);
+    assert.ok(!path.isAbsolute(relative), relative);
+    assert.ok(fs.existsSync(path.join(relative, path.basename(exe))), 'the relative entry names the file from here');
+    assert.equal(resolveTool('gh', { PATH: relative + sep }, process.platform), null);
     if (process.platform !== 'win32') {
       fs.chmodSync(exe, 0o644);
       assert.equal(resolveTool('gh', { PATH: dir }, process.platform), null, 'not executable');

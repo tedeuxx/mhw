@@ -19,8 +19,26 @@ import { fileURLToPath } from 'node:url';
  * @typedef {{ code: number, stdout: string, stderr: string }} Answer
  */
 
+/**
+ * A path as git prints it without -z under the default core.quotePath: C-quoted, with an octal escape
+ * for every byte outside printable ASCII, when it holds such a byte, a double quote or a backslash.
+ * @param {string} p
+ */
+export function quotePath(p) {
+  if (!/[^\x20-\x7e]|["\\]/.test(p)) return p;
+  /** @type {Record<number, string>} */
+  const esc = { 7: 'a', 8: 'b', 9: 't', 10: 'n', 11: 'v', 12: 'f', 13: 'r', 34: '"', 92: '\\' };
+  let out = '';
+  for (const b of Buffer.from(p, 'utf8')) {
+    if (esc[b]) out += '\\' + esc[b];
+    else if (b < 0x20 || b > 0x7e) out += '\\' + b.toString(8).padStart(3, '0');
+    else out += String.fromCharCode(b);
+  }
+  return '"' + out + '"';
+}
+
 /** @param {string} stdout @returns {Answer} */
-const ok = (stdout) => ({ code: 0, stdout: stdout + '\n', stderr: '' });
+const ok =(stdout) => ({ code: 0, stdout: stdout + '\n', stderr: '' });
 /** @param {number} code @returns {Answer} */
 const fail = (code) => ({ code, stdout: '', stderr: 'synthetic failure\n' });
 
@@ -44,7 +62,7 @@ export function answer(s, tool, args) {
       const z = args.includes('-z');
       const rest = args.filter((x) => x !== '-z');
       /** @param {string[]} paths */
-      const names = (paths) => (z ? { code: 0, stdout: paths.map((p) => p + '\0').join(''), stderr: '' } : ok(paths.join('\n')));
+      const names = (paths) => (z ? { code: 0, stdout: paths.map((p) => p + '\0').join(''), stderr: '' } : ok(paths.map(quotePath).join('\n')));
       if (rest.length === 4 && rest[3].includes('...')) return names(s.changed || []);
       if (rest.length === 5) {
         const d = (s.deltas || {})[rest[3]];
@@ -84,7 +102,7 @@ export function writeFakeBin(dir) {
   for (const tool of ['gh', 'git']) {
     const file = path.join(dir, tool);
     fs.writeFileSync(file, "#!/bin/sh\nexec '" + process.execPath + "' '" + me + "' " + tool + ' "$@"\n');
-    fs.chmodSync(file, 0o755);
+    fs.chmodSync(file, 0o700);
   }
   return dir;
 }
