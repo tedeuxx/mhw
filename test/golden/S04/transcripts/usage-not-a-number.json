@@ -1,0 +1,21 @@
+{
+  "name": "usage-not-a-number",
+  "steps": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: milestone-read.py [-h] [--repo REPO] number\nmilestone-read.py: error: argument number: invalid int value: 'seven'\n",
+      "gh": []
+    }
+  ],
+  "state": {
+    "milestone": {
+      "closed_issues": 0,
+      "description": "before",
+      "number": 7,
+      "open_issues": 0,
+      "state": "open",
+      "title": "sprint-05"
+    }
+  }
+}

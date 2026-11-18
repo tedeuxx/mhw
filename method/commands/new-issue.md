@@ -412,7 +412,7 @@ assumed. **Do not invent a milestone and do not create one**: `gh api` is denied
 user-level settings (`Bash(gh api:*)`, kept by his decision, mhw#242), deny from any layer wins, and there
 is no `gh milestone` subcommand, so ~~**creating an iteration is an owner-only act performed in the
 browser**~~ **creating an iteration belongs to `/sprint-planning`, which runs
-`{{method-scripts}}/milestone-create.py` with the owner present (struck 2026-11-02, mhw#242: the
+`mhw milestone create` (a Python script until mhw#475) with the owner present (struck 2026-11-02, mhw#242: the
 browser clause went stale at #537, when that route landed); filing never creates one**. An unassigned `loop` Issue is not lost — it is counted by
 `/autonomy on`'s *"`ready` items carrying NO milestone"* line at session open, which exists for exactly
 this.

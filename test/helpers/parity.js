@@ -13,7 +13,7 @@ import { throwawayHome, which } from './home.js';
  * @typedef {{ name: string, args: string[], env?: Record<string, string> }} Case
  * @typedef {{ path: string, kind: string, mode: string, data: string }} Entry
  * @typedef {{ name: string, args: string[], code: number | null, stdout: string, stderr: string, tree: Entry[] }} Transcript
- * @typedef {{ case: string, stream: 'stdout' | 'stderr', pattern: string, why: string }} ExpectedDifference
+ * @typedef {{ case: string, stream: 'stdout' | 'stderr' | 'tree', pattern: string, why: string, whenBaseHas?: string }} ExpectedDifference
  */
 
 /**
@@ -103,6 +103,11 @@ export function withoutExpected(head, expected) {
     const rules = expected.filter((e) => (e.case === '*' || e.case === head.name) && e.stream === stream).map((e) => new RegExp(e.pattern));
     if (rules.length) out[stream] = head[stream].split('\n').filter((line) => !rules.some((r) => r.test(line))).join('\n');
   }
+  // stream "tree" (#475): a written file whose path the pattern matches is compared by kind and mode
+  // only, its content hash blanked on the side this is applied to. Used for a file whose content an
+  // installer change legitimately alters, and only while the base still holds the old code (whenBaseHas).
+  const treeRules = expected.filter((e) => (e.case === '*' || e.case === head.name) && e.stream === 'tree').map((e) => new RegExp(e.pattern));
+  if (treeRules.length) out.tree = head.tree.map((e) => (e.kind === 'file' && treeRules.some((r) => r.test(e.path)) ? { ...e, data: '<CONTENT>' } : e));
   return out;
 }
 

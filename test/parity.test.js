@@ -92,6 +92,9 @@ test('live: the head matches the base revision run on its own throwaway HOMEs', 
     return;
   }
   try {
+    // An entry with whenBaseHas applies only while the base tree still holds that file, so it expires on
+    // its own once the change that needed it has merged (#475).
+    const live = expected.filter((/** @type {{ whenBaseHas?: string }} */ e) => !e.whenBaseHas || fs.existsSync(path.join(base, e.whenBaseHas)));
     const diffs = [];
     for (const c of cases) {
       const original = transcript(base, c);
@@ -100,7 +103,7 @@ test('live: the head matches the base revision run on its own throwaway HOMEs', 
       // Once S01 itself is in the base (every slice after it, #473), the base prints the S01 intended
       // difference too, so it is taken out of both sides here. The golden arm above still holds it
       // against the pre-S01 transcripts.
-      diffs.push(...differences(withoutExpected(original, expected), withoutExpected(transcript(HEAD, c), expected)));
+      diffs.push(...differences(withoutExpected(original, live), withoutExpected(transcript(HEAD, c), live)));
     }
     assert.deepEqual(diffs, []);
   } finally {

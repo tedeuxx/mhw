@@ -113,8 +113,10 @@ already assembled, ranked and composed. ~~item by item~~ **struck #393: that for
 
 **It is executed in the ORCHESTRATOR's context because the owner confirms the composition there.**
 ~~Only one of its writes is mechanically out of a persona's reach, by accident.~~ **Struck 2026-09-29
-(#537): all reviewed milestone routes run as `python3 scripts/milestone-*.py`, which the project allow
-layer permits without a prompt for the orchestrator and every persona holding Bash.** That reach is
+(#537): all reviewed milestone routes run as ~~`python3 method/scripts/milestone-*.py`~~
+`mhw milestone <verb>` (since mhw#475), which ~~the project allow layer permits without a prompt for the
+orchestrator and every persona holding Bash~~ any persona holding Bash can reach; whether one prompts
+is the settings layers' answer (the workstation pre-authorises only `mhw milestone read`).** That reach is
 intentional under the owner's pricing of milestone acts as non-critical; no settings layer changes in
 this slice.
 
@@ -150,8 +152,9 @@ prompt whose justification was in question no longer fires.
 (`bash scripts/milestone-create.sh …`) still prompts — because `scripts/` matches no `allow` entry in
 either settings layer, which is **an absence, not a control**: an unrelated `allow` entry added later
 removes it silently and nothing would say so.~~ **Struck 2026-09-29 (#537): creation is now
-`python3 {{method-scripts}}/milestone-create.py …`; the existing `python3` permission reaches it without a prompt
-for the orchestrator and for every Bash-holding persona. No settings entry was added.** Step 4a carries
+~~`python3 method/scripts/milestone-create.py …`; the existing `python3` permission reaches it without a prompt
+for the orchestrator and for every Bash-holding persona. No settings entry was added.~~** Since mhw#475
+creation is `mhw milestone create …`, which no workstation allow entry pre-authorises. Step 4a carries
 the operative call.
 
 ## The trigger
@@ -347,8 +350,8 @@ against the head guard, same payloads, one per line:
 
 ```
 [scrum-master] gh issue edit 5 --repo o/r --milestone "s2"      -> NO decision from any layer
-[scrum-master] python3 {{method-scripts}}/milestone-create.py "s2" --repo o/r -> reachable if the profile held Bash
-[scrum-master] python3 {{method-scripts}}/milestone-update.py 2  --repo o/r   -> reachable if the profile held Bash
+[scrum-master] mhw milestone create "s2" --repo o/r              -> reachable if the profile held Bash
+[scrum-master] mhw milestone update 2  --repo o/r                -> reachable if the profile held Bash
 ```
 
 **The paragraph below already argued that the surviving layer is the one doing the work, and that
@@ -580,8 +583,12 @@ here is the pool he ruled out* — and stop; the rulings are the product of that
 FILE first — `Write` it to the session scratchpad — and the file's PATH is what the command carries:**
 
 ```
-python3 {{method-scripts}}/milestone-create.py "<iteration>" --repo <owner>/<repo> --description-file <path>
+mhw milestone create "<iteration>" --repo <owner>/<repo> --description-file <path>
 ```
+
+(`mhw` is the npm-installed command on `PATH`; in a checkout with no npm install, run
+`node <checkout>/bin/mhw.js milestone …`. It was ~~`python3 method/scripts/milestone-create.py`~~ until
+mhw#475, with the same arguments and output.)
 
 **The ordered body NEVER travels as a shell argument, and this is a production rule rather than a style
 one.** `/shell`'s `--body-file` rule has no per-case exception, and this flag is exactly that class.
@@ -606,9 +613,10 @@ Three things make it sharper here than the general shape:
   round): the update can repair it, but may overwrite an edit concurrent with its GET/PATCH interval**;
   file-only input remains the safe default.
 
-**The inline `--description <text>` form is REMOVED from the script, not left beside the file route.**
-Measured at head: `python3 {{method-scripts}}/milestone-create.py "probe" --description "x"` → `unrecognized arguments:
---description`, exit 2. Keeping both would have fixed this caller and not the script — a later caller
+**The inline `--description <text>` form is REMOVED from the route, not left beside the file route.**
+Measured at head: ~~`python3 method/scripts/milestone-create.py "probe" --description "x"` → `unrecognized arguments:
+--description`, exit 2~~ `mhw milestone create "probe" --description "x"` → `unrecognized argument:
+--description`, exit 2 (mhw#475; its suite holds it). Keeping both would have fixed this caller and not the script — a later caller
 picks the convenient spelling, which is the whole reason `/shell`'s rule is written without exceptions.
 
 ~~**This still PROMPTS because `scripts/` matches no allow entry.**~~ **Struck 2026-09-29 (#537): the
@@ -626,8 +634,8 @@ may claim the raw-API route is closed.**
 description to separate scratchpad files, then run the best-effort stale-read check and update:
 
 ```
-python3 {{method-scripts}}/milestone-read.py <number> --repo <owner>/<repo>
-python3 {{method-scripts}}/milestone-update.py <number> --repo <owner>/<repo> \
+mhw milestone read <number> --repo <owner>/<repo>
+mhw milestone update <number> --repo <owner>/<repo> \
   --expect-file <prior-path> --description-file <new-path>
 ```
 
@@ -769,8 +777,8 @@ a known next act instead of a surprise at the drain's door.
   review.
 - ~~**It does not close an iteration.** No command available to this loop can read whether a milestone
   is open or closed; closing is a click in a browser.~~ **Struck 2026-09-29 (#537).** Read state with
-  `python3 {{method-scripts}}/milestone-read.py`; after the closing rites, close with
-  `python3 {{method-scripts}}/milestone-close.py`. Neither act is handed to the owner.
+  `mhw milestone read`; after the closing rites, close with `mhw milestone close`. Neither act is
+  handed to the owner.
 - **It does not judge the work.** Whether a slice is correct is `quality-assurance`'s, whether an order
   serves the owner's objective is `product-lead`'s.
 

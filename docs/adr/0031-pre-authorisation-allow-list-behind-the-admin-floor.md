@@ -211,8 +211,8 @@ names one file of `method/scripts/` by its bare name and renders it with the ins
 that file, in every tier. The installer refuses a script entry in the narrow tier, a program other than
 sh, bash or python3, an option other than -B or -I, a path, a test file, or a name with no file in
 `method/scripts/`. A copy without `method/`, or an installed path holding a character a rule cannot carry,
-renders no rule and says so in a NOTE. The one entry is `milestone-read.py`; create, update and close
-still ask.
+renders no rule and says so in a NOTE. ~~The one entry is `milestone-read.py`~~ (struck 2026-11-18:
+the kind is gone, see the amendment of that date); create, update and close still ask.
 
 What it does not close, stated: the script runs `gh api` in a subprocess, which no settings rule sees;
 that is the read path the owner chose. A Bash write to the installed file is not covered by the `Edit`
@@ -226,6 +226,23 @@ marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeux
 accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
 proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
 Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+## Amendment 2026-11-18: the `script` kind gives way to a closed `route` kind ([Issue #475](https://github.com/tedeuxx/mhw/issues/475))
+
+Slice S04 of #470 moved the milestone routes to Node, as `mhw milestone read|create|update|close`, and
+deleted `method/scripts/milestone-read.py`, the one file the `script` kind named. The kind is replaced, not kept empty: a fourth kind, `route`, names one read-only
+subcommand of the `mhw` CLI by its words. The installer accepts exactly one route, `mhw milestone read`,
+in the wide tier only, and renders `Bash(mhw milestone read:*)` for Claude Code only. Any other route,
+a route in the narrow tier, extra words, and `mhw` as a `cmd` stay refused; the refusal of `mhw` and
+`workstation` as a `cmd` is unchanged. Create, update and close still ask.
+
+What it changes, stated: the `script` rule named an absolute installed file and carried an `Edit` deny
+on it. A route names a command that `PATH` resolves, so the installer has no file to protect, and a
+directory earlier on `PATH` holding another `mhw` would run in its place under the same rule. An `Edit`
+deny on the package's `src/` was rejected: in a checkout of this repository it would deny the edits its
+own development needs. The `gh api` call still runs in a subprocess no settings rule sees. The route
+needs `mhw` on `PATH` (an npm install); without it the rule matches nothing. Windows renders no allow
+list. Written and tested in throwaway homes (`global/allow-list.test.sh`); not installed.
 
 ## Links
 

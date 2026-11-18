@@ -1,0 +1,28 @@
+{
+  "name": "confine-symlink-out",
+  "steps": [
+    {
+      "code": 1,
+      "stdout": "",
+      "stderr": "description file: <BASE>/tmpx/out.txt is outside the repository work tree and the temporary directory; refusing to read it\n",
+      "gh": [
+        [
+          "api",
+          "repos/owner/repo/milestones?state=all&per_page=100",
+          "--paginate",
+          "--slurp"
+        ]
+      ]
+    }
+  ],
+  "state": {
+    "milestone": {
+      "closed_issues": 0,
+      "description": "before",
+      "number": 7,
+      "open_issues": 0,
+      "state": "open",
+      "title": "sprint-05"
+    }
+  }
+}

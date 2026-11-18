@@ -136,15 +136,15 @@ if [ "$overlay_allow" != /dev/null ] && [ "$(jq '[.permissions.allow[]? | select
   miss=1; echo "  no repository suite in the wide allow list"
 fi
 if [ "$miss" -eq 0 ]; then ok "wide tier: read/build routes, pinned add and commit, suites, escaping options denied"; else ko "wide tier entries wrong"; fi
-# The installed milestone read route (Issue #242): pre-authorised by its absolute installed path in the
-# wide tier, Claude Code only, with an Edit deny on that file; no other milestone script, no Codex rule.
-mr="$h/.local/share/personal-multi-harness-workstation-configuration/method/scripts/milestone-read.py"
-if [ "$(jq --arg r "Bash(python3 $mr:*)" '[.permissions.allow[]? | select(. == $r)] | length' "$s")" -eq 1 ] \
-   && [ "$(jq --arg r "Edit(/$mr)" '[.permissions.deny[]? | select(. == $r)] | length' "$s")" -eq 1 ] \
-   && [ "$(jq '[.permissions.allow[]? | select(test("milestone-(create|update|close)"))] | length' "$s")" -eq 0 ] \
+# The milestone read route (Issue #242; since #475 the CLI route): exactly "Bash(mhw milestone read:*)" in
+# the wide tier, Claude Code only; no other milestone verb, no other mhw rule, no Codex or Kiro rule, and
+# nothing left of the retired python3 script rule.
+if [ "$(jq '[.permissions.allow[]? | select(. == "Bash(mhw milestone read:*)")] | length' "$s")" -eq 1 ] \
+   && [ "$(jq '[.permissions.allow[]? | select(startswith("Bash(mhw") or startswith("Bash(workstation"))] | length' "$s")" -eq 1 ] \
+   && [ "$(jq '[(.permissions.allow[]?, .permissions.deny[]?) | select(test("milestone-|milestone (create|update|close)"))] | length' "$s")" -eq 0 ] \
    && ! grep -q milestone "$h/.codex/rules/workstation-allow-list.rules" \
    && ! grep -q milestone "$h/.kiro/agents/workstation.json"; then
-  ok "wide tier: python3 <installed>/milestone-read.py is pre-authorised (Claude Code only), its file Edit-denied, no other milestone script"
+  ok "wide tier: mhw milestone read is pre-authorised (Claude Code only), no other milestone verb or mhw rule"
 else
   ko "the milestone read route is not pre-authorised as expected: $(jq -c '[.permissions.allow[]? | select(test("milestone"))]' "$s")"
 fi
@@ -225,10 +225,10 @@ for bad in "wide cmd git push" "narrow cmd sudo -n" "narrow cmd git *" "loose cm
            "wide cmd gh pr --repo=o" "wide cmd gh pr view -Ro" \
            "wide cmd GIT_CONFIG_PARAMETERS=x git log" "narrow cmd GIT_PAGER=x git status" \
            "wide deny GIT_PAGER=x git diff" \
-           "narrow script python3 milestone-read.py" "wide script node milestone-read.py" \
-           "wide script python3 scripts/milestone-read.py" "wide script python3 /abs/milestone-read.py" \
-           "wide script python3 milestone.test.py" "wide script python3 no-such-script.py" \
-           "wide script python3 -c milestone-read.py" "wide script python3 milestone-read.txt"; do
+           "wide script python3 milestone-read.py" "narrow route mhw milestone read" \
+           "wide route mhw milestone create" "wide route mhw milestone" "wide route mhw" \
+           "wide route mhw install" "wide route workstation milestone read" "wide route mhw milestone read 7" \
+           "wide route mhw milestone read --repo" "wide cmd mhw milestone read"; do
   ov="$base/ov-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"; hb="$base/home-bad-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"
   mkdir -p "$ov" "$hb"
   printf '%s\n' "$bad" > "$ov/allow-list.conf"

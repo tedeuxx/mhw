@@ -127,6 +127,12 @@ Measured by searching the tree for each script's name, test files and decision r
 All are installed by `method_render.py` and called through `{{method-scripts}}` from the method's
 skills and commands.
 
+*Amended 2026-11-18 ([#475](https://github.com/tedeuxx/mhw/issues/475)): the five milestone files in
+the table below were kept as the exception and then moved, not removed: the four routes are
+`mhw milestone read|create|update|close` in Node (`src/commands/milestone.js`), with the same output,
+and the Python files are deleted. `confine.py` stays for `worklog.py` and `launch-line.py`; its Node
+form is `src/lib/confine.js`. The rows stay as this evaluation read them.*
+
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
 | `method/scripts/milestone_common.py` | Shared code of the milestone family. | The four milestone scripts. | Follows the family. | Follows the family. | **keep as the exception** |

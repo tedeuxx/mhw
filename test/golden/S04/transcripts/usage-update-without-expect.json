@@ -1,0 +1,21 @@
+{
+  "name": "usage-update-without-expect",
+  "steps": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: milestone-update.py [-h] [--repo REPO]\n                           --description-file DESCRIPTION_FILE\n                           --expect-file EXPECT_FILE\n                           number\nmilestone-update.py: error: the following arguments are required: --expect-file\n",
+      "gh": []
+    }
+  ],
+  "state": {
+    "milestone": {
+      "closed_issues": 0,
+      "description": "before",
+      "number": 7,
+      "open_issues": 0,
+      "state": "open",
+      "title": "sprint-05"
+    }
+  }
+}

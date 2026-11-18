@@ -1,0 +1,34 @@
+{
+  "name": "update-prints-prior",
+  "steps": [
+    {
+      "code": 0,
+      "stdout": "{\n  \"action\": \"updated-description\",\n  \"milestone\": {\n    \"closed_issues\": 0,\n    \"description\": \"after $HOME `id`\",\n    \"number\": 7,\n    \"open_issues\": 0,\n    \"state\": \"open\",\n    \"title\": \"sprint-05\"\n  },\n  \"number\": 7,\n  \"previous_description\": \"before\",\n  \"repository\": \"owner/repo\"\n}\n",
+      "stderr": "",
+      "gh": [
+        [
+          "api",
+          "repos/owner/repo/milestones/7"
+        ],
+        [
+          "api",
+          "repos/owner/repo/milestones/7",
+          "-X",
+          "PATCH",
+          "-f",
+          "description=after $HOME `id`"
+        ]
+      ]
+    }
+  ],
+  "state": {
+    "milestone": {
+      "closed_issues": 0,
+      "description": "after $HOME `id`",
+      "number": 7,
+      "open_issues": 0,
+      "state": "open",
+      "title": "sprint-05"
+    }
+  }
+}

@@ -9,7 +9,8 @@
 # gates nothing, and every exit path but a caller error is success.
 #
 # THIS IS NOT A HOOK AND IS NOT IN `hooks/scripts/` FOR A REASON — the same reason
-# `scripts/milestone-create.py` states in its own header: nothing registers it in `hooks/hooks.json`,
+# the retired plugin's milestone create script stated in its own header (mhw#475 moved that route to
+# `mhw milestone create`): nothing registers it in `hooks/hooks.json`,
 # and any `*.sh` under `hooks/scripts/` declaring a `# purpose:` line is read by the inventory gate as
 # a mechanism that must be registered, so an unregistered script there is either an orphan (red) or a
 # mechanism pretending not to be one.
