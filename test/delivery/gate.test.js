@@ -43,30 +43,95 @@ test('the merge is one real merge commit pinned to the head, spelled once in the
 
 /**
  * A slice merge on a harness path whose newest lens marker is CLOSED at OLD_HEAD; knobs set the history.
- * @param {{ ancestor?: number, markerBase?: string, delta?: string[], closed?: boolean }} o
+ * @param {{ ancestor?: number, markerBase?: string | string[], headBase?: string | string[], delta?: string[],
+ *   closed?: boolean, later?: Array<{ authorAssociation: string, body: string }> }} o
  */
 function carried(o) {
   const c = cases().find((x) => x.name === 'harness-lens-closed-merges');
   assert.ok(c);
   return inProcess({ ...c, scenario: {
     ...c.scenario,
-    pr: { ...c.scenario.pr, comments: [gate(), lens({ commit: OLD_HEAD, closed: o.closed ?? true })] },
+    pr: { ...c.scenario.pr, comments: [gate(), lens({ commit: OLD_HEAD, closed: o.closed ?? true }), ...(o.later || [])] },
     ancestors: o.ancestor === undefined ? { [OLD_HEAD]: 0 } : { [OLD_HEAD]: o.ancestor },
-    mergeBases: { [OLD_HEAD]: o.markerBase ?? MERGE_BASE, [HEAD]: MERGE_BASE },
+    mergeBases: { [OLD_HEAD]: o.markerBase ?? MERGE_BASE, [HEAD]: o.headBase ?? MERGE_BASE },
     deltas: { [OLD_HEAD]: o.delta ?? ['src/commands/delivery.js', 'docs/x.md'] },
   } });
 }
+
+/** @param {{ calls: string[][] }} r */
+const merged = (r) => r.calls.some((c) => c[1] === 'pr' && c[2] === 'merge');
 
 test('carry-forward: a CLOSED lens at an earlier head merges when (a), (b) and (c) all hold', () => {
   const r = carried({});
   assert.equal(r.code, 0, r.stderr);
   assert.match(r.stdout, /^MERGED: /);
-  assert.deepEqual(r.calls.filter((c) => c[1] === 'merge-base' || (c[1] === 'diff' && c.length === 6)), [
+  assert.deepEqual(r.calls.filter((c) => c[1] === 'merge-base' || (c[1] === 'diff' && c.length === 7)), [
     ['git', 'merge-base', '--is-ancestor', OLD_HEAD, HEAD],
-    ['git', 'merge-base', 'origin/rc/next', OLD_HEAD],
-    ['git', 'merge-base', 'origin/rc/next', HEAD],
-    ['git', 'diff', '--no-renames', '--name-only', OLD_HEAD, HEAD],
+    ['git', 'merge-base', '--all', 'origin/rc/next', OLD_HEAD],
+    ['git', 'merge-base', '--all', 'origin/rc/next', HEAD],
+    ['git', 'diff', '--no-renames', '--name-only', '-z', OLD_HEAD, HEAD],
   ]);
+});
+
+// Lens round 1 on PR #508, finding 1: git quotes a non-ASCII path ("...\303\251..."), so its first
+// component no longer reads .github. Both diffs run with -z, which quotes nothing; a path that still
+// starts with a double quote counts as a harness path, failing closed.
+const QUOTED = '".github/workflows/d\\303\\251.yml"';
+
+test('both diffs run with -z, so git never quotes a path the gate reads', () => {
+  const r = carried({});
+  const diffs = r.calls.filter((c) => c[1] === 'diff');
+  assert.equal(diffs.length, 2);
+  for (const c of diffs) assert.ok(c.includes('-z'), c.join(' '));
+});
+
+test('the hold-2 trigger counts a quoted path as a harness path', () => {
+  assert.deepEqual(d.harnessPaths([QUOTED, '"docs/x y.md"']), [QUOTED, '"docs/x y.md"']);
+  const c = cases().find((x) => x.name === 'slice-merge-is-a-pinned-merge-commit');
+  assert.ok(c);
+  const r = inProcess({ ...c, scenario: { ...c.scenario, changed: ['docs/x.md', QUOTED] } });
+  assert.equal(r.code, 1);
+  assert.equal(r.stderr, 'PENDING: harness paths changed and no agents-lead lens marker is on the PR\n');
+  assert.ok(!merged(r));
+});
+
+test('a NUL-separated diff with a non-ASCII harness path triggers hold 2', () => {
+  const c = cases().find((x) => x.name === 'slice-merge-is-a-pinned-merge-commit');
+  assert.ok(c);
+  const r = inProcess({ ...c, scenario: { ...c.scenario, changed: ['docs/x.md', '.github/workflows/dé.yml'] } });
+  assert.equal(r.code, 1);
+  assert.ok(!merged(r));
+});
+
+test('carry-forward is red on (c) for a quoted harness path in the delta', () => {
+  const r = carried({ delta: ['src/x.js', QUOTED] });
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /\(c\) the delta since its commit touches a harness path: "\.github/);
+  assert.ok(!merged(r));
+});
+
+// Lens round 1 on PR #508, finding 2: a newer marker whose envelope is not on line 1 must still be the
+// newest marker; it is then refused for its format, so it withdraws the older CLOSED one.
+test('a newer OPEN marker with a preamble withdraws an older CLOSED one', () => {
+  const preamble = { authorAssociation: 'OWNER', body: 'Round 2 below.\n<!-- harness-lead-verdict: blocking -->\ncommit: ' + HEAD + '\nthe lens is OPEN' };
+  const r = carried({ later: [preamble] });
+  assert.equal(r.code, 1);
+  assert.equal(r.stderr, 'PENDING: the newest agents-lead lens marker is not in the strict header format\n');
+  assert.ok(!merged(r));
+  // Still not a marker: one quoted inside a fence, one indented, one in a gate verdict.
+  for (const body of ['context:\n```\n<!-- harness-lead-verdict: x -->\ncommit: ' + HEAD + '\nthe lens is OPEN\n```',
+    '    <!-- harness-lead-verdict: x -->', gate().body + '\n<!-- harness-lead-verdict: x -->\ncommit: ' + HEAD + '\nthe lens is OPEN']) {
+    const ok = carried({ later: [{ authorAssociation: 'OWNER', body }] });
+    assert.equal(ok.code, 0, body + ': ' + ok.stderr);
+  }
+});
+
+test('limb (b) compares the merge-base --all sets, in any order', () => {
+  const two = ['1'.repeat(40), '2'.repeat(40)];
+  assert.equal(carried({ markerBase: two, headBase: [...two].reverse() }).code, 0);
+  const r = carried({ markerBase: two, headBase: [two[0]] });
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /\(b\) the merge-base with rc\/next moved/);
 });
 
 test('carry-forward is red on (a): the marker commit is not an ancestor, or cannot be read', () => {

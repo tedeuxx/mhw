@@ -23,7 +23,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const SLICE = 'S03';
 const POSIX = process.platform !== 'win32';
 const ALL = cases();
-/** @type {Array<{ case: string, stream: 'stderr' | 'calls', pattern: string, why: string }>} */
+/** @type {Array<{ case: string, stream: 'stderr' | 'calls', pattern: string, kind?: 'suffix' | 'replace' | 'added' | 'drop-arg', arg?: string, why: string }>} */
 const expected = readGolden(SLICE, 'expected-differences.json');
 
 /**
@@ -32,9 +32,13 @@ const expected = readGolden(SLICE, 'expected-differences.json');
  */
 
 /**
- * The differences between the original's run and the head's ([] = parity), after the expected ones.
- * stderr: the head's line may extend the original's by a suffix the pattern matches.
- * calls:  the head may issue added calls the pattern matches; every other call is in the same order.
+ * The differences between the original's run and the head's ([] = parity), after the expected ones. An
+ * entry applies to its case, or to every case with "case": "*". Kinds:
+ *   stderr suffix:   the head's line extends the original's by a suffix the pattern matches;
+ *   stderr replace:  the head's line is a different refusal, the whole of which the pattern matches;
+ *   calls added:     the head issues added calls the pattern matches (the default for calls);
+ *   calls drop-arg:  in a call the pattern matches, the head passes `arg` too.
+ * Every other call is in the same order.
  * @param {Case} c @param {Run} golden @param {Run} head
  */
 export function differences(c, golden, head) {
@@ -42,15 +46,21 @@ export function differences(c, golden, head) {
   const tag = c.name + ': ';
   if (golden.code !== head.code) out.push(tag + 'exit ' + golden.code + ' != ' + head.code);
   if (c.codeOnly) return out;
-  const rules = expected.filter((e) => e.case === c.name);
+  const rules = expected.filter((e) => e.case === c.name || e.case === '*');
   if (golden.stdout !== head.stdout) out.push(tag + 'stdout ' + JSON.stringify(golden.stdout) + ' != ' + JSON.stringify(head.stdout));
-  const suffix = rules.find((e) => e.stream === 'stderr');
+  const rule = rules.find((e) => e.stream === 'stderr');
   const g = golden.stderr.replace(/\n$/, '');
   const h = head.stderr.replace(/\n$/, '');
-  const same = suffix ? h.startsWith(g) && new RegExp(suffix.pattern).test(h.slice(g.length)) && g !== h : g === h;
+  let same = g === h;
+  if (rule && (rule.kind ?? 'suffix') === 'suffix') same = h.startsWith(g) && new RegExp(rule.pattern).test(h.slice(g.length)) && g !== h;
+  if (rule && rule.kind === 'replace') same = g.startsWith('PENDING: ') && new RegExp(rule.pattern).test(h) && g !== h;
   if (!same) out.push(tag + 'stderr ' + JSON.stringify(golden.stderr) + ' != ' + JSON.stringify(head.stderr));
-  const added = rules.filter((e) => e.stream === 'calls').map((e) => new RegExp(e.pattern));
-  const calls = head.calls.filter((call) => !added.some((r) => r.test(call.join(' '))));
+  const callRules = rules.filter((e) => e.stream === 'calls');
+  const added = callRules.filter((e) => (e.kind ?? 'added') === 'added').map((e) => new RegExp(e.pattern));
+  const drops = callRules.filter((e) => e.kind === 'drop-arg');
+  const calls = head.calls
+    .filter((call) => !added.some((r) => r.test(call.join(' '))))
+    .map((call) => drops.reduce((cl, e) => (new RegExp(e.pattern).test(cl.join(' ')) && cl.includes(String(e.arg)) ? cl.filter((x) => x !== e.arg) : cl), call));
   if (JSON.stringify(calls) !== JSON.stringify(golden.calls)) out.push(tag + 'calls ' + JSON.stringify(golden.calls) + ' != ' + JSON.stringify(head.calls));
   return out;
 }
@@ -83,7 +93,7 @@ test('every case of delivery_test.py is here, and every expected difference name
     assert.ok(from.has(t), t);
   }
   for (const e of expected) {
-    assert.ok(names.has(e.case), 'unknown case ' + e.case);
+    assert.ok(e.case === '*' || names.has(e.case), 'unknown case ' + e.case);
     assert.ok(e.why && e.why.length > 20, 'an expected difference states why');
     assert.doesNotThrow(() => new RegExp(e.pattern));
   }

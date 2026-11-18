@@ -289,6 +289,31 @@ function newest(comments, prefix) {
 }
 
 /**
+ * The newest agents-lead lens marker, selected as the quality-assurance brief selects it (#522 round 3):
+ * a trusted comment that does not open with the gatekeeper envelope and has a line opening with the lens
+ * envelope at column 0 outside a fenced code block (a line whose first characters, after at most three
+ * spaces, are three backticks or three tildes opens or closes one). Selection is broad so a newer marker with a preamble
+ * still withdraws an older CLOSED one; lensClosed then requires the strict three-line header, so such a
+ * marker refuses (lens round 1 on PR #508).
+ * @param {unknown[]} comments
+ */
+function newestLens(comments) {
+  const found = comments.filter((c) => {
+    if (!trusted(c)) return false;
+    const body = str(or(get(c, 'body'), ''));
+    if (body.startsWith(GATE_PREFIX)) return false;
+    let fenced = false;
+    for (const raw of body.split('\n')) {
+      const line = raw.endsWith('\r') ? raw.slice(0, -1) : raw;
+      if (/^ {0,3}(```|~~~)/.test(line)) fenced = !fenced;
+      else if (!fenced && line.startsWith(LENS_PREFIX)) return true;
+    }
+    return false;
+  });
+  return found.length ? found[found.length - 1] : null;
+}
+
+/**
  * The newest quality-assurance verdict must be well formed, name this exact head and authorize it.
  * Newest wins whatever it says: a later REQUEST-CHANGES (or a malformed verdict) beats an earlier
  * approval at the same head.
@@ -318,6 +343,10 @@ export function gateApproves(comments, head) {
 /** The paths that are harness paths. @param {string[]} paths */
 export function harnessPaths(paths) {
   return paths.filter((p) => {
+    // A path git quoted (core.quotePath, a non-ASCII or unusual byte) cannot be read by component, so it
+    // counts as a harness path: fail closed (lens round 1 on PR #508). The diffs run with -z, which
+    // quotes nothing, so this is defence in depth.
+    if (p.startsWith('"')) return true;
     const parts = p.split('/');
     return parts.slice(0, -1).some((x) => HARNESS_DIRS.has(x)) || HARNESS_FILES.has(parts[parts.length - 1]);
   });
@@ -351,7 +380,7 @@ export function carryForward(commit, head, history) {
  * @param {unknown[]} comments @param {string} head @param {History} history
  */
 export function lensClosed(comments, head, history) {
-  const marker = newest(comments, LENS_PREFIX);
+  const marker = newestLens(comments);
   if (marker === null) throw new Pending('harness paths changed and no agents-lead lens marker is on the PR');
   const [envelope, commitLine, state] = header(marker);
   const named = COMMIT_LINE.exec(commitLine);
@@ -499,6 +528,15 @@ function route(action, number, opts, out) {
     if (r.code) throw new Pending('command failed or remote unavailable: ' + argv[0] + '; details omitted');
     return strip(r.stdout);
   };
+  /** Run a tool; its stdout untouched (a -z list must not lose a path's own spaces). @param {string[]} argv */
+  const runRaw = (...argv) => {
+    const r = exec(argv[0], argv.slice(1));
+    if (r.error) throw new Unavailable('could not run');
+    if (r.code) throw new Pending('command failed or remote unavailable: ' + argv[0] + '; details omitted');
+    return r.stdout;
+  };
+  /** The paths of a NUL-terminated --name-only -z list. @param {string} out */
+  const names = (out) => out.split('\0').filter((p) => p !== '');
   /** @param {string} repo @param {string} p @returns {any} */
   const api = (repo, p) => {
     try {
@@ -532,7 +570,7 @@ function route(action, number, opts, out) {
     if (base === INTEGRATION) {
       // A tree diff from the merge base, never the paginated PR file list.
       run('git', 'fetch', 'origin', base);
-      const paths = splitlines(run('git', 'diff', '--no-renames', '--name-only', 'origin/' + base + '...' + head));
+      const paths = names(runRaw('git', 'diff', '--no-renames', '--name-only', '-z', 'origin/' + base + '...' + head));
       /** @type {History} */
       const history = {
         base,
@@ -540,8 +578,10 @@ function route(action, number, opts, out) {
           const r = exec('git', ['merge-base', '--is-ancestor', commit, to]);
           return r.error ? 2 : r.code;
         },
-        mergeBase: (ref) => run('git', 'merge-base', 'origin/' + base, ref),
-        delta: (commit, to) => splitlines(run('git', 'diff', '--no-renames', '--name-only', commit, to)),
+        // Every best common ancestor, as a sorted set: a criss-cross history has more than one, and git
+        // prints them in no promised order.
+        mergeBase: (ref) => splitlines(run('git', 'merge-base', '--all', 'origin/' + base, ref)).sort().join(' '),
+        delta: (commit, to) => names(runRaw('git', 'diff', '--no-renames', '--name-only', '-z', commit, to)),
       };
       reviewGate(pr, head, paths, history);
     }

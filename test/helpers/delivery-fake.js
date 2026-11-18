@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
  * @typedef {{
  *   porcelain?: string, head: string, remote: string, branch: string, remoteHead?: string,
  *   changed?: string[], pr: Record<string, unknown>, api?: Record<string, unknown>,
- *   ancestors?: Record<string, number>, mergeBases?: Record<string, string>, deltas?: Record<string, string[]>,
+ *   ancestors?: Record<string, number>, mergeBases?: Record<string, string | string[]>, deltas?: Record<string, string[]>,
  *   fail?: string[]
  * }} Scenario
  * @typedef {{ code: number, stdout: string, stderr: string }} Answer
@@ -39,18 +39,27 @@ export function answer(s, tool, args) {
     if (a === 'branch --show-current') return ok(s.branch);
     if (args[0] === 'fetch') return ok('');
     if (args[0] === 'ls-remote' && args[1] === '--heads') return ok((s.remoteHead ?? s.head) + '\trefs/heads/' + s.branch);
-    if (args[0] === 'diff' && args.length === 4 && args[3].includes('...')) return ok((s.changed || []).join('\n'));
-    if (args[0] === 'diff' && args.length === 5) {
-      const d = (s.deltas || {})[args[3]];
-      return d ? ok(d.join('\n')) : fail(128);
+    if (args[0] === 'diff') {
+      // --name-only output, newline-separated, or NUL-terminated under -z (where git quotes nothing).
+      const z = args.includes('-z');
+      const rest = args.filter((x) => x !== '-z');
+      /** @param {string[]} paths */
+      const names = (paths) => (z ? { code: 0, stdout: paths.map((p) => p + '\0').join(''), stderr: '' } : ok(paths.join('\n')));
+      if (rest.length === 4 && rest[3].includes('...')) return names(s.changed || []);
+      if (rest.length === 5) {
+        const d = (s.deltas || {})[rest[3]];
+        return d ? names(d) : fail(128);
+      }
     }
     if (args[0] === 'merge-base' && args[1] === '--is-ancestor') {
       const code = (s.ancestors || {})[args[2]] ?? 1;
       return { code, stdout: '', stderr: '' };
     }
-    if (args[0] === 'merge-base' && args.length === 3) {
-      const mb = (s.mergeBases || {})[args[2]];
-      return mb ? ok(mb) : fail(1);
+    if (args[0] === 'merge-base' && (args.length === 3 || (args.length === 4 && args[1] === '--all'))) {
+      // A value may be one base or, for --all, several (one per line, in the order given).
+      const mb = (s.mergeBases || {})[args[args.length - 1]];
+      if (!mb) return fail(1);
+      return ok(Array.isArray(mb) ? (args[1] === '--all' ? mb.join('\n') : mb[0]) : mb);
     }
   }
   if (tool === 'gh') {

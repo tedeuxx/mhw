@@ -27,7 +27,7 @@ Today `bin/mhw.js` is a thin launcher. On `origin/rc/next`, excluding tests, the
 - six shell scripts, `global/install.sh` alone about 1,200 lines;
 - one PowerShell installer, `global/install.ps1`;
 - 31 Python files: `workstation.py`, the renderers, the clipboard guard and paste wrapper,
-  `workspace/delivery.py` and `method/scripts`.
+  ~~`workspace/delivery.py`~~ (moved to `src/commands/delivery.js` by S03, #474) and `method/scripts`.
 
 Together with their tests that is about 37,000 lines. Each runtime brings its own prerequisites, test runner,
 Windows behaviour and failure modes. A user needs Python 3.9+, a POSIX shell and Node, and Windows takes a

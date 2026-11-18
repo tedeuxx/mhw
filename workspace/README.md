@@ -79,11 +79,17 @@ pending; a pause for questions publishes nothing.
    the current head when all three hold, and the merge refuses, naming the one that failed, otherwise:
 
    - **(a)** that commit is an ancestor of the head (`git merge-base --is-ancestor`);
-   - **(b)** its merge-base with `origin/rc/next` equals the head's, so the base did not move under it;
+   - **(b)** its merge-bases with `origin/rc/next` (`git merge-base --all`, compared as a set) equal
+     the head's, so the base did not move under it;
    - **(c)** the diff from that commit to the head touches no harness path (the list above).
 
-   Only the newest lens marker is considered: a newer open or malformed one still withdraws an earlier
-   closed one, an open marker never carries, and a commit this checkout cannot read refuses.
+   Only the newest lens marker is considered. It is selected as the `quality-assurance` brief selects
+   it: the newest trusted comment that does not open with the gate's envelope and has a line opening
+   with `<!-- harness-lead-verdict` at column 0 outside a fenced code block. That comment must then be
+   in the strict three-line format above, so a newer open, malformed or preambled marker withdraws an
+   earlier closed one. An open marker never carries, and a commit this checkout cannot read refuses.
+   The diffs are read with `git diff -z`, so git quotes no path; a path that still starts with a
+   double quote counts as a harness path.
    **Authorship is not proven:** every persona posts
    through the owner's account, so "trusted author" means `OWNER`, `MEMBER` or `COLLABORATOR`, not
    "this persona wrote it". The plugin's own merge floor has the same limit. It merges
