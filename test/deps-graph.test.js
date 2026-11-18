@@ -1,7 +1,8 @@
 // Convention 5 of #470: the hook and core path stay dependency-free. Everything statically reachable
 // (import ... from, export ... from, bare import, and import() of a string literal) from the CLI entry
 // imports only node: modules and files of this repository. The pty library (D2) is the one future
-// exception and is not allowed yet. A renderer may import a package; the entry may not reach it.
+// exception and is not allowed yet. A vendored package (src/vendor/) counts as a package. A renderer
+// may import one; the entry may not reach it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -43,6 +44,7 @@ export function foreignImports(entries) {
       if (spec.startsWith('./') || spec.startsWith('../')) {
         const next = path.resolve(path.dirname(file), spec);
         if (!fs.existsSync(next)) bad.push([path.relative(ROOT, file), spec + ' (missing)']);
+        else if (path.relative(ROOT, next).split(path.sep).join('/').startsWith('src/vendor/')) bad.push([path.relative(ROOT, file), spec + ' (vendored package)']);
         else queue.push(next);
         continue;
       }
@@ -73,6 +75,6 @@ test('the hook and core path imports only node: modules', () => {
   assert.ok(!seen.includes('src/lib/toml.js'), 'the TOML library module is off the hook path');
 });
 
-test('the TOML module does import its library, so the walk would see it if it were reachable', () => {
-  assert.deepEqual(foreignImports(['src/lib/toml.js']).bad, [['src/lib/toml.js', 'smol-toml']]);
+test('the TOML module imports its vendored library, so the walk would see it if it were reachable', () => {
+  assert.deepEqual(foreignImports(['src/lib/toml.js']).bad, [['src/lib/toml.js', '../vendor/smol-toml/dist/index.js (vendored package)']]);
 });

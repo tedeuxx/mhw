@@ -1,8 +1,12 @@
-// TOML read and write for the Codex configuration (D2 of #470): smol-toml, a pure-JavaScript TOML 1.0
-// parser and writer with no dependencies, pinned in npm-shrinkwrap.json. This module is NOT on the hook
-// path (convention 5): only renderers import it, and test/deps-graph.test.js keeps it off that path.
+// TOML read and write for the Codex configuration (D2 of #470): smol-toml 1.9.1, a pure-JavaScript
+// TOML 1.0 parser and writer with no dependencies (BSD-3-Clause, its LICENSE beside it). It is VENDORED
+// under src/vendor/smol-toml, not an npm dependency: a git install (`npm install -g github:...`) left
+// every runtime dependency unmet (measured, npm 11.13.0; #472). The same version is a devDependency,
+// pinned with its integrity in npm-shrinkwrap.json and covered by npm audit, and
+// test/vendor.test.js requires the vendored files to be byte-identical to it.
+// This module is NOT on the hook path (convention 5): test/deps-graph.test.js keeps it off that path.
 import fs from 'node:fs';
-import { parse, stringify } from 'smol-toml';
+import { parse, stringify } from '../vendor/smol-toml/dist/index.js';
 import { writeWithBackup } from './fsx.js';
 
 /**

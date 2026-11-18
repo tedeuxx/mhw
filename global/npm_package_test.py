@@ -11,8 +11,8 @@ build the same thing locally: this working tree's files, with .workstation-archi
 HEAD` fills it in, then npm pack and npm install -g of that directory into a throwaway prefix. One test
 installs through npm's git-dependency route (git+file://), which runs pacote's preparation step.
 Needs node and git; the install class also needs npm, jq and a POSIX sh (skipped without them).
-Since #472 the package has one runtime dependency (smol-toml), pinned in npm-shrinkwrap.json, so the
-installs run with --prefer-offline: the registry is read for that pinned dependency only.
+Since #472 mhw has no npm runtime dependency (the TOML library is vendored under src/vendor/), so
+the installs stay --offline: a runtime dependency added later fails them loudly.
 """
 import io
 import json
@@ -204,10 +204,11 @@ class Launcher(Base):
         self.assertEqual(package["description"], "multi-harness managed workstation")
         self.assertEqual(package["bin"], {"mhw": "bin/mhw.js"})
         self.assertEqual(package["type"], "module")   # #472: ESM
-        # #472 (D2): dependencies are pinned to exact versions, and npm-shrinkwrap.json (the one lockfile
-        # a global install honours) pins the whole tree.
-        self.assertEqual(set(package["dependencies"]), {"smol-toml"})
-        for name, spec in list(package["dependencies"].items()) + list(package["devDependencies"].items()):
+        # #472: no npm runtime dependency. A git install (github:) left them unmet (measured), so the one
+        # runtime library is vendored under src/vendor/ (test/vendor.test.js). devDependencies are exact
+        # versions, locked in npm-shrinkwrap.json.
+        self.assertNotIn("dependencies", package)
+        for name, spec in package["devDependencies"].items():
             self.assertRegex(spec, r"^\d+\.\d+\.\d+$", name)
         self.assertTrue((ROOT / "npm-shrinkwrap.json").is_file())
         self.assertFalse((ROOT / "package-lock.json").exists(), "one lockfile: npm-shrinkwrap.json")
@@ -346,6 +347,7 @@ class PackAndInstall(Base):
             names = {n[len("package/"):] for n in t.getnames()}
         for needed in ("mhw", ".bumpversion.toml", ".workstation-archive", "bin/mhw.js", "bin/postinstall.js",
                        "src/cli.js", "src/lib/toml.js", "npm-shrinkwrap.json",
+                       "src/vendor/smol-toml/dist/index.js", "src/vendor/smol-toml/LICENSE",
                        "global/workstation.py", "global/owner_actions.py", "global/install.sh",
                        "global/install-managed.sh", "global/install.ps1", "global/AGENTS.md",
                        "global/deny-floor.conf", "overlay/profile.json", "package.json"):
@@ -362,12 +364,12 @@ class PackAndInstall(Base):
         self.assertNotIn("overlay/x.local.json", names)
 
     def test_global_install_tree_is_the_pinned_one_without_dev_dependencies(self):
-        # #472 (D2): npm ls --all of a global install of the packed tree names the exact runtime versions
-        # npm-shrinkwrap.json pins, and no devDependency. Measured on the tarball route only: the git
-        # route (github:, git+file:) is the subject of the #472 PR body's finding, not of this test.
+        # #472 (D2): npm ls --all of a global install of the packed tree names exactly the runtime
+        # packages npm-shrinkwrap.json pins (none since the vendoring), and no devDependency. The git
+        # route is test/git-route.test.js, run by CI's git-route job.
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("tree")
-        p = self.npm(d, env, "install", "-g", "--prefer-offline", str(tgz))
+        p = self.npm(d, env, "install", "-g", "--offline", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         p = self.npm(d, env, "ls", "-g", "--all", "--json")
         tree = json.loads(p.stdout)["dependencies"]["mhw"].get("dependencies", {})
@@ -383,7 +385,7 @@ class PackAndInstall(Base):
     def test_npm_installs_nothing_then_mhw_install_sets_up(self):
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("e2e")
-        p = self.npm(d, env, "install", "-g", "--prefer-offline", "--foreground-scripts", str(tgz))
+        p = self.npm(d, env, "install", "-g", "--offline", "--foreground-scripts", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         pkg = d / "prefix" / "lib" / "node_modules" / "mhw"
         self.assertFalse(pkg.is_symlink())
@@ -412,7 +414,7 @@ class PackAndInstall(Base):
         self.assertTrue(any(f.is_file() for f in (d / "root").rglob("*")))
         # Reinstalling the same package leaves the setup untouched.
         before = (d / "home" / ".claude" / "CLAUDE.md").read_bytes()
-        p = self.npm(d, env, "install", "-g", "--prefer-offline", str(tgz))
+        p = self.npm(d, env, "install", "-g", "--offline", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertEqual((d / "home" / ".claude" / "CLAUDE.md").read_bytes(), before)
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
@@ -450,7 +452,7 @@ class PackAndInstall(Base):
         foreign = d / "home" / ".claude" / "CLAUDE.md"
         foreign.parent.mkdir(parents=True, exist_ok=True)
         foreign.write_text("the owner's own brief, not managed by this project\n", encoding="utf-8")
-        p = self.npm(d, env, "install", "-g", "--prefer-offline", "--foreground-scripts", str(tgz))
+        p = self.npm(d, env, "install", "-g", "--offline", "--foreground-scripts", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         pkg = d / "prefix" / "lib" / "node_modules" / "mhw"
         self.assertTrue((pkg / "global" / "install-managed.sh").is_file())
@@ -466,7 +468,7 @@ class PackAndInstall(Base):
         # user layer stays until `mhw uninstall` removes it (the documented order).
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("un")
-        self.assertEqual(self.npm(d, env, "install", "-g", "--prefer-offline", str(tgz)).returncode, 0)
+        self.assertEqual(self.npm(d, env, "install", "-g", "--offline", str(tgz)).returncode, 0)
         self.assertEqual(self.cmd(d, env, "mhw", "install", "--yes").returncode, 0)
         self.assertIsNotNone(self.brief(d))
         p = self.npm(d, env, "uninstall", "-g", "mhw")
@@ -477,7 +479,7 @@ class PackAndInstall(Base):
     def test_ignore_scripts_is_reported_by_status_and_check(self):
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("ign")
-        p = self.npm(d, env, "install", "-g", "--prefer-offline", "--ignore-scripts", str(tgz))
+        p = self.npm(d, env, "install", "-g", "--offline", "--ignore-scripts", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIsNone(self.brief(d))
         p = self.cmd(d, env, "mhw", "status", "--project=" + str(d / "proj"))
@@ -496,7 +498,7 @@ class PackAndInstall(Base):
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("local")
         (d / "proj" / "package.json").write_text('{"name":"consumer","version":"1.0.0","private":true}\n')
-        p = subprocess.run([NPM, "install", "--prefer-offline", "--foreground-scripts", str(tgz)], env=env,
+        p = subprocess.run([NPM, "install", "--offline", "--foreground-scripts", str(tgz)], env=env,
                            cwd=d / "proj", capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertNotIn("mhw install", p.stdout)
@@ -538,10 +540,10 @@ class PackAndInstall(Base):
         old_tgz = self.pack(old)
         tgz = self.pack(source_tree(self.base / "src", archive_text()))
         d, env = self.env("up")
-        self.assertEqual(self.npm(d, env, "install", "-g", "--prefer-offline", str(old_tgz)).returncode, 0)
+        self.assertEqual(self.npm(d, env, "install", "-g", "--offline", str(old_tgz)).returncode, 0)
         # Since Issue #206 mhw has no workstation bin, so nothing collides: npm installs it beside the old
         # package, which keeps its own workstation bin, and status names the one to remove.
-        p = self.npm(d, env, "install", "-g", "--prefer-offline", str(tgz))
+        p = self.npm(d, env, "install", "-g", "--offline", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertTrue((d / "prefix" / "lib" / "node_modules" / "mhw").is_dir())
         self.assertTrue((d / "prefix" / "lib" / "node_modules" / LEGACY).is_dir())
@@ -553,9 +555,9 @@ class PackAndInstall(Base):
             self.assertIn(ws.UPGRADE_FIRST, (ROOT / doc).read_text(encoding="utf-8"), doc)
         # The documented route: remove the old package, then install. The user layer is the new one's.
         d, env = self.env("up2")
-        self.assertEqual(self.npm(d, env, "install", "-g", "--prefer-offline", str(old_tgz)).returncode, 0)
+        self.assertEqual(self.npm(d, env, "install", "-g", "--offline", str(old_tgz)).returncode, 0)
         self.assertEqual(self.npm(d, env, "uninstall", "-g", LEGACY).returncode, 0)
-        p = self.npm(d, env, "install", "-g", "--prefer-offline", str(tgz))
+        p = self.npm(d, env, "install", "-g", "--offline", str(tgz))
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertEqual(self.cmd(d, env, "mhw", "install", "--yes").returncode, 0)
         self.assertIn("; %s;" % expected_stamp(), self.brief(d))
