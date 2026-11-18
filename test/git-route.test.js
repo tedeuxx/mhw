@@ -2,8 +2,9 @@
 // npm), exercised with git+file:// of a commit made from this working tree, into a throwaway prefix,
 // cache and HOME. It fails when `npm ls -g --all` reports a problem (an UNMET DEPENDENCY among them),
 // when the installed package cannot load its TOML module, or when a devDependency is installed.
-// Opt-in, because it reads the registry (npm's git preparation installs the devDependencies in a
-// temporary clone) and takes about a minute: MHW_GIT_ROUTE_TEST=1. CI's git-route job sets it.
+// It runs by default. The install is --offline with an empty cache, so the route is shown to need
+// nothing from the registry; it took about 2.2 to 2.8 seconds (measured with npm 11.13.0, git+file://
+// only: the github: route itself was not measured).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,13 +16,12 @@ import { copyWorkingTree } from './helpers/parity.js';
 import { which } from './helpers/home.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ON = process.env.MHW_GIT_ROUTE_TEST === '1';
 const POSIX = process.platform !== 'win32';
 const NPM = path.join(path.dirname(process.execPath), 'npm');
 const GIT = which('git');
 
 test('a git install resolves every runtime dependency and installs no devDependency', {
-  skip: !ON ? 'opt-in: MHW_GIT_ROUTE_TEST=1' : !POSIX ? 'POSIX (npm by absolute path beside node)' : !GIT ? 'needs git' : false,
+  skip: !POSIX ? 'POSIX (npm by absolute path beside node)' : !GIT ? 'needs git' : false,
   timeout: 600000,
 }, () => {
   const t = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-git-route-')));
@@ -41,7 +41,8 @@ test('a git install resolves every runtime dependency and installs no devDepende
       npm_config_userconfig: path.join(t, 'npmrc'), npm_config_update_notifier: 'false', npm_config_fund: 'false',
       npm_config_audit: 'false', MHW_POSTINSTALL_TTY: '0',
     };
-    const install = spawnSync(NPM, ['install', '-g', 'git+file://' + src], { env, cwd: t, encoding: 'utf8' });
+    // --offline with an empty cache: the route must need nothing from the registry.
+    const install = spawnSync(NPM, ['install', '-g', '--offline', 'git+file://' + src], { env, cwd: t, encoding: 'utf8' });
     assert.equal(install.status, 0, install.stdout + install.stderr);
     const ls = spawnSync(NPM, ['ls', '-g', '--all'], { env, cwd: t, encoding: 'utf8' });
     assert.doesNotMatch(ls.stdout, /UNMET|missing|invalid|extraneous/, ls.stdout);

@@ -1,5 +1,5 @@
 {
-  "base": "600dbf4c319b86e0eb9b7e91eb53ab6df082ed5e",
+  "goldenRecordedFrom": "600dbf4c319b86e0eb9b7e91eb53ab6df082ed5e",
   "why": "S01 forwards every command; these are the forwarded commands whose output depends on nothing but the tree (no network, no account, no installed harness), on both launcher paths: ./mhw (macOS and Linux) and the Windows mapping onto install.ps1, selected with WORKSTATION_LAUNCHER_PLATFORM.",
   "cases": [
     { "name": "help", "args": ["--help"], "posix": true },

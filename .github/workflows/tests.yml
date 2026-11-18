@@ -119,11 +119,13 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 26.13.1
+      # --ignore-scripts: no dependency's install script runs (Sonar githubactions:S6505). None of the
+      # devDependencies needs one; mhw's own postinstall only prints a line on a global install.
       - name: npm ci (lockfile npm-shrinkwrap.json; refuses a missing or stale one)
         shell: bash
         run: |
           node --version; npm --version
-          npm ci --no-fund
+          npm ci --no-fund --ignore-scripts
       - name: npm audit (high and above fails)
         shell: bash
         run: npm audit --audit-level=high
@@ -139,8 +141,10 @@ jobs:
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
   # HOME. Fails on any `npm ls -g --all` problem (an UNMET DEPENDENCY among them), on an installed
-  # package that cannot load its TOML module, or on an installed devDependency. Reads the registry:
-  # npm's git preparation installs the devDependencies in a temporary clone.
+  # package that cannot load its TOML module, or on an installed devDependency. The install is
+  # --offline with an empty cache and needs nothing from the registry (measured with npm 11.13.0,
+  # git+file:// only; the github: route itself was not measured). node:test runs it in the node job
+  # too; this job keeps the route a named check of its own.
   git-route:
     strategy:
       fail-fast: false
@@ -160,7 +164,6 @@ jobs:
       - name: npm install -g git+file:// of this checkout, then npm ls -g --all
         env:
           TMPDIR: ${{ runner.temp }}
-          MHW_GIT_ROUTE_TEST: '1'
         run: |
           node --version; npm --version; git --version
           node --test test/git-route.test.js
@@ -400,9 +403,9 @@ jobs:
           # Smoke test: an unprivileged user namespace actually opens. Red here names the cause.
           bwrap --unshare-user --ro-bind / / /bin/true
 
-  # Issue #452, ADR-0015 2026-11-08 amendment (proposed): the PROD install canary. mhw's PROD is the
-  # owner's own install, so this installs the npm package packed from the exact PR head the way GitHub
-  # serves a tag (git archive, then npm pack), fresh and as an upgrade from the latest published tag,
+  # Issue #452, ADR-0015 2026-11-08 amendment (~~proposed~~ accepted 2026-11-18, #506): the PROD
+  # install canary. mhw's PROD is the owner's own install, so this installs the npm package packed
+  # from the exact PR head the way GitHub serves a tag (git archive, then npm pack), fresh and as an upgrade from the latest published tag,
   # then checks it: the deny floor in the Claude Code, Codex and Kiro carriers (and the admin layer, in
   # a throwaway root) equals deny-floor.conf; the installed prompt hook blocks a synthetic credential and
   # passes a clean prompt with the paste-wrapper marker unset; mhw status and check; uninstall restores.
