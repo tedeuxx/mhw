@@ -13,6 +13,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // The entries on the hook path: what a harness hook runs (`mhw hook prompt` will enter here) and what
 // npm runs at install time, before the package's own dependencies are guaranteed to be there.
 export const CORE_ENTRIES = ['bin/mhw.js', 'bin/postinstall.js'];
+/** A repository-relative path with POSIX separators, the same on every OS. @param {string} f */
+const posix = (f) => path.relative(ROOT, f).split(path.sep).join('/');
 const ALLOWED_PACKAGES = new Set(/** @type {string[]} */ ([]));
 
 const SPEC = /(?:^|[\s;}])(?:import|export)\s*(?:[^'"`;]*?\sfrom\s*)?['"]([^'"]+)['"]|\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/gm;
@@ -43,15 +45,15 @@ export function foreignImports(entries) {
       if (spec.startsWith('node:')) continue;
       if (spec.startsWith('./') || spec.startsWith('../')) {
         const next = path.resolve(path.dirname(file), spec);
-        if (!fs.existsSync(next)) bad.push([path.relative(ROOT, file), spec + ' (missing)']);
-        else if (path.relative(ROOT, next).split(path.sep).join('/').startsWith('src/vendor/')) bad.push([path.relative(ROOT, file), spec + ' (vendored package)']);
+        if (!fs.existsSync(next)) bad.push([posix(file), spec + ' (missing)']);
+        else if (posix(next).startsWith('src/vendor/')) bad.push([posix(file), spec + ' (vendored package)']);
         else queue.push(next);
         continue;
       }
-      if (!ALLOWED_PACKAGES.has(spec)) bad.push([path.relative(ROOT, file), spec]);
+      if (!ALLOWED_PACKAGES.has(spec)) bad.push([posix(file), spec]);
     }
   }
-  return { bad, seen: [...seen].map((f) => path.relative(ROOT, f).split(path.sep).join('/')).sort() };
+  return { bad, seen: [...seen].map(posix).sort() };
 }
 
 test('the scanner finds every import form', () => {
