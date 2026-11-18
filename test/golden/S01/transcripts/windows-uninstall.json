@@ -1,0 +1,10 @@
+{
+  "name": "windows-uninstall",
+  "args": [
+    "uninstall"
+  ],
+  "code": 2,
+  "stdout": "",
+  "stderr": "mhw: uninstall is not available on Windows (install, check, status, update)\n",
+  "tree": []
+}

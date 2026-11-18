@@ -1,0 +1,20 @@
+{
+  "goldenRecordedFrom": "600dbf4c319b86e0eb9b7e91eb53ab6df082ed5e",
+  "why": "S01 forwards every command; these are the forwarded commands whose output depends on nothing but the tree (no network, no account, no installed harness), on both launcher paths: ./mhw (macOS and Linux) and the Windows mapping onto install.ps1, selected with WORKSTATION_LAUNCHER_PLATFORM.",
+  "cases": [
+    { "name": "help", "args": ["--help"], "posix": true },
+    { "name": "unknown-subcommand", "args": ["nope"], "posix": true },
+    { "name": "update-help", "args": ["update", "--help"], "posix": true },
+    { "name": "update-not-a-tag", "args": ["update", "main"], "posix": true },
+    { "name": "install-user-layer", "args": ["install", "--no-admin", "--yes", "--overlay=none"], "posix": true, "golden": false,
+      "why": "live only: the one case that writes a file tree, so the tree comparison is exercised; what it writes depends on the tools on the machine (codex, kiro, python3), so no golden file is committed for it" },
+    { "name": "windows-help", "args": ["--help"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32" } },
+    { "name": "windows-no-args", "args": [], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32" } },
+    { "name": "windows-update-tag", "args": ["update", "v4.2.0"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32" } },
+    { "name": "windows-update-not-a-tag", "args": ["update", "main"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32" } },
+    { "name": "windows-uninstall", "args": ["uninstall"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32" } },
+    { "name": "windows-install-admin", "args": ["install", "--admin"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32" } },
+    { "name": "windows-install-relative-powershell", "args": ["install"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32", "WORKSTATION_POWERSHELL": "pwsh.exe" } },
+    { "name": "windows-status-relative-powershell", "args": ["status"], "env": { "WORKSTATION_LAUNCHER_PLATFORM": "win32", "WORKSTATION_POWERSHELL": "pwsh.exe" } }
+  ]
+}

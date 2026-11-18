@@ -1,0 +1,7 @@
+{
+  "name": "smol-toml",
+  "version": "1.9.1",
+  "license": "BSD-3-Clause",
+  "type": "module",
+  "description": "Vendored by mhw (#472): dist/ and LICENSE are byte-identical to the npm package smol-toml@1.9.1 (test/vendor.test.js). This manifest is mhw's own, reduced to the fields it needs; the upstream manifest is not copied."
+}

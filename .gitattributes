@@ -2,3 +2,7 @@
 # npm downloads for a github: install, replaces the $Format:...$ placeholders in this one file with the
 # commit and its nearest release tag. A checkout keeps the placeholders and reads git itself.
 .workstation-archive export-subst
+# Vendored third-party code (#472) is checked out byte for byte, never with line endings converted:
+# test/vendor.test.js requires it to equal the audited npm package, and the Windows runners check out
+# with core.autocrlf=true (read from the tests run on PR #505, which turned LICENSE into CRLF).
+src/vendor/** -text

@@ -1,0 +1,10 @@
+{
+  "name": "windows-install-relative-powershell",
+  "args": [
+    "install"
+  ],
+  "code": 2,
+  "stdout": "",
+  "stderr": "mhw: PowerShell was not found (pwsh 7 or Windows PowerShell 5.1)\n",
+  "tree": []
+}

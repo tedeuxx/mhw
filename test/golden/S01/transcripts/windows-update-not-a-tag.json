@@ -1,0 +1,11 @@
+{
+  "name": "windows-update-not-a-tag",
+  "args": [
+    "update",
+    "main"
+  ],
+  "code": 2,
+  "stdout": "",
+  "stderr": "REFUSE  the tag must be a numeric release, vX.Y.Z\n",
+  "tree": []
+}
