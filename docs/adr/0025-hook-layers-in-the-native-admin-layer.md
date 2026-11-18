@@ -1,6 +1,6 @@
 # ADR-0025: Hook layers in each harness's native admin layer (workstation v2)
 
-- **Status:** proposed; its restart-guard and switch parts superseded by [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (2026-10-05)
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below); its restart-guard and switch parts superseded by [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md) (2026-10-05)
 - **Date:** 2026-10-04
 - **Amends:** [ADR-0013](0013-hitl-escalation-calibration.md), [ADR-0022](0022-restart-after-active-customization-changes.md),
   [ADR-0011](0011-clipboard-prompt-anonymisation.md) (where their hooks are registered, and two v1 defects)
@@ -125,3 +125,14 @@ struck in place. The Claude Code drop-in now registers only the paste prompt hoo
 floor. `install-managed.sh` lists `hitl-escalation-guard.sh` and `hitl.conf` as legacy files: `--check`
 reports them as `STALE`, and `--apply` and `--remove` delete them. The admin layer otherwise stays as
 amended above. *Written and tested* in throwaway roots; not installed.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+Its restart-guard and switch parts stay superseded by [ADR-0028](0028-remove-restart-guard-and-expiring-switches-os-privilege-only.md).

@@ -1,6 +1,7 @@
 # 0004 — The firewall's ethical foundation: Stoic ethics
 
-- **Status:** accepted — mapping ratified by the owner, 2026-10-01
+- **Status:** accepted — mapping ratified by the owner, 2026-10-01; the Courage row amended by the owner,
+  2026-11-17 ([Issue #30](https://github.com/tedeuxx/mhw/issues/30#issuecomment-6956199279); see the amendment "2026-11-17: the Courage row" below)
 - **Date:** 2026-10-01
 - **Deciders:** the owner
 
@@ -36,7 +37,7 @@ answered *"sim, representa"*.
 | --- | --- |
 | **Wisdom** | Claim only what is measured. Every control is reported at its real evidence level. |
 | **Justice** | What belongs to others (clients, employers, third parties, data subjects) is not ours to use. This covers confidentiality, PII and IP. |
-| **Courage** | The firewall interrupts and asks, even when that breaks the flow. |
+| **Courage** | ~~The firewall interrupts and asks, even when that breaks the flow.~~ In the residual case (the global brief's rule 4) the firewall interrupts and asks, even when that breaks the flow; otherwise it mitigates and reports, per ADR-0012. *(Amended 2026-11-17, Issue #30.)* |
 | **Temperance** | Minimum necessary: least privilege; send the minimum and retain the minimum. |
 | **Dichotomy of control** | State plainly what is outside the firewall's reach (for example ADR-0003's h4) instead of implying coverage. |
 
@@ -48,10 +49,20 @@ answered *"sim, representa"*.
 
 - Good: each control can cite the virtue it serves. This also gives a test for a missing control:
   which virtue is unserved?
-- Good: Temperance and Courage align with ADR-0005 (retain nothing; stop and ask).
+- Good: Temperance and Courage align with ADR-0005 (retain nothing; ~~stop and ask~~ stop and ask in the
+  residual case, otherwise mitigate and report, per ADR-0012).
 - Bad: the mapping is interpretive. A future reader may cite a virtue to justify a rule the owner never
   endorsed; a new rule must cite its own reasons, not only a virtue, and a change to the mapping
   itself needs his ratification.
+
+## Amendment 2026-11-17: the Courage row ([Issue #30](https://github.com/tedeuxx/mhw/issues/30#issuecomment-6956199279))
+
+The owner amended the Courage row on 2026-11-17, answering a picker in session with *"Emendar"*. The ruling
+is recorded on [Issue #30](https://github.com/tedeuxx/mhw/issues/30#issuecomment-6956199279) and carried into the ratification slice on
+[Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The row now reads: interrupt and ask in the residual case
+(the global brief's rule 4); otherwise mitigate and report, per
+[ADR-0012](0012-operational-judgement-delegated-to-the-harness.md). The old wording is struck in place
+above. The rest of the mapping is unchanged.
 
 ## Links
 

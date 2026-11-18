@@ -1,6 +1,6 @@
 # ADR-0031: Pre-authorise the inner loop at user level, widened only behind the admin deny floor
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead)
 - **Issue:** [#83](https://github.com/tedeuxx/mhw/issues/83)
@@ -217,6 +217,15 @@ still ask.
 What it does not close, stated: the script runs `gh api` in a subprocess, which no settings rule sees;
 that is the read path the owner chose. A Bash write to the installed file is not covered by the `Edit`
 deny, the same residual the repository runners carry. Windows renders no allow list.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 ## Links
 

@@ -1,6 +1,6 @@
 # ADR-0029: A provenance stamp (release and commit) in every installed file, checked by `--check`
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-17, the owner's ratification recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588); see the amendment "2026-11-17: accepted" below)
 - **Date:** 2026-10-05
 - **Deciders:** the owner (written by agents-lead)
 - **Issue:** [#66](https://github.com/tedeuxx/mhw/issues/66)
@@ -125,6 +125,15 @@ Measured 2026-10-05 in throwaway homes and roots under the session scratch direc
   by breaking the source in a copy of the tree (dropped stamp, dropped JSON key, exact tag ignored,
   dirty state ignored, stamp mismatch read as OK): every mutation turned the suite red; the unmutated
   copy stayed green.
+
+## Amendment 2026-11-17: accepted ([Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588))
+
+The owner ratified this record on 2026-11-17, answering a picker in session with *"Todas de uma vez"*, which ratified the sixteen records listed
+in the [agent's reading on Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962024135) as they stood at `rc/next`, every part still
+marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6962031588). The status moves from proposed to
+accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
+proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
+Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 ## Links
 

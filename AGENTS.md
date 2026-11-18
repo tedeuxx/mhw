@@ -32,7 +32,7 @@ In the owner's words:
 In English: protect him from **violating third parties' commercial rights and intellectual property**
 in his personal professional activity. **Only his individual knowledge and learning**, gained in any
 environment, is his own property, and this project exists to help him respect that line. The working
-test for where the line falls is proposed in
+test for where the line falls is ~~proposed~~ ratified (2026-11-17) in
 [ADR-0009](docs/adr/0009-what-is-mine-individual-knowledge-vs-third-party-property.md). The mission is
 carried into every harness's user-level brief from one source, [`global/AGENTS.md`](global/AGENTS.md)
 ([ADR-0010](docs/adr/0010-global-brief-rendered-to-each-harness.md)).
@@ -50,7 +50,7 @@ desktop app including Cowork and its local MCP/extension config, Codex (CLI and 
 desktop app's agentic "work" surfaces, and Kiro IDE and Kiro CLI
 ([ADR-0006](docs/adr/0006-coverage-scope-all-agent-surfaces.md)). Each surface's session-start default
 model and effort is standardised at user level
-([ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md), proposed).
+([ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md), ~~proposed~~ accepted 2026-11-17).
 
 Its job is to **sanitise prompts** in both directions it can reach:
 
@@ -76,7 +76,7 @@ sozinho"*): a pty wrapper launcher, activated by shell functions the owner sourc
 employer or client reference, a credential or personal data in a bracketed paste before the agent
 harness sees it. A prompt hook on Claude Code and Codex is the safety net: in a session the wrapper
 did not start, it blocks such a prompt and shows a redacted copy
-([ADR-0033](docs/adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md), proposed; it supersedes
+([ADR-0033](docs/adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md), ~~proposed~~ accepted 2026-11-17; it supersedes
 [ADR-0011](docs/adr/0011-clipboard-prompt-anonymisation.md), whose clipboard watcher was withdrawn on
 the owner's correction). Operational
 judgement is delegated to the agent harness to minimise human error; legal responsibility stays with
@@ -145,7 +145,7 @@ Concretely, it must keep three things true on this machine:
    change to something that already exists, docs, tests and CI included — declared on the pull request as exactly one
    `semver:major|minor|patch` label; a pull request without exactly one fails a check. The cut policy
    and the mechanism are in [ADR-0002](docs/adr/0002-automatic-semver-cut-policy.md), which is
-   **proposed** until the owner ratifies the cut table. Since 2026-10-05 the only pull request into
+   ~~**proposed** until the owner ratifies the cut table~~ accepted (the owner ratified the cut table on 2026-11-17). Since 2026-10-05 the only pull request into
    `main` is the release candidate from `rc/next`; slices merge into `rc/next` (Issue #60, ADR-0021).
    The release candidate's label is the largest part among the changes it contains.
 
@@ -157,7 +157,7 @@ Concretely, it must keep three things true on this machine:
 owner's `tadeumendonca-skills` plugin is the **way of working**: personas, the delivery loop, skills
 and project hooks. The plugin may add controls and must never weaken the floor. ~~This repository carries
 no way-of-working content.~~ *(Struck 2026-10-05, Issue #65: since
-[ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md), proposed, the
+[ADR-0032](docs/adr/0032-this-repository-is-the-single-source-of-the-working-method.md), ~~proposed~~ accepted 2026-11-17, the
 method's source is `method/` here and the plugin becomes its generated copy; until the cutover, ~~#62 and
 #63~~, the plugin stays the running copy.)* *(Amended 2026-10-12, #63: the cutover is #130, which removes
 the plugin once `mhw install --method` carries the method. The plugin is then a generated distribution
