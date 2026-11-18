@@ -1,0 +1,14 @@
+[
+  {
+    "case": "harness-lens-old-head",
+    "stream": "stderr",
+    "pattern": "^; it does not carry forward: \\(a\\) its commit is not an ancestor of the head$",
+    "why": "The owner's ruling on #474 (2026-11-18): a CLOSED lens at an earlier head may carry forward. delivery.py refused any older marker outright; mhw delivery tries the carry-forward first and, when it fails, keeps the original message and adds the condition that failed."
+  },
+  {
+    "case": "harness-lens-old-head",
+    "stream": "calls",
+    "pattern": "^git merge-base --is-ancestor b{40} a{40}$",
+    "why": "The carry-forward's condition (a) asks git whether the marker's commit is an ancestor of the head; delivery.py had no carry-forward and made no such call."
+  }
+]

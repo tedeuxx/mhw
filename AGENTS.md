@@ -202,11 +202,12 @@ The source of truth for every layer lives here, versioned; what is installed on 
   his. This is the owner's standing authorization for this repository, not permission to bypass
   tests or protection rules, and a pause for questions publishes nothing.
 - Follow `workspace/README.md` and `workspace/session-policy.json`. For a slice and for the release
-  candidate alike, use the checked merge command (`python3 -B workspace/delivery.py merge --pr N`), then the
-  read-only delivery verifier. For a slice into `rc/next` it requires the `tests` run registered on
+  candidate alike, use the checked merge command (`./mhw delivery merge --pr N`, Node, #474), then the
+  read-only delivery verifier (`./mhw delivery verify --pr N`). For a slice into `rc/next` it requires the `tests` run registered on
   the head, `delivery-ci` and Sonar green, a clean merge state, a `quality-assurance` verdict
-  approving that exact head and, on harness paths, the `agents-lead` lens CLOSED at that head (the
-  exact three-line templates are in `workspace/README.md`; the lens's line 3, `the lens is CLOSED`,
+  approving that exact head and, on harness paths, the `agents-lead` lens CLOSED at that head, or at
+  an earlier head it carries forward from (the owner's ruling on #474; the exact three-line templates
+  and the carry-forward conditions are in `workspace/README.md`; the lens's line 3, `the lens is CLOSED`,
   is this repository's contract, not the plugin's); it
   merges with a real merge commit pinned to the head; a PR into `main` from any branch other than `rc/next` is refused. This
   route is *written* and tested against a synthetic `gh`; no real PR has exercised it yet. Never announce a release complete
@@ -215,7 +216,7 @@ The source of truth for every layer lives here, versioned; what is installed on 
   delivery.
 - No workspace skill carries this route (the `session-finish` skill was removed on 2026-10-29, owner's
   decision on PR #233). Agents on every harness follow `workspace/README.md` and run
-  `workspace/delivery.py` directly. The release candidate is never merged without his explicit go.
+  `./mhw delivery` directly. The release candidate is never merged without his explicit go.
   Nothing mechanical enforces the release-candidate rule: it is an instruction.
 
 - **No secret value is ever committed here** — not tokens, API keys, passwords, OAuth client secrets,

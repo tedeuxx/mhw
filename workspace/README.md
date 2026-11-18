@@ -32,14 +32,14 @@ pending; a pause for questions publishes nothing.
    bug fix or an incremental change to something that already exists, docs, tests and CI included
    (ADR-0002, 2026-10-10 amendment). The
    release-candidate PR carries the largest part among the changes it contains.
-3. After CI and the review gate, run `python3 -B workspace/delivery.py merge --pr NUMBER` from the
+3. After CI and the review gate, run `./mhw delivery merge --pr NUMBER` from the
    slice branch checkout. For a PR into `rc/next` it requires every job that the `tests` workflow's
    `delivery-ci` aggregates (read from `.github/workflows/tests.yml`) to be registered on the head by
    the `tests` workflow, plus `delivery-ci` and Sonar green. `semver-label` is not required there,
    because that workflow runs only on PRs into `main`. A pending check, a missing `tests` run (a
    "CLEAN" PR on which no tests ran) and a merge state other than clean (DIRTY, BEHIND, UNKNOWN...)
    are refused. It also reads the review gate from the PR's comments, because the plugin's merge
-   floor cannot see this script's own merge. Only a strict header at the very top of a comment
+   floor cannot see this command's own merge. Only a strict header at the very top of a comment
    counts: the **first four lines** of the gate's verdict, the **first three lines** of the lens
    marker. Lines are compared whole, and nothing below the header is read, so text in a
    fence, a blockquote or the prose can neither supply nor override a verdict. The newest trusted
@@ -74,11 +74,21 @@ pending; a pause for questions publishes nothing.
 
    Line 3 is pinned rather than searched for: finding the sentence anywhere in the body would mean
    parsing fences, blockquotes and prose again, which is where the spoofs this gate refuses lived.
-   A marker posted for an earlier head never carries forward here. **Authorship is not proven:** every persona posts
+   ~~A marker posted for an earlier head never carries forward here.~~ *(Struck 2026-11-18, the owner's
+   ruling on #474: "Mantém sem harness".)* A CLOSED lens marker for an earlier commit carries forward to
+   the current head when all three hold, and the merge refuses, naming the one that failed, otherwise:
+
+   - **(a)** that commit is an ancestor of the head (`git merge-base --is-ancestor`);
+   - **(b)** its merge-base with `origin/rc/next` equals the head's, so the base did not move under it;
+   - **(c)** the diff from that commit to the head touches no harness path (the list above).
+
+   Only the newest lens marker is considered: a newer open or malformed one still withdraws an earlier
+   closed one, an open marker never carries, and a commit this checkout cannot read refuses.
+   **Authorship is not proven:** every persona posts
    through the owner's account, so "trusted author" means `OWNER`, `MEMBER` or `COLLABORATOR`, not
    "this persona wrote it". The plugin's own merge floor has the same limit. It merges
    with `--merge --match-head-commit SHA`, never a squash. No force push, no admin bypass.
-4. Run `python3 -B workspace/delivery.py verify --pr NUMBER`. For a slice, exit 0 means the PR is
+4. Run `./mhw delivery verify --pr NUMBER`. For a slice, exit 0 means the PR is
    merged into `rc/next` with its checks green at the exact local head; no tag or release is
    expected.
 
@@ -88,7 +98,7 @@ mhw has no STG or PROD environment; its PROD is the owner running `mhw install` 
 (owner, 2026-11-07, Issue #452: *"alem dos dods atuais teria esse que é o teste PROD"*, "besides the current DoDs there would be
 this one, the PROD test"). So every PR,
 each slice and the release candidate, must also pass the `tests` job
-`prod-canary-installed-not-enforced`, which `delivery-ci` aggregates and `delivery.py` therefore
+`prod-canary-installed-not-enforced`, which `delivery-ci` aggregates and `mhw delivery` therefore
 requires (the owner chose every PR over the release candidate only, 2026-11-07). It installs the npm
 package packed from the exact head as GitHub serves a tag, fresh and as an upgrade from the latest
 published tag, in a clean digest-pinned container on Linux and in a throwaway HOME on macOS, and runs
@@ -110,7 +120,7 @@ against a throwaway work directory, or `.github/scripts/prod-canary-container.sh
 ## Releasing the candidate (the owner's go)
 
 1. Open or update the PR `rc/next` → `main` with one semver label.
-2. On the owner's go, run `python3 -B workspace/delivery.py merge --pr NUMBER` from a checkout of
+2. On the owner's go, run `./mhw delivery merge --pr NUMBER` from a checkout of
    `rc/next`. His go is his own comment on the PR authorizing the merge; `quality-assurance` then posts
    a verdict at the same head citing that comment's URL and runs the command (#133, owner decision
    2026-11-01). **This route does not check either**: for a PR into `main` it reads no gate verdict and
@@ -124,12 +134,12 @@ against a throwaway work directory, or `.github/scripts/prod-canary-container.sh
 3. `version-main` bumps with bump-my-version, atomically pushes the bump commit and numeric tag, and
    creates a published GitHub Release in the same CI job. Tag-triggered downstream workflows are not
    assumed: the Actions token normally does not trigger them.
-4. Run `python3 -B workspace/delivery.py verify --pr NUMBER` from the same checkout. Exit 0 means the
+4. Run `./mhw delivery verify --pr NUMBER` from the same checkout. Exit 0 means the
    exact local head's PR is merged, its checks and version workflow succeeded, and a newer published
    stable release contains the merge commit. Exit 1 means pending or blocked, including network/auth
    failures. Never reinterpret it as success. Report the release link only after exit 0.
 
-`delivery.py` refuses any PR into `main` whose head branch is not `rc/next`: a slice never goes
+`mhw delivery` refuses any PR into `main` whose head branch is not `rc/next`: a slice never goes
 straight to `main`. Bases other than `rc/next` and `main` are refused.
 
 ## Boundaries and recovery
@@ -147,6 +157,11 @@ avoid an unintended second bump. The verifier stays red until the release is act
 No new branch protections or bypass permissions are created by these scripts. At implementation time
 GitHub reported `main` unprotected; the checked merge route is not server-wide enforcement.
 
-Tests: `python3 -B workspace/delivery_test.py`. Python 3.9+, authenticated GitHub CLI and Git are
-required for delivery. The same Python gate works across operating systems; cross-OS CI validates
-the pure gate logic, not live account authorization.
+The command is Node (`src/commands/delivery.js`, #474; `./mhw delivery` runs `node bin/mhw.js
+delivery`, and an npm-installed `mhw delivery` is the same command). It acts on the checkout that holds
+the current directory, so run it from the checkout. It finds `gh` and `git` on PATH and runs each by its
+absolute path, never through a shell. Node 26 or later, authenticated GitHub CLI and Git are required.
+Tests: `npm test` (`test/delivery/`): every case of the deleted `workspace/delivery_test.py` against a
+synthetic `gh` and `git`, compared with `workspace/delivery.py`'s own transcripts in `test/golden/S03/`.
+Cross-OS CI validates the gate logic, not live account authorization; the PATH-level run of the
+synthetic tools is POSIX only, and Windows runs the same cases in process.

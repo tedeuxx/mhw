@@ -187,7 +187,6 @@ jobs:
         run: |
           python -B global/profile/profile_test.py
           python -B global/profile/profile.py check --source overlay/profile.json --output overlay
-          python -B workspace/delivery_test.py
       # Issues #244 to #247, ADR-0015 locks 2 to 5: the project-policy contract's schema, examples
       # and field docs, the fail-closed validator behind `mhw policy check`, the reference CI/CD's
       # evidence gates (the dry run of the workflow itself is reference-delivery-dry-run.yml) and the

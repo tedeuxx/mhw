@@ -62,7 +62,8 @@ Measured by searching the tree for each script's name, test files and decision r
   renderers. `install.ps1` is the Windows route. `method_render.py` installs `method/scripts/*` and
   replaces `{{method-scripts}}` in rendered bodies with the installed directory.
 - **Agent instructions:** the method's skills and commands call the method scripts (named per row).
-  `AGENTS.md` and `workspace/README.md` call `workspace/delivery.py`.
+  `AGENTS.md` and `workspace/README.md` call ~~`workspace/delivery.py`~~ `./mhw delivery` (moved to
+  Node, #474).
 
 ## The evaluation
 
@@ -119,7 +120,7 @@ Measured by searching the tree for each script's name, test files and decision r
 
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
-| `workspace/delivery.py` | Checked merge and verify: required runs at the head, a gate verdict and lens CLOSED at that exact head, a real merge commit; refuses a PR into `main` from anything but `rc/next`. | `AGENTS.md`, `workspace/README.md`. | Forge rulesets cover required checks and merge-commit-only (documented). A verdict pinned to the head has no native carrier (assumed). | The only head-scoped verdict check. The owner kept it out of #197's scope. | **keep as the exception** |
+| `src/commands/delivery.js` (`mhw delivery`; `workspace/delivery.py` until #474) | Checked merge and verify: required runs at the head, a gate verdict and lens CLOSED at that exact head, a real merge commit; refuses a PR into `main` from anything but `rc/next`. | `AGENTS.md`, `workspace/README.md`. | Forge rulesets cover required checks and merge-commit-only (documented). A verdict pinned to the head has no native carrier (assumed). | The only head-scoped verdict check. The owner kept it out of #197's scope. | **keep as the exception** |
 | `.github/scripts/method_issue_sync.py` | The narrow GitHub boundary for the CI agent that mirrors `method` Issues. | `method-issue-sync.yml`. | The action's tool allow list is native; it cannot limit writes to one Issue (assumed). | Confinement of the sync agent to its twin Issue. | **keep as the exception** (CI) |
 
 ### Method scripts
@@ -171,7 +172,7 @@ carrier. The change to watch for:
 | `clipboard_guard.py`, `paste_wrapper.py` | Native prompt-content filtering on all three, including the Kiro IDE and the Kiro V3 engine. |
 | `scan.py` | Forge or agent harness outbound scanning that covers personal data and owner-defined terms. |
 | `merge_authority.py` | An agent harness that validates a project brief against a declared schema or a skill's contract. |
-| `delivery.py` | A forge rule that requires a verdict pinned to the head before merge. |
+| `delivery.js` | A forge rule that requires a verdict pinned to the head before merge. |
 | `method_issue_sync.py` | A CI agent allow list that can limit writes to one Issue. |
 | Milestone family | A `gh milestone` subcommand, or a GitHub MCP server the deny floor can see (see hypothesis 1). |
 | `worklog.py`, `rite-cadence.py`, `funnel-review.sh`, `launch-line.py` | No native mechanism is in view; these compute results the model would otherwise generate. |
