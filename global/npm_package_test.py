@@ -193,7 +193,8 @@ class Launcher(Base):
         self.assertEqual(ws.npm_update_lines("main")[0], 2)
 
     def test_package_json(self):
-        # bump-my-version rewrites package.json in the same commit (.bumpversion.toml files entry).
+        # The release bump (src/commands/release-bump.js, #473) rewrites package.json in the same commit
+        # (.bumpversion.toml files entry).
         toml = (ROOT / ".bumpversion.toml").read_text(encoding="utf-8")
         version = re.search(r'^current_version\s*=\s*"([^"]+)"', toml, re.M).group(1)
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))

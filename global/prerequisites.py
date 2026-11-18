@@ -62,7 +62,7 @@ COMMANDS = {
     "python3": {"version": ("--version",)}, "xcode-select": {"path": ("-p",)},
     "security": {}, "node": {"version": ("--version",)}, "terraform": {"version": ("version",)},
     "actionlint": {"version": ("--version",)}, "checkov": {"version": ("--version",)},
-    "shellcheck": {"version": ("--version",)}, "bump-my-version": {"version": ("--version",)},
+    "shellcheck": {"version": ("--version",)},
     "pwsh": {"version": ("--version",)}, "uv": {"version": ("--version",)},
     "brew": {"version": ("--version",)}, "docker": {"version": ("--version",)},
     "podman": {"version": ("--version",)},

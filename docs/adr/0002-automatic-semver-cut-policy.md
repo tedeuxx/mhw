@@ -18,7 +18,8 @@ purely numeric SemVer, with no pre-release suffix.
 
 - An adopter must be able to tell from the number alone whether an upgrade needs action.
 - Nothing merges to `main` without a version being cut. No merged state goes unnamed.
-- The tooling is bump-my-version (owner's instruction), and versions are numeric only.
+- The tooling is ~~bump-my-version (owner's instruction)~~ a Node script since 2026-11-18 (see the
+  amendment of that date), and versions are numeric only.
 
 ## Considered options
 
@@ -54,9 +55,10 @@ When a change fits more than one row, the highest row wins.
 - `.github/workflows/semver-label.yml`: on every PR into `main`, fails unless exactly one
   `semver:major|minor|patch` label is present. Runs with no token permissions.
 - `.github/workflows/version-main.yml`: when a PR into `main` is merged, it re-reads the label and runs
-  `bump-my-version bump <part>`, which commits and creates an annotated tag. It then pushes both with
+  ~~`bump-my-version bump <part>`~~ `node src/commands/release-bump.js <part>` (since 2026-11-18),
+  which commits and creates an annotated tag. It then pushes both with
   `--follow-tags`. A concurrency group serializes runs. Third-party actions are pinned to full commit
-  SHAs, and bump-my-version is pinned by version.
+  SHAs~~, and bump-my-version is pinned by version~~.
 
 ## Consequences
 
@@ -70,7 +72,8 @@ When a change fits more than one row, the highest row wins.
   review.
 - Bad: the bump runs on the PR `closed` event, not on `push`, so a direct push to `main` cuts no version.
   This is acceptable only while `main` is PR-only.
-- Bad: bump-my-version is pinned by version, not by hash.
+- ~~Bad: bump-my-version is pinned by version, not by hash.~~ *(Struck 2026-11-18: the bump is this
+  repository's own Node script, reviewed with the diff; see the amendment of that date.)*
 
 ## Links
 
@@ -246,3 +249,50 @@ proposed, or that a part awaits ratification, are dated readings that this amend
 Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 The ratified cut table is the 2026-10-10 one: **major** for a breaking change, **minor** for new functionality, **patch** for a bug fix or an incremental change, docs, tests and CI included.
+
+## Amendment 2026-11-18: the bump is a Node script ([#473](https://github.com/tedeuxx/mhw/issues/473), S02 of [#470](https://github.com/tedeuxx/mhw/issues/470))
+
+**What changed.** The tool only. `version-main.yml` runs `node src/commands/release-bump.js <part>`
+instead of bump-my-version 1.5.1, and the job no longer sets up Python or installs a package with pip.
+The Node requirements document for this repository (decision D8) asked for it: one runtime for CI and
+release tooling. The bump-my-version entry in `global/prerequisites.json` is removed with it.
+
+**What did not change.** The cut policy (the 2026-10-10 table, ratified 2026-11-17), numeric-only
+versions, the mandatory single `semver:` label, the cut on a merged pull request into `main`, the
+configuration file and its name (`.bumpversion.toml`, read by other parts of this repository until
+slice S32 of #470), the commit message and tag message `bump: {current_version} → {new_version}`, the
+`v{new_version}` tag, and the files bumped in the one commit (`.bumpversion.toml` and `package.json`).
+
+**How parity is held.** `test/release/bump.test.js` runs the script on a throwaway repository holding
+this repository's real `.bumpversion.toml` and `package.json`, and compares the commit message, the
+tag name, type and message, and the file diff with transcripts recorded from bump-my-version 1.5.1
+itself (`test/golden/S02/`), for major, minor and patch. With `MHW_BUMP_MY_VERSION` set, it also runs
+the two tools side by side.
+
+**Where it is stricter, on purpose.** Each case refuses before anything is written:
+
+- a current version that is not exactly `MAJOR.MINOR.PATCH`: bump-my-version 1.5.1 matched the parse
+  pattern as a prefix and dropped a suffix (measured: `10.1.0-rc1` was cut as `10.1.1`);
+- a tag that already exists: bump-my-version made the commit and then failed on the tag;
+- a configuration key the script does not implement.
+
+### Considered options
+
+1. **A small Node script in this repository (chosen).** No third-party code runs while the job holds a
+   `contents: write` token, and the pinned-by-version consequence above goes away. Trade-off: this
+   repository now owns the bump logic, and only the golden test keeps it equal to the tool it replaced.
+2. **An npm package that bumps versions.** Less code here, but a new dependency, fetched and run in the
+   job that can push to `main`.
+3. **Keep bump-my-version.** No work, but Python stays in the release path, against decision D8.
+
+### Consequences
+
+- Good: no Python, pip or `python -c` in the release path; every action in the job is pinned by SHA.
+- Good: a non-numeric version or a stale tag stops the job before a commit exists.
+- Bad: a regression in the script is found on the next release candidate merge to `main`, after the
+  owner's go, unless the tests catch it first. The scratch-clone test bumps a clone of the checkout in
+  the pull request's CI to lower that risk; it does not run the workflow itself.
+- Bad: `npm-shrinkwrap.json` carries the package version too, and neither tool bumps it (parity keeps
+  that). Whether it matters is not settled here.
+
+This amendment installs, loads and enforces nothing on the reference machine; it changes a CI job.
