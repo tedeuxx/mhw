@@ -1,0 +1,790 @@
+{
+  "name": "policy-unreadable-files",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/missing.json: [Errno 2] No such file or directory: '<BASE>/missing.json'; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/dir.json: [Errno 21] Is a directory: '<BASE>/dir.json'; nothing written\n",
+      "tree": [
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/bad.json: Expecting value: line 3 column 12 (char 29); nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/trailing.json: Illegal trailing comma before end of object: line 1 column 14 (char 13); nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/bom.json: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0); nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/empty.json: Expecting value: line 1 column 1 (char 0); nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "empty.json",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/start.json: 'utf-8' codec can't decode byte 0xff in position 6: invalid start byte; nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "empty.json",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "start.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2276223a20ff7d"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/cont.json: 'utf-8' codec can't decode byte 0xc3 in position 1: invalid continuation byte; nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "cont.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bc3287d"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "empty.json",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "start.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2276223a20ff7d"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/three.json: 'utf-8' codec can't decode bytes in position 1-2: invalid continuation byte; nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "cont.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bc3287d"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "empty.json",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "start.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2276223a20ff7d"
+        },
+        {
+          "path": "three.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be282287d"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/end.json: 'utf-8' codec can't decode bytes in position 5-6: unexpected end of data; nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "cont.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bc3287d"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "empty.json",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "end.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2261223ae282"
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "start.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2276223a20ff7d"
+        },
+        {
+          "path": "three.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be282287d"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/overlong.json: 'utf-8' codec can't decode byte 0xe0 in position 1: invalid continuation byte; nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "cont.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bc3287d"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "empty.json",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "end.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2261223ae282"
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "overlong.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be080af7d"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "start.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2276223a20ff7d"
+        },
+        {
+          "path": "three.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be282287d"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/surrogate.json: 'utf-8' codec can't decode byte 0xed in position 1: invalid continuation byte; nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "cont.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bc3287d"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "empty.json",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "end.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2261223ae282"
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "overlong.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be080af7d"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "start.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2276223a20ff7d"
+        },
+        {
+          "path": "surrogate.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7beda0807d"
+        },
+        {
+          "path": "three.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be282287d"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/four.json: 'utf-8' codec can't decode bytes in position 1-3: unexpected end of data; nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "cont.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bc3287d"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "empty.json",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "end.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2261223ae282"
+        },
+        {
+          "path": "four.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bf09f98"
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "overlong.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be080af7d"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "start.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2276223a20ff7d"
+        },
+        {
+          "path": "surrogate.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7beda0807d"
+        },
+        {
+          "path": "three.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be282287d"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: cannot read <BASE>/f4.json: 'utf-8' codec can't decode byte 0xf4 in position 1: invalid continuation byte; nothing written\n",
+      "tree": [
+        {
+          "path": "bad.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"
+        },
+        {
+          "path": "bom.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "﻿{\"version\": 1}"
+        },
+        {
+          "path": "cont.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bc3287d"
+        },
+        {
+          "path": "dir.json",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "empty.json",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "end.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2261223ae282"
+        },
+        {
+          "path": "f4.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bf4908080"
+        },
+        {
+          "path": "four.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7bf09f98"
+        },
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "overlong.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be080af7d"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        },
+        {
+          "path": "start.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b2276223a20ff7d"
+        },
+        {
+          "path": "surrogate.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7beda0807d"
+        },
+        {
+          "path": "three.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7be282287d"
+        },
+        {
+          "path": "trailing.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\": 1,}"
+        }
+      ]
+    }
+  ]
+}

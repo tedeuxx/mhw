@@ -1,0 +1,41 @@
+{
+  "comment": "differences: each pattern is replaced with <DECLARED> on both sides of the named case's stream before the transcripts are compared; nothing else may differ. residuals: behaviours no golden case exercises, named so they are not discovered later (#470, convention 3).",
+  "differences": [
+    {
+      "case": "edit-that-would-not-parse-is-refused",
+      "stream": "stdout",
+      "pattern": "unparseable \\(.*\\); nothing written",
+      "why": "The parse guard's reason comes from the TOML parser that ran it: the original used CPython's tomllib (Cannot overwrite a value (at line 7, column 20)); the port uses the vendored smol-toml 1.9.1 (Invalid TOML document: trying to redefine an already defined table or value). The refusal itself, the exit code 3, the untouched file, the absent backup and the record are unchanged and still compared."
+    },
+    {
+      "case": "codex-python-line-breaks-and-whitespace",
+      "stream": "stdout",
+      "pattern": "unparseable \\(.*\\); nothing written",
+      "why": "Same as edit-that-would-not-parse-is-refused: only the parser's reason in the parentheses differs (tomllib Expected '=' after a key in a key/value pair; smol-toml Invalid TOML document: illegal character in key). Both refuse the same edit, which is the str.splitlines() split of a form feed and a line separator the port reproduces."
+    },
+    {
+      "case": "codex-bom-first-line",
+      "stream": "stdout",
+      "pattern": "unparseable \\(.*\\); nothing written",
+      "why": "Same as edit-that-would-not-parse-is-refused: only the parser's reason differs (tomllib Invalid statement (at line 3, column 1); smol-toml Invalid TOML document: illegal character in key). Both keep the byte-order mark the utf-8 codec keeps, and both refuse."
+    }
+  ],
+  "residuals": [
+    {
+      "what": "The parse guard always runs.",
+      "why": "The original skipped it on Python 3.9 and 3.10, where tomllib does not exist, and the line editor alone stood. Node always has the vendored parser, so an edit that would not parse is refused on every supported runtime."
+    },
+    {
+      "what": "Integer-like JSON keys are written first.",
+      "why": "A JavaScript object orders keys that look like array indexes (\"0\", \"42\") before the others; CPython keeps insertion order. A settings.json or cli.json carrying such a key would be rewritten with it moved first: the same JSON value, different bytes. The policy's harness names and the record's file paths cannot be integer-like. No harness settings file in use carries one."
+    },
+    {
+      "what": "On Windows, stdout lines end in \\n.",
+      "why": "Python's print wrote \\r\\n to a Windows console or pipe; Node writes \\n. install.ps1 reads the step's output as lines, so nothing it checks changes. Files the renderer writes still get \\r\\n on Windows, as Python's text mode wrote them."
+    },
+    {
+      "what": "A crash prints a Node stack, not a Python traceback.",
+      "why": "Where the original raised an exception it did not catch (a record entry that is not an object, a lone surrogate it cannot encode), the port throws too and exits 1. The message on stderr is Node's."
+    }
+  ]
+}

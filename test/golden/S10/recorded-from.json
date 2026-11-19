@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S10 golden transcripts were recorded from (python3 -B global/models/model_defaults.py at the base revision, macOS). The goldens are the binding oracle; the live arm compares only against this exact version, because json and tomllib error messages change between CPython releases."
+}
