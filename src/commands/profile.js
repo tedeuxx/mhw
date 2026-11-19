@@ -133,7 +133,8 @@ export function readJson(text, strict) {
       const e = s[i + 1];
       /** @type {Record<string, string>} */
       const simple = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' };
-      if (e !== undefined && Object.hasOwn(simple, e)) {
+      // An escape at the very end leaves e undefined; hasOwn is then false and the \u test refuses it.
+      if (Object.hasOwn(simple, e)) {
         out += simple[e];
         i += 2;
         continue;
@@ -153,7 +154,8 @@ export function readJson(text, strict) {
           i += 6;
         }
       }
-      out += code >= 0x10000 ? String.fromCodePoint(code) : String.fromCharCode(code);
+      // fromCodePoint takes a lone surrogate too, as json.loads keeps one.
+      out += String.fromCodePoint(code);
     }
   };
   const NUM = /-?(?:0|[1-9]\d*)(\.\d+)?(?:[eE][-+]?\d+)?/y;
@@ -163,7 +165,7 @@ export function readJson(text, strict) {
     if (word('null')) return (i += 4, null);
     if (word('true')) return (i += 4, true);
     if (word('false')) return (i += 5, false);
-    for (const [w, v] of /** @type {Array<[string, number]>} */ ([['NaN', NaN], ['Infinity', Infinity], ['-Infinity', -Infinity]])) {
+    for (const [w, v] of /** @type {Array<[string, number]>} */ ([['NaN', Number.NaN], ['Infinity', Infinity], ['-Infinity', -Infinity]])) {
       if (word(w)) {
         if (strict) throw bad();
         i += w.length;
@@ -274,7 +276,7 @@ export function pyEq(a, b) {
       if (typeof nx === 'bigint' && typeof ny === 'bigint') {
         if (nx !== ny) return false;
       } else if (typeof nx === 'number' && typeof ny === 'number') {
-        if (!(nx === ny)) return false;
+        if (nx !== ny) return false;
       } else {
         const f = /** @type {number} */ (typeof nx === 'number' ? nx : ny);
         const n = /** @type {bigint} */ (typeof nx === 'bigint' ? nx : ny);
@@ -408,7 +410,9 @@ function purePath(value, platform) {
     return (root + rest.join('\\')) || '.';
   }
   const lead = /^\/+/.exec(value);
-  const root = lead ? (lead[0].length === 2 ? '//' : '/') : '';
+  // POSIX keeps exactly two leading slashes, and folds one or three or more to one.
+  let root = '';
+  if (lead) root = lead[0].length === 2 ? '//' : '/';
   const rest = value.split('/').filter((c) => c && c !== '.');
   return (root + rest.join('/')) || '.';
 }
@@ -534,7 +538,7 @@ export function plan(profile) {
       conversation_cadence: 'instruction-only; no universal before-display output gate',
       token_discipline: 'minimum-sufficient context and concise output instructions; no hard token cap',
       decision_options: 'instruction-only on every surface; no hook checks it (the picker guard was removed, ADR-0013 2026-10-05 amendment)',
-      desktop_notifications: 'intent=' + ((profile.desktop || {}).notifications ?? 'unselected') + '; instructions compiled; native GUI values require separate application and verification',
+      desktop_notifications: 'intent=' + (profile.desktop?.notifications ?? 'unselected') + '; instructions compiled; native GUI values require separate application and verification',
     },
   };
 }
@@ -577,7 +581,7 @@ export function compileProfile(profile, root = ROOT) {
   if (interaction.decision_options === 3n) {
     discipline.push('- **Path decisions:** a decision always gets exactly three authored, mutually exclusive options: one extreme, the opposite extreme, and the middle ground between them. Use one native multiple-choice question when the harness offers one. Give each option a short label and a concise description of risk and expected benefit; recommend one based on the evidence. Never invent an unsafe or misleading option to fill a position. Leave the native free-text clarification route available; it is not an authored fourth option. If no picker is available, show three numbered choices and wait. An already-decided action remains one action line; native security approvals retain their own controls.');
   }
-  if ((profile.desktop || {}).notifications === 'essential') {
+  if (profile.desktop?.notifications === 'essential') {
     discipline.push("- **Attention and notifications:** minimize simultaneous information; one point at a time. Prefer notifications only when the owner's decision or action is needed. Do not proactively send routine progress or completion notifications. Keep requested results accessible in the conversation; do not hide blockers or material failures. This instruction does not itself change native desktop notification settings.");
   }
   const body = [

@@ -159,7 +159,10 @@ class Fixture {
     const r = this.runner.run(args, cwd, { ...baseEnv(), ...(o.env || {}) });
     /** @param {string} s */
     const norm = (s) => s.replace(/\r\n/g, '\n').split(this.dir).join('<BASE>').split(ROOT).join('<ROOT>');
-    this.runs.push({ args: args.map(norm), cwd: o.cwd || '', code: r.code, stdout: norm(r.stdout), stderr: norm(r.stderr),
+    // An argument naming a path under <ROOT> is recorded with '/' (the goldens were recorded on POSIX).
+    /** @param {string} a */
+    const arg = (a) => (POSIX ? norm(a) : norm(a).replace(/^<ROOT>[^\s]*/, (p) => p.replaceAll('\\', '/')));
+    this.runs.push({ args: args.map(arg), cwd: o.cwd || '', code: r.code, stdout: norm(r.stdout), stderr: norm(r.stderr),
       tree: snapshot(this.dir, this.floor, this.locale) });
   }
 }
@@ -214,8 +217,12 @@ function differences(name, original, head, runner) {
       }
       if (a !== b) diffs.push(where + ': ' + stream + ' differs\n--- original\n' + a + '\n--- head\n' + b);
     }
-    if (JSON.stringify(o.tree) !== JSON.stringify(h.tree)) {
-      diffs.push(where + ': tree differs\n--- original\n' + o.tree.join('\n') + '\n--- head\n' + h.tree.join('\n'));
+    // The goldens were recorded on POSIX; Windows has no mode bits, so there the mode is not compared.
+    /** @param {string[]} tree */
+    const comparable = (tree) => (POSIX ? tree : tree.map((l) => l.replace(/^(\S+ (?:file|dir)) \S+/, '$1 -')));
+    const [ot, ht] = [comparable(o.tree), comparable(h.tree)];
+    if (JSON.stringify(ot) !== JSON.stringify(ht)) {
+      diffs.push(where + ': tree differs\n--- original\n' + ot.join('\n') + '\n--- head\n' + ht.join('\n'));
     }
   });
   return diffs;

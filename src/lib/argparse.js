@@ -50,7 +50,8 @@ class ArgumentError extends Error {
    */
   constructor(action, message) {
     // _get_action_name: the option strings, else (a positional) its dest.
-    const name = action ? (action.strings.length ? action.strings.join('/') : action.dest) : '';
+    let name = '';
+    if (action) name = action.strings.length ? action.strings.join('/') : action.dest;
     super(name ? 'argument ' + name + ': ' + message : message);
   }
 }
