@@ -215,7 +215,8 @@ function playRender(c, renderer) {
   c.steps.forEach((step, i) => {
     const p = spawnSync(/** @type {string} */ (PY), ['-B', renderer, ...step], { env, encoding: 'utf8' });
     out['step' + i + ' ' + (step.join(' ') || 'install')] = { code: p.status };
-    out['step' + i + ' stdout'] = normalise(p.stdout, subs).replaceAll(stamp, '<STAMP>');
+    // The Claude desktop app is skipped for an OS-specific reason (absent on macOS, unpublished on Linux).
+    out['step' + i + ' stdout'] = normalise(p.stdout, subs).replaceAll(stamp, '<STAMP>').replaceAll(/^SKIP {4}claude-desktop: .*$/gm, 'SKIP    claude-desktop: <skipped>');
     out['step' + i + ' stderr'] = normalise(p.stderr, subs).replaceAll(stamp, '<STAMP>');
   });
   for (const f of ['.codex/config.toml', '.claude.json', '.kiro/settings/mcp.json']) {
