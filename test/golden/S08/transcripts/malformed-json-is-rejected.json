@@ -1,0 +1,509 @@
+{
+  "name": "malformed-json-is-rejected",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 de893872c2dbf025c1c49cf868526bf9420d25ca76f73a078da7c9a49f227773"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 55cb469acbd09bb3f4949176698222080fac24ac7811efc03717df07c3c72823"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 50f6f985e57e457a05aa5b5cbb99b534e5e0ddac9be6cb8773951d03815bde42"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 cdc99b5957bfebaad129e4825ff76d69a9edbe03cc52179dff1764fe7336ef4b"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 6ebf2d0b00e9736f025cbbcc032f6f359935c3712f06d349c37f2adfe548de0a"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile exceeds the size limit; contents omitted\n",
+      "tree": [
+        "profile.json file 644 76c002eec0c9da854ca2ee5dae9fb0069a622274b6638ab712fcb70384304899"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 3d485c4d3ce656b335f9de0b2281cb8953e7a9cb2d37cc43788515c607037ea3"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 7e38d599020c716b48c9822352412f29b28ed008e6dd617ec22e1362f06d2c16"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 886ad6246ed150b2930495926ba07d579307bc7fecaf4b391650dca8bae7bc66"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 767ee938616b3ef0c272d90d58a86d091f76789ba877e30c18514a88a5fdb752"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d4b6fd942bc1cfe841de90cfc320a51960abfe1c6312d85a080e814e93cb9bcc"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 a84fed7e2eca1809b18c96ccd4571e0cef929a290d0108e0f4df368b7227eb5c"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 a3e11777af1caa9ff6e2f749660786d85680827ccd6615cb5ae92c746d223322"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 b957cf3c9842bc83e9b86bda3f085cb72a2ff7bde8ff5ff6ede3ba0a466a8857"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 3329504e99afe6e1e9680ee0ee9ded3ab84b824c564edefaa72952be4dd5a4ac"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 50fd3a22758275a26064a02aa37acdcd132a84343ed5d4c00a4860d0347a45e8"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 2d63757533c12bc2201a032f6a5cd639b7b3bc32694651dff10a07a23325c65b"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 0a9f9c421792118d8148e197bf6aa1e8e871fe21267f329fefd5a43ebd2e66de"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 e383c1c5b03929b02b8954a783f58dc1104f8f598c5df9a04487caf1c32a474f"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 2d1e578c5f2f2c06324f508ccfaf60d33ce59a735a6a095a6d299ec9ea445b39"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 bb6b7e3ec80f6a74ca3e8b8171687c0d0247b8498eba4e7a9809792eb24b44ce"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d3980b69dde185562a05d76bbe957263299fe0d759731f652442bbb890153c8c"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 2cec2bbf1a64ea5249e8a7ab9ecc782fa48be13f0b35ad5f52bdea741841a230"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 82985617ce795510ad965737efe6b5a76411b26a6d7453ff4ba680e856377bc8"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 de607412b2aa0668700ed62a2d839aa68ed389a85a6a9312e775920257e37af1"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 aa25e978046d680ef8740d837e6de5bc1e2a2dc6089dbda1012544b538d53f65"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 971423fc07c5176b73b0dca4b9cfae1c22a5b525191d25a2232dd506fc0b6aaa"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 19e7c4e008b5c0563d7bfdcf92c47191fbac0adc4fa508f77c1dcf56e09bce88"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 74ca86c1049af062d8afa771d25d8789fe4a019cda418e58cf7d7d3c58ac78cb"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: wrong type\n",
+      "tree": [
+        "profile.json file 644 ba2df4903a2c14e86dc3bcca58911b44ac1d2514b7227bf6eb08cfb978f55a1b"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: wrong type\n",
+      "tree": [
+        "profile.json file 644 74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: wrong type\n",
+      "tree": [
+        "profile.json file 644 6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 0082e85736157dc7abe819344d8db68d6018dc0e2d64465bc92d402c552e61d8"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 b3a135acaba1db437ce237ef5b8e54ec231ae092c7494f6413a966daad68f90a"
+      ]
+    }
+  ]
+}

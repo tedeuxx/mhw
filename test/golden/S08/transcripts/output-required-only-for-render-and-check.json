@@ -1,0 +1,81 @@
+{
+  "name": "output-required-only-for-render-and-check",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: --output is required only for render and check\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: --output is required only for render and check\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: --output is required only for render and check\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "plan",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: --output is required only for render and check\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json",
+        "--output",
+        ""
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: --output is required only for render and check\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

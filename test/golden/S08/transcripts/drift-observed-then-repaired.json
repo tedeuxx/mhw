@@ -1,0 +1,131 @@
+{
+  "name": "drift-observed-then-repaired",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: 4 generated files updated; no harness installation\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+        "output/clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "output/desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "output/profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 4b76dbf7748d6d14c00a094db2072ec229a1e5ebd4c63cf6029de2c1e82e3ffb",
+        "output/clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "output/desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "output/profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: 1 generated files updated; no harness installation\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+        "output/clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "output/desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "output/profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: generated overlay is current\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+        "output/clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "output/desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "output/profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+        "output/clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "output/desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "output/profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 5654ee49617b7e88685dfd714ab77412a4d1cb041b1b021de05498cf77e2f4f0"
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: 4 generated files updated; no harness installation\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 e8d0928f8c151bcc10a7643217a51dfa6a19566774599b3153ebb6d70991e6e1",
+        "output/clipboard.conf file 600 4e5faed8076ee90c53196db3619241efc6b32fe04745a758229b761bfe4dda41",
+        "output/desktop-instructions.md file 600 5f25c850e2725c38aed9c88432db5cbb3c0cfb2b4f0e0981f2903ece1924b76e",
+        "output/profile-plan.json file 600 2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29",
+        "profile.json file 644 5654ee49617b7e88685dfd714ab77412a4d1cb041b1b021de05498cf77e2f4f0"
+      ]
+    }
+  ]
+}

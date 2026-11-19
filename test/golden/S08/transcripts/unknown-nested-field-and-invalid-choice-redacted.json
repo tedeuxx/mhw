@@ -1,0 +1,19 @@
+{
+  "name": "unknown-nested-field-and-invalid-choice-redacted",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: unrecognized field (name and value omitted)\nprofile.conversation.language: unsupported choice\n",
+      "tree": [
+        "profile.json file 644 ab0a89e1225e0058398151abb869b0ba325b6bde85aa09d340a7a30a78c33ba8"
+      ]
+    }
+  ]
+}

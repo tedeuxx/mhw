@@ -1,0 +1,44 @@
+{
+  "name": "symlink-target-refuses-all-writes",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains a symlink or non-file target; nothing written\n",
+      "tree": [
+        "other file 644 d59c2a5f721ce135ce54628b1ad8ad8b8eb26c8bbe2e2abe1cdca97e2d6ab446",
+        "output dir 755",
+        "output/clipboard.conf link ../other",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains a symlink or non-file target; nothing written\n",
+      "tree": [
+        "other file 644 d59c2a5f721ce135ce54628b1ad8ad8b8eb26c8bbe2e2abe1cdca97e2d6ab446",
+        "output dir 755",
+        "output/AGENTS.md link missing-target",
+        "output/clipboard.conf link ../other",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

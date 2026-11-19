@@ -1,0 +1,221 @@
+{
+  "name": "profile-plan-json-ownership",
+  "runs": [
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 81da2bec95047c11441cea6ca31b2873f8212d58f002884f2c23d3234bd3be2e",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 9aa65eb0647c09afa408fe921348c882a4b7582077deb0d81d11a53b49bd88ca",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 8c62ab65152f9a18ad2a463964dc6bd62053d8989d4261e9d671a7288e6cd91c",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains an unmanaged target; nothing written\n",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 7416cbcaf2e9abe5c3eed5b516b961421bf95020b51105ab695df749459ba4a3",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains an unmanaged target; nothing written\n",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 4d8a0f6b4302e57009eee225f35c287039a7216fcb6bd31c7614fe0c6368582a",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains an unmanaged target; nothing written\n",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 1acbaaad0400d59df741f65ce96e72f261cc554700bbcd30c26320232ab46a3f",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains an unmanaged target; nothing written\n",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 9dbb955c566a33274277577c1b30530d79f2d32307a118ee7a588603328a6d20",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains an unmanaged target; nothing written\n",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 7a4d6bcff1bf8355cfcaa8cbcd95a5412b3c2c7ccf375e22a03e02257949413a",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains an unmanaged target; nothing written\n",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 f3758b5c56b12cf4fb0b71040838fb37831d541ae799e19ab424a0dcfc79209e",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 52d3a601d560de9131fd34fdf0f0ac4df26712bf32190896ed4a55d4873fbf62",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains an unmanaged target; nothing written\n",
+      "tree": [
+        "output dir 755",
+        "output/profile-plan.json file 644 3f8d908b672d5e58cf09345d0f32134dbebde5ba318b6139bec79d13061aff4e",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

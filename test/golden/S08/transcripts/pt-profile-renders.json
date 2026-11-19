@@ -1,0 +1,45 @@
+{
+  "name": "pt-profile-renders",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: 4 generated files updated; no harness installation\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 9ea483b860d13716f6155ec99e384e5ed3ec17e52c2c416120bae23145487271",
+        "output/clipboard.conf file 600 992414c563daf4392c0be1048bb45938e398813a5d09d43b7118792a6b45ed9c",
+        "output/desktop-instructions.md file 600 0fae103df999a7f8f04d7c9779e342fa665aa3a68f6586c2a5566acf661ec089",
+        "output/profile-plan.json file 600 11e5575f01341f2c4573d931caed199e22c0373ed0167956444cc6e13de5a717",
+        "profile.json file 644 d0836850c3b44783492f7b7914645080d83ceda0058edb51dcbc85a02a4cd1df"
+      ]
+    },
+    {
+      "args": [
+        "plan",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "{\n  \"managed_by\": \"personal-multi-harness-workstation-configuration/profile-v1\",\n  \"profile_version\": 1,\n  \"priority\": \"balanced\",\n  \"surfaces\": [\n    {\n      \"surface\": \"codex\",\n      \"instruction_route\": \"Existing installer: user AGENTS.md; hook trust is a separate owner action.\",\n      \"runtime_verification\": \"not-performed\"\n    }\n  ],\n  \"limits\": {\n    \"surface_selection\": \"describes intended targets; existing installers still target all supported CLIs\",\n    \"native_model_and_effort\": \"not-written; concrete model/effort mappings remain pending\",\n    \"financial_authorization\": \"not-granted\",\n    \"mcp_and_pre_authorizations\": \"not-imported-or-synchronized\",\n    \"slash_commands\": \"preference-only; native command installation remains pending\",\n    \"conversation_cadence\": \"instruction-only; no universal before-display output gate\",\n    \"token_discipline\": \"minimum-sufficient context and concise output instructions; no hard token cap\",\n    \"decision_options\": \"instruction-only on every surface; no hook checks it (the picker guard was removed, ADR-0013 2026-10-05 amendment)\",\n    \"desktop_notifications\": \"intent=essential; instructions compiled; native GUI values require separate application and verification\"\n  }\n}\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 9ea483b860d13716f6155ec99e384e5ed3ec17e52c2c416120bae23145487271",
+        "output/clipboard.conf file 600 992414c563daf4392c0be1048bb45938e398813a5d09d43b7118792a6b45ed9c",
+        "output/desktop-instructions.md file 600 0fae103df999a7f8f04d7c9779e342fa665aa3a68f6586c2a5566acf661ec089",
+        "output/profile-plan.json file 600 11e5575f01341f2c4573d931caed199e22c0373ed0167956444cc6e13de5a717",
+        "profile.json file 644 d0836850c3b44783492f7b7914645080d83ceda0058edb51dcbc85a02a4cd1df"
+      ]
+    }
+  ]
+}

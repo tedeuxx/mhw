@@ -122,12 +122,20 @@ fi
 
 # Structured profiles must be compiled and current before any target is written (ADR-0018).
 # Hand-authored overlays and --overlay=none retain the previous installation path.
+# The compiler is `mhw profile check` in Node (#479, S08 of #470): the node that runs mhw (MHW_NODE,
+# set by bin/mhw.js), else node on PATH, by absolute path.
 if [ "$mode" != uninstall ] && [ -n "$overlay" ] && [ -f "$overlay/profile.json" ]; then
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "profile overlay requires Python 3.9+; no target was written" >&2
-    exit 2
-  fi
-  (cd "$overlay" && python3 -B "$script_dir/profile/profile.py" check --source profile.json --output .)
+  profile_node=${MHW_NODE:-}
+  case $profile_node in
+    /*) ;;
+    *) profile_node=$(command -v node 2>/dev/null || true) ;;
+  esac
+  case $profile_node in
+    /*) ;;
+    *) echo "profile overlay requires node (26 or later); no target was written" >&2
+       exit 2 ;;
+  esac
+  (cd "$overlay" && "$profile_node" "$script_dir/../bin/mhw.js" profile check --source profile.json --output .)
 fi
 
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/personal-multi-harness-workstation-configuration"
