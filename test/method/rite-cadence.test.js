@@ -763,8 +763,11 @@ test('-h prints the usage and exits 0; an option before -h still parses', () => 
   }
 });
 
-test('./mhw without node on PATH says so and never falls through to workstation.py', { skip: !POSIX && './mhw is the POSIX entry' }, () => {
-  if (fs.existsSync('/usr/bin/node') || fs.existsSync('/bin/node')) return;
+test('./mhw without node on PATH says so and never falls through to workstation.py', { skip: !POSIX && './mhw is the POSIX entry' }, (t) => {
+  if (fs.existsSync('/usr/bin/node') || fs.existsSync('/bin/node')) {
+    t.skip('a node in /usr/bin or /bin is on the reduced PATH');
+    return;
+  }
   const p = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), 'rite-cadence', STORE], { cwd: ROOT, env: { PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
   assert.equal(p.status, 2);
   assert.equal(p.stderr, 'mhw: node (26 or later) is required for mhw rite-cadence\n');

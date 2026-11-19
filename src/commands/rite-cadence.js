@@ -56,9 +56,8 @@ import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { onPath } from '../lib/onpath.js';
 
-const REGULAR_FILE_MODES = ['100644', '100755'];
+const REGULAR_FILE_MODES = new Set(['100644', '100755']);
 const USAGE = 'usage: mhw rite-cadence [-h] [--repo REPO] root [marker]';
-const OPTIONS = ['--repo'];
 
 export class GitError extends Error {}
 class UsageError extends Error {}
@@ -137,10 +136,14 @@ function headExists(g) {
 const under = (p, root) => root === '.' || p === root || p.startsWith(root + '/');
 
 /**
- * The line without every trailing CR, as Python's rstrip(b"\r").
+ * The line without every trailing CR, as Python's rstrip(b"\r"); a loop, not a backtracking regex.
  * @param {string} line
  */
-const stripCr = (line) => line.replace(/\r+$/, '');
+function stripCr(line) {
+  let end = line.length;
+  while (end > 0 && line[end - 1] === '\r') end -= 1;
+  return line.slice(0, end);
+}
 
 /**
  * True when one line of the content is exactly the marker (CR of a CRLF line ignored).
@@ -162,7 +165,7 @@ function regularFilesUnder(g, root) {
     const meta = tab < 0 ? record : record.slice(0, tab);
     const p = tab < 0 ? '' : record.slice(tab + 1);
     const fields = meta.split(' ');
-    if (fields.length === 3 && REGULAR_FILE_MODES.includes(fields[0]) && under(p, root)) entries.push([fields[2], p]);
+    if (fields.length === 3 && REGULAR_FILE_MODES.has(fields[0]) && under(p, root)) entries.push([fields[2], p]);
   }
   return entries;
 }
@@ -318,7 +321,7 @@ export function normpath(p) {
   const parts = [];
   for (const c of p.split('/')) {
     if (!c || c === '.') continue;
-    if (c !== '..' || (parts.length && parts[parts.length - 1] === '..')) parts.push(c);
+    if (c !== '..' || (parts.length && parts.at(-1) === '..')) parts.push(c);
     else if (parts.length) parts.pop();
     else parts.push(c);
   }
@@ -332,7 +335,7 @@ export function normpath(p) {
  */
 export function normalisedRoot(root, platform) {
   const win = platform === 'win32';
-  const p = win ? root.replace(/\\/g, '/') : root;
+  const p = win ? root.replaceAll('\\', '/') : root;
   if (!p || p.startsWith('/') || (win ? path.win32.isAbsolute(root) : false)) throw new UsageError('root must be a path relative to the repository');
   const n = normpath(p);
   if (n === '..' || n.startsWith('../')) throw new UsageError('root must not leave the repository');
@@ -369,22 +372,31 @@ export function parseArgs(argv) {
     } else if (a === '-h' || (a.length > 2 && !a.includes('=') && '--help'.startsWith(a))) {
       return { help: true, repo };
     } else {
-      const eq = a.indexOf('=');
-      const name = longOption(eq > 0 ? a.slice(0, eq) : a);
-      if (!OPTIONS.includes(name)) throw new UsageError('unrecognized arguments: ' + a);
-      if (eq > 0) {
-        repo = a.slice(eq + 1);
-      } else {
-        if (i + 1 >= argv.length || looksLikeOption(argv[i + 1])) throw new UsageError('argument --repo: expected one argument');
-        repo = argv[++i];
-      }
+      const [value, last] = takeRepo(argv, i);
+      repo = value;
+      i = last;
     }
   }
   if (!positionals.length) throw new UsageError('the following arguments are required: root');
   if (positionals.length > 2) throw new UsageError('unrecognized arguments: ' + positionals.slice(2).join(' '));
-  const [root, marker] = positionals;
+  const marker = positionals.length > 1 ? positionals[1] : undefined;
   if (marker !== undefined && !marker.trim()) throw new UsageError('marker must not be empty');
-  return { help: false, repo, root, marker };
+  return { help: false, repo, root: positionals[0], marker };
+}
+
+/**
+ * The --repo option at argv[i]: its value and the index of the last argument it consumed.
+ * @param {string[]} argv
+ * @param {number} i
+ * @returns {[string, number]}
+ */
+function takeRepo(argv, i) {
+  const a = argv[i];
+  const eq = a.indexOf('=');
+  if (longOption(eq > 0 ? a.slice(0, eq) : a) !== '--repo') throw new UsageError('unrecognized arguments: ' + a);
+  if (eq > 0) return [a.slice(eq + 1), i];
+  if (i + 1 >= argv.length || looksLikeOption(argv[i + 1])) throw new UsageError('argument --repo: expected one argument');
+  return [argv[i + 1], i + 1];
 }
 
 /**
