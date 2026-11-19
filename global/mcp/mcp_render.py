@@ -192,12 +192,15 @@ def launcher_for(doc, required=True):
 
 def node_binary():
     """The node that runs the launcher, as an absolute path: the node running mhw (bin/mhw.js passes its
-    own path in MHW_NODE), else the first node on PATH; None when there is none. The same rule as
-    global/workstation.py's node_binary(). It is rendered as the server command, so a harness whose PATH
-    has no node (a desktop app) still starts it."""
+    own path in MHW_NODE), else the first node on PATH; None when there is none. It is rendered as the
+    server command, so a harness whose PATH has no node (a desktop app) still starts it. The same lookup as
+    install.sh's models_step (#481): an absolute MHW_NODE that is not an executable file is refused (exit
+    2), never replaced by another node, so the render names the node it was given."""
     node = os.environ.get("MHW_NODE", "")
-    if os.path.isabs(node) and os.path.isfile(node) and os.access(node, os.X_OK):
-        return node
+    if os.path.isabs(node):
+        if os.path.isfile(node) and os.access(node, os.X_OK):
+            return node
+        raise Refuse(2, "REFUSE  the MCP launcher: MHW_NODE (%s) is not an executable file; nothing written" % node)
     found = shutil.which("node")
     return found if found and os.path.isabs(found) else None
 

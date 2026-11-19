@@ -295,7 +295,8 @@ launch` and, in use, as the copy the renderer installs beside its other managed 
 (`<data dir>/mcp-launch.mjs`, 0700, with the marker line; the unmanaged-file refusal is unchanged). A
 server with secrets is now rendered as `<node> <that copy> --secret NAME=SOURCE ... -- <command>
 <args>`, with node by absolute path (`MHW_NODE`, else node on `PATH`), so a harness whose `PATH` has no
-node still starts it; with no node the render is refused (exit 2) before anything is written. An
+node still starts it; with no node, or an absolute `MHW_NODE` that is not an executable file (the
+lookup `install.sh` uses since #481), the render is refused (exit 2) before anything is written. An
 earlier release's `mcp-launch.sh` in the data directory is removed on install when it carries the
 marker (`--check` names it `STALE`). Every argument and source rule, every message naming `NAME` and
 its source, and every exit code are the shell launcher's; the golden transcripts in

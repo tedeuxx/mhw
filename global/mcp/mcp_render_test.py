@@ -767,6 +767,15 @@ class Render(unittest.TestCase):
         del plain["servers"]["fake-secret"]
         write_source(h, plain)
         self.assertEqual(run(h, env=env).returncode, 0, "a definition without secrets needs no node")
+        # An absolute MHW_NODE that is not an executable file is refused, never replaced by node on PATH
+        # (the lookup install.sh's models_step uses, #481).
+        write_source(h, source_doc())
+        bad = os.path.join(BASE, "no-such-node")
+        before = fingerprint(h)
+        p = run(h, env=clean_env(h, MHW_NODE=bad))
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertIn("MHW_NODE (%s) is not an executable file" % bad, p.stderr)
+        self.assertEqual(fingerprint(h), before)
 
     def test_invalid_existing_config_is_refused_and_untouched(self):
         h = mk_home("home-badjson")
