@@ -50,7 +50,7 @@ not a posture that could be tightened later — it is what makes the rite admiss
 
 **It is NOT a generator of work.** The prototype produced three tracked items from one sitting; a
 rite producing three items per period is a machine for generating work, which is the failure this
-loop names first. **The cap is two findings**, declared as a number in `{{method-scripts}}/funnel-review.sh` and
+loop names first. **The cap is two findings**, declared as a number in `mhw funnel-review` (mhw's `src/commands/funnel-review.js`; until mhw#478 the script `method/scripts/funnel-review.sh`) and
 printed into every report.
 
 **It is NOT a publisher of unbounded numbers.** Every figure ships with its sample size and the
@@ -153,7 +153,7 @@ Step 0 states, per host, what is established.
 
    **A rite that quietly does nothing is indistinguishable from one that ran and found nothing.** That
    is this repository's own named worst shape and it is the whole reason the two literals exist.
-   `scripts/funnel-review.test.sh` runs both branches in one pass and asserts each prints its own
+   mhw's `test/method/funnel-review.test.js` runs both branches in one pass and asserts each prints its own
    literal and **not** the other's.
 
 ## The containment is STATED, not implied — ~~measured, at head~~ at this method's real level
@@ -367,7 +367,7 @@ What would settle it is one dispatch attempting the act and reporting what came 
 ### 2 · Analyse — no network, no credential, against the committed file
 
 ```
-bash {{method-scripts}}/funnel-review.sh <period>
+mhw funnel-review <period>
 ```
 
 It reads the collection file and the prior period's, prints each figure with its sample size and its
@@ -406,7 +406,7 @@ Evidence: <each `figure:` line it rests on, quoted verbatim from collected/<peri
 - **The not-collected branch carries none**, because it carries no findings section at all.
 - **`Candidate rule:` and `Evidence:` are written at COLUMN 0**, exactly as above. The position is
   what `/sprint-planning` reads the queue by (step 4), and it is also what keeps the shape that
-  `{{method-scripts}}/funnel-review.sh` prints as guidance from counting as a candidate. The script indents that
+  `mhw funnel-review` prints as guidance from counting as a candidate. The command indents that
   template by four spaces, so a report that keeps the template as written contains no phantom open
   candidate.
 
@@ -464,8 +464,8 @@ As of 2026-10-10 the plugin's store held three reports: two `FUNNEL-REVIEW-NOT-C
 sprint-04) and one `FUNNEL-REVIEW-RAN` (sprint-05) with no `Candidate rule:` line, so that command
 still printed nothing there. As of 2026-10-16 the consuming repository's `main` holds no file under
 `docs/funnel-review/`, so its store has not run. The zero is real, not a dead pattern:
-the `candidate queue` arms of `scripts/funnel-review.test.sh` append a column-0 candidate to a report
-the script wrote and assert the selector finds it.
+the `candidate queue` test of mhw's `test/method/funnel-review.test.js` appends a column-0 candidate to a report
+the command wrote and asserts the selector finds it.
 
 **`held` keeps the candidate open.** It is his explicit *"ask me again next planning"*, and the next
 planning's count includes it. **`adopted` does not edit the ruler either.** An adopted candidate is
@@ -518,8 +518,9 @@ refuses to print a figure that arrived without one.
   no matcher at all.
 - **Nothing pairs a report with its collection.** A report with no collection file beside it passes
   every check in this repository.
-- **The cap is held over LANDED artifacts only.** `scripts/funnel-review.test.sh` counts
-  `## Finding` headings in the reports that exist under the store root. A period that was never
+- **The cap is held over LANDED artifacts only.** mhw's `test/method/funnel-review.test.js` counts
+  `## Finding` headings in the reports that exist under the store root; mhw's own tree holds no store, so
+  there it counts nothing. A period that was never
   reported is invisible to it, and no shell anywhere can count findings inside a model's prose.
 - **Nothing makes the step-0 check run before a dispatch.** It is an instruction to the context about
   to dispatch; no layer observes a dispatch, so a driver sent without the check is caught only by the
@@ -549,7 +550,7 @@ refuses to print a figure that arrived without one.
   ~~assert that a session obeyed any of them, and no arm anywhere claims otherwise.~~ *(Struck
   2026-10-16, #128: that suite is the plugin's.)* **What reads this file's text in the method's source
   repository is narrow, and it reads strings.** `global/method/method_commands_test.py` asserts that
-  it carries the headings `## The steps` and `## What this rite cannot see`. `scripts/funnel-review.test.sh`
+  it carries the headings `## The steps` and `## What this rite cannot see`. mhw's `test/method/funnel-review.test.js`
   asserts that it carries no verdict literal and no decision field, that it publishes the
   candidate-queue selector verbatim, and that it cites the store contract. Other suites there check
   every method file for pointers, mentions and rendering. None asserts that a session obeyed any rule

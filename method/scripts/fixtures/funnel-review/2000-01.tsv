@@ -1,5 +1,5 @@
 # FIXTURE — synthetic. Every number here is invented and names no real property, post or reader.
-# It exists so `scripts/funnel-review.test.sh` can exercise the analysis half with no network and no
+# It exists so mhw's `test/method/funnel-review.test.js` can exercise the analysis half with no network and no
 # credential. The period is 2000-01 so it can never collide with a real one.
 #
 # The parsing contract is POSITIONAL, at column 0, exactly as `cadence-rite:`, `invocable:` and

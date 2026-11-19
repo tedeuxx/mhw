@@ -143,6 +143,10 @@ are deleted, `confine.py` with them (its last importers). The rows stay as this 
 exception below, was moved, not removed: it is `mhw rite-cadence` in Node
 (`src/commands/rite-cadence.js`), with the same output, and the Python file and its suite are deleted.
 The row stays as this evaluation read it.*
+*Amended 2026-11-19 ([#478](https://github.com/tedeuxx/mhw/issues/478)): `funnel-review.sh` was kept and
+then moved, not removed: it is `mhw funnel-review` in Node (`src/commands/funnel-review.js`), with the same
+output (the usage line names `mhw funnel-review`, and `-h`/`--help` print it), and the shell script and its
+suite are deleted. The row stays as this evaluation read it.*
 
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |

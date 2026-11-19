@@ -1,7 +1,7 @@
 # The funnel-review store contract
 
 **This is the parsing contract for the store `/funnel-review` writes and reads.** It ships with the
-method (#181), next to the script that parses it, `method/scripts/funnel-review.sh`. Before #181 it
+method (#181), and is parsed by `mhw funnel-review` (mhw's `src/commands/funnel-review.js`; until mhw#478 the script `method/scripts/funnel-review.sh`). Before #181 it
 lived only in the deprecated plugin repository, so a rite installed from the method named a contract
 it did not carry. The store itself belongs to the **consuming repository**: `docs/funnel-review/` at
 that repository's root. New periods are collected and reported there; a store kept elsewhere stays
@@ -18,7 +18,7 @@ source tree.
 | path, under the consumer's `docs/funnel-review/` | what it is | who writes it |
 |---|---|---|
 | `collected/<period>.tsv` | **what was read off the surfaces**, verbatim, one figure per line with its sample size | the rite's driver, or the owner by hand |
-| `<period>.md` | **the report**: the analysis, the comparison against the prior period, and at most two findings | the rite's driver, from `funnel-review.sh` |
+| `<period>.md` | **the report**: the analysis, the comparison against the prior period, and at most two findings | the rite's driver, from `mhw funnel-review` |
 
 **The split is not tidiness.** The report is derived and can be regenerated; the collection is the
 only record that a surface was ever read, and it is what the next period compares against. A store
@@ -135,7 +135,7 @@ earliest period says it has no prior period on record.
 
 The default refuses rather than asserting. A default that asserts a bound it cannot know is worse than
 one that declines, because only the first is quotable. **Adding a surface means adding a row here and
-a case in `funnel-review.sh`, in the same change**; until then its figures print as unbounded.
+a case in `ceilingFor` of mhw's `src/commands/funnel-review.js`, in the same change**; until then its figures print as unbounded.
 
 ### A `*`, `?` or bracket class in any field is a plain character
 
@@ -162,7 +162,7 @@ period is never mistaken for a reading of a real funnel.
 | `collected: yes` is TRUE | **nothing.** A driver that invented its figures produces a byte-identical file to one that read them |
 | a figure that should be split per piece and per language was split | **nothing.** An unqualified figure prints without the caveat, whatever it measured |
 | the declared `internal-traffic:` state is TRUE | **nothing.** The header prints what the file declares |
-| a report lands for a period that was collected | **nothing.** `funnel-review.test.sh` reads the artifacts that landed |
+| a report lands for a period that was collected | **nothing.** mhw's `test/method/funnel-review.test.js` reads the artifacts that landed |
 | the cap of two findings | **the test, over LANDED artifacts only** |
 | the store's two halves stay paired | **nothing.** A report with no collection file beside it passes every check |
 
