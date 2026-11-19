@@ -1,0 +1,13 @@
+{
+  "name": "unreadable-config-uses-defaults",
+  "runs": [
+    {
+      "args": [
+        "new.txt"
+      ],
+      "code": 0,
+      "stdout": "NOTE    the paste filter settings could not be read (UnicodeDecodeError); built-in defaults used\nNOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\nnew.txt:5: cpf, 14 chars\nmhw scan: 1 finding(s); 1 of 1 scanned file(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    }
+  ]
+}

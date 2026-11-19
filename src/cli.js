@@ -6,7 +6,7 @@
 //                    answers update itself; install --admin and uninstall do not exist there.
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
 // `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
-// `mhw funnel-review` (#478), `mhw profile` (#479), and `mhw chrome-debugging` (#480).
+// `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480) and `mhw scan` (#486).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // run by absolute path, never looked up on PATH. node: modules only (convention 5 of #470: this file is
 // on the hook path once `mhw hook prompt` moves here; test/deps-graph.test.js holds that).
@@ -23,6 +23,7 @@ import { main as riteCadenceMain } from './commands/rite-cadence.js';
 import { main as funnelReviewMain } from './commands/funnel-review.js';
 import { main as profileMain } from './commands/profile.js';
 import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
+import { main as scanMain } from './commands/scan.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -150,6 +151,7 @@ const MOVED = {
   profile: profileMain, // #479, S08
   // #480, S09: the install step install.sh spawns, and the status line workstation.py reads.
   'chrome-debugging': chromeDebuggingMain,
+  scan: scanMain, // #486, S15: the outbound scan, on the cleaning core (src/lib/clean.js)
 };
 
 /**

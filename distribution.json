@@ -49,7 +49,7 @@
     {
       "id": "outbound-scan",
       "layer": "managed",
-      "paths": ["global/scan.py"],
+      "paths": ["src/commands/scan.js", "src/lib/clean.js", "src/lib/clean-unicode.js"],
       "gap": "No harness carrier: mhw scan runs on an instruction in the global brief, informs and never blocks (ADR-0035, decision 7)."
     },
     {

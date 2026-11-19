@@ -241,6 +241,11 @@ Phone numbers, names and addresses are **not** detected: no conservative pattern
 - **Size cap:** an item over `max_bytes` (1,000,000) is **not checked, and the owner is told so**.
   *Measured:* a 1,000,000-byte item takes about 3.2 s to scan on the stock 3.9.6 interpreter (Apple
   Silicon).
+  *Measured 2026-11-19 (#486), beside it:* the same core ported to Node (`src/lib/clean.js`, which
+  `mhw scan` runs) on 1,000,000 bytes of synthetic text with a one-term list, Apple M4, best of three:
+  0.30 s on node 25.9.0, against 2.62 s for `clipboard_guard.py` on CPython 3.14.6 and 3.65 s on 3.9.6
+  (patterns only: 0.03 s, 0.27 s, 0.36 s). Command: `node test/helpers/s15-throughput.mjs
+  /opt/homebrew/bin/python3 /usr/bin/python3`.
 - **No log:**
   - The plist sends stdout and stderr to `/dev/null`.
   - The guard writes no file. Tested by snapshotting a throwaway home before and after both the
