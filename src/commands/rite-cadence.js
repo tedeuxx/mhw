@@ -55,16 +55,17 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { onPath } from '../lib/onpath.js';
+import { parse, helpText, usageText, terminalColumns } from '../lib/argparse.js';
 
 const REGULAR_FILE_MODES = new Set(['100644', '100755']);
-const USAGE = 'usage: mhw rite-cadence [-h] [--repo REPO] root [marker]';
 
 export class GitError extends Error {}
 class UsageError extends Error {}
 
 /**
- * @typedef {{ cwd: string, env: Record<string, string | undefined>, platform?: string,
+ * @typedef {{ cwd: string, env: Record<string, string | undefined>, platform?: string, terminal?: number,
  *   out: (s: string) => void, err: (s: string) => void }} Io
+ *   terminal: stdout's columns when it is a terminal (argparse's width when COLUMNS is unset)
  * @typedef {{ cwd: string, exe: string, env: Record<string, string | undefined> }} Git
  */
 
@@ -342,65 +343,27 @@ export function normalisedRoot(root, platform) {
   return bytesOf(n);
 }
 
-/** An option, as argparse reads one: a leading dash, but not "-" alone and not a negative number. @param {string} a */
-const looksLikeOption = (a) => a.startsWith('-') && a !== '-' && !/^-\d+$|^-\d*\.\d+$/.test(a);
-
 /**
- * A long option as argparse resolves it: a unique prefix of --repo is --repo (argparse's allow_abbrev).
- * @param {string} name
+ * The parser of the original, as argparse built it: prog, description, help and the help texts'
+ * textwrap chunks (TextWrapper._split_chunks of Python 3.14, see src/lib/argparse.js).
+ * @type {import('../lib/argparse.js').ParserSpec}
  */
-const longOption = (name) => (name.length > 2 && name.startsWith('--') && '--repo'.startsWith(name) ? '--repo' : name);
-
-/**
- * The arguments, argparse-like: --repo as `--repo value` or `--repo=value` (the last wins), `--`
- * ending the options, -h/--help, a unique prefix of a long option as argparse accepts one, then root
- * and an optional marker.
- * @param {string[]} argv
- * @returns {{ help: boolean, repo: string, root?: string, marker?: string }}
- */
-export function parseArgs(argv) {
-  let repo = '.';
-  /** @type {string[]} */
-  const positionals = [];
-  let ended = false;
-  let i = 0;
-  while (i < argv.length) {
-    const a = argv[i];
-    let next = i + 1;
-    if (!ended && a === '--') {
-      ended = true;
-    } else if (ended || !looksLikeOption(a)) {
-      positionals.push(a);
-    } else if (a === '-h' || (a.length > 2 && !a.includes('=') && '--help'.startsWith(a))) {
-      return { help: true, repo };
-    } else {
-      const [value, last] = takeRepo(argv, i);
-      repo = value;
-      next = last + 1;
-    }
-    i = next;
-  }
-  if (!positionals.length) throw new UsageError('the following arguments are required: root');
-  if (positionals.length > 2) throw new UsageError('unrecognized arguments: ' + positionals.slice(2).join(' '));
-  const marker = positionals.length > 1 ? positionals[1] : undefined;
-  if (marker !== undefined && !marker.trim()) throw new UsageError('marker must not be empty');
-  return { help: false, repo, root: positionals[0], marker };
-}
-
-/**
- * The --repo option at argv[i]: its value and the index of the last argument it consumed.
- * @param {string[]} argv
- * @param {number} i
- * @returns {[string, number]}
- */
-function takeRepo(argv, i) {
-  const a = argv[i];
-  const eq = a.indexOf('=');
-  if (longOption(eq > 0 ? a.slice(0, eq) : a) !== '--repo') throw new UsageError('unrecognized arguments: ' + a);
-  if (eq > 0) return [a.slice(eq + 1), i];
-  if (i + 1 >= argv.length || looksLikeOption(argv[i + 1])) throw new UsageError('argument --repo: expected one argument');
-  return [argv[i + 1], i + 1];
-}
+export const SPEC = {
+  prog: 'mhw rite-cadence',
+  description: ['Date', ' ', 'a', ' ', 'rite', ' ', 'by', ' ', 'its', ' ', 'ran-', 'marked', ' ', 'artifacts.'],
+  options: [
+    { dest: 'help', nargs: 0, strings: ['-h', '--help'],
+      help: ['show', ' ', 'this', ' ', 'help', ' ', 'message', ' ', 'and', ' ', 'exit'] },
+    { dest: 'repo', nargs: null, strings: ['--repo'],
+      help: ['the', ' ', 'repository', ' ', '(default:', ' ', 'the', ' ', 'current', ' ', 'directory)'] },
+  ],
+  positionals: [
+    { dest: 'root', nargs: null,
+      help: ['the', ' ', "rite's", ' ', 'artifact', ' ', 'root,', ' ', 'relative', ' ', 'to', ' ', 'the', ' ', 'repository'] },
+    { dest: 'marker', nargs: '?',
+      help: ['the', ' ', "rite's", ' ', 'ran-', 'marker,', ' ', 'matched', ' ', 'as', ' ', 'a', ' ', 'whole', ' ', 'line'] },
+  ],
+};
 
 /**
  * The repository's top directory, from --repo resolved against the caller's directory.
@@ -428,38 +391,38 @@ function repositoryTop(io, repo) {
  * @returns {number}
  */
 export function run(argv, io) {
-  let args;
-  try {
-    args = parseArgs(argv);
-    if (args.help) {
-      io.out(USAGE + '\n\nDate a rite by its ran-marked artifacts.\n');
-      return 0;
-    }
-  } catch (e) {
-    if (!(e instanceof UsageError)) throw e;
-    io.err(USAGE + '\nmhw rite-cadence: error: ' + e.message + '\n');
+  const columns = terminalColumns(io.env, io.terminal);
+  /** @param {string} message */
+  const usageError = (message) => {
+    io.err(usageText(SPEC, columns) + SPEC.prog + ': error: ' + message + '\n');
     return 2;
+  };
+  const parsed = parse(SPEC, argv);
+  if (parsed.kind === 'help') {
+    io.out(helpText(SPEC, columns));
+    return 0;
   }
-  const rootText = /** @type {string} */ (args.root);
+  if (parsed.kind === 'error') return usageError(parsed.message);
+  const rootText = /** @type {string} */ (parsed.values.root);
+  const markerText = parsed.values.marker;
+  const repo = parsed.values.repo ?? '.';
+  if (markerText !== undefined && !markerText.trim()) return usageError('marker must not be empty');
   try {
     const root = normalisedRoot(rootText, io.platform || process.platform);
-    const g = repositoryTop(io, args.repo);
-    if (args.marker === undefined) {
+    const g = repositoryTop(io, repo);
+    if (markerText === undefined) {
       const found = lastChange(g, root);
       io.out(found ? rootText + ': last changed ' + found[0] + ' (' + found[1] + '), no ran-marker declared\n' : rootText + ': never changed\n');
       return 0;
     }
-    const marker = bytesOf(args.marker);
+    const marker = bytesOf(markerText);
     const found = lastMarkerCommit(g, committedWithMarker(g, root, marker), marker);
     io.out(found
-      ? rootText + ': last ran ' + found[0] + ' (' + found[1] + '), dated by files carrying ' + args.marker + '\n'
-      : rootText + ': never landed a file carrying ' + args.marker + '\n');
+      ? rootText + ': last ran ' + found[0] + ' (' + found[1] + '), dated by files carrying ' + markerText + '\n'
+      : rootText + ': never landed a file carrying ' + markerText + '\n');
     return 0;
   } catch (e) {
-    if (e instanceof UsageError) {
-      io.err(USAGE + '\nmhw rite-cadence: error: ' + e.message + '\n');
-      return 2;
-    }
+    if (e instanceof UsageError) return usageError(e.message);
     if (e instanceof GitError) {
       io.err(e.message + '\n');
       return 1;
@@ -478,5 +441,6 @@ export function main(argv, env) {
     env,
     out: (s) => process.stdout.write(s),
     err: (s) => process.stderr.write(s),
+    terminal: process.stdout.isTTY ? process.stdout.columns : 0,
   });
 }

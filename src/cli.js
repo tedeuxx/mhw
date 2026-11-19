@@ -4,7 +4,7 @@
 //   macOS and Linux: runs the package's ./mhw with the same arguments.
 //   Windows:         runs global\install.ps1 (install, install --method, check, status = check) and
 //                    answers update itself; install --admin and uninstall do not exist there.
-// Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474)
+// Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
 // `mhw milestone` (#475) and `mhw rite-cadence` (#477).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // run by absolute path, never looked up on PATH. node: modules only (convention 5 of #470: this file is

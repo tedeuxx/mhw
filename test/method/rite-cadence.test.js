@@ -12,7 +12,8 @@
 // Normalised before comparing: the case's directory (<BASE>), a short commit (its subject and committer
 // date, so a hash that differs by git build cannot break the comparison while naming the wrong commit
 // still does), and git's own text after "git <cmd> failed: ", which differs between git versions.
-// Intended differences are in test/golden/S06/expected-differences.json, each with its reason.
+// The original runs under the program name `mhw rite-cadence` (PY_AS_MHW below). The one other intended
+// difference is in test/golden/S06/expected-differences.json, with its reason.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -33,6 +34,12 @@ const PY = which('python3');
 const RAN = 'FUNNEL-REVIEW-RAN';
 const NOT_COLLECTED = 'FUNNEL-REVIEW-NOT-COLLECTED';
 const STORE = 'docs/funnel-review';
+// The one declared difference, the program name, applied at the source: the original runs with argv[0]
+// set to the name the command is called by (exec, not runpy, which would set argv[0] back to the
+// path), so argparse prints `mhw rite-cadence` where it printed the script's file name. Rewriting the name in the output instead would leave a wrapped usage different,
+// because argparse indents its continuation lines by the name's length.
+const PY_AS_MHW = "import sys; script = sys.argv[1]; sys.argv = ['mhw rite-cadence'] + sys.argv[2:]; "
+  + "exec(compile(open(script, 'rb').read(), script, 'exec'), {'__name__': '__main__', '__file__': script})";
 /** @type {Array<{ case: string[], stream: 'stdout' | 'stderr', base: string, replace?: string, head?: string, why: string }>} */
 const expected = readGolden(SLICE, 'expected-differences.json');
 const cleanups = /** @type {Array<() => void>} */ ([]);
@@ -82,7 +89,8 @@ class Fixture {
     /** @type {Record<string, string>} */
     const env = {};
     for (const [k, v] of Object.entries(process.env)) if (v !== undefined) env[k] = v;
-    for (const k of Object.keys(env)) if (k.startsWith('GIT_') || k === 'FORCE_COLOR') delete env[k];
+    // COLUMNS: argparse wraps its help and usage to it; unset, a pipe reads as 80 columns on both sides.
+    for (const k of Object.keys(env)) if (k.startsWith('GIT_') || k === 'FORCE_COLOR' || k === 'COLUMNS') delete env[k];
     Object.assign(env, { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: empty, GIT_AUTHOR_NAME: 't',
       GIT_AUTHOR_EMAIL: 't@example.invalid', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.invalid',
       NO_COLOR: '1', PYTHON_COLORS: '0', PYTHONDONTWRITEBYTECODE: '1' });
@@ -562,6 +570,25 @@ const CASES = [
     f.run(['--repo', '.', '--repo', f.repo, STORE, RAN], has('last ran 2026-03-03 ('), { cwd: f.base });
     f.run(['.', RAN], is('.: last ran 2026-03-03 (' + f.shortHead() + '), dated by files carrying ' + RAN + '\n'));
   } },
+  // Added (#477 review B1): the help action, as argparse runs it. Each form prints the full help and
+  // exits 0, or is refused with argparse's own message and exit 2; the controls show what decides it
+  // (a value attached to -h, an option before or after -h, '--', an ambiguous prefix) and the width
+  // argparse wraps to (COLUMNS, else 80 on a pipe).
+  { name: 'help-forms', cli: true, build: (f) => {
+    /** @param {Result} r */
+    const help = (r) => {
+      assert.equal(r.code, 0, r.stderr);
+      assert.match(r.stdout, /^usage: /);
+      assert.ok(r.stdout.includes('\npositional arguments:\n') && r.stdout.includes('\noptions:\n'), r.stdout);
+      assert.equal(r.stderr, '');
+    };
+    for (const argv of [['-h'], ['--help'], ['--h'], ['--he'], ['-hx'], ['-hh'], ['-hrepo'], ['-x', '-h'], ['-h', '-x'],
+      [STORE, '-h'], [STORE, RAN, '-h'], ['--repo', '.', '-h'], ['-h', '--repo'], ['---', '-h'], ['-h', '--=x']]) f.run(argv, help);
+    for (const argv of [['--help=1'], ['--h=1'], ['-h=1'], ['-h='], ['--=x'], ['--=x', '-h'], ['--repo', '-h']]) f.run(argv, usage(2));
+    f.run(['--', '-h'], is('-h: never changed\n'));
+    for (const columns of ['60', '40', '30', '20', '1', '0', 'abc', '200']) f.run(['-h'], help, { env: { COLUMNS: columns } });
+    for (const columns of ['30', '20']) f.run(['--repo'], usage(2), { env: { COLUMNS: columns } });
+  } },
   // Added: git not on PATH is a git failure (exit 1), never "never".
   { name: 'git-not-on-path', cli: true, noGit: true, build: (f) => {
     f.commit('sprint-02.md', RAN + '\n', '2026-03-03');
@@ -740,7 +767,7 @@ test('live: the Python original and the Node command side by side on the same re
     t.skip(script);
     return;
   }
-  const python = spawned('python', /** @type {string} */ (PY), ['-B', script]);
+  const python = spawned('python', /** @type {string} */ (PY), ['-B', '-c', PY_AS_MHW, script]);
   /** @type {string[]} */
   const diffs = [];
   for (const c of CASES) {

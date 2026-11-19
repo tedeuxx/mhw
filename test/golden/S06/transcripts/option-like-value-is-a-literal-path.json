@@ -47,7 +47,7 @@
       ],
       "code": 2,
       "stdout": "",
-      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: unrecognized arguments: --output=x\n"
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: unrecognized arguments: --output=x\n"
     },
     {
       "args": [
@@ -56,7 +56,7 @@
       ],
       "code": 2,
       "stdout": "",
-      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: unrecognized arguments: -p\n"
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: unrecognized arguments: -p\n"
     },
     {
       "args": [
@@ -67,7 +67,7 @@
       ],
       "code": 2,
       "stdout": "",
-      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: unrecognized arguments: -r\n"
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: unrecognized arguments: -r\n"
     },
     {
       "args": [

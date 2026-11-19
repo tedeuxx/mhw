@@ -9,7 +9,7 @@
       ],
       "code": 2,
       "stdout": "",
-      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: root must be a path relative to the repository\n"
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: root must be a path relative to the repository\n"
     },
     {
       "args": [
@@ -19,7 +19,7 @@
       ],
       "code": 2,
       "stdout": "",
-      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: root must be a path relative to the repository\n"
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: root must be a path relative to the repository\n"
     },
     {
       "args": [
@@ -29,7 +29,7 @@
       ],
       "code": 2,
       "stdout": "",
-      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: root must not leave the repository\n"
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: root must not leave the repository\n"
     },
     {
       "args": [
@@ -39,7 +39,7 @@
       ],
       "code": 2,
       "stdout": "",
-      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: root must not leave the repository\n"
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: root must not leave the repository\n"
     }
   ]
 }

@@ -8,7 +8,7 @@
       ],
       "code": 2,
       "stdout": "",
-      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: marker must not be empty\n"
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: marker must not be empty\n"
     }
   ]
 }
