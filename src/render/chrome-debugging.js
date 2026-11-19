@@ -75,7 +75,10 @@ export function systemName() {
  */
 export function homeOf(env) {
   const h = env.HOME !== undefined ? env.HOME : os.homedir();
-  return process.platform === 'win32' ? h : h.replace(/\/+$/, '') || '/';
+  if (process.platform === 'win32') return h;
+  let end = h.length;
+  while (end > 0 && h[end - 1] === '/') end--;
+  return h.slice(0, end) || '/';
 }
 
 /**

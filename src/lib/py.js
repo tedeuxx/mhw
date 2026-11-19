@@ -452,9 +452,17 @@ function reprString(s) {
   return out + q;
 }
 
+/** repr() and str() of a float: floatRepr with Python's lower-case nan and inf. @param {PyFloat} f */
+function floatStr(f) {
+  /** @type {Record<string, string>} */
+  const special = { NaN: 'nan', Infinity: 'inf', '-Infinity': '-inf' };
+  const r = floatRepr(f.v);
+  return special[r] ?? r;
+}
+
 /**
- * repr() of a parsed JSON value. A dict's keys print in JavaScript's own key order, which differs from
- * CPython's insertion order only for integer-like keys.
+ * repr() of a parsed JSON value. A plain object's keys print in JavaScript's own key order, which differs
+ * from CPython's insertion order only for integer-like keys; a Map (an ordered loads()) keeps its order.
  * @param {unknown} v
  * @returns {string}
  */
@@ -462,26 +470,19 @@ export function pyRepr(v) {
   if (v === null || v === undefined) return 'None';
   if (v === true) return 'True';
   if (v === false) return 'False';
-  if (v instanceof PyFloat) {
-    const r = floatRepr(v.v);
-    return r === 'NaN' ? 'nan' : r === 'Infinity' ? 'inf' : r === '-Infinity' ? '-inf' : r;
-  }
+  if (v instanceof PyFloat) return floatStr(v);
   if (typeof v === 'number' || typeof v === 'bigint') return String(v);
   if (typeof v === 'string') return reprString(v);
   if (Array.isArray(v)) return '[' + v.map(pyRepr).join(', ') + ']';
-  // An ordered loads() dict: its insertion order, as CPython prints a dict.
-  if (v instanceof Map) return '{' + [...v].map(([k, x]) => reprString(k) + ': ' + pyRepr(x)).join(', ') + '}';
-  const o = /** @type {Record<string, unknown>} */ (v);
-  return '{' + Object.keys(o).map((k) => reprString(k) + ': ' + pyRepr(o[k])).join(', ') + '}';
+  // An ordered loads() dict prints in its insertion order, as CPython prints a dict.
+  const entries = v instanceof Map ? [...v] : Object.entries(/** @type {Record<string, unknown>} */ (v));
+  return '{' + entries.map(([k, x]) => reprString(k) + ': ' + pyRepr(x)).join(', ') + '}';
 }
 
 /** f"{v}" / str(v) of a scalar the report prints. @param {unknown} v */
 export function pyStr(v) {
   if (v === null || v === undefined) return 'None';
-  if (v instanceof PyFloat) {
-    const r = floatRepr(v.v);
-    return r === 'NaN' ? 'nan' : r === 'Infinity' ? 'inf' : r === '-Infinity' ? '-inf' : r;
-  }
+  if (v instanceof PyFloat) return floatStr(v);
   if (typeof v === 'string') return v;
   return pyRepr(v);
 }
