@@ -313,16 +313,25 @@ names its path. A refused surface keeps its entries, and a refused server keeps 
 either may still start the shell launcher, so the file is then reported `KEPT`. `--check` names it
 `STALE` while it exists.
 
-Every argument and source rule, every message naming `NAME` and its source, and every exit code are
-the shell launcher's. The golden transcripts in `test/golden/S12/` hold that, with the intended
-differences listed beside them.
+Every argument and source rule, and every message naming `NAME` and its source, is the shell
+launcher's, and so is every exit code except those listed in `test/golden/S12/expected-differences.json`
+(a command that cannot start exits 127, and the `NODE_DEBUG` refusal exits 2). The golden transcripts
+in `test/golden/S12/` hold that, with each intended difference and its reason. A `NAME` or `VAR` that
+`Object.prototype` owns (`constructor`, `__proto__` and ten more) is an ordinary variable, as it was to
+the shell. Two more differences, both on the server's side, are declared there:
+
+- The shell added `PWD` (and, as bash, `SHLVL`) to the server's environment. It also let its own
+  variables leak: it emptied an inherited `keychain`, overwrote `name` and removed `value`. The Node
+  launcher passes the environment as it got it, plus the secrets.
+- Only the signals listed below are forwarded; job-control signals stop or continue the launcher, not
+  the server.
 
 **What changed because Node cannot `exec` in place:** the launcher stays as the server's parent.
 
 - **Stdio:** the server inherits stdin, stdout and stderr themselves, so it is still the process the
   harness talks to, byte for byte.
-- **Signals:** SIGINT, SIGTERM, SIGHUP and SIGUSR1 are forwarded to the server, and its exit code is
-  the launcher's. A server killed by a signal makes the launcher die of the same signal, except for
+- **Signals:** SIGINT, SIGTERM, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2, SIGWINCH, SIGALRM and SIGPIPE are
+  forwarded to the server (SIGINT, SIGTERM and SIGHUP on Windows), and its exit code is the launcher's. A server killed by a signal makes the launcher die of the same signal, except for
   SIGUSR1 and SIGPIPE: then the launcher exits 128+n. Node opens its inspector on SIGUSR1 and ignores
   SIGPIPE. The launcher always listens for SIGUSR1, so the inspector never opens in the process that
   read the secrets (an unhandled SIGUSR1 opened `127.0.0.1:9229`, measured on node 25.9).

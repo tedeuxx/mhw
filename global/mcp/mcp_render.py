@@ -214,7 +214,8 @@ def node_binary():
             return node
         raise Refuse(2, "REFUSE  the MCP launcher: MHW_NODE (%s) is not an executable file; nothing written" % node)
     found = shutil.which("node")
-    return found if found and os.path.isabs(found) else None
+    # A relative PATH entry gives a relative result; the rendered command must be absolute (QA P8).
+    return os.path.abspath(found) if found else None
 
 
 def manifest_path():

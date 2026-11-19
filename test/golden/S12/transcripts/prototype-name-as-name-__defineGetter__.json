@@ -1,0 +1,6 @@
+{
+  "code": 0,
+  "signal": null,
+  "stdout": "{\"argv\":[\"<FAKE>\",\"env\",\"-\",\"__defineGetter__\"],\"env\":{\"__defineGetter__\":\"ab209b33f2fe5636c5f7c1a1e82de48a8363aa291d7bd36d55d04969b25f8611\"}}\n",
+  "stderr": ""
+}

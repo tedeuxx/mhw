@@ -879,6 +879,16 @@ class Render(unittest.TestCase):
             self.assertEqual(r.node_binary(), link)
             os.environ["PATH"] = os.path.join(BASE, "empty-path")
             self.assertEqual(r.node_binary(), os.path.realpath(NODE), "no node on PATH: MHW_NODE as given")
+            # QA P8: a relative PATH entry still renders an absolute node.
+            os.environ.pop("MHW_NODE")
+            os.environ["PATH"] = "stable-bin"
+            cwd = os.getcwd()
+            os.chdir(BASE)
+            try:
+                self.assertEqual(r.node_binary(), link)
+                self.assertTrue(os.path.isabs(r.node_binary()))
+            finally:
+                os.chdir(cwd)
         finally:
             for k, v in saved.items():
                 if v is None:

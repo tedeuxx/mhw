@@ -161,6 +161,32 @@ test('every argument and source refusal stops before anything starts, naming NAM
   }
 });
 
+// The names Object.prototype owns that a variable name can be (QA on PR #516, B1).
+const PROTO_NAMES = Object.getOwnPropertyNames(Object.prototype).filter((n) => /^[A-Za-z_]\w*$/.test(n)).sort((a, b) => a.localeCompare(b));
+
+test('a NAME or VAR that Object.prototype owns is an ordinary variable: set as NAME, unset as VAR', () => {
+  assert.equal(PROTO_NAMES.length, 12, 'the reachable names: ' + PROTO_NAMES.join(' '));
+  const v = synthetic();
+  for (const n of PROTO_NAMES) {
+    const p = plan(['--secret', n + '=env:SRC_VAR', '--', 'srv'], { ...BASE_ENV, SRC_VAR: v }, STUB);
+    assert.ok(Object.hasOwn(p.childEnv, n), n + ': the secret was dropped');
+    assert.equal(p.childEnv[n], v, n);
+    assert.deepEqual(refusal(['--secret', 'X=env:' + n, '--', 'srv'], BASE_ENV, STUB), {
+      code: 3, message: 'secret X: environment variable ' + n + " is not set in the launcher's environment",
+    }, n);
+  }
+});
+
+test('the server receives __proto__ and constructor as variables, by name', async () => {
+  const v = synthetic();
+  const r = await run('cli', ['--secret', '__proto__=env:SRC_VAR', '--secret', 'constructor=env:SRC_VAR', '--', NODE, FAKE, 'env', '-', '__proto__', 'constructor'], { env: { ...BASE_ENV, SRC_VAR: v } });
+  assert.equal(r.code, 0, r.stderr);
+  const got = JSON.parse(r.stdout.toString('utf8')).env;
+  assert.ok(Object.hasOwn(got, '__proto__'), 'the server did not get __proto__');
+  assert.equal(Object.getOwnPropertyDescriptor(got, '__proto__')?.value, sha(v));
+  assert.equal(got.constructor, sha(v));
+});
+
 test('NODE_DEBUG refuses a launch that carries a secret, since node would print its environment', () => {
   const env = { ...BASE_ENV, SET_ONE: synthetic(), NODE_DEBUG: 'child_process' };
   const r = refusal(['--secret', 'A=env:SET_ONE', '--', 'x'], env, STUB);
@@ -321,8 +347,9 @@ test('a server killed by a signal makes the launcher die of the same signal', bo
 });
 
 test('SIGINT, SIGTERM and SIGHUP sent to the launcher reach the server, and its exit is the launcher\'s', bounded, async () => {
-  assert.deepEqual([...FORWARDED], ['SIGINT', 'SIGTERM', 'SIGHUP']);
-  for (const s of FORWARDED) {
+  // Every catchable signal exec used to deliver to the server (PR #516 QA B2a), SIGUSR1 by its own listener.
+  assert.deepEqual([...FORWARDED], ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGUSR2', 'SIGWINCH', 'SIGALRM', 'SIGPIPE']);
+  for (const s of [...FORWARDED, /** @type {NodeJS.Signals} */ ('SIGUSR1')]) {
     const mark = fresh('trap.json');
     const { child, done } = start('file', ['--', NODE, FAKE, 'trap', mark]);
     await until(mark);
@@ -363,6 +390,23 @@ test('SIGUSR1 sent to the launcher reaches the server and never opens the inspec
     assert.equal(fs.readFileSync(mark + '.sig', 'utf8'), 'SIGUSR1\n', entry);
     assert.ok(!r.stderr.includes('Debugger listening'), entry + ': the inspector opened');
   }
+});
+
+test('no orphan: a server that ignores SIGTERM is killed once the grace period is over', bounded, async () => {
+  const mark = fresh('stubborn.json');
+  const { child, done } = start('cli', ['--', NODE, FAKE, 'stubborn', mark]);
+  const server = await until(mark);
+  const exited = new Promise((resolve) => child.once('exit', (_c, s) => resolve(s)));
+  child.kill('SIGKILL');
+  assert.equal(await exited, 'SIGKILL');
+  await new Promise((res) => setTimeout(res, 500));
+  assert.ok(alive(server.pid), 'calibration: the server outlives SIGTERM');
+  const end = Date.now() + 8000;
+  while (alive(server.pid) && Date.now() < end) await new Promise((res) => setTimeout(res, 50));
+  const orphan = alive(server.pid);
+  if (orphan) process.kill(server.pid, 'SIGKILL');
+  assert.ok(!orphan, 'a server ignoring SIGTERM outlived its launcher: the SIGKILL escalation is gone');
+  await done;
 });
 
 test('no orphan: a launcher killed with SIGKILL takes the server down with it', bounded, async () => {

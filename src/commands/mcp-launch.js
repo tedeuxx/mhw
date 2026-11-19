@@ -26,9 +26,9 @@
 //
 // Node cannot exec in place, so this process stays as the server's parent. The server inherits stdin,
 // stdout and stderr themselves (no copy in between), so the server is still the process the harness
-// talks to, byte for byte. SIGINT, SIGTERM, SIGHUP and SIGUSR1 are forwarded to it; its exit code is this
-// process's exit code, and a server killed by a signal makes this process die of the same signal, except
-// SIGUSR1 and SIGPIPE (exit 128+n; see NOT_RERAISED). A
+// talks to, byte for byte. The catchable signals exec used to deliver to the server are forwarded to it
+// (FORWARDED, SIGUSR1); its exit code is this process's exit code, and a server killed by a signal makes
+// this process die of the same signal, except SIGUSR1 and SIGPIPE (exit 128+n; see NOT_RERAISED). A
 // small watcher process, holding nothing but a pipe from this process and the server's pid, stops the
 // server if this process is killed in a way no handler sees (SIGKILL), so the server is never orphaned.
 import fs from 'node:fs';
@@ -39,7 +39,15 @@ import { pathToFileURL } from 'node:url';
 export const SECURITY = '/usr/bin/security';
 const USAGE = 'mhw mcp launch [--secret NAME=SOURCE]... -- command [args...]';
 const NAME_RE = /^[A-Za-z_]\w*$/;
-export const FORWARDED = /** @type {const} */ (['SIGINT', 'SIGTERM', 'SIGHUP']);
+// Under exec the server owned the harness's pid and received every signal sent to it. These are the
+// catchable ones a sender uses; they are forwarded (SIGUSR1 too, by its own listener below). Not forwarded,
+// declared in test/golden/S12/expected-differences.json: the job-control signals (SIGTSTP, SIGTTIN, SIGTTOU
+// and SIGCONT stop or continue the launcher, not the server), and the ones a process raises against itself
+// (SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGABRT, SIGTRAP, SIGSYS, SIGXCPU, SIGXFSZ) or a profiler or timer
+// sends (SIGVTALRM, SIGPROF). Windows has three of them only.
+export const FORWARDED = /** @type {NodeJS.Signals[]} */ (process.platform === 'win32'
+  ? ['SIGINT', 'SIGTERM', 'SIGHUP']
+  : ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGUSR2', 'SIGWINCH', 'SIGALRM', 'SIGPIPE']);
 // SIGUSR1 is node's inspector trigger: with no listener, node opens a debugger on 127.0.0.1:9229 in the
 // process that read the secrets (measured, PR #516 lens B1). The launcher always listens for it, so the
 // inspector never opens, and forwards it to the server, which is where exec delivered it.
@@ -119,8 +127,10 @@ function readKeychain(name, service, keychain, env, security) {
  * @returns {{ childEnv: Record<string, string | undefined>, command: string[] }}
  */
 export function plan(argv, env, security = SECURITY) {
+  // No prototype: a NAME or VAR from the contract may be any variable name, constructor and __proto__
+  // included, and must read and write an own entry, never Object.prototype (PR #516 QA B1).
   /** @type {Record<string, string | undefined>} */
-  const childEnv = { ...env };
+  const childEnv = Object.assign(Object.create(null), env);
   let keychain = '';
   let seenSecret = false;
   let i = 0;
@@ -156,7 +166,7 @@ export function plan(argv, env, security = SECURITY) {
         const v = src.slice('env:'.length);
         if (!NAME_RE.test(v)) die('secret ' + name + ": '" + v + "' is not a valid environment variable name");
         // An earlier --secret is already in this environment, as the shell's export put it there.
-        const found = childEnv[v];
+        const found = Object.hasOwn(childEnv, v) ? childEnv[v] : undefined;
         if (found === undefined) die('secret ' + name + ': environment variable ' + v + " is not set in the launcher's environment", 3);
         value = chompAll(found);
       } else {

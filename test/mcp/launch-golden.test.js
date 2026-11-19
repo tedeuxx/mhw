@@ -47,6 +47,8 @@ const BYTES = Buffer.concat([Buffer.from(Array.from({ length: 256 }, (_, i) => i
  * @typedef {{ code: number | null, signal: string | null, stdout: string, stderr: string }} Run
  */
 const X = ['--', '<NODE>', '<FAKE>', 'exit', '0'];
+// The names Object.prototype owns that a variable name can be (PR #516 QA B1): ordinary variables to the shell.
+const PROTO_NAMES = Object.getOwnPropertyNames(Object.prototype).filter((n) => /^[A-Za-z_]\w*$/.test(n)).sort((a, b) => a.localeCompare(b));
 /** @type {LaunchCase[]} */
 const LAUNCH = [
   { name: 'no-command', args: [] },
@@ -75,6 +77,12 @@ const LAUNCH = [
   { name: 'killed-by-sigkill', args: ['--', '<NODE>', '<FAKE>', 'signal', 'SIGKILL'] },
   { name: 'killed-by-sigterm', args: ['--', '<NODE>', '<FAKE>', 'signal', 'SIGTERM'] },
   { name: 'command-not-found', args: ['--', '<DIR>/no-such-server'] },
+  { name: 'environment-as-the-server-sees-it', args: ['--secret', 'A_TOKEN=env:SRC_VAR', '--', '<NODE>', '<FAKE>', 'envall', '-', 'value', 'keychain', 'name', 'A_TOKEN', 'SRC_VAR'], env: { SRC_VAR: VALUE, keychain: 'inherited-k', name: 'inherited-n', value: 'inherited-v' } },
+  { name: 'node-debug-with-a-secret', args: ['--secret', 'A_TOKEN=env:SRC_VAR', ...X], env: { SRC_VAR: VALUE, NODE_DEBUG: 'child_process' } },
+  ...PROTO_NAMES.flatMap((n) => [
+    { name: 'prototype-name-as-name-' + n, args: ['--secret', n + '=env:SRC_VAR', '--', '<NODE>', '<FAKE>', 'env', '-', n], env: { SRC_VAR: VALUE } },
+    { name: 'prototype-name-as-var-' + n, args: ['--secret', 'X=env:' + n, ...X] },
+  ]),
   { name: 'keychain-value-reaches-the-server', keychain: true, args: ['--keychain', '<KC>', '--secret', 'K_TOKEN=keychain:svc.ok', '--', '<NODE>', '<FAKE>', 'env', '-', 'K_TOKEN'] },
   { name: 'keychain-absent-item', keychain: true, args: ['--keychain', '<KC>', '--secret', 'K_TOKEN=keychain:svc.none', ...X] },
   { name: 'keychain-hex-value', keychain: true, args: ['--keychain', '<KC>', '--secret', 'K_TOKEN=keychain:svc.hex', ...X] },
@@ -148,7 +156,8 @@ async function playLaunch(c, side) {
     assert.ok(!r.stdout.includes(v) && !r.stderr.includes(v), c.name + ': a synthetic secret was printed');
   }
   const text = r.stdout.toString('utf8');
-  const stdout = Buffer.from(text, 'utf8').equals(r.stdout) ? normalise(text, subs) : 'base64:' + r.stdout.toString('base64');
+  // macOS gives every process __CF_USER_TEXT_ENCODING; it says nothing about either launcher.
+  const stdout = Buffer.from(text, 'utf8').equals(r.stdout) ? normalise(text, subs).replaceAll('"__CF_USER_TEXT_ENCODING",', '') : 'base64:' + r.stdout.toString('base64');
   return { code: r.code, signal: r.signal, stdout, stderr: normalise(r.stderr, subs) };
 }
 

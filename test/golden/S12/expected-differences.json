@@ -1,48 +1,141 @@
 [
   {
-    "case": ["unexpected-argument"],
-    "stream": ["stderr"],
+    "case": [
+      "unexpected-argument"
+    ],
+    "stream": [
+      "stderr"
+    ],
     "base": "\\(usage: mcp-launch\\.sh ",
     "head": "\\(usage: mhw mcp launch ",
     "replace": "(usage: <launcher> ",
     "why": "The usage hint names the command as it is now called (mhw mcp launch, not the deleted script's file name). The message, the stream and the exit code (2) are still compared."
   },
   {
-    "case": ["command-not-found"],
-    "stream": ["stderr"],
+    "case": [
+      "command-not-found"
+    ],
+    "stream": [
+      "stderr"
+    ],
     "base": "^<SCRIPT>: [^\\n]*no-such-server[^\\n]*\\n$",
     "head": "^mcp-launch: cannot start '<DIR>/no-such-server': not found\\n$",
     "replace": "<the server could not be started>\n",
     "why": "The shell launcher exec'd the command, so a missing one was reported by /bin/sh itself, in its own wording (bash: 'No such file or directory', dash: 'not found', with the script's path and line). Node cannot exec in place; the launcher spawns the server and reports a missing command in one line of its own. Nothing is started on either side."
   },
   {
-    "case": ["command-not-found"],
-    "stream": ["code"],
+    "case": [
+      "command-not-found"
+    ],
+    "stream": [
+      "code"
+    ],
     "base": "^(?:1|127)$",
     "head": "^127$",
     "replace": "<exec failure status>",
-    "why": "The status of a failed exec is the shell's: 127 from dash (Linux), 1 from bash as /bin/sh (macOS, measured on 3.2). The Node launcher always exits 127, the POSIX status for a command not found."
+    "why": "The base renderer rendered the script path as the server command, so the harness ran it through its #!/bin/sh shebang: bash 3.2 on macOS, dash on Linux. A failed exec of a command with a slash in it exits 1 under bash-as-sh and 127 under dash; a bare name not on PATH exits 127 under both. This case names a path, so the base exits 1 on macOS and 127 on Linux. The Node launcher always exits 127, the POSIX status for a command not found."
   },
   {
-    "case": ["render-dry-run", "render-install-check-reinstall"],
-    "stream": ["*"],
+    "case": [
+      "render-dry-run",
+      "render-install-check-reinstall"
+    ],
+    "stream": [
+      "*"
+    ],
     "head": "command = \"<NODE>\"\\nargs = \\[\"<LAUNCHER>\", ",
     "replace": "command = \"<LAUNCHER>\"\nargs = [",
     "why": "The one expected difference of mcp_render.py (#483): a server with secrets is now started as <node> <the installed launcher copy> --secret ... -- <command>, where it was <the shell launcher> --secret ... -- <command>. This is the Codex TOML form; the JSON form follows. Node is named by absolute path (MHW_NODE, else node on PATH), so a harness whose PATH has no node still starts it."
   },
   {
-    "case": ["render-dry-run", "render-install-check-reinstall"],
-    "stream": ["*"],
+    "case": [
+      "render-dry-run",
+      "render-install-check-reinstall"
+    ],
+    "stream": [
+      "*"
+    ],
     "head": "\"command\": \"<NODE>\",\\n( *)\"args\": \\[\\n *\"<LAUNCHER>\",\\n",
     "replace": "\"command\": \"<LAUNCHER>\",\n$1\"args\": [\n",
     "why": "The same rendered-command difference in the JSON surfaces (Claude Code, Claude desktop, Kiro): command is node, and the launcher copy is the first argument."
   },
   {
-    "case": ["render-dry-run"],
-    "stream": ["*"],
+    "case": [
+      "render-dry-run"
+    ],
+    "stream": [
+      "*"
+    ],
     "base": "\\(the credential launcher, [0-9]+ bytes\\)",
     "head": "\\(the credential launcher, [0-9]+ bytes\\)",
     "replace": "(the credential launcher, <N> bytes)",
     "why": "The launcher file is the Node launcher now (src/commands/mcp-launch.js, installed as mcp-launch.mjs instead of mcp-launch.sh; both paths are normalised to <LAUNCHER>), so its size differs. Its mode (0700) and its marker line are still checked, in the tree and by mcp_render_test.py."
+  },
+  {
+    "case": [
+      "environment-as-the-server-sees-it"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "\"(?:PWD|SHLVL)\",",
+    "head": "(?!)",
+    "replace": "",
+    "why": "The shell added PWD (bash and dash) and SHLVL (bash) to the server's environment. The Node launcher passes the environment as it got it, plus the secrets; nothing else is added."
+  },
+  {
+    "case": [
+      "environment-as-the-server-sees-it"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "\"(keychain|name|value)\":(?:\"[0-9a-f]{64}\"|null)",
+    "head": "\"(keychain|name|value)\":(?:\"[0-9a-f]{64}\"|null)",
+    "replace": "\"$1\":<inherited>",
+    "why": "The shell's own variables leaked into the server's environment: it emptied an inherited keychain, overwrote name with the last secret's NAME, and removed value. The Node launcher keeps all three as inherited, which is what a server expects. The keys and every other value are still compared."
+  },
+  {
+    "case": [
+      "environment-as-the-server-sees-it"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": ",\"value\"\\]",
+    "replace": "]",
+    "why": "The same leak, in the list of names: the shell's `unset value` removed an inherited value from the server's environment, and the Node launcher keeps it."
+  },
+  {
+    "case": [
+      "node-debug-with-a-secret"
+    ],
+    "stream": [
+      "code"
+    ],
+    "base": "^0$",
+    "head": "^2$",
+    "replace": "<started under the shell, refused under node>",
+    "why": "A new refusal: NODE_DEBUG=child_process makes node print every spawn's environment, the secrets included, so the Node launcher refuses a launch that carries a secret while NODE_DEBUG is set (exit 2). The shell launcher had no such output (it switched xtrace off instead) and started the server."
+  },
+  {
+    "case": [
+      "node-debug-with-a-secret"
+    ],
+    "stream": [
+      "stderr"
+    ],
+    "head": "^mcp-launch: NODE_DEBUG is set, and node would print every secret passed to the server on stderr; unset it for the launcher\\n$",
+    "replace": "",
+    "why": "The refusal's one line, naming no value (see the exit code entry of this case)."
+  },
+  {
+    "case": [],
+    "stream": [
+      "declared"
+    ],
+    "head": "(?!)",
+    "replace": "",
+    "why": "Declared, no transcript: under exec the server owned the harness's pid and received every signal sent to it. The Node launcher forwards SIGINT, SIGTERM, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2, SIGWINCH, SIGALRM and SIGPIPE (three on Windows). It does not forward the job-control signals (SIGTSTP, SIGTTIN, SIGTTOU, SIGCONT stop or continue the launcher and not the server) or the signals a process raises against itself or a profiler sends (SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGABRT, SIGTRAP, SIGSYS, SIGXCPU, SIGXFSZ, SIGVTALRM, SIGPROF). A server killed by SIGUSR1 or SIGPIPE makes the launcher exit 128+n rather than die of the signal (node opens its inspector on SIGUSR1 and ignores SIGPIPE)."
   }
 ]
