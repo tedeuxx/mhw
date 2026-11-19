@@ -98,6 +98,11 @@ export const READER = [
   'rules:\n  - capability: "shell"\n    effect: \'ask\'\n    exclude: []\n    match: []\n',
   shell('    effect: deny\n    match: ["a\tb"]\n'),
   shell('    effect: deny\n    match:\n      - "\\ud800"\n'),
+  // a comment after a tab, and a sequence item indented between the rule and its key
+  shell('    effect: deny\t# why\n    match: [a]\t#x\n'),
+  shell('    effect: deny\n    match:\n      - a\t#b\n      - c\t# d\n'),
+  shell('    effect: deny\n    match:\n   - a\n'),
+  shell('    match:\n   - a\n    effect: deny\n'),
   // document markers
   '---\nrules: []\n',
   'rules: []\n---\n',
@@ -391,6 +396,8 @@ export const SCENARIOS = [
     ['write', 'admin.json', '{not json'], r('report', '--admin={HOME}/admin.json'),
     ['write', 'admin.json', JSON.stringify({ [NAME]: ['x managed-by: ' + NAME + ' y'], rules: FLOOR_RULES })], r('report', '--admin={HOME}/admin.json'),
     ['write', 'admin.json', JSON.stringify({ [NAME]: null, rules: FLOOR_RULES })], r('report', '--admin={HOME}/admin.json'),
+    ['write', 'admin.json', JSON.stringify({ [NAME]: { k: 'x managed-by: ' + NAME + ' y' }, rules: FLOOR_RULES })], r('report', '--admin={HOME}/admin.json'),
+    ['write', 'admin.json', JSON.stringify({ [NAME]: 'managed-by: ' + NAME, rules: FLOOR_RULES })], r('report', '--admin={HOME}/admin.json'),
     ['bytes', 'admin.json', Buffer.from([0x7b, 0xff, 0x7d]).toString('base64')], r('report', '--admin={HOME}/admin.json'),
     ['rm', 'admin.json'], ['mkdir', 'admin.json'], r('report', '--admin={HOME}/admin.json'),
     r('install'), r('report', '--admin={HOME}/admin.json')] },

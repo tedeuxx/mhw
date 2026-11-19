@@ -173,6 +173,36 @@
         "--admin=<HOME>/admin.json"
       ],
       "code": 0,
+      "stdout": "FLOOR   Kiro: user permissions.yaml absent (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json INVALID (the personal-multi-harness-workstation-configuration key does not carry the provenance stamp): Kiro IDE and the Kiro CLI V3 engine deny every tool call while a file Kiro rejects is there; remove it with sudo /bin/sh global/install-managed.sh --remove (or delete that one file as root). Kiro CLI 2.x does not read it (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\n",
+      "stderr": "",
+      "tree": [
+        "admin.json file 644 ca787be0fde6354c2939ad3f559c93f25dde6f0e954134504b5391c62d737ce0",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=report",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "--admin=<HOME>/admin.json"
+      ],
+      "code": 0,
+      "stdout": "FLOOR   Kiro: user permissions.yaml absent (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json INVALID (the personal-multi-harness-workstation-configuration key does not carry the provenance stamp): Kiro IDE and the Kiro CLI V3 engine deny every tool call while a file Kiro rejects is there; remove it with sudo /bin/sh global/install-managed.sh --remove (or delete that one file as root). Kiro CLI 2.x does not read it (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\n",
+      "stderr": "",
+      "tree": [
+        "admin.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=report",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "--admin=<HOME>/admin.json"
+      ],
+      "code": 0,
       "stdout": "FLOOR   Kiro: user permissions.yaml absent (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json not read (UnicodeDecodeError); if Kiro cannot parse it either: Kiro IDE and the Kiro CLI V3 engine deny every tool call while a file Kiro rejects is there; remove it with sudo /bin/sh global/install-managed.sh --remove (or delete that one file as root). Kiro CLI 2.x does not read it (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\n",
       "stderr": "",
       "tree": [

@@ -140,6 +140,10 @@
       "rules:\n  - capability: \"shell\"\n    effect: 'ask'\n    exclude: []\n    match: []\n",
       "rules:\n  - capability: shell\n    effect: deny\n    match: [\"a\tb\"]\n",
       "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - \"\\ud800\"\n",
+      "rules:\n  - capability: shell\n    effect: deny\t# why\n    match: [a]\t#x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - a\t#b\n      - c\t# d\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n   - a\n",
+      "rules:\n  - capability: shell\n    match:\n   - a\n    effect: deny\n",
       "---\nrules: []\n",
       "rules: []\n---\n",
       "---\n---\nrules: []\n",
@@ -1237,6 +1241,45 @@
         },
         "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"\\ud800\"\n",
         "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"\\ud800\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a",
+                "c"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n      - \"c\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n      - \"c\"\n"
+      },
+      {
+        "refuse": "line 4: the key has no value"
+      },
+      {
+        "refuse": "line 3: the key has no value"
       },
       {
         "doc": {

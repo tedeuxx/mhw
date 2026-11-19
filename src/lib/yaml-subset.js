@@ -234,7 +234,9 @@ function flowSeq(tok, n) {
     cur += ch;
     i++;
   }
-  if (strip(cur) || !items.length) items.push(cur);
+  // The original also pushed cur when no item came before it; with no comma, cur is the whole stripped,
+  // non-empty inner text, so that clause never decides and is not reproduced.
+  if (strip(cur)) items.push(cur);
   return items.map((x) => scalar(x, n));
 }
 
