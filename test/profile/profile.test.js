@@ -297,7 +297,7 @@ test('readJson keeps int, float and bool apart, and accepts any depth inside the
   assert.ok(readJson('-Infinity', false) instanceof PyFloat);
   assert.throws(() => readJson('1'.repeat(4301), true));
   assert.equal(readJson('-' + '1'.repeat(4300), true), -BigInt('1'.repeat(4300)));
-  for (const bad of ['', '01', '1.', '.1', '+1', '[1,]', '{"a":1,}', '{"a" 1}', '"\t"', '"\\x"', '{} {}', '﻿{}', '[', '{"a":', '{"a"']) {
+  for (const bad of ['', '01', '1.', '.1', '+1', '[1,]', '{"a":1,}', '{"a" 1}', '"\t"', '"\\x"', '{} {}', '\ufeff{}', '[', '{"a":', '{"a"']) {
     assert.throws(() => readJson(bad, false), JSON.stringify(bad));
   }
   assert.deepEqual([...(/** @type {Map<string, unknown>} */ (readJson('{"__proto__":1}', true))).keys()], ['__proto__']);
@@ -342,6 +342,36 @@ test('./mhw and bin/mhw.js route profile to Node, never to workstation.py', () =
     assert.equal(viaSh.status, 0, viaSh.stderr);
     assert.ok(viaSh.stdout.startsWith('usage: mhw profile '));
   }
+});
+
+test('install.sh with no node reachable refuses a profile overlay before writing anything', { skip: !POSIX && 'install.sh is POSIX' }, (t) => {
+  if (fs.existsSync('/usr/bin/node') || fs.existsSync('/bin/node')) {
+    t.skip('a node in /usr/bin or /bin is on the reduced PATH');
+    return;
+  }
+  for (const MHW_NODE of [undefined, 'relative/node']) {
+    const home = base();
+    /** @type {Record<string, string>} */
+    const env = { HOME: home, PATH: '/usr/bin:/bin' };
+    if (MHW_NODE) env.MHW_NODE = MHW_NODE;
+    const p = spawnSync('/bin/sh', [path.join(ROOT, 'global', 'install.sh'), '--dry-run'], { env, encoding: 'utf8' });
+    assert.equal(p.status, 2, p.stderr);
+    assert.equal(p.stderr, 'profile overlay requires node (26 or later); no target was written\n');
+    assert.deepEqual(fs.readdirSync(home), []);
+  }
+});
+
+test('install.sh runs the check with the node MHW_NODE names, by absolute path', { skip: !POSIX && 'install.sh is POSIX' }, () => {
+  const home = base();
+  const bin = base();
+  // A node that records it ran and then exits 1, so install stops right after the profile check.
+  const fake = path.join(bin, 'fake-node');
+  fs.writeFileSync(fake, '#!/bin/sh\necho "fake node: $*" >&2\nexit 1\n', { mode: 0o755 });
+  const p = spawnSync('/bin/sh', [path.join(ROOT, 'global', 'install.sh'), '--dry-run'],
+    { env: { HOME: home, PATH: '/usr/bin:/bin', MHW_NODE: fake }, encoding: 'utf8' });
+  assert.equal(p.status, 1, p.stderr);
+  assert.equal(p.stderr, 'fake node: ' + ROOT + '/global/../bin/mhw.js profile check --source profile.json --output .\n');
+  assert.deepEqual(fs.readdirSync(home), []);
 });
 
 test('the committed overlay is current: check exits 0 and writes nothing', () => {

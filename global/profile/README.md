@@ -92,7 +92,7 @@ and financial preferences remain separate pending work, visibly named by `plan`.
 ## Verification
 
 ```sh
-node --test test/profile/
+node --test test/profile/profile.test.js test/profile/profile-golden.test.js
 ./mhw profile check --source overlay/profile.json --output overlay
 ```
 

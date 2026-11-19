@@ -1041,9 +1041,10 @@ HOME="$hs" sh "$inst" --check > "$base/stamp-check2.out" 2>&1; expect "check sti
 if grep -q '^DRIFT .*clipboard.conf' "$base/stamp-check2.out"; then ok "a content change is DRIFT, not STAMP"; else ko "a content change was not reported as DRIFT"; fi
 
 # 15b. which release a stamp names: the tag rule, in a throwaway git repository holding a copy of the
-# sources (never the real repository's tags).
+# sources (never the real repository's tags). bin/ and src/ too: the overlay holds profile.json, which the
+# installer checks with `mhw profile check` in Node (#479).
 tr="$base/tagrepo"; mkdir -p "$tr"
-cp -R "$repo_dir/global" "$repo_dir/overlay" "$repo_dir/.bumpversion.toml" "$tr/"
+cp -R "$repo_dir/global" "$repo_dir/overlay" "$repo_dir/bin" "$repo_dir/src" "$repo_dir/.bumpversion.toml" "$tr/"
 g() { git -C "$tr" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false -c tag.gpgSign=false "$@"; }
 source_stamp() { HOME="$base/tag-home" sh "$tr/global/install.sh" --dry-run 2>/dev/null | sed -n 's/^SOURCE  //p'; }
 mkdir -p "$base/tag-home"

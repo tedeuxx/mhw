@@ -91,7 +91,7 @@ export const CASES = [
       '{"version":Infinity}', '{"version":-Infinity}', ' '.repeat(MAX_BYTES + 1), '['.repeat(2000), '', ' ',
       '{"version":1,}', '[1,]', '{"a" 1}', '{1:1}', "{'a':1}", '{"a":"\\x"}', '{"a":"\\u12"}', '{"a":"\t"}',
       '{"a":01}', '{"a":1.}', '{"a":.5}', '{"a":-}', '{"a":+1}', '{"a":tru}', '{"a":nul}', '{} {}', '{}x',
-      '{"version":"' + 'x', '﻿{}', '{"a":"\\ud800"}x', '{"a":[1 2]}', '{"a":1}}', '"x"', 'null', '1',
+      '{"version":"' + 'x', '\ufeff{}', '{"a":"\\ud800"}x', '{"a":[1 2]}', '{"a":1}}', '"x"', 'null', '1',
       '{"version":' + '1'.repeat(4301) + '}', '{"version":-' + '1'.repeat(4301) + '}']) {
       validateText(f, text);
     }
@@ -114,7 +114,7 @@ export const CASES = [
     f.run(['validate', ...SRC]);
     f.write('profile.json', valid + ' '.repeat(MAX_BYTES - valid.length + 1));
     f.run(['validate', ...SRC]);
-    f.write('profile.json', valid.replace('"en"', '"én"'));
+    f.write('profile.json', valid.replace('"en"', '"\u00e9n"'));
     f.run(['validate', ...SRC]);
   } },
   { name: 'deep-nesting-inside-the-size-cap', build: (f) => {
@@ -211,7 +211,7 @@ export const CASES = [
     f.run(['check', ...SRC, ...OUT]);
     f.write('output/clipboard.conf', '# managed-by: personal-multi-harness-workstation-configuration/profile-v1;x');
     f.run(['render', ...SRC, ...OUT]);
-    f.write('output/AGENTS.md', '﻿<!-- managed-by: personal-multi-harness-workstation-configuration/profile-v1; x');
+    f.write('output/AGENTS.md', '\ufeff<!-- managed-by: personal-multi-harness-workstation-configuration/profile-v1; x');
     f.run(['render', ...SRC, ...OUT]);
     f.write('output/AGENTS.md', '<!-- managed-by: personal-multi-harness-workstation-configuration/profile-v1 x');
     f.run(['render', ...SRC, ...OUT]);
@@ -391,8 +391,12 @@ export function matrix() {
   return out;
 }
 
-/** The synthetic floor and locale the matrix compiles against: trailing Python whitespace and CRLF included. */
+/**
+ * The synthetic floor and locale the matrix compiles against: CRLF, a lone CR, and a trailing run where
+ * Python's str.rstrip() and JavaScript's trimEnd() disagree (Python strips U+001F and U+0085 and keeps
+ * U+FEFF; JavaScript strips U+FEFF and keeps U+0085). Escapes only, so no invisible character is in the file.
+ */
 export const SYNTHETIC = {
-  floor: '# Synthetic floor\r\n\r\nA line.\r\nA lone CR\rends here. é　\n\n  \t  \n',
+  floor: '# Synthetic floor\r\n\r\nA line.\r\nA lone CR\rends here. \u00e9\u3000\ufeff\u001f\u0085\n\n\u2028 \t\u00a0\u1680\n',
   locale: '# synthetic locale\r\nnotice_paste_redacted=synthetic\n',
 };

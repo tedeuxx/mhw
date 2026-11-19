@@ -241,8 +241,7 @@ export function readJson(text, strict) {
     }
     if (s[i] !== ',') throw bad();
     i++;
-    ws();
-    if (s[i] === end) throw bad();
+    // A trailing comma needs no check of its own: neither a value nor a key starts with ']' or '}'.
     top.state = top.kind === 'object' ? 'key' : 'value';
   }
   ws();
