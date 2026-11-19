@@ -1,22 +1,19 @@
 // src/lib/confine.js (#475, S04 of #470) on the confinement cases of the deleted milestone.test.py
 // (test_description_file_is_confined_to_the_work_tree_or_temp and
 // test_confinement_is_by_path_component_and_follows_symlinks), plus the cases a component-wise realpath
-// exists for. Where python3 is on PATH, each case also runs method/scripts/confine.py itself (still
-// shipped for worklog.py and launch-line.py, until S05) and the two must give the same answer.
+// exists for. Until #476 (S05) deleted method/scripts/confine.py with its last importers, each case also ran
+// confine.py itself and the two had to agree (green at the last head that held it); the Node answers below
+// are the expectations now.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { confined, ConfineError, realpathLoose, under } from '../../src/lib/confine.js';
+import { confined, ConfineError, realpathLoose, under, tempDir } from '../../src/lib/confine.js';
 import { which } from '../helpers/home.js';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const POSIX = process.platform !== 'win32';
-// The comparison with confine.py runs on POSIX: Windows Python's realpath was not measured against this one.
-const PY = POSIX ? which('python3') : null;
 const GIT = which('git');
 const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-confine-')));
 after(() => fs.rmSync(base, { recursive: true, force: true }));
@@ -27,7 +24,7 @@ const ENV = {};
 for (const [k, v] of Object.entries(process.env)) if (v !== undefined) ENV[k] = v;
 
 /**
- * The Node answer and, where python3 runs, confine.py's answer: { real } or { refused }.
+ * The Node answer: { real } or { refused }.
  * @param {string} p
  * @param {string} cwd
  * @param {Record<string, string>} env
@@ -41,22 +38,14 @@ function both(p, cwd, env) {
     assert.ok(e instanceof ConfineError, String(e));
     node = { refused: e.message };
   }
-  /** @type {{ real?: string, refused?: string } | null} */
-  let py = null;
-  if (PY) {
-    const r = spawnSync(PY, ['-B', path.join(ROOT, 'test', 'helpers', 'confine-driver.py'), path.join(ROOT, 'method', 'scripts'), p], { cwd, env, encoding: 'utf8' });
-    assert.equal(r.status, 0, r.stderr);
-    py = JSON.parse(r.stdout);
-  }
-  return { node, py };
+  return { node };
 }
 
 /** @param {string} p @param {string} cwd @param {Record<string, string>} env @param {boolean} accepted */
 function check(p, cwd, env, accepted) {
-  const { node, py } = both(p, cwd, env);
+  const { node } = both(p, cwd, env);
   if (accepted) assert.ok(node.real, p + ' refused: ' + node.refused);
   else assert.match(node.refused || '', /is outside the repository work tree and the temporary directory; refusing to read it$/, p);
-  if (py) assert.deepEqual(node, py, 'Node and confine.py disagree on ' + p);
 }
 
 test('a file in the temporary directory or the work tree is accepted; /etc, ~ and a .. walk are refused', { skip: !GIT && 'needs git' }, () => {
@@ -110,4 +99,27 @@ test('under: strict, by whole components, case-insensitive on Windows only', () 
   const win = { cwd: 'C:\\', env: {}, platform: 'win32' };
   assert.equal(under('C:\\Temp', 'c:\\temp\\x', win), true);
   assert.equal(under('C:\\Temp', 'D:\\Temp\\x', win), false);
+});
+
+// #476 (S05, windows-latest on PR #510): the allowed temporary root is CPython's gettempdir order,
+// TMPDIR before TEMP and TMP. Node's os.tmpdir() on Windows reads TEMP and ignores TMPDIR, so a caller
+// that makes its file under os.tmpdir() while TMPDIR names another directory is refused, as the Python
+// was. That is the cause measured on the runner (TMPDIR D:\a\_temp, the file under TEMP), not an 8.3
+// name: allowedRoots and the candidate both pass through realpathLoose, which canonicalises on Windows.
+// The TMPDIR/TEMP disagreement itself is simulated here on any OS through the explicit context.
+test('the temporary root is TMPDIR first, so a file under a different TEMP is refused', () => {
+  const first = path.join(base, 'tmpdir-first');
+  const second = path.join(base, 'temp-second');
+  fs.mkdirSync(first);
+  fs.mkdirSync(second);
+  fs.writeFileSync(path.join(first, 'a.json'), '{}');
+  fs.writeFileSync(path.join(second, 'b.json'), '{}');
+  const outside = path.parse(base).root;
+  const env = { ...ENV, TMPDIR: first, TEMP: second, TMP: second };
+  assert.equal(tempDir({ cwd: outside, env }), first);
+  assert.equal(tempDir({ cwd: outside, env: { ...ENV, TMPDIR: '', TEMP: second, TMP: '' } }), second);
+  assert.ok(confined(path.join(first, 'a.json'), { cwd: outside, env }));
+  if (!underTmp) {
+    assert.throws(() => confined(path.join(second, 'b.json'), { cwd: outside, env }), ConfineError);
+  }
 });

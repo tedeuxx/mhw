@@ -1615,11 +1615,11 @@ over real iterations, which is his decision and not a build's.
 
 1. ~~**A WORKLOG does not exist.** He named *«metricas e worklog»*; the metrics half is
    `dispatch-metrics-stop.sh` and the worklog half has no equivalent in this tree.~~ **Struck
-   2026-09-23 (#499): a host-neutral, explicit worklog now exists at `{{method-scripts}}/worklog.py`, with its
-   contract in `docs/worklog/`.** It has no automatic producer and does not read the metrics hook.
+   2026-09-23 (#499): a host-neutral, explicit worklog now exists at ~~`method/scripts/worklog.py`~~
+   `mhw worklog` (Node since mhw#476, same output), with its contract in `docs/worklog/`.** It has no automatic producer and does not read the metrics hook.
    **Do not read native usage reporting as the worklog:** they are separate instruments. **Since #76 a
    worklog event may carry an optional `usage` object** (numbers and fixed identifiers only), copied by
-   the acting context from that native report when its work on the Issue ends, and `worklog.py report`
+   the acting context from that native report when its work on the Issue ends, and `mhw worklog report`
    sums it per Issue and per harness and marks coverage partial. The native report stays the source;
    nothing fills the field automatically.
 2. **The mapping from a story point to tokens and hours does not exist.** The worklog uses frozen

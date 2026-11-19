@@ -741,7 +741,7 @@ Write it only after the whole composition is confirmed. Its stable sprint key ma
 repository/milestone numbers and counted Issues; matching milestone titles is insufficient. Preserve
 the commitment estimate and provenance. A boundary the owner did not set is `null`, never inferred
 from the first implementation timestamp or a milestone date. This artifact activates no observer:
-the acting contexts still prepare explicit events, and `{{method-scripts}}/worklog.py` only reads retained files.
+the acting contexts still prepare explicit events, and `mhw worklog` (until mhw#476 `method/scripts/worklog.py`) only reads retained files.
 
 ## Step 6 — report the pendency the drain will refuse on, and do not resolve it
 

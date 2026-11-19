@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S05 goldens (transcripts.json, py-*.json) were recorded from. The goldens are the binding oracle; a live arm compares only against this exact version (QA on PR #510)."
+}

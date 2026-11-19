@@ -24,7 +24,7 @@ otherwise it is a **continuation**, exactly as below, and nothing in this sectio
    `/hooks`). Read only that message and only its most recent unanswered ask; an ask from earlier in
    the session, or one you would infer from the work, does not count.
 3. That ask names exactly one agent harness, and the script resolves it to a target other than this
-   one: run `python3 {{method-scripts}}/launch-line.py --resolve {{agent-harness}} <its id>`, with the
+   one: run `mhw launch-line --resolve {{agent-harness}} <its id>`, with the
    id written as one of `claude-code`, `codex` or `kiro`. The second output line must be `consumed` and
    the first line, the target, must differ from `{{agent-harness}}`. A harness the script cannot target
    (the Kiro IDE, a desktop app) or an ask naming two harnesses fails this.
@@ -37,7 +37,7 @@ message, not a check: nothing stores a pending ask, and nothing verifies that yo
 
 `$ARGUMENTS` is `[target] [objective]`. Only its first word can name the target, and only when it is
 exactly one of `claude-code`, `claude`, `codex`, `kiro` or `kiro-cli`. Decide it with the script, not by
-eye: run `python3 {{method-scripts}}/launch-line.py --resolve {{agent-harness}} <the first word>` (with
+eye: run `mhw launch-line --resolve {{agent-harness}} <the first word>` (with
 no argument at all, omit the word; a first word carrying anything but letters and hyphens cannot name
 a target, so omit it too). Its first output line is the target; its second is `consumed` when
 the word named the target, so the objective is the rest of `$ARGUMENTS`, or `kept` when it did not, so
@@ -137,7 +137,7 @@ agent harness's own command instead of reaching it as a message. Do not put a sl
 ## Print it
 
 1. **Launch environment.** Name every environment variable the next act reads only at launch. Only
-   the launch variables the method declares are accepted (`LAUNCH_ENV` in `launch-line.py`), and today
+   the launch variables the method declares are accepted (`LAUNCH_ENV` in mhw's `src/commands/launch-line.js`), and today
    it declares **none**, so every `--env` is refused. ~~today `HARNESS_SWEEP_ORIGIN`, the origin (or
    space-separated origins, mhw#220 D7) the chrome-devtools server is bounded to~~ *(struck 2026-10-29,
    mhw#224 decision D8: the chrome-devtools server has no origin bound, so nothing reads that variable.)*
@@ -147,8 +147,8 @@ agent harness's own command instead of reaching it as a message. Do not put a sl
    and is named in the prompt by its name only. With none, pass no `--env`.
 2. Write the filled prompt to a file outside every repository (the session scratchpad, or the system
    temporary directory).
-3. Run `python3 {{method-scripts}}/launch-line.py <target> <that file> --cd <the checkout>
-   [--env NAME=VALUE]...`, with the target from *The arguments* and the checkout from *Build the
+3. Run `mhw launch-line <target> <that file> --cd <the checkout>
+   [--env NAME=VALUE]...` (until mhw#476 the script `method/scripts/launch-line.py`; same output), with the target from *The arguments* and the checkout from *Build the
    prompt*. It quotes the checkout, the environment and the prompt for a POSIX shell (zsh, bash),
    deterministically, so `'`, `$`, backticks and newlines reach the new session intact, and prints one
    fenced block holding one command: `cd '<checkout>' && <the start command> '<prompt>'`. It refuses a
