@@ -330,11 +330,11 @@ jobs:
       # #128: the rite-cadence dater of session check 3, in throwaway git repositories.
       # #475: the milestone routes are Node now; their suite runs in the node job (npm test).
       # #476: so are mhw worklog and mhw launch-line (test/method/worklog.test.js and the S05 goldens).
-      - name: method scripts suites (funnel-review, rite-cadence)
+      # #478: so is mhw funnel-review (test/method/funnel-review.test.js and the S07 goldens).
+      - name: method scripts suites (rite-cadence)
         env:
           TMPDIR: ${{ runner.temp }}
         run: |
-          bash method/scripts/funnel-review.test.sh
           python3 -B method/scripts/rite-cadence.test.py
       - name: method issue sync suite
         env:
