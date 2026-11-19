@@ -1,0 +1,11 @@
+# A fixture for the delivery parity cases (#474): the shape of .github/workflows/tests.yml that the
+# route reads, the delivery-ci job and its needs line, frozen so a later change to the real workflow
+# does not move the golden transcripts. test/delivery/carriers.test.js reads the real one.
+name: tests
+jobs:
+  delivery-ci:
+    if: always()
+    needs: [shellcheck, profiles, suites, node, git-route, windows, isolation-smoke, prod-canary-installed-not-enforced]
+    runs-on: ubuntu-latest
+  shellcheck:
+    runs-on: ubuntu-latest

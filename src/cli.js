@@ -12,6 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { enginesNode, nodeLine, releaseOf } from './lib/version.js';
 import { runAbsolute } from './lib/run.js';
+import { delivery } from './commands/delivery.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -135,6 +136,13 @@ function printNodeLine(nodeVersion) {
  */
 export function main(argv, platform, env, opts = {}) {
   const stdio = opts.stdio || 'inherit';
+  // The first moved command (#474, S03): mhw delivery runs here on every platform, never forwarded.
+  if (argv[0] === 'delivery') {
+    const r = delivery(argv.slice(1), { cwd: process.cwd(), env, platform: process.platform });
+    if (r.stdout) fs.writeSync(1, r.stdout);
+    if (r.stderr) fs.writeSync(2, r.stderr);
+    return r.code;
+  }
   if (argv[0] === 'status') printNodeLine(opts.nodeVersion || process.version);
   if (platform !== 'win32') {
     // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.

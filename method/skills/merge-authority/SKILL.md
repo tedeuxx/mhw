@@ -141,7 +141,7 @@ included. So for every hold, in both models:
   opening the pull request;
 - a value other than `none` is also posted, verbatim, on each Issue the pull request references (a
   closing keyword or `Refs #N`), so it reaches him where the work is tracked;
-- a verdict without the line is malformed: `workspace/delivery.py` refuses it, and so must any reader.
+- a verdict without the line is malformed: `mhw delivery merge` refuses it, and so must any reader.
 
 It replaces what the retired boundary literal was meant to say. It is not a hold: it adds nothing to the
 hold set and stops no merge; it only records what the owner should check once the change is live.
@@ -229,7 +229,7 @@ files or ADRs. It is a check you run, not a hook; nothing runs it on its own.
 The executor, the verdicts and the holds must reach whoever acts at runtime, so a copy stays where they
 act: `quality-assurance` (*Classify — who may merge* and its verdict list, and its description),
 `agents-configuration` (*The merge is the go/no-go*), `quality-gates` (the `trunk-single-env` table),
-`/autonomy` (what *ready for him* means) and the workspace delivery route (`workspace/delivery.py`'s
+`/autonomy` (what *ready for him* means) and the workspace delivery route (`src/commands/delivery.js`'s
 clearance literal and its `owner-check:` line). Each method copy carries a projection block generated from the contract above,
 between `<!-- merge-authority:projection` and `<!-- merge-authority:end -->`, and
 `global/merge_authority_test.py` asserts every block equals the projection, that each copy still names every verdict, that no

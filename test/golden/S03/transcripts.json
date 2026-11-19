@@ -1,0 +1,6519 @@
+{
+  "goldenRecordedFrom": "111257564",
+  "transcripts": {
+    "rc-merge-is-a-pinned-merge-commit": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7; CI publication is pending, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/rc/next"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/main...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "rc-stale-head": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR does not match this exact local head and a same-repository rc/next or main target\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-fork": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR does not match this exact local head and a same-repository rc/next or main target\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-wrong-base": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR does not match this exact local head and a same-repository rc/next or main target\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-no-label": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR must carry exactly one valid semver label\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-two-labels": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR must carry exactly one valid semver label\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-checks-no-checks": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the tests workflow has not registered on this head: shellcheck\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-checks-only-delivery-ci": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the tests workflow has not registered on this head: shellcheck\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-checks-extra-failed": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: another head check is pending or failed\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-checks-extra-pending": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: another head check is pending or failed\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-latest-old-then-new": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7; CI publication is pending, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/rc/next"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/main...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "rc-latest-new-then-old": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7; CI publication is pending, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/rc/next"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/main...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "rc-latest-later-failure": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: required CI not successful: semver-label\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-latest-later-running": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: required CI not successful: semver-label\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-latest-foreign-workflow": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: required CI not successful: semver-label\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-merge-is-a-pinned-merge-commit": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "main-from-feat/x": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: only the rc/next release candidate may target main; open the slice against rc/next\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "main-from-main": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: only the rc/next release candidate may target main; open the slice against rc/next\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "main-from-empty-": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: only the rc/next release candidate may target main; open the slice against rc/next\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "main-from-empty-null": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: only the rc/next release candidate may target main; open the slice against rc/next\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "main-from-rc/nextx": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: only the rc/next release candidate may target main; open the slice against rc/next\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-head-is-rc-next": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: a slice must come from its own feature branch\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-head-is-main": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: a slice must come from its own feature branch\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-tests-sonar-only": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the tests workflow has not registered on this head: shellcheck\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-tests-foreign-delivery-ci": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the tests workflow has not registered on this head: shellcheck\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-tests-partial": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the tests workflow has not registered on this head: windows\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-tests-renamed": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the tests workflow has not registered on this head: shellcheck\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-tests-pending-rerun": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: another head check is pending or failed\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-state-DIRTY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR merge state is not clean: DIRTY\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-state-BEHIND": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR merge state is not clean: BEHIND\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-state-BLOCKED": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR merge state is not clean: BLOCKED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-state-UNKNOWN": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR merge state is not clean: UNKNOWN\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-state-UNSTABLE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR merge state is not clean: UNSTABLE\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-state-null": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR merge state is not clean: None\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "slice-no-comments": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: no quality-assurance gatekeeper-verdict on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "slice-untrusted-verdict": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: no quality-assurance gatekeeper-verdict on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "slice-lens-only": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: no quality-assurance gatekeeper-verdict on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "slice-verdict-old-head": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict does not name the current head\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "slice-verdict-newer-old-head": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict does not name the current head\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "slice-verdict-request-changes": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict does not authorize a merge: REQUEST-CHANGES\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "slice-verdict-pending-human": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict does not authorize a merge: APPROVE-PENDING-HUMAN\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "slice-verdict-later-request-changes": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict does not authorize a merge: REQUEST-CHANGES\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-no-lens": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-lens-old-head": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker does not name the current head\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-lens-open": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker at this head does not say the lens is CLOSED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-lens-fenced": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-lens-untrusted": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-lens-withdrawn": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker at this head does not say the lens is CLOSED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-lens-abbreviated": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-lens-closed-merges": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-only-claude": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-only-codex": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-only-github": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-only-agents": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-only-kiro": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-only-AGENTS": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "harness-only-docs": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "plugin-lens-refused": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker at this head does not say the lens is CLOSED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "plugin-lens-with-line-3-merges": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "plugin-gate-refused": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "plugin-gate-with-owner-check-merges": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-mixed-fences": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-plain-fence": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-blockquote": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-indented": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-after-blank-line": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-negated": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker at this head does not say the lens is CLOSED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-quoted": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker at this head does not say the lens is CLOSED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-trailing-text": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker at this head does not say the lens is CLOSED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-lower-case": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker at this head does not say the lens is CLOSED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-closed-below-line-3": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker at this head does not say the lens is CLOSED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-envelope-trailing-text": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-envelope-closed-early": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-uppercase-sha": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-abbreviated-sha": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-commit-trailing-text": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-newer-open-withdraws": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker at this head does not say the lens is CLOSED\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "lens-spoof-newer-malformed": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest agents-lead lens marker is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-prose-approve-under-request-changes": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict does not authorize a merge: REQUEST-CHANGES\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-literal-trailing-prose": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict does not authorize a merge: APPROVE-AND-MERGE would be premature\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-unknown-literal": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict does not authorize a merge: APPROVE\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-literal-on-line-3": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-one-line-verdict": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-fenced": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: no quality-assurance gatekeeper-verdict on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-blockquoted": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: no quality-assurance gatekeeper-verdict on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-head-trailing-text": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-other-persona": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-later-request-changes": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict does not authorize a merge: REQUEST-CHANGES\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "gate-spoof-later-malformed": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict is not in the strict header format\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "strict-lf-merges": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "strict-crlf-merges": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "later-approval-supersedes": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "quoting-comment-is-no-verdict": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "retired-literal": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict carries the retired literal APPROVE-AND-MERGE-BOUNDARY; re-verdict at this head with APPROVE-AND-MERGE and an owner-check line\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "retired-literal-after-approval": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict carries the retired literal APPROVE-AND-MERGE-BOUNDARY; re-verdict at this head with APPROVE-AND-MERGE and an owner-check line\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-absent-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-absent-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-blank-line-4-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-blank-line-4-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-empty-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-empty-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-empty-space-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-empty-space-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-double-space-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-double-space-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-trailing-space-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-trailing-space-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-capitalised-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-capitalised-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-other-key-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-other-key-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-closes-on-line-4-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-closes-on-line-4-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-fenced-APPROVE-AND-MERGE": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-fenced-APPROVE-AND-MERGE-BOUNDARY": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the newest gatekeeper-verdict has no owner-check line on line 4 (malformed)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-good-none": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-good-none-crlf": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-good-act": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "owner-check-good-act-crlf": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "every-gate-stale-head": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR does not match this exact local head and a same-repository rc/next or main target\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "every-gate-no-delivery-ci": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: the tests workflow has not registered on this head: delivery-ci\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "every-gate-dirty": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR merge state is not clean: DIRTY\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "every-gate-no-verdict": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: no quality-assurance gatekeeper-verdict on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "every-gate-harness-no-lens": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: harness paths changed and no agents-lead lens marker is on the PR\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "every-gate-other-branch": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: check out the PR's head branch (the slice branch, or rc/next for a release)\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ]
+      ]
+    },
+    "every-gate-not-pushed": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: session HEAD has not been pushed\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ]
+      ]
+    },
+    "every-gate-behind": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: head is behind rc/next; update it and rerun CI\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "every-gate-calibration-merges": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7 into rc/next; no release is cut, run verify\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "git",
+          "fetch",
+          "origin",
+          "rc/next"
+        ],
+        [
+          "git",
+          "diff",
+          "--no-renames",
+          "--name-only",
+          "origin/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        [
+          "git",
+          "ls-remote",
+          "--heads",
+          "origin",
+          "refs/heads/feat/x"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/rc/next...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        [
+          "gh",
+          "pr",
+          "merge",
+          "7",
+          "--repo",
+          "o/r",
+          "--merge",
+          "--match-head-commit",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      ]
+    },
+    "rc-no-semver-label-check": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: required CI not successful: semver-label\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "rc-verify-published": {
+      "code": 0,
+      "stdout": "{\"status\": \"published\", \"session_head\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"pr\": \"https://example.invalid/pr/7\", \"version\": \"v1.2.0\", \"release\": \"https://example.invalid/releases/v1.2.0\"}\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/releases/latest"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/cccccccccccccccccccccccccccccccccccccccc...v1.2.0"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/actions/workflows/version-main.yml/runs?per_page=100"
+        ]
+      ]
+    },
+    "slice-verify-integrated": {
+      "code": 0,
+      "stdout": "{\"status\": \"integrated\", \"base\": \"rc/next\", \"session_head\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"pr\": \"https://example.invalid/pr/7\", \"merge_commit\": \"cccccccccccccccccccccccccccccccccccccccc\"}\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "release-old-tag": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: no newer session release is published\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/releases/latest"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/cccccccccccccccccccccccccccccccccccccccc...v1.1.0"
+        ]
+      ]
+    },
+    "release-prerelease-tag": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: release tag is not a numeric SemVer\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/releases/latest"
+        ]
+      ]
+    },
+    "release-draft": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: release is not publicly published as a stable release\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/releases/latest"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/cccccccccccccccccccccccccccccccccccccccc...v1.2.0"
+        ]
+      ]
+    },
+    "release-prerelease": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: release is not publicly published as a stable release\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/releases/latest"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/cccccccccccccccccccccccccccccccccccccccc...v1.2.0"
+        ]
+      ]
+    },
+    "release-unpublished": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: release is not publicly published as a stable release\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/releases/latest"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/cccccccccccccccccccccccccccccccccccccccc...v1.2.0"
+        ]
+      ]
+    },
+    "release-diverged": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: release does not contain the session merge commit\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/releases/latest"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/cccccccccccccccccccccccccccccccccccccccc...v1.2.0"
+        ]
+      ]
+    },
+    "release-workflow-failed": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: session version workflow is not verified successful\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/releases/latest"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/compare/cccccccccccccccccccccccccccccccccccccccc...v1.2.0"
+        ],
+        [
+          "gh",
+          "api",
+          "repos/o/r/actions/workflows/version-main.yml/runs?per_page=100"
+        ]
+      ]
+    },
+    "invalid-pr-number": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: invalid PR number\n",
+      "calls": []
+    },
+    "dirty-workspace": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: workspace has uncommitted or untracked changes\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ]
+      ]
+    },
+    "unsupported-remote": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: origin is not a supported GitHub repository URL\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ]
+      ]
+    },
+    "gh-fails": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: command failed or remote unavailable: gh; details omitted\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "already-merged": {
+      "code": 0,
+      "stdout": "MERGED: https://example.invalid/pr/7; run verify for publication proof\n",
+      "stderr": "",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "closed-pr": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: PR is not open\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "verify-not-merged": {
+      "code": 1,
+      "stdout": "",
+      "stderr": "PENDING: session PR is not merged\n",
+      "calls": [
+        [
+          "git",
+          "status",
+          "--porcelain"
+        ],
+        [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        [
+          "git",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        [
+          "gh",
+          "pr",
+          "view",
+          "7",
+          "--repo",
+          "o/r",
+          "--json",
+          "number,url,headRefOid,headRefName,baseRefName,isCrossRepository,state,mergeCommit,mergedAt,mergeStateStatus,labels,statusCheckRollup,comments"
+        ]
+      ]
+    },
+    "usage-no-action": {
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: delivery.py [-h] --pr PR {merge,verify}\ndelivery.py: error: the following arguments are required: action\n",
+      "calls": []
+    },
+    "usage-bad-action": {
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: delivery.py [-h] --pr PR {merge,verify}\ndelivery.py: error: argument action: invalid choice: 'nope' (choose from 'merge', 'verify')\n",
+      "calls": []
+    },
+    "usage-no-pr": {
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: delivery.py [-h] --pr PR {merge,verify}\ndelivery.py: error: the following arguments are required: --pr\n",
+      "calls": []
+    },
+    "usage-pr-not-int": {
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: delivery.py [-h] --pr PR {merge,verify}\ndelivery.py: error: argument --pr: invalid int value: 'x'\n",
+      "calls": []
+    }
+  }
+}

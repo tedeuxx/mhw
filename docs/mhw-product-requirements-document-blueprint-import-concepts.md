@@ -55,7 +55,7 @@ of the problem each one solves, and aligned with the owner one item at a time.
 - **Problem, measured:** this clone holds 53 worktrees (`git worktree list | wc -l`) and 159 local
   branches already merged into `rc/next` (`git branch --merged rc/next | wc -l`). Nothing in
   `workspace/` or `method/` removes them.
-- **Target:** after a slice merges, `delivery.py merge` removes that slice's worktree and local branch.
+- **Target:** after a slice merges, ~~`delivery.py merge`~~ `mhw delivery merge` (Node since #474) removes that slice's worktree and local branch.
   It does so only when the merged head equals the local head and nothing is uncommitted. The remote
   branch is not touched.
 - **Owner's answer:** local only, after proof.
@@ -103,7 +103,7 @@ of the problem each one solves, and aligned with the owner one item at a time.
 - **Problem:** slices merge into `rc/next`, and GitHub runs a closing keyword only on a merge into the
   default branch. A slice's Issue stays open until the release candidate lands, unless it is closed by
   hand.
-- **Target:** `delivery.py merge` closes the slice's Issue right after the merge into `rc/next`. Commits
+- **Target:** ~~`delivery.py merge`~~ `mhw delivery merge` (Node since #474) closes the slice's Issue right after the merge into `rc/next`. Commits
   keep a non-closing `Refs #N`.
 - **Owner's answer:** at the slice merge.
 

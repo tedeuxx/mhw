@@ -24,10 +24,19 @@ from unittest import mock
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(REPO / "workspace"))
 import merge_authority as ma  # noqa: E402
 import workstation as ws  # noqa: E402
-import delivery  # noqa: E402
+
+
+def delivery_literals(name):
+    """A frozen literal list of src/commands/delivery.js (#474: the delivery route moved to Node), read as
+    text so this suite needs no node. The declaration is one line, `export const NAME =
+    Object.freeze([...]);`, and a different shape fails here rather than reading as empty."""
+    text = (REPO / "src" / "commands" / "delivery.js").read_text(encoding="utf-8")
+    found = re.findall(r"^export const " + name + r" = Object\.freeze\(\[([^\]\n]*)\]\);$", text, re.M)
+    if len(found) != 1:
+        raise AssertionError(name + " is not declared once, on one line, in src/commands/delivery.js")
+    return tuple(re.findall(r"'([A-Z-]+)'", found[0]))
 
 SKILL = REPO / "method" / "skills" / "merge-authority" / "SKILL.md"
 CONTRACT = ma.parse_contract(SKILL.read_text(encoding="utf-8"), "source")
@@ -206,8 +215,8 @@ class MethodCopiesMatchTheContract(unittest.TestCase):
         self.assertIn("the %s holds" % words[len(TRUNK["holds"])], desc)
 
     def test_the_delivery_route_merges_on_exactly_the_trunk_clearances(self):
-        self.assertEqual(tuple(delivery.MERGE_LITERALS), tuple(dict.fromkeys((TRUNK["safe"], TRUNK["boundary"]))))
-        self.assertEqual(tuple(delivery.RETIRED_LITERALS), tuple(CONTRACT["retired-verdicts"]))
+        self.assertEqual(delivery_literals("MERGE_LITERALS"), tuple(dict.fromkeys((TRUNK["safe"], TRUNK["boundary"]))))
+        self.assertEqual(delivery_literals("RETIRED_LITERALS"), tuple(CONTRACT["retired-verdicts"]))
 
 
 class OneClearanceLiteral(unittest.TestCase):
@@ -294,7 +303,7 @@ class OneClearanceLiteral(unittest.TestCase):
         flat = ma.flatten(text)
         for needle in ("The owner-check: line is mandatory, on line 4, in every verdict whatever its literal (#134).",
                        "When the value is not none, post it verbatim on each Issue the PR references, before you merge",
-                       "A verdict without the line is malformed, and workspace/delivery.py refuses it."):
+                       "A verdict without the line is malformed, and mhw delivery merge refuses it."):
             with self.subTest(needle=needle[:40]):
                 self.assertIn(needle, flat)
         readme = (REPO / "workspace/README.md").read_text(encoding="utf-8")
