@@ -6,7 +6,7 @@
 Renders method/ into one throwaway HOME (BASE_DIR, default a new directory under TMPDIR) and asserts, per
 command and per agent harness, that the command is present in that harness's native carrier, that the
 Codex skill keeps implicit invocation off, and that every required section of the command reaches the
-rendered text. For /handoff (#198) it runs the installed launch-line script with the harness each
+rendered text. For /handoff (#198) it runs `mhw launch-line` (bin/mhw.js; the script launch-line.py until #476) with the harness each
 carrier names and checks the line it prints. It also checks a synthetic session-handover prompt's sanitisation against the
 workstation's paste-filter detector (#73; the /handover command itself was removed at #196). Nothing outside BASE_DIR is written.
 """
@@ -75,7 +75,7 @@ PHRASES = {
     "what-else": ["native goal command (`/goal`)", "gh pr list --state open", "owner decisions"],
     "blueprint": ["product-requirements-document-agent-harness-setup.md", "Mermaid",
                   "Nothing is changed before the alignment interview is complete"],
-    "handoff": ["re-derive the state from the tracker", "It prints only", "launch-line.py",
+    "handoff": ["re-derive the state from the tracker", "It prints only", "mhw launch-line",
                 "at most 280 characters", "Then stop working in this session", "--resolve",
                 "--env NAME=VALUE", "and nothing after it", "--cd <the checkout>",
                 # #454: the ask mode, its fallback and the owner-only routing.
@@ -414,9 +414,10 @@ class MethodScripts(unittest.TestCase):
         self.assertEqual(missing, [])
         self.assertGreater(refs, 0, "no rendered file points into the scripts directory")
         planning = (self.home / ".claude" / "skills" / "sprint-planning" / "SKILL.md").read_text(encoding="utf-8")
-        # #475: the milestone routes are `mhw milestone <verb>` now, and the rendered rite says so; its
-        # one installed-script path left is the worklog's.
-        self.assertIn("%sworklog.py" % prefix, planning)
+        # #475: the milestone routes are `mhw milestone <verb>` now, and the rendered rite says so. #476:
+        # so is the worklog (`mhw worklog`); the rite names no installed-script path any more.
+        self.assertIn("`mhw worklog`", planning)
+        self.assertNotIn("%sworklog.py" % prefix, planning)
         self.assertIn("mhw milestone create \"<iteration>\"", planning)
         self.assertNotIn("%smilestone-" % prefix, planning)
 
@@ -513,7 +514,12 @@ PROMPT = ("Objective: ship the owner's handoff command\n"
 SHELLS = ["sh", "bash"] + (["zsh"] if shutil.which("zsh") else [])
 
 
-PROBE_VAR = "MHW_PROBE_LAUNCH_VAR"  # declared only in the test's probe copy of launch-line.py
+# #476: `mhw launch-line` is Node, run from this checkout; node is on PATH in the suites job (Node 26).
+# The accepted-launch-variable path (the probe copy of launch-line.py until #476) is measured in
+# test/method/launch-line.test.js, which declares the probe name in-process.
+PROBE_VAR = "MHW_PROBE_LAUNCH_VAR"
+NODE = shutil.which("node")
+LAUNCH_LINE = [NODE or "node", str(REPO / "bin" / "mhw.js"), "launch-line"]
 # The checkout the block changes into (#198, owner 2026-11-01). Its name carries the characters that break a
 # hand-quoted path: a space, a single quote, `$` and backticks. Created by Handoff.setUpClass under BASE.
 CHECKOUT_NAME = "it's a $HOME `id` checkout"
@@ -525,7 +531,7 @@ def run_launch_line(script, harness, prompt, base, *extra, cd=True):
     f = Path(tempfile.mkdtemp(prefix="prompt-", dir=base)) / "prompt.txt"
     f.write_text(prompt, encoding="utf-8")
     where = ["--cd", str(CHECKOUT)] if cd else []
-    return subprocess.run([sys.executable, "-B", str(script), harness, str(f)] + where + list(extra),
+    return subprocess.run(list(script) + [harness, str(f)] + where + list(extra),
                           capture_output=True, text=True)
 
 
@@ -563,19 +569,10 @@ class Handoff(unittest.TestCase):
     def setUpClass(cls):
         cls.home = Path(tempfile.mkdtemp(prefix="home-", dir=BASE))
         cls.code, cls.out = render(cls.home)
-        cls.script = cls.home / SCRIPTS_REL / "launch-line.py"
+        cls.script = LAUNCH_LINE
         global CHECKOUT
         CHECKOUT = Path(tempfile.mkdtemp(prefix="checkouts-", dir=BASE)) / CHECKOUT_NAME
         (CHECKOUT / ".git").mkdir(parents=True)
-        # mhw#224 D8: the method declares no launch variable today, so the accepted-variable path is
-        # measured through a sibling copy in the throwaway home that declares one probe name. Only the
-        # allowlist differs; the copy imports the same confine.py and worklog.py beside it.
-        source = cls.script.read_text(encoding="utf-8")
-        anchor = "LAUNCH_ENV = frozenset((\n"
-        if source.count(anchor) != 1:
-            raise AssertionError("the LAUNCH_ENV allowlist is not where the probe copy expects it")
-        cls.probe = cls.script.with_name("launch-line-probe.py")
-        cls.probe.write_text(source.replace(anchor, anchor + '    "%s",\n' % PROBE_VAR), encoding="utf-8")
 
     def after_cd(self, line):
         """The block's line with its leading `cd '<checkout>' && ` removed; fails unless it opens with it."""
@@ -584,7 +581,7 @@ class Handoff(unittest.TestCase):
         return line[len(cd):]
 
     def resolve(self, *argv):
-        return subprocess.run([sys.executable, "-B", str(self.script), "--resolve"] + list(argv),
+        return subprocess.run(self.script + ["--resolve"] + list(argv),
                               capture_output=True, text=True)
 
     def test_render_succeeds(self):
@@ -593,7 +590,7 @@ class Handoff(unittest.TestCase):
     def test_each_carrier_defaults_to_its_own_harness(self):
         expected = {"claude": "claude-code", "codex": "codex", "kiro": "kiro"}
         for carrier, path in carriers(self.home, "handoff").items():
-            named = set(re.findall(r"launch-line\.py --resolve (\S+) ", path.read_text(encoding="utf-8")))
+            named = set(re.findall(r"mhw launch-line --resolve (\S+) ", path.read_text(encoding="utf-8")))
             self.assertEqual(named, {expected[carrier]}, carrier)
             # No harness word in the arguments: the target is the current agent harness.
             for words in ((), ("ship",), ("Claude",), ("$x",)):
@@ -686,24 +683,6 @@ class Handoff(unittest.TestCase):
         # Only the first line is the session's first input; /goal inside a later line is plain text.
         self.assertEqual(run_launch_line(self.script, "codex", "Objective: x\nmention /goal here", BASE).returncode, 0)
 
-    def test_the_launch_environment_is_part_of_the_block(self):
-        # Measured through the probe copy, which declares PROBE_VAR (mhw#224 D8: the method declares none).
-        for value in ("https://example.org", "it's $x `y` \\ \"q\" !!"):
-            out = run_launch_line(self.probe, "claude", PROMPT, BASE, "--env", PROBE_VAR + "=" + value)
-            self.assertEqual(out.returncode, 0, out.stderr)
-            _, line = the_block(out.stdout)
-            self.assertTrue(self.after_cd(line).startswith(PROBE_VAR + "='"), line[:60])
-            for shell in SHELLS:
-                p = argv_through(shell, line, "claude", (PROBE_VAR,))
-                self.assertEqual(p.stdout.split("\0")[:-1], ["PWD=%s" % CHECKOUT, PROBE_VAR + "=" + value, PROMPT], shell)
-        for bad in ("1X=a", "X-Y=a", PROBE_VAR + "=" + "/Use" + "rs/someone", PROBE_VAR + "=a\nb"):
-            out = run_launch_line(self.probe, "codex", PROMPT, BASE, "--env", bad)
-            self.assertEqual(out.returncode, 1, bad)
-            self.assertEqual(out.stdout, "", bad)
-            self.assertNotIn("someone", out.stderr, bad)
-        for usage in (["--env"], ["--env", "NOEQUALS"], ["--other", "X=1"]):
-            self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE, *usage).returncode, 2, usage)
-
     def test_terminal_and_bidi_controls_are_refused_without_echo(self):
         """A paste into interactive zsh or bash: ^C or ^U can discard the open quote, ESC[201~ ends a
         bracketed paste early, and an unbracketed paste eats a TAB, so the rest of the prompt would run as
@@ -719,30 +698,9 @@ class Handoff(unittest.TestCase):
             self.assertEqual(out.stdout, "", label)
             self.assertIn("line 2 carries a control character", out.stderr, label)
             self.assertNotIn(secret, out.stderr, label)
-            out = run_launch_line(self.probe, "codex", PROMPT, BASE, "--env",
-                                  "%s=a%s%s" % (PROBE_VAR, ch, secret))
-            self.assertEqual(out.returncode, 1, label)
-            self.assertEqual(out.stdout, "", label)
-            self.assertIn("--env 1: the value carries a control character", out.stderr, label)
-            self.assertNotIn(secret, out.stderr, label)
+            # The --env half moved to test/method/launch-line.test.js with the probe name (#476).
         # The newline is the one control a prompt may carry, and only outside an --env value.
         self.assertEqual(run_launch_line(self.script, "codex", PROMPT, BASE).returncode, 0)
-
-    def test_only_declared_launch_variables_are_accepted(self):
-        """An allowlist: a configuration home, a base URL, git's own configuration, an editor and a loader
-        variable are all refused, as is a near-miss of the declared name; the value is never echoed."""
-        secret = "SENTINELVALUE"
-        for name in ("CLAUDE_CONFIG_DIR", "CODEX_HOME", "KIRO_HOME", "XDG_CONFIG_HOME", "ANTHROPIC_BASE_URL",
-                     "OPENAI_BASE_URL", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "EDITOR", "GIT_ASKPASS",
-                     "PATH", "NODE_OPTIONS", "DYLD_INSERT_LIBRARIES", "LD_PRELOAD", PROBE_VAR.lower(),
-                     PROBE_VAR + "_X", PROBE_VAR[:-1]):
-            out = run_launch_line(self.probe, "codex", PROMPT, BASE, "--env", "%s=%s" % (name, secret))
-            self.assertEqual(out.returncode, 1, name)
-            self.assertEqual(out.stdout, "", name)
-            self.assertIn("--env 1: the name is not a declared launch variable", out.stderr, name)
-            self.assertNotIn(secret, out.stderr, name)
-        out = run_launch_line(self.probe, "codex", PROMPT, BASE, "--env", PROBE_VAR + "=https://example.org")
-        self.assertEqual(out.returncode, 0, out.stderr)
 
     def test_the_method_declares_no_launch_variable(self):
         """mhw#224 D8 (2026-10-29): the chrome-devtools origin bound is removed, so HARNESS_SWEEP_ORIGIN has
@@ -828,7 +786,7 @@ class Handoff(unittest.TestCase):
         for label, path, needle in (("traversal", traversal, "outside the repository work tree"),
                                     ("directory", str(inside), "not a regular file"),
                                     ("size", str(big), "over 65536 bytes")):
-            out = subprocess.run([sys.executable, "-B", str(self.script), "codex", path, "--cd", str(CHECKOUT)],
+            out = subprocess.run(self.script + ["codex", path, "--cd", str(CHECKOUT)],
                                  capture_output=True,
                                  text=True)
             self.assertEqual(out.returncode, 1, label)
@@ -873,14 +831,14 @@ class Handoff(unittest.TestCase):
             body = flat(text)
             self.assertIn("1. `$ARGUMENTS` is empty. Any argument gives a continuation, and `/handoff %s` "
                           "(this agent harness named as the target) forces one." % own[where], body, where)
-            self.assertIn("launch-line.py --resolve %s <its id>" % own[where], body, where)
+            self.assertIn("mhw launch-line --resolve %s <its id>" % own[where], body, where)
             self.assertIn("When any of these is in doubt, it is a continuation.", body, where)
             self.assertIn("**For an ask, do not stop:**", body, where)
             self.assertIn("Then stop working in this session, for a continuation.", body, where)
 
     def test_the_ask_template_filled_passes_the_script_for_every_target(self):
         """#454: the ask template, filled with synthetic public values at full field length, is accepted by
-        the installed launch-line script for each target (280-character lines, no /goal, no machine-local
+        `mhw launch-line` for each target (280-character lines, no /goal, no machine-local
         path, no control character) and reaches each shell's argv exactly; the forced continuation resolves
         to the current harness."""
         text = (REPO / "method" / "commands" / "handoff.md").read_text(encoding="utf-8")

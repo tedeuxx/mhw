@@ -134,6 +134,11 @@ the table below were kept as the exception and then moved, not removed: the four
 and the Python files are deleted. `confine.py` stays for `worklog.py` and `launch-line.py`; its Node
 form is `src/lib/confine.js`. The rows stay as this evaluation read them.*
 
+*Amended 2026-11-19 ([#476](https://github.com/tedeuxx/mhw/issues/476)): `worklog.py` and `launch-line.py`
+were kept and then moved, not removed: they are `mhw worklog` and `mhw launch-line` in Node
+(`src/commands/worklog.js`, `src/commands/launch-line.js`), with the same output, and the Python files
+are deleted, `confine.py` with them (its last importers). The rows stay as this evaluation read them.*
+
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
 | `method/scripts/milestone_common.py` | Shared code of the milestone family. | The four milestone scripts. | Follows the family. | Follows the family. | **keep as the exception** |

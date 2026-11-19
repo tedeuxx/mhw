@@ -4,8 +4,8 @@
 // os.path.realpath does) and refused unless it lies inside the work tree of the repository the command
 // runs in, or the system temporary directory. Nothing is read here.
 //
-// confine.py stays until its last Python importer moves (worklog.py and launch-line.py, S05); until
-// then the two forms must agree, and test/lib/confine.test.js runs this one on the Python suite's cases.
+// confine.py was deleted with its last Python importers (worklog.py and launch-line.py, #476, S05);
+// test/lib/confine.test.js runs this one on the Python suite's cases.
 // Every input (cwd, environment, git) is passed in, so a test can vary it without touching the process.
 // node: modules only.
 import fs from 'node:fs';
