@@ -363,8 +363,10 @@ export function parseArgs(argv) {
   /** @type {string[]} */
   const positionals = [];
   let ended = false;
-  for (let i = 0; i < argv.length; i++) {
+  let i = 0;
+  while (i < argv.length) {
     const a = argv[i];
+    let next = i + 1;
     if (!ended && a === '--') {
       ended = true;
     } else if (ended || !looksLikeOption(a)) {
@@ -374,8 +376,9 @@ export function parseArgs(argv) {
     } else {
       const [value, last] = takeRepo(argv, i);
       repo = value;
-      i = last;
+      next = last + 1;
     }
+    i = next;
   }
   if (!positionals.length) throw new UsageError('the following arguments are required: root');
   if (positionals.length > 2) throw new UsageError('unrecognized arguments: ' + positionals.slice(2).join(' '));
