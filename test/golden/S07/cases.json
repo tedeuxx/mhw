@@ -1,5 +1,5 @@
 {
-  "comment": "The cases of the deleted method/scripts/funnel-review.test.sh (#478, S07 of #470), plus the argument parsing and the edges of its line parsing. Every value is synthetic. Placeholders: {BASE} the case's directory, {ROOT} the store root {BASE}/root, {REPO} a git repository {BASE}/repo with one commit, {TRAP} a directory holding files named 12345 and 345 (a bare 12* or 34? expands there). fixtures: copy method/scripts/fixtures/funnel-review/*.tsv into {ROOT}/docs/funnel-review/collected. files: extra files, written byte for byte. dirs: extra directories. cwd: the working directory (default {BASE}).",
+  "comment": "The cases of the deleted method/scripts/funnel-review.test.sh (#478, S07 of #470), plus the argument parsing and the edges of its line parsing. Every value is synthetic. Placeholders: {BASE} the case's directory, {ROOT} the store root {BASE}/root, {REPO} a git repository {BASE}/repo with one commit, {TRAP} a directory holding files named 12345 and 345 (a bare 12* or 34? expands there). fixtures: copy method/scripts/fixtures/funnel-review/*.tsv into {ROOT}/docs/funnel-review/collected. files: extra files, written byte for byte. dirs: extra directories. cwd: the working directory (default {BASE}). modes: octal file modes set after the files are written. posix: the case needs POSIX file modes and a non-root user (an unreadable file).",
   "cases": [
     { "name": "fixture-2000-01-first-period", "fixtures": true, "args": ["2000-01", "--root", "{ROOT}"] },
     { "name": "fixture-2000-02-ran", "fixtures": true, "args": ["2000-02", "--root", "{ROOT}"] },
@@ -32,6 +32,18 @@
       "{ROOT}/docs/funnel-review/collected/Z.tsv": "collected: yes synthetic\nfigure: ga4 sessions 1 1\n",
       "{ROOT}/docs/funnel-review/collected/a.tsv": "collected: yes synthetic\nfigure: ga4 sessions 2 2\n",
       "{ROOT}/docs/funnel-review/collected/b.tsv": "collected: yes synthetic\nfigure: ga4 sessions 3 3\n" }, "args": ["a", "--root", "{ROOT}"] },
+    { "name": "edge-prior-dotfile-only", "files": {
+      "{ROOT}/docs/funnel-review/collected/.a.tsv": "collected: yes synthetic\nfigure: ga4 sessions 1 1\n",
+      "{ROOT}/docs/funnel-review/collected/b.tsv": "collected: yes synthetic\nfigure: ga4 sessions 3 3\n" }, "args": ["b", "--root", "{ROOT}"] },
+    { "name": "edge-prior-four-field-line", "files": {
+      "{ROOT}/docs/funnel-review/collected/a.tsv": "collected: yes synthetic\nfigure: ga4 sessions 1\nfigure: ga4 sessions 2 2\nfigure: ga4 reads 4\n",
+      "{ROOT}/docs/funnel-review/collected/b.tsv": "collected: yes synthetic\nfigure: ga4 sessions 3 3\nfigure: ga4 reads 5 5\n" }, "args": ["b", "--root", "{ROOT}"] },
+    { "name": "edge-surfaces-site-and-x", "files": {
+      "{ROOT}/docs/funnel-review/collected/p.tsv": "collected: yes synthetic\nfigure: site sessions 1 1\nfigure: x impressions 2 2\n" }, "args": ["p", "--root", "{ROOT}"] },
+    { "name": "edge-prior-unreadable", "posix": true, "files": {
+      "{ROOT}/docs/funnel-review/collected/a.tsv": "collected: yes synthetic\nfigure: ga4 sessions 1 1\n",
+      "{ROOT}/docs/funnel-review/collected/b.tsv": "collected: yes synthetic\nfigure: ga4 sessions 3 3\n" },
+      "modes": { "{ROOT}/docs/funnel-review/collected/a.tsv": "000" }, "args": ["b", "--root", "{ROOT}"] },
     { "name": "edge-collected-without-space", "files": { "{ROOT}/docs/funnel-review/collected/p.tsv": "collected:yes synthetic\ninternal-traffic:\t \t\nfigure: ga4 sessions 5 5\n" }, "args": ["p", "--root", "{ROOT}"] },
     { "name": "edge-collected-nope", "files": { "{ROOT}/docs/funnel-review/collected/p.tsv": "collected: nope synthetic\ncollected: yes later\nfigure: ga4 sessions 5 5\n" }, "args": ["p", "--root", "{ROOT}"] },
     { "name": "edge-empty-collection", "files": { "{ROOT}/docs/funnel-review/collected/p.tsv": "" }, "args": ["p", "--root", "{ROOT}"] },

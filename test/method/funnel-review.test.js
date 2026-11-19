@@ -43,7 +43,7 @@ after(() => cleanups.forEach((c) => c()));
 
 /**
  * @typedef {{ name: string, args: string[], cwd?: string, fixtures?: boolean, repo?: boolean,
- *   files?: Record<string, string>, dirs?: string[] }} Case
+ *   files?: Record<string, string>, dirs?: string[], modes?: Record<string, string>, posix?: boolean }} Case
  * @typedef {{ name: string, code: number, stdout: string, stderr: string, treeUnchanged: boolean }} Transcript
  * @typedef {(args: string[], cwd: string, env: Record<string, string>) => { code: number, stdout: string, stderr: string }} Runner
  */
@@ -72,8 +72,16 @@ function snapshot(dir) {
         out.push(rel + ' dir ' + st.mode);
         if (name !== '.git') walk(p);
       } else {
-        out.push(rel + ' ' + (st.isSymbolicLink() ? 'link' : 'file') + ' ' + st.mode + ' ' +
-          (st.isFile() ? crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex') : ''));
+        // A file the case made unreadable (modes) is compared by kind and mode only.
+        let hash = '';
+        if (st.isFile()) {
+          try {
+            hash = crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+          } catch {
+            hash = '<unreadable>';
+          }
+        }
+        out.push(rel + ' ' + (st.isSymbolicLink() ? 'link' : 'file') + ' ' + st.mode + ' ' + hash);
       }
     }
   };
@@ -108,6 +116,7 @@ function setup(c) {
     fs.mkdirSync(path.dirname(f), { recursive: true });
     fs.writeFileSync(f, content);
   }
+  for (const [p, mode] of Object.entries(c.modes || {})) fs.chmodSync(fill(p), parseInt(mode, 8));
   /** @type {Record<string, string>} */
   const env = {};
   for (const [k, v] of Object.entries(process.env)) if (v !== undefined) env[k] = v;
@@ -193,7 +202,12 @@ function differences(original, head) {
 const goldenName = (name) => 'transcripts/' + name + '.json';
 
 /** @param {Case} c */
-const skipReason = (c) => (c.repo && !GIT ? 'needs git on PATH' : '');
+const skipReason = (c) => {
+  if (c.repo && !GIT) return 'needs git on PATH';
+  if (c.posix && !POSIX) return 'needs POSIX file modes';
+  if (c.posix && process.getuid && process.getuid() === 0) return 'root reads a mode-000 file, so the file is not unreadable';
+  return '';
+};
 
 test('every case has a golden transcript and every expected difference names a case or the help', () => {
   const names = new Set(CASES.map((c) => c.name));
