@@ -1,0 +1,89 @@
+{
+  "name": "crlf-output-is-not-drift",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: 4 generated files updated; no harness installation\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+        "output/clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "output/desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "output/profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: generated overlay is current\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 f27bd909fa2314d08c2912b6ef6c0d36a6079b85e513495e69ebf4622e6ed73d",
+        "output/clipboard.conf file 600 fed9134e10eeb038281ba6d0a31597c96568bf02e59d0dd3dd4407f6d374c53e",
+        "output/desktop-instructions.md file 600 ef3d3b5b1aa5373752eeffd7b61f8b71fff1bc5a9ed236a291dcb3f917370b0e",
+        "output/profile-plan.json file 600 9a405930f66638ed79aeca9fd2fb96313011336a43f684ab8b62f1a8a36f04d9",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: generated overlay is current\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 6a2215c05b9e92b30b7ac930d5107110dddcce5235f28415ca6d5652c0d34e34",
+        "output/clipboard.conf file 600 fed9134e10eeb038281ba6d0a31597c96568bf02e59d0dd3dd4407f6d374c53e",
+        "output/desktop-instructions.md file 600 ef3d3b5b1aa5373752eeffd7b61f8b71fff1bc5a9ed236a291dcb3f917370b0e",
+        "output/profile-plan.json file 600 9a405930f66638ed79aeca9fd2fb96313011336a43f684ab8b62f1a8a36f04d9",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: 0 generated files updated; no harness installation\n",
+      "stderr": "",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 600 6a2215c05b9e92b30b7ac930d5107110dddcce5235f28415ca6d5652c0d34e34",
+        "output/clipboard.conf file 600 fed9134e10eeb038281ba6d0a31597c96568bf02e59d0dd3dd4407f6d374c53e",
+        "output/desktop-instructions.md file 600 ef3d3b5b1aa5373752eeffd7b61f8b71fff1bc5a9ed236a291dcb3f917370b0e",
+        "output/profile-plan.json file 600 9a405930f66638ed79aeca9fd2fb96313011336a43f684ab8b62f1a8a36f04d9",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

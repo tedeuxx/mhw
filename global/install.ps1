@@ -113,18 +113,22 @@ if ($commit) {
 
 if (-not $Overlay) { $Overlay = Join-Path $repoRoot 'overlay' }
 # A structured profile must be compiled and current before writing any target (ADR-0018).
-# Python is needed only for structured overlays; none and hand-authored overlays keep their path.
+# Node is needed only for structured overlays; none and hand-authored overlays keep their path. The
+# compiler is `mhw profile check` (#479, S08 of #470), run by the node that runs mhw (MHW_NODE) or the
+# node on PATH, by absolute path.
 if ($Overlay -ne 'none' -and (Test-Path -LiteralPath (Join-Path $Overlay 'profile.json') -PathType Leaf)) {
-    $profilePython = Get-Command python, python3, py -CommandType Application -ErrorAction SilentlyContinue |
-        Select-Object -First 1
-    if (-not $profilePython) { Stop-Usage 'profile overlay requires Python 3.9+; no target was written' }
-    $profileArgs = @()
-    if ($profilePython.Name -match '^py(\.exe)?$') { $profileArgs += '-3' }
-    $profileArgs += @('-B', (Join-Path $scriptDir 'profile\profile.py'), 'check',
+    $profileNode = $null
+    if ($env:MHW_NODE -and [System.IO.Path]::IsPathRooted($env:MHW_NODE)) { $profileNode = $env:MHW_NODE }
+    else {
+        $found = Get-Command node -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) { $profileNode = $found.Source }
+    }
+    if (-not $profileNode) { Stop-Usage 'profile overlay requires node (26 or later); no target was written' }
+    $profileArgs = @((Join-Path (Join-Path $repoRoot 'bin') 'mhw.js'), 'profile', 'check',
                      '--source', 'profile.json', '--output', '.')
     Push-Location -LiteralPath $Overlay
     try {
-        & $profilePython.Source @profileArgs
+        & $profileNode @profileArgs
         $profileExit = $LASTEXITCODE
     } finally { Pop-Location }
     if ($profileExit -ne 0) { exit $profileExit }

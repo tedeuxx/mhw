@@ -1,4 +1,4 @@
-// A port of the part of Python 3.14's argparse that the moved method scripts use (#477, S06 of #470),
+// A port of the part of Python 3.14's argparse that the moved commands use (#477, S06 of #470; #479, S08),
 // so a moved command parses and prints exactly as its Python original did: the same help, the same
 // usage and error text, the same exit codes, for every argument form, not only the ones a test names.
 // Ported from CPython 3.14.6 Lib/argparse.py (_parse_known_args, _parse_optional, _get_option_tuples,
@@ -9,29 +9,38 @@
 // spelled exactly, as a unique prefix of a long option (allow_abbrev), as `--opt=value`, and a short
 // option with its value or more short flags attached (`-hx`); positionals with nargs None or '?';
 // `--` ending the options; unrecognized arguments collected and reported after the required check;
-// the help and usage text, wrapped to the terminal width as shutil.get_terminal_size() reads it
-// (COLUMNS, else the terminal, else 80).
+// a required option (required=True: no brackets in the usage, named by the required check) and a
+// positional with nargs None and choices (checked when argparse consumes it, so an invalid choice
+// before `-h` is an error and one after it is not; shown as `{a,b}`) (#479); an action with no help
+// text; a raw description (RawDescriptionHelpFormatter); the help and usage text, wrapped to the
+// terminal width as shutil.get_terminal_size() reads it (COLUMNS, else the terminal, else 80).
 //
-// Not covered, and stated so nobody reads this as argparse: other nargs and actions, choices, type
-// conversion, mutually exclusive groups, subparsers, fromfile prefixes, intermixed parsing, and colour.
-// Python 3.14 colours help and usage when its stream is a terminal and NO_COLOR is unset; this never
-// colours, so on a terminal the text is the same with no escape codes. Older Pythons (3.12 and before)
-// parse `-hx` and `-h --=x` differently from 3.14; the target is 3.14, the version the reference
-// machine runs.
+// Not covered, and stated so nobody reads this as argparse: other nargs and actions, choices on an
+// option or on a '?' positional, type conversion, mutually exclusive groups, subparsers, fromfile
+// prefixes, intermixed parsing, and colour. The required check names the missing positionals before the
+// missing required options; argparse names them in the order they were added, which is the same only
+// when the positionals were added first (as in profile.py). Python 3.14 colours help and usage when its
+// stream is a terminal and NO_COLOR is unset; this never colours, so on a terminal the text is the same
+// with no escape codes. The target is Python 3.14, the version the reference machine runs, and no other
+// version is claimed to match: other versions parse some forms differently. Measured: 3.13.11 and 3.9.6
+// refuse `-1e3` as a positional where 3.14.6 accepts it (#479), and QA measured 3.9 differing in 60
+// argument forms (#477).
 //
 // Help strings are fixed text, so each comes with its textwrap chunks precomputed by Python's own
 // TextWrapper._split_chunks (whitespace and hyphen splitting), and only the line filling is ported.
 // node: modules only (convention 5 of #470).
 
 /**
- * @typedef {{ dest: string, help: string[], nargs: 0 | null, strings: string[] }} OptionSpec
- *   help: the help text's textwrap chunks
- * @typedef {{ dest: string, help: string[], nargs: null | '?' }} PositionalSpec
- * @typedef {{ prog: string, description: string[], options: OptionSpec[], positionals: PositionalSpec[] }} ParserSpec
- *   description: the description's textwrap chunks
+ * @typedef {{ dest: string, help: string[], nargs: 0 | null, strings: string[], required?: boolean }} OptionSpec
+ *   help: the help text's textwrap chunks ([] for no help); required: argparse's required=True
+ * @typedef {{ dest: string, help: string[], nargs: null | '?', choices?: string[] }} PositionalSpec
+ *   choices: only with nargs null
+ * @typedef {{ prog: string, description: string[], raw?: string, options: OptionSpec[], positionals: PositionalSpec[] }} ParserSpec
+ *   description: the description's textwrap chunks; raw: a description printed as written
+ *   (RawDescriptionHelpFormatter), used instead of description when present
  * @typedef {{ kind: 'help' } | { kind: 'error', message: string } | { kind: 'ok', values: Record<string, string | undefined> }} ParseResult
  * @typedef {{ action: Action | null, optionString: string, sep: string | null, explicitArg: string | null }} OptionTuple
- * @typedef {{ dest: string, nargs: 0 | null | '?', strings: string[], help: string[], positional: boolean }} Action
+ * @typedef {{ dest: string, nargs: 0 | null | '?', strings: string[], help: string[], positional: boolean, required: boolean, choices: string[] | null }} Action
  */
 
 class ArgumentError extends Error {
@@ -40,7 +49,10 @@ class ArgumentError extends Error {
    * @param {string} message
    */
   constructor(action, message) {
-    super(action && action.strings.length ? 'argument ' + action.strings.join('/') + ': ' + message : message);
+    // _get_action_name: the option strings, else (a positional) its dest.
+    let name = '';
+    if (action) name = action.strings.length ? action.strings.join('/') : action.dest;
+    super(name ? 'argument ' + name + ': ' + message : message);
   }
 }
 
@@ -76,8 +88,10 @@ export function pyRepr(s) {
  */
 function actionsOf(spec) {
   return [
-    ...spec.options.map((o) => ({ dest: o.dest, nargs: o.nargs, strings: o.strings, help: o.help, positional: false })),
-    ...spec.positionals.map((p) => ({ dest: p.dest, nargs: p.nargs, strings: [], help: p.help, positional: true })),
+    ...spec.options.map((o) => ({ dest: o.dest, nargs: o.nargs, strings: o.strings, help: o.help, positional: false,
+      required: o.required === true, choices: null })),
+    ...spec.positionals.map((p) => ({ dest: p.dest, nargs: p.nargs, strings: [], help: p.help, positional: true,
+      required: p.nargs === null, choices: p.choices || null })),
   ];
 }
 
@@ -184,6 +198,10 @@ function parseKnown(spec, argStrings) {
   const takeAction = (action, args) => {
     seen.add(action);
     if (action.nargs === 0) throw new HelpRequested();
+    // _get_values -> _check_value, at the moment the argument is consumed.
+    if (action.choices && args.length && !action.choices.includes(args[0])) {
+      throw new ArgumentError(action, 'invalid choice: ' + pyRepr(args[0]) + ' (choose from ' + action.choices.join(', ') + ')');
+    }
     values[action.dest] = args.length ? args[0] : undefined;
   };
 
@@ -301,7 +319,8 @@ function parseKnown(spec, argStrings) {
   }
   extras.push(...argStrings.slice(consumePositionals(startIndex)));
 
-  const required = actions.filter((a) => a.positional && a.nargs === null && !seen.has(a)).map((a) => a.dest);
+  const missing = (/** @type {boolean} */ positional) => actions.filter((a) => a.positional === positional && a.required && !seen.has(a));
+  const required = [...missing(true).map((a) => a.dest), ...missing(false).map((a) => a.strings.join('/'))];
   if (required.length) throw new ArgumentError(null, 'the following arguments are required: ' + required.join(', '));
   if (extras.length) throw new ArgumentError(null, 'unrecognized arguments: ' + extras.join(' '));
   for (const a of actions) if (a.nargs !== 0 && !(a.dest in values)) values[a.dest] = undefined;
@@ -382,8 +401,11 @@ function handleLongWord(reversed, cur, curLen, width) {
 function formatUsage(spec, width) {
   const prefix = 'usage: ';
   const prog = spec.prog;
-  const optParts = spec.options.map((o) => (o.nargs === 0 ? '[' + o.strings[0] + ']' : '[' + o.strings[0] + ' ' + o.dest.toUpperCase() + ']'));
-  const posParts = spec.positionals.map((p) => (p.nargs === '?' ? '[' + p.dest + ']' : p.dest));
+  const optParts = spec.options.map((o) => {
+    const part = o.nargs === 0 ? o.strings[0] : o.strings[0] + ' ' + o.dest.toUpperCase();
+    return o.required ? part : '[' + part + ']';
+  });
+  const posParts = spec.positionals.map((p) => (p.nargs === '?' ? '[' + p.dest + ']' : metavar(p)));
   let usage = [prog, ...optParts, ...posParts].join(' ');
   const textWidth = width;
   if (prefix.length + usage.length > textWidth) {
@@ -425,6 +447,14 @@ function formatUsage(spec, width) {
 }
 
 /**
+ * The positional's metavar: `{a,b}` for choices, else its dest.
+ * @param {{ dest: string, choices?: string[] | null }} p
+ */
+function metavar(p) {
+  return p.choices ? '{' + p.choices.join(',') + '}' : p.dest;
+}
+
+/**
  * format_help's ending: runs of three or more newlines become two, the ends are stripped of newlines,
  * and one newline closes it.
  * @param {string} text
@@ -453,7 +483,7 @@ export function helpText(spec, columns) {
   const maxHelpPosition = Math.min(24, Math.max(width - 20, 4));
   /** @param {Action} a */
   const invocation = (a) => {
-    if (a.positional) return a.dest;
+    if (a.positional) return metavar(a);
     return a.nargs === 0 ? a.strings.join(', ') : a.strings.join(', ') + ' ' + a.dest.toUpperCase();
   };
   const actionMaxLength = Math.max(...actions.map((a) => invocation(a).length + 2));
@@ -463,6 +493,8 @@ export function helpText(spec, columns) {
   /** @param {Action} a */
   const formatAction = (a) => {
     const header = invocation(a);
+    // No help: the invocation alone, unpadded.
+    if (!a.help.length) return '  ' + header + '\n';
     let out;
     let indentFirst;
     if (header.length <= actionWidth) {
@@ -479,7 +511,7 @@ export function helpText(spec, columns) {
   };
   /** @param {string} heading @param {Action[]} acts */
   const section = (heading, acts) => (acts.length ? '\n' + heading + ':\n' + acts.map(formatAction).join('') + '\n' : '');
-  const description = wrapChunks(spec.description, Math.max(width, 11)).join('\n') + '\n\n';
+  const description = spec.raw !== undefined ? spec.raw + '\n\n' : wrapChunks(spec.description, Math.max(width, 11)).join('\n') + '\n\n';
   return finish(formatUsage(spec, width) + description
     + section('positional arguments', actions.filter((a) => a.positional))
     + section('options', actions.filter((a) => !a.positional)));

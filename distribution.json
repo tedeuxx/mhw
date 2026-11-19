@@ -102,7 +102,7 @@
       "layer": "user",
       "paths": [
         "global/profile/README.md",
-        "global/profile/profile.py",
+        "src/commands/profile.js",
         "global/profile/profile.schema.json",
         "global/profile/profile.example.json",
         "overlay/"

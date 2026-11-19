@@ -1,0 +1,467 @@
+{
+  "name": "missing-fields-boolean-integer-and-bounds",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\n",
+      "tree": [
+        "profile.json file 644 df8f0da4a540c5ae7adf9f7c8f68665f42a172860b3af12f2cd32bdcd7eb3c54"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.version: wrong type\n",
+      "tree": [
+        "profile.json file 644 105fadd88ae59207a53f2fcecbe47f3789e63681f69549f2d4f12acad2180c59"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.version: unsupported version\n",
+      "tree": [
+        "profile.json file 644 69f1593d9e04a484f697287780cf1efbfb08444707b2343dc19568c7cda7a0f3"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.interaction.max_question_chars: wrong type\n",
+      "tree": [
+        "profile.json file 644 7186b640fc4769b62299f4b02de82d6a04e424c3c1a8af90da4fc43eaeb15fb0"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.interaction.max_question_chars: out of range\n",
+      "tree": [
+        "profile.json file 644 81da3a660fb9dd2f46bc67ef942d56ffc84f1d51ba312e8a72a375b83efbeb16"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.interaction.max_question_chars: out of range\n",
+      "tree": [
+        "profile.json file 644 21f02d3bd49504a1929d6fcdb67b99989b868ef7f5fe507840a4c56c870f4661"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.interaction.decision_options: unsupported choice\n",
+      "tree": [
+        "profile.json file 644 3164e2a0f6faed41800734d67c169c39e5ad3d8918b98282c2c2127934289117"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.interaction.decision_options: wrong type\n",
+      "tree": [
+        "profile.json file 644 3be519529555444d048f592f5244e59a7a92992350934b62c13c618752c65b16"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.desktop.notifications: unsupported choice\n",
+      "tree": [
+        "profile.json file 644 b7e94e5955cf3fe9b6612b4e2c5ac4aeb75c63928cae6b0efaaeef46dc30afff"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.desktop.notifications: required\n",
+      "tree": [
+        "profile.json file 644 4a1981320a00c221aba2854691350ad024da1b88dc343afbc02de57f4b17a0c9"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: empty selection\n",
+      "tree": [
+        "profile.json file 644 b96094ec642aed673748667657e03778b071ae204e2494441ee4627791470d7d"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: duplicate selection\n",
+      "tree": [
+        "profile.json file 644 aa7960fc58d3de209d085ffa1e9545e5674fb0c5ee7fa9eaf75933b0d05dee8f"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces[0]: wrong type\n",
+      "tree": [
+        "profile.json file 644 d6af234a907d38eb20854335b25bfb192ac7a89ef3179d89680a21729618b213"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 375d8093466d8a0ee1eac16b62d9b62f6ae5a5ea9b6e7d58c0b4c1a717d2801e"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 0450a8bb92dceae30209b4099a363980805e24e618cb6d4e92acbeff859e8e25"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: duplicate selection\nprofile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\n",
+      "tree": [
+        "profile.json file 644 5a9579f3dfa6441a3a188c5fd08bfad6e103a337d797e2365e48b67cb6b5bb5f"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: duplicate selection\nprofile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\nprofile.surfaces[2]: wrong type\n",
+      "tree": [
+        "profile.json file 644 b7f19a0f2145480fe69dd12239cc689c6c81f0c5b230f0b6254f009a98a6e759"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: duplicate selection\nprofile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\n",
+      "tree": [
+        "profile.json file 644 8e4f8e9d90e377ce439793cdc964ee1ef5b3ca1e4697377aa44644a570f58c16"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: duplicate selection\nprofile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\n",
+      "tree": [
+        "profile.json file 644 aec198d08014844f55016b40b0ca777ef2e9a383eb6ee5630cb117b328f9f14e"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\n",
+      "tree": [
+        "profile.json file 644 cc0ba86b50b03c98ecc16412b11ee3f654e7748aa9c49f622db928d97c9ed942"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 90c738eeb28544a3eec99b44845c4d958c513dfded392777665ba99999639a2d"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: wrong type\n",
+      "tree": [
+        "profile.json file 644 ef75dae070e8c177286816f38ef0061f08f04b0df4b2883abbe21f70a7a1377c"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: wrong type\n",
+      "tree": [
+        "profile.json file 644 35c42f69a4579526ae8268d51a3e64e4328e4f48cc82db5f50d96388b7d28c99"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.session_start: unrecognized field (name and value omitted)\n",
+      "tree": [
+        "profile.json file 644 3c1b18a15e84bc3b1f2c17662a099be938e8f1d8820eb2de120cff0e78cbf284"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.version: required\nprofile.surfaces: required\nprofile.interaction.command_preference: required\n",
+      "tree": [
+        "profile.json file 644 d89af15475e1a7ffb532519eb95d07098f4cb42d2a9faf8f7dc120bed2b69c68"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation.cadence: unsupported choice\n",
+      "tree": [
+        "profile.json file 644 634cd77e9d62a26a9adf822efe2769ed6e3e509633ea7652d2b9beb5d3d04ca1"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation.decision_tone: wrong type\n",
+      "tree": [
+        "profile.json file 644 971059f078aafa6cc276d1f08bc000ac061adf9f444936c5643426343e104777"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.interaction.max_question_chars: wrong type\n",
+      "tree": [
+        "profile.json file 644 6938ccb9da7882935e0e6e80df14028d68433b2bcb5f4ba333f09457b7982f97"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: duplicate selection\nprofile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\n",
+      "tree": [
+        "profile.json file 644 d9a1e61ffb42d1c7b799096cfc580364e5dcb29d2f0c422d9053339070cf76a4"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: duplicate selection\nprofile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\nprofile.surfaces[2]: wrong type\nprofile.surfaces[3]: wrong type\n",
+      "tree": [
+        "profile.json file 644 51dde8989841e480bf42c1032320aefa31c570abeee29bf4aa18e586c6f39321"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\n",
+      "tree": [
+        "profile.json file 644 73e5004ea6d0fa756d6dc4b10ff9b0f7386255af9d2c8bd4589e4d6162a3882e"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.version: unsupported version\n",
+      "tree": [
+        "profile.json file 644 f1c87c24f339f7b794430ac669e14e9cb34e1d8584a615c4984198466906e41c"
+      ]
+    }
+  ]
+}

@@ -67,7 +67,6 @@ jobs:
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_active.py global/mcp/mcp_connect.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/kiro/kiro_permissions.py global/kiro/kiro_permissions_test.py \
-            global/profile/profile.py global/profile/profile_test.py \
             global/project-policy/project_policy.py global/project-policy/project_policy_test.py \
             global/project-policy/project_policy_check_test.py \
             global/project-policy/delivery_gate.py global/project-policy/delivery_gate_test.py \
@@ -176,11 +175,16 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      - name: profile compiler suite and generated-source drift
+      # Node 26, the engines.node floor (#472). The compiler is `mhw profile` (#479); its suite runs in the
+      # node job (npm test, test/profile/). This step is the byte-for-byte guard on all three OSes.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
+      - name: the committed overlay is what mhw profile generates (byte for byte)
         shell: bash
         run: |
-          python -B global/profile/profile_test.py
-          python -B global/profile/profile.py check --source overlay/profile.json --output overlay
+          node --version
+          node bin/mhw.js profile check --source overlay/profile.json --output overlay
       # Issues #244 to #247, ADR-0015 locks 2 to 5: the project-policy contract's schema, examples
       # and field docs, the fail-closed validator behind `mhw policy check`, the reference CI/CD's
       # evidence gates (the dry run of the workflow itself is reference-delivery-dry-run.yml) and the

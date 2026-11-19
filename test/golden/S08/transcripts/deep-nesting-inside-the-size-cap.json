@@ -1,0 +1,61 @@
+{
+  "name": "deep-nesting-inside-the-size-cap",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: unrecognized field (name and value omitted)\nprofile.version: required\nprofile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\n",
+      "tree": [
+        "profile.json file 644 af406bad790a204199ce3b7903580d5e47c6b7923ee1629bd71b2378ba0f9954"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces: duplicate selection\nprofile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\n",
+      "tree": [
+        "profile.json file 644 31b65ee8e2336adbd5490027aa831d791a8a08f416299e6087065cf2a7beb7da"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.surfaces[0]: wrong type\nprofile.surfaces[1]: wrong type\n",
+      "tree": [
+        "profile.json file 644 8f22ceafd8738f832c19dd030c99884033b96b6b45f502b222b525ccb87e9c3c"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: unrecognized field (name and value omitted)\nprofile.version: required\nprofile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\n",
+      "tree": [
+        "profile.json file 644 4437f8f20dbf61ff43d19dca87ac6bb407fb54bef8cf3f7412e173a2ef13da5b"
+      ]
+    }
+  ]
+}
