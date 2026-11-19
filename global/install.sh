@@ -1023,7 +1023,8 @@ models_step() {
 # which it cannot tell apart. $1: another mode.
 kiro_step() {
   kiro_node=${MHW_NODE:-}
-  case $kiro_node in /*) ;; *) kiro_node=$(command -v node 2>/dev/null || true) ;; esac
+  case $kiro_node in /*) { [ -f "$kiro_node" ] && [ -x "$kiro_node" ]; } || kiro_node= ;; *) kiro_node= ;; esac
+  [ -n "$kiro_node" ] || kiro_node=$(command -v node 2>/dev/null || true)
   case $kiro_node in
     /*) ;;
     *) echo "SKIP    the Kiro deny floor: node (26 or later) is required"

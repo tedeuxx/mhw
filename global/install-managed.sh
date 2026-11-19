@@ -85,7 +85,8 @@ kiro_node=
 case $mode in
   render|check|apply)
     kiro_node=${MHW_NODE:-}
-    case $kiro_node in /*) ;; *) kiro_node=$(command -v node 2>/dev/null || true) ;; esac
+    case $kiro_node in /*) { [ -f "$kiro_node" ] && [ -x "$kiro_node" ]; } || kiro_node= ;; *) kiro_node= ;; esac
+    [ -n "$kiro_node" ] || kiro_node=$(command -v node 2>/dev/null || true)
     case $kiro_node in /*) ;; *) echo "REFUSE  node (26 or later) is required for the Kiro admin document" >&2; exit 2 ;; esac
     ;;
 esac
