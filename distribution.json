@@ -68,7 +68,7 @@
         "global/prerequisites.json",
         "global/owner_actions.py",
         "global/merge_authority.py",
-        "global/chrome_debugging.py",
+        "src/render/chrome-debugging.js",
         "global/private_copy.py",
         "mhw",
         "bin/",

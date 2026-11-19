@@ -1,0 +1,43 @@
+{
+  "name": "integer-key-is-refused",
+  "runs": [
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 3,
+      "stdout": "REFUSE  <PROFILE>/Local State: not readable JSON, or devtools.remote_debugging.user-enabled is not a boolean; left as it is (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"devtools\":{\"remote_debugging\":{\"user-enabled\":1}}}"
+        }
+      ]
+    },
+    {
+      "args": "status",
+      "code": 0,
+      "stdout": "not read (devtools.remote_debugging.user-enabled: Local State is not readable JSON, or the key is not a boolean)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"devtools\":{\"remote_debugging\":{\"user-enabled\":1}}}"
+        }
+      ]
+    }
+  ]
+}

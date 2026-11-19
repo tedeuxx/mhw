@@ -1,0 +1,18 @@
+[
+  {
+    "case": ["usage-forms"],
+    "stream": "stderr",
+    "base": "^usage: chrome_debugging\\.py --mode=install\\|check\\|dry-run\\|uninstall\\n$",
+    "head": "^usage: mhw chrome-debugging --mode=install\\|check\\|dry-run\\|uninstall\\|status\\n$",
+    "replace": "<usage>\n",
+    "why": "The usage line names the command as it is now called (mhw chrome-debugging, not the deleted script's file name) and lists the one added mode, status, which global/workstation.py spawns for the mhw status line. The exit code (2) and the stream are still compared, and every argument form that was a usage error is still one."
+  },
+  {
+    "case": ["gate-args-a-number-is-a-type-error", "gate-args-null-is-a-type-error", "gate-args-a-bool-is-a-type-error"],
+    "stream": "stderr",
+    "base": "^Traceback \\(most recent call last\\):\\n.*\\nTypeError: [^\\n]*\\n$",
+    "head": "^chrome-debugging: TypeError: [^\\n]*\\n$",
+    "replace": "<TypeError>\n",
+    "why": "A chrome-devtools entry whose args are a number, a boolean or null made the original raise a TypeError it did not catch, so CPython printed a traceback naming the script's own lines. The Node command prints one line naming the same error class instead. Both exit 1, print nothing on stdout and write nothing; those are still compared."
+  }
+]

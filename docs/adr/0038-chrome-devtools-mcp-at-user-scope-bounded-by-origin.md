@@ -336,7 +336,8 @@ be on by default: *"eu nao quero ter que lembrar de ativar o cdp"*.
   on the default user data directory since Chrome 136, and the `RemoteDebuggingAllowed` policy can only
   forbid remote debugging. ~~`mhw install` does not write it~~ *(owner's decision on
   [#224](https://github.com/tedeuxx/mhw/issues/224), the same day: "mhw edita o Local State")*
-  `mhw install` sets it, through `global/chrome_debugging.py`:
+  `mhw install` sets it, through ~~`global/chrome_debugging.py`~~ `mhw chrome-debugging`
+  (`src/render/chrome-debugging.js`; moved to Node by #480, same output and written file):
   - only while Chrome is not running; if it runs, the step prints one SKIP line and writes nothing;
   - only that key: a JSON round-trip that keeps every other field and the file's mode, written to a
     temporary file in Chrome's own directory and renamed over the original;
@@ -396,7 +397,7 @@ Consequences, bad:
   asks for it when the reader's view is the point.
 
 Evidence level: **written and tested** (`global/mcp/mcp_render_test.py`, `global/workstation_test.py`,
-`global/chrome_debugging_test.py`, on a fixture Local State). **Measured** for the package itself, by the
+~~`global/chrome_debugging_test.py`~~ `test/render/chrome-debugging.test.js` since #480, on a fixture Local State). **Measured** for the package itself, by the
 [live probe of 2026-10-26](https://github.com/tedeuxx/mhw/issues/224#issuecomment-6427884355), which launched `chrome-devtools-mcp@1.8.0 --autoConnect --channel stable
 --allowedUrlPattern 'https://example.com/*'` on its own, with the owner watching: the attach, the
 approval prompt, the allowed origin opening and the disallowed origin refused. The rendered
@@ -538,7 +539,8 @@ built them stay above, struck where they made a claim about the current launch.
 - **Unchanged:** the pinned version and `--ignore-scripts`; `--autoConnect` always, `--isolated` never
   (the 2026-10-24 amendment); POSIX `/bin/sh` as the command, kept so the rendered entry's shape does
   not change for the renderer's ownership and conflict checks; Chrome's approval prompt on a connection;
-  the `Local State` step, which now counts the attach form alone (`global/chrome_debugging.py`).
+  the `Local State` step, which now counts the attach form alone (~~`global/chrome_debugging.py`~~
+  `src/render/chrome-debugging.js` since #480).
 
 **The risk the owner accepted, stated to him before he chose.** The agent browses with his logged-in
 accounts. A malicious page can try to instruct the agent (prompt injection) while it has that access.
@@ -562,7 +564,8 @@ Claude Code; the judgement is an instruction.
 **Evidence level.** Written and tested: `global/mcp/mcp_render_test.py` (class `Policy`: the policy file
 carries no `--allowedUrlPattern`, no `HARNESS_SWEEP_ORIGIN` and no `$`; the launch script, run with a
 fake `npx`, passes the same argv whatever the environment holds, with `--autoConnect` once and no
-`--allowedUrlPattern`), `global/install.test.sh` section 19b, `global/chrome_debugging_test.py` and
+`--allowedUrlPattern`), `global/install.test.sh` section 19b, ~~`global/chrome_debugging_test.py`~~
+`test/render/chrome-debugging.test.js` (since #480) and
 `global/method/method_commands_test.py`. Mutation-checked: re-adding `--allowedUrlPattern` to the
 source script turns the render tests red. **Not installed and not loaded** on the reference machine:
 that needs `mhw install` and a fresh session (ADR-0022), then a canary in which a page outside any

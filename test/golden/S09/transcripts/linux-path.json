@@ -1,0 +1,63 @@
+{
+  "name": "linux-path",
+  "runs": [
+    {
+      "args": [
+        "--mode=check"
+      ],
+      "code": 1,
+      "stdout": "DRIFT   <PROFILE>/Local State: devtools.remote_debugging.user-enabled absent, want true (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 0,
+      "stdout": "CHANGED <PROFILE>/Local State: devtools.remote_debugging.user-enabled absent -> true (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1,\"remote_debugging\":{\"user-enabled\":true}},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": "status",
+      "code": 0,
+      "stdout": "on (devtools.remote_debugging.user-enabled = true; no DevToolsActivePort; Chrome asks to allow a connection)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1,\"remote_debugging\":{\"user-enabled\":true}},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    }
+  ]
+}

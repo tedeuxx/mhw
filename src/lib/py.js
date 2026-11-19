@@ -194,11 +194,21 @@ class StopIteration extends Error {
  * json.loads(text) as CPython's C scanner reads it (CPython 3.14): NaN and Infinity accepted, an int kept
  * apart from a float (PyFloat), a big int as a BigInt, the last of a duplicate key kept, and a failure
  * raised as JsonDecodeError carrying CPython's own message: "<what>: line L column C (char P)", P in code
- * points.
+ * points. With `ordered`, an object reads as a Map, so its keys keep CPython's insertion order even when
+ * they look like integers (a plain object moves those first); dumps() writes a Map in that order.
  * @param {string} text
+ * @param {{ ordered?: boolean }} [opts]
  * @returns {unknown}
  */
-export function loads(text) {
+export function loads(text, opts = {}) {
+  const ordered = opts.ordered === true;
+  /** A new dict: a Map when ordered. @returns {Record<string, unknown> | Map<string, unknown>} */
+  const newDict = () => (ordered ? new Map() : {});
+  /** dict[k] = v. @param {Record<string, unknown> | Map<string, unknown>} obj @param {string} k @param {unknown} v */
+  const put = (obj, k, v) => {
+    if (obj instanceof Map) obj.set(k, v);
+    else Object.defineProperty(obj, k, { value: v, writable: true, enumerable: true, configurable: true });
+  };
   const s = codePoints(text);
   const len = s.length;
   /** @param {string} msg @param {number} pos */
@@ -314,8 +324,7 @@ export function loads(text) {
   };
   /** @param {number} i after the brace @returns {[unknown, number]} */
   const scanObject = (i) => {
-    /** @type {Record<string, unknown>} */
-    const obj = {};
+    const obj = newDict();
     i = skip(i);
     if (i >= len || s[i] !== '}') {
       for (;;) {
@@ -325,7 +334,7 @@ export function loads(text) {
         if (i >= len || s[i] !== ':') throw fail("Expecting ':' delimiter", i);
         i = skip(i + 1);
         const [val, next] = scan(i);
-        Object.defineProperty(obj, key, { value: val, writable: true, enumerable: true, configurable: true });
+        put(obj, key, val);
         i = skip(next);
         if (i < len && s[i] === '}') break;
         if (i >= len || s[i] !== ',') throw fail("Expecting ',' delimiter", i);
@@ -411,13 +420,12 @@ export function dumps(value, opts = {}) {
       if (!v.length) return '[]';
       return '[' + v.map((x) => nl + enc(x, depth + 1)).join(item) + close + ']';
     }
-    if (typeof v === 'object') {
-      const o = /** @type {Record<string, unknown>} */ (v);
-      const keys = sortKeys ? Object.keys(o).sort(cmpStr) : Object.keys(o);
-      if (!keys.length) return '{}';
-      return '{' + keys.map((k) => nl + dumpString(k, ascii) + key + enc(o[k], depth + 1)).join(item) + close + '}';
-    }
-    throw new TypeError('not JSON serializable');
+    if (typeof v !== 'object') throw new TypeError('not JSON serializable');
+    // A Map (an ordered loads()) and a plain object are both a dict; only the entries differ.
+    const entries = v instanceof Map ? [...v.entries()] : Object.entries(/** @type {Record<string, unknown>} */ (v));
+    if (sortKeys) entries.sort((a, b) => cmpStr(a[0], b[0]));
+    if (!entries.length) return '{}';
+    return '{' + entries.map(([k, x]) => nl + dumpString(k, ascii) + key + enc(x, depth + 1)).join(item) + close + '}';
   };
   return enc(value, 0);
 }
@@ -444,9 +452,17 @@ function reprString(s) {
   return out + q;
 }
 
+/** repr() and str() of a float: floatRepr with Python's lower-case nan and inf. @param {PyFloat} f */
+function floatStr(f) {
+  /** @type {Record<string, string>} */
+  const special = { NaN: 'nan', Infinity: 'inf', '-Infinity': '-inf' };
+  const r = floatRepr(f.v);
+  return special[r] ?? r;
+}
+
 /**
- * repr() of a parsed JSON value. A dict's keys print in JavaScript's own key order, which differs from
- * CPython's insertion order only for integer-like keys.
+ * repr() of a parsed JSON value. A plain object's keys print in JavaScript's own key order, which differs
+ * from CPython's insertion order only for integer-like keys; a Map (an ordered loads()) keeps its order.
  * @param {unknown} v
  * @returns {string}
  */
@@ -454,24 +470,19 @@ export function pyRepr(v) {
   if (v === null || v === undefined) return 'None';
   if (v === true) return 'True';
   if (v === false) return 'False';
-  if (v instanceof PyFloat) {
-    const r = floatRepr(v.v);
-    return r === 'NaN' ? 'nan' : r === 'Infinity' ? 'inf' : r === '-Infinity' ? '-inf' : r;
-  }
+  if (v instanceof PyFloat) return floatStr(v);
   if (typeof v === 'number' || typeof v === 'bigint') return String(v);
   if (typeof v === 'string') return reprString(v);
   if (Array.isArray(v)) return '[' + v.map(pyRepr).join(', ') + ']';
-  const o = /** @type {Record<string, unknown>} */ (v);
-  return '{' + Object.keys(o).map((k) => reprString(k) + ': ' + pyRepr(o[k])).join(', ') + '}';
+  // An ordered loads() dict prints in its insertion order, as CPython prints a dict.
+  const entries = v instanceof Map ? [...v] : Object.entries(/** @type {Record<string, unknown>} */ (v));
+  return '{' + entries.map(([k, x]) => reprString(k) + ': ' + pyRepr(x)).join(', ') + '}';
 }
 
 /** f"{v}" / str(v) of a scalar the report prints. @param {unknown} v */
 export function pyStr(v) {
   if (v === null || v === undefined) return 'None';
-  if (v instanceof PyFloat) {
-    const r = floatRepr(v.v);
-    return r === 'NaN' ? 'nan' : r === 'Infinity' ? 'inf' : r === '-Infinity' ? '-inf' : r;
-  }
+  if (v instanceof PyFloat) return floatStr(v);
   if (typeof v === 'string') return v;
   return pyRepr(v);
 }

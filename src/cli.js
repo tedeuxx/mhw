@@ -6,7 +6,7 @@
 //                    answers update itself; install --admin and uninstall do not exist there.
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
 // `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
-// `mhw funnel-review` (#478), and `mhw profile` (#479).
+// `mhw funnel-review` (#478), `mhw profile` (#479), and `mhw chrome-debugging` (#480).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // run by absolute path, never looked up on PATH. node: modules only (convention 5 of #470: this file is
 // on the hook path once `mhw hook prompt` moves here; test/deps-graph.test.js holds that).
@@ -22,6 +22,7 @@ import { main as launchLineMain } from './commands/launch-line.js';
 import { main as riteCadenceMain } from './commands/rite-cadence.js';
 import { main as funnelReviewMain } from './commands/funnel-review.js';
 import { main as profileMain } from './commands/profile.js';
+import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -137,6 +138,21 @@ function printNodeLine(nodeVersion) {
 }
 
 /**
+ * The commands moved to Node: answered here on every OS, never forwarded.
+ * @type {Record<string, (argv: string[], env: Record<string, string | undefined>) => number>}
+ */
+const MOVED = {
+  milestone: milestoneMain, // #475, S04
+  worklog: worklogMain, // #476, S05
+  'launch-line': launchLineMain, // #476, S05
+  'rite-cadence': riteCadenceMain, // #477, S06
+  'funnel-review': funnelReviewMain, // #478, S07
+  profile: profileMain, // #479, S08
+  // #480, S09: the install step install.sh spawns, and the status line workstation.py reads.
+  'chrome-debugging': chromeDebuggingMain,
+};
+
+/**
  * @param {string[]} argv
  * @param {string} platform
  * @param {Record<string, string | undefined>} env
@@ -152,17 +168,8 @@ export function main(argv, platform, env, opts = {}) {
     if (r.stderr) fs.writeSync(2, r.stderr);
     return r.code;
   }
-  // Moved to Node (#475, S04): answered here on every OS, never forwarded.
-  if (argv[0] === 'milestone') return milestoneMain(argv.slice(1), env);
-  // Moved to Node (#476, S05): mhw worklog and mhw launch-line run here on every OS, never forwarded.
-  if (argv[0] === 'worklog') return worklogMain(argv.slice(1), env);
-  if (argv[0] === 'launch-line') return launchLineMain(argv.slice(1), env);
-  // Moved to Node (#477, S06).
-  if (argv[0] === 'rite-cadence') return riteCadenceMain(argv.slice(1), env);
-  // Moved to Node (#478, S07): mhw funnel-review runs here on every OS, never forwarded.
-  if (argv[0] === 'funnel-review') return funnelReviewMain(argv.slice(1), env);
-  // Moved to Node (#479, S08).
-  if (argv[0] === 'profile') return profileMain(argv.slice(1), env);
+  // own keys only, so `mhw constructor` is forwarded like any unknown word
+  if (argv.length && Object.hasOwn(MOVED, argv[0])) return MOVED[argv[0]](argv.slice(1), env);
   if (argv[0] === 'status') printNodeLine(opts.nodeVersion || process.version);
   if (platform !== 'win32') {
     // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.

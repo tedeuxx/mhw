@@ -1,0 +1,206 @@
+{
+  "name": "usage-forms",
+  "runs": [
+    {
+      "args": [],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode=bogus"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--other"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--home=/x"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--mode=check"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode="
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode=CHECK"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        ""
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "check"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: chrome_debugging.py --mode=install|check|dry-run|uninstall\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    }
+  ]
+}
