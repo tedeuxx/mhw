@@ -72,7 +72,8 @@ export const CASES = [
     f.run(['plan', ...SRC]);
   } },
   { name: 'reference-profile-validates', build: (f) => {
-    f.write('profile.json', fs.readFileSync(path.join(ROOT, 'overlay', 'profile.json')));
+    // LF, as recorded: a Windows checkout may carry the file with CRLF.
+    f.write('profile.json', fs.readFileSync(path.join(ROOT, 'overlay', 'profile.json'), 'utf8').replace(/\r\n/g, '\n'));
     f.run(['validate', ...SRC]);
   } },
   // test_native_grants_are_rejected_without_echo
