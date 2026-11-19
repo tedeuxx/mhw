@@ -1,0 +1,25 @@
+{
+  "name": "gate-tracked-policy-server-attaches",
+  "runs": [
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 0,
+      "stdout": "CHANGED <PROFILE>/Local State: devtools.remote_debugging.user-enabled absent -> true (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1,\"remote_debugging\":{\"user-enabled\":true}},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    }
+  ]
+}

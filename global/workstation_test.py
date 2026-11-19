@@ -9,6 +9,7 @@ import contextlib
 import io
 import os
 from pathlib import Path
+import platform
 import re
 import shlex
 import shutil
@@ -147,9 +148,18 @@ class StatusOutput(unittest.TestCase):
         self.assertEqual(ws.issues(lines), 4)
 
 
+def chrome_local_state(home=None):
+    """Chrome's Local State under home (default $HOME) on this system, or None (Issue #224; the paths of
+    src/render/chrome-debugging.js, which test/render/chrome-debugging.test.js holds)."""
+    parts = {"Darwin": ("Library", "Application Support", "Google", "Chrome"),
+             "Linux": (".config", "google-chrome")}.get(platform.system())
+    return Path(home or Path.home()).joinpath(*parts, "Local State") if parts else None
+
+
 class ChromeDebugging(unittest.TestCase):
-    """Issue #224: status carries the chrome debugging line from chrome_debugging.status_text (tested in
-    chrome_debugging_test.py, with a fixture Local State)."""
+    """Issue #224: status carries the chrome debugging line, read since #480 by spawning
+    `mhw chrome-debugging --mode=status` (tested in test/render/chrome-debugging.test.js, with a fixture
+    Local State)."""
 
     def test_status_carries_the_line(self):
         out = ws.render_status(facts())
@@ -158,12 +168,42 @@ class ChromeDebugging(unittest.TestCase):
         self.assertFalse(any(line.startswith("  chrome debugging")
                              for line in ws.render_status(facts(chrome_debugging=None))))
 
-    def test_gather_reads_the_key_through_the_module(self):
+    def test_gather_reads_the_key_through_the_node_command(self):
         with tempfile.TemporaryDirectory(prefix="chrome-debugging-") as d:
-            profile = Path(d, "Library", "Application Support", "Google", "Chrome")
-            profile.mkdir(parents=True)
-            (profile / "Local State").write_text('{"devtools":{"remote_debugging":{"user-enabled":true}}}')
-            self.assertTrue(ws.chrome_debugging("Darwin", d).startswith("on (devtools.remote_debugging.user-enabled = true;"))
+            ls = chrome_local_state(d)
+            if ls is None:
+                self.skipTest("no default Chrome profile path on this system")
+            ls.parent.mkdir(parents=True)
+            ls.write_text('{"devtools":{"remote_debugging":{"user-enabled":true}}}')
+            self.assertTrue(ws.chrome_debugging(d).startswith("on (devtools.remote_debugging.user-enabled = true;"))
+            ls.write_text("[")
+            self.assertTrue(ws.chrome_debugging(d).startswith("not read (devtools.remote_debugging"))
+
+    def test_no_node_is_not_read(self):
+        with mock.patch.object(ws, "node_binary", return_value=None):
+            self.assertEqual(ws.chrome_debugging(), "not read (node 26 or later is required to read it)")
+
+    def test_a_failing_node_is_not_read(self):
+        with tempfile.TemporaryDirectory(prefix="fake-node-") as d:
+            fake = Path(d, "node")
+            fake.write_text("#!/bin/sh\necho partial\nexit 3\n")
+            fake.chmod(0o700)
+            with mock.patch.object(ws, "node_binary", return_value=str(fake)):
+                self.assertEqual(ws.chrome_debugging(d), "not read (mhw chrome-debugging --mode=status exited 3)")
+            with mock.patch.object(ws, "node_binary", return_value=str(Path(d, "absent"))):
+                self.assertEqual(ws.chrome_debugging(d), "not read (mhw chrome-debugging could not run)")
+
+    def test_node_binary_prefers_an_absolute_mhw_node(self):
+        with tempfile.TemporaryDirectory(prefix="mhw-node-") as d:
+            fake = Path(d, "node")
+            fake.write_text("#!/bin/sh\n")
+            fake.chmod(0o700)
+            with mock.patch.dict(os.environ, {"MHW_NODE": str(fake)}):
+                self.assertEqual(ws.node_binary(), str(fake))
+            with mock.patch.dict(os.environ, {"MHW_NODE": "node", "PATH": d}):
+                self.assertEqual(ws.node_binary(), str(fake))
+            with mock.patch.dict(os.environ, {"MHW_NODE": "", "PATH": ""}):
+                self.assertIsNone(ws.node_binary())
 
 
 class RuntimeSummary(unittest.TestCase):
@@ -844,7 +884,7 @@ class GatherLegacyDropin(unittest.TestCase):
         ws.admin_dropin().parent.mkdir(parents=True)
         ws.admin_dropin().write_text(json.dumps(legacy), encoding="utf-8")
         # PR #227 B2 (M2): gather() carries the Chrome key, read from a fixture Local State in this HOME.
-        ls = ws.chrome_debugging_mod.local_state()
+        ls = chrome_local_state()
         if ls is not None:
             ls.parent.mkdir(parents=True)
             ls.write_text('{"devtools":{"remote_debugging":{"user-enabled":true}}}', encoding="utf-8")

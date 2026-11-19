@@ -1,0 +1,35 @@
+{
+  "name": "gate-on-key-reported-whatever-the-server",
+  "runs": [
+    {
+      "args": [
+        "--mode=check"
+      ],
+      "code": 0,
+      "stdout": "OK      <PROFILE>/Local State: devtools.remote_debugging.user-enabled = true (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"devtools\":{\"remote_debugging\":{\"user-enabled\":true}}}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 0,
+      "stdout": "OK      <PROFILE>/Local State: devtools.remote_debugging.user-enabled = true (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"devtools\":{\"remote_debugging\":{\"user-enabled\":true}}}"
+        }
+      ]
+    }
+  ]
+}

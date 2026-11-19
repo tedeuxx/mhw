@@ -194,11 +194,14 @@ class StopIteration extends Error {
  * json.loads(text) as CPython's C scanner reads it (CPython 3.14): NaN and Infinity accepted, an int kept
  * apart from a float (PyFloat), a big int as a BigInt, the last of a duplicate key kept, and a failure
  * raised as JsonDecodeError carrying CPython's own message: "<what>: line L column C (char P)", P in code
- * points.
+ * points. With `ordered`, an object reads as a Map, so its keys keep CPython's insertion order even when
+ * they look like integers (a plain object moves those first); dumps() writes a Map in that order.
  * @param {string} text
+ * @param {{ ordered?: boolean }} [opts]
  * @returns {unknown}
  */
-export function loads(text) {
+export function loads(text, opts = {}) {
+  const ordered = opts.ordered === true;
   const s = codePoints(text);
   const len = s.length;
   /** @param {string} msg @param {number} pos */
@@ -314,8 +317,8 @@ export function loads(text) {
   };
   /** @param {number} i after the brace @returns {[unknown, number]} */
   const scanObject = (i) => {
-    /** @type {Record<string, unknown>} */
-    const obj = {};
+    /** @type {Record<string, unknown> | Map<string, unknown>} */
+    const obj = ordered ? new Map() : {};
     i = skip(i);
     if (i >= len || s[i] !== '}') {
       for (;;) {
@@ -325,7 +328,8 @@ export function loads(text) {
         if (i >= len || s[i] !== ':') throw fail("Expecting ':' delimiter", i);
         i = skip(i + 1);
         const [val, next] = scan(i);
-        Object.defineProperty(obj, key, { value: val, writable: true, enumerable: true, configurable: true });
+        if (obj instanceof Map) obj.set(key, val);
+        else Object.defineProperty(obj, key, { value: val, writable: true, enumerable: true, configurable: true });
         i = skip(next);
         if (i < len && s[i] === '}') break;
         if (i >= len || s[i] !== ',') throw fail("Expecting ',' delimiter", i);
@@ -410,6 +414,11 @@ export function dumps(value, opts = {}) {
     if (Array.isArray(v)) {
       if (!v.length) return '[]';
       return '[' + v.map((x) => nl + enc(x, depth + 1)).join(item) + close + ']';
+    }
+    if (v instanceof Map) {
+      const keys = sortKeys ? [...v.keys()].sort(cmpStr) : [...v.keys()];
+      if (!keys.length) return '{}';
+      return '{' + keys.map((k) => nl + dumpString(k, ascii) + key + enc(v.get(k), depth + 1)).join(item) + close + '}';
     }
     if (typeof v === 'object') {
       const o = /** @type {Record<string, unknown>} */ (v);

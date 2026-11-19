@@ -1,0 +1,25 @@
+{
+  "name": "intermediate-remote-debugging-a-list-refuses",
+  "runs": [
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 3,
+      "stdout": "REFUSE  <PROFILE>/Local State: devtools.remote_debugging.user-enabled could not be set; nothing was written (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"devtools\":{\"remote_debugging\":[]}}"
+        }
+      ]
+    }
+  ]
+}

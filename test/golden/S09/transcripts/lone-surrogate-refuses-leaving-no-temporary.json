@@ -1,0 +1,43 @@
+{
+  "name": "lone-surrogate-refuses-leaving-no-temporary",
+  "runs": [
+    {
+      "args": "status",
+      "code": 0,
+      "stdout": "off (devtools.remote_debugging.user-enabled absent; no DevToolsActivePort); mhw install turns it on while Chrome is closed\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"a\":\"\\ud83d\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 3,
+      "stdout": "REFUSE  <PROFILE>/Local State: devtools.remote_debugging.user-enabled could not be set; nothing was written (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"a\":\"\\ud83d\"}"
+        }
+      ]
+    }
+  ]
+}

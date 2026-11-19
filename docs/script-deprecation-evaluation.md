@@ -100,6 +100,11 @@ Measured by searching the tree for each script's name, test files and decision r
 | `global/mcp/mcp-launch.sh` | Starts an MCP server with its secret read from the keychain. | MCP configuration rendered by `mcp_render.py`; `mcp_connect.py`. | MCP configuration expands environment variables (CC documented; Cx and K assumed). That reads the process environment, not the keychain. | Secrets never at rest in configuration or the shell environment. | **keep as the exception** (no native keychain read) |
 | `global/chrome_debugging.py` | Sets Chrome's remote-debugging preference so the `chrome-devtools` server can attach, only when Chrome is not running. | `install.sh`, `workstation.py`. | None in any agent harness: it is a browser preference. The alternative is the owner's own click at `chrome://inspect`, which the owner chose to automate (#224). | The automatic setup the owner asked for. | **keep as the exception** |
 
+*Amended 2026-11-19 ([#480](https://github.com/tedeuxx/mhw/issues/480)): `chrome_debugging.py` was
+moved, not removed: it is `mhw chrome-debugging` in Node (`src/render/chrome-debugging.js`), with the same
+output and the same written file, byte for byte, and the Python file and its suite are deleted.
+`install.sh` and `workstation.py`'s status read spawn it. The rows stay as this evaluation read them.*
+
 ### Confidentiality at input and output
 
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |

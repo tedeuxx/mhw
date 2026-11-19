@@ -1040,16 +1040,27 @@ mcp_step() {
   python3 -B "$script_dir/mcp/mcp_render.py" --active "--mode=$mode" "--stamp=$stamp" || raise $?
 }
 # Chrome's remote-debugging toggle (Issue #224, ADR-0038 amendment 2026-10-24): the chrome-devtools server
-# attaches to the owner's Chrome, so global/chrome_debugging.py sets devtools.remote_debugging.user-enabled
-# in Chrome's Local State, only while Chrome is not running, changing that one key and printing none of the
-# file. Chrome still asks him to allow a connection. Uninstall leaves the key as it is.
+# attaches to the owner's Chrome, so `mhw chrome-debugging` (src/render/chrome-debugging.js, Node since
+# #480) sets devtools.remote_debugging.user-enabled in Chrome's Local State, only while Chrome is not
+# running, changing that one key and printing none of the file. Chrome still asks him to allow a
+# connection. Uninstall leaves the key as it is. The node is the one running mhw (MHW_NODE, an absolute
+# path), else the first node on PATH, run by the absolute path command -v reports.
 chrome_step() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "SKIP    Chrome remote debugging: python3 3.9 or later is required"
+  chrome_node=${MHW_NODE:-}
+  case "$chrome_node" in
+    /*) [ -x "$chrome_node" ] || chrome_node= ;;
+    *) chrome_node= ;;
+  esac
+  if [ -z "$chrome_node" ]; then
+    chrome_node=$(command -v node 2>/dev/null) || chrome_node=
+    case "$chrome_node" in /*) ;; *) chrome_node= ;; esac
+  fi
+  if [ -z "$chrome_node" ]; then
+    echo "SKIP    Chrome remote debugging: node 26 or later is required"
     raise 2
     return 0
   fi
-  python3 -B "$script_dir/chrome_debugging.py" "--mode=$mode" || raise $?
+  "$chrome_node" "$script_dir/../bin/mhw.js" chrome-debugging "--mode=$mode" || raise $?
 }
 if [ "$mode" = uninstall ]; then
   allow_uninstall

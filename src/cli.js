@@ -20,6 +20,7 @@ import { main as worklogMain } from './commands/worklog.js';
 import { main as launchLineMain } from './commands/launch-line.js';
 import { main as riteCadenceMain } from './commands/rite-cadence.js';
 import { main as funnelReviewMain } from './commands/funnel-review.js';
+import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -159,6 +160,8 @@ export function main(argv, platform, env, opts = {}) {
   if (argv[0] === 'rite-cadence') return riteCadenceMain(argv.slice(1), env);
   // Moved to Node (#478, S07): mhw funnel-review runs here on every OS, never forwarded.
   if (argv[0] === 'funnel-review') return funnelReviewMain(argv.slice(1), env);
+  // Moved to Node (#480, S09): the install step install.sh spawns, and the status line workstation.py reads.
+  if (argv[0] === 'chrome-debugging') return chromeDebuggingMain(argv.slice(1), env);
   if (argv[0] === 'status') printNodeLine(opts.nodeVersion || process.version);
   if (platform !== 'win32') {
     // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.

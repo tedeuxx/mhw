@@ -1,0 +1,43 @@
+{
+  "name": "empty-object-gains-the-key",
+  "runs": [
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 0,
+      "stdout": "CHANGED <PROFILE>/Local State: devtools.remote_debugging.user-enabled absent -> true (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"devtools\":{\"remote_debugging\":{\"user-enabled\":true}}}"
+        }
+      ]
+    },
+    {
+      "args": "status",
+      "code": 0,
+      "stdout": "on (devtools.remote_debugging.user-enabled = true; no DevToolsActivePort; Chrome asks to allow a connection)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"devtools\":{\"remote_debugging\":{\"user-enabled\":true}}}"
+        }
+      ]
+    }
+  ]
+}
