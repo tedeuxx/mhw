@@ -22,8 +22,12 @@
   ],
   "residuals": [
     {
-      "what": "The parse guard always runs.",
-      "why": "The original skipped it on Python 3.9 and 3.10, where tomllib does not exist, and the line editor alone stood. Node always has the vendored parser, so an edit that would not parse is refused on every supported runtime."
+      "what": "The parse guard is smol-toml 1.9.1 plus a TOML 1.0 check, not tomllib.",
+      "why": "The original refused an edit tomllib (TOML 1.0) could not parse. The port parses with the vendored smol-toml, keeping integers past 2^53 (integersAsBigInt asNeeded), then src/render/toml-guard.js refuses the forms smol-toml accepts and tomllib does not: a newline or a trailing comma inside an inline table, the \\e and \\x escapes, a time without seconds, a calendar-impossible date, and a byte-order mark outside a string. test/golden/S10/toml-guard.json pins accept or refuse per document against tomllib's answers (58 documents, recorded from CPython 3.14.6). A document outside that table on which the two parsers still disagree is not known; where one exists, the error runs either way (Node refusing what Python wrote, or writing what Python refused). The guard also runs where the original skipped it, on Python 3.9 and 3.10, which had no tomllib."
+    },
+    {
+      "what": "The reason inside a parse-guard refusal is the port's own text.",
+      "why": "A refusal names smol-toml's first message line or \"Invalid TOML 1.0 document: <form>\", never tomllib's message. The refusal, its exit code 3 and the untouched file are what the goldens compare; three golden cases mask the reason (differences above)."
     },
     {
       "what": "Integer-like JSON keys are written first.",
@@ -36,6 +40,14 @@
     {
       "what": "A crash prints a Node stack, not a Python traceback.",
       "why": "Where the original raised an exception it did not catch (a record entry that is not an object, a lone surrogate it cannot encode), the port throws too and exits 1. The message on stderr is Node's."
+    },
+    {
+      "what": "JSON nested about 3,000 levels deep is refused as unreadable.",
+      "why": "src/lib/py.js reads and writes JSON recursively and runs out of stack near 3,000 levels (RangeError), so the port prints REFUSE ... not readable as its format and writes nothing, where CPython (about 100,000 levels before RecursionError) wrote the file. It errs toward writing nothing. No settings file in use nests near that depth."
+    },
+    {
+      "what": "A crash on a lone-surrogate record path prints a NOTE line first.",
+      "why": "A record path outside HOME holding a lone surrogate makes both versions exit 1, but the port prints its NOTE line for that path before it throws, while CPython raised before printing it. The exit code is the same; stdout has one more line."
     }
   ]
 }

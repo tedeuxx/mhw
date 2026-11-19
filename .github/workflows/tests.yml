@@ -130,6 +130,26 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: npm test
+      # #481 (S10 of #470): the live arm of test/render/model-defaults.test.js compares the Node renderer
+      # with the base revision's model_defaults.py, and only on the CPython its goldens were recorded from
+      # (test/golden/S10/recorded-from.json). The runners carry other patch releases, so that CPython is
+      # installed here, after npm test, for this step alone. MHW_S10_LIVE_REQUIRED=1 turns the version skip
+      # into a failure while the base still holds model_defaults.py. POSIX only: the arm runs the base's
+      # Python there.
+      # actions/setup-python v6.3.0 (verified with git ls-remote 2026-11-19: refs/tags/v6.3.0).
+      - if: runner.os != 'Windows'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: 3.14.6
+      - name: S10 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S10_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          node --test --test-name-pattern="^live|tomllib" test/render/model-defaults.test.js
 
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and

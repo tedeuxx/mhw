@@ -47,7 +47,7 @@ import { fileURLToPath } from 'node:url';
 import { MARKER_ID, NAME } from '../lib/marker.js';
 import { privateCopy } from '../lib/private-copy.js';
 import { loads, dumps, pyStrip, pyRepr, isPyWs, isDict, PyFloat, JsonDecodeError } from '../lib/py.js';
-import { parseToml } from '../lib/toml.js';
+import { tomlInvalid } from './toml-guard.js';
 
 const SOURCE = 'overlay/model-defaults.json';
 export const BACKUP = '.pmhwc-models-backup';
@@ -522,15 +522,8 @@ export class NativeFile {
 
   /** Why the new text would not parse, or null. JSON is serialised whole and cannot come out invalid. */
   invalid() {
-    if (this.fmt !== 'toml') return null;
-    try {
-      parseToml(this.text(), 'TOML');
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const prefix = 'TOML: not valid TOML (';
-      return msg.startsWith(prefix) && msg.endsWith(')') ? msg.slice(prefix.length, -1) : msg;
-    }
-    return null;
+    // TOML 1.0, as the original's tomllib reads it (src/render/toml-guard.js).
+    return this.fmt === 'toml' ? tomlInvalid(this.text()) : null;
   }
 
   write() {

@@ -183,6 +183,25 @@
       {"run": "uninstall"}, {"run": "uninstall"}]},
     {"name": "uninstall-with-nothing-installed", "steps": [{"run": "uninstall"}]},
     {"name": "home-from-the-environment", "steps": [{"run": "install", "home": false}, {"run": "check", "home": false}]},
+    {"name": "owner-file-mode-0600-is-kept", "posix": true, "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "{\"model\": \"owner-model\"}"},
+      {"chmod": "{HOME}/.claude/settings.json", "mode": "600"},
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"gpt-owner\"\n"},
+      {"chmod": "{HOME}/.codex/config.toml", "mode": "600"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "codex-basic-string-with-a-backslash", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"a\\\\b\"\nmodel_reasoning_effort = 'c:\\d'\n"},
+      {"run": "install"}, {"run": "check"}]},
+    {"name": "record-entry-with-empty-keys-is-skipped", "steps": [
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"{HOME}/.claude/settings.json\": {\"harness\": \"claude-code\", \"keys\": []}, \"{HOME}/other.json\": {\"harness\": \"claude-code\", \"keys\": []}, \"{HOME}/zero.json\": {\"harness\": \"claude-code\", \"keys\": 0}}}"},
+      {"run": "check", "policy": "none"}, {"run": "install", "policy": "none"}]},
+    {"name": "record-path-equal-to-home", "steps": [
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"{HOME}\": {\"harness\": \"claude-code\", \"keys\": {\"model\": \"x\"}}}}"},
+      {"run": "uninstall"}]},
+    {"name": "record-replaced-filtered-by-keys", "steps": [
+      {"write": "{BASE}/outside/settings.json", "text": "{\"model\": \"m\"}"},
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"{BASE}/outside/settings.json\": {\"harness\": \"claude-code\", \"keys\": {\"model\": \"m\"}, \"replaced\": {\"model\": \"owner\", \"effortLevel\": \"high\", \"stray\": \"s\"}}}}"},
+      {"run": "install", "policy": "none"}, {"run": "check", "policy": "none"}]},
     {"name": "usage-errors", "steps": [
       {"run": "install", "args": []},
       {"run": "install", "args": ["--mode=bogus"]},

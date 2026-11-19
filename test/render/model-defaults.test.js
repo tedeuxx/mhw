@@ -23,6 +23,7 @@ import {
   run, NativeFile, BACKUP, UNREADABLE, utf8Error, splitLines, pyPath, pyErrorClass, isKeyLine, tomlValue,
   readText, loadPolicy, PolicyError,
 } from '../../src/render/model-defaults.js';
+import { tomlInvalid } from '../../src/render/toml-guard.js';
 import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
 import { which } from '../helpers/home.js';
 import { extractRevision } from '../helpers/parity.js';
@@ -290,28 +291,46 @@ test('golden: the Node renderer matches the Python original\'s transcripts', { s
   assert.deepEqual(diffs, []);
 });
 
-/** The base revision's model_defaults.py and the recorded CPython, or a reason they are not here. */
+// CI sets MHW_S10_LIVE_REQUIRED=1 in a step that installs the recorded CPython: there, a base that still
+// holds model_defaults.py with any other python3 (or none) is a failure, not a skip.
+const LIVE_REQUIRED = process.env.MHW_S10_LIVE_REQUIRED === '1';
+
+/** The python3 on PATH and its version, or null. */
+function python3() {
+  const py = which('python3');
+  if (!py) return null;
+  return { py, version: spawnSync(py, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim() };
+}
+
+/**
+ * The base revision's model_defaults.py and the recorded CPython; or why they are not here, and whether
+ * that is a failure (MHW_S10_LIVE_REQUIRED=1 and the base still holds the script).
+ * @returns {{ py?: string, script?: string, why?: string, fail?: boolean }}
+ */
 function pythonBase() {
   if (!POSIX) return { why: 'POSIX only' };
-  const py = which('python3');
-  if (!py || !GIT) return { why: 'needs python3 and git on PATH' };
-  const v = spawnSync(py, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim();
-  if (v !== recordedFrom.cpython) return { why: 'the goldens were recorded from CPython ' + recordedFrom.cpython + ', python3 here is ' + v };
+  if (!GIT) return { why: 'needs git on PATH', fail: LIVE_REQUIRED };
   const base = process.env.MHW_PARITY_BASE || (() => {
     const p = spawnSync(GIT, ['-C', ROOT, 'merge-base', 'HEAD', 'origin/' + (process.env.GITHUB_BASE_REF || 'rc/next')], { encoding: 'utf8' });
     return p.status === 0 ? p.stdout.trim() : '';
   })();
-  if (!base) return { why: 'no base revision (MHW_PARITY_BASE unset, no merge-base with origin/rc/next)' };
+  if (!base) return { why: 'no base revision (MHW_PARITY_BASE unset, no merge-base with origin/rc/next)', fail: LIVE_REQUIRED };
   const dest = path.join(freshDir('base'), 'tree');
-  if (!extractRevision(ROOT, base, dest)) return { why: 'base revision ' + base + ' is not readable here' };
+  if (!extractRevision(ROOT, base, dest)) return { why: 'base revision ' + base + ' is not readable here', fail: LIVE_REQUIRED };
   const script = path.join(dest, 'global', 'models', 'model_defaults.py');
   if (!fs.existsSync(script)) return { why: 'the base revision no longer holds model_defaults.py (this slice has merged)' };
-  return { py, script };
+  const p = python3();
+  if (!p) return { why: 'needs python3 on PATH', fail: LIVE_REQUIRED };
+  if (p.version !== recordedFrom.cpython) {
+    return { why: 'the goldens were recorded from CPython ' + recordedFrom.cpython + ', python3 here is ' + p.version, fail: LIVE_REQUIRED };
+  }
+  return { py: p.py, script };
 }
 
 test('live: the Python original and the Node renderer side by side', (t) => {
   const b = pythonBase();
   if (!b.script || !b.py) {
+    if (b.fail) assert.fail('MHW_S10_LIVE_REQUIRED=1: ' + b.why);
     t.skip(b.why);
     return;
   }
@@ -468,6 +487,45 @@ test('on Windows a written file has \\r\\n line ends, as Python\'s text mode wro
   fs.writeFileSync(policy, JSON.stringify({ version: 1, codex: { model: 'gpt-y' } }));
   assert.equal(run(['--mode=install', '--policy=' + policy, '--home=' + home], { env: { USERPROFILE: home, SystemRoot: process.env.SystemRoot }, out: () => {} }), 0);
   assert.equal(fs.readFileSync(path.join(home, '.codex', 'config.toml'), 'utf8'), '# c\r\nmodel = "gpt-y"\r\n');
+});
+
+// ── The TOML parse guard against tomllib (PR #515 QA, B1) ──────────────────────────────────────────
+
+/** @type {{ cpython: string, rows: Array<{ name: string, text: string, tomllib: 'accept' | 'refuse' }> }} */
+const guardTable = readGolden(SLICE, 'toml-guard.json');
+
+test('the parse guard accepts or refuses each document as tomllib did (recorded, one row per form)', () => {
+  const names = new Set(guardTable.rows.map((r) => r.name));
+  assert.equal(names.size, guardTable.rows.length, 'row names are unique');
+  const off = guardTable.rows
+    .map((r) => ({ name: r.name, tomllib: r.tomllib, guard: tomlInvalid(r.text) === null ? 'accept' : 'refuse' }))
+    .filter((r) => r.tomllib !== r.guard);
+  assert.deepEqual(off, []);
+  // The table holds both answers for each form the guard adds to smol-toml, so a bump that moves one is red.
+  for (const name of ['int-i64-max', 'inline-table-newline', 'inline-table-trailing-comma', 'escape-e', 'escape-x',
+    'time-without-seconds', 'date-feb-30', 'bom-second-line', 'date-like-bare-key', 'escape-x-in-literal']) {
+    assert.ok(names.has(name), 'the table pins ' + name);
+  }
+});
+
+test('live tomllib: the recorded answers are what the recorded CPython answers', (t) => {
+  const p = python3();
+  if (!p || p.version !== guardTable.cpython) {
+    const why = 'the table was recorded from CPython ' + guardTable.cpython + ', python3 here is ' + (p ? p.version : 'absent');
+    if (LIVE_REQUIRED) assert.fail('MHW_S10_LIVE_REQUIRED=1: ' + why);
+    t.skip(why);
+    return;
+  }
+  const r = spawnSync(p.py, ['-c', 'import json,sys,tomllib\nout=[]\nfor d in json.load(sys.stdin):\n    try:\n        tomllib.loads(d); out.append("accept")\n    except Exception:\n        out.append("refuse")\nprint(json.dumps(out))'],
+    { input: JSON.stringify(guardTable.rows.map((x) => x.text)), encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(JSON.parse(r.stdout), guardTable.rows.map((x) => x.tomllib));
+});
+
+test('the guard keeps integers past 2^53 and reports the first line of a smol-toml refusal', () => {
+  assert.equal(tomlInvalid('n = 9223372036854775807\n'), null);
+  assert.match(String(tomlInvalid('a = 1\na = 2\n')), /^Invalid TOML document: [^\n]+$/);
+  assert.equal(tomlInvalid('t = 07:32\n'), 'Invalid TOML 1.0 document: a time without seconds');
 });
 
 // ── The Python semantics, unit by unit ──────────────────────────────────────────────────────────────
