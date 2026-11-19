@@ -11,5 +11,12 @@
     "pattern": "^\\.claude/settings\\.json$",
     "whenBaseHas": "method/scripts/milestone-read.py",
     "why": "S04 (#475): the allow list's script kind rendered an Edit deny on the installed milestone-read.py in every tier; the route kind that replaces it names no file, so ~/.claude/settings.json loses exactly that one deny (measured by diffing the two installs). Its content is compared by kind and mode only, and only while the base still ships milestone-read.py; global/allow-list.test.sh asserts the rendered rules themselves."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.kiro/settings/permissions\\.yaml$|^\\.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned\\.json$",
+    "whenBaseHas": "global/kiro/kiro_permissions.py",
+    "why": "S11 (#482): the Kiro deny floor is rendered by src/render/kiro-permissions.js, whose provenance text names itself where kiro_permissions.py named global/kiro/kiro_permissions.py: the managed-by header of permissions.yaml and the _ field of kiro-permissions-owned.json (measured by diffing the two installs: exactly these two files differ). The rules in both are the same, and test/golden/S11/ holds them byte for byte against the original. Compared by kind and mode only, and only while the base still ships kiro_permissions.py."
   }
 ]

@@ -1,0 +1,140 @@
+{
+  "name": "owner-rules-kept-backup-private",
+  "runs": [
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 1,
+      "stdout": "DRIFT   <HOME>/.kiro/settings/permissions.yaml (6 deny-floor pattern(s) missing; none)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=dry-run",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "WOULD MERGE <HOME>/.kiro/settings/permissions.yaml: 6 deny-floor pattern(s), every rule of yours kept (backup permissions.yaml.pmhwc-backup):\n  + shell deny gh auth token *\n  + shell deny terraform -chdir=*\n  + fs_read deny ~/.ssh/id_*\n  + fs_read deny **/.env\n  + fs_write deny ~/.ssh/id_*\n  + fs_write deny **/.env\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "MERGED  <HOME>/.kiro/settings/permissions.yaml (6 deny-floor pattern(s) added, every rule of yours kept; previous version kept as <HOME>/.kiro/settings/permissions.yaml.pmhwc-backup)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 7b9ffb57d28e8ccfe43482f8320cf74cbb38e22a698b9a4554c0edcfaab78b27",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 715551f8f494267554816b9a9725b4d35dcaf3ecfb8f4667fc5ce5d4cb5fc29c",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "OK      <HOME>/.kiro/settings/permissions.yaml (all 7 deny-floor patterns present; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 7b9ffb57d28e8ccfe43482f8320cf74cbb38e22a698b9a4554c0edcfaab78b27",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 715551f8f494267554816b9a9725b4d35dcaf3ecfb8f4667fc5ce5d4cb5fc29c",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "OK      <HOME>/.kiro/settings/permissions.yaml (all 7 deny-floor patterns present; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 7b9ffb57d28e8ccfe43482f8320cf74cbb38e22a698b9a4554c0edcfaab78b27",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 715551f8f494267554816b9a9725b4d35dcaf3ecfb8f4667fc5ce5d4cb5fc29c",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=uninstall",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "UNMERGED <HOME>/.kiro/settings/permissions.yaml (the deny rules mhw added removed, your rules kept; previous version kept as <HOME>/.kiro/settings/permissions.yaml.pmhwc-backup)\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 53c118a361d3c4d249f79975f83fa125522b19c38136a6afe85016775828b6bd",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 7b9ffb57d28e8ccfe43482f8320cf74cbb38e22a698b9a4554c0edcfaab78b27",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 1,
+      "stdout": "DRIFT   <HOME>/.kiro/settings/permissions.yaml (6 deny-floor pattern(s) missing; none)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 53c118a361d3c4d249f79975f83fa125522b19c38136a6afe85016775828b6bd",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 7b9ffb57d28e8ccfe43482f8320cf74cbb38e22a698b9a4554c0edcfaab78b27",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "each-entry-matches-a-distinct-rule",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "MERGED  <HOME>/.kiro/settings/permissions.yaml (new file; 1 deny-floor patterns)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 6b7229f9f89f1d65ddf26edabb0d8726c49e718ba39d89ed738bca404c0ec79a",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 4433e11b77bc8f671f446233e7c7376dffd8556d73becbf03e5c1589dd33732b",
+        "floor.conf file 644 ed4e72b53c2ff826f0d2f268da728c3fdc6688ba44d28b37073226eff5bd49a0"
+      ]
+    },
+    {
+      "args": [
+        "--mode=uninstall",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "NOTE    <HOME>/.kiro/settings/permissions.yaml: the shell deny rule mhw appended (1 pattern(s)) was not found as its own rule (removed or edited by hand?); nothing removed for it (a deny left behind is the safe direction)\nUNMERGED <HOME>/.kiro/settings/permissions.yaml (the deny rules mhw added removed, your rules kept; previous version kept as <HOME>/.kiro/settings/permissions.yaml.pmhwc-backup)\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 0464dda03527af69e91f89e13b0cbdd6c60bacd3bdf59bc6e9f96890f2b89724",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 b71458f5f0f9fced9590340949ba429992c26bb49c56c5e4666cb41a8aca7d30",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        "floor.conf file 644 ed4e72b53c2ff826f0d2f268da728c3fdc6688ba44d28b37073226eff5bd49a0"
+      ]
+    }
+  ]
+}

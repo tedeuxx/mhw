@@ -24,5 +24,7 @@ test/golden/S09/** -text
 # Golden transcripts and cases of the S10 parity test (#481): byte for byte on every OS (the cases carry
 # \r\n, a byte-order mark and non-ASCII owner values on purpose).
 test/golden/S10/** -text
+# Golden transcripts, inputs and recorded results of the S11 parity tests (#482): byte for byte on every OS.
+test/golden/S11/** -text
 # Golden transcripts of the S12 parity test (#483): byte for byte on every OS.
 test/golden/S12/** -text

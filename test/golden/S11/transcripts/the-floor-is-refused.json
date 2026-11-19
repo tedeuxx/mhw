@@ -1,0 +1,81 @@
+{
+  "name": "the-floor-is-refused",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/bad.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro deny floor: a cmd word may not hold *: cmd rm -rf *\n",
+      "tree": [
+        "bad.conf file 644 02fd602ac8dc61cfbd5e74ac72e714c274ea67d1debd9e1edc4f756f75cfdce8",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/missing.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro deny floor: [Errno 2] No such file or directory: '<HOME>/missing.conf'\n",
+      "tree": [
+        "bad.conf file 644 02fd602ac8dc61cfbd5e74ac72e714c274ea67d1debd9e1edc4f756f75cfdce8",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=uninstall",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/empty.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro deny floor: the deny floor has no entry\n",
+      "tree": [
+        "bad.conf file 644 02fd602ac8dc61cfbd5e74ac72e714c274ea67d1debd9e1edc4f756f75cfdce8",
+        "empty.conf file 644 a59b054e8ef7a3a30bbc7135d8060cd4fad8572b6ef2332669f9798870f86caa",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=report",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/u.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro deny floor: 'utf-8' codec can't decode byte 0xe9 in position 4: invalid continuation byte\n",
+      "tree": [
+        "bad.conf file 644 02fd602ac8dc61cfbd5e74ac72e714c274ea67d1debd9e1edc4f756f75cfdce8",
+        "empty.conf file 644 a59b054e8ef7a3a30bbc7135d8060cd4fad8572b6ef2332669f9798870f86caa",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "u.conf file 644 702393ebe7a615f2f121b8f59095aef3ff1e1b189c2b9086c4103faaa7d428eb"
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/dir.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro deny floor: [Errno 21] Is a directory: '<HOME>/dir.conf'\n",
+      "tree": [
+        "bad.conf file 644 02fd602ac8dc61cfbd5e74ac72e714c274ea67d1debd9e1edc4f756f75cfdce8",
+        "dir.conf dir 755",
+        "empty.conf file 644 a59b054e8ef7a3a30bbc7135d8060cd4fad8572b6ef2332669f9798870f86caa",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "u.conf file 644 702393ebe7a615f2f121b8f59095aef3ff1e1b189c2b9086c4103faaa7d428eb"
+      ]
+    }
+  ]
+}
