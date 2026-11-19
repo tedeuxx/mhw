@@ -1,0 +1,87 @@
+{
+  "name": "kiro-plain-rewrite-restamped",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "MERGED  <HOME>/.kiro/settings/permissions.yaml (new file; 7 deny-floor patterns)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 bb4f38d7619f86a443b1ecad4ff444ab5e42e8d1f301e739d4c84e0106fe7ab5",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 1,
+      "stdout": "STAMP   <HOME>/.kiro/settings/permissions.yaml: the deny-floor patterns match, but it carries (none) and the source is (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 2b58c9213111f344138b55c33f05fbc955d27066b304b15e963a7ca660d0c5a5",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "RESTAMPED <HOME>/.kiro/settings/permissions.yaml (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; previous version kept as <HOME>/.kiro/settings/permissions.yaml.pmhwc-backup)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 1bef718f566d35d8790fd2d314173d7607d4c4cceaa4ee942f9965fb9da1798f",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 2b58c9213111f344138b55c33f05fbc955d27066b304b15e963a7ca660d0c5a5",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "OK      <HOME>/.kiro/settings/permissions.yaml (all 7 deny-floor patterns present; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 1bef718f566d35d8790fd2d314173d7607d4c4cceaa4ee942f9965fb9da1798f",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 2b58c9213111f344138b55c33f05fbc955d27066b304b15e963a7ca660d0c5a5",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    }
+  ]
+}

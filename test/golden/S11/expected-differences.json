@@ -1,0 +1,14 @@
+[
+  {
+    "name": "the renderer's own path in the files it writes",
+    "pattern": "(?:global/kiro/kiro_permissions\\.py|src/render/kiro-permissions\\.js)",
+    "replace": "<RENDERER>",
+    "why": "The provenance text names the program that wrote the file: the managed-by header of permissions.yaml (\"source: <floor> via <renderer>\"), the \"_\" field of kiro-permissions-owned.json and the stamp key of the admin managed-settings.json. The original wrote global/kiro/kiro_permissions.py, which this slice deletes; the Node renderer writes src/render/kiro-permissions.js. The stamp, the floor source and every rule are still compared. Consequence on an installed machine: install-managed.sh --check reports the Kiro admin copy as DRIFT (not only STAMP) until the next --apply, and an existing permissions.yaml keeps the old header until a later install rewrites it; neither changes a rule."
+  },
+  {
+    "name": "the program name in the usage lines",
+    "pattern": "\\b(?:kiro_permissions\\.py|kiro-permissions\\.js) --mode=",
+    "replace": "<PROGRAM> --mode=",
+    "why": "The usage lines on stderr name the program: kiro_permissions.py in the original, kiro-permissions.js in the Node renderer. The rest of each usage line and the exit code 2 are still compared."
+  }
+]

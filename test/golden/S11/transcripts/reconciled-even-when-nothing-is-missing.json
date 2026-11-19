@@ -1,0 +1,64 @@
+{
+  "name": "reconciled-even-when-nothing-is-missing",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "MERGED  <HOME>/.kiro/settings/permissions.yaml (new file; 1 deny-floor patterns)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 6b7229f9f89f1d65ddf26edabb0d8726c49e718ba39d89ed738bca404c0ec79a",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 4433e11b77bc8f671f446233e7c7376dffd8556d73becbf03e5c1589dd33732b",
+        "floor.conf file 644 ed4e72b53c2ff826f0d2f268da728c3fdc6688ba44d28b37073226eff5bd49a0"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "NOTE    <HOME>/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json: 1 recorded mhw rule(s) no longer in <HOME>/.kiro/settings/permissions.yaml (removed or edited by hand); forgotten, so uninstall never takes one of your rules for them\nOK      <HOME>/.kiro/settings/permissions.yaml (all 1 deny-floor patterns present; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 d5c4434de002ddbb1d4ca43076756b87771235a1a361c256b765728f2b53ff16",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 9e2690a5bbb020e8229a5d86f2ef7db9fd42cd5b0247b870f573dc7e06308e36",
+        "floor.conf file 644 ed4e72b53c2ff826f0d2f268da728c3fdc6688ba44d28b37073226eff5bd49a0"
+      ]
+    },
+    {
+      "args": [
+        "--mode=uninstall",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "OK      <HOME>/.kiro/settings/permissions.yaml holds no deny rule mhw added\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 d5c4434de002ddbb1d4ca43076756b87771235a1a361c256b765728f2b53ff16",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        "floor.conf file 644 ed4e72b53c2ff826f0d2f268da728c3fdc6688ba44d28b37073226eff5bd49a0"
+      ]
+    }
+  ]
+}

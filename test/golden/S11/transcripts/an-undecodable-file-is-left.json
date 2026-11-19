@@ -1,0 +1,37 @@
+{
+  "name": "an-undecodable-file-is-left",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 3,
+      "stdout": "REFUSE  <HOME>/.kiro/settings/permissions.yaml: unreadable (UnicodeDecodeError); left untouched\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 7ecc9ddfd73b80ddc4b50a39fc335fb45963e18c26e72a1e3eba004ecea20620",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=report",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "FLOOR   Kiro: user permissions.yaml not read (unreadable (UnicodeDecodeError); left untouched)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 7ecc9ddfd73b80ddc4b50a39fc335fb45963e18c26e72a1e3eba004ecea20620",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    }
+  ]
+}

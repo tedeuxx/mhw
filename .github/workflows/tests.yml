@@ -66,7 +66,6 @@ jobs:
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_active.py global/mcp/mcp_connect.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
-            global/kiro/kiro_permissions.py global/kiro/kiro_permissions_test.py \
             global/project-policy/project_policy.py global/project-policy/project_policy_test.py \
             global/project-policy/project_policy_check_test.py \
             global/project-policy/delivery_gate.py global/project-policy/delivery_gate_test.py \
@@ -297,12 +296,8 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/private_copy_test.py "$RUNNER_TEMP/private-copy"
-      # Issue #144, ADR-0036: the deny floor merged into Kiro's user-level permissions.yaml (IDE and CLI V3),
-      # in throwaway HOMEs only; the owner's rules kept, only the appended patterns taken back.
-      - name: Kiro deny floor suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: python3 -B global/kiro/kiro_permissions_test.py "$RUNNER_TEMP/kiro-permissions"
+      # Issue #144, ADR-0036: the Kiro deny floor suite is node:test since #482 (S11 of #470),
+      # test/render/kiro-permissions*.test.js, run by the node job on all three OSes.
       # Issues #71-#75: the workflow commands render on all three agent harnesses with their required
       # sections, Codex implicit invocation off (four since #196 removed /handover, five with #198's
       # /handoff); the sanitisation check on a synthetic fixture, kept after that removal because it never

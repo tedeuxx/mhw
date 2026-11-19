@@ -1,0 +1,138 @@
+{
+  "name": "admin-json-refusals",
+  "runs": [
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=<HOME>/owner.yaml"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document: <HOME>/owner.yaml holds a rule that is not a plain floor deny rule\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "owner.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=<HOME>/missing.yaml"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document: [Errno 2] No such file or directory: '<HOME>/missing.yaml'\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "owner.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=<HOME>/empty.yaml"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document: <HOME>/empty.yaml holds no deny-floor pattern\n",
+      "tree": [
+        "empty.yaml file 644 e0dfa70eb69d47fe9cb2be8a4fcd53e74cf7fe26fcbb1f06912b57a9c028e4e0",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "owner.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=<HOME>/bad.yaml"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document: line 1: rules must be a block list of rules (or [])\n",
+      "tree": [
+        "bad.yaml file 644 d948ec000fbb5141595c36b47c7404a107f0fab1abe924aa0005325d75d724c4",
+        "empty.yaml file 644 e0dfa70eb69d47fe9cb2be8a4fcd53e74cf7fe26fcbb1f06912b57a9c028e4e0",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "owner.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=<HOME>/excl.yaml"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document: <HOME>/excl.yaml holds a rule that is not a plain floor deny rule\n",
+      "tree": [
+        "bad.yaml file 644 d948ec000fbb5141595c36b47c7404a107f0fab1abe924aa0005325d75d724c4",
+        "empty.yaml file 644 e0dfa70eb69d47fe9cb2be8a4fcd53e74cf7fe26fcbb1f06912b57a9c028e4e0",
+        "excl.yaml file 644 82454c5d8c3ea60bc1c4d5523051a4afc251a5e5608e6ed926fd3d058d9372b2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "owner.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=<HOME>/mcp.yaml"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document: <HOME>/mcp.yaml holds a rule that is not a plain floor deny rule\n",
+      "tree": [
+        "bad.yaml file 644 d948ec000fbb5141595c36b47c7404a107f0fab1abe924aa0005325d75d724c4",
+        "empty.yaml file 644 e0dfa70eb69d47fe9cb2be8a4fcd53e74cf7fe26fcbb1f06912b57a9c028e4e0",
+        "excl.yaml file 644 82454c5d8c3ea60bc1c4d5523051a4afc251a5e5608e6ed926fd3d058d9372b2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "mcp.yaml file 644 648244ac88233889d449cf37db79d084d889f58bcaff81567ebf17cb4e55906a",
+        "owner.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=<HOME>/nomatch.yaml"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via <RENDERER>; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.x\",\n        \"\\u00e9\"\n      ]\n    }\n  ]\n}\n",
+      "stderr": "",
+      "tree": [
+        "bad.yaml file 644 d948ec000fbb5141595c36b47c7404a107f0fab1abe924aa0005325d75d724c4",
+        "empty.yaml file 644 e0dfa70eb69d47fe9cb2be8a4fcd53e74cf7fe26fcbb1f06912b57a9c028e4e0",
+        "excl.yaml file 644 82454c5d8c3ea60bc1c4d5523051a4afc251a5e5608e6ed926fd3d058d9372b2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "mcp.yaml file 644 648244ac88233889d449cf37db79d084d889f58bcaff81567ebf17cb4e55906a",
+        "nomatch.yaml file 644 413532a826d27ac1c2273acba6330e5ea98f56b6e6219319f0ae1f79aa81c703",
+        "owner.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=<HOME>/u.yaml"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document: 'utf-8' codec can't decode byte 0xff in position 1: invalid start byte\n",
+      "tree": [
+        "bad.yaml file 644 d948ec000fbb5141595c36b47c7404a107f0fab1abe924aa0005325d75d724c4",
+        "empty.yaml file 644 e0dfa70eb69d47fe9cb2be8a4fcd53e74cf7fe26fcbb1f06912b57a9c028e4e0",
+        "excl.yaml file 644 82454c5d8c3ea60bc1c4d5523051a4afc251a5e5608e6ed926fd3d058d9372b2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "mcp.yaml file 644 648244ac88233889d449cf37db79d084d889f58bcaff81567ebf17cb4e55906a",
+        "nomatch.yaml file 644 413532a826d27ac1c2273acba6330e5ea98f56b6e6219319f0ae1f79aa81c703",
+        "owner.yaml file 644 cd739ee5dc01caa4854810e64b2677ac81e9224c70f8e660502874a35cada3ba",
+        "u.yaml file 644 d0f2cc98c4828757c981b0274a7f40881fe7b055895951f258e614005ce86ee9"
+      ]
+    }
+  ]
+}

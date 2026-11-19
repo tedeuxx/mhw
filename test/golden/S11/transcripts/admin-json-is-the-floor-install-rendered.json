@@ -1,0 +1,85 @@
+{
+  "name": "admin-json-is-the-floor-install-rendered",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "MERGED  <HOME>/.kiro/settings/permissions.yaml (new file; 7 deny-floor patterns)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 bb4f38d7619f86a443b1ecad4ff444ab5e42e8d1f301e739d4c84e0106fe7ab5",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=<HOME>/.kiro/settings/permissions.yaml"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via <RENDERER>; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"sudo *\",\n        \"gh auth token *\",\n        \"terraform -chdir=*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"**/.env\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"**/.env\"\n      ]\n    }\n  ]\n}\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 bb4f38d7619f86a443b1ecad4ff444ab5e42e8d1f301e739d4c84e0106fe7ab5",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v1; commit: c",
+        "--from-yaml=<HOME>/.kiro/settings/permissions.yaml"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"personal-multi-harness-workstation-configuration\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install-managed.sh via <RENDERER>; release: v1; commit: c; do not edit, re-run the installer\",\n  \"rules\": [\n    {\n      \"capability\": \"shell\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"sudo *\",\n        \"gh auth token *\",\n        \"terraform -chdir=*\"\n      ]\n    },\n    {\n      \"capability\": \"fs_read\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"**/.env\"\n      ]\n    },\n    {\n      \"capability\": \"fs_write\",\n      \"effect\": \"deny\",\n      \"match\": [\n        \"~/.ssh/id_*\",\n        \"**/.env\"\n      ]\n    }\n  ]\n}\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 bb4f38d7619f86a443b1ecad4ff444ab5e42e8d1f301e739d4c84e0106fe7ab5",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=no provenance",
+        "--from-yaml=<HOME>/.kiro/settings/permissions.yaml"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document: the personal-multi-harness-workstation-configuration key does not carry the provenance stamp\n",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 bb4f38d7619f86a443b1ecad4ff444ab5e42e8d1f301e739d4c84e0106fe7ab5",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    }
+  ]
+}
