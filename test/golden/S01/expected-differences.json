@@ -4,5 +4,12 @@
     "stream": "stdout",
     "pattern": "^NODE    (ok    node|FAIL  node|FAIL  cannot compare node) ",
     "why": "D11 of #470, AC of #472: mhw status prints a NODE line first, naming the running node against engines.node. The original printed none. It is the one intended difference of S01, allowed on the status case only, and only as an added line."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.claude/settings\\.json$",
+    "whenBaseHas": "method/scripts/milestone-read.py",
+    "why": "S04 (#475): the allow list's script kind rendered an Edit deny on the installed milestone-read.py in every tier; the route kind that replaces it names no file, so ~/.claude/settings.json loses exactly that one deny (measured by diffing the two installs). Its content is compared by kind and mode only, and only while the base still ships milestone-read.py; global/allow-list.test.sh asserts the rendered rules themselves."
   }
 ]

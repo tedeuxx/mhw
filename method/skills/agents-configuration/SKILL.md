@@ -619,11 +619,13 @@ gh issue list --repo <owner>/<repo> --state all --limit 200 --json number,milest
 
 There is no `gh milestone` subcommand, and `state` is not among `gh issue list --json`'s available
 fields, so ~~**no command available to this loop can read whether a milestone is open or closed.**~~
-**Struck 2026-09-29 (#537): `python3 {{method-scripts}}/milestone-read.py` reads the milestone endpoint directly,
+**Struck 2026-09-29 (#537): ~~`python3 method/scripts/milestone-read.py`~~ `mhw milestone read`
+(since mhw#475) reads the milestone endpoint directly,
 including an empty milestone, and returns state plus open and closed counts.**
 ~~Creating one and closing one are both owner acts in the browser.~~ **Struck first for creation at
-#375 and completely at #537:** `{{method-scripts}}/milestone-create.py` creates and
-`{{method-scripts}}/milestone-close.py` closes. Neither act is handed to the owner.
+#375 and completely at #537:** `mhw milestone create` creates and
+`mhw milestone close` closes (~~`method/scripts/milestone-create.py`, `method/scripts/milestone-close.py`~~
+until mhw#475). Neither act is handed to the owner.
 
 **Why that does not send the object back to the table, which is the honest form of this answer:** rule 1
 never reads `state`. The predicate above derives the active iteration from *items*, so the one attribute
@@ -643,9 +645,10 @@ scrum»* — and creation had **no route at all**: `gh milestone` does not exist
 (`gh milestone --help` → `unknown command "milestone" for "gh"`), so rule 5f's prescribed remedy
 (*"use the gh subcommand for the act instead"*) is **unexecutable**, not merely inconvenient.
 
-**The route is `{{method-scripts}}/milestone-create.py`, and it is an EXPLOITATION rather than a design.** It
+**The route is `mhw milestone create` (~~`method/scripts/milestone-create.py`~~ until mhw#475), and it
+is an EXPLOITATION rather than a design.** It
 reaches the write API because **neither the settings matcher nor `permission-guard.sh` looks inside a
-script** — the same blindness that makes `python3 -c "…gh api -X POST…"` a back door, measured against
+program** — the same blindness that makes `python3 -c "…gh api -X POST…"` a back door, measured against
 the live guard. **So nothing here may claim the raw-API route is closed**, and the floor entry the
 struck sentence protects is untouched: it was never the thing standing in the way. ~~What guards the act
 is `permission-guard.sh` **rule 11** — a subagent is denied, the orchestrator is asked, rule 10's exact
@@ -654,8 +657,9 @@ split, and the owner's answer to that prompt is the HITL verification #365 deman
 and the price of accepting the hole are still in ADR-0004's 2026-08-31 amendment, and the hole is still
 open.
 
-**The family is four reviewed routes since #537:** `milestone-read.py`, `milestone-create.py`,
-`milestone-update.py` and `milestone-close.py`. Read identifies a milestone by number, including one
+**The family is four reviewed routes since #537:** ~~four Python scripts in `method/scripts/`~~
+`mhw milestone read`, `mhw milestone create`, `mhw milestone update` and `mhw milestone close` (Node
+since mhw#475, same behaviour, same output). Read identifies a milestone by number, including one
 holding zero Issues, and returns title, description, state, and open/closed counts. Update accepts the
 new description and expected prior description by file only and prints the prior value. ~~It refuses a
 lost-update race.~~ **Struck 2026-09-29 (#537, repair round): the comparison is a local preflight before
@@ -663,19 +667,24 @@ an unconditional PATCH, not compare-and-swap. It refuses a value already stale w
 overwrite a write landing after that GET. GitHub documents conditional requests for unsafe methods as
 unsupported unless an endpoint says otherwise, and the milestone update endpoint names no exception.**
 Close reads first and refuses a milestone that is not open. All fail non-zero when
-`gh` fails, and `scripts/milestone.test.py` exercises the behavior against a stub `gh` on `PATH`.
+`gh` fails, and ~~`method/scripts/milestone.test.py`~~ mhw's `test/method/milestone.test.js` exercises
+the behavior against a stub `gh`, on the deleted Python suite's own cases.
 
 ~~**What stands there now is an ABSENCE:** `scripts/` matches no allow entry, so running the script
 prompts the orchestrator and refuses a subagent.~~ **Struck 2026-09-29 (#537): the reviewed milestone
-family now uses the ~~already-allowlisted~~ `python3` interpreter.** ~~Read, create, update and close execute
+family now uses the ~~already-allowlisted~~ `python3` interpreter** (until mhw#475; it is the `mhw`
+CLI now, on Node). ~~Read, create, update and close execute
 without a prompt for the orchestrator and every persona holding Bash. No settings layer changed; the
 reach is the accepted consequence of the owner's non-critical pricing of milestone acts.~~ **Struck
 2026-11-02 (mhw#242): `python3` is not allowlisted by the workstation.** Its allow list
 (`global/allow-list.conf` plus the overlay's, in mhw) names `python3` only for specific scripts, never as
-an interpreter. **Of this family only the READ is pre-authorised**: a `script` entry renders
-`Bash(python3 {{method-scripts}}/milestone-read.py:*)` into the Claude Code user settings, in the wide
-tier only (the one rendered behind a complete admin deny floor), with an `Edit` deny on that installed
-file. Codex and Kiro get no rule for it. Create, update and close are not pre-authorised, so they reach
+an interpreter. **Of this family only the READ is pre-authorised**: ~~a `script` entry renders
+`Bash(python3 <installed method/scripts>/milestone-read.py:*)` … with an `Edit` deny on that installed
+file~~ since mhw#475 a `route` entry renders `Bash(mhw milestone read:*)` into the Claude Code user
+settings, in the wide tier only (the one rendered behind a complete admin deny floor). `mhw` is the
+command on `PATH`. Run from an npm install, the installer also `Edit`-denies the installed package
+directory, in every tier, never from a checkout (owner ruling 2026-11-19, mhw PR #509); a shadowing
+`mhw` earlier on `PATH` and a write through Bash are not covered. Codex and Kiro get no rule for it. Create, update and close are not pre-authorised, so they reach
 the permission prompt unless another settings layer allows them. The owner's non-critical pricing of
 milestone acts is unchanged; the read is the one he chose to pre-authorise (mhw#242, 2026-11-02).
 

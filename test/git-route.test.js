@@ -56,6 +56,17 @@ test('a git install resolves every runtime dependency and installs no devDepende
     assert.equal(load.stdout, '{"a":1}');
     const dev = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).devDependencies || {});
     for (const name of dev) assert.ok(!fs.existsSync(path.join(pkg, 'node_modules', name)), name + ' (a devDependency) was installed');
+    // #475 (owner ruling 2026-11-19 on PR #509): the installer run from this real npm install renders an
+    // Edit deny on the installed package directory. Narrow tier (no admin floor), a fresh HOME.
+    const uhome = path.join(t, 'uhome');
+    const empty = path.join(t, 'root-empty');
+    fs.mkdirSync(uhome);
+    fs.mkdirSync(empty);
+    const ienv = { ...env, HOME: uhome, PATH: [path.dirname(process.execPath), process.env.PATH || ''].join(path.delimiter), SHELL: '/bin/sh' };
+    const inst = spawnSync('/bin/sh', [path.join(pkg, 'global', 'install.sh'), '--managed-root=' + empty], { env: ienv, cwd: t, encoding: 'utf8' });
+    assert.equal(inst.status, 0, inst.stdout + inst.stderr);
+    const deny = JSON.parse(fs.readFileSync(path.join(uhome, '.claude', 'settings.json'), 'utf8')).permissions.deny;
+    assert.ok(deny.includes('Edit(/' + fs.realpathSync(pkg) + '/**)'), 'no Edit deny on the installed package: ' + JSON.stringify(deny));
   } finally {
     fs.rmSync(t, { recursive: true, force: true });
   }

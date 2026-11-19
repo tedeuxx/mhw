@@ -65,7 +65,8 @@ iteration question being load-bearing:**
 
 **Why not "the sprint ended".** ~~No command available to this loop can read whether a milestone is
 open or closed; the iteration's close is a click in a browser.~~ **Struck 2026-09-29 (#537):
-`python3 {{method-scripts}}/milestone-read.py` reads state and `python3 {{method-scripts}}/milestone-close.py` closes it.**
+`mhw milestone read` reads state and `mhw milestone close` closes it** (the Python scripts of
+`method/scripts/` until mhw#475).
 The close is still not the trigger: snapshot exhaustion fires the rites first, and closing the
 milestone is an output after those rites have run.
 
