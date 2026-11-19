@@ -20,6 +20,7 @@ import {
   changed, merge, without, PRIVATE_SPELLINGS, PUBLIC_SPELLINGS, NATIVE_TOKENS, sha, liveExport, usageEvents, pick,
 } from '../helpers/worklog-fixture.js';
 import { which } from '../helpers/home.js';
+import { tempDir } from '../../src/lib/confine.js';
 
 /** @typedef {Record<string, any>} Obj */
 
@@ -36,8 +37,12 @@ const rep = (exp, snapshot = FIXTURE.snapshot) => report(deepCopy(snapshot), exp
 const item = (items, issue) => /** @type {Obj} */ (items.find((i) => i.issue === issue));
 /** @param {string[]} args @param {{ cwd?: string }} [o] */
 const cli = (args, o = {}) => spawnSync(process.execPath, [CLI, 'worklog', ...args], { cwd: o.cwd || ROOT, encoding: 'utf8' });
+// The temporary directory the command itself allows: CPython's gettempdir order (TMPDIR, TEMP, TMP), which
+// confine.js follows. On Windows os.tmpdir() reads TEMP and ignores TMPDIR, so a file made there is outside
+// the allowed root whenever the two differ (the windows-latest runner sets TMPDIR to D:\a\_temp).
+const TEMP_ROOT = tempDir({ cwd: ROOT, env: process.env });
 function tmp() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-worklog-'));
+  return fs.mkdtempSync(path.join(TEMP_ROOT, 'mhw-worklog-'));
 }
 
 function baseline() {
@@ -568,7 +573,8 @@ test('prepare-event recurses into a corrected event', () => {
 
 const JQ = which('jq');
 test('the README resume command agrees with the report', { skip: !JQ && 'jq is not installed' }, async (t) => {
-  const readme = fs.readFileSync(path.join(CONTRACT, 'README.md'), 'utf8');
+  // CRLF on a Windows checkout (core.autocrlf): the command is read as the text the README carries.
+  const readme = fs.readFileSync(path.join(CONTRACT, 'README.md'), 'utf8').replaceAll('\r\n', '\n');
   const m = /--json comments --jq '([\s\S]*?)'\n```/.exec(readme);
   assert.ok(m, 'resume command not found in the README');
   const filter = m[1];
@@ -721,8 +727,8 @@ test('the schema documents the usage object', () => {
 });
 
 test('inputs are confined to the work tree or the temporary directory', async (t) => {
-  for (const p of ['/etc/hosts', path.join(os.homedir(), '.ssh', 'config'), path.join(os.tmpdir(), '..', '..', '..', '..', 'etc', 'hosts')]) {
-    await t.test(p, () => {
+  for (const [label, p] of [['/etc/hosts', '/etc/hosts'], ['~/.ssh/config', path.join(os.homedir(), '.ssh', 'config')], ['a .. walk out of the temporary directory', path.join(TEMP_ROOT, '..', '..', '..', '..', 'etc', 'hosts')]]) {
+    await t.test(label, () => {
       const r = cli(['prepare-event', p]);
       assert.notEqual(r.status, 0);
       assert.match(r.stderr, /outside the repository work tree and the temporary directory/);

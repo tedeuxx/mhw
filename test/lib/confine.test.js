@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { confined, ConfineError, realpathLoose, under } from '../../src/lib/confine.js';
+import { confined, ConfineError, realpathLoose, under, tempDir } from '../../src/lib/confine.js';
 import { which } from '../helpers/home.js';
 
 const POSIX = process.platform !== 'win32';
@@ -99,4 +99,27 @@ test('under: strict, by whole components, case-insensitive on Windows only', () 
   const win = { cwd: 'C:\\', env: {}, platform: 'win32' };
   assert.equal(under('C:\\Temp', 'c:\\temp\\x', win), true);
   assert.equal(under('C:\\Temp', 'D:\\Temp\\x', win), false);
+});
+
+// #476 (S05, windows-latest on PR #510): the allowed temporary root is CPython's gettempdir order,
+// TMPDIR before TEMP and TMP. Node's os.tmpdir() on Windows reads TEMP and ignores TMPDIR, so a caller
+// that makes its file under os.tmpdir() while TMPDIR names another directory is refused, as the Python
+// was. That is the cause measured on the runner (TMPDIR D:\a\_temp, the file under TEMP), not an 8.3
+// name: allowedRoots and the candidate both pass through realpathLoose, which canonicalises on Windows.
+// The TMPDIR/TEMP disagreement itself is simulated here on any OS through the explicit context.
+test('the temporary root is TMPDIR first, so a file under a different TEMP is refused', () => {
+  const first = path.join(base, 'tmpdir-first');
+  const second = path.join(base, 'temp-second');
+  fs.mkdirSync(first);
+  fs.mkdirSync(second);
+  fs.writeFileSync(path.join(first, 'a.json'), '{}');
+  fs.writeFileSync(path.join(second, 'b.json'), '{}');
+  const outside = path.parse(base).root;
+  const env = { ...ENV, TMPDIR: first, TEMP: second, TMP: second };
+  assert.equal(tempDir({ cwd: outside, env }), first);
+  assert.equal(tempDir({ cwd: outside, env: { ...ENV, TMPDIR: '', TEMP: second, TMP: '' } }), second);
+  assert.ok(confined(path.join(first, 'a.json'), { cwd: outside, env }));
+  if (!underTmp) {
+    assert.throws(() => confined(path.join(second, 'b.json'), { cwd: outside, env }), ConfineError);
+  }
 });
