@@ -1,0 +1,7 @@
+{
+  "name": "edge-collected-without-space",
+  "code": 0,
+  "stdout": "# p — funnel review\n\ncommit: unknown\ncollection: docs/funnel-review/collected/p.tsv\ncap: 2 findings, the ceiling and not a quota\ninternal-traffic: UNDECLARED — figures may include the owner's own sessions (the file declares '\t', which is not <none|testing-excluded-by-query|active> <effective-date> <how>)\n\nFUNNEL-REVIEW-NOT-COLLECTED\n\nNothing was read this period. Reason: the collection file declares no 'collected:' line at column 0, so it asserts nothing about whether the surfaces were read\n\nThis is NOT \"the funnel is healthy\" and it is NOT \"no findings\". No surface was reached,\nso this report makes no claim about the funnel at all. The collection route is the owner's\nown authenticated browser (owner ruling, 2026-09-10); with no authenticated session there is\nnothing to read, and nothing in this harness can open one.\n\nThere is deliberately no findings section below — a findings section that is absent and one\nthat is empty are different claims, and only the second means the surfaces were read.\n",
+  "stderr": "",
+  "treeUnchanged": true
+}

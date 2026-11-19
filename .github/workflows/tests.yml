@@ -334,11 +334,8 @@ jobs:
       # #475: the milestone routes are Node now; their suite runs in the node job (npm test).
       # #476: so are mhw worklog and mhw launch-line (test/method/worklog.test.js and the S05 goldens).
       # #477: so is rite-cadence (mhw rite-cadence, test/method/rite-cadence.test.js).
-      - name: method scripts suites (funnel-review)
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: |
-          bash method/scripts/funnel-review.test.sh
+      # #478: and mhw funnel-review (test/method/funnel-review.test.js and the S07 goldens). With both moved,
+      # the method scripts step had nothing left to run and was removed.
       - name: method issue sync suite
         env:
           TMPDIR: ${{ runner.temp }}

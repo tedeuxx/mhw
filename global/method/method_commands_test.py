@@ -378,7 +378,10 @@ class MethodScripts(unittest.TestCase):
         self.assertEqual(self.code, 0, self.out)
 
     def test_every_script_is_installed_executable_and_stamped(self):
-        self.assertTrue(self.source, "method/scripts/ ships no script")
+        # #477 (mhw rite-cadence) and #478 (mhw funnel-review) moved the last two scripts to Node, so the
+        # method ships none; its scripts directory holds only the store contract a rite names (below). A
+        # script added back must be installed, executable and stamped, which the loop holds.
+        self.assertEqual(sorted(self.source), [], "method/scripts/ ships a script again; update this expectation")
         for name, src in self.source.items():
             path = self.dir / name
             self.assertTrue(path.is_file(), name)

@@ -858,7 +858,8 @@ class Render(unittest.TestCase):
         self.assertIn("source: method/scripts/funnel-review-contract/README.md", lines[0])
         self.assertEqual("\n".join(lines[1:]), (SOURCE / "scripts" / "funnel-review-contract" / "README.md")
                          .read_text(encoding="utf-8"))
-        self.assertTrue((scripts / "funnel-review.sh").is_file())
+        # #478: the report is `mhw funnel-review` now, so no funnel-review script is installed.
+        self.assertFalse((scripts / "funnel-review.sh").exists())
         rite = (SOURCE / "skills" / "funnel-review" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("`{{method-scripts}}/funnel-review-contract/README.md`", rite)
         for rendered in (".claude/skills/funnel-review/SKILL.md", ".agents/skills/funnel-review/SKILL.md",

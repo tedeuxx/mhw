@@ -1,0 +1,7 @@
+{
+  "name": "usage-no-period",
+  "code": 2,
+  "stdout": "",
+  "stderr": "usage: funnel-review.sh <period> [--root <dir>]\n",
+  "treeUnchanged": true
+}
