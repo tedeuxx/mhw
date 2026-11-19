@@ -22,7 +22,8 @@ after(() => cleanups.forEach((c) => c()));
 
 /** The text of a function of install.sh, from its header to the closing brace at column 0 (or its one line). @param {string} name */
 function shellFunction(name) {
-  const lines = fs.readFileSync(path.join(ROOT, 'global', 'install.sh'), 'utf8').split('\n');
+  // A Windows checkout may carry install.sh with \r\n line ends (core.autocrlf).
+  const lines = fs.readFileSync(path.join(ROOT, 'global', 'install.sh'), 'utf8').split(/\r?\n/);
   const start = lines.findIndex((l) => l.startsWith(name + '() {'));
   assert.ok(start >= 0, 'install.sh defines ' + name);
   if (lines[start].trimEnd().endsWith('}')) return lines[start]; // a one-line function
