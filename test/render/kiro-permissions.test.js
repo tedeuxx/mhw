@@ -658,8 +658,8 @@ test('home: HOME on POSIX, USERPROFILE (then HOMEDRIVE and HOMEPATH) on Windows,
   assert.equal(t({ HOMEPATH: '/p' }, 'win32'), path.join('/p', '.kiro', 'settings', 'permissions.yaml'));
   assert.equal(t({}, 'win32'), path.join(os.homedir(), '.kiro', 'settings', 'permissions.yaml'));
   assert.equal(t({}, 'linux'), path.join(os.homedir(), '.kiro', 'settings', 'permissions.yaml'));
-  assert.equal(kp.ownedPath(kp.context({ env: { HOME: '/h', XDG_DATA_HOME: '/x' } })), path.join('/x', NAME, 'kiro-permissions-owned.json'));
-  assert.equal(kp.ownedPath(kp.context({ env: { HOME: '/h', XDG_DATA_HOME: '' } })), path.join('/h', '.local', 'share', NAME, 'kiro-permissions-owned.json'));
+  assert.equal(kp.ownedPath(kp.context({ env: { HOME: '/h', XDG_DATA_HOME: '/x' }, platform: 'linux' })), path.join('/x', NAME, 'kiro-permissions-owned.json'));
+  assert.equal(kp.ownedPath(kp.context({ env: { HOME: '/h', XDG_DATA_HOME: '' }, platform: 'linux' })), path.join('/h', '.local', 'share', NAME, 'kiro-permissions-owned.json'));
 });
 
 test('install: a symbolic link is written through', { skip: !POSIX && 'symbolic links' }, () => {
