@@ -137,7 +137,8 @@ no extra spending or paid API use. Native configuration and fresh-session verifi
   model available on the subscription" is still made at each vendor release. Its result is versioned
   as an ID in `overlay/model-defaults.json`, so a new model is a reviewed change. This accepts option
   2's cost: the pin goes stale after a release until that change lands.
-- **The rendering is now installed by code**, not only recorded: `global/models/model_defaults.py`,
+- **The rendering is now installed by code**, not only recorded: ~~`global/models/model_defaults.py`~~
+  `src/render/model-defaults.js`, Node (struck 2026-11-19, #481: see ADR-0035's amendment of that date),
   run by `global/install.sh`. It is *written and tested* in throwaway homes and **not installed** on
   the reference machine. The 2026-10-01 amendment's *"no installer renders these keys yet"* no longer
   holds for the source.

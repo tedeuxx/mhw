@@ -449,15 +449,24 @@ if ($Overlay -ne 'none' -and (Test-Path -LiteralPath (Join-Path $Overlay 'model-
     $modelsPolicy = Join-Path $Overlay 'model-defaults.json'
 }
 # Node since #481 (S10 of #470): the node bin\mhw.js runs on (MHW_NODE, an absolute path), else the first
-# node on PATH; a missing node is SKIP and exit 2, as install.sh.
+# node on PATH; a missing node is SKIP and exit 2, as install.sh. An absolute MHW_NODE that is not a file is
+# refused, never replaced by another node (PR #515 lens A1). The version (26 or later) is not checked here.
 $modelsNode = $null
-if ($env:MHW_NODE -and [System.IO.Path]::IsPathRooted($env:MHW_NODE) -and (Test-Path -LiteralPath $env:MHW_NODE -PathType Leaf)) {
-    $modelsNode = $env:MHW_NODE
+$modelsRefused = $false
+if ($env:MHW_NODE -and [System.IO.Path]::IsPathRooted($env:MHW_NODE)) {
+    if (Test-Path -LiteralPath $env:MHW_NODE -PathType Leaf) { $modelsNode = $env:MHW_NODE }
+    else {
+        Write-Output "REFUSE  the session-start model defaults: MHW_NODE ($($env:MHW_NODE)) is not a file; nothing written"
+        Set-Status 2
+        $modelsRefused = $true
+    }
 } else {
     $cmd = Get-Command node -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($cmd) { $modelsNode = $cmd.Source }
 }
-if (-not $modelsNode) {
+if ($modelsRefused) {
+    # named above; no other node is run
+} elseif (-not $modelsNode) {
     Write-Output "SKIP    the session-start model defaults: node (26 or later) is required"
     Set-Status 2
 } else {

@@ -149,7 +149,8 @@ output (the usage line names `mhw funnel-review`, and `-h`/`--help` print it), a
 suite are deleted. The row stays as this evaluation read it.*
 *Amended 2026-11-19 ([#481](https://github.com/tedeuxx/mhw/issues/481)): `model_defaults.py`, kept below,
 was moved, not removed: it is `src/render/model-defaults.js` in Node, which `install.sh` and `install.ps1`
-run, with the same output and the same files written, and the Python file and its suite are deleted.
+run, with the same files and exit codes (the output differences are declared in
+`test/golden/S10/expected-differences.json`), and the Python file and its suite are deleted.
 `private_copy.py` loses that user; its backups are written by the Node form, `src/lib/private-copy.js`.
 The rows stay as this evaluation read them.*
 

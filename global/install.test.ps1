@@ -424,6 +424,20 @@ $s.permissions.allow = [object[]]@('Bash(ls:*)', 'Bash(find *)')
 $out = Run $h @('-Check', '-Overlay', $repoOverlay); Expect 'check flags a re-added retired allow' 1 $script:rc
 Check 'check names the retired allow as DRIFT' ([bool]($out | Where-Object { $_ -clike 'DRIFT   *settings.json: install would change permissions.allow Bash(find `*) present -> absent*' }))
 
+# 15. #481 (S10 of #470): the model defaults step runs node. An absolute MHW_NODE that is not a file is
+# refused by name, exit 2, and no other node runs: the pins written above stay as they are (PR #515 lens A1).
+$before = (Get-FileHash -LiteralPath $sf).Hash
+$savedNode = $env:MHW_NODE
+$env:MHW_NODE = Join-Path $Base 'no-such-node.exe'
+try { $out = Run $h @('-Overlay', $repoOverlay) } finally { $env:MHW_NODE = $savedNode }
+Expect 'an absolute MHW_NODE that is not a file is refused' 2 $script:rc
+Check 'the refusal names MHW_NODE' ([bool]($out | Where-Object { $_ -clike 'REFUSE  the session-start model defaults: MHW_NODE (*no-such-node.exe) is not a file; nothing written' }))
+Check 'no other node ran the step: no model line was printed' (-not [bool]($out | Where-Object { $_ -like '*(model defaults *' }))
+Check 'settings.json is unchanged by the refused step' ((Get-FileHash -LiteralPath $sf).Hash -ceq $before)
+$env:MHW_NODE = (Get-Command node -CommandType Application | Select-Object -First 1).Source
+try { $out = Run $h @('-Check', '-Overlay', $repoOverlay) } finally { $env:MHW_NODE = $savedNode }
+Check 'an absolute MHW_NODE that is node runs the step' ([bool]($out | Where-Object { $_ -clike 'OK      *settings.json: model = *(model defaults claude-code)' }))
+
 Write-Output "$($script:pass) passed, $($script:fail) failed"
 if ($script:fail -ne 0) { exit 1 }
 exit 0

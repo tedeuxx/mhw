@@ -1005,16 +1005,25 @@ method_step() {
 # The pinned value is written whatever the key holds (Issue #145), reported old -> new; a value of the
 # owner's it replaces is recorded, so uninstall restores it, and removes the keys that had none. With no
 # overlay file the policy is empty: keys it set earlier are undone the same way while they still hold its
-# value. node: the one bin/mhw.js runs on (MHW_NODE, an absolute path), else the first node on PATH.
+# value. node: the one bin/mhw.js runs on (MHW_NODE, an absolute path), else the first node on PATH. An
+# absolute MHW_NODE that is not an executable file is refused, never replaced by another node (PR #515
+# lens A1): the run names the node it was given. The version (26 or later) is not checked here.
 models_step() {
-  models_node=
-  case "${MHW_NODE:-}" in /*) [ -x "$MHW_NODE" ] && models_node=$MHW_NODE ;; esac
-  [ -n "$models_node" ] || models_node=$(command -v node 2>/dev/null) || models_node=
-  if [ -z "$models_node" ]; then
-    echo "SKIP    the session-start model defaults: node (26 or later) is required"
-    raise 2
-    return 0
-  fi
+  models_node=${MHW_NODE:-}
+  case $models_node in
+    /*) if [ ! -f "$models_node" ] || [ ! -x "$models_node" ]; then
+          echo "REFUSE  the session-start model defaults: MHW_NODE ($models_node) is not an executable file; nothing written"
+          raise 2
+          return 0
+        fi ;;
+    *) models_node=$(command -v node 2>/dev/null || true) ;;
+  esac
+  case $models_node in
+    /*) ;;
+    *) echo "SKIP    the session-start model defaults: node (26 or later) is required"
+       raise 2
+       return 0 ;;
+  esac
   models_policy=none
   if [ -n "$overlay" ] && [ -f "$overlay/model-defaults.json" ]; then models_policy="$overlay/model-defaults.json"; fi
   "$models_node" "$script_dir/../src/render/model-defaults.js" "--mode=$mode" "--stamp=$stamp" "--policy=$models_policy" || raise $?
