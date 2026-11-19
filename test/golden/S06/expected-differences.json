@@ -1,0 +1,12 @@
+[
+  {
+    "case": [
+      "git-not-on-path"
+    ],
+    "stream": "stderr",
+    "base": "^rite-cadence: git could not run: .*$",
+    "head": "^rite-cadence: git could not run: .*$",
+    "replace": "rite-cadence: git could not run: <reason>",
+    "why": "With no git on PATH both exit 1 and print 'rite-cadence: git could not run: ' and a reason; the reason is the runtime's own text (Python's OSError, '[Errno 2] No such file or directory: git'; the CLI's 'git was not found on PATH', since it looks git up before spawning). The prefix and the exit code are still compared."
+  }
+]

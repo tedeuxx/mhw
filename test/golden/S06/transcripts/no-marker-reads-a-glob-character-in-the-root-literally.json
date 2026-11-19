@@ -1,0 +1,13 @@
+{
+  "name": "no-marker-reads-a-glob-character-in-the-root-literally",
+  "runs": [
+    {
+      "args": [
+        "docs/f[q]"
+      ],
+      "code": 0,
+      "stdout": "docs/f[q]: last changed 2026-01-01 (<c1 add f[q] | 2026-01-01>), no ran-marker declared\n",
+      "stderr": ""
+    }
+  ]
+}

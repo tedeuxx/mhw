@@ -1,0 +1,14 @@
+{
+  "name": "empty-marker-is-a-usage-error",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        " "
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: marker must not be empty\n"
+    }
+  ]
+}

@@ -4,8 +4,8 @@
 //   macOS and Linux: runs the package's ./mhw with the same arguments.
 //   Windows:         runs global\install.ps1 (install, install --method, check, status = check) and
 //                    answers update itself; install --admin and uninstall do not exist there.
-// Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474)
-// and `mhw milestone` (#475).
+// Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
+// `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), and `mhw rite-cadence` (#477).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // run by absolute path, never looked up on PATH. node: modules only (convention 5 of #470: this file is
 // on the hook path once `mhw hook prompt` moves here; test/deps-graph.test.js holds that).
@@ -18,6 +18,7 @@ import { delivery } from './commands/delivery.js';
 import { main as milestoneMain } from './commands/milestone.js';
 import { main as worklogMain } from './commands/worklog.js';
 import { main as launchLineMain } from './commands/launch-line.js';
+import { main as riteCadenceMain } from './commands/rite-cadence.js';
 import { main as funnelReviewMain } from './commands/funnel-review.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -154,6 +155,8 @@ export function main(argv, platform, env, opts = {}) {
   // Moved to Node (#476, S05): mhw worklog and mhw launch-line run here on every OS, never forwarded.
   if (argv[0] === 'worklog') return worklogMain(argv.slice(1), env);
   if (argv[0] === 'launch-line') return launchLineMain(argv.slice(1), env);
+  // Moved to Node (#477, S06).
+  if (argv[0] === 'rite-cadence') return riteCadenceMain(argv.slice(1), env);
   // Moved to Node (#478, S07): mhw funnel-review runs here on every OS, never forwarded.
   if (argv[0] === 'funnel-review') return funnelReviewMain(argv.slice(1), env);
   if (argv[0] === 'status') printNodeLine(opts.nodeVersion || process.version);

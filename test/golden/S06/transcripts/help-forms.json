@@ -1,0 +1,282 @@
+{
+  "name": "help-forms",
+  "runs": [
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--help"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--he"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-hx"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-hh"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-hrepo"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-x",
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h",
+        "-x"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "docs/funnel-review",
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN",
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--repo",
+        ".",
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h",
+        "--repo"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "---",
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h",
+        "--=x"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--help=1"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: argument -h/--help: ignored explicit argument '1'\n"
+    },
+    {
+      "args": [
+        "--h=1"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: argument -h/--help: ignored explicit argument '1'\n"
+    },
+    {
+      "args": [
+        "-h=1"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: argument -h/--help: ignored explicit argument '1'\n"
+    },
+    {
+      "args": [
+        "-h="
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: argument -h/--help: ignored explicit argument ''\n"
+    },
+    {
+      "args": [
+        "--=x"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: ambiguous option: --=x could match --help, --repo\n"
+    },
+    {
+      "args": [
+        "--=x",
+        "-h"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: ambiguous option: --=x could match --help, --repo\n"
+    },
+    {
+      "args": [
+        "--repo",
+        "-h"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: argument --repo: expected one argument\n"
+    },
+    {
+      "args": [
+        "--",
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "-h: never changed\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the\n               repository\n  marker       the rite's ran-marker, matched as a whole\n               line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current\n               directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h]\n                        [--repo REPO]\n                        root [marker]\n\nDate a rite by its ran-marked\nartifacts.\n\npositional arguments:\n  root         the rite's artifact\n               root, relative to the\n               repository\n  marker       the rite's ran-marker,\n               matched as a whole line\n\noptions:\n  -h, --help   show this help message\n               and exit\n  --repo REPO  the repository\n               (default: the current\n               directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence\n       [-h] [--repo REPO]\n       root [marker]\n\nDate a rite by its ran-\nmarked artifacts.\n\npositional arguments:\n  root  the rite's artifact\n        root, relative to\n        the repository\n  marker\n        the rite's ran-\n        marker, matched as a\n        whole line\n\noptions:\n  -h, --help\n        show this help\n        message and exit\n  --repo REPO\n        the repository\n        (default: the\n        current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence\n       [-h]\n       [--repo REPO]\n       root\n       [marker]\n\nDate a rite by its\nran-marked\nartifacts.\n\npositional arguments:\n  root\n    the rite's\n    artifact root,\n    relative to\n    the repository\n  marker\n    the rite's\n    ran-marker,\n    matched as a\n    whole line\n\noptions:\n  -h, --help\n    show this help\n    message and\n    exit\n  --repo REPO\n    the repository\n    (default: the\n    current\n    directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence\n       [-h]\n       [--repo REPO]\n       root\n       [marker]\n\nDate a rite\nby its ran-\nmarked\nartifacts.\n\npositional arguments:\n  root\n    the rite's\n    artifact\n    root,\n    relative to\n    the\n    repository\n  marker\n    the rite's\n    ran-marker,\n    matched as\n    a whole\n    line\n\noptions:\n  -h, --help\n    show this\n    help\n    message and\n    exit\n  --repo REPO\n    the\n    repository\n    (default:\n    the current\n    directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 0,
+      "stdout": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\n\nDate a rite by its ran-marked artifacts.\n\npositional arguments:\n  root         the rite's artifact root, relative to the repository\n  marker       the rite's ran-marker, matched as a whole line\n\noptions:\n  -h, --help   show this help message and exit\n  --repo REPO  the repository (default: the current directory)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--repo"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence\n       [-h] [--repo REPO]\n       root [marker]\nmhw rite-cadence: error: argument --repo: expected one argument\n"
+    },
+    {
+      "args": [
+        "--repo"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence\n       [-h]\n       [--repo REPO]\n       root\n       [marker]\nmhw rite-cadence: error: argument --repo: expected one argument\n"
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "name": "option-like-value-is-a-literal-path",
+  "runs": [
+    {
+      "args": [
+        "--",
+        "--output=x",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "--output=x: last ran 2026-03-03 (<c1 odd | 2026-03-03>), dated by files carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--",
+        "--output=x"
+      ],
+      "code": 0,
+      "stdout": "--output=x: last changed 2026-03-03 (<c1 odd | 2026-03-03>), no ran-marker declared\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--",
+        "--output=x",
+        "-FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "--output=x: last ran 2026-03-03 (<c1 odd | 2026-03-03>), dated by files carrying -FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--",
+        "-p",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "-p: never landed a file carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--output=x",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: unrecognized arguments: --output=x\n"
+    },
+    {
+      "args": [
+        "-p",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: unrecognized arguments: -p\n"
+    },
+    {
+      "args": [
+        "--repo",
+        "<BASE>/repo",
+        "-r",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: unrecognized arguments: -r\n"
+    },
+    {
+      "args": [
+        "--repo=-p",
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "rite-cadence: not a directory: <BASE>/repo/-p\n"
+    }
+  ]
+}

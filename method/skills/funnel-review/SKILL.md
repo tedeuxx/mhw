@@ -107,7 +107,7 @@ by session check 3 below. The original wording is in the plugin's `commands/funn
 
 **In this method the clock is session check 3** in `agents-configuration`, *Session-start and
 end-of-turn checks*. It is an instruction the session follows, not a hook. The check runs
-`python3 {{method-scripts}}/rite-cadence.py --repo <repo> docs/funnel-review FUNNEL-REVIEW-RAN`, which
+`mhw rite-cadence --repo <repo> docs/funnel-review FUNNEL-REVIEW-RAN` (a Python script until mhw#477), which
 considers only the files under the store whose committed content at `HEAD` carries
 `FUNNEL-REVIEW-RAN` as a whole line, and dates them by the author date of the latest commit that added
 more of those lines to one of them than it removed. It prints

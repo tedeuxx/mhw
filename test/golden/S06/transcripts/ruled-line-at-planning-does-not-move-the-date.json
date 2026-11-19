@@ -1,0 +1,22 @@
+{
+  "name": "ruled-line-at-planning-does-not-move-the-date",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last ran 2026-10-10 (<c1 add sprint-02.md | 2026-10-10>), dated by files carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "docs/funnel-review"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last changed 2026-10-24 (<c2 edit sprint-02.md | 2026-10-24>), no ran-marker declared\n",
+      "stderr": ""
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "blob-missing-from-the-store-is-a-git-failure",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "rite-cadence: git cat-file could not read blob e4bea3aba64c5a13d9231f1ef37f96025f22d8e8\n"
+    }
+  ]
+}

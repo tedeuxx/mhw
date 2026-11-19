@@ -1,0 +1,45 @@
+{
+  "name": "root-not-a-repository-path-is-a-usage-error",
+  "runs": [
+    {
+      "args": [
+        "--",
+        "",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: root must be a path relative to the repository\n"
+    },
+    {
+      "args": [
+        "--",
+        "/docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: root must be a path relative to the repository\n"
+    },
+    {
+      "args": [
+        "--",
+        "../x",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: root must not leave the repository\n"
+    },
+    {
+      "args": [
+        "--",
+        "docs/../..",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: mhw rite-cadence [-h] [--repo REPO] root [marker]\nmhw rite-cadence: error: root must not leave the repository\n"
+    }
+  ]
+}
