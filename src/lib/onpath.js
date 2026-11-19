@@ -7,26 +7,33 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
+ * Is p a regular file this process may execute (POSIX: X_OK; Windows has no execute bit)?
+ * @param {string} p
+ * @param {boolean} win
+ */
+function runnable(p, win) {
+  try {
+    if (!win) fs.accessSync(p, fs.constants.X_OK);
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
  * @param {string} name a bare program name
  * @param {Record<string, string | undefined>} env
  * @param {string} [platform]
  * @returns {string | null}
  */
 export function onPath(name, env, platform = process.platform) {
-  const exts = platform === 'win32' ? ['.exe'] : [''];
+  const win = platform === 'win32';
   const value = env.PATH ?? env.Path ?? '';
-  for (const dir of value.split(platform === 'win32' ? ';' : ':')) {
+  for (const dir of value.split(win ? ';' : ':')) {
     // A relative PATH entry would let the current directory decide which program runs.
     if (!dir || !path.isAbsolute(dir)) continue;
-    for (const ext of exts) {
-      const p = path.join(dir, name + ext);
-      try {
-        if (platform !== 'win32') fs.accessSync(p, fs.constants.X_OK);
-        if (fs.statSync(p).isFile()) return p;
-      } catch {
-        // not here
-      }
-    }
+    const p = path.join(dir, win ? name + '.exe' : name);
+    if (runnable(p, win)) return p;
   }
   return null;
 }

@@ -682,7 +682,9 @@ an interpreter. **Of this family only the READ is pre-authorised**: ~~a `script`
 `Bash(python3 <installed method/scripts>/milestone-read.py:*)` … with an `Edit` deny on that installed
 file~~ since mhw#475 a `route` entry renders `Bash(mhw milestone read:*)` into the Claude Code user
 settings, in the wide tier only (the one rendered behind a complete admin deny floor). `mhw` is the
-command on `PATH`, so no `Edit` deny names the code it runs. Codex and Kiro get no rule for it. Create, update and close are not pre-authorised, so they reach
+command on `PATH`. Run from an npm install, the installer also `Edit`-denies the installed package
+directory, in every tier, never from a checkout (owner ruling 2026-11-19, mhw PR #509); a shadowing
+`mhw` earlier on `PATH` and a write through Bash are not covered. Codex and Kiro get no rule for it. Create, update and close are not pre-authorised, so they reach
 the permission prompt unless another settings layer allows them. The owner's non-critical pricing of
 milestone acts is unchanged; the read is the one he chose to pre-authorise (mhw#242, 2026-11-02).
 

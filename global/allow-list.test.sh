@@ -89,6 +89,47 @@ protect_ok() { # $1 settings file
 }
 if protect_ok "$s"; then ok "narrow tier: Edit denies protect the allow-list source, overlay, rendered files and .git config/hooks"; else ko "a protecting Edit deny is missing (narrow)"; fi
 
+# 1c. Issue #475, owner ruling 2026-11-19 on PR #509: the installed npm package directory is Edit-denied
+# when the installer runs from an npm install, and never from a checkout. The npm layout is emulated as
+# npm leaves it (measured on the github: and git+file:// routes: a real directory, no .git, under
+# node_modules); a plain copy of the same files elsewhere is not an npm install either.
+pkg_deny_n() { # $1 settings, $2 directory: how many "Edit(/<real dir>/**)" denies it carries
+  jq --arg r "Edit(/$(cd "$2" && pwd -P)/**)" '[.permissions.deny[]? | select(. == $r)] | length' "$1"
+}
+pkg_deny_any() { # $1 settings: every deny of a whole directory tree by absolute path
+  jq -c '[.permissions.deny[]? | select(test("^Edit\\(//.*/\\*\\*\\)$")) | select(test("/overlay/\\*\\*\\)$") | not)]' "$1"
+}
+if [ "$(pkg_deny_n "$s" "$here/..")" -eq 0 ] && [ "$(pkg_deny_any "$s")" = "[]" ]; then
+  ok "a checkout renders no Edit deny on itself"
+else
+  ko "a checkout denied edits to a directory: $(pkg_deny_any "$s")"
+fi
+for layout in npm copy npm-with-git; do
+  case $layout in
+    npm) d="$base/npm-prefix/lib/node_modules/mhw" ;;
+    copy) d="$base/plain-copy/mhw" ;;
+    npm-with-git) d="$base/npm-git/lib/node_modules/mhw" ;;
+  esac
+  mkdir -p "$d"
+  cp -R "$here/../global" "$here/../overlay" "$d/"
+  cp "$here/../.bumpversion.toml" "$here/../package.json" "$here/../.workstation-archive" "$d/"
+  [ "$layout" = npm-with-git ] && printf 'gitdir: /nowhere\n' > "$d/.git"
+  hl="$base/home-$layout"; mkdir -p "$hl"
+  HOME="$hl" sh "$d/global/install.sh" --managed-root="$empty" > "$base/$layout.out" 2>&1; expect "install from the $layout layout" 0 $?
+  n=$(pkg_deny_n "$hl/.claude/settings.json" "$d")
+  if [ "$layout" = npm ]; then
+    if [ "$n" -eq 1 ] && [ "$(pkg_deny_any "$hl/.claude/settings.json")" = "[\"Edit(/$(cd "$d" && pwd -P)/**)\"]" ]; then
+      ok "npm install: the installed package directory is Edit-denied, and nothing else is denied whole"
+    else
+      ko "npm install: package Edit deny missing or extra: $(pkg_deny_any "$hl/.claude/settings.json")"
+    fi
+  elif [ "$n" -eq 0 ] && [ "$(pkg_deny_any "$hl/.claude/settings.json")" = "[]" ]; then
+    ok "$layout: no Edit deny on the package directory"
+  else
+    ko "$layout: an Edit deny on the directory was rendered: $(pkg_deny_any "$hl/.claude/settings.json")"
+  fi
+done
+
 # 2. The admin floor installed under a throwaway root: check notes it, install widens.
 root="$base/root-admin"; mkdir -p "$root"
 TMPDIR="$base" HOME="$h" sh "$mgr" --root="$root" > "$base/mr.out" 2>&1

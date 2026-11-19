@@ -182,7 +182,8 @@ function sortKeys(v) {
   if (v && typeof v === 'object') {
     /** @type {Record<string, unknown>} */
     const out = {};
-    for (const k of Object.keys(v).sort()) out[k] = sortKeys(/** @type {Record<string, unknown>} */ (v)[k]);
+    // By code unit, as Python sorts str keys (never by locale).
+    for (const k of Object.keys(v).sort((x, y) => (x < y ? -1 : Number(x > y)))) out[k] = sortKeys(/** @type {Record<string, unknown>} */ (v)[k]);
     return out;
   }
   return v;
@@ -207,41 +208,53 @@ function printJson(io, value) {
 export function parseArgs(verb, argv) {
   /** @type {Record<string, string>} */
   const opts = {};
-  /** @type {string | undefined} */
-  let positional;
+  /** @type {string[]} */
+  const positionals = [];
   let ended = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    const isOption = !ended && a.startsWith('-') && a !== '-' && !/^-\d/.test(a);
-    if (!ended && a === '--') {
-      ended = true;
-    } else if (isOption && (a === '-h' || a === '--help')) {
-      return { help: true, opts };
-    } else if (isOption) {
-      const eq = a.indexOf('=');
-      const name = eq > 0 ? a.slice(0, eq) : a;
-      if (!OPTIONS[verb].includes(name)) throw new UsageError('unrecognized argument: ' + a);
-      if (eq > 0) opts[name] = a.slice(eq + 1);
-      else if (i + 1 < argv.length && !(argv[i + 1].startsWith('-') && !/^-\d/.test(argv[i + 1]))) opts[name] = argv[++i];
-      else throw new UsageError('argument ' + name + ': expected one argument');
-    } else if (positional === undefined) {
-      positional = a;
-    } else {
-      throw new UsageError('unrecognized argument: ' + a);
-    }
+    if (!ended && a === '--') ended = true;
+    else if (ended || !looksLikeOption(a)) positionals.push(a);
+    else if (a === '-h' || a === '--help') return { help: true, opts };
+    else i = takeOption(verb, argv, i, opts);
   }
-  if (positional === undefined) throw new UsageError('the following argument is required: ' + (verb === 'create' ? 'title' : 'number'));
+  if (positionals.length > 1) throw new UsageError('unrecognized argument: ' + positionals[1]);
+  if (!positionals.length) throw new UsageError('the following argument is required: ' + (verb === 'create' ? 'title' : 'number'));
   if (verb === 'update') {
     const missing = ['--description-file', '--expect-file'].filter((o) => !Object.hasOwn(opts, o));
     if (missing.length) throw new UsageError('the following arguments are required: ' + missing.join(', '));
   }
-  return { help: false, positional, opts };
+  return { help: false, positional: positionals[0], opts };
+}
+
+/** An option, as argparse reads one: a leading dash, but not "-" alone and not a negative number. @param {string} a */
+const looksLikeOption = (a) => a.startsWith('-') && a !== '-' && !/^-\d/.test(a);
+
+/**
+ * Read the option at argv[i] into opts; the index of the last argument it consumed.
+ * @param {string} verb
+ * @param {string[]} argv
+ * @param {number} i
+ * @param {Record<string, string>} opts
+ */
+function takeOption(verb, argv, i, opts) {
+  const a = argv[i];
+  const eq = a.indexOf('=');
+  const name = eq > 0 ? a.slice(0, eq) : a;
+  if (!OPTIONS[verb].includes(name)) throw new UsageError('unrecognized argument: ' + a);
+  if (eq > 0) {
+    opts[name] = a.slice(eq + 1);
+    return i;
+  }
+  if (i + 1 >= argv.length || looksLikeOption(argv[i + 1])) throw new UsageError('argument ' + name + ': expected one argument');
+  opts[name] = argv[i + 1];
+  return i + 1;
 }
 
 /** Python's int() over a decimal string, refused beyond JavaScript's safe integers. @param {string} s */
 function toInt(s) {
   if (!INT_RE.test(s)) throw new UsageError("argument number: invalid int value: '" + s + "'");
-  const n = Number(s.trim().replace(/_/g, ''));
+  const n = Number(s.trim().replaceAll('_', ''));
   if (!Number.isSafeInteger(n)) throw new MilestoneError('the milestone number must be a positive integer');
   return n;
 }
@@ -252,54 +265,72 @@ function toInt(s) {
  * @param {{ positional?: string, opts: Record<string, string> }} a
  */
 function execute(io, verb, a) {
-  const pos = /** @type {string} */ (a.positional);
-  const repoOpt = a.opts['--repo'];
-  if (verb === 'read') {
-    const number = toInt(pos);
-    const repo = resolveRepo(io, repoOpt);
-    const m = readMilestone(io, repo, number);
-    printJson(io, {
-      number: m.number, title: m.title, description: m.description, state: m.state,
-      open_issues: m.open_issues, closed_issues: m.closed_issues, repository: repo,
-    });
-  } else if (verb === 'create') {
-    const repo = resolveRepo(io, repoOpt);
-    let pages;
-    const raw = runGh(io, ['api', 'repos/' + repo + '/milestones?state=all&per_page=100', '--paginate', '--slurp']);
-    try {
-      pages = JSON.parse(raw);
-    } catch (e) {
-      throw new MilestoneError('gh returned invalid JSON while listing milestones: ' + (e instanceof Error ? e.message : String(e)));
-    }
-    if (!Array.isArray(pages) || pages.some((p) => !Array.isArray(p))) throw new MilestoneError('gh returned an invalid milestone list');
-    const isObj = (/** @type {unknown} */ x) => x !== null && typeof x === 'object' && !Array.isArray(x);
-    if (pages.some((page) => page.some((/** @type {any} */ item) => isObj(item) && item.title === pos))) {
-      throw new MilestoneError('a milestone titled "' + pos + '" already exists in ' + repo);
-    }
-    const command = ['api', 'repos/' + repo + '/milestones', '-X', 'POST', '-f', 'title=' + pos];
-    const descFile = a.opts['--description-file'];
-    // Python's `if arguments.description_file:` skipped an empty value.
-    if (descFile) command.push('-f', 'description=' + textFromFile(io, descFile, 'description'));
-    const created = parseJson(runGh(io, command), 'creating the milestone');
-    printJson(io, { action: 'created', repository: repo, milestone: created });
-  } else if (verb === 'update') {
-    const number = toInt(pos);
-    const repo = resolveRepo(io, repoOpt);
-    const current = readMilestone(io, repo, number);
-    const expected = textFromFile(io, a.opts['--expect-file'], 'expected-description');
-    const currentDescription = current.description || '';
-    if (currentDescription !== expected) throw new MilestoneError('milestone description was already stale when read; refusing to overwrite');
-    const description = textFromFile(io, a.opts['--description-file'], 'description');
-    const updated = updateMilestone(io, repo, number, { description });
-    printJson(io, { action: 'updated-description', repository: repo, number, previous_description: currentDescription, milestone: updated });
-  } else {
-    const number = toInt(pos);
-    const repo = resolveRepo(io, repoOpt);
-    const current = readMilestone(io, repo, number);
-    if (current.state !== 'open') throw new MilestoneError('milestone #' + number + ' is ' + current.state + '; refusing to close it again');
-    const updated = updateMilestone(io, repo, number, { state: 'closed' });
-    printJson(io, { action: 'closed', repository: repo, number, previous_state: current.state, milestone: updated });
+  ({ read: readVerb, create: createVerb, update: updateVerb, close: closeVerb })[/** @type {'read'} */ (verb)](io, a);
+}
+
+/** @typedef {{ positional?: string, opts: Record<string, string> }} Args */
+
+/** @param {Io} io @param {Args} a */
+function readVerb(io, a) {
+  const number = toInt(/** @type {string} */ (a.positional));
+  const repo = resolveRepo(io, a.opts['--repo']);
+  const m = readMilestone(io, repo, number);
+  printJson(io, {
+    number: m.number, title: m.title, description: m.description, state: m.state,
+    open_issues: m.open_issues, closed_issues: m.closed_issues, repository: repo,
+  });
+}
+
+/** @param {Io} io @param {string} repo @param {string} title */
+function refuseDuplicate(io, repo, title) {
+  let pages;
+  const raw = runGh(io, ['api', 'repos/' + repo + '/milestones?state=all&per_page=100', '--paginate', '--slurp']);
+  try {
+    pages = JSON.parse(raw);
+  } catch (e) {
+    throw new MilestoneError('gh returned invalid JSON while listing milestones: ' + (e instanceof Error ? e.message : String(e)));
   }
+  if (!Array.isArray(pages) || pages.some((p) => !Array.isArray(p))) throw new MilestoneError('gh returned an invalid milestone list');
+  const isObj = (/** @type {unknown} */ x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+  if (pages.some((page) => page.some((/** @type {any} */ item) => isObj(item) && item.title === title))) {
+    throw new MilestoneError('a milestone titled "' + title + '" already exists in ' + repo);
+  }
+}
+
+/** @param {Io} io @param {Args} a */
+function createVerb(io, a) {
+  const title = /** @type {string} */ (a.positional);
+  const repo = resolveRepo(io, a.opts['--repo']);
+  refuseDuplicate(io, repo, title);
+  const command = ['api', 'repos/' + repo + '/milestones', '-X', 'POST', '-f', 'title=' + title];
+  const descFile = a.opts['--description-file'];
+  // Python's `if arguments.description_file:` skipped an empty value.
+  if (descFile) command.push('-f', 'description=' + textFromFile(io, descFile, 'description'));
+  const created = parseJson(runGh(io, command), 'creating the milestone');
+  printJson(io, { action: 'created', repository: repo, milestone: created });
+}
+
+/** @param {Io} io @param {Args} a */
+function updateVerb(io, a) {
+  const number = toInt(/** @type {string} */ (a.positional));
+  const repo = resolveRepo(io, a.opts['--repo']);
+  const current = readMilestone(io, repo, number);
+  const expected = textFromFile(io, a.opts['--expect-file'], 'expected-description');
+  const currentDescription = current.description || '';
+  if (currentDescription !== expected) throw new MilestoneError('milestone description was already stale when read; refusing to overwrite');
+  const description = textFromFile(io, a.opts['--description-file'], 'description');
+  const updated = updateMilestone(io, repo, number, { description });
+  printJson(io, { action: 'updated-description', repository: repo, number, previous_description: currentDescription, milestone: updated });
+}
+
+/** @param {Io} io @param {Args} a */
+function closeVerb(io, a) {
+  const number = toInt(/** @type {string} */ (a.positional));
+  const repo = resolveRepo(io, a.opts['--repo']);
+  const current = readMilestone(io, repo, number);
+  if (current.state !== 'open') throw new MilestoneError('milestone #' + number + ' is ' + current.state + '; refusing to close it again');
+  const updated = updateMilestone(io, repo, number, { state: 'closed' });
+  printJson(io, { action: 'closed', repository: repo, number, previous_state: current.state, milestone: updated });
 }
 
 /**

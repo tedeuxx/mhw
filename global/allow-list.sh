@@ -160,8 +160,24 @@ allow_protect() {
       "**/.git/config" "**/.git/hooks/**"; do
     printf 'Edit(%s)\n' "$r"
   done
-  # A route (Issue #475) is a command name resolved on PATH, not a file this installer can name, so it
-  # carries no Edit deny; the "script" kind it replaced denied edits to its installed file (#242).
+  # The installed npm package, in every tier (Issue #475, owner ruling 2026-11-19 on PR #509): its src/
+  # is the code a route (mhw milestone read) runs without a prompt. Rendered only when this installer
+  # runs from an npm install, never from a checkout, whose own development the deny would block.
+  if allow_npm_package; then printf 'Edit(/%s/**)\n' "$allow_pkg_dir"; fi
+}
+
+# Is this installer running from an npm install of the package? Measured on 2026-11-19 with npm 11 on the
+# github: route (ADR-0034) and on git+file://: npm leaves a real directory, no .git, under a directory
+# named node_modules. A checkout or a linked worktree has .git; `npm link` and a directory install are
+# symbolic links whose real path is the checkout; a git archive extracted elsewhere is not under
+# node_modules. .workstation-archive does not decide it: git+file:// leaves its placeholders unfilled.
+# Sets allow_pkg_dir to the package's real path.
+allow_npm_package() {
+  allow_pkg_dir=$(cd "$repo_root" 2>/dev/null && pwd -P) || return 1
+  if [ ! -f "$allow_pkg_dir/package.json" ] || [ -e "$allow_pkg_dir/.git" ] || [ -L "$allow_pkg_dir/.git" ]; then
+    return 1
+  fi
+  [ "$(basename "$(dirname "$allow_pkg_dir")")" = node_modules ]
 }
 
 allow_claude_render() { # $1 tier, $2 input settings, $3 output

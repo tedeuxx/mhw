@@ -239,10 +239,35 @@ a route in the narrow tier, extra words, and `mhw` as a `cmd` stay refused; the 
 What it changes, stated: the `script` rule named an absolute installed file and carried an `Edit` deny
 on it. A route names a command that `PATH` resolves, so the installer has no file to protect, and a
 directory earlier on `PATH` holding another `mhw` would run in its place under the same rule. An `Edit`
-deny on the package's `src/` was rejected: in a checkout of this repository it would deny the edits its
-own development needs. The `gh api` call still runs in a subprocess no settings rule sees. The route
+~~deny on the package's `src/` was rejected: in a checkout of this repository it would deny the edits its
+own development needs.~~ deny is rendered on the npm install only (struck 2026-11-19, see the amendment
+of that date). The `gh api` call still runs in a subprocess no settings rule sees. The route
 needs `mhw` on `PATH` (an npm install); without it the rule matches nothing. Windows renders no allow
 list. Written and tested in throwaway homes (`global/allow-list.test.sh`); not installed.
+
+## Amendment 2026-11-19: an Edit deny on the installed npm package ([owner ruling on PR #509](https://github.com/tedeuxx/mhw/pull/509#issuecomment-7007902457))
+
+The owner ruled, after the `agents-lead` lens escalated the dropped protection
+([lens on PR #509](https://github.com/tedeuxx/mhw/pull/509#issuecomment-6994173322)): keep
+`mhw milestone read` pre-authorised, and render an `Edit` deny on the installed npm package directory,
+only when the installer runs from an npm install, never from a checkout.
+
+The installer renders `Edit(/<real package directory>/**)` into Claude Code's `permissions.deny`, in
+every tier, when `repo_root` resolves to a real directory with a `package.json`, no `.git`, whose parent
+directory is named `node_modules`. That test was measured on 2026-11-19 with npm 11 on two routes into
+throwaway prefixes: `github:tedeuxx/mhw#<branch>` (the route [ADR-0034](0034-npm-distribution-from-github-by-tag.md) documents) and
+`git+file://`. Both leave a real directory with no `.git` under `node_modules`. `.workstation-archive`
+was rejected as the signal: `git+file://` leaves its placeholders unfilled. A checkout or a linked
+worktree has `.git`; `npm link` and a directory install are symbolic links whose real path is the
+checkout; a copy outside `node_modules` is not an npm install. The deny covers more than the retired
+`script` deny did: the whole package, the modules a route imports included. It errs toward protecting:
+a copy of the sources placed under a `node_modules` directory without `.git` is denied too.
+
+**Stated limit, as ruled.** It does not cover a shadowing `mhw` earlier on `PATH`: the rule runs
+whatever `mhw` resolves first, and that program's file is not this package. It does not cover a write
+through Bash, which no `Edit` rule sees. Claude Code only; Windows renders no allow list. Written and
+tested: the npm, plain-copy and npm-with-`.git` layouts in `global/allow-list.test.sh`, and a real
+`git+file://` npm install in `test/git-route.test.js`; not installed.
 
 ## Links
 

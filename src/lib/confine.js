@@ -75,7 +75,7 @@ export function realpathLoose(p, ctx) {
       }
       const next = P.join(cur, comp);
       const st = lstat(next);
-      if (st && st.isSymbolicLink()) {
+      if (st?.isSymbolicLink()) {
         if (++depth > 40) throw new ConfineError(p + ': too many levels of symbolic links');
         const target = fs.readlinkSync(next);
         cur = P.isAbsolute(target) ? walk(P.parse(target).root, target.slice(P.parse(target).root.length)) : walk(cur, target);
@@ -117,9 +117,11 @@ export function tempDir(ctx) {
     const home = e.USERPROFILE || os.homedir();
     candidates.push(P.join(home, 'AppData', 'Local', 'Temp'));
     if (e.SYSTEMROOT || e.SystemRoot) candidates.push(P.join(String(e.SYSTEMROOT || e.SystemRoot), 'Temp'));
-    candidates.push('c:\\temp', 'c:\\tmp', '\\temp', '\\tmp');
+    // The temporary directories are confinement ROOTS for reading an input the caller wrote; nothing is
+    // created, written or executed there by this module (the NOSONARs below say the same, per line).
+    candidates.push(String.raw`c:\temp`, String.raw`c:\tmp`, String.raw`\temp`, String.raw`\tmp`); // NOSONAR javascript:S5443 - a read-confinement root; nothing is written or executed there
   } else {
-    candidates.push('/tmp', '/var/tmp', '/usr/tmp');
+    candidates.push('/tmp', '/var/tmp', '/usr/tmp'); // NOSONAR javascript:S5443 - a read-confinement root; nothing is written or executed there
   }
   for (const c of candidates) {
     const abs = P.resolve(ctx.cwd, c);
@@ -152,7 +154,7 @@ export function allowedRoots(ctx) {
   }
   candidates.push(tempDir(ctx));
   try {
-    if (fs.statSync('/tmp').isDirectory()) candidates.push('/tmp');
+    if (fs.statSync('/tmp').isDirectory()) candidates.push('/tmp'); // NOSONAR javascript:S5443 - a read-confinement root, checked by realpath and whole components
   } catch {
     // no /tmp
   }
