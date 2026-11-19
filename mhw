@@ -6,10 +6,10 @@
 # Windows keeps global/install.ps1. (The deprecated ./workstation alias was removed, Issue #206.)
 dir=$(cd "$(dirname "$0")" && pwd)
 # The commands moved to Node run bin/mhw.js, never workstation.py: mhw delivery merge|verify (#474, S03
-# of #470), mhw milestone read|create|update|close (#475, S04 of #470), and mhw worklog and
-# mhw launch-line (#476, S05 of #470).
+# of #470), mhw milestone read|create|update|close (#475, S04 of #470), mhw worklog and
+# mhw launch-line (#476, S05 of #470), and mhw rite-cadence (#477, S06 of #470).
 case "${1:-}" in
-  delivery|milestone|worklog|launch-line)
+  delivery|milestone|worklog|launch-line|rite-cadence)
     command -v node >/dev/null 2>&1 || { echo "mhw: node (26 or later) is required for mhw $1" >&2; exit 2; }
     exec node "$dir/bin/mhw.js" "$@" ;;
 esac

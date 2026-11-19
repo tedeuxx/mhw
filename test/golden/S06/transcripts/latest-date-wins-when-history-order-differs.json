@@ -1,0 +1,14 @@
+{
+  "name": "latest-date-wins-when-history-order-differs",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last ran 2026-05-05 (<c1 add sprint-02.md | 2026-05-05>), dated by files carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    }
+  ]
+}

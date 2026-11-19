@@ -1,0 +1,13 @@
+{
+  "name": "no-marker-dates-a-file-only-a-merge-added-as-struck",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last changed 2026-04-04 (<c4 merge | 2026-04-04>), no ran-marker declared\n",
+      "stderr": ""
+    }
+  ]
+}

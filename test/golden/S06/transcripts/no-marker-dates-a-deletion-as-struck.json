@@ -1,0 +1,13 @@
+{
+  "name": "no-marker-dates-a-deletion-as-struck",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last changed 2026-05-05 (<c2 gone | 2026-05-05>), no ran-marker declared\n",
+      "stderr": ""
+    }
+  ]
+}

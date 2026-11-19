@@ -1,0 +1,14 @@
+{
+  "name": "unreadable-working-copy-does-not-hide-a-run",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last ran 2026-03-03 (<c1 add sprint-02.md | 2026-03-03>), dated by files carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    }
+  ]
+}

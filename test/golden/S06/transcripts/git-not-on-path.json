@@ -1,0 +1,14 @@
+{
+  "name": "git-not-on-path",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "rite-cadence: git could not run: [Errno 2] No such file or directory: 'git'\n"
+    }
+  ]
+}

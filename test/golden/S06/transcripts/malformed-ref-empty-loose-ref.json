@@ -1,0 +1,22 @@
+{
+  "name": "malformed-ref-empty-loose-ref",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "rite-cadence: HEAD names no readable commit\n"
+    },
+    {
+      "args": [
+        "docs/funnel-review"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "rite-cadence: HEAD names no readable commit\n"
+    }
+  ]
+}

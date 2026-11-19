@@ -1,0 +1,13 @@
+{
+  "name": "no-marker-dates-the-first-commit-whatever-log-showroot",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last changed 2026-01-01 (<c1 add README.md | 2026-01-01>), no ran-marker declared\n",
+      "stderr": ""
+    }
+  ]
+}

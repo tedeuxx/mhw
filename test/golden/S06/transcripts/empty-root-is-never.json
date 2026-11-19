@@ -1,0 +1,22 @@
+{
+  "name": "empty-root-is-never",
+  "runs": [
+    {
+      "args": [
+        "docs/nothing-here",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "docs/nothing-here: never landed a file carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "docs/nothing-here"
+      ],
+      "code": 0,
+      "stdout": "docs/nothing-here: never changed\n",
+      "stderr": ""
+    }
+  ]
+}

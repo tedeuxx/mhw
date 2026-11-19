@@ -84,8 +84,7 @@ jobs:
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py \
             global/private_copy.py global/private_copy_test.py \
-            .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py \
-            method/scripts/rite-cadence.py method/scripts/rite-cadence.test.py
+            .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py
       - name: node syntax check of the npm launcher and postinstall (Issue #68)
         run: |
           node --version
@@ -330,12 +329,12 @@ jobs:
       # #128: the rite-cadence dater of session check 3, in throwaway git repositories.
       # #475: the milestone routes are Node now; their suite runs in the node job (npm test).
       # #476: so are mhw worklog and mhw launch-line (test/method/worklog.test.js and the S05 goldens).
-      - name: method scripts suites (funnel-review, rite-cadence)
+      # #477: so is rite-cadence (mhw rite-cadence, test/method/rite-cadence.test.js).
+      - name: method scripts suites (funnel-review)
         env:
           TMPDIR: ${{ runner.temp }}
         run: |
           bash method/scripts/funnel-review.test.sh
-          python3 -B method/scripts/rite-cadence.test.py
       - name: method issue sync suite
         env:
           TMPDIR: ${{ runner.temp }}
