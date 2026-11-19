@@ -1,0 +1,786 @@
+{
+  "name": "admin-validate",
+  "runs": [
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/good.json"
+      ],
+      "code": 0,
+      "stdout": "",
+      "stderr": "",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/extra.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/extra.json: rule 0 is not a deny rule of shell, fs_read or fs_write with only Kiro's fields\n",
+      "tree": [
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/allow.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/allow.json: rule 0 is not a deny rule of shell, fs_read or fs_write with only Kiro's fields\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/norules.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/norules.json: rules must be a non-empty list\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/rulesobj.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/rulesobj.json: rules must be a non-empty list\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/emptymatch.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/emptymatch.json: rule 0: an empty match list would deny the whole capability\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/nomatch.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/nomatch.json: rule 0 is not a deny rule of shell, fs_read or fs_write with only Kiro's fields\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/settings.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/settings.json: the top level must be the rules list and the personal-multi-harness-workstation-configuration key, nothing else\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/noname.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/noname.json: the top level must be the rules list and the personal-multi-harness-workstation-configuration key, nothing else\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/nostamp.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/nostamp.json: the personal-multi-harness-workstation-configuration key does not carry the provenance stamp\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/stampnotstr.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/stampnotstr.json: the personal-multi-harness-workstation-configuration key does not carry the provenance stamp\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/mcp.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/mcp.json: rule 0 is not a deny rule of shell, fs_read or fs_write with only Kiro's fields\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/notdict.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/notdict.json: rule 0 is not a deny rule of shell, fs_read or fs_write with only Kiro's fields\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/top.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/top.json: the top level must be the rules list and the personal-multi-harness-workstation-configuration key, nothing else\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/dup.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/dup.json: one rule per capability\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/matchstr.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/matchstr.json: rule 0: match must be a list of non-empty strings\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/matchnum.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/matchnum.json: rule 0: match must be a list of non-empty strings\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/matchempty.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/matchempty.json: rule 0: match must be a list of non-empty strings\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/exclnull.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/exclnull.json: rule 0: exclude must be a list of non-empty strings\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/ceiling.json"
+      ],
+      "code": 0,
+      "stdout": "",
+      "stderr": "",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/over.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/over.json: rule 0 compiles to statements of 33 conditions, over the ceiling of 32 (Kiro treats 64 or more that fail its cedar-wasm check as deny-all)\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "over.json file 644 52c9b1cb0f0b5260933182941003e070f6afe29f05e8a4fe638aff91326937cc",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/star.json"
+      ],
+      "code": 0,
+      "stdout": "",
+      "stderr": "",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "over.json file 644 52c9b1cb0f0b5260933182941003e070f6afe29f05e8a4fe638aff91326937cc",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "star.json file 644 1079fce0bea0e805508b1a6413ba52148cea0b9a08aa9028101d239b5cc970e2",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/many.json"
+      ],
+      "code": 0,
+      "stdout": "",
+      "stderr": "",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "many.json file 644 af0cf674d984fbb927a72661182a2b064172dfba2b6ef6a62a48ef1b04319c03",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "over.json file 644 52c9b1cb0f0b5260933182941003e070f6afe29f05e8a4fe638aff91326937cc",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "star.json file 644 1079fce0bea0e805508b1a6413ba52148cea0b9a08aa9028101d239b5cc970e2",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/notjson.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/notjson.json: not JSON Kiro can parse (JSONDecodeError)\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "many.json file 644 af0cf674d984fbb927a72661182a2b064172dfba2b6ef6a62a48ef1b04319c03",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "notjson.json file 644 92072df399cb74703f8e86f450d552bc0bb01eeeb98a90985a1b7772c8fd0016",
+        "over.json file 644 52c9b1cb0f0b5260933182941003e070f6afe29f05e8a4fe638aff91326937cc",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "star.json file 644 1079fce0bea0e805508b1a6413ba52148cea0b9a08aa9028101d239b5cc970e2",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/nan.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/nan.json: the top level must be the rules list and the personal-multi-harness-workstation-configuration key, nothing else\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "many.json file 644 af0cf674d984fbb927a72661182a2b064172dfba2b6ef6a62a48ef1b04319c03",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nan.json file 644 ebaa0fc738f33adf9cc5565e50f007b21a4849f5f98213f2ae14c1a006c14a10",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "notjson.json file 644 92072df399cb74703f8e86f450d552bc0bb01eeeb98a90985a1b7772c8fd0016",
+        "over.json file 644 52c9b1cb0f0b5260933182941003e070f6afe29f05e8a4fe638aff91326937cc",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "star.json file 644 1079fce0bea0e805508b1a6413ba52148cea0b9a08aa9028101d239b5cc970e2",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/bom.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/bom.json: starts with a byte order mark, which Kiro refuses\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "bom.json file 644 ec5c059893945c34be10a8a9cb428e30dfa4761db7a38e90a6e1cfaf46b6adc5",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "many.json file 644 af0cf674d984fbb927a72661182a2b064172dfba2b6ef6a62a48ef1b04319c03",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nan.json file 644 ebaa0fc738f33adf9cc5565e50f007b21a4849f5f98213f2ae14c1a006c14a10",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "notjson.json file 644 92072df399cb74703f8e86f450d552bc0bb01eeeb98a90985a1b7772c8fd0016",
+        "over.json file 644 52c9b1cb0f0b5260933182941003e070f6afe29f05e8a4fe638aff91326937cc",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "star.json file 644 1079fce0bea0e805508b1a6413ba52148cea0b9a08aa9028101d239b5cc970e2",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/u.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/u.json: not JSON Kiro can parse (UnicodeDecodeError)\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "bom.json file 644 ec5c059893945c34be10a8a9cb428e30dfa4761db7a38e90a6e1cfaf46b6adc5",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "many.json file 644 af0cf674d984fbb927a72661182a2b064172dfba2b6ef6a62a48ef1b04319c03",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nan.json file 644 ebaa0fc738f33adf9cc5565e50f007b21a4849f5f98213f2ae14c1a006c14a10",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "notjson.json file 644 92072df399cb74703f8e86f450d552bc0bb01eeeb98a90985a1b7772c8fd0016",
+        "over.json file 644 52c9b1cb0f0b5260933182941003e070f6afe29f05e8a4fe638aff91326937cc",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "star.json file 644 1079fce0bea0e805508b1a6413ba52148cea0b9a08aa9028101d239b5cc970e2",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "u.json file 644 5b3430ee8e5c7490d0e154755cdae0c9a7791be87e77b1f91a52f77676bed0c7"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/missing.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/missing.json: unreadable (FileNotFoundError)\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "bom.json file 644 ec5c059893945c34be10a8a9cb428e30dfa4761db7a38e90a6e1cfaf46b6adc5",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "many.json file 644 af0cf674d984fbb927a72661182a2b064172dfba2b6ef6a62a48ef1b04319c03",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nan.json file 644 ebaa0fc738f33adf9cc5565e50f007b21a4849f5f98213f2ae14c1a006c14a10",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "notjson.json file 644 92072df399cb74703f8e86f450d552bc0bb01eeeb98a90985a1b7772c8fd0016",
+        "over.json file 644 52c9b1cb0f0b5260933182941003e070f6afe29f05e8a4fe638aff91326937cc",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "star.json file 644 1079fce0bea0e805508b1a6413ba52148cea0b9a08aa9028101d239b5cc970e2",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "u.json file 644 5b3430ee8e5c7490d0e154755cdae0c9a7791be87e77b1f91a52f77676bed0c7"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=<HOME>/d.json"
+      ],
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE  Kiro admin document <HOME>/d.json: unreadable (IsADirectoryError)\n",
+      "tree": [
+        "allow.json file 644 a636ae5a1d88b273d507d71ad5348b178411d9dd3f330ee00c51ed65f83f18ac",
+        "bom.json file 644 ec5c059893945c34be10a8a9cb428e30dfa4761db7a38e90a6e1cfaf46b6adc5",
+        "ceiling.json file 644 9cdcbe5dfc425a75b10b25d8badffbad593246995c1963e572d20474d242618c",
+        "d.json dir 755",
+        "dup.json file 644 0cbd3c4559510584975e138b9f23e5b5d7a19958c91e4863193232f729c132c2",
+        "emptymatch.json file 644 d740216eaf9780d037f09806aa1c578935538c4df79cf56f1ab0464197e087ab",
+        "exclnull.json file 644 159e97654a1428321272f3ced73edf7d3e267425fd72a93e9e2df81986608dde",
+        "extra.json file 644 1e0adcd85717c4b75e4348d977b6ec3848237d887d80399eff123a10f1db6126",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "good.json file 644 958b2b9b940340a4a4f135594d977802c0633eb984de5ca13b2bb3261f943de4",
+        "many.json file 644 af0cf674d984fbb927a72661182a2b064172dfba2b6ef6a62a48ef1b04319c03",
+        "matchempty.json file 644 d5e6711235792151cc5eee031c5766e3b0b1e1155aeb36399637b4f3f5320188",
+        "matchnum.json file 644 65f4c05ffd9ff4b4c1245b8e23244910b1c15dde3a4636f30c7d9a11042b0e70",
+        "matchstr.json file 644 f91f0cfac1feb250ef281d1b755fe6ec81c405fe1ee2ca2ebeafacfe6bef4be6",
+        "mcp.json file 644 4655fe63af28ea5fb95b37fcd82f747bd7f1319926952ba88632bc0c72dff113",
+        "nan.json file 644 ebaa0fc738f33adf9cc5565e50f007b21a4849f5f98213f2ae14c1a006c14a10",
+        "nomatch.json file 644 6fd2ef093f972482f17e95ad78b71645ef3c6110e1d010fd2f458fa792d92447",
+        "noname.json file 644 d2c3481f1a6abfd23fa393f53095d3f2c14ad9a91359da1317627f9c14454a68",
+        "norules.json file 644 7772b46b317c8ebb12d16d4cd4650982f2557d9aca529fdbbca2a5bb518d793e",
+        "nostamp.json file 644 e7b5a005f3fc05cd7ee57282400ad1382f697e67af47c47900ae97221849fc50",
+        "notdict.json file 644 97e1dad24aafc6def2ad53d10b472dc2874c11c9f4fd8c61c4a4a2f9c95d8ce6",
+        "notjson.json file 644 92072df399cb74703f8e86f450d552bc0bb01eeeb98a90985a1b7772c8fd0016",
+        "over.json file 644 52c9b1cb0f0b5260933182941003e070f6afe29f05e8a4fe638aff91326937cc",
+        "rulesobj.json file 644 4649ca010d0fb5578aaee358568dc92066b0f86ace70a44713c6b82b9b5d98d0",
+        "settings.json file 644 0a16d624b2da15d3a9ac92ca67819c9682369e8591828ee7211a4cc59058f7b3",
+        "stampnotstr.json file 644 0f65f2cc47a405504354156d5283926cad1b32d92e9751515d735df54c78b9f3",
+        "star.json file 644 1079fce0bea0e805508b1a6413ba52148cea0b9a08aa9028101d239b5cc970e2",
+        "top.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "u.json file 644 5b3430ee8e5c7490d0e154755cdae0c9a7791be87e77b1f91a52f77676bed0c7"
+      ]
+    }
+  ]
+}

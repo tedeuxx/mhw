@@ -1,0 +1,46 @@
+{
+  "name": "his-rules-holding-owned-patterns-untouched",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "MERGED  <HOME>/.kiro/settings/permissions.yaml (7 deny-floor pattern(s) added, every rule of yours kept; previous version kept as <HOME>/.kiro/settings/permissions.yaml.pmhwc-backup)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 8ce007f3489dc1863815355ba4550648892571719d1830f021a39566bb11dc66",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 8c8e0b0e65c0664e7af6f20b60430f2ebda313bc9403d2dc9de595b85494f37f",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 667990fb7d79b3f1a26a5858477acf9bc437ca8ed53d4f65992840b430df4f1e",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=uninstall",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "UNMERGED <HOME>/.kiro/settings/permissions.yaml (the deny rules mhw added removed, your rules kept; previous version kept as <HOME>/.kiro/settings/permissions.yaml.pmhwc-backup)\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.yaml file 644 b0e84c4b3dcfde89a4dd75e6764bc025a22b2b2d2f8bb95014c52a603c8bed07",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 1d99d6f54f095c22563c3c3f1f38c3f98a6ead9596cba645058a6e850a5fe09b",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    }
+  ]
+}

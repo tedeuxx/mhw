@@ -1,0 +1,45 @@
+{
+  "name": "the-exact-rule-is-preferred",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "MERGED  <HOME>/.kiro/settings/permissions.yaml (new file; 1 deny-floor patterns)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 6b7229f9f89f1d65ddf26edabb0d8726c49e718ba39d89ed738bca404c0ec79a",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 4433e11b77bc8f671f446233e7c7376dffd8556d73becbf03e5c1589dd33732b",
+        "floor.conf file 644 ed4e72b53c2ff826f0d2f268da728c3fdc6688ba44d28b37073226eff5bd49a0"
+      ]
+    },
+    {
+      "args": [
+        "--mode=uninstall",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "UNMERGED <HOME>/.kiro/settings/permissions.yaml (the deny rules mhw added removed, your rules kept; previous version kept as <HOME>/.kiro/settings/permissions.yaml.pmhwc-backup)\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 bc38fd5126055e8a16fba8a0b6a96892723210e14080f31a2e0afed610f35f60",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 3ed42754d66d18dce2d58cd94c908cb8d9800b857317a1c0a1ae5e11417ef4f6",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        "floor.conf file 644 ed4e72b53c2ff826f0d2f268da728c3fdc6688ba44d28b37073226eff5bd49a0"
+      ]
+    }
+  ]
+}

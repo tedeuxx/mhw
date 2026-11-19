@@ -10,7 +10,7 @@
 #
 # Renders the brief, the deny floor and the working method (global\method\method_render.py, ADR-0032). The deny floor is merged into %USERPROFILE%\.claude\settings.json
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
-# <CODEX_HOME>\rules\workstation-deny-floor.rules and, through global\kiro\kiro_permissions.py, into
+# <CODEX_HOME>\rules\workstation-deny-floor.rules and, through src\render\kiro-permissions.js (Node), into
 # %USERPROFILE%\.kiro\settings\permissions.yaml (ADR-0036). Since Issue #145 it also does what install.sh does
 # since v5.2.0, through the same scripts where there is one: the session-start model and effort are pinned
 # (src\render\model-defaults.js, Node since #481; it needs node 26 or later), and the retired find and awk allows
@@ -425,14 +425,35 @@ function Invoke-PyStep([string]$what, [string]$rel, [string[]]$a) {
 }
 
 # The deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036, Issue #144): the floor validated above, merged into
-# %USERPROFILE%\.kiro\settings\permissions.yaml by global\kiro\kiro_permissions.py, the same step install.sh
-# runs (kiro_step). The script finds the file from the profile directory (Python's home on Windows), and
-# takes the floor as a file, so the validated lines are handed over in a temporary file removed after it.
+# %USERPROFILE%\.kiro\settings\permissions.yaml by src\render\kiro-permissions.js in Node (#482, S11 of #470),
+# the same step install.sh runs (kiro_step), run by the node that runs mhw (MHW_NODE) or the node on PATH,
+# by absolute path. It finds the file from the profile directory (USERPROFILE), and takes the floor as a
+# file, so the validated lines are handed over in a temporary file removed after it.
 function Invoke-Kiro {
+    # The node lookup of the model defaults step (PR #515 lens A1): an absolute MHW_NODE that is not a file is
+    # refused, never replaced by another node.
+    $kiroNode = $null
+    if ($env:MHW_NODE -and [System.IO.Path]::IsPathRooted($env:MHW_NODE)) {
+        if (Test-Path -LiteralPath $env:MHW_NODE -PathType Leaf) { $kiroNode = $env:MHW_NODE }
+        else {
+            Write-Output "REFUSE  the Kiro deny floor: MHW_NODE ($($env:MHW_NODE)) is not a file; nothing written"
+            Set-Status 2
+            return
+        }
+    } else {
+        $found = Get-Command node -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) { $kiroNode = $found.Source }
+    }
+    if (-not $kiroNode) {
+        Write-Output 'SKIP    the Kiro deny floor: node (26 or later) is required'
+        Set-Status 2
+        return
+    }
     $tmp = [System.IO.Path]::GetTempFileName()
     try {
         [System.IO.File]::WriteAllText($tmp, (($floorLines -join "`n") + "`n"), $utf8)
-        Invoke-PyStep 'the Kiro deny floor' 'kiro\kiro_permissions.py' @("--mode=$mode", "--stamp=$stamp", "--floor=$tmp", "--floor-from=$floorFrom")
+        & $kiroNode (Join-Path (Join-Path (Join-Path $repoRoot 'src') 'render') 'kiro-permissions.js') "--mode=$mode" "--stamp=$stamp" "--floor=$tmp" "--floor-from=$floorFrom"
+        Set-Status $LASTEXITCODE
     } finally {
         Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
     }

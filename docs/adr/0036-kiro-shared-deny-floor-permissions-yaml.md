@@ -397,10 +397,41 @@ Kiro CLI V3 engine actually read the admin `managed-settings.json` as their `adm
 candidate. The evidence levels in the tables above stay as written; accepting the decision does not
 make the floor *installed* or *enforced-measured* in any Kiro build.
 
+## Amendment 2026-11-19: the renderer moves to Node ([#482](https://github.com/tedeuxx/mhw/issues/482), S11 of #470)
+
+The decision is unchanged; its carrier changes runtime. `global/kiro/kiro_permissions.py` and its test are
+removed, and `src/render/kiro-permissions.js` renders the same floor, with the same bounded reader for
+Kiro's schema subset, now `src/lib/yaml-subset.js`. It is still hand-written, not a general YAML library:
+a general parser would accept anchors, tags, flow mappings and implicitly typed scalars, and so would
+change which of the owner's files are merged. Wherever this record names `kiro_permissions.py` or
+`kiro_permissions_test.py`, read `src/render/kiro-permissions.js` and
+`test/render/kiro-permissions.test.js`.
+
+- **Parity.** `test/golden/S11/` holds what the Python original returned, recorded from it before its
+  deletion: the reader's result or refusal on 232 documents (every document the Python suite read, every
+  Kiro-written shape it held, an edge corpus), the scalar reader on 114 tokens, the floor loader on 20
+  files, and 46 command-line scenarios (stdout, stderr, exit code and the written tree with modes). The
+  rendered deny rules are byte-identical; the declared differences are only the renderer's own path in
+  the provenance text and the program name in the usage lines (`expected-differences.json`).
+- **What the path change costs.** `install-managed.sh --check` reports an installed Kiro admin copy as
+  DRIFT, not only STAMP, until the next `--apply`, because the stamp key names the renderer. No rule
+  differs.
+- **Node as root.** `install-managed.sh --apply` validates the Kiro document with node, as root: the
+  node root's PATH finds, since sudo does not pass `MHW_NODE`. Without one, `--apply` refuses with exit 2
+  and installs nothing. `--remove` needs no node, so removing a Kiro file that denies every tool call
+  never depends on it. The node is as owner-writable as the checkout that root already runs; which node
+  an admin-layer component may run is S26's question
+  ([#496](https://github.com/tedeuxx/mhw/issues/496)) and the owner's. Whether root's PATH finds node on
+  the reference machine is **not measured**.
+- **Windows.** The files are written as Python's text mode wrote them, with CRLF line ends. Kiro on
+  Windows is still not measured.
+
 ## Links
 
 - Issue #144 and its 2026-10-11 decision comment. ADR-0016 (the floor), ADR-0027 (the Kiro carriers),
   ADR-0029 (the stamp), ADR-0031 (the allow list), ADR-0008 (no confidential persistence).
-- `global/kiro/kiro_permissions.py`, `global/kiro/kiro_permissions_test.py`, `global/install.sh`
+- ~~`global/kiro/kiro_permissions.py`, `global/kiro/kiro_permissions_test.py`~~ (removed by #482)
+  `src/render/kiro-permissions.js`, `src/lib/yaml-subset.js`, `test/render/kiro-permissions.test.js`,
+  `test/render/kiro-permissions-golden.test.js`, `test/golden/S11/`, `global/install.sh`
   (`kiro_step`), `global/install.test.sh` section 24.
 - kiro.dev/docs/permissions and kiro.dev/docs/ide/whats-new-v1/permissions (read 2026-10-11).
