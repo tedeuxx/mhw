@@ -1,0 +1,161 @@
+{
+  "name": "symlinked-source-and-ancestor",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "link.json"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: symlink paths are not accepted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/link.json link profile.json",
+        "work/loop link loop",
+        "work/outside link ..",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "link.json/"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: symlink paths are not accepted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/link.json link profile.json",
+        "work/loop link loop",
+        "work/outside link ..",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "./link.json"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: symlink paths are not accepted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/link.json link profile.json",
+        "work/loop link loop",
+        "work/outside link ..",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "outside/profile.json"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: path escapes the working directory; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/link.json link profile.json",
+        "work/loop link loop",
+        "work/outside link ..",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "outside/work/profile.json"
+      ],
+      "cwd": "work",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/link.json link profile.json",
+        "work/loop link loop",
+        "work/outside link ..",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "outside/escape"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: path escapes the working directory; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/link.json link profile.json",
+        "work/loop link loop",
+        "work/outside link ..",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "loop/x"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: cannot read profile; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/link.json link profile.json",
+        "work/loop link loop",
+        "work/outside link ..",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "loop/x"
+      ],
+      "cwd": "work",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/link.json link profile.json",
+        "work/loop link loop",
+        "work/outside link ..",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

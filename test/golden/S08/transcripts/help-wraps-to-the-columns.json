@@ -1,0 +1,55 @@
+{
+  "name": "help-wraps-to-the-columns",
+  "runs": [
+    {
+      "args": [
+        "-h"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "usage: mhw profile [-h] --source SOURCE [--output OUTPUT] {validate,plan,render,check}\n\nValidate a preference profile and compile an overlay. Never install into a harness.\n\n    profile.py validate --source overlay/profile.json\n    profile.py plan --source overlay/profile.json\n    profile.py render --source overlay/profile.json --output overlay\n    profile.py check --source overlay/profile.json --output overlay\n\nPython 3.9+, standard library only. Exit 0: success; 1: generated output drift;\n2: invalid input/usage; 3: I/O error or unmanaged/symlink conflict. Errors never echo\nprofile values or unrecognized keys. This is a closed preference vocabulary, not a\ngeneral-purpose JSON Schema validator or a confidential-content classifier.\n\npositional arguments:\n  {validate,plan,render,check}\n\noptions:\n  -h, --help            show this help message and exit\n  --source SOURCE\n  --output OUTPUT\n",
+      "stderr": "",
+      "tree": []
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "usage: mhw profile [-h]\n                   --source SOURCE\n                   [--output OUTPUT]\n                   {validate,plan,render,check}\n\nValidate a preference profile and compile an overlay. Never install into a harness.\n\n    profile.py validate --source overlay/profile.json\n    profile.py plan --source overlay/profile.json\n    profile.py render --source overlay/profile.json --output overlay\n    profile.py check --source overlay/profile.json --output overlay\n\nPython 3.9+, standard library only. Exit 0: success; 1: generated output drift;\n2: invalid input/usage; 3: I/O error or unmanaged/symlink conflict. Errors never echo\nprofile values or unrecognized keys. This is a closed preference vocabulary, not a\ngeneral-purpose JSON Schema validator or a confidential-content classifier.\n\npositional arguments:\n  {validate,plan,render,check}\n\noptions:\n  -h, --help      show this help\n                  message and exit\n  --source SOURCE\n  --output OUTPUT\n",
+      "stderr": "",
+      "tree": []
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "usage: mhw profile\n       [-h]\n       --source SOURCE\n       [--output OUTPUT]\n       {validate,plan,render,check}\n\nValidate a preference profile and compile an overlay. Never install into a harness.\n\n    profile.py validate --source overlay/profile.json\n    profile.py plan --source overlay/profile.json\n    profile.py render --source overlay/profile.json --output overlay\n    profile.py check --source overlay/profile.json --output overlay\n\nPython 3.9+, standard library only. Exit 0: success; 1: generated output drift;\n2: invalid input/usage; 3: I/O error or unmanaged/symlink conflict. Errors never echo\nprofile values or unrecognized keys. This is a closed preference vocabulary, not a\ngeneral-purpose JSON Schema validator or a confidential-content classifier.\n\npositional arguments:\n  {validate,plan,render,check}\n\noptions:\n  -h, --help\n    show this help\n    message and\n    exit\n  --source SOURCE\n  --output OUTPUT\n",
+      "stderr": "",
+      "tree": []
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "usage: mhw profile\n       [-h]\n       --source SOURCE\n       [--output OUTPUT]\n       {validate,plan,render,check}\n\nValidate a preference profile and compile an overlay. Never install into a harness.\n\n    profile.py validate --source overlay/profile.json\n    profile.py plan --source overlay/profile.json\n    profile.py render --source overlay/profile.json --output overlay\n    profile.py check --source overlay/profile.json --output overlay\n\nPython 3.9+, standard library only. Exit 0: success; 1: generated output drift;\n2: invalid input/usage; 3: I/O error or unmanaged/symlink conflict. Errors never echo\nprofile values or unrecognized keys. This is a closed preference vocabulary, not a\ngeneral-purpose JSON Schema validator or a confidential-content classifier.\n\npositional arguments:\n  {validate,plan,render,check}\n\noptions:\n  -h, --help\n    show this\n    help\n    message and\n    exit\n  --source SOURCE\n  --output OUTPUT\n",
+      "stderr": "",
+      "tree": []
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "usage: mhw profile [-h] --source SOURCE [--output OUTPUT]\n                   {validate,plan,render,check}\n\nValidate a preference profile and compile an overlay. Never install into a harness.\n\n    profile.py validate --source overlay/profile.json\n    profile.py plan --source overlay/profile.json\n    profile.py render --source overlay/profile.json --output overlay\n    profile.py check --source overlay/profile.json --output overlay\n\nPython 3.9+, standard library only. Exit 0: success; 1: generated output drift;\n2: invalid input/usage; 3: I/O error or unmanaged/symlink conflict. Errors never echo\nprofile values or unrecognized keys. This is a closed preference vocabulary, not a\ngeneral-purpose JSON Schema validator or a confidential-content classifier.\n\npositional arguments:\n  {validate,plan,render,check}\n\noptions:\n  -h, --help            show this help message and exit\n  --source SOURCE\n  --output OUTPUT\n",
+      "stderr": "",
+      "tree": []
+    }
+  ]
+}

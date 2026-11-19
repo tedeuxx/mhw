@@ -1,0 +1,33 @@
+{
+  "name": "example-validates-and-plans",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "plan",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "{\n  \"managed_by\": \"personal-multi-harness-workstation-configuration/profile-v1\",\n  \"profile_version\": 1,\n  \"priority\": \"unselected\",\n  \"surfaces\": [\n    {\n      \"surface\": \"claude-code\",\n      \"instruction_route\": \"Existing installer: user CLAUDE.md; hooks remain subject to native support.\",\n      \"runtime_verification\": \"not-performed\"\n    },\n    {\n      \"surface\": \"codex\",\n      \"instruction_route\": \"Existing installer: user AGENTS.md; hook trust is a separate owner action.\",\n      \"runtime_verification\": \"not-performed\"\n    },\n    {\n      \"surface\": \"kiro-cli\",\n      \"instruction_route\": \"Existing installer: global steering; custom-agent resource loading must be verified.\",\n      \"runtime_verification\": \"not-performed\"\n    },\n    {\n      \"surface\": \"claude-desktop\",\n      \"instruction_route\": \"Prepared instructions for account settings; no account write or automatic sync.\",\n      \"runtime_verification\": \"not-performed\"\n    }\n  ],\n  \"limits\": {\n    \"surface_selection\": \"describes intended targets; existing installers still target all supported CLIs\",\n    \"native_model_and_effort\": \"not-written; concrete model/effort mappings remain pending\",\n    \"financial_authorization\": \"not-granted\",\n    \"mcp_and_pre_authorizations\": \"not-imported-or-synchronized\",\n    \"slash_commands\": \"preference-only; native command installation remains pending\",\n    \"conversation_cadence\": \"instruction-only; no universal before-display output gate\",\n    \"token_discipline\": \"minimum-sufficient context and concise output instructions; no hard token cap\",\n    \"decision_options\": \"instruction-only on every surface; no hook checks it (the picker guard was removed, ADR-0013 2026-10-05 amendment)\",\n    \"desktop_notifications\": \"intent=unselected; instructions compiled; native GUI values require separate application and verification\"\n  }\n}\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

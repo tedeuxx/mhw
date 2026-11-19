@@ -1,0 +1,75 @@
+{
+  "name": "utf8-and-size-edges",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 5b3430ee8e5c7490d0e154755cdae0c9a7791be87e77b1f91a52f77676bed0c7"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 c814d2b2154330953ba6828072cead66c18f38a05af170d5e8d299f8ed274bec"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 decdcdf0f400a4d046c0cb94012263fb50eb88d290f41129eda39ecff37f038c"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile exceeds the size limit; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d872da125425b89072a5c5437ec9574e9cea99b443ee1357ecb1e41ee7b1855b"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation.language: unsupported choice\n",
+      "tree": [
+        "profile.json file 644 88e931db845f0ed1096ebb5c4e029f3faa0fd8c8eb599b5fddb143263c9b3cbe"
+      ]
+    }
+  ]
+}

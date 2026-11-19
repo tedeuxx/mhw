@@ -1,0 +1,23 @@
+{
+  "name": "undecodable-existing-target",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: cannot read or write profile artifacts; contents omitted\n",
+      "tree": [
+        "output dir 755",
+        "output/clipboard.conf file 644 82eb969229069d039915e869d6548edd1f91730db476a349d08756680edbf76b",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

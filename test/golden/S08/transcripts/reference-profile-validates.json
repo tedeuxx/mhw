@@ -1,0 +1,19 @@
+{
+  "name": "reference-profile-validates",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 5264f2e40532798ffa17cce5dff577d93a434b54aaa2765f70dfd3564951aa35"
+      ]
+    }
+  ]
+}

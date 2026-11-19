@@ -1,0 +1,23 @@
+{
+  "name": "mentioning-marker-is-not-ownership",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains an unmanaged target; nothing written\n",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md file 644 f9b67b2773fe354a66b7efe535c088be14d130c250a1c181e5459d5c7992d3fe",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

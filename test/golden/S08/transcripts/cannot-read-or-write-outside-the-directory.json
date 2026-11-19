@@ -1,0 +1,153 @@
+{
+  "name": "cannot-read-or-write-outside-the-directory",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "<ROOT>/global/profile/profile.example.json"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: path escapes the working directory; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "../profile.json"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: path escapes the working directory; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "../escape"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: path escapes the working directory; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        ".."
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: path escapes the working directory; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "sub/../profile.json"
+      ],
+      "cwd": "work",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "."
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: cannot read profile; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        ""
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: cannot read profile; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "missing.json"
+      ],
+      "cwd": "work",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: cannot read profile; contents omitted\n",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "work/../profile.json"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: valid preference profile; no installation or permission grant\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "work dir 755",
+        "work/profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

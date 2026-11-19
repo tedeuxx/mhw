@@ -1,0 +1,130 @@
+{
+  "name": "non-file-target-and-output-shapes",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output contains a symlink or non-file target; nothing written\n",
+      "tree": [
+        "output dir 755",
+        "output/AGENTS.md dir 755",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "file-output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output must be a real directory, not a symlink or file\n",
+      "tree": [
+        "file-output file 644 2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "output dir 755",
+        "output/AGENTS.md dir 755",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "file-output"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: output must be a real directory, not a symlink or file\n",
+      "tree": [
+        "file-output file 644 2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "output dir 755",
+        "output/AGENTS.md dir 755",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "."
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: 4 generated files updated; no harness installation\n",
+      "stderr": "",
+      "tree": [
+        "AGENTS.md file 600 24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+        "clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "file-output file 644 2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "output dir 755",
+        "output/AGENTS.md dir 755",
+        "profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "."
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: generated overlay is current\n",
+      "stderr": "",
+      "tree": [
+        "AGENTS.md file 600 24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+        "clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "file-output file 644 2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "output dir 755",
+        "output/AGENTS.md dir 755",
+        "profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "./"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: generated overlay is current\n",
+      "stderr": "",
+      "tree": [
+        "AGENTS.md file 600 24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+        "clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "file-output file 644 2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "output dir 755",
+        "output/AGENTS.md dir 755",
+        "profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}

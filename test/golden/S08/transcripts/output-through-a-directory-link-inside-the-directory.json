@@ -1,0 +1,41 @@
+{
+  "name": "output-through-a-directory-link-inside-the-directory",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "linked"
+      ],
+      "cwd": "",
+      "code": 3,
+      "stdout": "",
+      "stderr": "REFUSE: symlink paths are not accepted\n",
+      "tree": [
+        "linked link real",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "real dir 755"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "real"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "linked link real",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609",
+        "real dir 755"
+      ]
+    }
+  ]
+}
