@@ -1,0 +1,25 @@
+{
+  "name": "gate-repr-list-item-attaches",
+  "runs": [
+    {
+      "args": [
+        "--mode=check"
+      ],
+      "code": 1,
+      "stdout": "DRIFT   <PROFILE>/Local State: devtools.remote_debugging.user-enabled absent, want true (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[[\"x --autoConnect y\"]]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    }
+  ]
+}

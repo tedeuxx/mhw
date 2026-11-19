@@ -19,5 +19,7 @@ test/golden/S07/** -text
 # The S07 fixtures (#478) are byte-for-byte inputs of its golden transcripts: a CRLF checkout on Windows
 # turns every sample size into a value ending in a carriage return, which the report rightly calls not a number (CI run 44549048654).
 method/scripts/fixtures/funnel-review/** -text
+# Golden transcripts of the S09 parity test (#480): byte for byte on every OS.
+test/golden/S09/** -text
 # Golden transcripts, inputs and recorded results of the S11 parity tests (#482): byte for byte on every OS.
 test/golden/S11/** -text
