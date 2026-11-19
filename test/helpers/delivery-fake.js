@@ -32,7 +32,7 @@ export function quotePath(p) {
   for (const b of Buffer.from(p, 'utf8')) {
     if (esc[b]) out += '\\' + esc[b];
     else if (b < 0x20 || b > 0x7e) out += '\\' + b.toString(8).padStart(3, '0');
-    else out += String.fromCharCode(b);
+    else out += String.fromCodePoint(b);
   }
   return '"' + out + '"';
 }

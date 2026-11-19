@@ -73,7 +73,7 @@ const HEAD_LINE = /^head: ([0-9a-f]{40})$/;
 const COMMIT_LINE = /^commit: ([0-9a-f]{40})$/;
 const REMOTE = /^(?:https:\/\/github\.com\/|git@github\.com:)([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)$/;
 const SEMVER_TAG = /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/;
-const STRIP = new RegExp('^[' + SP + ']+|[' + SP + ']+$', 'g');
+const IS_SPACE = new RegExp('^[' + SP + ']$');
 const SPLIT_WS = new RegExp('[' + SP + ']+');
 const CURRENT_VERSION = new RegExp('current_version[' + SP + ']*=[' + SP + ']*"([0-9.]+)"', 'y');
 
@@ -118,7 +118,14 @@ function str(s) {
 }
 
 /** Python's str.strip(). @param {string} s */
-export const strip = (s) => s.replace(STRIP, '');
+export function strip(s) {
+  // A scan from each end, one character at a time: linear, where a trailing [ws]+$ regex backtracks.
+  let start = 0;
+  let end = s.length;
+  while (start < end && IS_SPACE.test(s[start])) start++;
+  while (end > start && IS_SPACE.test(s[end - 1])) end--;
+  return s.slice(start, end);
+}
 
 /** Python's str() of a JSON scalar, for a refusal message. @param {unknown} v */
 function pyStr(v) {
@@ -130,7 +137,7 @@ function pyStr(v) {
 
 // The line boundaries str.splitlines() honours beyond \r and \n, control characters included on purpose:
 // \v \f, the file, group and record separators (0x1c-0x1e), NEL (0x85), and U+2028 and U+2029.
-const LINE_BOUNDARIES = new RegExp('[\\n' + String.fromCharCode(0x0b, 0x0c, 0x1c, 0x1d, 0x1e, 0x85, 0x2028, 0x2029) + ']');
+const LINE_BOUNDARIES = new RegExp('[\\n' + String.fromCodePoint(0x0b, 0x0c, 0x1c, 0x1d, 0x1e, 0x85, 0x2028, 0x2029) + ']');
 
 /** Python's str.splitlines() of text read with universal newlines. @param {string} text */
 function splitlines(text) {
@@ -145,7 +152,7 @@ export function pyDumps(v) {
   if (isDict(v)) return '{' + Object.entries(v).map(([k, x]) => pyDumps(k) + ': ' + pyDumps(x)).join(', ') + '}';
   if (v === undefined) return 'null';
   const out = JSON.stringify(v);
-  return out.replace(/[^\x00-\x7f]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+  return out.replace(/[^\x00-\x7f]/g, (c) => '\\u' + (c.codePointAt(0) ?? 0).toString(16).padStart(4, '0'));
 }
 
 /** A UTF-8 file as Python's read_text(encoding="utf-8") reads it: strict, BOM kept. @param {string} file */
@@ -383,7 +390,7 @@ export function gitHistory(exec, base) {
     // Every best common ancestor, as a sorted set: a criss-cross history has more than one, and plain
     // merge-base prints only one of them (QA B3 and lens round 1 on PR #508). An empty set refuses.
     mergeBase: (ref) => {
-      const set = splitlines(strip(git('merge-base', '--all', 'origin/' + base, ref))).sort();
+      const set = splitlines(strip(git('merge-base', '--all', 'origin/' + base, ref))).sort((a, b) => a.localeCompare(b));
       if (!set.length) throw new Pending('cannot read the merge-base with ' + base);
       return set.join(' ');
     },
@@ -507,7 +514,7 @@ export function parseArgs(argv) {
   if (pr === undefined) return { error: 'the following arguments are required: --pr' };
   const digits = strip(pr);
   if (!/^[+-]?[0-9]+(?:_[0-9]+)*$/.test(digits)) return { error: "argument --pr: invalid int value: '" + pr + "'" };
-  return { action, pr: BigInt(digits.replace(/_/g, '')) };
+  return { action, pr: BigInt(digits.replaceAll('_', '')) };
 }
 
 /**

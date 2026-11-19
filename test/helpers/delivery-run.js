@@ -34,7 +34,7 @@ export function tree() {
 }
 
 /** @param {string} s */
-const lf = (s) => s.replace(/\r\n/g, '\n');
+const lf = (s) => s.replaceAll('\r\n', '\n');
 
 /** @param {Case} c @returns {Run} */
 export function inProcess(c) {
