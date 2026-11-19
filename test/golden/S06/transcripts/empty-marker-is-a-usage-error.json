@@ -1,0 +1,14 @@
+{
+  "name": "empty-marker-is-a-usage-error",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        " "
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: marker must not be empty\n"
+    }
+  ]
+}

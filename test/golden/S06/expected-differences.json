@@ -1,0 +1,24 @@
+[
+  {
+    "case": ["option-like-value-is-a-literal-path", "root-not-a-repository-path-is-a-usage-error", "empty-marker-is-a-usage-error", "argument-forms"],
+    "stream": "stderr",
+    "base": "^usage: rite-cadence\\.py ",
+    "replace": "usage: mhw rite-cadence ",
+    "why": "A usage error names the command the caller typed: argparse printed the script's file name, the CLI prints mhw rite-cadence. Only the program name is rewritten; the rest of the usage line, the error message and the exit code (2) are still compared."
+  },
+  {
+    "case": ["option-like-value-is-a-literal-path", "root-not-a-repository-path-is-a-usage-error", "empty-marker-is-a-usage-error", "argument-forms"],
+    "stream": "stderr",
+    "base": "^rite-cadence\\.py: error: ",
+    "replace": "mhw rite-cadence: error: ",
+    "why": "The same as the usage line: argparse prefixed the error with the script's file name, the CLI with mhw rite-cadence. The message after the prefix is still compared."
+  },
+  {
+    "case": ["git-not-on-path"],
+    "stream": "stderr",
+    "base": "^rite-cadence: git could not run: .*$",
+    "head": "^rite-cadence: git could not run: .*$",
+    "replace": "rite-cadence: git could not run: <reason>",
+    "why": "With no git on PATH both exit 1 and print 'rite-cadence: git could not run: ' and a reason; the reason is the runtime's own text (Python's OSError, '[Errno 2] No such file or directory: git'; the CLI's 'git was not found on PATH', since it looks git up before spawning). The prefix and the exit code are still compared."
+  }
+]

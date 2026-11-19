@@ -86,7 +86,6 @@ jobs:
             global/private_copy.py global/private_copy_test.py \
             .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py \
             method/scripts/worklog.py method/scripts/worklog.test.py method/scripts/confine.py \
-            method/scripts/rite-cadence.py method/scripts/rite-cadence.test.py \
             method/scripts/launch-line.py
       - name: node syntax check of the npm launcher and postinstall (Issue #68)
         run: |
@@ -331,13 +330,13 @@ jobs:
       # #170: the scripts the moved rites run, with their own suites (moved from the plugin with them).
       # #128: the rite-cadence dater of session check 3, in throwaway git repositories.
       # #475: the milestone routes are Node now; their suite runs in the node job (npm test).
-      - name: method scripts suites (worklog, funnel-review, rite-cadence)
+      # #477: so is rite-cadence (mhw rite-cadence, test/method/rite-cadence.test.js).
+      - name: method scripts suites (worklog, funnel-review)
         env:
           TMPDIR: ${{ runner.temp }}
         run: |
           python3 -B method/scripts/worklog.test.py
           bash method/scripts/funnel-review.test.sh
-          python3 -B method/scripts/rite-cadence.test.py
       - name: method issue sync suite
         env:
           TMPDIR: ${{ runner.temp }}

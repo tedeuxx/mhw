@@ -1,0 +1,14 @@
+{
+  "name": "report-marked-minus-diff-is-still-read",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last ran 2026-03-03 (<c2 add sprint-02.md | 2026-03-03>), dated by files carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    }
+  ]
+}

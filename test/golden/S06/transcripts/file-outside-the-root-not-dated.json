@@ -1,0 +1,14 @@
+{
+  "name": "file-outside-the-root-not-dated",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: never landed a file carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    }
+  ]
+}

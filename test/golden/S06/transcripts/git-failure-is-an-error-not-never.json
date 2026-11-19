@@ -1,0 +1,16 @@
+{
+  "name": "git-failure-is-an-error-not-never",
+  "runs": [
+    {
+      "args": [
+        "--repo",
+        "<BASE>/not-a-repo",
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "rite-cadence: git rev-parse failed: <git stderr>\n"
+    }
+  ]
+}

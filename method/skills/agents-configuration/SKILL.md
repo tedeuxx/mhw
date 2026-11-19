@@ -1678,7 +1678,7 @@ below were hooks that reported; they are now steps you run yourself.** By this l
    run, and neither is a line-ending or reordering rewrite; an uncommitted change counts for nothing). **Where no such commit exists, report that the rite never landed a file
    carrying it.** `/funnel-review`'s ran-marker is `FUNNEL-REVIEW-RAN`; a
    `FUNNEL-REVIEW-NOT-COLLECTED` report is not a run. Run
-   `python3 {{method-scripts}}/rite-cadence.py --repo <repo> <root> <marker>`: it prints
+   `mhw rite-cadence --repo <repo> <root> <marker>` (a Python script until mhw#477): it prints
    `<root>: last ran <date> (<commit>)`, or `<root>: never landed a file carrying <marker>`, and exits 1
    on a git error or when `HEAD` names no readable commit (a dangling or malformed branch ref), so
    those do not read as *never*; only a branch with no commit yet does (measured on git 2.52.0 only).

@@ -134,6 +134,11 @@ the table below were kept as the exception and then moved, not removed: the four
 and the Python files are deleted. `confine.py` stays for `worklog.py` and `launch-line.py`; its Node
 form is `src/lib/confine.js`. The rows stay as this evaluation read them.*
 
+*Amended 2026-11-19 ([#477](https://github.com/tedeuxx/mhw/issues/477)): `rite-cadence.py`, kept as the
+exception below, was moved, not removed: it is `mhw rite-cadence` in Node
+(`src/commands/rite-cadence.js`), with the same output, and the Python file and its suite are deleted.
+The row stays as this evaluation read it.*
+
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
 | `method/scripts/milestone_common.py` | Shared code of the milestone family. | The four milestone scripts. | Follows the family. | Follows the family. | **keep as the exception** |

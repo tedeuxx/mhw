@@ -1,0 +1,14 @@
+{
+  "name": "each-file-of-a-commit-counted-on-its-own",
+  "runs": [
+    {
+      "args": [
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last ran 2026-06-06 (<c2 both | 2026-06-06>), dated by files carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    }
+  ]
+}

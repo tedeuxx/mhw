@@ -1,0 +1,98 @@
+{
+  "name": "argument-forms",
+  "runs": [
+    {
+      "args": [],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: the following arguments are required: root\n"
+    },
+    {
+      "args": [
+        "--repo"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: argument --repo: expected one argument\n"
+    },
+    {
+      "args": [
+        "docs/funnel-review",
+        "--repo"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: argument --repo: expected one argument\n"
+    },
+    {
+      "args": [
+        "a",
+        "b",
+        "c"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: unrecognized arguments: c\n"
+    },
+    {
+      "args": [
+        "docs/funnel-review",
+        "-x"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: rite-cadence.py [-h] [--repo REPO] root [marker]\nrite-cadence.py: error: unrecognized arguments: -x\n"
+    },
+    {
+      "args": [
+        "docs/funnel-review",
+        "-5"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: never landed a file carrying -5\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--re",
+        "<BASE>/repo",
+        "docs/funnel-review"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last changed 2026-03-03 (<c1 add sprint-02.md | 2026-03-03>), no ran-marker declared\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--repo=<BASE>/repo",
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last ran 2026-03-03 (<c1 add sprint-02.md | 2026-03-03>), dated by files carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--repo",
+        ".",
+        "--repo",
+        "<BASE>/repo",
+        "docs/funnel-review",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": "docs/funnel-review: last ran 2026-03-03 (<c1 add sprint-02.md | 2026-03-03>), dated by files carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        ".",
+        "FUNNEL-REVIEW-RAN"
+      ],
+      "code": 0,
+      "stdout": ".: last ran 2026-03-03 (<c1 add sprint-02.md | 2026-03-03>), dated by files carrying FUNNEL-REVIEW-RAN\n",
+      "stderr": ""
+    }
+  ]
+}
