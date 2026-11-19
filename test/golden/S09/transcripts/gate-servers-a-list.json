@@ -1,0 +1,25 @@
+{
+  "name": "gate-servers-a-list",
+  "runs": [
+    {
+      "args": [
+        "--mode=check"
+      ],
+      "code": 0,
+      "stdout": "SKIP    <PROFILE>/Local State: devtools.remote_debugging.user-enabled absent, left as it is: no chrome-devtools server in its attach form is in the Claude Code user configuration (refused or not rendered), so nothing would attach (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":[]}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    }
+  ]
+}

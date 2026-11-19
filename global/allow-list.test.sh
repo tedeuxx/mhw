@@ -111,7 +111,8 @@ for layout in npm copy npm-with-git; do
     npm-with-git) d="$base/npm-git/lib/node_modules/mhw" ;;
   esac
   mkdir -p "$d"
-  # bin/ and src/: the overlay's profile.json is checked by `mhw profile check` in Node (#479).
+  # bin/ and src/, as the npm package ships them: the overlay's profile.json is checked by
+  # `mhw profile check` in Node (#479), and install.sh's Chrome step runs bin/mhw.js (#480).
   cp -R "$here/../global" "$here/../overlay" "$here/../bin" "$here/../src" "$d/"
   cp "$here/../.bumpversion.toml" "$here/../package.json" "$here/../.workstation-archive" "$d/"
   [ "$layout" = npm-with-git ] && printf 'gitdir: /nowhere\n' > "$d/.git"

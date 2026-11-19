@@ -1,0 +1,28 @@
+{
+  "name": "devtools-active-port-present-key-off",
+  "runs": [
+    {
+      "args": "status",
+      "code": 0,
+      "stdout": "off (devtools.remote_debugging.user-enabled absent; DevToolsActivePort present); mhw install turns it on while Chrome is closed\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/DevToolsActivePort",
+          "mode": "644",
+          "data": "text:9222\n/devtools/browser/x\n"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "devtools-active-port-present",
+  "runs": [
+    {
+      "args": "status",
+      "code": 0,
+      "stdout": "on (devtools.remote_debugging.user-enabled = true; DevToolsActivePort present; Chrome asks to allow a connection)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/DevToolsActivePort",
+          "mode": "644",
+          "data": "text:9222\n/devtools/browser/x\n"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"devtools\":{\"remote_debugging\":{\"user-enabled\":true}}}"
+        }
+      ]
+    }
+  ]
+}

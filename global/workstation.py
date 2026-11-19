@@ -72,7 +72,6 @@ import subprocess
 import sys
 
 import owner_actions  # global/, beside this file (ADR-0035, decision 9)
-import chrome_debugging as chrome_debugging_mod  # global/, beside this file (Issue #224)
 
 NAME = "personal-multi-harness-workstation-configuration"
 MARKER = "managed-by: " + NAME
@@ -1120,12 +1119,38 @@ def permissions_text(ws_root):
 
 
 # Issue #224 (ADR-0038 amendment 2026-10-24): whether Chrome's remote-debugging toggle is on, read as the
-# single key devtools.remote_debugging.user-enabled from Chrome's Local State (global/chrome_debugging.py),
-# so a Chrome update that renames the key shows here as "off" or "not read" rather than going silent.
+# single key devtools.remote_debugging.user-enabled from Chrome's Local State, so a Chrome update that
+# renames the key shows here as "off" or "not read" rather than going silent. Since #480 (S09 of #470) the
+# reading is `mhw chrome-debugging --mode=status` (src/render/chrome-debugging.js), spawned here.
 
 
-def chrome_debugging(system=None, home=None):
-    return chrome_debugging_mod.status_text(system, home)
+def node_binary():
+    """The node running mhw (bin/mhw.js passes its own path in MHW_NODE), else the first node on PATH, as
+    an absolute path; None when there is none."""
+    node = os.environ.get("MHW_NODE", "")
+    if os.path.isabs(node) and os.path.isfile(node) and os.access(node, os.X_OK):
+        return node
+    found = shutil.which("node")
+    return found if found and os.path.isabs(found) else None
+
+
+def chrome_debugging(home=None):
+    """The status line, or why it was not read. home: tests only, a throwaway HOME for the child."""
+    node = node_binary()
+    if node is None:
+        return "not read (node 26 or later is required to read it)"
+    env = dict(os.environ)
+    if home is not None:
+        env["HOME"] = str(home)
+    try:
+        p = subprocess.run([node, str(ROOT / "bin" / "mhw.js"), "chrome-debugging", "--mode=status"],
+                           capture_output=True, text=True, env=env, timeout=60, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return "not read (mhw chrome-debugging could not run)"
+    line = p.stdout.strip("\n")
+    if p.returncode != 0 or not line or "\n" in line:
+        return "not read (mhw chrome-debugging --mode=status exited %d)" % p.returncode
+    return line
 
 
 def gather(project):

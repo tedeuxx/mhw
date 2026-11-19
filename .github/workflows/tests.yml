@@ -255,11 +255,8 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/merge_authority_test.py
-      # Issue #224: Chrome's remote-debugging key in Local State, on a fixture file only.
-      - name: Chrome remote-debugging suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: python3 -B global/chrome_debugging_test.py
+      # Issue #224: Chrome's remote-debugging key in Local State is Node since #480 (mhw chrome-debugging);
+      # its suite, on fixture files only, runs in the node job (npm test, test/render/chrome-debugging.test.js).
       # ADR-0035 decision 7: mhw scan, the outbound scan, in throwaway git repositories and HOMEs, on
       # synthetic fixtures. Findings are reported by file:line, category and length, never the text.
       - name: outbound scan suite

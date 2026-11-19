@@ -1,0 +1,45 @@
+{
+  "name": "gate-args-a-number-is-a-type-error",
+  "runs": [
+    {
+      "args": [
+        "--mode=check"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<SCRIPT>\", line 26, in <module>\n    sys.exit(cd.main(sys.argv[5:]))\n             ~~~~~~~^^^^^^^^^^^^^^\n  File \"<SCRIPT>\", line 215, in main\n    return run(modes[0])\n  File \"<SCRIPT>\", line 176, in run\n    if mode != \"uninstall\" and not attach_rendered(home):\n                                   ~~~~~~~~~~~~~~~^^^^^^\n  File \"<SCRIPT>\", line 62, in attach_rendered\n    words = \" \".join(str(a) for a in entry.get(\"args\", [])).split()\n                                     ~~~~~~~~~^^^^^^^^^^^^\nTypeError: 'int' object is not iterable\n",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":5}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--mode=uninstall"
+      ],
+      "code": 0,
+      "stdout": "NOTE    <PROFILE>/Local State: devtools.remote_debugging.user-enabled absent; uninstall never changes it (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":5}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"profile\":{\"info_cache\":{\"Default\":{\"name\":\"fixture-private-value-7f3a\"}}},\"browser\":{\"enabled_labs_experiments\":[]},\"devtools\":{\"other\":1},\"zeta\":\"ünïcode\"}"
+        }
+      ]
+    }
+  ]
+}

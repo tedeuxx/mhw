@@ -1,0 +1,25 @@
+{
+  "name": "integer-like-keys-keep-their-order",
+  "runs": [
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 0,
+      "stdout": "CHANGED <PROFILE>/Local State: devtools.remote_debugging.user-enabled absent -> true (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        },
+        {
+          "path": "<PROFILE>/Local State",
+          "mode": "644",
+          "data": "text:{\"b\":1,\"10\":2,\"1\":3,\"__proto__\":{\"0\":0},\"constructor\":4,\"\":5,\"devtools\":{\"remote_debugging\":{\"user-enabled\":true}}}"
+        }
+      ]
+    }
+  ]
+}

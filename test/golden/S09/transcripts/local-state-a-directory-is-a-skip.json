@@ -1,0 +1,33 @@
+{
+  "name": "local-state-a-directory-is-a-skip",
+  "runs": [
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 0,
+      "stdout": "SKIP    <PROFILE>/Local State: no Chrome Local State (Chrome not installed or never started) (Chrome remote debugging)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        }
+      ]
+    },
+    {
+      "args": "status",
+      "code": 0,
+      "stdout": "no Chrome Local State found\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": ".claude.json",
+          "mode": "644",
+          "data": "text:{\"mcpServers\":{\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx chrome-devtools-mcp@1.8.0 --autoConnect\"]}}}"
+        }
+      ]
+    }
+  ]
+}
