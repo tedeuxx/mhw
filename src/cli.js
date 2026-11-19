@@ -5,7 +5,8 @@
 //   Windows:         runs global\install.ps1 (install, install --method, check, status = check) and
 //                    answers update itself; install --admin and uninstall do not exist there.
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
-// `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), and `mhw rite-cadence` (#477).
+// `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477), and
+// `mhw profile` (#479).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // run by absolute path, never looked up on PATH. node: modules only (convention 5 of #470: this file is
 // on the hook path once `mhw hook prompt` moves here; test/deps-graph.test.js holds that).
@@ -19,6 +20,7 @@ import { main as milestoneMain } from './commands/milestone.js';
 import { main as worklogMain } from './commands/worklog.js';
 import { main as launchLineMain } from './commands/launch-line.js';
 import { main as riteCadenceMain } from './commands/rite-cadence.js';
+import { main as profileMain } from './commands/profile.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -156,6 +158,8 @@ export function main(argv, platform, env, opts = {}) {
   if (argv[0] === 'launch-line') return launchLineMain(argv.slice(1), env);
   // Moved to Node (#477, S06).
   if (argv[0] === 'rite-cadence') return riteCadenceMain(argv.slice(1), env);
+  // Moved to Node (#479, S08).
+  if (argv[0] === 'profile') return profileMain(argv.slice(1), env);
   if (argv[0] === 'status') printNodeLine(opts.nodeVersion || process.version);
   if (platform !== 'win32') {
     // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.

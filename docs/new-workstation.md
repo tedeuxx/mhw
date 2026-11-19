@@ -36,11 +36,12 @@ edit its choices. Validate and render it with the [profile compiler](../global/p
 
 ```sh
 cd /path/to/my-profile
-python3 -B /path/to/repository/global/profile/profile.py validate --source profile.json
-python3 -B /path/to/repository/global/profile/profile.py render --source profile.json --output .
+node /path/to/repository/bin/mhw.js profile validate --source profile.json
+node /path/to/repository/bin/mhw.js profile render --source profile.json --output .
 ```
 
-Paths above are placeholders. On Windows, use `python` or `py -3` and your chosen Windows paths.
+Paths above are placeholders (after an npm install, `mhw profile` is the same command). On Windows, use
+your chosen Windows paths.
 Pass the generated directory with `--overlay=PATH` or `-Overlay PATH` for preview, apply and check.
 The repository's `overlay/` is the reference owner's profile, not a universal default for every adopter.
 Hand-authored overlays remain supported; the compiler refuses to overwrite their unmarked files.

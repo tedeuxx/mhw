@@ -907,7 +907,7 @@ h="$base/home-profile-stale"; mkdir -p "$h"
 HOME="$h" sh "$inst" --overlay="$profile_dir" > /dev/null
 expect "stale compiled profile refused before installation" 1 $?
 if [ -z "$(find "$h" -type f -print)" ]; then ok "stale profile wrote no target"; else ko "stale profile wrote targets"; fi
-(cd "$profile_dir" && python3 -B "$(dirname "$inst")/profile/profile.py" render --source profile.json --output .) > /dev/null
+(cd "$profile_dir" && node "$(dirname "$inst")/../bin/mhw.js" profile render --source profile.json --output .) > /dev/null
 expect "regenerate changed profile" 0 $?
 HOME="$h" sh "$inst" --overlay="$profile_dir" > /dev/null
 expect "regenerated profile installs" 0 $?

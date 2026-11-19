@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Portable workstation profile, version 1",
-  "description": "Declarative preferences only. No credentials, accounts, endpoints, arbitrary prompts or native permission grants. profile.py validates the subset of JSON Schema used here without dependencies.",
+  "description": "Declarative preferences only. No credentials, accounts, endpoints, arbitrary prompts or native permission grants. mhw profile (src/commands/profile.js) validates the subset of JSON Schema used here without dependencies.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "conversation", "interaction", "session_start", "surfaces"],

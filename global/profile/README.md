@@ -5,10 +5,11 @@ localization, and a complete instruction text for a Claude desktop account-setti
 It does **not** install into a harness, write account settings, select a native model or grant tools.
 This is the first implementation slice of [ADR-0018](../../docs/adr/0018-portable-personal-profile-and-unified-harness-management.md).
 
-Requires Python 3.9 or later, with no third-party packages. The suite was exercised on macOS with
-Python 3.9.6 and 3.14.6 (`/usr/bin/python3 --version` and `python3 --version`, followed by the suite
-command below). CI is configured for macOS, Ubuntu and Windows. Added jobs are not evidence of
-completed runs.
+The compiler is `mhw profile` (`src/commands/profile.js`, Node, `node:` modules only; #479, S08 of
+#470). ~~Requires Python 3.9 or later~~ *(struck 2026-11-19, #479: `global/profile/profile.py` was
+replaced by the Node command, which writes the same bytes; its golden transcripts are in
+`test/golden/S08/`.)* It needs node 26 or later, the version `package.json` names. CI runs the overlay
+check on macOS, Ubuntu and Windows.
 
 ## Source and generated files
 
@@ -44,17 +45,17 @@ access is restricted. Native category gaps and the manual step are in
 From the repository root:
 
 ```sh
-python3 -B global/profile/profile.py validate --source overlay/profile.json
-python3 -B global/profile/profile.py plan --source overlay/profile.json
-python3 -B global/profile/profile.py render --source overlay/profile.json --output overlay
-python3 -B global/profile/profile.py check --source overlay/profile.json --output overlay
+./mhw profile validate --source overlay/profile.json
+./mhw profile plan --source overlay/profile.json
+./mhw profile render --source overlay/profile.json --output overlay
+./mhw profile check --source overlay/profile.json --output overlay
 ```
 
-On Windows, use the available Python launcher (`python` or `py -3`) in place of `python3`.
-The same arguments work in PowerShell. Source and output paths must stay within the current working
+After an npm install the command is `mhw profile`. On Windows, `node bin\mhw.js profile` in a
+checkout, with the same arguments in PowerShell. Source and output paths must stay within the current working
 directory, including after resolving parent symlinks. To create your own profile, copy the example
 into a directory you control, change into that directory, and invoke the compiler by its absolute
-path with `--source profile.json --output .`. Installers scope their drift check to the explicitly
+path (`node /path/to/repository/bin/mhw.js profile ...`) with `--source profile.json --output .`. Installers scope their drift check to the explicitly
 selected overlay directory. Generated artifact names are restricted to the four names above.
 
 `validate` and `plan` write nothing. `render` updates only its marked outputs, leaves unrelated files
@@ -76,7 +77,7 @@ After reviewing it, use the existing installer with the generated directory as `
 (PowerShell: `-Overlay PATH`). Follow [the onboarding guide](../../docs/new-workstation.md). Compilation
 and the installer's file check are separate checks. When an overlay contains `profile.json`, both
 installers run the compiler's drift check before writing any target and refuse stale output. Such an
-overlay therefore requires Python 3.9+ at installation too. Hand-authored overlays and `none` retain
+overlay therefore requires node (26 or later) at installation too. Hand-authored overlays and `none` retain
 their previous dependency requirements. Neither check proves runtime enforcement.
 
 For Claude desktop, `desktop-instructions.md` includes the global protection brief followed by the
@@ -91,8 +92,8 @@ and financial preferences remain separate pending work, visibly named by `plan`.
 ## Verification
 
 ```sh
-python3 -B global/profile/profile_test.py
-python3 -B global/profile/profile.py check --source overlay/profile.json --output overlay
+node --test test/profile/
+./mhw profile check --source overlay/profile.json --output overlay
 ```
 
 The synthetic suite exercises rejection before output, duplicate JSON keys, redacted diagnostics,

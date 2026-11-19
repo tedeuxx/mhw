@@ -1,0 +1,21 @@
+{
+  "name": "native-grant-rejected-without-echo",
+  "runs": [
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: unrecognized field (name and value omitted)\n",
+      "tree": [
+        "profile.json file 644 0cf8fc17c5570fdf82dc1044883b45c4ba8d892823a69c1b65f8ffc34ede0619"
+      ]
+    }
+  ]
+}

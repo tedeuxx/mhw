@@ -1,0 +1,962 @@
+[
+  {
+    "AGENTS.md": "24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+    "clipboard.conf": "353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+    "desktop-instructions.md": "c8f0e527199c569fa68262feca549a68d29a1f0e90669bda25c58b764ec637e5",
+    "profile-plan.json": "260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32"
+  },
+  {
+    "AGENTS.md": "41ff2554a273ea52cff4c17339d0af53bc705b498d4c8ea4b19ee1036abf09e3",
+    "clipboard.conf": "d2a7388690cfb04a159a9fdf683217f102dfc8c728ddbfad3b34dfddd7a9708a",
+    "desktop-instructions.md": "f7a2e53b80820d2808341596c061a7820610e81b6884fdc24d23ee8de0df820e",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "8d925dc6fdd91aaec8b961126e09cb1331ef57759c842562d9c05cfa96e253cb",
+    "clipboard.conf": "71206116d0a70750a773b3e72d1166cfcc70b4f9046340cda160d52b899195d6",
+    "desktop-instructions.md": "68f26a1334a2495fac9200c47cb76058ab00c059cf54d65cc4a3773d850242a5",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "04c8e491ef2863fcbe5b5251a325fcd94c14e58d6429b2abf32e15257d0533c0",
+    "clipboard.conf": "edf81d9609b522b366fd58ba68b70db4dde254bd6c83f27e4b6c9a6284fb6e50",
+    "desktop-instructions.md": "12a6ba03bb5a1b0055ab357e8eab21460a4a94310f99d5a2f7d7a00539e17905",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "f78cd3e4deb752ad03048790bbe53b958a9c96c6b9cffded8172918419822f3b",
+    "clipboard.conf": "5e5d0b47a7ffea24509be49738ce00ada1847e536eef65621ae1a16d232bd63d",
+    "desktop-instructions.md": "6aa61498f01ed468cbcde5d36892a273f72bbd6d4d72d169b6a88ac2f5086c78",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "81087c0bcd06cd4e9b86cddfa8993bf276be11fe5f5047746854e150a719915b",
+    "clipboard.conf": "2451d35be58f6b05ee74b6b3a610ef1cbf90e45db71202f7d1bc865325c8f78c",
+    "desktop-instructions.md": "4fa9466e191d47da255e864dcb4d0c07292f119df852e5bf329cb6928364d126",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "dfc06632009f09dd9ad35783621d63fc2018a083d8efe86dcb2c7dce8449e36f",
+    "clipboard.conf": "c627c607cae6c0e8495e3d3220d77616a5a70b51912af14db3290e9b1e1182d8",
+    "desktop-instructions.md": "09a36934036e5dbc42abbcee6e64d079dc505ee09ee30f0c9075498371702401",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "ee932d70ffe0a4a712ffe816ba156596bd8ba9f95b536c8c220b4455ec04cbfa",
+    "clipboard.conf": "8eed63e5fa48c12cee4ad37e0d32ea3441a012c1f9d1b6bbcd7c0bee528b761f",
+    "desktop-instructions.md": "3c85fab88ab7937ed9f11ff5cab68c6a588322fcafd5f8613da953936121960e",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "0945086b67d1536cf8a3461dfba4ee9eb7b927c77cd0827618059ca56cbc877e",
+    "clipboard.conf": "2548513c71ca82cb5bd4ae55896679a3aacab7b322770bcaea0ef1c741c586d7",
+    "desktop-instructions.md": "d14ce02330dbf00312bf9f0281006978245c89c19e2b07f061beb3180d26ef7f",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "ec34778e3e771802a14c07a46ece509c37f4e8edf407195df3b609e44fd94b34",
+    "clipboard.conf": "1041da358d42c66d8f787b7658e3b5e78406008c61c8fac2965560c6daebd274",
+    "desktop-instructions.md": "2c05a5db42451ae81f6e247696e6012305cb3bfc9851a856f885fecc8d26608a",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "3f6e92d84d7d109ba5943f46ff2f483e062fe76822b0cd79beadb0738d9c6904",
+    "clipboard.conf": "1e78bafb14d58b15988b7415e9bd6252cf5400d6c68795d30566824402402c3a",
+    "desktop-instructions.md": "5894e0519eb4e85199bef7220aa0fe11a49fbadb04eca1ce2e2a405d200d1acc",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "3ae57fe9c06043969e7b68a1ecb3e971f9d3ce544002b23829def5ca32c93dc8",
+    "clipboard.conf": "2cf7c0e538ad3b8990678da908991729582818ead3de66e58dc4515e4e3bad4d",
+    "desktop-instructions.md": "8205033b230f561f7696b342c80ed31fbbfb159dbf89a93241a0447334272fdf",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "5ecaee2a0c65fd843a9f52a40fd9a3dc18a0f8d49e39babe2ac13f0b4b32ef61",
+    "clipboard.conf": "c57e9bfa278ccc8fec34def6964f801d9acc589aba8a0dffed486acb5e1d5fcc",
+    "desktop-instructions.md": "d7c75a6a5ef261fd0665bbe6e601b47b95a344783b56409447a9a80991cc051f",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "4ddf6ac468cc9092a13330b00c748a401933c252435781056cf788844fd6ec0f",
+    "clipboard.conf": "3aafed2d903412ea9706c663bfc93b1133812b3f0cfbf52f314a347ad6b15c89",
+    "desktop-instructions.md": "2298105bfc27ad9c59081ece0c8dbe4b017c84629acab48bac0732e1fcffae4d",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "5f3b3a78fc4887fe2a7c34bbf56d015a521673682b9e673f41ec150a826fd9f2",
+    "clipboard.conf": "dfe4382ce4beb22965691884470a143a177d38cc06e24cfda2db5c72638e2b29",
+    "desktop-instructions.md": "8a8f68bee041c8d81d7bbd361aa01f3015e482f7f052b888503d8f15684befb3",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "a07ea85e08a262618d3054c3b91dac576a99fb86dac3022bad760d5528c49824",
+    "clipboard.conf": "9f06ef3f572a26340edc8527c3d235810014ae04682df4a55421d73240f2fdc0",
+    "desktop-instructions.md": "3c1ba26b7bd28e5165eb448911b6f4e574035b9c26d36c5dfc1155b8024c121a",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "a96338a03f2ac410dbcdeff43894073d51357d410e83845d1dd6d12008630a9f",
+    "clipboard.conf": "fd0f39356e014b3de21572e3bf80ec2556f850142c00c626dc01f45dee2f899d",
+    "desktop-instructions.md": "6d780bb9d747159869a36c56c4e150994da7e2253bfb490500bf054447208150",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "41ff2554a273ea52cff4c17339d0af53bc705b498d4c8ea4b19ee1036abf09e3",
+    "clipboard.conf": "d2a7388690cfb04a159a9fdf683217f102dfc8c728ddbfad3b34dfddd7a9708a",
+    "desktop-instructions.md": "f7a2e53b80820d2808341596c061a7820610e81b6884fdc24d23ee8de0df820e",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "c1843c64008bc3777d3ccae3c86e9409de8adef4a7a0291851de73f460cd1824",
+    "clipboard.conf": "b8640942ab7db577b7065a88d9ef1ba88ab13d6409d8e6a8058ec7f612dae649",
+    "desktop-instructions.md": "7f24d14d0776703346401dc8cef46638b79d4b4669f4d94ef4c7f8267a945fd8",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "04c8e491ef2863fcbe5b5251a325fcd94c14e58d6429b2abf32e15257d0533c0",
+    "clipboard.conf": "edf81d9609b522b366fd58ba68b70db4dde254bd6c83f27e4b6c9a6284fb6e50",
+    "desktop-instructions.md": "12a6ba03bb5a1b0055ab357e8eab21460a4a94310f99d5a2f7d7a00539e17905",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "7a2ca633cf8b415e4010e7e6962173bccea5e2c3d2a120fe69094709c8d06c4e",
+    "clipboard.conf": "897b16ece54209933ba6a40470e0c0275ef979c5a55dd8b87936efd7bd1200b3",
+    "desktop-instructions.md": "6cc7ea2abce2fcafe9112d11b69bb2a7d43c5f9a03e3e6ed43853931c369c996",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "aa19f2f405fd5574aab780395611cf3540d1af554553c81af55842a0b0cce53a",
+    "clipboard.conf": "0497f97e4ad7eae42bde1fc58a1f75fd01f61cda7eb5c2f5367ef95e53e2e7d2",
+    "desktop-instructions.md": "8637f5b541c5100eef6c40be34ba90a7450b6452fe2f2f9d690f067c98d2ff00",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "18eef543d69a72d6f75d2f06c7e1240656301fbc8da87fc4bc58c49d276ac564",
+    "clipboard.conf": "59b1f1d174b8920d431c8125764f3c15a78c240472094fca8c451d702ff54a1e",
+    "desktop-instructions.md": "8a5801dbbd32fde32933578e8ac73bb1bb767c10c5d21f93c1ff8745e0c46e40",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "86dd7ca1d8d9667edfc67ea9b579acab3ab16863c187920b83630d580bf434e0",
+    "clipboard.conf": "dd703b153357a4f07d83bdb0d56f08689eb9266733519cd9342749a4940ca259",
+    "desktop-instructions.md": "4efa1e78db61318a2061e93754ee84d0d1af1e829616f222367c8b5b25879d14",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "abd5a2556b6328ae53bfceb72c64cd563ef5822d1b3ffa6ce42c129785b81edd",
+    "clipboard.conf": "b5d2f2b7b615938b69a5ea4868067b375d7369e262efa894c0ca84e4e4617204",
+    "desktop-instructions.md": "887c7c7f46d57afdc3d5c4c63572e77f32f482339ee6afeb9fff197db77eef2f",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "f707d59c0a5e68cb1b07d0b99751114dd80352bed4821dd3ad3d414e60f32060",
+    "clipboard.conf": "47bf9dd25a5175fd49abdb893bb5a295cd43f1b4a9d2b15b1dad73a060b399d0",
+    "desktop-instructions.md": "3c7abf5dcfd04ae52211fe610c6f3d792ef00a008701b83bda805934dc1ae9ee",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "3f6e92d84d7d109ba5943f46ff2f483e062fe76822b0cd79beadb0738d9c6904",
+    "clipboard.conf": "1e78bafb14d58b15988b7415e9bd6252cf5400d6c68795d30566824402402c3a",
+    "desktop-instructions.md": "5894e0519eb4e85199bef7220aa0fe11a49fbadb04eca1ce2e2a405d200d1acc",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "8ca803a68946dce2fa05d2c8c4bddd9face3b4930371587d6f19f9e5b117598c",
+    "clipboard.conf": "01a15cdb66db134cc72d1ed1fbacae5ba3d318ad8a3d25ded9a4787d4522cf1f",
+    "desktop-instructions.md": "2dcb2d003850531d06b4da6f53f36292f460ac33b553fe90b936aecde856653a",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "a7cf0cf36c2d16742fe334a63d1002fc855f34b4fcdada3233421ef64b1dc4d7",
+    "clipboard.conf": "4bf3c758c79431f6d3e6915ef181750d1a4343a1542c0d8ed8f74373035e4ff6",
+    "desktop-instructions.md": "f57ae44d2d947b79cf042cb57e456ae3f18ddf90b9b086724232cf0120d2cbd6",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "2b8eca2084ffb1b76fbfb20a8f65bcb57c3e4c08dee3ec5ca0cd3d5ce85c0ca9",
+    "clipboard.conf": "75d42fbfb171584cc6342994e6698a21efeb0861c5cac745ec945764c7a9dadb",
+    "desktop-instructions.md": "65336897da6528c1ee822c8a9a8eb3fbfa9a346a4394878111fe7c7867d5f9ee",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "30fa3200613e18ed420c14d3b96174302bdb8d501d2d77dfc68b44f9dabaa4c0",
+    "clipboard.conf": "a0efbbf595947f57abcd78c92c6121d4dccdb5c80e2f0857c9fad2862d6493a0",
+    "desktop-instructions.md": "1f1a478c5dfdcc5f06afdfd383443907f85f40557047c12ad9ef5a2f1ab9fb0a",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "c32375554492e1d9a3ee8fb63034218ba9d030affc636ef81da940e7d0802fa4",
+    "clipboard.conf": "53bb7d354ced9e167aa601b4a1d401fc45bb73c186c5f28020e01602db6ae83f",
+    "desktop-instructions.md": "db4a2e6b8c6f68fd4802269a8a86c85f548e16c2fb33a81567a197a65cc75088",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "80a3bc8cbc8242792984ab3045947a1c9250bb23f8dfa6cb6feeed0d77b7379d",
+    "clipboard.conf": "af35ee17fe8e10a50abdf32bdb97e459c21fb6bb8d92210bbcb46a25c65d6d7d",
+    "desktop-instructions.md": "435dd7a4aca35f04f70da460eb624b65642ce30c3d28b5de90d161aed836ea33",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "222507623d9e2fb857ae8ed06071a4e70f1414a4b757b6b2af7cfe6ccae7fd46",
+    "clipboard.conf": "9f7cba5b1fe1c93ee8f4b85623c674257c6ead25248692527ea1c54954b9d8bf",
+    "desktop-instructions.md": "dabdfe370c6c4d06ba7ae40072858d2b4d265f4fc78cfae4731361b37284f23d",
+    "profile-plan.json": "260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32"
+  },
+  {
+    "AGENTS.md": "c1843c64008bc3777d3ccae3c86e9409de8adef4a7a0291851de73f460cd1824",
+    "clipboard.conf": "b8640942ab7db577b7065a88d9ef1ba88ab13d6409d8e6a8058ec7f612dae649",
+    "desktop-instructions.md": "7f24d14d0776703346401dc8cef46638b79d4b4669f4d94ef4c7f8267a945fd8",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "e1c4f35f4743f7648201931e487e1dd915e30cb7cdb0c6c82e008c30425ebc4b",
+    "clipboard.conf": "d79cfdd08b28bda854e2d9daea9afd4d022f6a91796af95b0c8a0d8b6d0cecd9",
+    "desktop-instructions.md": "469df39ff07f6da562ae470f788b3332d6b2e2cd0105d45c99b34317414d6344",
+    "profile-plan.json": "260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32"
+  },
+  {
+    "AGENTS.md": "7a2ca633cf8b415e4010e7e6962173bccea5e2c3d2a120fe69094709c8d06c4e",
+    "clipboard.conf": "897b16ece54209933ba6a40470e0c0275ef979c5a55dd8b87936efd7bd1200b3",
+    "desktop-instructions.md": "6cc7ea2abce2fcafe9112d11b69bb2a7d43c5f9a03e3e6ed43853931c369c996",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "ce37b0715e7f9937c7663f7148c4586272c742324d129976c1b7314bdfbbb091",
+    "clipboard.conf": "18a900d3a4ad65ce35f3eab285e67124cdab1b2f1669543715eb07368d237d3f",
+    "desktop-instructions.md": "b018cbdb52557de8bd5ba8877dc16fae388ead2759f8eec57d8934b386bbadd2",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "dfc06632009f09dd9ad35783621d63fc2018a083d8efe86dcb2c7dce8449e36f",
+    "clipboard.conf": "c627c607cae6c0e8495e3d3220d77616a5a70b51912af14db3290e9b1e1182d8",
+    "desktop-instructions.md": "09a36934036e5dbc42abbcee6e64d079dc505ee09ee30f0c9075498371702401",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "b3eae0b9d08f23973a639aad2acefd998b334b622f5e9d5631fc2e6555bbc4f5",
+    "clipboard.conf": "8c2b194e731d8a397fc3632b61e9d242a0f3a173d5ab24d16189190c17f45042",
+    "desktop-instructions.md": "073acf6a148ba29deec69cc9bc31f86c495c705e53c09208dd70a26f4feeb978",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "d5c4882a8a10986e7d746e11055c54fbaf10f6fb192d0af66508e665b0d78baa",
+    "clipboard.conf": "c462caca0f8add847ad19d580119ee79e279abbed4187245edbf63079cbf51f7",
+    "desktop-instructions.md": "779450caaae0ae27207b58e44341d715b3a30cb96f16d02fadc366f0bca35d51",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "6a1c10bbc1d91b05e154802dfe14e0e7012108986a1b04be906768592e700e4d",
+    "clipboard.conf": "05c58a552f8bff56ab97ccdc92f3a2bdc2127bbd954b011fa0bfecb444888436",
+    "desktop-instructions.md": "0ef906c1ace503a10f76d6fdcbc0d7203790b3952f521c106a7c4e3123e3e038",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "1924fa2ad55bd489e1abeb5bfe8067d322e1b9a783dac793429c29671357fb80",
+    "clipboard.conf": "ee093f42fa8da48a9516e93a7e750c011d7beadc90fbf0980d7c5e9d2ec5b6b7",
+    "desktop-instructions.md": "5b20bb9542ef244f9328011fccd4db5b4b7621e657160e294e39e4e9a558470d",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "8ca803a68946dce2fa05d2c8c4bddd9face3b4930371587d6f19f9e5b117598c",
+    "clipboard.conf": "01a15cdb66db134cc72d1ed1fbacae5ba3d318ad8a3d25ded9a4787d4522cf1f",
+    "desktop-instructions.md": "2dcb2d003850531d06b4da6f53f36292f460ac33b553fe90b936aecde856653a",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "5ecaee2a0c65fd843a9f52a40fd9a3dc18a0f8d49e39babe2ac13f0b4b32ef61",
+    "clipboard.conf": "c57e9bfa278ccc8fec34def6964f801d9acc589aba8a0dffed486acb5e1d5fcc",
+    "desktop-instructions.md": "d7c75a6a5ef261fd0665bbe6e601b47b95a344783b56409447a9a80991cc051f",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "9558a135a05eb50de944bccaa3d4fff67e2b59da21f9d9195ad8818fddba123d",
+    "clipboard.conf": "b73508f96a371d1125101b3d3bd670d67eead115542476f14e852f088702a402",
+    "desktop-instructions.md": "010e40893396c3052a18b70a49bbbd134476c832bfe0636b2312d7e3c9636977",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "30fa3200613e18ed420c14d3b96174302bdb8d501d2d77dfc68b44f9dabaa4c0",
+    "clipboard.conf": "a0efbbf595947f57abcd78c92c6121d4dccdb5c80e2f0857c9fad2862d6493a0",
+    "desktop-instructions.md": "1f1a478c5dfdcc5f06afdfd383443907f85f40557047c12ad9ef5a2f1ab9fb0a",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "c32375554492e1d9a3ee8fb63034218ba9d030affc636ef81da940e7d0802fa4",
+    "clipboard.conf": "53bb7d354ced9e167aa601b4a1d401fc45bb73c186c5f28020e01602db6ae83f",
+    "desktop-instructions.md": "db4a2e6b8c6f68fd4802269a8a86c85f548e16c2fb33a81567a197a65cc75088",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "80a3bc8cbc8242792984ab3045947a1c9250bb23f8dfa6cb6feeed0d77b7379d",
+    "clipboard.conf": "af35ee17fe8e10a50abdf32bdb97e459c21fb6bb8d92210bbcb46a25c65d6d7d",
+    "desktop-instructions.md": "435dd7a4aca35f04f70da460eb624b65642ce30c3d28b5de90d161aed836ea33",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "532b3db46e44819334852e5d2273e51a2fbb7d3a4662a3078d5cbc81891cd6df",
+    "clipboard.conf": "7c04420297f303e84b31c41c344a6add224df03bf667590ae1c281a596a5c5a8",
+    "desktop-instructions.md": "c967d5c0d6453608add29414e894399fa40055ba9f3e8b4306202039cae6e643",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "1a396d1e788ea518d34430c2a058106ca50c61de98057bbf3190d1297487bc85",
+    "clipboard.conf": "cac0de33af16f5921d4f6e98dd738d5ed4d1cdee602032a6878c4a50064c3f9c",
+    "desktop-instructions.md": "c126752ddb8d57262408a0ca07334f4076371e52248012ea3ffd10a87404524a",
+    "profile-plan.json": "260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32"
+  },
+  {
+    "AGENTS.md": "04c8e491ef2863fcbe5b5251a325fcd94c14e58d6429b2abf32e15257d0533c0",
+    "clipboard.conf": "edf81d9609b522b366fd58ba68b70db4dde254bd6c83f27e4b6c9a6284fb6e50",
+    "desktop-instructions.md": "12a6ba03bb5a1b0055ab357e8eab21460a4a94310f99d5a2f7d7a00539e17905",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "f78cd3e4deb752ad03048790bbe53b958a9c96c6b9cffded8172918419822f3b",
+    "clipboard.conf": "5e5d0b47a7ffea24509be49738ce00ada1847e536eef65621ae1a16d232bd63d",
+    "desktop-instructions.md": "6aa61498f01ed468cbcde5d36892a273f72bbd6d4d72d169b6a88ac2f5086c78",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "aa19f2f405fd5574aab780395611cf3540d1af554553c81af55842a0b0cce53a",
+    "clipboard.conf": "0497f97e4ad7eae42bde1fc58a1f75fd01f61cda7eb5c2f5367ef95e53e2e7d2",
+    "desktop-instructions.md": "8637f5b541c5100eef6c40be34ba90a7450b6452fe2f2f9d690f067c98d2ff00",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "5eb0d660b0638ea2e2f94509d27ff8fc091004858138693c53ad5223cb5571ce",
+    "clipboard.conf": "38b22a89a43a2e83bffbaf0c3e6dff466e17afc17a12e0d87ce0d80362cbbd10",
+    "desktop-instructions.md": "e4c201820a75c1bb7fecc74e5afb8619580f26b6124601d3fcdf81a02fab2ef5",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "b3eae0b9d08f23973a639aad2acefd998b334b622f5e9d5631fc2e6555bbc4f5",
+    "clipboard.conf": "8c2b194e731d8a397fc3632b61e9d242a0f3a173d5ab24d16189190c17f45042",
+    "desktop-instructions.md": "073acf6a148ba29deec69cc9bc31f86c495c705e53c09208dd70a26f4feeb978",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "abd5a2556b6328ae53bfceb72c64cd563ef5822d1b3ffa6ce42c129785b81edd",
+    "clipboard.conf": "b5d2f2b7b615938b69a5ea4868067b375d7369e262efa894c0ca84e4e4617204",
+    "desktop-instructions.md": "887c7c7f46d57afdc3d5c4c63572e77f32f482339ee6afeb9fff197db77eef2f",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "f707d59c0a5e68cb1b07d0b99751114dd80352bed4821dd3ad3d414e60f32060",
+    "clipboard.conf": "47bf9dd25a5175fd49abdb893bb5a295cd43f1b4a9d2b15b1dad73a060b399d0",
+    "desktop-instructions.md": "3c7abf5dcfd04ae52211fe610c6f3d792ef00a008701b83bda805934dc1ae9ee",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "34de5ab51c4af911a604dfdf678b982c6796cb8ae31967870f5b6d029bc80b75",
+    "clipboard.conf": "304a44b28c93960c10cabff73f05a7154b01fa1cb374a2cab1f38e222ae92afa",
+    "desktop-instructions.md": "d85fa6c449e5c16916656caf6477b2df5acb1d320506e9ca8dd5ec1e6dd84846",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "3ae57fe9c06043969e7b68a1ecb3e971f9d3ce544002b23829def5ca32c93dc8",
+    "clipboard.conf": "2cf7c0e538ad3b8990678da908991729582818ead3de66e58dc4515e4e3bad4d",
+    "desktop-instructions.md": "8205033b230f561f7696b342c80ed31fbbfb159dbf89a93241a0447334272fdf",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "e8d0928f8c151bcc10a7643217a51dfa6a19566774599b3153ebb6d70991e6e1",
+    "clipboard.conf": "4e5faed8076ee90c53196db3619241efc6b32fe04745a758229b761bfe4dda41",
+    "desktop-instructions.md": "2a41eb2a0688e3f5ac62cdee8cd9d8442797406dbee8d986c543a684d78ea3ab",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "9558a135a05eb50de944bccaa3d4fff67e2b59da21f9d9195ad8818fddba123d",
+    "clipboard.conf": "b73508f96a371d1125101b3d3bd670d67eead115542476f14e852f088702a402",
+    "desktop-instructions.md": "010e40893396c3052a18b70a49bbbd134476c832bfe0636b2312d7e3c9636977",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "79f746147fa0156af9b622419f6311531d9a609063dfaab6be188c8abfdeaa44",
+    "clipboard.conf": "05896548193cd05164a17a8f15dce51ae2b04dc8df7832bfde23414e88da809e",
+    "desktop-instructions.md": "9fe05d7ece9c8805c439689b8af713366737cbcc6643afe95499a55999270d4f",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "dc9fa1c29037181e9a48c0318178ce4b0d91fe14e41a14aec95cb3bb4f1c8dfc",
+    "clipboard.conf": "fdd542d0366c7854cd76e49155980d2449c2cc002d293f09a50472e36a804b67",
+    "desktop-instructions.md": "74bc13b9c2ce379b8ac980052eb0b28e419295b714c5f5fbdfb3cb59bd2f494a",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "80a3bc8cbc8242792984ab3045947a1c9250bb23f8dfa6cb6feeed0d77b7379d",
+    "clipboard.conf": "af35ee17fe8e10a50abdf32bdb97e459c21fb6bb8d92210bbcb46a25c65d6d7d",
+    "desktop-instructions.md": "435dd7a4aca35f04f70da460eb624b65642ce30c3d28b5de90d161aed836ea33",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "41ff2554a273ea52cff4c17339d0af53bc705b498d4c8ea4b19ee1036abf09e3",
+    "clipboard.conf": "d2a7388690cfb04a159a9fdf683217f102dfc8c728ddbfad3b34dfddd7a9708a",
+    "desktop-instructions.md": "f7a2e53b80820d2808341596c061a7820610e81b6884fdc24d23ee8de0df820e",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "1a396d1e788ea518d34430c2a058106ca50c61de98057bbf3190d1297487bc85",
+    "clipboard.conf": "cac0de33af16f5921d4f6e98dd738d5ed4d1cdee602032a6878c4a50064c3f9c",
+    "desktop-instructions.md": "c126752ddb8d57262408a0ca07334f4076371e52248012ea3ffd10a87404524a",
+    "profile-plan.json": "260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32"
+  },
+  {
+    "AGENTS.md": "04c8e491ef2863fcbe5b5251a325fcd94c14e58d6429b2abf32e15257d0533c0",
+    "clipboard.conf": "edf81d9609b522b366fd58ba68b70db4dde254bd6c83f27e4b6c9a6284fb6e50",
+    "desktop-instructions.md": "12a6ba03bb5a1b0055ab357e8eab21460a4a94310f99d5a2f7d7a00539e17905",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "7a2ca633cf8b415e4010e7e6962173bccea5e2c3d2a120fe69094709c8d06c4e",
+    "clipboard.conf": "897b16ece54209933ba6a40470e0c0275ef979c5a55dd8b87936efd7bd1200b3",
+    "desktop-instructions.md": "6cc7ea2abce2fcafe9112d11b69bb2a7d43c5f9a03e3e6ed43853931c369c996",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "aa19f2f405fd5574aab780395611cf3540d1af554553c81af55842a0b0cce53a",
+    "clipboard.conf": "0497f97e4ad7eae42bde1fc58a1f75fd01f61cda7eb5c2f5367ef95e53e2e7d2",
+    "desktop-instructions.md": "8637f5b541c5100eef6c40be34ba90a7450b6452fe2f2f9d690f067c98d2ff00",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "dfc06632009f09dd9ad35783621d63fc2018a083d8efe86dcb2c7dce8449e36f",
+    "clipboard.conf": "c627c607cae6c0e8495e3d3220d77616a5a70b51912af14db3290e9b1e1182d8",
+    "desktop-instructions.md": "09a36934036e5dbc42abbcee6e64d079dc505ee09ee30f0c9075498371702401",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "86dd7ca1d8d9667edfc67ea9b579acab3ab16863c187920b83630d580bf434e0",
+    "clipboard.conf": "dd703b153357a4f07d83bdb0d56f08689eb9266733519cd9342749a4940ca259",
+    "desktop-instructions.md": "4efa1e78db61318a2061e93754ee84d0d1af1e829616f222367c8b5b25879d14",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "abd5a2556b6328ae53bfceb72c64cd563ef5822d1b3ffa6ce42c129785b81edd",
+    "clipboard.conf": "b5d2f2b7b615938b69a5ea4868067b375d7369e262efa894c0ca84e4e4617204",
+    "desktop-instructions.md": "887c7c7f46d57afdc3d5c4c63572e77f32f482339ee6afeb9fff197db77eef2f",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "f707d59c0a5e68cb1b07d0b99751114dd80352bed4821dd3ad3d414e60f32060",
+    "clipboard.conf": "47bf9dd25a5175fd49abdb893bb5a295cd43f1b4a9d2b15b1dad73a060b399d0",
+    "desktop-instructions.md": "3c7abf5dcfd04ae52211fe610c6f3d792ef00a008701b83bda805934dc1ae9ee",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "3f6e92d84d7d109ba5943f46ff2f483e062fe76822b0cd79beadb0738d9c6904",
+    "clipboard.conf": "1e78bafb14d58b15988b7415e9bd6252cf5400d6c68795d30566824402402c3a",
+    "desktop-instructions.md": "5894e0519eb4e85199bef7220aa0fe11a49fbadb04eca1ce2e2a405d200d1acc",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "3ae57fe9c06043969e7b68a1ecb3e971f9d3ce544002b23829def5ca32c93dc8",
+    "clipboard.conf": "2cf7c0e538ad3b8990678da908991729582818ead3de66e58dc4515e4e3bad4d",
+    "desktop-instructions.md": "8205033b230f561f7696b342c80ed31fbbfb159dbf89a93241a0447334272fdf",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "e8d0928f8c151bcc10a7643217a51dfa6a19566774599b3153ebb6d70991e6e1",
+    "clipboard.conf": "4e5faed8076ee90c53196db3619241efc6b32fe04745a758229b761bfe4dda41",
+    "desktop-instructions.md": "2a41eb2a0688e3f5ac62cdee8cd9d8442797406dbee8d986c543a684d78ea3ab",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "2b8eca2084ffb1b76fbfb20a8f65bcb57c3e4c08dee3ec5ca0cd3d5ce85c0ca9",
+    "clipboard.conf": "75d42fbfb171584cc6342994e6698a21efeb0861c5cac745ec945764c7a9dadb",
+    "desktop-instructions.md": "65336897da6528c1ee822c8a9a8eb3fbfa9a346a4394878111fe7c7867d5f9ee",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "5f3b3a78fc4887fe2a7c34bbf56d015a521673682b9e673f41ec150a826fd9f2",
+    "clipboard.conf": "dfe4382ce4beb22965691884470a143a177d38cc06e24cfda2db5c72638e2b29",
+    "desktop-instructions.md": "8a8f68bee041c8d81d7bbd361aa01f3015e482f7f052b888503d8f15684befb3",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "dc9fa1c29037181e9a48c0318178ce4b0d91fe14e41a14aec95cb3bb4f1c8dfc",
+    "clipboard.conf": "fdd542d0366c7854cd76e49155980d2449c2cc002d293f09a50472e36a804b67",
+    "desktop-instructions.md": "74bc13b9c2ce379b8ac980052eb0b28e419295b714c5f5fbdfb3cb59bd2f494a",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "80a3bc8cbc8242792984ab3045947a1c9250bb23f8dfa6cb6feeed0d77b7379d",
+    "clipboard.conf": "af35ee17fe8e10a50abdf32bdb97e459c21fb6bb8d92210bbcb46a25c65d6d7d",
+    "desktop-instructions.md": "435dd7a4aca35f04f70da460eb624b65642ce30c3d28b5de90d161aed836ea33",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "532b3db46e44819334852e5d2273e51a2fbb7d3a4662a3078d5cbc81891cd6df",
+    "clipboard.conf": "7c04420297f303e84b31c41c344a6add224df03bf667590ae1c281a596a5c5a8",
+    "desktop-instructions.md": "c967d5c0d6453608add29414e894399fa40055ba9f3e8b4306202039cae6e643",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "8d925dc6fdd91aaec8b961126e09cb1331ef57759c842562d9c05cfa96e253cb",
+    "clipboard.conf": "71206116d0a70750a773b3e72d1166cfcc70b4f9046340cda160d52b899195d6",
+    "desktop-instructions.md": "68f26a1334a2495fac9200c47cb76058ab00c059cf54d65cc4a3773d850242a5",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "ed7f2fff82e2e8f127d537c9215d8505329368d8d6d8600398c3361dfcfe6d58",
+    "clipboard.conf": "9f99dadf86508c1337ec203401fde4750bb645db5f018678ba74548f2d653084",
+    "desktop-instructions.md": "3dee9e3e08c43b6579caee160f05661c268a04cf35b5a6a9c62ad858666ef88a",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "7a2ca633cf8b415e4010e7e6962173bccea5e2c3d2a120fe69094709c8d06c4e",
+    "clipboard.conf": "897b16ece54209933ba6a40470e0c0275ef979c5a55dd8b87936efd7bd1200b3",
+    "desktop-instructions.md": "6cc7ea2abce2fcafe9112d11b69bb2a7d43c5f9a03e3e6ed43853931c369c996",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "81087c0bcd06cd4e9b86cddfa8993bf276be11fe5f5047746854e150a719915b",
+    "clipboard.conf": "2451d35be58f6b05ee74b6b3a610ef1cbf90e45db71202f7d1bc865325c8f78c",
+    "desktop-instructions.md": "4fa9466e191d47da255e864dcb4d0c07292f119df852e5bf329cb6928364d126",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "dfc06632009f09dd9ad35783621d63fc2018a083d8efe86dcb2c7dce8449e36f",
+    "clipboard.conf": "c627c607cae6c0e8495e3d3220d77616a5a70b51912af14db3290e9b1e1182d8",
+    "desktop-instructions.md": "09a36934036e5dbc42abbcee6e64d079dc505ee09ee30f0c9075498371702401",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "b3eae0b9d08f23973a639aad2acefd998b334b622f5e9d5631fc2e6555bbc4f5",
+    "clipboard.conf": "8c2b194e731d8a397fc3632b61e9d242a0f3a173d5ab24d16189190c17f45042",
+    "desktop-instructions.md": "073acf6a148ba29deec69cc9bc31f86c495c705e53c09208dd70a26f4feeb978",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "abd5a2556b6328ae53bfceb72c64cd563ef5822d1b3ffa6ce42c129785b81edd",
+    "clipboard.conf": "b5d2f2b7b615938b69a5ea4868067b375d7369e262efa894c0ca84e4e4617204",
+    "desktop-instructions.md": "887c7c7f46d57afdc3d5c4c63572e77f32f482339ee6afeb9fff197db77eef2f",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "f707d59c0a5e68cb1b07d0b99751114dd80352bed4821dd3ad3d414e60f32060",
+    "clipboard.conf": "47bf9dd25a5175fd49abdb893bb5a295cd43f1b4a9d2b15b1dad73a060b399d0",
+    "desktop-instructions.md": "3c7abf5dcfd04ae52211fe610c6f3d792ef00a008701b83bda805934dc1ae9ee",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "1924fa2ad55bd489e1abeb5bfe8067d322e1b9a783dac793429c29671357fb80",
+    "clipboard.conf": "ee093f42fa8da48a9516e93a7e750c011d7beadc90fbf0980d7c5e9d2ec5b6b7",
+    "desktop-instructions.md": "5b20bb9542ef244f9328011fccd4db5b4b7621e657160e294e39e4e9a558470d",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "8ca803a68946dce2fa05d2c8c4bddd9face3b4930371587d6f19f9e5b117598c",
+    "clipboard.conf": "01a15cdb66db134cc72d1ed1fbacae5ba3d318ad8a3d25ded9a4787d4522cf1f",
+    "desktop-instructions.md": "2dcb2d003850531d06b4da6f53f36292f460ac33b553fe90b936aecde856653a",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "a7cf0cf36c2d16742fe334a63d1002fc855f34b4fcdada3233421ef64b1dc4d7",
+    "clipboard.conf": "4bf3c758c79431f6d3e6915ef181750d1a4343a1542c0d8ed8f74373035e4ff6",
+    "desktop-instructions.md": "f57ae44d2d947b79cf042cb57e456ae3f18ddf90b9b086724232cf0120d2cbd6",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "4ddf6ac468cc9092a13330b00c748a401933c252435781056cf788844fd6ec0f",
+    "clipboard.conf": "3aafed2d903412ea9706c663bfc93b1133812b3f0cfbf52f314a347ad6b15c89",
+    "desktop-instructions.md": "2298105bfc27ad9c59081ece0c8dbe4b017c84629acab48bac0732e1fcffae4d",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "30fa3200613e18ed420c14d3b96174302bdb8d501d2d77dfc68b44f9dabaa4c0",
+    "clipboard.conf": "a0efbbf595947f57abcd78c92c6121d4dccdb5c80e2f0857c9fad2862d6493a0",
+    "desktop-instructions.md": "1f1a478c5dfdcc5f06afdfd383443907f85f40557047c12ad9ef5a2f1ab9fb0a",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "a07ea85e08a262618d3054c3b91dac576a99fb86dac3022bad760d5528c49824",
+    "clipboard.conf": "9f06ef3f572a26340edc8527c3d235810014ae04682df4a55421d73240f2fdc0",
+    "desktop-instructions.md": "3c1ba26b7bd28e5165eb448911b6f4e574035b9c26d36c5dfc1155b8024c121a",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+    "clipboard.conf": "353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+    "desktop-instructions.md": "c8f0e527199c569fa68262feca549a68d29a1f0e90669bda25c58b764ec637e5",
+    "profile-plan.json": "260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32"
+  },
+  {
+    "AGENTS.md": "222507623d9e2fb857ae8ed06071a4e70f1414a4b757b6b2af7cfe6ccae7fd46",
+    "clipboard.conf": "9f7cba5b1fe1c93ee8f4b85623c674257c6ead25248692527ea1c54954b9d8bf",
+    "desktop-instructions.md": "dabdfe370c6c4d06ba7ae40072858d2b4d265f4fc78cfae4731361b37284f23d",
+    "profile-plan.json": "260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32"
+  },
+  {
+    "AGENTS.md": "8d925dc6fdd91aaec8b961126e09cb1331ef57759c842562d9c05cfa96e253cb",
+    "clipboard.conf": "71206116d0a70750a773b3e72d1166cfcc70b4f9046340cda160d52b899195d6",
+    "desktop-instructions.md": "68f26a1334a2495fac9200c47cb76058ab00c059cf54d65cc4a3773d850242a5",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "ed7f2fff82e2e8f127d537c9215d8505329368d8d6d8600398c3361dfcfe6d58",
+    "clipboard.conf": "9f99dadf86508c1337ec203401fde4750bb645db5f018678ba74548f2d653084",
+    "desktop-instructions.md": "3dee9e3e08c43b6579caee160f05661c268a04cf35b5a6a9c62ad858666ef88a",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "f78cd3e4deb752ad03048790bbe53b958a9c96c6b9cffded8172918419822f3b",
+    "clipboard.conf": "5e5d0b47a7ffea24509be49738ce00ada1847e536eef65621ae1a16d232bd63d",
+    "desktop-instructions.md": "6aa61498f01ed468cbcde5d36892a273f72bbd6d4d72d169b6a88ac2f5086c78",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "81087c0bcd06cd4e9b86cddfa8993bf276be11fe5f5047746854e150a719915b",
+    "clipboard.conf": "2451d35be58f6b05ee74b6b3a610ef1cbf90e45db71202f7d1bc865325c8f78c",
+    "desktop-instructions.md": "4fa9466e191d47da255e864dcb4d0c07292f119df852e5bf329cb6928364d126",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "18eef543d69a72d6f75d2f06c7e1240656301fbc8da87fc4bc58c49d276ac564",
+    "clipboard.conf": "59b1f1d174b8920d431c8125764f3c15a78c240472094fca8c451d702ff54a1e",
+    "desktop-instructions.md": "8a5801dbbd32fde32933578e8ac73bb1bb767c10c5d21f93c1ff8745e0c46e40",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "ee932d70ffe0a4a712ffe816ba156596bd8ba9f95b536c8c220b4455ec04cbfa",
+    "clipboard.conf": "8eed63e5fa48c12cee4ad37e0d32ea3441a012c1f9d1b6bbcd7c0bee528b761f",
+    "desktop-instructions.md": "3c85fab88ab7937ed9f11ff5cab68c6a588322fcafd5f8613da953936121960e",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "d5c4882a8a10986e7d746e11055c54fbaf10f6fb192d0af66508e665b0d78baa",
+    "clipboard.conf": "c462caca0f8add847ad19d580119ee79e279abbed4187245edbf63079cbf51f7",
+    "desktop-instructions.md": "779450caaae0ae27207b58e44341d715b3a30cb96f16d02fadc366f0bca35d51",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "ec34778e3e771802a14c07a46ece509c37f4e8edf407195df3b609e44fd94b34",
+    "clipboard.conf": "1041da358d42c66d8f787b7658e3b5e78406008c61c8fac2965560c6daebd274",
+    "desktop-instructions.md": "2c05a5db42451ae81f6e247696e6012305cb3bfc9851a856f885fecc8d26608a",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "3f6e92d84d7d109ba5943f46ff2f483e062fe76822b0cd79beadb0738d9c6904",
+    "clipboard.conf": "1e78bafb14d58b15988b7415e9bd6252cf5400d6c68795d30566824402402c3a",
+    "desktop-instructions.md": "5894e0519eb4e85199bef7220aa0fe11a49fbadb04eca1ce2e2a405d200d1acc",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "8ca803a68946dce2fa05d2c8c4bddd9face3b4930371587d6f19f9e5b117598c",
+    "clipboard.conf": "01a15cdb66db134cc72d1ed1fbacae5ba3d318ad8a3d25ded9a4787d4522cf1f",
+    "desktop-instructions.md": "2dcb2d003850531d06b4da6f53f36292f460ac33b553fe90b936aecde856653a",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "e8d0928f8c151bcc10a7643217a51dfa6a19566774599b3153ebb6d70991e6e1",
+    "clipboard.conf": "4e5faed8076ee90c53196db3619241efc6b32fe04745a758229b761bfe4dda41",
+    "desktop-instructions.md": "2a41eb2a0688e3f5ac62cdee8cd9d8442797406dbee8d986c543a684d78ea3ab",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "4ddf6ac468cc9092a13330b00c748a401933c252435781056cf788844fd6ec0f",
+    "clipboard.conf": "3aafed2d903412ea9706c663bfc93b1133812b3f0cfbf52f314a347ad6b15c89",
+    "desktop-instructions.md": "2298105bfc27ad9c59081ece0c8dbe4b017c84629acab48bac0732e1fcffae4d",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "5f3b3a78fc4887fe2a7c34bbf56d015a521673682b9e673f41ec150a826fd9f2",
+    "clipboard.conf": "dfe4382ce4beb22965691884470a143a177d38cc06e24cfda2db5c72638e2b29",
+    "desktop-instructions.md": "8a8f68bee041c8d81d7bbd361aa01f3015e482f7f052b888503d8f15684befb3",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "a07ea85e08a262618d3054c3b91dac576a99fb86dac3022bad760d5528c49824",
+    "clipboard.conf": "9f06ef3f572a26340edc8527c3d235810014ae04682df4a55421d73240f2fdc0",
+    "desktop-instructions.md": "3c1ba26b7bd28e5165eb448911b6f4e574035b9c26d36c5dfc1155b8024c121a",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+    "clipboard.conf": "353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+    "desktop-instructions.md": "c8f0e527199c569fa68262feca549a68d29a1f0e90669bda25c58b764ec637e5",
+    "profile-plan.json": "260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32"
+  },
+  {
+    "AGENTS.md": "41ff2554a273ea52cff4c17339d0af53bc705b498d4c8ea4b19ee1036abf09e3",
+    "clipboard.conf": "d2a7388690cfb04a159a9fdf683217f102dfc8c728ddbfad3b34dfddd7a9708a",
+    "desktop-instructions.md": "f7a2e53b80820d2808341596c061a7820610e81b6884fdc24d23ee8de0df820e",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "8d925dc6fdd91aaec8b961126e09cb1331ef57759c842562d9c05cfa96e253cb",
+    "clipboard.conf": "71206116d0a70750a773b3e72d1166cfcc70b4f9046340cda160d52b899195d6",
+    "desktop-instructions.md": "68f26a1334a2495fac9200c47cb76058ab00c059cf54d65cc4a3773d850242a5",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "04c8e491ef2863fcbe5b5251a325fcd94c14e58d6429b2abf32e15257d0533c0",
+    "clipboard.conf": "edf81d9609b522b366fd58ba68b70db4dde254bd6c83f27e4b6c9a6284fb6e50",
+    "desktop-instructions.md": "12a6ba03bb5a1b0055ab357e8eab21460a4a94310f99d5a2f7d7a00539e17905",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "83ac5de0e34ce138e83709cf2c8a3934c5ca02f7c1a7712ff08f6a501d96d4f1",
+    "clipboard.conf": "544ddd38902f0c8437593102443573359e074404e482f0708c6db530d51403bd",
+    "desktop-instructions.md": "81e6595041f013819498d2bc1140bbf5d344aff149aa1be3101ecc503d50cfcc",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "ce37b0715e7f9937c7663f7148c4586272c742324d129976c1b7314bdfbbb091",
+    "clipboard.conf": "18a900d3a4ad65ce35f3eab285e67124cdab1b2f1669543715eb07368d237d3f",
+    "desktop-instructions.md": "b018cbdb52557de8bd5ba8877dc16fae388ead2759f8eec57d8934b386bbadd2",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "dfc06632009f09dd9ad35783621d63fc2018a083d8efe86dcb2c7dce8449e36f",
+    "clipboard.conf": "c627c607cae6c0e8495e3d3220d77616a5a70b51912af14db3290e9b1e1182d8",
+    "desktop-instructions.md": "09a36934036e5dbc42abbcee6e64d079dc505ee09ee30f0c9075498371702401",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "b3eae0b9d08f23973a639aad2acefd998b334b622f5e9d5631fc2e6555bbc4f5",
+    "clipboard.conf": "8c2b194e731d8a397fc3632b61e9d242a0f3a173d5ab24d16189190c17f45042",
+    "desktop-instructions.md": "073acf6a148ba29deec69cc9bc31f86c495c705e53c09208dd70a26f4feeb978",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "abd5a2556b6328ae53bfceb72c64cd563ef5822d1b3ffa6ce42c129785b81edd",
+    "clipboard.conf": "b5d2f2b7b615938b69a5ea4868067b375d7369e262efa894c0ca84e4e4617204",
+    "desktop-instructions.md": "887c7c7f46d57afdc3d5c4c63572e77f32f482339ee6afeb9fff197db77eef2f",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "6a1c10bbc1d91b05e154802dfe14e0e7012108986a1b04be906768592e700e4d",
+    "clipboard.conf": "05c58a552f8bff56ab97ccdc92f3a2bdc2127bbd954b011fa0bfecb444888436",
+    "desktop-instructions.md": "0ef906c1ace503a10f76d6fdcbc0d7203790b3952f521c106a7c4e3123e3e038",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "1924fa2ad55bd489e1abeb5bfe8067d322e1b9a783dac793429c29671357fb80",
+    "clipboard.conf": "ee093f42fa8da48a9516e93a7e750c011d7beadc90fbf0980d7c5e9d2ec5b6b7",
+    "desktop-instructions.md": "5b20bb9542ef244f9328011fccd4db5b4b7621e657160e294e39e4e9a558470d",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "3ae57fe9c06043969e7b68a1ecb3e971f9d3ce544002b23829def5ca32c93dc8",
+    "clipboard.conf": "2cf7c0e538ad3b8990678da908991729582818ead3de66e58dc4515e4e3bad4d",
+    "desktop-instructions.md": "8205033b230f561f7696b342c80ed31fbbfb159dbf89a93241a0447334272fdf",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "e8d0928f8c151bcc10a7643217a51dfa6a19566774599b3153ebb6d70991e6e1",
+    "clipboard.conf": "4e5faed8076ee90c53196db3619241efc6b32fe04745a758229b761bfe4dda41",
+    "desktop-instructions.md": "2a41eb2a0688e3f5ac62cdee8cd9d8442797406dbee8d986c543a684d78ea3ab",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "4ddf6ac468cc9092a13330b00c748a401933c252435781056cf788844fd6ec0f",
+    "clipboard.conf": "3aafed2d903412ea9706c663bfc93b1133812b3f0cfbf52f314a347ad6b15c89",
+    "desktop-instructions.md": "2298105bfc27ad9c59081ece0c8dbe4b017c84629acab48bac0732e1fcffae4d",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "79f746147fa0156af9b622419f6311531d9a609063dfaab6be188c8abfdeaa44",
+    "clipboard.conf": "05896548193cd05164a17a8f15dce51ae2b04dc8df7832bfde23414e88da809e",
+    "desktop-instructions.md": "9fe05d7ece9c8805c439689b8af713366737cbcc6643afe95499a55999270d4f",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "dc9fa1c29037181e9a48c0318178ce4b0d91fe14e41a14aec95cb3bb4f1c8dfc",
+    "clipboard.conf": "fdd542d0366c7854cd76e49155980d2449c2cc002d293f09a50472e36a804b67",
+    "desktop-instructions.md": "74bc13b9c2ce379b8ac980052eb0b28e419295b714c5f5fbdfb3cb59bd2f494a",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "80a3bc8cbc8242792984ab3045947a1c9250bb23f8dfa6cb6feeed0d77b7379d",
+    "clipboard.conf": "af35ee17fe8e10a50abdf32bdb97e459c21fb6bb8d92210bbcb46a25c65d6d7d",
+    "desktop-instructions.md": "435dd7a4aca35f04f70da460eb624b65642ce30c3d28b5de90d161aed836ea33",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "41ff2554a273ea52cff4c17339d0af53bc705b498d4c8ea4b19ee1036abf09e3",
+    "clipboard.conf": "d2a7388690cfb04a159a9fdf683217f102dfc8c728ddbfad3b34dfddd7a9708a",
+    "desktop-instructions.md": "f7a2e53b80820d2808341596c061a7820610e81b6884fdc24d23ee8de0df820e",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "1a396d1e788ea518d34430c2a058106ca50c61de98057bbf3190d1297487bc85",
+    "clipboard.conf": "cac0de33af16f5921d4f6e98dd738d5ed4d1cdee602032a6878c4a50064c3f9c",
+    "desktop-instructions.md": "c126752ddb8d57262408a0ca07334f4076371e52248012ea3ffd10a87404524a",
+    "profile-plan.json": "260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32"
+  },
+  {
+    "AGENTS.md": "04c8e491ef2863fcbe5b5251a325fcd94c14e58d6429b2abf32e15257d0533c0",
+    "clipboard.conf": "edf81d9609b522b366fd58ba68b70db4dde254bd6c83f27e4b6c9a6284fb6e50",
+    "desktop-instructions.md": "12a6ba03bb5a1b0055ab357e8eab21460a4a94310f99d5a2f7d7a00539e17905",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "f78cd3e4deb752ad03048790bbe53b958a9c96c6b9cffded8172918419822f3b",
+    "clipboard.conf": "5e5d0b47a7ffea24509be49738ce00ada1847e536eef65621ae1a16d232bd63d",
+    "desktop-instructions.md": "6aa61498f01ed468cbcde5d36892a273f72bbd6d4d72d169b6a88ac2f5086c78",
+    "profile-plan.json": "31a25538ef0feeee8cf28d645d32d0571fc895047c101f2e6d6bc44460085066"
+  },
+  {
+    "AGENTS.md": "81087c0bcd06cd4e9b86cddfa8993bf276be11fe5f5047746854e150a719915b",
+    "clipboard.conf": "2451d35be58f6b05ee74b6b3a610ef1cbf90e45db71202f7d1bc865325c8f78c",
+    "desktop-instructions.md": "4fa9466e191d47da255e864dcb4d0c07292f119df852e5bf329cb6928364d126",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "5eb0d660b0638ea2e2f94509d27ff8fc091004858138693c53ad5223cb5571ce",
+    "clipboard.conf": "38b22a89a43a2e83bffbaf0c3e6dff466e17afc17a12e0d87ce0d80362cbbd10",
+    "desktop-instructions.md": "e4c201820a75c1bb7fecc74e5afb8619580f26b6124601d3fcdf81a02fab2ef5",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "ee932d70ffe0a4a712ffe816ba156596bd8ba9f95b536c8c220b4455ec04cbfa",
+    "clipboard.conf": "8eed63e5fa48c12cee4ad37e0d32ea3441a012c1f9d1b6bbcd7c0bee528b761f",
+    "desktop-instructions.md": "3c85fab88ab7937ed9f11ff5cab68c6a588322fcafd5f8613da953936121960e",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "abd5a2556b6328ae53bfceb72c64cd563ef5822d1b3ffa6ce42c129785b81edd",
+    "clipboard.conf": "b5d2f2b7b615938b69a5ea4868067b375d7369e262efa894c0ca84e4e4617204",
+    "desktop-instructions.md": "887c7c7f46d57afdc3d5c4c63572e77f32f482339ee6afeb9fff197db77eef2f",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "6a1c10bbc1d91b05e154802dfe14e0e7012108986a1b04be906768592e700e4d",
+    "clipboard.conf": "05c58a552f8bff56ab97ccdc92f3a2bdc2127bbd954b011fa0bfecb444888436",
+    "desktop-instructions.md": "0ef906c1ace503a10f76d6fdcbc0d7203790b3952f521c106a7c4e3123e3e038",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "3f6e92d84d7d109ba5943f46ff2f483e062fe76822b0cd79beadb0738d9c6904",
+    "clipboard.conf": "1e78bafb14d58b15988b7415e9bd6252cf5400d6c68795d30566824402402c3a",
+    "desktop-instructions.md": "5894e0519eb4e85199bef7220aa0fe11a49fbadb04eca1ce2e2a405d200d1acc",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "a03c87cbe14f7f1c25155a6e13b633d2b5d930d3db6f6659112e3c39a1d11462",
+    "clipboard.conf": "51a5523ba2ff044e1f73113e0a43e714e1d47120029f7a61508216ad057b0efa",
+    "desktop-instructions.md": "4fb33b9b53667c13e5809f91f3f1bf3faa902b6f6af155c029aa0c3222ced4d8",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "e8d0928f8c151bcc10a7643217a51dfa6a19566774599b3153ebb6d70991e6e1",
+    "clipboard.conf": "4e5faed8076ee90c53196db3619241efc6b32fe04745a758229b761bfe4dda41",
+    "desktop-instructions.md": "2a41eb2a0688e3f5ac62cdee8cd9d8442797406dbee8d986c543a684d78ea3ab",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "2b8eca2084ffb1b76fbfb20a8f65bcb57c3e4c08dee3ec5ca0cd3d5ce85c0ca9",
+    "clipboard.conf": "75d42fbfb171584cc6342994e6698a21efeb0861c5cac745ec945764c7a9dadb",
+    "desktop-instructions.md": "65336897da6528c1ee822c8a9a8eb3fbfa9a346a4394878111fe7c7867d5f9ee",
+    "profile-plan.json": "cbd17c99971034bdc65e6d8e9de18f2b8a0380ab160c65e1529d27e704d2bce5"
+  },
+  {
+    "AGENTS.md": "79f746147fa0156af9b622419f6311531d9a609063dfaab6be188c8abfdeaa44",
+    "clipboard.conf": "05896548193cd05164a17a8f15dce51ae2b04dc8df7832bfde23414e88da809e",
+    "desktop-instructions.md": "9fe05d7ece9c8805c439689b8af713366737cbcc6643afe95499a55999270d4f",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "dc9fa1c29037181e9a48c0318178ce4b0d91fe14e41a14aec95cb3bb4f1c8dfc",
+    "clipboard.conf": "fdd542d0366c7854cd76e49155980d2449c2cc002d293f09a50472e36a804b67",
+    "desktop-instructions.md": "74bc13b9c2ce379b8ac980052eb0b28e419295b714c5f5fbdfb3cb59bd2f494a",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  },
+  {
+    "AGENTS.md": "80a3bc8cbc8242792984ab3045947a1c9250bb23f8dfa6cb6feeed0d77b7379d",
+    "clipboard.conf": "af35ee17fe8e10a50abdf32bdb97e459c21fb6bb8d92210bbcb46a25c65d6d7d",
+    "desktop-instructions.md": "435dd7a4aca35f04f70da460eb624b65642ce30c3d28b5de90d161aed836ea33",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "532b3db46e44819334852e5d2273e51a2fbb7d3a4662a3078d5cbc81891cd6df",
+    "clipboard.conf": "7c04420297f303e84b31c41c344a6add224df03bf667590ae1c281a596a5c5a8",
+    "desktop-instructions.md": "c967d5c0d6453608add29414e894399fa40055ba9f3e8b4306202039cae6e643",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "8d925dc6fdd91aaec8b961126e09cb1331ef57759c842562d9c05cfa96e253cb",
+    "clipboard.conf": "71206116d0a70750a773b3e72d1166cfcc70b4f9046340cda160d52b899195d6",
+    "desktop-instructions.md": "68f26a1334a2495fac9200c47cb76058ab00c059cf54d65cc4a3773d850242a5",
+    "profile-plan.json": "451b4e05c6e6fa279f96e5079a7fef5cfa4428946ce6282bfa85116b6b079645"
+  },
+  {
+    "AGENTS.md": "04c8e491ef2863fcbe5b5251a325fcd94c14e58d6429b2abf32e15257d0533c0",
+    "clipboard.conf": "edf81d9609b522b366fd58ba68b70db4dde254bd6c83f27e4b6c9a6284fb6e50",
+    "desktop-instructions.md": "12a6ba03bb5a1b0055ab357e8eab21460a4a94310f99d5a2f7d7a00539e17905",
+    "profile-plan.json": "8e8583e3139703bb3735def2e5db5117761ba978202a556cbd12cd596153a0e5"
+  },
+  {
+    "AGENTS.md": "7a2ca633cf8b415e4010e7e6962173bccea5e2c3d2a120fe69094709c8d06c4e",
+    "clipboard.conf": "897b16ece54209933ba6a40470e0c0275ef979c5a55dd8b87936efd7bd1200b3",
+    "desktop-instructions.md": "6cc7ea2abce2fcafe9112d11b69bb2a7d43c5f9a03e3e6ed43853931c369c996",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "aa19f2f405fd5574aab780395611cf3540d1af554553c81af55842a0b0cce53a",
+    "clipboard.conf": "0497f97e4ad7eae42bde1fc58a1f75fd01f61cda7eb5c2f5367ef95e53e2e7d2",
+    "desktop-instructions.md": "8637f5b541c5100eef6c40be34ba90a7450b6452fe2f2f9d690f067c98d2ff00",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "5eb0d660b0638ea2e2f94509d27ff8fc091004858138693c53ad5223cb5571ce",
+    "clipboard.conf": "38b22a89a43a2e83bffbaf0c3e6dff466e17afc17a12e0d87ce0d80362cbbd10",
+    "desktop-instructions.md": "e4c201820a75c1bb7fecc74e5afb8619580f26b6124601d3fcdf81a02fab2ef5",
+    "profile-plan.json": "e8073580fd35cdfcd819775875c85d18490a5eed865c789c1e6b929091e98f3d"
+  },
+  {
+    "AGENTS.md": "ee932d70ffe0a4a712ffe816ba156596bd8ba9f95b536c8c220b4455ec04cbfa",
+    "clipboard.conf": "8eed63e5fa48c12cee4ad37e0d32ea3441a012c1f9d1b6bbcd7c0bee528b761f",
+    "desktop-instructions.md": "3c85fab88ab7937ed9f11ff5cab68c6a588322fcafd5f8613da953936121960e",
+    "profile-plan.json": "35790ac9db419c250882097e7b3a407dfb59975625c31a23e94469af93a66043"
+  },
+  {
+    "AGENTS.md": "6d24a55da79afa04c58d761c294b52d42b2a6851ca9c8a4305f8b437d0ff6c68",
+    "clipboard.conf": "a4761022a3eb0120234daebefb6d38c6c973da341524b583c2fe9278d7945fdd",
+    "desktop-instructions.md": "1c48a62fb0e299d6d9ab2acd4b5883449d8f1b8b059a804ff5d1900dae9637f6",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "6a1c10bbc1d91b05e154802dfe14e0e7012108986a1b04be906768592e700e4d",
+    "clipboard.conf": "05c58a552f8bff56ab97ccdc92f3a2bdc2127bbd954b011fa0bfecb444888436",
+    "desktop-instructions.md": "0ef906c1ace503a10f76d6fdcbc0d7203790b3952f521c106a7c4e3123e3e038",
+    "profile-plan.json": "5fa7f7af5532f5320911060328db2b57753fdededcd1da3ba72420da6e7994c9"
+  },
+  {
+    "AGENTS.md": "3f6e92d84d7d109ba5943f46ff2f483e062fe76822b0cd79beadb0738d9c6904",
+    "clipboard.conf": "1e78bafb14d58b15988b7415e9bd6252cf5400d6c68795d30566824402402c3a",
+    "desktop-instructions.md": "5894e0519eb4e85199bef7220aa0fe11a49fbadb04eca1ce2e2a405d200d1acc",
+    "profile-plan.json": "cb633fa4110e101f9adecc83cd765e745f1cbc5b1b0df0ba9cf50b55b1125f27"
+  },
+  {
+    "AGENTS.md": "3ae57fe9c06043969e7b68a1ecb3e971f9d3ce544002b23829def5ca32c93dc8",
+    "clipboard.conf": "2cf7c0e538ad3b8990678da908991729582818ead3de66e58dc4515e4e3bad4d",
+    "desktop-instructions.md": "8205033b230f561f7696b342c80ed31fbbfb159dbf89a93241a0447334272fdf",
+    "profile-plan.json": "04bc708adf4aa65e7d8ef4f81efb76af2d95f910b8f9a5b1bdf977d18ed177b3"
+  },
+  {
+    "AGENTS.md": "a7cf0cf36c2d16742fe334a63d1002fc855f34b4fcdada3233421ef64b1dc4d7",
+    "clipboard.conf": "4bf3c758c79431f6d3e6915ef181750d1a4343a1542c0d8ed8f74373035e4ff6",
+    "desktop-instructions.md": "f57ae44d2d947b79cf042cb57e456ae3f18ddf90b9b086724232cf0120d2cbd6",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "4ddf6ac468cc9092a13330b00c748a401933c252435781056cf788844fd6ec0f",
+    "clipboard.conf": "3aafed2d903412ea9706c663bfc93b1133812b3f0cfbf52f314a347ad6b15c89",
+    "desktop-instructions.md": "2298105bfc27ad9c59081ece0c8dbe4b017c84629acab48bac0732e1fcffae4d",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "79f746147fa0156af9b622419f6311531d9a609063dfaab6be188c8abfdeaa44",
+    "clipboard.conf": "05896548193cd05164a17a8f15dce51ae2b04dc8df7832bfde23414e88da809e",
+    "desktop-instructions.md": "9fe05d7ece9c8805c439689b8af713366737cbcc6643afe95499a55999270d4f",
+    "profile-plan.json": "8b4f84c01e9a650765d86491d85265be01f38ba58e0a2c1451e1c576672b109a"
+  },
+  {
+    "AGENTS.md": "dc9fa1c29037181e9a48c0318178ce4b0d91fe14e41a14aec95cb3bb4f1c8dfc",
+    "clipboard.conf": "fdd542d0366c7854cd76e49155980d2449c2cc002d293f09a50472e36a804b67",
+    "desktop-instructions.md": "74bc13b9c2ce379b8ac980052eb0b28e419295b714c5f5fbdfb3cb59bd2f494a",
+    "profile-plan.json": "2643fd24d955b88f1de1313b9b65d72230277e0bb358d57392bd35a9d0041b29"
+  }
+]

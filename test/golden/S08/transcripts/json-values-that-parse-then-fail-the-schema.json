@@ -1,0 +1,229 @@
+{
+  "name": "json-values-that-parse-then-fail-the-schema",
+  "runs": [
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: wrong type\n",
+      "tree": [
+        "profile.json file 644 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.version: required\nprofile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\n",
+      "tree": [
+        "profile.json file 644 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: wrong type\n",
+      "tree": [
+        "profile.json file 644 2021b7c372990f797e86cb0f85931f66372edc040135039b0a741c1827b3475c"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\nprofile.version: wrong type\n",
+      "tree": [
+        "profile.json file 644 889a7b405ac966b20c7a0defb77d65f03b678f70e3a9a20ede16d060ac95155f"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\nprofile.version: wrong type\n",
+      "tree": [
+        "profile.json file 644 a1834ca957c6b6a4514012214863b5f0df642e42821587982f84ba81ca0a952f"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\nprofile.version: wrong type\n",
+      "tree": [
+        "profile.json file 644 b2687bcd56318d3dd4f1720a16d3e0d5c1c88bdebb0ba56b9e989c80b6850f7e"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\nprofile.version: wrong type\n",
+      "tree": [
+        "profile.json file 644 aa5bc61f44d5f633935d04cbccf2654c56806fc924b0083a6cb6b7545369ad64"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\nprofile.version: wrong type\n",
+      "tree": [
+        "profile.json file 644 4a9fc0ddd1faccc8b14b8c7bea56720b0f379853983b5d020a5c1c8a0fa6c8fa"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\nprofile.version: unsupported version\n",
+      "tree": [
+        "profile.json file 644 4dca8c4ddeba0479b4df0e74c5b86979b4ce411ab8a3b4ca1783cceec78f73c6"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\nprofile.version: unsupported version\n",
+      "tree": [
+        "profile.json file 644 3e5ac6a7405a248fd73a1e20ed0a462d1f816d17a0d3ffb6c1b222dfde6c9ec6"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\nprofile.version: unsupported version\n",
+      "tree": [
+        "profile.json file 644 b7ca5b3072e57010a79280d12391b3a1416461a2b9933563c43e36c33e860bcd"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\nprofile.version: wrong type\n",
+      "tree": [
+        "profile.json file 644 c2d03cb7ccfd7f8303cbba75e68d4cbaf1a825da26c6fad237fb22b9765ba0d0"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: unrecognized field (name and value omitted)\nprofile.version: required\nprofile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\n",
+      "tree": [
+        "profile.json file 644 5a01b4879e11f6261f39c2f190ffde6edb6b012c42064d68312ee2f6eaf1957a"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: unrecognized field (name and value omitted)\nprofile.version: required\nprofile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\n",
+      "tree": [
+        "profile.json file 644 47794e3bb3505e4305864a9af2bb09dcef150a928aae4ac5f5dd7587612a1e81"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: invalid profile JSON; contents omitted\n",
+      "tree": [
+        "profile.json file 644 e96abcf2217188752393a9abe5d1ff3b12a85082463d5bb094898876b801bc5f"
+      ]
+    },
+    {
+      "args": [
+        "validate",
+        "--source",
+        "profile.json"
+      ],
+      "cwd": "",
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE: profile: unrecognized field (name and value omitted)\nprofile.version: required\nprofile.conversation: required\nprofile.interaction: required\nprofile.session_start: required\nprofile.surfaces: required\n",
+      "tree": [
+        "profile.json file 644 f0099e25c8b47bdeb2ba23bc78d5979924e55fd23c4b755cab2fb19f6ac67557"
+      ]
+    }
+  ]
+}

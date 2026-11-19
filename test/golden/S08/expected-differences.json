@@ -1,0 +1,16 @@
+[
+  {
+    "case": ["argument-forms", "help-wraps-to-the-columns"],
+    "stream": "stdout",
+    "base": "^    (?:profile\\.py|mhw profile) (validate|plan|render|check) ",
+    "replace": "    <COMMAND> $1 ",
+    "why": "The help's description is the program's own docstring. The original's named its four example lines `profile.py validate ...`; the Node command's name them `mhw profile validate ...`, the command that now exists. The rest of each line, the usage, the option list and the exit code are still compared."
+  },
+  {
+    "case": ["argument-forms", "help-wraps-to-the-columns"],
+    "stream": "stdout",
+    "base": "^(?:Python 3\\.9\\+, standard library only\\.|Node, node: modules only\\.) ",
+    "replace": "<RUNTIME> ",
+    "why": "The same docstring named its runtime, 'Python 3.9+, standard library only.'; the Node command says 'Node, node: modules only.'. The text after it on the line (the exit codes) is still compared."
+  }
+]

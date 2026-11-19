@@ -1,0 +1,60 @@
+{
+  "name": "missing-output-check-writes-nothing",
+  "runs": [
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "output"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "check",
+        "--source",
+        "profile.json",
+        "--output",
+        "a/b/c"
+      ],
+      "cwd": "",
+      "code": 1,
+      "stdout": "DRIFT: AGENTS.md, clipboard.conf, desktop-instructions.md, profile-plan.json\n",
+      "stderr": "",
+      "tree": [
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    },
+    {
+      "args": [
+        "render",
+        "--source",
+        "profile.json",
+        "--output",
+        "a/b/c"
+      ],
+      "cwd": "",
+      "code": 0,
+      "stdout": "OK: 4 generated files updated; no harness installation\n",
+      "stderr": "",
+      "tree": [
+        "a dir 755",
+        "a/b dir 755",
+        "a/b/c dir 755",
+        "a/b/c/AGENTS.md file 600 24a45d5cdd231c6e3aa6f81ec2ea41acb77ea2acb342c7cde2ac9cd67b7f3199",
+        "a/b/c/clipboard.conf file 600 353680f2382b4e369a144ed68c0bbcc10aec936ee1aacb25e2e5ff8b1fb70a96",
+        "a/b/c/desktop-instructions.md file 600 014ad0b3696df6595a9ef7987bd6eb9b739bff9012ba4d09e8856a1817d14cbc",
+        "a/b/c/profile-plan.json file 600 260f187fd1d09909b5b7c5f0cdf4bc547c42e82b9aa6ff917c552487c8e32c32",
+        "profile.json file 644 d1429a0196748af9f2ddfad3b96014ddb37187ebb3505269d1dbfca6e471a609"
+      ]
+    }
+  ]
+}
