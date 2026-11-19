@@ -1,0 +1,21 @@
+{
+  "name": "undecodable-json-beside-is-refused",
+  "runs": [
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 3,
+      "stdout": "REFUSE  <HOME>/.kiro/settings/permissions.yaml: <HOME>/.kiro/settings/permissions.json holds your rules, and Kiro reads permissions.yaml instead of it when both exist; nothing written. Move its rules into permissions.yaml (same schema), then re-run\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 755",
+        ".kiro/settings/permissions.json file 644 a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    }
+  ]
+}

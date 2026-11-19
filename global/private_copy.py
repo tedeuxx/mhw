@@ -1,6 +1,7 @@
 """The one Python form of private_copy: every .pmhwc-*backup of a harness config is owner-only.
 
-Shared by global/kiro/kiro_permissions.py, global/mcp/mcp_render.py and global/models/model_defaults.py,
+Shared by global/mcp/mcp_render.py and global/models/model_defaults.py (and by global/kiro/kiro_permissions.py
+until #482 moved it to Node, src/render/kiro-permissions.js with src/lib/private-copy.js),
 which each carried a copy until Issue #145 (they had drifted: only the Kiro one opened with O_NOFOLLOW;
 global/mcp/mcp_retire.py, a fourth user, was removed in Issue #206). Each of them puts this directory on
 sys.path and imports it; they all run from the checkout or the npm package, where global/ is whole.

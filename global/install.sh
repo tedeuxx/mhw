@@ -1016,17 +1016,21 @@ models_step() {
   python3 -B "$script_dir/models/model_defaults.py" "--mode=$mode" "--stamp=$stamp" "--policy=$models_policy" || raise $?
 }
 # The deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036, Issue #144): the same validated floor, merged into
-# ~/.kiro/settings/permissions.yaml by global/kiro/kiro_permissions.py. The owner's own rules are kept and a
-# 0600 backup is left beside it; uninstall removes only the deny rules it appended, as it appended them,
-# never one of the owner's, unless his rule is byte-identical to the one it appended, which it cannot tell
-# apart. $1: another mode.
+# ~/.kiro/settings/permissions.yaml by src/render/kiro-permissions.js in Node (#482, S11 of #470), run by the
+# node that runs mhw (MHW_NODE, set by bin/mhw.js), else node on PATH, by absolute path. The owner's own
+# rules are kept and a 0600 backup is left beside it; uninstall removes only the deny rules it appended, as
+# it appended them, never one of the owner's, unless his rule is byte-identical to the one it appended,
+# which it cannot tell apart. $1: another mode.
 kiro_step() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "SKIP    the Kiro deny floor: python3 3.9 or later is required"
-    raise 2
-    return 0
-  fi
-  python3 -B "$script_dir/kiro/kiro_permissions.py" "--mode=${1:-$mode}" "--stamp=$stamp" "--floor=$floor" \
+  kiro_node=${MHW_NODE:-}
+  case $kiro_node in /*) ;; *) kiro_node=$(command -v node 2>/dev/null || true) ;; esac
+  case $kiro_node in
+    /*) ;;
+    *) echo "SKIP    the Kiro deny floor: node (26 or later) is required"
+       raise 2
+       return 0 ;;
+  esac
+  "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "--mode=${1:-$mode}" "--stamp=$stamp" "--floor=$floor" \
     "--floor-from=$floor_from" ${2:+"$2"} || raise $?
 }
 # The retired-server removal (mcp_retire.py, ADR-0035 decision 2, #145) was removed in v7 (Issue #206):

@@ -1,0 +1,42 @@
+{
+  "name": "xdg-data-home-holds-the-record",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "MERGED  <HOME>/.kiro/settings/permissions.yaml (new file; 7 deny-floor patterns)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 bb4f38d7619f86a443b1ecad4ff444ab5e42e8d1f301e739d4c84e0106fe7ab5",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "xdg dir 755",
+        "xdg/personal-multi-harness-workstation-configuration dir 755",
+        "xdg/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2"
+      ]
+    },
+    {
+      "args": [
+        "--mode=uninstall",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "REMOVED <HOME>/.kiro/settings/permissions.yaml (mhw created it and only its deny-floor rules were in it; kept as <HOME>/.kiro/settings/permissions.yaml.pmhwc-backup)\nREMOVED <HOME>/xdg/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml.pmhwc-backup file 600 bb4f38d7619f86a443b1ecad4ff444ab5e42e8d1f301e739d4c84e0106fe7ab5",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360",
+        "xdg dir 755",
+        "xdg/personal-multi-harness-workstation-configuration dir 755"
+      ]
+    }
+  ]
+}

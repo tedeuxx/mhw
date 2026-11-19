@@ -1,0 +1,46 @@
+{
+  "name": "floor-from-names-the-source",
+  "runs": [
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "--floor-from=global/deny-floor.conf + overlay"
+      ],
+      "code": 0,
+      "stdout": "MERGED  <HOME>/.kiro/settings/permissions.yaml (new file; 7 deny-floor patterns)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 0068f9db40a710e86307de261a098f215e892efb24e50b920dc026e0b4c9d9a9",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 0,
+      "stdout": "OK      <HOME>/.kiro/settings/permissions.yaml (all 7 deny-floor patterns present; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        ".kiro dir 755",
+        ".kiro/settings dir 700",
+        ".kiro/settings/permissions.yaml file 600 0068f9db40a710e86307de261a098f215e892efb24e50b920dc026e0b4c9d9a9",
+        ".local dir 755",
+        ".local/share dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration dir 755",
+        ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json file 600 caedd07df3f33fe8cc5f8e74c452b445c1ccc91dd533f42298310c4e49f20cd2",
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    }
+  ]
+}

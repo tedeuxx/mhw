@@ -1390,7 +1390,7 @@ EOF
 
 # 24. the Kiro deny floor (ADR-0036, Issue #144): install.sh merges the same floor into
 # ~/.kiro/settings/permissions.yaml, keeps the owner's own rule, --check reports it, uninstall takes back
-# only what it added. The rule engine itself is global/kiro/kiro_permissions_test.py's and Kiro's.
+# only what it added. The rule engine itself is test/render/kiro-permissions.test.js's and Kiro's.
 hk="$base/kiro"
 mkdir -p "$hk/.kiro/settings"
 kp="$hk/.kiro/settings/permissions.yaml"

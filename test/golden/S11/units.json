@@ -1,0 +1,2272 @@
+{
+  "inputs": {
+    "reader": [
+      "# my own rules\nrules:\n  - capability: shell\n    match:\n      - git *\n      - npm *\n    effect: allow\n  - capability: shell\n    match:\n      - sudo *\n    effect: deny\n  - capability: mcp\n    match: [\"my-server/*\"]\n    exclude: ['my-server/dangerous-tool']\n    effect: allow\n",
+      "rules:\n  - capability: fs_write\n    match: [\"*.env\", \"*.pem\", \"*.key\"]\n    effect: deny\n  - capability: shell\n    match: [\"rm -rf *\", \"sudo *\"]\n    effect: deny\n  - capability: fs_read\n    effect: allow\n",
+      "rules:\n- capability: shell\n  match:\n  - git *\n  effect: allow\n",
+      "",
+      "policies: [read-only]\nrules: []\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    note: x\n",
+      "rules:\n  - capability: shell\n    effect: block\n",
+      "rules:\n  - effect: deny\n",
+      "rules:\n  - &a capability: shell\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [*x]\n    effect: deny\n",
+      "rules:\n  - {capability: shell, effect: deny}\n",
+      "rules:\n  - capability: shell\n    match: |\n      x\n    effect: deny\n",
+      "rules:\n  - capability: true\n    effect: deny\n",
+      "other: 1\nrules: []\n",
+      "rules: 3\n",
+      "rules:\n  - capability: shell\n    match:\n      - Yes\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - OFF\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 1.5e3\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - -.INF\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 190:20:30.15\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 0x1F\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 0b1010\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 190:20:30\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 685_230\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 02472256\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - <<\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - ~\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - NULL\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 2026-10-11\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 2001-12-14t21:59:43.10-05:00\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 2001-12-14T21:59:43.10Z\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 2001-12-14 21:59:43.10 -5\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - =\n    effect: deny\n",
+      "rules:\n  - capability: .5\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [.5]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - .5\n    effect: deny\n",
+      "rules:\n  - capability: 1e3\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [1e3]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 1e3\n    effect: deny\n",
+      "rules:\n  - capability: 0x1F\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [0x1F]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 0x1F\n    effect: deny\n",
+      "rules:\n  - capability: 0o7\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [0o7]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 0o7\n    effect: deny\n",
+      "rules:\n  - capability: 0b101\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [0b101]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 0b101\n    effect: deny\n",
+      "rules:\n  - capability: .inf\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [.inf]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - .inf\n    effect: deny\n",
+      "rules:\n  - capability: -.INF\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [-.INF]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - -.INF\n    effect: deny\n",
+      "rules:\n  - capability: .nan\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [.nan]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - .nan\n    effect: deny\n",
+      "rules:\n  - capability: .NaN\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [.NaN]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - .NaN\n    effect: deny\n",
+      "rules:\n  - capability: ~\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [~]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - ~\n    effect: deny\n",
+      "rules:\n  - capability: null\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [null]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - null\n    effect: deny\n",
+      "rules:\n  - capability: NULL\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [NULL]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - NULL\n    effect: deny\n",
+      "rules:\n  - capability: nUlL\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [nUlL]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - nUlL\n    effect: deny\n",
+      "rules:\n  - capability: true\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [true]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - true\n    effect: deny\n",
+      "rules:\n  - capability: TrUe\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [TrUe]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - TrUe\n    effect: deny\n",
+      "rules:\n  - capability: FALSE\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [FALSE]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - FALSE\n    effect: deny\n",
+      "rules:\n  - capability: yes\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [yes]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - yes\n    effect: deny\n",
+      "rules:\n  - capability: Off\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [Off]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - Off\n    effect: deny\n",
+      "rules:\n  - capability: 1_000\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [1_000]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 1_000\n    effect: deny\n",
+      "rules:\n  - capability: -1\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [-1]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - -1\n    effect: deny\n",
+      "rules:\n  - capability: +.5\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [+.5]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - +.5\n    effect: deny\n",
+      "rules:\n  - capability: 1.\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [1.]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 1.\n    effect: deny\n",
+      "rules:\n  - capability: 12:30\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [12:30]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 12:30\n    effect: deny\n",
+      "rules:\n  - capability: 3E-2\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match: [3E-2]\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 3E-2\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - git *\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - e5\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - v1.2\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - true-ish\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - 1a\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - .\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - nullx\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    match:\n      - ~/x\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - sudo *\n      - gh auth token *\n      - terraform -chdir=*\n  - capability: fs_read\n    effect: deny\n    match:\n      - ~/.ssh/id_*\n      - \"**/.env\"\n  - capability: fs_write\n    effect: deny\n    match:\n      - ~/.ssh/id_*\n      - \"**/.env\"\n  - capability: shell\n    effect: allow\n    match:\n      - ls *\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - sudo *\n      - gh auth token *\n      - terraform -chdir=*\n  - capability: fs_read\n    effect: deny\n    match:\n      - ~/.ssh/id_*\n      - \"**/.env\"\n  - capability: fs_write\n    effect: deny\n    match:\n      - ~/.ssh/id_*\n      - \"**/.env\"\n  - capability: shell\n    effect: allow\n    match:\n      - deploy-tool --environment production --region somewhere --profile somebody\n        --dry-run *\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - sudo *\n      - gh auth token *\n      - terraform -chdir=*\n  - capability: fs_read\n    effect: deny\n    match:\n      - ~/.ssh/id_*\n      - \"**/.env\"\n  - capability: fs_write\n    effect: deny\n    match:\n      - ~/.ssh/id_*\n      - \"**/.env\"\n  - capability: shell\n    effect: allow\n    match:\n      - yes\n",
+      "rules:\n  - capability: shell\n    match: ['sudo *']\n    effect: allow\n  - capability: shell\n    match: ['gh auth token *']\n    exclude: ['gh auth token x']\n    effect: deny\n",
+      "rules: []\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    comment: mine\n",
+      "# c\nrules: [] # trailing\n",
+      "rules:\n  - capability: shell\n    effect: deny # why\n    match: [a] #x\n",
+      "#only a comment\n",
+      "rules: []\n#x\n   # indented comment\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [\"a #b\", 'c #d', e#f]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - a #b\n      - c#d\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [\"abc]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: ['abc]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: ['it''s']\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [\"a\\\"b\", \"\\u00e9 *\", \"\\ud83d\\ude00 *\", \"tab\\there\", \"\\/x\"]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [\"\\x41\"]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - \"a\" \"b\"\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - 'a'b'\n      - x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - ''\n      - \"\"\n      - 'a''''b'\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - '\n",
+      "rules:\n  - capability: shell\n    effect: \"deny\"\n    match: ['sudo *']\n",
+      "rules:\n  - capability: shell\n    effect: Deny\n",
+      "rules:\n  - capability: \"shell\"\n    effect: 'ask'\n    exclude: []\n    match: []\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [\"a\tb\"]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - \"\\ud800\"\n",
+      "---\nrules: []\n",
+      "rules: []\n---\n",
+      "---\n---\nrules: []\n",
+      "...\nrules: []\n...\n",
+      "rules: []\n...\n",
+      "rules:\n\t- capability: shell\n",
+      "rules: []\t\n",
+      "rules: [] \n",
+      " rules: []\n",
+      "   rules: []\n",
+      "rules:　[]\n",
+      "rules:\r\n  - capability: shell\r\n    effect: deny\r\n",
+      "rules:\r  - capability: shell\r    effect: deny\r",
+      "rules:  - capability: shell    effect: deny",
+      "rules:   - capability: shell     effect: deny\n",
+      "rules:\u000b  - capability: shell\f    effect: deny\n",
+      "rules:\u001c  - capability: shell\u001d    effect: deny\u001e",
+      "rules: []\u001f\n",
+      "rules:\u001f[]\n",
+      "﻿rules: []\n",
+      "rules: []\n\n\n",
+      "\n\nrules: []",
+      "rules  : []\n",
+      "rules :[]\n",
+      "rules:[]\n",
+      "Rules: []\n",
+      "rules: [ ]\n",
+      "rules:\n",
+      "rules\n",
+      "9rules: []\n",
+      "rules: []\nrules: []\n",
+      "  rules: []\n",
+      "rules:\n  - capability: shell\n    effect: deny\n  extra: 1\n",
+      "rules:\n  - capability: shell\n    effect: deny\n - x\n",
+      "rules:\n  - capability: shell\n    effect: deny\nother: 1\n",
+      "policies:\n  - a\n  - 'b'\nrules: []\n",
+      "policies: []\nrules: []\n",
+      "policies:\nrules: []\n",
+      "policies: [a, [b]]\nrules: []\n",
+      "policies: a\nrules: []\n",
+      "policies: []\npolicies: []\nrules: []\n",
+      "policies: [a]\n",
+      "policies:\n- a\n- b\nrules:\n- capability: fs_read\n  effect: allow\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [a, b]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [a,]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [,]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [ ]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [a, , b]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [\"a,b\", 'c,d']\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [a, {b}]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: ['it''s', \"q\\\"x\", \"back\\\\\"]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [a\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: a]\n",
+      "rules:\n  -   capability: shell\n      effect: deny\n      match: [a]\n",
+      "rules:\n  -   capability: shell\n    effect: deny\n",
+      "rules:\n  -\n    capability: shell\n    effect: deny\n",
+      "rules:\n  - {capability: shell}\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    effect: allow\n",
+      "rules:\n  - capability: shell\n    effect:\n",
+      "rules:\n  - capability: shell\n    match:\n    effect: deny\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - a\n        b\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      -\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n    - a\n    - b\n    exclude:\n    - c\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    exclude:\n      - c\n    match: [d]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n      match: [a]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [a]\n    capability: fs_read\n",
+      "rules:\n  - capability: shell\n    effect: deny\n  - capability: fs_read\n    effect: deny\n    match:\n      - \"~/.x\"\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - - x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - & x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - ? x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - : x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - -\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - %x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - @x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - `x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - |\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - >\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - !tag\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - *alias\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - &anchor\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - }\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - ,x\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - x: y\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - x:\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - a :b\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match:\n      - café *\n      - 😀 *\n      - del\n      - a:b\n      - a-b\n      - ?x\n"
+    ],
+    "scalars": [
+      "git *",
+      "  padded  ",
+      "",
+      "   ",
+      "\"x\"",
+      "\"x",
+      "\"\\q\"",
+      "'x'",
+      "'x",
+      "'",
+      "'a'b'",
+      "'a''b'",
+      "''",
+      "\"a\" # c",
+      "a #b",
+      "a: b",
+      "a:",
+      "- x",
+      "? x",
+      ": x",
+      "-",
+      "--",
+      "-x",
+      "&x",
+      "*x",
+      "!x",
+      "|x",
+      ">x",
+      "{x",
+      "}x",
+      "%x",
+      "@x",
+      "`x",
+      ",x",
+      "[x",
+      "]x",
+      "#x",
+      "x#y",
+      "Yes",
+      "OFF",
+      "1.5e3",
+      "-.INF",
+      "190:20:30.15",
+      "0x1F",
+      "0b1010",
+      "190:20:30",
+      "685_230",
+      "02472256",
+      "<<",
+      "~",
+      "NULL",
+      "2026-10-11",
+      "2001-12-14t21:59:43.10-05:00",
+      "2001-12-14T21:59:43.10Z",
+      "2001-12-14 21:59:43.10 -5",
+      "=",
+      ".5",
+      "1e3",
+      "0x1F",
+      "0o7",
+      "0b101",
+      ".inf",
+      "-.INF",
+      ".nan",
+      ".NaN",
+      "~",
+      "null",
+      "NULL",
+      "nUlL",
+      "true",
+      "TrUe",
+      "FALSE",
+      "yes",
+      "Off",
+      "1_000",
+      "-1",
+      "+.5",
+      "1.",
+      "12:30",
+      "3E-2",
+      "git *",
+      "e5",
+      "v1.2",
+      "true-ish",
+      "1a",
+      ".",
+      "nullx",
+      "~/x",
+      "TRUE",
+      "Null",
+      "0X1f",
+      "0O7",
+      "0B1",
+      "1__2",
+      "1:2:3",
+      "1:",
+      ":1",
+      "1.2.3",
+      "1e",
+      "e1",
+      ".e1",
+      "+",
+      "+-1",
+      "2026-1-1",
+      "2026-01-01T1:00:00",
+      "2026-01-01 1:00:00 +01:00",
+      "2026-01-01  1:00:00",
+      "2026-01-01\t1:00:00",
+      "2026-01-01T1:00:00.5 z",
+      "2026-01-01T1:00:00+1",
+      "2026-01-01X",
+      "Ky",
+      "ＴＲＵＥ",
+      "İnf"
+    ],
+    "floors": [
+      {
+        "name": "the test floor",
+        "b64": "IyBhIGNvbW1lbnQKY21kIHN1ZG8KY21kIGdoIGF1dGggdG9rZW4KZmlsZSB+Ly5zc2gvaWRfKgpmaWxlICoqLy5lbnYKZ2xvYiB0ZXJyYWZvcm0gLWNoZGlyPSoK"
+      },
+      {
+        "name": "repeats kept once",
+        "b64": "Y21kIHN1ZG8KY21kIHN1ZG8KZmlsZSBhCmZpbGUgYQpnbG9iIHgqCmdsb2IgeCoKY21kIHgKZ2xvYiB4ICoK"
+      },
+      {
+        "name": "comments and blank lines",
+        "b64": "CiAgCiMgYwogICMgaW5kZW50ZWQKCWNtZCBzdWRvICAK"
+      },
+      {
+        "name": "crlf",
+        "b64": "Y21kIHN1ZG8NCmZpbGUgfi8ueA0K"
+      },
+      {
+        "name": "cr only",
+        "b64": "Y21kIHN1ZG8NZmlsZSB+Ly54DQ=="
+      },
+      {
+        "name": "unicode separators",
+        "b64": "Y21kwqBzdWRv4oCoZmlsZSB+Ly54woVnbG9iIGHjgIBiKgo="
+      },
+      {
+        "name": "a byte order mark",
+        "b64": "77u/Y21kIHN1ZG8K"
+      },
+      {
+        "name": "an unknown kind",
+        "b64": "ZGVueSBzdWRvCg=="
+      },
+      {
+        "name": "a kind alone",
+        "b64": "Y21kCg=="
+      },
+      {
+        "name": "a word outside the set",
+        "b64": "Y21kIHJtIC1yZiAkSE9NRQo="
+      },
+      {
+        "name": "a cmd word holding a star",
+        "b64": "Y21kIHJtIC1yZiAqCg=="
+      },
+      {
+        "name": "a file entry of two paths",
+        "b64": "ZmlsZSBhIGIK"
+      },
+      {
+        "name": "only comments",
+        "b64": "IyBub3RoaW5nCgo="
+      },
+      {
+        "name": "empty",
+        "b64": ""
+      },
+      {
+        "name": "invalid start byte",
+        "b64": "Y21kIHN1ZG8K/wo="
+      },
+      {
+        "name": "truncated sequence",
+        "b64": "Y+KC"
+      },
+      {
+        "name": "invalid continuation",
+        "b64": "Y+KCKA=="
+      },
+      {
+        "name": "a surrogate encoded",
+        "b64": "7aCA"
+      },
+      {
+        "name": "four-byte truncated",
+        "b64": "8JA="
+      },
+      {
+        "name": "missing",
+        "b64": null
+      }
+    ]
+  },
+  "results": {
+    "reader": [
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "allow",
+              "match": [
+                "git *",
+                "npm *"
+              ]
+            },
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "sudo *"
+              ]
+            },
+            {
+              "capability": "mcp",
+              "effect": "allow",
+              "match": [
+                "my-server/*"
+              ],
+              "exclude": [
+                "my-server/dangerous-tool"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"allow\"\n    match:\n      - \"git *\"\n      - \"npm *\"\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"sudo *\"\n  - capability: \"mcp\"\n    effect: \"allow\"\n    match:\n      - \"my-server/*\"\n    exclude:\n      - \"my-server/dangerous-tool\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"allow\"\n    match:\n      - \"git *\"\n      - \"npm *\"\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"sudo *\"\n  - capability: \"mcp\"\n    effect: \"allow\"\n    match:\n      - \"my-server/*\"\n    exclude:\n      - \"my-server/dangerous-tool\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "fs_write",
+              "effect": "deny",
+              "match": [
+                "*.env",
+                "*.pem",
+                "*.key"
+              ]
+            },
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "rm -rf *",
+                "sudo *"
+              ]
+            },
+            {
+              "capability": "fs_read",
+              "effect": "allow"
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"fs_write\"\n    effect: \"deny\"\n    match:\n      - \"*.env\"\n      - \"*.pem\"\n      - \"*.key\"\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"rm -rf *\"\n      - \"sudo *\"\n  - capability: \"fs_read\"\n    effect: \"allow\"\n",
+        "bare": "rules:\n  - capability: \"fs_write\"\n    effect: \"deny\"\n    match:\n      - \"*.env\"\n      - \"*.pem\"\n      - \"*.key\"\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"rm -rf *\"\n      - \"sudo *\"\n  - capability: \"fs_read\"\n    effect: \"allow\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "allow",
+              "match": [
+                "git *"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"allow\"\n    match:\n      - \"git *\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"allow\"\n    match:\n      - \"git *\"\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": [
+            "read-only"
+          ]
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\npolicies:\n  - \"read-only\"\nrules: []\n",
+        "bare": "policies:\n  - \"read-only\"\nrules: []\n"
+      },
+      {
+        "refuse": "line 4: Kiro rejects a rule with the field 'note', and then drops every rule in the file"
+      },
+      {
+        "refuse": "line 2: a rule whose effect is not deny, allow or ask; Kiro would drop every rule in the file"
+      },
+      {
+        "refuse": "line 2: a rule with no capability; Kiro would drop every rule in the file"
+      },
+      {
+        "refuse": "line 2: expected 'key: value', got: &a capability: shell"
+      },
+      {
+        "refuse": "line 3: a value YAML reads as something other than a plain string: *x"
+      },
+      {
+        "refuse": "line 2: a rule written as a flow mapping"
+      },
+      {
+        "refuse": "line 3: a flow sequence must open and close on one line"
+      },
+      {
+        "refuse": "line 2: true is not a string in YAML"
+      },
+      {
+        "refuse": "line 1: a top-level key this reader does not keep: other"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 4: Yes is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: OFF is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 1.5e3 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: -.INF is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 190:20:30.15 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 0x1F is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 0b1010 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 190:20:30 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 685_230 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 02472256 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: << is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: ~ is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: NULL is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 2026-10-11 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 2001-12-14t21:59:43.10-05:00 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 2001-12-14T21:59:43.10Z is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 2001-12-14 21:59:43.10 -5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: = is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: .5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: .5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: .5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: 1e3 is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: 1e3 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 1e3 is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: 0x1F is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: 0x1F is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 0x1F is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: 0o7 is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: 0o7 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 0o7 is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: 0b101 is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: 0b101 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 0b101 is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: .inf is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: .inf is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: .inf is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: -.INF is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: -.INF is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: -.INF is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: .nan is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: .nan is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: .nan is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: .NaN is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: .NaN is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: .NaN is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: ~ is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: ~ is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: ~ is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: null is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: null is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: null is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: NULL is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: NULL is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: NULL is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: nUlL is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: nUlL is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: nUlL is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: true is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: true is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: true is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: TrUe is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: TrUe is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: TrUe is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: FALSE is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: FALSE is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: FALSE is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: yes is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: yes is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: yes is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: Off is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: Off is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: Off is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: 1_000 is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: 1_000 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 1_000 is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: -1 is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: -1 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: -1 is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: +.5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: +.5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: +.5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: 1. is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: 1. is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 1. is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: 12:30 is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: 12:30 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 12:30 is not a string in YAML"
+      },
+      {
+        "refuse": "line 2: 3E-2 is not a string in YAML"
+      },
+      {
+        "refuse": "line 3: 3E-2 is not a string in YAML"
+      },
+      {
+        "refuse": "line 4: 3E-2 is not a string in YAML"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "git *"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"git *\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"git *\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "e5"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"e5\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"e5\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "v1.2"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"v1.2\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"v1.2\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "true-ish"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"true-ish\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"true-ish\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "1a"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"1a\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"1a\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "."
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \".\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \".\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "nullx"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"nullx\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"nullx\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "~/x"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"~/x\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"~/x\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "sudo *",
+                "gh auth token *",
+                "terraform -chdir=*"
+              ]
+            },
+            {
+              "capability": "fs_read",
+              "effect": "deny",
+              "match": [
+                "~/.ssh/id_*",
+                "**/.env"
+              ]
+            },
+            {
+              "capability": "fs_write",
+              "effect": "deny",
+              "match": [
+                "~/.ssh/id_*",
+                "**/.env"
+              ]
+            },
+            {
+              "capability": "shell",
+              "effect": "allow",
+              "match": [
+                "ls *"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"sudo *\"\n      - \"gh auth token *\"\n      - \"terraform -chdir=*\"\n  - capability: \"fs_read\"\n    effect: \"deny\"\n    match:\n      - \"~/.ssh/id_*\"\n      - \"**/.env\"\n  - capability: \"fs_write\"\n    effect: \"deny\"\n    match:\n      - \"~/.ssh/id_*\"\n      - \"**/.env\"\n  - capability: \"shell\"\n    effect: \"allow\"\n    match:\n      - \"ls *\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"sudo *\"\n      - \"gh auth token *\"\n      - \"terraform -chdir=*\"\n  - capability: \"fs_read\"\n    effect: \"deny\"\n    match:\n      - \"~/.ssh/id_*\"\n      - \"**/.env\"\n  - capability: \"fs_write\"\n    effect: \"deny\"\n    match:\n      - \"~/.ssh/id_*\"\n      - \"**/.env\"\n  - capability: \"shell\"\n    effect: \"allow\"\n    match:\n      - \"ls *\"\n"
+      },
+      {
+        "refuse": "line 21: a sequence item must be one scalar on its line"
+      },
+      {
+        "refuse": "line 21: yes is not a string in YAML"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "allow",
+              "match": [
+                "sudo *"
+              ]
+            },
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "gh auth token *"
+              ],
+              "exclude": [
+                "gh auth token x"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"allow\"\n    match:\n      - \"sudo *\"\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"gh auth token *\"\n    exclude:\n      - \"gh auth token x\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"allow\"\n    match:\n      - \"sudo *\"\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"gh auth token *\"\n    exclude:\n      - \"gh auth token x\"\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "refuse": "line 4: Kiro rejects a rule with the field 'comment', and then drops every rule in the file"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a #b",
+                "c #d",
+                "e#f"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a #b\"\n      - \"c #d\"\n      - \"e#f\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a #b\"\n      - \"c #d\"\n      - \"e#f\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a",
+                "c#d"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n      - \"c#d\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n      - \"c#d\"\n"
+      },
+      {
+        "refuse": "line 4: a quoted scalar does not end on its line"
+      },
+      {
+        "refuse": "line 4: a quoted scalar does not end on its line"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "it's"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"it's\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"it's\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a\"b",
+                "é *",
+                "😀 *",
+                "tab\there",
+                "/x"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\\\"b\"\n      - \"\\u00e9 *\"\n      - \"\\ud83d\\ude00 *\"\n      - \"tab\\there\"\n      - \"/x\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\\\"b\"\n      - \"\\u00e9 *\"\n      - \"\\ud83d\\ude00 *\"\n      - \"tab\\there\"\n      - \"/x\"\n"
+      },
+      {
+        "refuse": "line 4: a double-quoted scalar this reader does not decode: \"\\x41\""
+      },
+      {
+        "refuse": "line 5: a double-quoted scalar this reader does not decode: \"a\" \"b\""
+      },
+      {
+        "refuse": "line 5: a quoted scalar does not end on its line"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "",
+                "",
+                "a''b"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"\"\n      - \"\"\n      - \"a''b\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"\"\n      - \"\"\n      - \"a''b\"\n"
+      },
+      {
+        "refuse": "line 5: a quoted scalar does not end on its line"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "sudo *"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"sudo *\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"sudo *\"\n"
+      },
+      {
+        "refuse": "line 2: a rule whose effect is not deny, allow or ask; Kiro would drop every rule in the file"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "ask",
+              "match": [],
+              "exclude": []
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"ask\"\n    match: []\n    exclude: []\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"ask\"\n    match: []\n    exclude: []\n"
+      },
+      {
+        "refuse": "line 4: a double-quoted scalar this reader does not decode: \"a\tb\""
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "\ud800"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"\\ud800\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"\\ud800\"\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "refuse": "line 2: more than one YAML document"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "refuse": "line 3: more than one YAML document"
+      },
+      {
+        "refuse": "line 2: more than one YAML document"
+      },
+      {
+        "refuse": "line 2: a tab in the indentation"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "refuse": "line 1: unexpected indentation at the top level"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny"
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny"
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny"
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny"
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny"
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny"
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "refuse": "line 1: expected 'key: value', got: ﻿rules: []"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules: []\n",
+        "bare": "rules: []\n"
+      },
+      {
+        "refuse": "line 1: expected 'key: value', got: rules :[]"
+      },
+      {
+        "refuse": "line 1: expected 'key: value', got: rules:[]"
+      },
+      {
+        "refuse": "line 1: a top-level key this reader does not keep: Rules"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules has no value"
+      },
+      {
+        "refuse": "line 1: expected 'key: value', got: rules"
+      },
+      {
+        "refuse": "line 1: expected 'key: value', got: 9rules: []"
+      },
+      {
+        "refuse": "line 2: rules repeated"
+      },
+      {
+        "refuse": "line 1: unexpected indentation at the top level"
+      },
+      {
+        "refuse": "line 4: unexpected indentation at the top level"
+      },
+      {
+        "refuse": "line 4: unexpected indentation at the top level"
+      },
+      {
+        "refuse": "line 4: a top-level key this reader does not keep: other"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": [
+            "a",
+            "b"
+          ]
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\npolicies:\n  - \"a\"\n  - \"b\"\nrules: []\n",
+        "bare": "policies:\n  - \"a\"\n  - \"b\"\nrules: []\n"
+      },
+      {
+        "doc": {
+          "rules": [],
+          "policies": []
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\npolicies: []\nrules: []\n",
+        "bare": "policies: []\nrules: []\n"
+      },
+      {
+        "refuse": "line 1: the key has no value"
+      },
+      {
+        "refuse": "line 1: a nested flow collection"
+      },
+      {
+        "refuse": "line 1: a flow sequence must open and close on one line"
+      },
+      {
+        "refuse": "line 2: policies repeated"
+      },
+      {
+        "refuse": "no \"rules\" list; Kiro would reject the file"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "fs_read",
+              "effect": "allow"
+            }
+          ],
+          "policies": [
+            "a",
+            "b"
+          ]
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\npolicies:\n  - \"a\"\n  - \"b\"\nrules:\n  - capability: \"fs_read\"\n    effect: \"allow\"\n",
+        "bare": "policies:\n  - \"a\"\n  - \"b\"\nrules:\n  - capability: \"fs_read\"\n    effect: \"allow\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a",
+                "b"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n      - \"b\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n      - \"b\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n"
+      },
+      {
+        "refuse": "line 4: an empty value"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": []
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match: []\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match: []\n"
+      },
+      {
+        "refuse": "line 4: an empty value"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a,b",
+                "c,d"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a,b\"\n      - \"c,d\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a,b\"\n      - \"c,d\"\n"
+      },
+      {
+        "refuse": "line 4: a nested flow collection"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "it's",
+                "q\"x",
+                "back\\"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"it's\"\n      - \"q\\\"x\"\n      - \"back\\\\\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"it's\"\n      - \"q\\\"x\"\n      - \"back\\\\\"\n"
+      },
+      {
+        "refuse": "line 4: a flow sequence must open and close on one line"
+      },
+      {
+        "refuse": "line 4: a flow sequence must open and close on one line"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n"
+      },
+      {
+        "refuse": "line 3: unexpected indentation in a rule"
+      },
+      {
+        "refuse": "line 2: a rule must start on its '- ' line"
+      },
+      {
+        "refuse": "line 2: a rule written as a flow mapping"
+      },
+      {
+        "refuse": "line 4: effect repeated in one rule"
+      },
+      {
+        "refuse": "line 3: effect has no value"
+      },
+      {
+        "refuse": "line 3: the key has no value"
+      },
+      {
+        "refuse": "line 5: a sequence item must be one scalar on its line"
+      },
+      {
+        "refuse": "line 5: a sequence item must be one scalar on its line"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a",
+                "b"
+              ],
+              "exclude": [
+                "c"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n      - \"b\"\n    exclude:\n      - \"c\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a\"\n      - \"b\"\n    exclude:\n      - \"c\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "d"
+              ],
+              "exclude": [
+                "c"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"d\"\n    exclude:\n      - \"c\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"d\"\n    exclude:\n      - \"c\"\n"
+      },
+      {
+        "refuse": "line 4: unexpected indentation in a rule"
+      },
+      {
+        "refuse": "line 5: capability repeated in one rule"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny"
+            },
+            {
+              "capability": "fs_read",
+              "effect": "deny",
+              "match": [
+                "~/.x"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n  - capability: \"fs_read\"\n    effect: \"deny\"\n    match:\n      - \"~/.x\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n  - capability: \"fs_read\"\n    effect: \"deny\"\n    match:\n      - \"~/.x\"\n"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: - x"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: & x"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: ? x"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: : x"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: -"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: %x"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: @x"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: `x"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: |"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: >"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: !tag"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: *alias"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: &anchor"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: }"
+      },
+      {
+        "refuse": "line 5: a value YAML reads as something other than a plain string: ,x"
+      },
+      {
+        "refuse": "line 5: a plain scalar holding ': ' or ' #': x: y"
+      },
+      {
+        "refuse": "line 5: a plain scalar holding ': ' or ' #': x:"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a :b"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a :b\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a :b\"\n"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "café *",
+                "😀 *",
+                "del",
+                "a:b",
+                "a-b",
+                "?x"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"caf\\u00e9 *\"\n      - \"\\ud83d\\ude00 *\"\n      - \"del\\u007f\"\n      - \"a:b\"\n      - \"a-b\"\n      - \"?x\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"caf\\u00e9 *\"\n      - \"\\ud83d\\ude00 *\"\n      - \"del\\u007f\"\n      - \"a:b\"\n      - \"a-b\"\n      - \"?x\"\n"
+      }
+    ],
+    "scalars": [
+      {
+        "value": "git *"
+      },
+      {
+        "value": "padded"
+      },
+      {
+        "refuse": "line 7: an empty value"
+      },
+      {
+        "refuse": "line 7: an empty value"
+      },
+      {
+        "value": "x"
+      },
+      {
+        "refuse": "line 7: a double-quoted scalar this reader does not decode: \"x"
+      },
+      {
+        "refuse": "line 7: a double-quoted scalar this reader does not decode: \"\\q\""
+      },
+      {
+        "value": "x"
+      },
+      {
+        "refuse": "line 7: a single-quoted scalar this reader does not decode: 'x"
+      },
+      {
+        "refuse": "line 7: a single-quoted scalar this reader does not decode: '"
+      },
+      {
+        "refuse": "line 7: a single-quoted scalar this reader does not decode: 'a'b'"
+      },
+      {
+        "value": "a'b"
+      },
+      {
+        "value": ""
+      },
+      {
+        "refuse": "line 7: a double-quoted scalar this reader does not decode: \"a\" # c"
+      },
+      {
+        "refuse": "line 7: a plain scalar holding ': ' or ' #': a #b"
+      },
+      {
+        "refuse": "line 7: a plain scalar holding ': ' or ' #': a: b"
+      },
+      {
+        "refuse": "line 7: a plain scalar holding ': ' or ' #': a:"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: - x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: ? x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: : x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: -"
+      },
+      {
+        "value": "--"
+      },
+      {
+        "value": "-x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: &x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: *x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: !x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: |x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: >x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: {x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: }x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: %x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: @x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: `x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: ,x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: [x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: ]x"
+      },
+      {
+        "refuse": "line 7: a value YAML reads as something other than a plain string: #x"
+      },
+      {
+        "value": "x#y"
+      },
+      {
+        "refuse": "line 7: Yes is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: OFF is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 1.5e3 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: -.INF is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 190:20:30.15 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 0x1F is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 0b1010 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 190:20:30 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 685_230 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 02472256 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: << is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: ~ is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: NULL is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2026-10-11 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2001-12-14t21:59:43.10-05:00 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2001-12-14T21:59:43.10Z is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2001-12-14 21:59:43.10 -5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: = is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: .5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 1e3 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 0x1F is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 0o7 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 0b101 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: .inf is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: -.INF is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: .nan is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: .NaN is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: ~ is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: null is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: NULL is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: nUlL is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: true is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: TrUe is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: FALSE is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: yes is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: Off is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 1_000 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: -1 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: +.5 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 1. is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 12:30 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 3E-2 is not a string in YAML"
+      },
+      {
+        "value": "git *"
+      },
+      {
+        "value": "e5"
+      },
+      {
+        "value": "v1.2"
+      },
+      {
+        "value": "true-ish"
+      },
+      {
+        "value": "1a"
+      },
+      {
+        "value": "."
+      },
+      {
+        "value": "nullx"
+      },
+      {
+        "value": "~/x"
+      },
+      {
+        "refuse": "line 7: TRUE is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: Null is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 0X1f is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 0O7 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 0B1 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 1__2 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 1:2:3 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: a plain scalar holding ': ' or ' #': 1:"
+      },
+      {
+        "value": ":1"
+      },
+      {
+        "value": "1.2.3"
+      },
+      {
+        "value": "1e"
+      },
+      {
+        "value": "e1"
+      },
+      {
+        "value": ".e1"
+      },
+      {
+        "value": "+"
+      },
+      {
+        "value": "+-1"
+      },
+      {
+        "refuse": "line 7: 2026-1-1 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2026-01-01T1:00:00 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2026-01-01 1:00:00 +01:00 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2026-01-01  1:00:00 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2026-01-01\t1:00:00 is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2026-01-01T1:00:00.5 z is not a string in YAML"
+      },
+      {
+        "refuse": "line 7: 2026-01-01T1:00:00+1 is not a string in YAML"
+      },
+      {
+        "value": "2026-01-01X"
+      },
+      {
+        "value": "Ky"
+      },
+      {
+        "value": "ＴＲＵＥ"
+      },
+      {
+        "value": "İnf"
+      }
+    ],
+    "floors": [
+      {
+        "want": {
+          "shell": [
+            "sudo *",
+            "gh auth token *",
+            "terraform -chdir=*"
+          ],
+          "fs_read": [
+            "~/.ssh/id_*",
+            "**/.env"
+          ],
+          "fs_write": [
+            "~/.ssh/id_*",
+            "**/.env"
+          ]
+        }
+      },
+      {
+        "want": {
+          "shell": [
+            "sudo *",
+            "x*",
+            "x *"
+          ],
+          "fs_read": [
+            "a"
+          ],
+          "fs_write": [
+            "a"
+          ]
+        }
+      },
+      {
+        "want": {
+          "shell": [
+            "sudo *"
+          ],
+          "fs_read": [],
+          "fs_write": []
+        }
+      },
+      {
+        "want": {
+          "shell": [
+            "sudo *"
+          ],
+          "fs_read": [
+            "~/.x"
+          ],
+          "fs_write": [
+            "~/.x"
+          ]
+        }
+      },
+      {
+        "want": {
+          "shell": [
+            "sudo *"
+          ],
+          "fs_read": [
+            "~/.x"
+          ],
+          "fs_write": [
+            "~/.x"
+          ]
+        }
+      },
+      {
+        "want": {
+          "shell": [
+            "sudo *",
+            "a b*"
+          ],
+          "fs_read": [
+            "~/.x"
+          ],
+          "fs_write": [
+            "~/.x"
+          ]
+        }
+      },
+      {
+        "error": "invalid deny-floor entry: ﻿cmd sudo"
+      },
+      {
+        "error": "invalid deny-floor entry: deny sudo"
+      },
+      {
+        "error": "invalid deny-floor entry: cmd"
+      },
+      {
+        "error": "invalid deny-floor entry: cmd rm -rf $HOME"
+      },
+      {
+        "error": "a cmd word may not hold *: cmd rm -rf *"
+      },
+      {
+        "error": "a file entry takes one path: file a b"
+      },
+      {
+        "error": "the deny floor has no entry"
+      },
+      {
+        "error": "the deny floor has no entry"
+      },
+      {
+        "error": "'utf-8' codec can't decode byte 0xff in position 9: invalid start byte"
+      },
+      {
+        "error": "'utf-8' codec can't decode bytes in position 1-2: unexpected end of data"
+      },
+      {
+        "error": "'utf-8' codec can't decode bytes in position 1-2: invalid continuation byte"
+      },
+      {
+        "error": "'utf-8' codec can't decode byte 0xed in position 0: invalid continuation byte"
+      },
+      {
+        "error": "'utf-8' codec can't decode bytes in position 0-1: unexpected end of data"
+      },
+      {
+        "error": "[Errno 2] No such file or directory: '<DIR>/f19.conf'"
+      }
+    ]
+  }
+}

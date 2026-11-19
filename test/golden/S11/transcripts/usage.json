@@ -1,0 +1,263 @@
+{
+  "name": "usage",
+  "runs": [
+    {
+      "args": [],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=nope",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor="
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "--bogus=1"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "extra"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "--admin=/x"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "--from-yaml=/x"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=install",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "--file=/x"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=report",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "--admin="
+      ],
+      "code": 0,
+      "stdout": "FLOOR   Kiro: user permissions.yaml absent (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\n",
+      "stderr": "",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=admin-validate --file=FILE (the JSON admin document)\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-validate",
+        "--file=/x",
+        "--stamp=x"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=admin-validate --file=FILE (the JSON admin document)\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=",
+        "--from-yaml=/x"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=admin-json",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--from-yaml=/x",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "usage: <PROGRAM> --mode=install|check|dry-run|uninstall|report --stamp=STAMP --floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n       <PROGRAM> --mode=admin-json --stamp=STAMP --from-yaml=FILE\n",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    },
+    {
+      "args": [
+        "--mode=check",
+        "--stamp=release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--floor=<HOME>/floor.conf",
+        "--floor-from="
+      ],
+      "code": 1,
+      "stdout": "MISSING <HOME>/.kiro/settings/permissions.yaml\n",
+      "stderr": "",
+      "tree": [
+        "floor.conf file 644 1a67abee3986e3d1cf66748f55e8e1ee8b86532e25a0565ab5299e4f2d112360"
+      ]
+    }
+  ]
+}

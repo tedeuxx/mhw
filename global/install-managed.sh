@@ -77,6 +77,19 @@ fi
 
 [ -x /usr/bin/python3 ] || { echo "REFUSE  /usr/bin/python3 is required" >&2; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "REFUSE  jq is required" >&2; exit 2; }
+# The Kiro admin document is rendered and validated by src/render/kiro-permissions.js in Node (#482, S11 of
+# #470): the node that runs mhw (MHW_NODE, set by bin/mhw.js), else node on PATH, by absolute path. Under
+# sudo that is the node root's PATH finds, since sudo does not pass MHW_NODE. --remove and --uninstall never
+# need it, so removing a Kiro file that denies every tool call never depends on node.
+kiro_node=
+case $mode in
+  render|check|apply)
+    kiro_node=${MHW_NODE:-}
+    case $kiro_node in /*) ;; *) kiro_node=$(command -v node 2>/dev/null || true) ;; esac
+    case $kiro_node in /*) ;; *) echo "REFUSE  node (26 or later) is required for the Kiro admin document" >&2; exit 2 ;; esac
+    ;;
+esac
+kiro_js() { "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "$@"; }
 case $bin in *\"*|*\\*|*\$*|*\`*) echo "REFUSE  $bin holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac
 
 is_root_run() { [ "$(id -u)" = 0 ] || [ -n "$root" ]; }
@@ -119,10 +132,10 @@ assert len(rules) == sum(r.startswith("Bash(") and r.endswith(":*)") for r in de
 
 validate_kiro() { # $1 stage: the Kiro admin document must be one Kiro accepts. A file Kiro rejects is NOT "no rule":
   # Kiro IDE and the Kiro CLI V3 engine then deny EVERY tool call (read from both bundles, PR #153 lens), and so
-  # can a statement of 64 or more conditions. kiro_permissions.py --mode=admin-validate checks the shape Kiro's
+  # can a statement of 64 or more conditions. kiro-permissions.js --mode=admin-validate checks the shape Kiro's
   # parser accepts and keeps every compiled statement under its condition ceiling, so a future floor cannot
   # silently produce a lockout file. Rollback: --remove, or delete that one file as root.
-  /usr/bin/python3 -I -B "$script_dir/kiro/kiro_permissions.py" --mode=admin-validate "--file=$1/kiro.json" >/dev/null 2>&1
+  kiro_js --mode=admin-validate "--file=$1/kiro.json" >/dev/null 2>&1
 }
 
 render() { # $1 empty stage directory
@@ -175,7 +188,7 @@ render() { # $1 empty stage directory
   } > "$st/requirements.toml"
   # The deny floor for Kiro (ADR-0036, 2026-10-11 amendment), from the permissions.yaml install.sh rendered
   # into the same throwaway home, so the Kiro admin copy has the same single source as the user copy.
-  if ! /usr/bin/python3 -I -B "$script_dir/kiro/kiro_permissions.py" --mode=admin-json \
+  if ! kiro_js --mode=admin-json \
       "--stamp=$stamp" "--from-yaml=$st/home/.kiro/settings/permissions.yaml" > "$st/kiro.json" 2> "$st/kiro.log"; then
     echo "REFUSE  the Kiro admin document could not be rendered (see $st/kiro.log)" >&2
     exit 2
@@ -252,7 +265,7 @@ case $mode in
     if kiro_foreign; then echo "REFUSE  $kiro_file: NOT managed by this project; --apply refuses it"; status=1
     else
       compare "$st/kiro.json" "$kiro_file"
-      if [ -f "$kiro_file" ] && ! /usr/bin/python3 -I -B "$script_dir/kiro/kiro_permissions.py" --mode=admin-validate "--file=$kiro_file" >/dev/null 2>&1; then
+      if [ -f "$kiro_file" ] && ! kiro_js --mode=admin-validate "--file=$kiro_file" >/dev/null 2>&1; then
         echo "REFUSE  $kiro_file: Kiro would reject it, and then Kiro IDE and the Kiro CLI V3 engine deny EVERY tool call; --apply rewrites it, --remove deletes it (Kiro CLI 2.x is unaffected)"
         status=1
       fi
