@@ -21,5 +21,8 @@ test/golden/S07/** -text
 method/scripts/fixtures/funnel-review/** -text
 # Golden transcripts of the S09 parity test (#480): byte for byte on every OS.
 test/golden/S09/** -text
+# Golden transcripts and cases of the S10 parity test (#481): byte for byte on every OS (the cases carry
+# \r\n, a byte-order mark and non-ASCII owner values on purpose).
+test/golden/S10/** -text
 # Golden transcripts, inputs and recorded results of the S11 parity tests (#482): byte for byte on every OS.
 test/golden/S11/** -text

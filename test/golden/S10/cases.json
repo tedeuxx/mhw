@@ -1,0 +1,263 @@
+{
+  "comment": "The cases of the deleted global/models/model_defaults_test.py (#481, S10 of #470), as step sequences, plus byte-for-byte install -> uninstall per harness, the Codex TOML editor on a commented fixture, argument and policy errors, and the edges of Python's text semantics. Every value is synthetic. Placeholders: {BASE} the case's directory, {HOME} {BASE}/home, {POLICY} {BASE}/policy.json (the default policy is written there before the first step). Steps: write (text), bytes (hex), mkdir, chmod (octal), replace (text from -> to in a file), remove, policy (rewrite {POLICY}), run. A run passes --mode, --stamp (default STAMP), --policy (default {POLICY}) and --home={HOME} unless home is false; args replaces the whole argument list; env adds variables (CODEX_HOME and XDG_DATA_HOME are otherwise unset). After each run the transcript records the exit code, stdout, stderr and every entry under {BASE}. posix: the case needs POSIX file modes and a non-root user.",
+  "stamp": "release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "policy": {"version": 1, "claude-code": {"model": "claude-opus-5-5[1m]", "effort": "medium"}, "codex": {"model": "gpt-5.6-sol", "effort": "medium"}, "kiro-cli": {"model": "claude-sonnet-4.5"}},
+  "cases": [
+    {"name": "fresh-install-check-install-check", "steps": [{"run": "check"}, {"run": "install"}, {"run": "check"}]},
+    {"name": "backup-that-cannot-be-made", "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "{\"model\": \"owner-model\"}"},
+      {"write": "{HOME}/.claude/settings.json.pmhwc-models-backup/keep", "text": "x"},
+      {"run": "install"}]},
+    {"name": "keeps-every-other-key-and-table", "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "{\"theme\": \"dark\", \"permissions\": {\"deny\": [\"x\"]}}"},
+      {"write": "{HOME}/.codex/config.toml", "text": "# mine\napproval_policy = \"on-request\"\n\n[profiles.x]\nmodel = \"other\"\n"},
+      {"write": "{HOME}/.kiro/settings/cli.json", "text": "{\"chat.enableThinking\": true}"},
+      {"run": "install"}]},
+    {"name": "codex-commented-fixture-install-uninstall", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "# Codex user configuration, the owner's own notes.\n# Two comment lines before anything.\n\napproval_policy = \"on-request\"   # trailing comment\nmodel = \"gpt-owner\" # the owner's model, inline comment kept\n\n# A section comment\nsandbox_mode = 'workspace-write'\n\n[profiles.fast]\n# a comment inside a table\nmodel = \"other\"\nmodel_reasoning_effort = \"low\"\n\n[mcp_servers.keep-me]\ncommand = \"x\"\nargs = [\"a\", \"b\"]\n# last line comment, no blank after\n"},
+      {"run": "dry-run"}, {"run": "check"}, {"run": "install"}, {"run": "check"}, {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "codex-quoted-owner-keys-and-literal-values", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "  \"model\"   =   'gpt-literal'   # spaced, literal\n'model_reasoning_effort'=\"high\"#tight\n[x]\n"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "codex-no-trailing-newline-and-blank-tail", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "# no newline at the end\nmodel = \"gpt-owner\""},
+      {"run": "install"}, {"run": "uninstall"},
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"gpt-owner\"\n\n\n"},
+      {"remove": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "codex-crlf-file", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "# crlf\r\nmodel = \"gpt-owner\"\r\n\r\n[t]\r\nk = \"v\"\r\n"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "codex-python-line-breaks-and-whitespace", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "# a form feed\f in a comment\n model = \"gpt-owner\"\n# a line separator   here\n"},
+      {"run": "install"}]},
+    {"name": "codex-bom-first-line", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "﻿model = \"gpt-owner\"\n"},
+      {"run": "install"}]},
+    {"name": "codex-unicode-owner-value-restored", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"gpt-ç-ünï\"\n"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "codex-table-before-any-key", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "[profiles.x]\nmodel = \"other\"\n"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "codex-value-forms-mhw-cannot-read", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"\"\"triple\"\"\"\nmodel_reasoning_effort = \"a\\\"b\"\n"},
+      {"run": "install"},
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"x\" trailing\nmodel_reasoning_effort = 5\n"},
+      {"run": "check"}]},
+    {"name": "claude-json-byte-for-byte-install-uninstall", "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "{\n    \"model\": \"owner-model\",\n    \"effortLevel\": \"high\",\n    \"theme\": \"dark\",\n    \"n\": 1.0,\n    \"big\": 123456789012345678901234567890,\n    \"e\": 1e+20,\n    \"small\": 1e-07,\n    \"nan\": NaN,\n    \"list\": [],\n    \"obj\": {},\n    \"text\": \"café \\u0001 \\\"q\\\"\"\n}\n"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "kiro-json-byte-for-byte-install-uninstall", "steps": [
+      {"write": "{HOME}/.kiro/settings/cli.json", "text": "{\n  \"chat.defaultModel\": \"owner-kiro\",\n  \"chat.enableThinking\": true\n}\n"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "json-null-value-is-absent", "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "{\"model\": null}"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "json-non-string-value-is-refused", "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "{\"model\": 5, \"effortLevel\": [\"x\"]}"},
+      {"run": "install"}]},
+    {"name": "json-not-an-object-or-not-json", "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "[1, 2]"},
+      {"write": "{HOME}/.kiro/settings/cli.json", "text": "{ not json"},
+      {"run": "install"}]},
+    {"name": "json-whitespace-only-is-empty", "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "  \n\t\n"},
+      {"run": "install"}]},
+    {"name": "native-file-invalid-utf8", "steps": [
+      {"bytes": "{HOME}/.claude/settings.json", "hex": "7b226d6f64656c223a2022ff227d"},
+      {"run": "install"}]},
+    {"name": "native-file-is-a-directory", "steps": [
+      {"mkdir": "{HOME}/.claude/settings.json"},
+      {"run": "install"}]},
+    {"name": "kiro-parent-is-a-file", "posix": true, "steps": [
+      {"write": "{HOME}/.kiro", "text": "a file"},
+      {"run": "install"}]},
+    {"name": "native-file-unreadable", "posix": true, "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"x\"\n"},
+      {"chmod": "{HOME}/.codex/config.toml", "mode": "000"},
+      {"run": "install"},
+      {"chmod": "{HOME}/.codex/config.toml", "mode": "600"}]},
+    {"name": "dry-run-writes-nothing", "steps": [{"run": "dry-run"}]},
+    {"name": "drift-each-harness-overwritten-old-to-new-then-restored", "steps": [
+      {"run": "install"},
+      {"write": "{HOME}/.claude/settings.json", "text": "{\"model\": \"opus[1m]\", \"effortLevel\": \"medium\"}"},
+      {"run": "check"}, {"run": "install"}, {"run": "check"},
+      {"replace": "{HOME}/.codex/config.toml", "from": "model_reasoning_effort = \"medium\"", "to": "model_reasoning_effort = \"high\""},
+      {"run": "check"}, {"run": "install"}, {"run": "check"},
+      {"write": "{HOME}/.kiro/settings/cli.json", "text": "{\"chat.defaultModel\": \"auto\"}"},
+      {"run": "check"}, {"run": "install"}, {"run": "check"},
+      {"run": "uninstall"}]},
+    {"name": "uninstall-restores-the-latest-owner-value", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model_reasoning_effort = \"owner-x\"\n"},
+      {"run": "install"},
+      {"replace": "{HOME}/.codex/config.toml", "from": "\"medium\"", "to": "\"owner-z\""},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "a-key-the-owner-deleted-is-removed-on-uninstall", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model_reasoning_effort = \"owner-x\"\n"},
+      {"run": "install"},
+      {"replace": "{HOME}/.codex/config.toml", "from": "model_reasoning_effort = \"medium\"\n", "to": ""},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "owner-value-replaced-and-restored-byte-for-byte", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"gpt-5.6-sol\"\nmodel_reasoning_effort = \"high\"\n"},
+      {"run": "install"}, {"run": "install"}, {"run": "check"}, {"run": "uninstall"}]},
+    {"name": "backup-is-owner-only-whatever-the-original-mode", "posix": true, "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model_reasoning_effort = \"high\"\n"},
+      {"chmod": "{HOME}/.codex/config.toml", "mode": "644"},
+      {"write": "{HOME}/.codex/config.toml.pmhwc-models-backup", "text": "stale\n"},
+      {"chmod": "{HOME}/.codex/config.toml.pmhwc-models-backup", "mode": "644"},
+      {"run": "install"}]},
+    {"name": "foreign-record-refused", "steps": [
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"set\": {}}"},
+      {"run": "install"}]},
+    {"name": "record-shapes-that-are-foreign", "steps": [
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "[]"},
+      {"run": "check"},
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": 5, \"set\": {}}"},
+      {"run": "check"},
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration\", \"set\": []}"},
+      {"run": "check"},
+      {"mkdir": "{BASE}/xdg/personal-multi-harness-workstation-configuration/model-defaults.json"},
+      {"run": "check", "env": {"XDG_DATA_HOME": "{BASE}/xdg"}}]},
+    {"name": "record-without-a-stamp-and-odd-entries", "steps": [
+      {"run": "install"},
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; no stamp here\", \"set\": {\"{HOME}/.claude/settings.json\": {\"harness\": \"claude-code\", \"keys\": {\"model\": \"claude-opus-5-5[1m]\", \"effortLevel\": \"medium\", \"n\": 5}, \"replaced\": {\"model\": 7, \"other\": \"x\"}}, \"{HOME}/.codex/config.toml\": {\"harness\": \"codex\", \"keys\": {\"model\": \"gpt-5.6-sol\", \"model_reasoning_effort\": \"medium\"}}, \"{HOME}/.kiro/settings/cli.json\": {\"harness\": \"kiro-cli\", \"keys\": {\"chat.defaultModel\": \"claude-sonnet-4.5\"}}, \"{HOME}/elsewhere.json\": {\"harness\": \"gemini\", \"keys\": {\"a\": \"b\"}}, \"{HOME}/none.json\": {\"harness\": \"claude-code\", \"keys\": {}}}}"},
+      {"run": "check"}, {"run": "install"}, {"run": "check"}]},
+    {"name": "unreadable-owner-value-is-a-refusal", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model_reasoning_effort = [\"high\"]\n"},
+      {"run": "install"}, {"run": "check"}]},
+    {"name": "unreadable-value-on-a-key-mhw-set", "steps": [
+      {"run": "install"},
+      {"replace": "{HOME}/.codex/config.toml", "from": "model = \"gpt-5.6-sol\"", "to": "model = 3"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "quoted-key-spellings-found-never-duplicated", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "\"model\" = \"gpt-owner\"\n"},
+      {"run": "install"}, {"run": "uninstall"},
+      {"write": "{HOME}/.codex/config.toml", "text": "'model' = \"gpt-owner\"\n"},
+      {"run": "install"}, {"run": "uninstall"},
+      {"remove": "{HOME}/.codex/config.toml"},
+      {"run": "install"},
+      {"replace": "{HOME}/.codex/config.toml", "from": "model = \"gpt", "to": "\"model\" = \"gpt"},
+      {"policy": {"version": 1, "claude-code": {"model": "claude-opus-5-5[1m]", "effort": "medium"}, "codex": {"model": "gpt-5.7", "effort": "medium"}, "kiro-cli": {"model": "claude-sonnet-4.5"}}},
+      {"run": "install"},
+      {"replace": "{HOME}/.codex/config.toml", "from": "model = \"gpt", "to": "'model' = \"gpt"},
+      {"policy": {"version": 1, "claude-code": {"model": "claude-opus-5-5[1m]", "effort": "medium"}, "codex": {"model": "gpt-5.8", "effort": "medium"}, "kiro-cli": {"model": "claude-sonnet-4.5"}}},
+      {"run": "install"}]},
+    {"name": "edit-that-would-not-parse-is-refused", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "arr = [\n  \"x\",\n[\"nested\"]\n]\nmodel = \"gpt-owner\"\n"},
+      {"run": "install"}, {"run": "check"}]},
+    {"name": "recorded-file-outside-home-never-edited", "steps": [
+      {"write": "{BASE}/outside/settings.json", "text": "{\"model\": \"claude-opus-5-5[1m]\", \"theme\": \"dark\"}"},
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"{BASE}/outside/settings.json\": {\"harness\": \"claude-code\", \"keys\": {\"model\": \"claude-opus-5-5[1m]\"}}}}"},
+      {"run": "uninstall"}, {"run": "check"}]},
+    {"name": "recorded-file-moved-inside-home-is-undone", "steps": [
+      {"run": "install", "env": {"CODEX_HOME": "{HOME}/old-codex"}},
+      {"run": "check"}, {"run": "install"}, {"run": "check"}]},
+    {"name": "codex-home-and-xdg-data-home", "steps": [
+      {"run": "install", "env": {"CODEX_HOME": "{BASE}/codex", "XDG_DATA_HOME": "{BASE}/xdg"}},
+      {"run": "check", "env": {"CODEX_HOME": "{BASE}/codex", "XDG_DATA_HOME": "{BASE}/xdg"}},
+      {"run": "uninstall", "env": {"CODEX_HOME": "{BASE}/codex", "XDG_DATA_HOME": "{BASE}/xdg"}}]},
+    {"name": "policy-change-rolls-forward-a-value-mhw-set", "steps": [
+      {"run": "install"},
+      {"policy": {"version": 1, "claude-code": {"model": "claude-opus-5-5[1m]", "effort": "medium"}, "codex": {"model": "gpt-5.6-sol", "effort": "low"}, "kiro-cli": {"model": "claude-sonnet-4.5"}}},
+      {"run": "check"}, {"run": "install"}, {"run": "check"}]},
+    {"name": "partial-policy-removes-the-rest", "steps": [
+      {"run": "install"},
+      {"policy": {"version": 1, "codex": {"model": "gpt-5.6-sol"}}},
+      {"run": "check"}, {"run": "dry-run"}, {"run": "install"}, {"run": "check"}]},
+    {"name": "stamp-change-reported-and-restamped", "steps": [
+      {"run": "install"},
+      {"run": "check", "stamp": "release: v9.9.10; commit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+      {"run": "install", "stamp": "release: v9.9.10; commit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+      {"run": "check", "stamp": "release: v9.9.10; commit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}]},
+    {"name": "empty-policy-removes-only-what-mhw-set", "steps": [
+      {"run": "install"}, {"run": "check", "policy": "none"}, {"run": "dry-run", "policy": "none"},
+      {"run": "install", "policy": "none"}, {"run": "check", "policy": "none"}]},
+    {"name": "empty-policy-argument-is-none", "steps": [
+      {"run": "install"}, {"run": "install", "policy": ""}]},
+    {"name": "uninstall-removes-only-what-mhw-set", "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "{\"theme\": \"dark\", \"effortLevel\": \"medium\"}"},
+      {"run": "install"},
+      {"replace": "{HOME}/.codex/config.toml", "from": "\"gpt-5.6-sol\"", "to": "\"gpt-5.6-terra\""},
+      {"run": "check"},
+      {"run": "uninstall"}, {"run": "uninstall"}]},
+    {"name": "uninstall-with-nothing-installed", "steps": [{"run": "uninstall"}]},
+    {"name": "home-from-the-environment", "steps": [{"run": "install", "home": false}, {"run": "check", "home": false}]},
+    {"name": "owner-file-mode-0600-is-kept", "posix": true, "steps": [
+      {"write": "{HOME}/.claude/settings.json", "text": "{\"model\": \"owner-model\"}"},
+      {"chmod": "{HOME}/.claude/settings.json", "mode": "600"},
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"gpt-owner\"\n"},
+      {"chmod": "{HOME}/.codex/config.toml", "mode": "600"},
+      {"run": "install"}, {"run": "uninstall"}]},
+    {"name": "codex-basic-string-with-a-backslash", "steps": [
+      {"write": "{HOME}/.codex/config.toml", "text": "model = \"a\\\\b\"\nmodel_reasoning_effort = 'c:\\d'\n"},
+      {"run": "install"}, {"run": "check"}]},
+    {"name": "record-entry-with-empty-keys-is-skipped", "steps": [
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"{HOME}/.claude/settings.json\": {\"harness\": \"claude-code\", \"keys\": []}, \"{HOME}/other.json\": {\"harness\": \"claude-code\", \"keys\": []}, \"{HOME}/zero.json\": {\"harness\": \"claude-code\", \"keys\": 0}}}"},
+      {"run": "check", "policy": "none"}, {"run": "install", "policy": "none"}]},
+    {"name": "record-path-equal-to-home", "steps": [
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"{HOME}\": {\"harness\": \"claude-code\", \"keys\": {\"model\": \"x\"}}}}"},
+      {"run": "uninstall"}]},
+    {"name": "record-replaced-filtered-by-keys", "steps": [
+      {"write": "{BASE}/outside/settings.json", "text": "{\"model\": \"m\"}"},
+      {"write": "{HOME}/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json", "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"{BASE}/outside/settings.json\": {\"harness\": \"claude-code\", \"keys\": {\"model\": \"m\"}, \"replaced\": {\"model\": \"owner\", \"effortLevel\": \"high\", \"stray\": \"s\"}}}}"},
+      {"run": "install", "policy": "none"}, {"run": "check", "policy": "none"}]},
+    {"name": "usage-errors", "steps": [
+      {"run": "install", "args": []},
+      {"run": "install", "args": ["--mode=bogus"]},
+      {"run": "install", "args": ["--mode=install", "--verbose"]},
+      {"run": "install", "args": ["--frob", "--mode=install"]},
+      {"run": "install", "args": ["--mode"]}]},
+    {"name": "policy-refuses-aliases-and-an-unverified-kiro-effort", "steps": [
+      {"policy": {"version": 1, "claude-code": {"model": "opus[1m]"}}}, {"run": "install"},
+      {"policy": {"version": 1, "claude-code": {"model": "opus"}}}, {"run": "install"},
+      {"policy": {"version": 1, "kiro-cli": {"model": "auto"}}}, {"run": "install"},
+      {"policy": {"version": 1, "kiro-cli": {"model": "claude-sonnet-4.5", "effort": "medium"}}}, {"run": "install"},
+      {"policy": {"version": 1, "codex": {"model": "gpt-5.6-sol", "effort": "huge"}}}, {"run": "install"},
+      {"policy": {"version": 1, "gemini": {"model": "x"}}}, {"run": "install"}]},
+    {"name": "policy-shapes", "steps": [
+      {"policy": {"version": 2}}, {"run": "install"},
+      {"policy": [1]}, {"run": "check"},
+      {"policy": {"claude-code": {"model": "x"}}}, {"run": "check"},
+      {"policy": {"version": 1, "codex": "gpt"}}, {"run": "check"},
+      {"policy": {"version": 1, "codex": {"model": 5}}}, {"run": "check"},
+      {"policy": {"version": 1, "codex": {"effort": "low"}}}, {"run": "check"},
+      {"policy": {"version": 1, "codex": {"model": "-starts-with-dash"}}}, {"run": "check"},
+      {"policy": {"version": 1, "codex": {"model": "a b"}}}, {"run": "check"},
+      {"policy": {"version": 1, "codex": {"model": "gpt", "effort": 1}}}, {"run": "check"},
+      {"policy": {"version": 1, "codex": {"model": "gpt", "effort": null}}}, {"run": "check"},
+      {"policy": {"version": 1, "codex": {"model": "gpt", "effort": ["low"]}}}, {"run": "check"},
+      {"policy": {"version": 1, "claude-code": {"model": "claude-x", "temperature": 1}}}, {"run": "check"},
+      {"policy": {"version": true, "codex": {"model": "gpt"}}}, {"run": "check"},
+      {"policy": {"version": 1.0}}, {"run": "check"},
+      {"policy": {"version": 1, "claude-code": {"model": "claude-x[1m]", "effort": "max"}}}, {"run": "check"}]},
+    {"name": "policy-unreadable-files", "steps": [
+      {"run": "check", "policy": "{BASE}/missing.json"},
+      {"mkdir": "{BASE}/dir.json"},
+      {"run": "check", "policy": "{BASE}/dir.json"},
+      {"write": "{BASE}/bad.json", "text": "{\n  \"version\": 1,\r\n  \"codex\": oops\n}\n"},
+      {"run": "check", "policy": "{BASE}/bad.json"},
+      {"write": "{BASE}/trailing.json", "text": "{\"version\": 1,}"},
+      {"run": "check", "policy": "{BASE}/trailing.json"},
+      {"write": "{BASE}/bom.json", "text": "﻿{\"version\": 1}"},
+      {"run": "check", "policy": "{BASE}/bom.json"},
+      {"write": "{BASE}/empty.json", "text": ""},
+      {"run": "check", "policy": "{BASE}/empty.json"},
+      {"bytes": "{BASE}/start.json", "hex": "7b2276223a20ff7d"},
+      {"run": "check", "policy": "{BASE}/start.json"},
+      {"bytes": "{BASE}/cont.json", "hex": "7bc3287d"},
+      {"run": "check", "policy": "{BASE}/cont.json"},
+      {"bytes": "{BASE}/three.json", "hex": "7be282287d"},
+      {"run": "check", "policy": "{BASE}/three.json"},
+      {"bytes": "{BASE}/end.json", "hex": "7b2261223ae282"},
+      {"run": "check", "policy": "{BASE}/end.json"},
+      {"bytes": "{BASE}/overlong.json", "hex": "7be080af7d"},
+      {"run": "check", "policy": "{BASE}/overlong.json"},
+      {"bytes": "{BASE}/surrogate.json", "hex": "7beda0807d"},
+      {"run": "check", "policy": "{BASE}/surrogate.json"},
+      {"bytes": "{BASE}/four.json", "hex": "7bf09f98"},
+      {"run": "check", "policy": "{BASE}/four.json"},
+      {"bytes": "{BASE}/f4.json", "hex": "7bf4908080"},
+      {"run": "check", "policy": "{BASE}/f4.json"}]}
+  ]
+}

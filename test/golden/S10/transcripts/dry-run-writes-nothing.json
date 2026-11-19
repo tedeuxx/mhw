@@ -1,0 +1,23 @@
+{
+  "name": "dry-run-writes-nothing",
+  "runs": [
+    {
+      "code": 0,
+      "stdout": "WOULD CHANGE <BASE>/home/.claude/settings.json: model (absent) -> \"claude-opus-5-5[1m]\"; effortLevel (absent) -> \"medium\" (model defaults claude-code; backup settings.json.pmhwc-models-backup)\nWOULD CHANGE <BASE>/home/.codex/config.toml: model (absent) -> \"gpt-5.6-sol\"; model_reasoning_effort (absent) -> \"medium\" (model defaults codex; backup config.toml.pmhwc-models-backup)\nWOULD CHANGE <BASE>/home/.kiro/settings/cli.json: chat.defaultModel (absent) -> \"claude-sonnet-4.5\" (model defaults kiro-cli; backup cli.json.pmhwc-models-backup)\nWOULD WRITE <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (the record of the model-default keys mhw set)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    }
+  ]
+}

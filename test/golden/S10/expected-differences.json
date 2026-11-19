@@ -1,0 +1,53 @@
+{
+  "comment": "differences: each pattern is replaced with <DECLARED> on both sides of the named case's stream before the transcripts are compared; nothing else may differ. residuals: behaviours no golden case exercises, named so they are not discovered later (#470, convention 3).",
+  "differences": [
+    {
+      "case": "edit-that-would-not-parse-is-refused",
+      "stream": "stdout",
+      "pattern": "unparseable \\(.*\\); nothing written",
+      "why": "The parse guard's reason comes from the TOML parser that ran it: the original used CPython's tomllib (Cannot overwrite a value (at line 7, column 20)); the port uses the vendored smol-toml 1.9.1 (Invalid TOML document: trying to redefine an already defined table or value). The refusal itself, the exit code 3, the untouched file, the absent backup and the record are unchanged and still compared."
+    },
+    {
+      "case": "codex-python-line-breaks-and-whitespace",
+      "stream": "stdout",
+      "pattern": "unparseable \\(.*\\); nothing written",
+      "why": "Same as edit-that-would-not-parse-is-refused: only the parser's reason in the parentheses differs (tomllib Expected '=' after a key in a key/value pair; smol-toml Invalid TOML document: illegal character in key). Both refuse the same edit, which is the str.splitlines() split of a form feed and a line separator the port reproduces."
+    },
+    {
+      "case": "codex-bom-first-line",
+      "stream": "stdout",
+      "pattern": "unparseable \\(.*\\); nothing written",
+      "why": "Same as edit-that-would-not-parse-is-refused: only the parser's reason differs (tomllib Invalid statement (at line 3, column 1); smol-toml Invalid TOML document: illegal character in key). Both keep the byte-order mark the utf-8 codec keeps, and both refuse."
+    }
+  ],
+  "residuals": [
+    {
+      "what": "The parse guard is smol-toml 1.9.1 plus a TOML 1.0 check, not tomllib.",
+      "why": "The original refused an edit tomllib (TOML 1.0) could not parse. The port parses with the vendored smol-toml, keeping integers past 2^53 (integersAsBigInt asNeeded), then src/render/toml-guard.js refuses the forms smol-toml accepts and tomllib does not: a newline or a trailing comma inside an inline table, the \\e and \\x escapes, a time without seconds, a calendar-impossible date, and a byte-order mark outside a string. test/golden/S10/toml-guard.json pins accept or refuse per document against tomllib's answers (58 documents, recorded from CPython 3.14.6). A document outside that table on which the two parsers still disagree is not known; where one exists, the error runs either way (Node refusing what Python wrote, or writing what Python refused). The guard also runs where the original skipped it, on Python 3.9 and 3.10, which had no tomllib."
+    },
+    {
+      "what": "The reason inside a parse-guard refusal is the port's own text.",
+      "why": "A refusal names smol-toml's first message line or \"Invalid TOML 1.0 document: <form>\", never tomllib's message. The refusal, its exit code 3 and the untouched file are what the goldens compare; three golden cases mask the reason (differences above)."
+    },
+    {
+      "what": "Integer-like JSON keys are written first.",
+      "why": "A JavaScript object orders keys that look like array indexes (\"0\", \"42\") before the others; CPython keeps insertion order. A settings.json or cli.json carrying such a key would be rewritten with it moved first: the same JSON value, different bytes. The policy's harness names and the record's file paths cannot be integer-like. No harness settings file in use carries one."
+    },
+    {
+      "what": "On Windows, stdout lines end in \\n.",
+      "why": "Python's print wrote \\r\\n to a Windows console or pipe; Node writes \\n. install.ps1 reads the step's output as lines, so nothing it checks changes. Files the renderer writes still get \\r\\n on Windows, as Python's text mode wrote them."
+    },
+    {
+      "what": "A crash prints a Node stack, not a Python traceback.",
+      "why": "Where the original raised an exception it did not catch (a record entry that is not an object, a lone surrogate it cannot encode), the port throws too and exits 1. The message on stderr is Node's."
+    },
+    {
+      "what": "JSON nested about 3,000 levels deep is refused as unreadable.",
+      "why": "src/lib/py.js reads and writes JSON recursively and runs out of stack near 3,000 levels (RangeError), so the port prints REFUSE ... not readable as its format and writes nothing, where CPython (about 100,000 levels before RecursionError) wrote the file. It errs toward writing nothing. No settings file in use nests near that depth."
+    },
+    {
+      "what": "A crash on a lone-surrogate record path prints a NOTE line first.",
+      "why": "A record path outside HOME holding a lone surrogate makes both versions exit 1, but the port prints its NOTE line for that path before it throws, while CPython raised before printing it. The exit code is the same; stdout has one more line."
+    }
+  ]
+}

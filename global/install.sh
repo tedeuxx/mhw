@@ -3,7 +3,7 @@
 # install the paste filter at the harness-CLI prompt (ADR-0010, ADR-0016, ADR-0011), and render the inner-loop allow
 # list (allow-list.conf; ADR-0031: wide only while the admin deny floor is complete), and set each harness's
 # session-start default model and effort from overlay/model-defaults.json (ADR-0007, ADR-0035;
-# global/models/model_defaults.py). The stale-session restart guard
+# src/render/model-defaults.js). The stale-session restart guard
 # (ADR-0022) and the /breaking-glass switches (ADR-0024) were removed (ADR-0028), and so was the HITL
 # picker guard (ADR-0013, 2026-10-05 amendment, Issue #60): a run of this installer deletes what an
 # earlier version wrote for them, and --check reports it as STALE.
@@ -1001,19 +1001,32 @@ method_step() {
 }
 # The session-start default model and reasoning effort per agent harness (ADR-0007, ADR-0035), from
 # the overlay's model-defaults.json, written into each harness's own user-level key by
-# global/models/model_defaults.py. The pinned value is written whatever the key holds (Issue #145),
-# reported old -> new; a value of the owner's it replaces is recorded, so uninstall restores it, and
-# removes the keys that had none. With no overlay file the policy is empty: keys it set earlier are
-# undone the same way while they still hold its value.
+# src/render/model-defaults.js (Node since #481, S10 of #470; global/models/model_defaults.py until then).
+# The pinned value is written whatever the key holds (Issue #145), reported old -> new; a value of the
+# owner's it replaces is recorded, so uninstall restores it, and removes the keys that had none. With no
+# overlay file the policy is empty: keys it set earlier are undone the same way while they still hold its
+# value. node: the one bin/mhw.js runs on (MHW_NODE, an absolute path), else the first node on PATH. An
+# absolute MHW_NODE that is not an executable file is refused, never replaced by another node (PR #515
+# lens A1): the run names the node it was given. The version (26 or later) is not checked here.
 models_step() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "SKIP    the session-start model defaults: python3 3.9 or later is required"
-    raise 2
-    return 0
-  fi
+  models_node=${MHW_NODE:-}
+  case $models_node in
+    /*) if [ ! -f "$models_node" ] || [ ! -x "$models_node" ]; then
+          echo "REFUSE  the session-start model defaults: MHW_NODE ($models_node) is not an executable file; nothing written"
+          raise 2
+          return 0
+        fi ;;
+    *) models_node=$(command -v node 2>/dev/null || true) ;;
+  esac
+  case $models_node in
+    /*) ;;
+    *) echo "SKIP    the session-start model defaults: node (26 or later) is required"
+       raise 2
+       return 0 ;;
+  esac
   models_policy=none
   if [ -n "$overlay" ] && [ -f "$overlay/model-defaults.json" ]; then models_policy="$overlay/model-defaults.json"; fi
-  python3 -B "$script_dir/models/model_defaults.py" "--mode=$mode" "--stamp=$stamp" "--policy=$models_policy" || raise $?
+  "$models_node" "$script_dir/../src/render/model-defaults.js" "--mode=$mode" "--stamp=$stamp" "--policy=$models_policy" || raise $?
 }
 # The deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036, Issue #144): the same validated floor, merged into
 # ~/.kiro/settings/permissions.yaml by src/render/kiro-permissions.js in Node (#482, S11 of #470), run by the
@@ -1022,9 +1035,17 @@ models_step() {
 # it appended them, never one of the owner's, unless his rule is byte-identical to the one it appended,
 # which it cannot tell apart. $1: another mode.
 kiro_step() {
+  # The node lookup of models_step (PR #515 lens A1): an absolute MHW_NODE that is not an executable file
+  # is refused, never replaced by another node.
   kiro_node=${MHW_NODE:-}
-  case $kiro_node in /*) { [ -f "$kiro_node" ] && [ -x "$kiro_node" ]; } || kiro_node= ;; *) kiro_node= ;; esac
-  [ -n "$kiro_node" ] || kiro_node=$(command -v node 2>/dev/null || true)
+  case $kiro_node in
+    /*) if [ ! -f "$kiro_node" ] || [ ! -x "$kiro_node" ]; then
+          echo "REFUSE  the Kiro deny floor: MHW_NODE ($kiro_node) is not an executable file; nothing written"
+          raise 2
+          return 0
+        fi ;;
+    *) kiro_node=$(command -v node 2>/dev/null || true) ;;
+  esac
   case $kiro_node in
     /*) ;;
     *) echo "SKIP    the Kiro deny floor: node (26 or later) is required"

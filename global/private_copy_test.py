@@ -22,7 +22,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 INSTALL_SH = HERE / "install.sh"
 SHARED = HERE / "private_copy.py"
-USERS = ("mcp/mcp_render.py", "models/model_defaults.py")  # kiro_permissions.py moved to Node in #482
+# models/model_defaults.py left at #481 and kiro/kiro_permissions.py at #482: both are Node now
+# (src/render/model-defaults.js, src/render/kiro-permissions.js), using src/lib/private-copy.js, held by
+# test/lib/private-copy.test.js.
+USERS = ("mcp/mcp_render.py",)
 _ROOT = Path(sys.argv.pop(1)) if len(sys.argv) > 1 else None
 if _ROOT is not None:
     _ROOT.mkdir(parents=True, exist_ok=True)

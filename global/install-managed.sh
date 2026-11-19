@@ -84,9 +84,15 @@ command -v jq >/dev/null 2>&1 || { echo "REFUSE  jq is required" >&2; exit 2; }
 kiro_node=
 case $mode in
   render|check|apply)
+    # install.sh's node lookup (PR #515 lens A1): an absolute MHW_NODE that is not an executable file is
+    # refused, never replaced by another node.
     kiro_node=${MHW_NODE:-}
-    case $kiro_node in /*) { [ -f "$kiro_node" ] && [ -x "$kiro_node" ]; } || kiro_node= ;; *) kiro_node= ;; esac
-    [ -n "$kiro_node" ] || kiro_node=$(command -v node 2>/dev/null || true)
+    case $kiro_node in
+      /*) if [ ! -f "$kiro_node" ] || [ ! -x "$kiro_node" ]; then
+            echo "REFUSE  MHW_NODE ($kiro_node) is not an executable file; nothing staged or installed" >&2; exit 2
+          fi ;;
+      *) kiro_node=$(command -v node 2>/dev/null || true) ;;
+    esac
     case $kiro_node in /*) ;; *) echo "REFUSE  node (26 or later) is required for the Kiro admin document" >&2; exit 2 ;; esac
     ;;
   *) ;; # uninstall and remove: no node

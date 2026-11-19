@@ -1113,7 +1113,7 @@ fi
 
 # 17. the session-start model defaults (ADR-0007, ADR-0035), through install.sh with the repository
 # overlay: written into each harness's native user key, --check reports drift, install never overwrites
-# an owner's value, uninstall removes only what mhw set. Per-case semantics: global/models/model_defaults_test.py.
+# an owner's value, uninstall removes only what mhw set. Per-case semantics: test/render/model-defaults.test.js.
 repo_overlay="$(cd "$(dirname "$0")/.." && pwd)/overlay"
 models_policy="$repo_overlay/model-defaults.json"
 hm="$base/home-models"; mkdir -p "$hm/.claude"

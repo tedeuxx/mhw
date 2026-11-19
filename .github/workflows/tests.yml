@@ -78,7 +78,6 @@ jobs:
             global/merge_authority.py global/merge_authority_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
-            global/models/model_defaults.py global/models/model_defaults_test.py \
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py \
             global/private_copy.py global/private_copy_test.py \
@@ -130,6 +129,26 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: npm test
+      # #481 (S10 of #470): the live arm of test/render/model-defaults.test.js compares the Node renderer
+      # with the base revision's model_defaults.py, and only on the CPython its goldens were recorded from
+      # (test/golden/S10/recorded-from.json). The runners carry other patch releases, so that CPython is
+      # installed here, after npm test, for this step alone. MHW_S10_LIVE_REQUIRED=1 turns the version skip
+      # into a failure while the base still holds model_defaults.py. POSIX only: the arm runs the base's
+      # Python there.
+      # actions/setup-python v6.3.0 (verified with git ls-remote 2026-11-19: refs/tags/v6.3.0).
+      - if: runner.os != 'Windows'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: 3.14.6
+      - name: S10 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S10_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          node --test --test-name-pattern="^live|tomllib" test/render/model-defaults.test.js
 
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
@@ -269,12 +288,8 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/method/method_render_test.py "$RUNNER_TEMP/method"
-      # ADR-0035: the session-start model and effort defaults, per agent harness, in throwaway HOMEs:
-      # render, check, drift (an owner's value is never overwritten) and uninstall of only what mhw set.
-      - name: model-defaults suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: python3 -B global/models/model_defaults_test.py "$RUNNER_TEMP/model-defaults"
+      # ADR-0035: the session-start model and effort defaults are Node since #481 (S10 of #470); their
+      # suite, test/render/model-defaults.test.js, runs in the node job (npm test) on all three OSes.
       # Issue #145: the one Python private_copy and install.sh's shell form, run on the same cases (both must
       # give a 0600 copy, unlink first, never write through a link); no Python step may define its own copy.
       - name: backup helper suite

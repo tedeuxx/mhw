@@ -12,9 +12,10 @@
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
 # <CODEX_HOME>\rules\workstation-deny-floor.rules and, through src\render\kiro-permissions.js (Node), into
 # %USERPROFILE%\.kiro\settings\permissions.yaml (ADR-0036). Since Issue #145 it also does what install.sh does
-# since v5.2.0, through the same Python scripts where there is one: the session-start model and effort are pinned
-# (global\models\model_defaults.py), and the retired find and awk allows leave permissions.allow. Those
-# steps need Python 3.9 or later; without it each prints SKIP and the run exits 2. The escalation rules
+# since v5.2.0, through the same scripts where there is one: the session-start model and effort are pinned
+# (src\render\model-defaults.js, Node since #481; it needs node 26 or later), and the retired find and awk allows
+# leave permissions.allow. The Python steps need Python 3.9 or later; without the interpreter a step needs, it
+# prints SKIP and the run exits 2. The escalation rules
 # (ADR-0013) are instructions on every OS; the HITL picker guard hook was never ported here and is removed
 # everywhere since Issue #60. The paste filter at the harness-CLI prompt and the paste wrapper (ADR-0011)
 # are not ported either: they run on the stock /usr/bin/python3 and a POSIX pty, which Windows does not
@@ -429,9 +430,17 @@ function Invoke-PyStep([string]$what, [string]$rel, [string[]]$a) {
 # by absolute path. It finds the file from the profile directory (USERPROFILE), and takes the floor as a
 # file, so the validated lines are handed over in a temporary file removed after it.
 function Invoke-Kiro {
+    # The node lookup of the model defaults step (PR #515 lens A1): an absolute MHW_NODE that is not a file is
+    # refused, never replaced by another node.
     $kiroNode = $null
-    if ($env:MHW_NODE -and [System.IO.Path]::IsPathRooted($env:MHW_NODE)) { $kiroNode = $env:MHW_NODE }
-    else {
+    if ($env:MHW_NODE -and [System.IO.Path]::IsPathRooted($env:MHW_NODE)) {
+        if (Test-Path -LiteralPath $env:MHW_NODE -PathType Leaf) { $kiroNode = $env:MHW_NODE }
+        else {
+            Write-Output "REFUSE  the Kiro deny floor: MHW_NODE ($($env:MHW_NODE)) is not a file; nothing written"
+            Set-Status 2
+            return
+        }
+    } else {
         $found = Get-Command node -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($found) { $kiroNode = $found.Source }
     }
@@ -460,7 +469,31 @@ $modelsPolicy = 'none'
 if ($Overlay -ne 'none' -and (Test-Path -LiteralPath (Join-Path $Overlay 'model-defaults.json') -PathType Leaf)) {
     $modelsPolicy = Join-Path $Overlay 'model-defaults.json'
 }
-Invoke-PyStep 'the session-start model defaults' 'models\model_defaults.py' @("--mode=$mode", "--stamp=$stamp", "--policy=$modelsPolicy", "--home=$home_")
+# Node since #481 (S10 of #470): the node bin\mhw.js runs on (MHW_NODE, an absolute path), else the first
+# node on PATH; a missing node is SKIP and exit 2, as install.sh. An absolute MHW_NODE that is not a file is
+# refused, never replaced by another node (PR #515 lens A1). The version (26 or later) is not checked here.
+$modelsNode = $null
+$modelsRefused = $false
+if ($env:MHW_NODE -and [System.IO.Path]::IsPathRooted($env:MHW_NODE)) {
+    if (Test-Path -LiteralPath $env:MHW_NODE -PathType Leaf) { $modelsNode = $env:MHW_NODE }
+    else {
+        Write-Output "REFUSE  the session-start model defaults: MHW_NODE ($($env:MHW_NODE)) is not a file; nothing written"
+        Set-Status 2
+        $modelsRefused = $true
+    }
+} else {
+    $cmd = Get-Command node -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($cmd) { $modelsNode = $cmd.Source }
+}
+if ($modelsRefused) {
+    # named above; no other node is run
+} elseif (-not $modelsNode) {
+    Write-Output "SKIP    the session-start model defaults: node (26 or later) is required"
+    Set-Status 2
+} else {
+    & $modelsNode (Join-Path (Split-Path -Parent $scriptDir) 'src\render\model-defaults.js') "--mode=$mode" "--stamp=$stamp" "--policy=$modelsPolicy" "--home=$home_"
+    Set-Status $LASTEXITCODE
+}
 
 # The user-level Claude Code allow entries the policy retired (ADR-0035 decision 4: find and awk, every
 # wildcard spelling), listed in global\allow-retired.conf: removed by name from permissions.allow only, as

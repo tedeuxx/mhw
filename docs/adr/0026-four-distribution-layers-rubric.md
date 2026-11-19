@@ -153,10 +153,11 @@ in force until the owner ratifies it.
 **The manifest.** [`distribution.json`](../../distribution.json) applies this rubric to the files
 `rc/next` tracks: every tracked file is listed in exactly one artifact, or in `not_distributed`.
 That holds under one precedence rule, which the manifest states in its `path_rules` field: **a
-`not_distributed` entry wins over an artifact's directory entry.** Without that rule, five test files
+`not_distributed` entry wins over an artifact's directory entry.** Without that rule, five test files (a count of that day: #206 and #481 have since deleted two of them)
 would sit in two places: `global/mcp/mcp_render_test.py`, `global/mcp/mcp_retire_test.py`,
 `global/method/method_commands_test.py`, `global/method/method_render_test.py` and
-`global/models/model_defaults_test.py`. Each matches both `*_test.py` and its component's directory.
+~~`global/models/model_defaults_test.py`~~ (deleted 2026-11-19, #481: the model defaults are Node, and
+their suite is `test/render/model-defaults.test.js`). Each matches both `*_test.py` and its component's directory.
 Nothing reads it. No check, test or CI job consumes it, and this amendment adds none: a check would be
 a new tool, owed its own record, as *Out of scope here* says. Each artifact's layer is the
 implementing agent's application of the test and is open to the owner's correction. Like the record,
