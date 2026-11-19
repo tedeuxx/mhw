@@ -77,7 +77,7 @@ const sha256 = (s) => crypto.createHash('sha256').update(utf8(s)).digest('hex');
 export const digest = (v) => sha256(canonical(v));
 
 // The reader filter: one of four strings at the start of the text or after whitespace or a backtick.
-const PRIVATE_TOKENS = ['/Users/', '/private/tmp/', 'file://', '.brand/'];
+const PRIVATE_TOKENS = ['/Users/', '/private/tmp/', 'file://', '.brand/']; // NOSONAR javascript:S5443 - literals that REFUSE machine-local paths in published text; nothing opens a directory
 /** PRIVATE_EVIDENCE.search(text) of the Python. @param {string} text */
 export function privateEvidence(text) {
   const cps = Array.from(text);
@@ -93,7 +93,7 @@ export function privateEvidence(text) {
 // The producer filter (#514): any of these anywhere, case-insensitively as CPython's re.IGNORECASE
 // matches an ASCII letter: also U+0130 and U+0131 for i, U+017F for s and U+212A for k (measured over
 // every code point on CPython 3.14). The Windows drive form needs a word boundary before the letter.
-const STRICT_TOKENS = ['/tmp/', '~/', '/var/folders/', '/home/', '/users/', '/private/', 'file://'];
+const STRICT_TOKENS = ['/tmp/', '~/', '/var/folders/', '/home/', '/users/', '/private/', 'file://']; // NOSONAR javascript:S5443 - literals that REFUSE machine-local paths in published text; nothing opens a directory
 /** @type {Record<string, string>} */
 const FOLD_EXTRA = { '\u0130': 'i', '\u0131': 'i', '\u017f': 's', '\u212a': 'k' };
 /** The ASCII letter c matches case-insensitively, or c. @param {string} c */
@@ -1032,7 +1032,7 @@ export function parseArgs(command, argv) {
       value = a.slice(eq + 1);
     } else {
       const next = argv[i + 1];
-      if (next === undefined || (next.startsWith('-') && next !== '-' && !NEGATIVE.test(next))) throw new UsageError('argument ' + name + ': expected one argument');
+      if (i + 1 >= argv.length || (next.startsWith('-') && next !== '-' && !NEGATIVE.test(next))) throw new UsageError('argument ' + name + ': expected one argument');
       value = next;
       i++;
     }

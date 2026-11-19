@@ -18,6 +18,9 @@ import { which } from '../helpers/home.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PY = process.platform === 'win32' ? null : which('python3');
+const RECORDED = readGolden('S05', 'recorded-from.json').cpython;
+/** The python3 version on PATH, major.minor.micro, or ''. */
+const pythonVersion = () => (PY ? spawnSync(PY, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim() : '');
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-py-'));
 after(() => fs.rmSync(work, { recursive: true, force: true }));
 
@@ -146,13 +149,15 @@ for (const kind of Object.keys(GEN)) {
   });
   test('live: ' + kind + ' against the python3 on PATH', { skip: !PY && 'needs python3 (POSIX)' }, (t) => {
     const cases = GEN[kind]();
-    const answers = cpython(kind, cases);
-    if (UPDATE) writeGolden('S05', 'py-' + kind + '.json', { cases, answers });
-    const v = spawnSync(/** @type {string} */ (PY), ['-c', 'import sys; print(sys.version_info[:2] >= (3, 14))'], { encoding: 'utf8' }).stdout.trim();
-    if (v !== 'True') {
-      t.diagnostic('python3 is older than 3.14, the version the golden was recorded from: fromisoformat (24:00), the json error texts (3.13) and sum() of ints among floats (3.14) differ there, so only the golden arm is binding');
+    // The golden is the binding oracle: the CPython it was recorded from (QA on PR #510: another patch
+    // release answered "+00:99" differently). Any other python3 is not compared, and says so.
+    const v = pythonVersion();
+    if (v !== RECORDED && !UPDATE) {
+      t.skip('python3 on PATH is ' + (v || 'unknown') + '; the golden was recorded from CPython ' + RECORDED + ', and only that one is compared');
       return;
     }
+    const answers = cpython(kind, cases);
+    if (UPDATE) writeGolden('S05', 'py-' + kind + '.json', { cases, answers });
     const bad = cases.map((c, i) => [c, answers[i], NODE[kind](c)]).filter((x) => JSON.stringify(x[1]) !== JSON.stringify(x[2]));
     assert.deepEqual(bad.slice(0, 10), []);
   });

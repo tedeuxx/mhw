@@ -18,7 +18,7 @@ import { spawnSync } from 'node:child_process';
 import { CASES, CHECKOUT_NAME } from '../helpers/s05-cases.js';
 import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
 import { which } from '../helpers/home.js';
-import { extractRevision } from '../helpers/parity.js';
+import { extractRevision, snapshotTree } from '../helpers/parity.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SLICE = 'S05';
@@ -31,7 +31,7 @@ const cleanups = /** @type {Array<() => void>} */ ([]);
 after(() => cleanups.forEach((c) => c()));
 
 /** @typedef {import('../helpers/s05-cases.js').Case} Case */
-/** @typedef {{ code: number | null, stdout: string, stderr: string }} Result */
+/** @typedef {{ code: number | null, stdout: string, stderr: string, written?: string }} Result */
 /** @typedef {(c: Case, args: string[], cwd: string, env: Record<string, string>) => Result} Runner */
 
 /** A fresh, resolved directory for one case. */
@@ -57,15 +57,25 @@ function transcript(c, runner) {
   /** @type {Record<string, string>} */
   const env = {};
   for (const [k, v] of Object.entries(process.env)) if (v !== undefined) env[k] = v;
-  Object.assign(env, { TMPDIR: d, TEMP: d, TMP: d, PYTHONDONTWRITEBYTECODE: '1', PYTHONIOENCODING: 'utf-8', LC_ALL: 'C.UTF-8' });
+  // AC 4 of #476: every command runs on a fresh throwaway HOME, never the real one, and nothing it runs
+  // may write: the whole case directory (the HOME inside it) is compared, content and mode, before and after.
+  const home = path.join(d, 'home');
+  fs.mkdirSync(home);
+  Object.assign(env, { HOME: home, USERPROFILE: home, TMPDIR: d, TEMP: d, TMP: d, PYTHONDONTWRITEBYTECODE: '1', PYTHONIOENCODING: 'utf-8', LC_ALL: 'C.UTF-8' });
+  const before = JSON.stringify(snapshotTree(d));
   const r = runner(c, c.args.map(fill), d, env);
+  const after = JSON.stringify(snapshotTree(d));
   /** @param {string} s */
   const norm = (s) => {
     let out = s.replace(/\r\n/g, '\n').split(co).join('<CO>').split(d).join('<D>');
-    if (!POSIX) out = out.split(co.replace(/\\/g, '\\\\')).join('<CO>').split(d.replace(/\\/g, '\\\\')).join('<D>');
+    if (!POSIX) {
+      out = out.split(co.replace(/\\/g, '\\\\')).join('<CO>').split(d.replace(/\\/g, '\\\\')).join('<D>');
+      // A Windows separator after a placeholder (one backslash, or two inside a repr) reads as "/".
+      out = out.replace(/<(D|CO)>\\{1,2}/g, '<$1>/');
+    }
     return out;
   };
-  return { code: r.code, stdout: norm(r.stdout), stderr: norm(r.stderr) };
+  return { code: r.code, stdout: norm(r.stdout), stderr: norm(r.stderr), written: before === after ? '' : 'the command changed the case directory or its HOME\n--- before\n' + before + '\n--- after\n' + after };
 }
 
 /** @type {Runner} */
@@ -82,6 +92,8 @@ const node = (c, args, cwd, env) => {
  */
 function differences(name, original, head) {
   const diffs = [];
+  if (head.written) diffs.push(name + ': ' + head.written);
+  if (original.written) diffs.push(name + ' (original): ' + original.written);
   if (original.code !== head.code) diffs.push(name + ': exit ' + original.code + ' -> ' + head.code);
   for (const stream of /** @type {const} */ (['stdout', 'stderr'])) {
     const rules = expected.filter((e) => (e.case === name || e.case === '*') && e.stream === stream);
@@ -133,10 +145,11 @@ function pythonBase() {
   if (!extractRevision(ROOT, base, path.join(dest, 'tree'))) return 'base revision ' + base + ' is not readable here';
   const scripts = path.join(dest, 'tree', 'method', 'scripts');
   if (!fs.existsSync(path.join(scripts, 'worklog.py'))) return 'the base revision no longer holds the Python (this slice has merged)';
-  // The golden was recorded from CPython 3.14; an older one answers some edges differently (fromisoformat's
-  // 24:00, json's trailing-comma text, sum() of an int among floats), and only the golden arm is binding.
-  const v = spawnSync(PY, ['-c', 'import sys; print(sys.version_info[:2] >= (3, 14))'], { encoding: 'utf8' }).stdout.trim();
-  if (v !== 'True') return 'python3 is older than 3.14, the version the golden transcripts were recorded from';
+  // The golden is the binding oracle, recorded from one CPython (QA on PR #510: another patch release
+  // answered "+00:99" differently); any other python3 is not compared, and says so.
+  const recorded = readGolden(SLICE, 'recorded-from.json').cpython;
+  const v = spawnSync(PY, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim();
+  if (v !== recorded) return 'python3 on PATH is ' + (v || 'unknown') + '; the golden was recorded from CPython ' + recorded + ', and only that one is compared';
   return scripts;
 }
 
@@ -161,7 +174,7 @@ test('live: the Python and the Node side by side', (t) => {
     recorded[c.name] = original;
     diffs.push(...differences(c.name, original, transcript(c, node)));
   }
-  if (UPDATE) writeGolden(SLICE, 'transcripts.json', recorded);
+  if (UPDATE) writeGolden(SLICE, 'transcripts.json', Object.fromEntries(Object.entries(recorded).map(([k, v]) => [k, { code: v.code, stdout: v.stdout, stderr: v.stderr }])));
   assert.deepEqual(diffs, []);
 });
 
