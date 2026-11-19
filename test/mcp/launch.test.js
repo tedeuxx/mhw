@@ -8,6 +8,7 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -338,6 +339,30 @@ test('SIGINT, SIGTERM and SIGHUP sent to the launcher reach the server, and its 
   const r = await done;
   assert.equal(r.signal, 'SIGTERM');
   assert.ok(!alive(server.pid), 'the server is gone');
+});
+
+test('a server dying of SIGUSR1 or SIGPIPE: the launcher exits 128+n and never opens the inspector', bounded, async () => {
+  for (const s of /** @type {NodeJS.Signals[]} */ (['SIGUSR1', 'SIGPIPE'])) {
+    // A shell, not the node fake: node itself opens the inspector on SIGUSR1 and ignores SIGPIPE.
+    const r = await run('cli', ['--secret', 'T=env:SRC_VAR', '--', '/bin/sh', '-c', 'kill -' + s.slice(3) + ' $$'], { env: { ...BASE_ENV, SRC_VAR: synthetic() } });
+    assert.equal(r.signal, null, s + ': not re-raised');
+    assert.equal(r.code, 128 + os.constants.signals[s], s);
+    assert.ok(!r.stderr.includes('Debugger listening'), s + ': the inspector opened: ' + r.stderr);
+    assert.equal(r.stderr, '', s);
+  }
+});
+
+test('SIGUSR1 sent to the launcher reaches the server and never opens the inspector', bounded, async () => {
+  for (const entry of /** @type {Entry[]} */ (['cli', 'file'])) {
+    const mark = fresh('usr1.json');
+    const { child, done } = start(entry, ['--secret', 'T=env:SRC_VAR', '--', NODE, FAKE, 'trap', mark], { env: { ...BASE_ENV, SRC_VAR: synthetic() } });
+    await until(mark);
+    child.kill('SIGUSR1');
+    const r = await done;
+    assert.equal(r.code, 0, entry + ': ' + r.stderr);
+    assert.equal(fs.readFileSync(mark + '.sig', 'utf8'), 'SIGUSR1\n', entry);
+    assert.ok(!r.stderr.includes('Debugger listening'), entry + ': the inspector opened');
+  }
 });
 
 test('no orphan: a launcher killed with SIGKILL takes the server down with it', bounded, async () => {

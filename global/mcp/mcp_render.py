@@ -181,9 +181,15 @@ def launcher_for(doc, required=True):
     required=False (the active set, which only compares entries) the bare word node stands in."""
     if not any(s.get("secrets") for s in doc["servers"].values()):
         return None
+    if not required:
+        # The active set only compares entries and never starts node: it must not refuse its own control
+        # on a node condition (PR #516 lens O1), so any lookup failure stands in as the bare word node.
+        try:
+            node = node_binary()
+        except Refuse:
+            node = None
+        return (node or "node", launcher_dest())
     node = node_binary()
-    if node is None and not required:
-        return ("node", launcher_dest())
     if node is None:
         raise Refuse(2, "a server with secrets is started by the Node launcher (mhw mcp launch, #483), and no node "
                         "was found (MHW_NODE, or node on PATH); install Node 26 or later")
@@ -199,6 +205,12 @@ def node_binary():
     node = os.environ.get("MHW_NODE", "")
     if os.path.isabs(node):
         if os.path.isfile(node) and os.access(node, os.X_OK):
+            # bin/mhw.js passes process.execPath, which is the resolved, versioned path (a Homebrew Cellar
+            # directory that an upgrade removes). node on PATH, when it is the same file, is the stable
+            # name (/opt/homebrew/bin/node), so it is the one rendered (PR #516 lens A1).
+            found = shutil.which("node")
+            if found and os.path.isabs(found) and os.path.realpath(found) == os.path.realpath(node):
+                return found
             return node
         raise Refuse(2, "REFUSE  the MCP launcher: MHW_NODE (%s) is not an executable file; nothing written" % node)
     found = shutil.which("node")
@@ -362,7 +374,7 @@ def validate(doc, platform=sys.platform, covered=None):
             else:
                 errs.append('%s: secret %r: the source must be "keychain:<service>" or "env:<VAR>"' % (where, k))
         if secrets and platform == "win32":
-            errs.append("%s: secrets need the POSIX launcher, which is not available on Windows" % where)
+            errs.append("%s: secrets are not supported on Windows (the launcher is not rendered there)" % where)
         if "active_set" in doc and isinstance(surfaces, list) and any(
                 x not in surfaces and x not in covered.get(name, ()) for x in PARITY):
             errs.append("%s: the active set is on in Claude Code, Codex and Kiro alike (Issue #219, parity), so "
@@ -801,10 +813,10 @@ class Run:
                 return False
             if current == text and stat.S_IMODE(os.stat(dest).st_mode) == 0o700:
                 self.say("OK", dest, self.stamp)
-                return self.retire_legacy()
+                return True
             if (unstamp(current) == unstamp(text) and stat.S_IMODE(os.stat(dest).st_mode) == 0o700
                     and not self.restamp(dest, stamp_of(current))):
-                return self.retire_legacy()
+                return True
         if self.mode == "check":
             self.say("DRIFT" if os.path.exists(dest) else "MISSING", dest)
             self.raise_(1)
@@ -814,28 +826,47 @@ class Run:
             atomic_write(dest, text, backup=False)
             os.chmod(dest, 0o700)  # owner-only: only the owner's own harness processes run it
             self.say("WROTE", dest)
-        return self.retire_legacy()
+        return True
 
-    def retire_legacy(self):
-        """The shell launcher an earlier release installed (#483). Removed on install once the Node one is
-        in place, only when it carries this project's marker; an unmanaged file there is left alone."""
+    def retire_legacy(self, configs):
+        """The shell launcher an earlier release installed (#483), once nothing can still run it. Called after
+        every surface was rendered. Only a file carrying this project's marker; an unmanaged one is left
+        alone. Install removes it only when this run refused nothing and no surface config (configs) still
+        names its path: a refused surface keeps its entries, and a refused server keeps its earlier copy, and
+        either may still start the shell launcher (PR #516 lens B2)."""
         old = legacy_launcher()
         try:
             with open(old, encoding="utf-8", errors="replace") as fh:
                 head = "".join(fh.readlines()[:5])
         except OSError:
-            return True
+            return
         if MARKER_ID not in head:
-            return True
+            return
         if self.mode == "check":
             self.say("STALE", old, "the retired shell launcher; install removes it")
             self.raise_(1)
+            return
+        named = []
+        for path in configs:
+            try:
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    if old in fh.read():
+                        named.append(path)
+            except OSError:
+                continue
+        if self.status:
+            why = "this run refused something, and what it left as it was may still start it"
+        elif named and self.mode != "dry-run":
+            why = "still named by " + ", ".join(named)
+        else:
+            why = ""
+        if why:
+            self.say("KEPT", old, "the retired shell launcher; " + why)
         elif self.mode == "dry-run":
             print("WOULD REMOVE %s (the retired shell launcher)" % old)
         else:
             os.remove(old)
             self.say("REMOVED", old, "the retired shell launcher")
-        return True
 
     def codex(self, path, want):
         exists = os.path.exists(path)
@@ -1017,6 +1048,8 @@ def render(mode, source, surfaces, adopt):
         mdoc = load_manifest_doc()
         mdoc.update({"surfaces": new_manifest, "stamps": new_stamps})
         write_manifest(mdoc)
+    if launcher is not None:
+        run.retire_legacy([t[0] for t in (surface_target(x) for x in SURFACES) if t is not None])
     return run.status
 
 

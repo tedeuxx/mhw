@@ -30,6 +30,8 @@ const FAKE = path.join(ROOT, 'test', 'helpers', 'mcp-fake-server.js');
 const GIT = which('git');
 const PY = POSIX ? which('python3') : null;
 const PROJECT = 'personal-multi-harness-workstation-configuration';
+const PATH_NODE = which('node');
+const STABLE_NODE = PATH_NODE && PATH_NODE !== NODE && fs.realpathSync(PATH_NODE) === fs.realpathSync(NODE) ? PATH_NODE : null;
 const h = throwawayHome('mcp-golden');
 after(() => h.cleanup());
 const BASE_ENV = { ...h.env, PATH: path.dirname(NODE) + path.delimiter + h.env.PATH };
@@ -209,6 +211,8 @@ function playRender(c, renderer) {
   const env = { PATH: BASE_ENV.PATH, HOME: home, LANG: 'C.UTF-8', MHW_NODE: NODE };
   /** @type {Array<[string, string]>} */
   const subs = [[path.join(data, 'mcp-launch.sh'), '<LAUNCHER>'], [path.join(data, 'mcp-launch.mjs'), '<LAUNCHER>'], [home, '<HOME>'], [NODE, '<NODE>']];
+  // The renderer names node on PATH when it is the same file as MHW_NODE (the stable name, PR #516 A1).
+  if (STABLE_NODE) subs.push([STABLE_NODE, '<NODE>']);
   const stamp = /release: [^;\n]*; commit: [^;\n")]*/g;
   /** @type {Record<string, unknown>} */
   const out = {};

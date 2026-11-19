@@ -749,6 +749,143 @@ class Render(unittest.TestCase):
         self.assertTrue(os.path.exists(old), "an unmanaged file at the old launcher path was removed")
         self.assertNotIn(old, p.stdout)
 
+    def _as_legacy(self, h, surface, name):
+        """Make an entry look like an earlier release rendered it: command = the shell launcher, which exists
+        and carries the marker. Returns the launcher's path."""
+        old = os.path.join(data(h), "mcp-launch.sh")
+        with open(old, "w") as fh:
+            fh.write("#!/bin/sh\n# %s; source: global/mcp/mcp-launch.sh; x; do not edit\nexec \"$@\"\n" % r.MARKER_ID)
+        path = targets(h)[surface]
+        doc = jload(path)
+        e = doc["mcpServers"][name]
+        e["command"], e["args"] = old, e["args"][1:]
+        with open(path, "w") as fh:
+            json.dump(doc, fh, indent=2)
+        return old
+
+    def test_a_refused_surface_keeps_the_retired_launcher_its_entries_still_run(self):
+        # PR #516 lens B2: a surface refused this run keeps its entries as they were, and an entry from the
+        # earlier release still starts mcp-launch.sh, so install must not remove it.
+        h = mk_home("home-legacy-refused")
+        write_source(h, source_doc())
+        self.assertEqual(run(h).returncode, 0)
+        old = self._as_legacy(h, "kiro", "fake-secret")
+        doc = jload(targets(h)["kiro"])
+        doc["mcpServers"]["hand-b"] = {"command": "/bin/true"}
+        with open(targets(h)["kiro"], "w") as fh:
+            json.dump(doc, fh)
+        write_source(h, source_doc({"hand-b": {"command": "/bin/echo", "secrets": {"B_TOKEN": "env:B_SRC"}}}))
+        p = run(h)
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertIn("REFUSE  %s" % targets(h)["kiro"], p.stderr)
+        self.assertIn("KEPT    %s" % old, p.stdout)
+        self.assertTrue(os.path.exists(old), "the shell launcher a kept kiro entry runs was removed")
+        self.assertEqual(jload(targets(h)["kiro"])["mcpServers"]["fake-secret"]["command"], old)
+        # Once the surface renders again, nothing names it any more, and install removes it.
+        doc = jload(targets(h)["kiro"])
+        del doc["mcpServers"]["hand-b"]
+        with open(targets(h)["kiro"], "w") as fh:
+            json.dump(doc, fh)
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("REMOVED %s" % old, p.stdout)
+        self.assertFalse(os.path.exists(old))
+
+    def test_a_refused_servers_kept_copy_keeps_the_retired_launcher(self):
+        # PR #516 lens B2, the held-copy case: a policy server whose local copy now conflicts with the policy
+        # is refused on every surface, and the copy mhw wrote earlier is kept as it is. If that copy still
+        # starts mcp-launch.sh, install keeps the file.
+        h = mk_home("home-legacy-held")
+        local = {"command": "/bin/echo", "secrets": {"C_TOKEN": "env:C_SRC"}, "surfaces": ["kiro"]}
+        write_source(h, source_doc({"chrome-devtools": dict(local)}))
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        old = self._as_legacy(h, "kiro", "chrome-devtools")
+        conflicting = dict(local)
+        del conflicting["surfaces"]  # now on the policy's own surface too, where it differs: refused
+        write_source(h, source_doc({"chrome-devtools": conflicting}))
+        p = run(h)
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertEqual(jload(targets(h)["kiro"])["mcpServers"]["chrome-devtools"]["command"], old,
+                         "the refused server's earlier copy is kept as it was")
+        self.assertIn("KEPT    %s" % old, p.stdout)
+        self.assertTrue(os.path.exists(old), "the shell launcher a held copy runs was removed")
+
+    def _legacy_file(self, h):
+        old = os.path.join(data(h), "mcp-launch.sh")
+        with open(old, "w") as fh:
+            fh.write("#!/bin/sh\n# %s; source: global/mcp/mcp-launch.sh; x; do not edit\nexec \"$@\"\n" % r.MARKER_ID)
+        return old
+
+    def test_any_refusal_keeps_the_retired_launcher_even_when_nothing_names_it(self):
+        # B2, the first condition alone: a run that refused something removes nothing, since what it left
+        # as it was may still start the shell launcher in a way a text search does not see.
+        h = mk_home("home-legacy-any-refusal")
+        write_source(h, source_doc())
+        self.assertEqual(run(h).returncode, 0)
+        old = self._legacy_file(h)
+        with open(targets(h)["kiro"], "w") as fh:
+            fh.write("{ not json")
+        p = run(h)
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertIn("KEPT    %s" % old, p.stdout)
+        self.assertTrue(os.path.exists(old))
+
+    def test_a_config_that_names_the_retired_launcher_keeps_it_without_a_refusal(self):
+        # B2, the second condition alone: a hand-made entry (not mhw's) that starts the shell launcher keeps
+        # it, in a run that refused nothing.
+        h = mk_home("home-legacy-hand-named")
+        write_source(h, source_doc())
+        self.assertEqual(run(h).returncode, 0)
+        old = self._legacy_file(h)
+        doc = jload(targets(h)["kiro"])
+        doc["mcpServers"]["hand-made"] = {"command": old, "args": ["--", "/bin/true"]}
+        with open(targets(h)["kiro"], "w") as fh:
+            json.dump(doc, fh)
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("KEPT    %s (the retired shell launcher; still named by %s)" % (old, targets(h)["kiro"]), p.stdout)
+        self.assertTrue(os.path.exists(old))
+
+    def test_the_active_set_never_refuses_on_a_node_condition(self):
+        # PR #516 lens O1: launcher_for(required=False) compares entries only, so a bad MHW_NODE stands in
+        # as the bare word node instead of refusing the active-set control.
+        doc = source_doc()
+        saved = os.environ.get("MHW_NODE")
+        os.environ["MHW_NODE"] = os.path.join(BASE, "no-such-node")
+        try:
+            self.assertEqual(r.launcher_for(doc, required=False), ("node", r.launcher_dest()))
+            with self.assertRaises(r.Refuse) as cm:
+                r.launcher_for(doc)
+            self.assertEqual(cm.exception.code, 2)
+        finally:
+            if saved is None:
+                os.environ.pop("MHW_NODE", None)
+            else:
+                os.environ["MHW_NODE"] = saved
+
+    @unittest.skipIf(sys.platform == "win32", "a symlink to node")
+    def test_the_stable_node_on_path_is_rendered_for_the_same_file(self):
+        # PR #516 lens A1: bin/mhw.js passes process.execPath, the resolved and versioned path; node on PATH
+        # is rendered when it is the same file, so an upgrade that removes the versioned path does not break.
+        d = os.path.join(BASE, "stable-bin")
+        os.makedirs(d, exist_ok=True)
+        link = os.path.join(d, "node")
+        if not os.path.lexists(link):
+            os.symlink(os.path.realpath(NODE), link)
+        saved = {k: os.environ.get(k) for k in ("MHW_NODE", "PATH")}
+        os.environ["MHW_NODE"], os.environ["PATH"] = os.path.realpath(NODE), d
+        try:
+            self.assertEqual(r.node_binary(), link)
+            os.environ["PATH"] = os.path.join(BASE, "empty-path")
+            self.assertEqual(r.node_binary(), os.path.realpath(NODE), "no node on PATH: MHW_NODE as given")
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
     def test_secrets_without_node_are_refused_and_nothing_is_written(self):
         # #483: a server with secrets runs under the Node launcher, by node's absolute path. With no node
         # (MHW_NODE unset, none on PATH) the render is refused before anything is written.

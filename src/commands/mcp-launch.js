@@ -26,8 +26,9 @@
 //
 // Node cannot exec in place, so this process stays as the server's parent. The server inherits stdin,
 // stdout and stderr themselves (no copy in between), so the server is still the process the harness
-// talks to, byte for byte. SIGINT, SIGTERM and SIGHUP are forwarded to it; its exit code is this
-// process's exit code, and a server killed by a signal makes this process die of the same signal. A
+// talks to, byte for byte. SIGINT, SIGTERM, SIGHUP and SIGUSR1 are forwarded to it; its exit code is this
+// process's exit code, and a server killed by a signal makes this process die of the same signal, except
+// SIGUSR1 and SIGPIPE (exit 128+n; see NOT_RERAISED). A
 // small watcher process, holding nothing but a pipe from this process and the server's pid, stops the
 // server if this process is killed in a way no handler sees (SIGKILL), so the server is never orphaned.
 import fs from 'node:fs';
@@ -39,6 +40,12 @@ export const SECURITY = '/usr/bin/security';
 const USAGE = 'mhw mcp launch [--secret NAME=SOURCE]... -- command [args...]';
 const NAME_RE = /^[A-Za-z_]\w*$/;
 export const FORWARDED = /** @type {const} */ (['SIGINT', 'SIGTERM', 'SIGHUP']);
+// SIGUSR1 is node's inspector trigger: with no listener, node opens a debugger on 127.0.0.1:9229 in the
+// process that read the secrets (measured, PR #516 lens B1). The launcher always listens for it, so the
+// inspector never opens, and forwards it to the server, which is where exec delivered it.
+// SIGUSR1 and SIGPIPE are never re-raised on the launcher: node opens the inspector on the one and ignores
+// the other, so a server that died of either makes the launcher exit 128+n instead.
+export const NOT_RERAISED = new Set(['SIGUSR1', 'SIGPIPE']);
 // How long the watcher waits after SIGTERM before SIGKILL, when this process died without a handler.
 const GRACE_MS = 2000;
 // The watcher: its stdin is a pipe from this process. A "d" byte means the server exited and this
@@ -48,8 +55,11 @@ const WATCHER = [
   'const stop = (s) => { try { process.kill(pid, s); } catch {} };',
   'process.stdin.on("data", (b) => { if (b.includes(100)) done = true; });',
   'process.stdin.on("error", () => {});',
-  'process.stdin.on("close", () => { if (done) return;',
-  ' stop("SIGTERM"); setTimeout(() => stop("SIGKILL"), Number(process.argv[2])); });',
+  'const gone = () => { try { process.kill(pid, 0); return false; } catch { return true; } };',
+  'process.stdin.on("close", () => { if (done) return; stop("SIGTERM");',
+  ' const end = Date.now() + Number(process.argv[2]);',
+  // Poll, so a server that stopped on SIGTERM is not sent SIGKILL (its pid could be reused).
+  ' const t = setInterval(() => { if (gone()) clearInterval(t); else if (Date.now() >= end) { stop("SIGKILL"); clearInterval(t); } }, 50); });',
 ].join('\n');
 
 class Refusal extends Error {
@@ -189,6 +199,18 @@ function signalStatus(signal) {
  * @returns {number}
  */
 export function main(argv, env, opts = {}) {
+  // Installed first and never removed (see NOT_RERAISED): no SIGUSR1 can open the inspector.
+  /** @type {{ child?: import('node:child_process').ChildProcess }} */
+  const live = {};
+  if (process.platform !== 'win32') {
+    process.on('SIGUSR1', () => {
+      try {
+        if (live.child && live.child.exitCode === null && live.child.signalCode === null) live.child.kill('SIGUSR1');
+      } catch {
+        // the server is gone
+      }
+    });
+  }
   let p;
   try {
     p = plan(argv, env, opts.security || SECURITY);
@@ -201,6 +223,7 @@ export function main(argv, env, opts = {}) {
   }
   const [cmd, ...args] = p.command;
   const child = spawn(cmd, args, { env: p.childEnv, stdio: 'inherit' });
+  live.child = child;
   /** @type {Array<[NodeJS.Signals, () => void]>} */
   const handlers = FORWARDED.map((s) => [s, () => {
     try {
@@ -231,7 +254,7 @@ export function main(argv, env, opts = {}) {
     const finish = () => {
       if (signal) {
         process.exitCode = signalStatus(signal);
-        process.kill(process.pid, signal);
+        if (!NOT_RERAISED.has(signal)) process.kill(process.pid, signal);
       } else {
         process.exitCode = code === null ? 1 : code;
       }

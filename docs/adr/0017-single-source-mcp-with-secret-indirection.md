@@ -290,29 +290,52 @@ Ratification changes no evidence level stated above: it installs, loads or enfor
 
 ## Amendment 2026-11-19: the launcher is Node, `mhw mcp launch` ([#483](https://github.com/tedeuxx/mhw/issues/483), S12 of #470)
 
-`global/mcp/mcp-launch.sh` is deleted. The launcher is `src/commands/mcp-launch.js`, run as `mhw mcp
-launch` and, in use, as the copy the renderer installs beside its other managed files
+`global/mcp/mcp-launch.sh` is deleted. The launcher is `src/commands/mcp-launch.js`. It runs as `mhw
+mcp launch` and, in use, as the copy the renderer installs beside its other managed files
 (`<data dir>/mcp-launch.mjs`, 0700, with the marker line; the unmanaged-file refusal is unchanged). A
 server with secrets is now rendered as `<node> <that copy> --secret NAME=SOURCE ... -- <command>
-<args>`, with node by absolute path (`MHW_NODE`, else node on `PATH`), so a harness whose `PATH` has no
-node still starts it; with no node, or an absolute `MHW_NODE` that is not an executable file (the
-lookup `install.sh` uses since #481), the render is refused (exit 2) before anything is written. An
-earlier release's `mcp-launch.sh` in the data directory is removed on install when it carries the
-marker (`--check` names it `STALE`). Every argument and source rule, every message naming `NAME` and
-its source, and every exit code are the shell launcher's; the golden transcripts in
-`test/golden/S12/` hold that, with the intended differences listed beside them.
+<args>`. Node is named by absolute path, so a harness whose `PATH` has no node still starts it: the
+node that runs mhw (`MHW_NODE`), rendered as node on `PATH` when that is the same file, else node on
+`PATH`. With no node, or an absolute `MHW_NODE` that is not an executable file (the lookup `install.sh`
+uses since #481), the render is refused (exit 2) before anything is written. The active set
+(`--active`) only compares entries, so it never refuses on a node condition.
 
-What changed because Node cannot `exec` in place: the launcher stays as the server's parent. The
-server inherits stdin, stdout and stderr themselves, so it is still the process the harness talks to,
-byte for byte. SIGINT, SIGTERM and SIGHUP are forwarded; the server's exit code is the launcher's, and
-a server killed by a signal makes the launcher die of the same signal. A watcher process, holding only
-a pipe from the launcher and the server's pid, stops the server (SIGTERM, then SIGKILL after two
-seconds) when the launcher is killed in a way no handler sees, so the server is not orphaned. The
-shell's `set +x` has a Node counterpart: `NODE_DEBUG=child_process` makes node print every spawn's
-environment, secrets included (measured on node 26), and node reads it at startup, so the launcher
-refuses a launch that carries a secret while `NODE_DEBUG` is set. `security` now gets the launcher's
-own environment without the values read so far (the shell passed them on as exported variables).
-Secrets stay refused on Windows, as before; the Windows refusal message still says "POSIX launcher".
+**The node path is baked into every secret-bearing entry.** If that file moves or goes away (a
+Homebrew upgrade that removes a versioned Cellar path, an nvm version that is uninstalled), those
+servers fail to start until the owner re-renders. It shows in the agent harness's own MCP status, and
+`mcp_render.py --check` reports DRIFT, because the desired entry resolves node again. Rendering the
+stable `PATH` name rather than `process.execPath`, which `bin/mhw.js` passes and which is the resolved
+Cellar path, keeps a Homebrew upgrade from causing this. An nvm path is versioned either way.
+
+An earlier release's `mcp-launch.sh` in the data directory is removed on install, after every surface
+is rendered, only when it carries the marker, the run refused nothing and no surface config still
+names its path. A refused surface keeps its entries, and a refused server keeps its earlier copy;
+either may still start the shell launcher, so the file is then reported `KEPT`. `--check` names it
+`STALE` while it exists.
+
+Every argument and source rule, every message naming `NAME` and its source, and every exit code are
+the shell launcher's. The golden transcripts in `test/golden/S12/` hold that, with the intended
+differences listed beside them.
+
+**What changed because Node cannot `exec` in place:** the launcher stays as the server's parent.
+
+- **Stdio:** the server inherits stdin, stdout and stderr themselves, so it is still the process the
+  harness talks to, byte for byte.
+- **Signals:** SIGINT, SIGTERM, SIGHUP and SIGUSR1 are forwarded to the server, and its exit code is
+  the launcher's. A server killed by a signal makes the launcher die of the same signal, except for
+  SIGUSR1 and SIGPIPE: then the launcher exits 128+n. Node opens its inspector on SIGUSR1 and ignores
+  SIGPIPE. The launcher always listens for SIGUSR1, so the inspector never opens in the process that
+  read the secrets (an unhandled SIGUSR1 opened `127.0.0.1:9229`, measured on node 25.9).
+- **No orphan:** a watcher process holds only a pipe from the launcher and the server's pid. When the
+  launcher is killed in a way no handler sees, the watcher stops the server: SIGTERM, then SIGKILL two
+  seconds later. It skips the SIGKILL when the server has already gone, so a reused pid is not signalled.
+- **`set +x` in Node:** `NODE_DEBUG=child_process` makes node print every spawn's environment, secrets
+  included (measured on node 25.9). Node reads it at startup, so the launcher refuses a launch that
+  carries a secret while `NODE_DEBUG` is set.
+- **`security`'s environment:** it now gets the launcher's own environment, without the values read so
+  far. The shell passed them on as exported variables.
+
+Secrets stay refused on Windows, as before; the message now says the launcher is not rendered there.
 
 *Written and tested* (`test/mcp/launch.test.js` on the Node security stub, the Python suite on its
 stub and, on the macOS CI runner, on a throwaway keychain). Not installed on the reference machine.

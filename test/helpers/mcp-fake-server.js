@@ -4,7 +4,7 @@
 //   exit N              exit with status N
 //   signal SIG          kill itself with SIG
 //   wait OUT            write {pid, argv} to OUT, then wait (no handler: a signal ends it by default)
-//   trap OUT            like wait, but on SIGINT, SIGTERM or SIGHUP append the signal's name to OUT+'.sig'
+//   trap OUT            like wait, but on SIGINT, SIGTERM, SIGHUP or SIGUSR1 append the signal's name to OUT+'.sig'
 //                       and exit 0
 import fs from 'node:fs';
 import crypto from 'node:crypto';
@@ -36,7 +36,7 @@ if (mode === 'env') {
 } else if (mode === 'wait' || mode === 'trap') {
   const out = rest[0];
   if (mode === 'trap') {
-    for (const s of /** @type {NodeJS.Signals[]} */ (['SIGINT', 'SIGTERM', 'SIGHUP'])) {
+    for (const s of /** @type {NodeJS.Signals[]} */ (['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGUSR1'])) {
       process.on(s, () => {
         fs.appendFileSync(out + '.sig', s + '\n');
         process.exit(0);
