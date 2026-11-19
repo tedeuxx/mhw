@@ -37,15 +37,6 @@
     },
     {
       "args": [
-        "docs/*",
-        "FUNNEL-REVIEW-RAN"
-      ],
-      "code": 0,
-      "stdout": "docs/*: last ran 2026-06-06 (<c2 star | 2026-06-06>), dated by files carrying FUNNEL-REVIEW-RAN\n",
-      "stderr": ""
-    },
-    {
-      "args": [
         "docs/funnel-review/",
         "FUNNEL-REVIEW-RAN"
       ],

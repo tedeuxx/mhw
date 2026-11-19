@@ -503,16 +503,19 @@ const CASES = [
       f.run([root, RAN], is(neverLine(root)));
       f.run([root], is(root + ': never changed\n'));
     }
-    if (POSIX) {
-      const star = path.join(f.repo, 'docs', '*');
-      fs.mkdirSync(star);
-      fs.writeFileSync(path.join(star, 'r.md'), RAN + '\n');
-      f.git(['add', '--', path.join(star, 'r.md')]);
-      f.git(['commit', '-q', '-m', f.subject('star')], { date: '2026-06-06' });
-      f.run(['docs/*', RAN], has('docs/*: last ran 2026-06-06 ('));
-    }
     f.run(['docs/funnel-review/', RAN], has('last ran 2026-03-03 ('));
     f.run(['./docs//funnel-review', RAN], has('last ran 2026-03-03 ('));
+  } },
+  // The POSIX half of the original's test_a_root_is_a_literal_path_matched_by_whole_components, its own
+  // case so that a Windows run (where '*' is no file name) holds the same number of runs as its golden.
+  { name: 'root-named-star-is-that-directory', skip: () => (POSIX ? '' : "'*' is not a file name on Windows"), build: (f) => {
+    f.commit('sprint-02.md', RAN + '\n', '2026-03-03');
+    const star = path.join(f.repo, 'docs', '*');
+    fs.mkdirSync(star);
+    fs.writeFileSync(path.join(star, 'r.md'), RAN + '\n');
+    f.git(['add', '--', path.join(star, 'r.md')]);
+    f.git(['commit', '-q', '-m', f.subject('star')], { date: '2026-06-06' });
+    f.run(['docs/*', RAN], has('docs/*: last ran 2026-06-06 ('));
   } },
   { name: 'symlink-whose-target-is-the-marker-is-not-a-run', skip: () => (POSIX ? '' : 'symlinks need privileges here'), build: (f) => {
     fs.symlinkSync(RAN, path.join(f.store, 'link.md'));
