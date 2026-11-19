@@ -1,0 +1,77 @@
+{
+  "name": "record-entry-with-empty-keys-is-skipped",
+  "runs": [
+    {
+      "code": 1,
+      "stdout": "STALE   <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json: records no key any more; install removes it\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"<BASE>/home/.claude/settings.json\": {\"harness\": \"claude-code\", \"keys\": []}, \"<BASE>/home/other.json\": {\"harness\": \"claude-code\", \"keys\": []}, \"<BASE>/home/zero.json\": {\"harness\": \"claude-code\", \"keys\": 0}}}"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    },
+    {
+      "code": 0,
+      "stdout": "REMOVED <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    }
+  ]
+}

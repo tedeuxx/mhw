@@ -1,0 +1,44 @@
+{
+  "name": "record-path-equal-to-home",
+  "runs": [
+    {
+      "code": 3,
+      "stdout": "REFUSE  <BASE>/home: not readable as its format; model defaults left untouched\nOK      <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"<BASE>/home\": {\"harness\": \"claude-code\", \"keys\": {\"model\": \"x\"}}}}"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    }
+  ]
+}

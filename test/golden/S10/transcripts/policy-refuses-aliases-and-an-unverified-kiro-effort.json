@@ -1,0 +1,113 @@
+{
+  "name": "policy-refuses-aliases-and-an-unverified-kiro-effort",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: claude-code model 'opus[1m]' is not a pinned model ID (an alias is refused); nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"opus[1m]\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: claude-code model 'opus' is not a pinned model ID (an alias is refused); nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"opus\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: kiro-cli model 'auto' is not a pinned model ID (an alias is refused); nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"kiro-cli\":{\"model\":\"auto\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: kiro-cli takes no 'effort' here (its fields: model); nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\",\"effort\":\"medium\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: codex effort 'huge' is not one of minimal, low, medium, high, xhigh; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"huge\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: unknown agent harness 'gemini' (known: claude-code, codex, kiro-cli); nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"gemini\":{\"model\":\"x\"}}"
+        }
+      ]
+    }
+  ]
+}
