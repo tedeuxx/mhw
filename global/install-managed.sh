@@ -89,6 +89,7 @@ case $mode in
     [ -n "$kiro_node" ] || kiro_node=$(command -v node 2>/dev/null || true)
     case $kiro_node in /*) ;; *) echo "REFUSE  node (26 or later) is required for the Kiro admin document" >&2; exit 2 ;; esac
     ;;
+  *) ;; # uninstall and remove: no node
 esac
 kiro_js() { "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "$@"; }
 case $bin in *\"*|*\\*|*\$*|*\`*) echo "REFUSE  $bin holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac

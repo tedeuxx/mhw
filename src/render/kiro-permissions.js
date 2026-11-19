@@ -340,7 +340,7 @@ export function emit(doc, stamp, floorFrom, header = true) {
     '# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in',
     '# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).',
   ] : [];
-  if (doc.policies !== null && doc.policies !== undefined) {
+  if (Array.isArray(doc.policies)) {
     out.push('policies:' + (doc.policies.length ? '' : ' []'));
     for (const p of doc.policies) out.push('  - ' + q(p));
   }
@@ -932,8 +932,8 @@ export function uninstall(stamp, floorFrom, ctx) {
 // --- the command line -------------------------------------------------------------------------------
 
 const PROG = 'kiro-permissions.js';
-const OPTIONS = ['--mode', '--stamp', '--floor', '--floor-from', '--admin', '--from-yaml', '--file'];
-const MODES = ['install', 'check', 'dry-run', 'uninstall', 'report'];
+const OPTIONS = new Set(['--mode', '--stamp', '--floor', '--floor-from', '--admin', '--from-yaml', '--file']);
+const MODES = new Set(['install', 'check', 'dry-run', 'uninstall', 'report']);
 
 /** @param {Io} [io] @returns {Ctx} */
 export function context(io = {}) {
@@ -959,7 +959,7 @@ function options(argv) {
   for (const a of argv) {
     const at = a.indexOf('=');
     const k = at < 0 ? '' : a.slice(0, at);
-    if (!OPTIONS.includes(k) || Object.hasOwn(opts, k)) return null;
+    if (!OPTIONS.has(k) || Object.hasOwn(opts, k)) return null;
     opts[k] = a.slice(at + 1);
   }
   return opts;
@@ -1009,7 +1009,7 @@ export function main(argv, io = {}) {
     return 0;
   }
   const mode = opts['--mode'];
-  if (!MODES.includes(mode) || !opts['--stamp'] || !opts['--floor'] || has('--from-yaml') || has('--file')
+  if (!MODES.has(mode) || !opts['--stamp'] || !opts['--floor'] || has('--from-yaml') || has('--file')
       || (has('--admin') && mode !== 'report')) {
     ctx.err('usage: ' + PROG + ' --mode=install|check|dry-run|uninstall|report --stamp=STAMP '
       + '--floor=FILE [--floor-from=TEXT] [--admin=FILE, report only]\n'
