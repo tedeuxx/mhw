@@ -56,6 +56,7 @@ import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { onPath } from '../lib/onpath.js';
 import { parse, helpText, usageText, terminalColumns } from '../lib/argparse.js';
+import { pyStrip } from '../lib/py.js';
 
 const REGULAR_FILE_MODES = new Set(['100644', '100755']);
 
@@ -406,7 +407,8 @@ export function run(argv, io) {
   const rootText = /** @type {string} */ (parsed.values.root);
   const markerText = parsed.values.marker;
   const repo = parsed.values.repo ?? '.';
-  if (markerText !== undefined && !markerText.trim()) return usageError('marker must not be empty');
+  // Python's str.strip() (src/lib/py.js, #476): its whitespace set is not JavaScript's trim().
+  if (markerText !== undefined && !pyStrip(markerText)) return usageError('marker must not be empty');
   try {
     const root = normalisedRoot(rootText, io.platform || process.platform);
     const g = repositoryTop(io, repo);
