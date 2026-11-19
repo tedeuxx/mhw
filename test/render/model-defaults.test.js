@@ -110,8 +110,10 @@ function normaliser(base) {
   return (/** @type {string} */ s) => {
     let out = s;
     if (WIN) {
+      // Only the separators of a path under <BASE> become /: a backslash elsewhere (a JSON or TOML escape
+      // such as \u00e7) is content and stays.
       out = out.split(base.replaceAll('\\', '\\\\')).join('<BASE>').split(base).join('<BASE>');
-      out = out.replaceAll('\\\\', '/').replaceAll('\\', '/').replaceAll('\r\n', '\n');
+      out = out.replace(/<BASE>[^\s"',;()]*/g, (p) => p.replaceAll('\\\\', '/').replaceAll('\\', '/'));
     } else {
       out = out.split(base).join('<BASE>');
     }
@@ -135,7 +137,7 @@ function transcript(c, runner) {
   const fill = (s) => s.split('{BASE}').join(base).split('{HOME}').join(home).split('{POLICY}').join(policyFile)
     .split('/').join(path.sep);
   /** @param {string} s JSON text: a path placeholder is filled JSON-escaped */
-  const fillText = (s) => s.split('{BASE}').join(JSON.stringify(base).slice(1, -1)).split('{HOME}').join(JSON.stringify(home).slice(1, -1));
+  const fillText = (s) => s.replace(/\{(?:BASE|HOME)\}[^"]*/g, (p) => JSON.stringify(fill(p)).slice(1, -1));
   /** @param {unknown} doc */
   const writePolicy = (doc) => fs.writeFileSync(policyFile, JSON.stringify(doc));
   writePolicy(spec.policy);
@@ -219,6 +221,8 @@ const nodeRunner = (args, env, cwd) => {
  */
 function fold(name, stream, text) {
   let out = text.replace(/the backup or the write failed \((PermissionError|IsADirectoryError)\)/g, 'the backup or the write failed (<OSError>)');
+  // Windows: CPython's open() on a directory raises PermissionError (errno 13), not IsADirectoryError.
+  if (WIN) out = out.replaceAll('[Errno 13] Permission denied', '[Errno 21] Is a directory');
   for (const e of expected) {
     if (e.case === name && e.stream === stream) out = out.replace(new RegExp(e.pattern, 'g'), '<DECLARED>');
   }
@@ -243,7 +247,9 @@ function differences(original, head) {
       }
     }
     /** @param {Entry[]} t */
-    const tree = (t) => JSON.stringify(t.map((e) => ({ ...e, mode: WIN ? '-' : e.mode })), null, 1);
+    // Windows: modes are not compared, and \r\n reads as \n (the renderer writes \r\n there, as Python's
+    // text mode did; the Windows-only CRLF test holds that).
+    const tree = (t) => JSON.stringify(t.map((e) => (WIN ? { ...e, mode: '-', ...(e.text === undefined ? {} : { text: e.text.replaceAll('\r\n', '\n') }) } : e)), null, 1);
     if (tree(o.tree) !== tree(h.tree)) diffs.push(at + ': tree differs\n--- original\n' + tree(o.tree) + '\n--- head\n' + tree(h.tree));
   });
   return diffs;
