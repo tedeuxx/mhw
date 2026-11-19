@@ -31,7 +31,8 @@
 //
 // Paths: macOS ~/Library/Application Support/Google/Chrome/Local State; Linux ~/.config/google-chrome/Local
 // State. Other systems are skipped. Output lines use install.sh's words. Exit codes: 0 ok or skipped;
-// 1 the key is not on (--check), or a chrome-devtools entry whose args are not a list; 2 usage; 3 the file
+// 1 the key is not on (--check), or a chrome-devtools entry whose args are a number, a boolean or null;
+// 2 usage; 3 the file
 // cannot be read as JSON or cannot be written. The home is $HOME; no path comes from the command line.
 //
 // --mode=status prints the `mhw status` line (the key's value, never the file's contents) for
@@ -42,7 +43,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { onPath } from '../lib/onpath.js';
-import { loads, dumps, isPyWs } from '../lib/py.js';
+import { loads, dumps, isPyWs, pyStr } from '../lib/py.js';
 
 const KEY = ['devtools', 'remote_debugging', 'user-enabled'];
 export const KEY_NAME = KEY.join('.');
@@ -66,8 +67,16 @@ export function systemName() {
   return t === 'Windows_NT' ? 'Windows' : t;
 }
 
-/** @param {Record<string, string | undefined>} env */
-const homeOf = (env) => (env.HOME !== undefined ? env.HOME : os.homedir());
+/**
+ * Path.home() as the original read it: posixpath.expanduser('~'), which is $HOME with its trailing
+ * slashes stripped, or '/' when that leaves nothing (so HOME="" and HOME="//" both read as '/').
+ * Windows keeps the value as it is.
+ * @param {Record<string, string | undefined>} env
+ */
+export function homeOf(env) {
+  const h = env.HOME !== undefined ? env.HOME : os.homedir();
+  return process.platform === 'win32' ? h : h.replace(/\/+$/, '') || '/';
+}
 
 /**
  * pathlib's join on POSIX: repeated slashes collapse, a `.` component drops, `..` stays, and exactly two
@@ -112,8 +121,10 @@ const isMap = (v) => v instanceof Map;
  * (--autoConnect). Only that one entry's args are looked at; nothing is printed. As the original, an
  * unreadable file, a non-object on the way and an absent entry are false; args that are a number, a
  * boolean or null throw ArgsTypeError (CPython's TypeError, which the original did not catch). A dict's
- * keys are its items and a string's characters are, as iterating them in Python gives; only a string item
- * can carry the bare word, since str() of any other value is a repr.
+ * keys are its items and a string's characters are, as iterating them in Python gives. As the original,
+ * str() of every item is joined with spaces and split on Python's whitespace: a list or dict item's repr
+ * keeps the spaces of a string inside it, so `[["x --autoConnect y"]]` attaches while a tab, which the
+ * repr escapes, does not.
  * @param {string} home
  */
 export function attachRendered(home) {
@@ -135,7 +146,7 @@ export function attachRendered(home) {
   else if (isMap(args)) items = [...args.keys()];
   else if (typeof args === 'string') items = Array.from(args);
   else throw new ArgsTypeError("'" + (args === null ? 'NoneType' : typeof args) + "' object is not iterable");
-  return items.some((a) => typeof a === 'string' && splitPy(a).includes('--autoConnect'));
+  return splitPy(items.map((a) => pyStr(a)).join(' ')).includes('--autoConnect');
 }
 
 /** Python str.split() with no argument. @param {string} s */

@@ -135,6 +135,18 @@ const CASES = [
   { name: 'gate-args-a-dict-iterates-its-keys', ls: DOC, claude: server({ '--autoConnect': 1 }), runs: ['--mode=check'] },
   { name: 'gate-args-a-string-iterates-its-characters', ls: DOC, claude: server('--autoConnect'), runs: ['--mode=check'] },
   { name: 'gate-args-nested-list-is-a-repr', ls: DOC, claude: server([['--autoConnect']]), runs: ['--mode=check'] },
+  // A list or dict item counts by its CPython repr, which keeps the spaces of a string inside it (QA B1 on
+  // PR #514): attach when the repr carries the word between whitespace, not when the repr escapes it.
+  ...(/** @type {Array<[string, unknown]>} */ ([
+    ['gate-repr-list-item-attaches', [['x --autoConnect y']]],
+    ['gate-repr-dict-key-attaches', [{ 'x --autoConnect y': 1 }]],
+    ['gate-repr-dict-value-attaches', [{ k: 'x --autoConnect y' }]],
+    ['gate-repr-double-quoted-attaches', [["it's --autoConnect now"]]],
+    ['gate-repr-depth-two-attaches', [[['a --autoConnect b']]]],
+    ['gate-repr-escaped-tab-does-not-attach', [['x\t--autoConnect\ty']]],
+    ['gate-repr-word-then-quote-does-not-attach', [{ 'a --autoConnect': 1 }]],
+    ['gate-repr-with-other-types-attaches', [[1, 2.5, true, null, 'p --autoConnect q']]],
+  ])).map(([name, args]) => ({ name, ls: DOC, claude: server(args), runs: ['--mode=check'] })),
   { name: 'gate-args-absent', ls: DOC, claude: JSON.stringify({ mcpServers: { 'chrome-devtools': { command: '/bin/sh' } } }), runs: ['--mode=check'] },
   { name: 'gate-args-a-number-is-a-type-error', ls: DOC, claude: server(5), runs: ['--mode=check', '--mode=uninstall'] },
   { name: 'gate-args-null-is-a-type-error', ls: DOC, claude: server(null), runs: ['--mode=check'] },
@@ -550,6 +562,28 @@ test('paths: Linux and Darwin, pathlib spelling, no path for another system', ()
   assert.equal(cd.pathlibJoin('/h/./x/../', ['a']), '/h/x/../a');
   assert.equal(cd.pathlibJoin('', ['a', 'b']), 'a/b');
   assert.equal(cd.pathlibJoin('rel/', ['a']), 'rel/a');
+});
+
+test('HOME resolves as CPython\'s Path.home() does: trailing slashes stripped, empty is /', { skip: !POSIX && 'POSIX only' }, () => {
+  // Measured on CPython 3.14.6 (QA B2 on PR #514):
+  //   python3 -c 'from pathlib import Path; print(Path(Path.home()).joinpath("Library","Local State"))'
+  for (const [home, want] of [
+    ['', '/Library/Local State'],
+    ['/', '/Library/Local State'],
+    ['//', '/Library/Local State'],
+    ['///', '/Library/Local State'],
+    ['//x', '//x/Library/Local State'],
+    ['//x/', '//x/Library/Local State'],
+    ['.', 'Library/Local State'],
+  ]) {
+    assert.equal(cd.pathlibJoin(cd.homeOf({ HOME: home }), ['Library', 'Local State']), want, JSON.stringify(home));
+  }
+  assert.equal(cd.homeOf({}), os.homedir().replace(/\/+$/, '') || '/', 'no HOME: the account\'s home');
+});
+
+test('HOME="" reads the profile under /, never under the working directory', { skip: !POSIX && 'POSIX only' }, () => {
+  assert.equal(cd.localState('Darwin', cd.homeOf({ HOME: '' })), '/Library/Application Support/Google/Chrome/Local State');
+  assert.equal(cd.localState('Linux', cd.homeOf({ HOME: '' })), '/.config/google-chrome/Local State');
 });
 
 test('systemName is platform.system()\'s word', () => {

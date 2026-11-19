@@ -469,6 +469,8 @@ export function pyRepr(v) {
   if (typeof v === 'number' || typeof v === 'bigint') return String(v);
   if (typeof v === 'string') return reprString(v);
   if (Array.isArray(v)) return '[' + v.map(pyRepr).join(', ') + ']';
+  // An ordered loads() dict: its insertion order, as CPython prints a dict.
+  if (v instanceof Map) return '{' + [...v].map(([k, x]) => reprString(k) + ': ' + pyRepr(x)).join(', ') + '}';
   const o = /** @type {Record<string, unknown>} */ (v);
   return '{' + Object.keys(o).map((k) => reprString(k) + ': ' + pyRepr(o[k])).join(', ') + '}';
 }

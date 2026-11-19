@@ -1056,7 +1056,7 @@ mcp_step() {
 chrome_step() {
   chrome_node=${MHW_NODE:-}
   case "$chrome_node" in
-    /*) [ -x "$chrome_node" ] || chrome_node= ;;
+    /*) { [ -f "$chrome_node" ] && [ -x "$chrome_node" ]; } || chrome_node= ;;
     *) chrome_node= ;;
   esac
   if [ -z "$chrome_node" ]; then
