@@ -408,7 +408,7 @@ change which of the owner's files are merged. Wherever this record names `kiro_p
 `test/render/kiro-permissions.test.js`.
 
 - **Parity.** `test/golden/S11/` holds what the Python original returned, recorded from it before its
-  deletion: the reader's result or refusal on 225 documents (every document the Python suite read, every
+  deletion: the reader's result or refusal on 232 documents (every document the Python suite read, every
   Kiro-written shape it held, an edge corpus), the scalar reader on 114 tokens, the floor loader on 20
   files, and 46 command-line scenarios (stdout, stderr, exit code and the written tree with modes). The
   rendered deny rules are byte-identical; the declared differences are only the renderer's own path in
