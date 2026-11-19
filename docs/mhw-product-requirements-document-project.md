@@ -329,7 +329,7 @@ In the owner's words (translated, #52 and #60): "only make pull requests for rel
   unchanged: every merge to `main` still cuts a tag).
 - **After it.** The owner installs the release in a fresh session and runs the canary. Only that
   release is ever installed on his machines.
-- **Carrier.** The workspace brief and `workspace/delivery.py`, whose checked merge refuses a pull
+- **Carrier.** The workspace brief and ~~`workspace/delivery.py`~~ `mhw delivery` (Node since #474), whose checked merge refuses a pull
   request into `main` from any branch other than `rc/next`. The rule itself is an instruction
   ([ADR-0021](adr/0021-workspace-session-intake-and-ci-publication.md), 2026-10-05 amendment).
 

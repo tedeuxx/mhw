@@ -1,0 +1,38 @@
+[
+  {
+    "case": "harness-lens-old-head",
+    "stream": "stderr",
+    "kind": "suffix",
+    "pattern": "^; it does not carry forward: \\(a\\) its commit is not an ancestor of the head$",
+    "why": "The owner's ruling on #474 (2026-11-18): a CLOSED lens at an earlier head may carry forward. delivery.py refused any older marker outright; mhw delivery tries the carry-forward first and, when it fails, keeps the original message and adds the condition that failed."
+  },
+  {
+    "case": "harness-lens-old-head",
+    "stream": "calls",
+    "kind": "added",
+    "pattern": "^git merge-base --is-ancestor b{40} a{40}$",
+    "why": "The carry-forward's condition (a) asks git whether the marker's commit is an ancestor of the head; delivery.py had no carry-forward and made no such call."
+  },
+  {
+    "case": "*",
+    "stream": "calls",
+    "kind": "drop-arg",
+    "arg": "-z",
+    "pattern": "^git diff --no-renames --name-only ",
+    "why": "Lens round 1 on PR #508: git quotes a non-ASCII path by default, so delivery.py's newline list could hide a harness path from the hold-2 trigger. mhw delivery reads the list NUL-separated with -z, which quotes nothing; the call is otherwise the same."
+  },
+  {
+    "case": "lens-spoof-after-blank-line",
+    "stream": "stderr",
+    "kind": "replace",
+    "pattern": "^PENDING: the newest agents-lead lens marker is not in the strict header format$",
+    "why": "Lens round 1 on PR #508: the newest lens marker is selected by any column-0 envelope line outside a fence, as the quality-assurance brief selects it, so a newer marker below a preamble still withdraws an older CLOSED one. This marker is then refused for its format, where delivery.py refused it as absent. Both refuse."
+  },
+  {
+    "case": "lens-spoof-mixed-fences",
+    "stream": "stderr",
+    "kind": "replace",
+    "pattern": "^PENDING: the newest agents-lead lens marker is not in the strict header format$",
+    "why": "The same selector: a ~~~ line opens a fence and the ``` line inside it toggles it, as the brief's own fence rule reads it, so the marker line counts as outside a fence and is then refused for its format. delivery.py refused it as absent. Both refuse."
+  }
+]

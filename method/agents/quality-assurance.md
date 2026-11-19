@@ -432,7 +432,7 @@ authorization: <URL of the owner's own comment> — <the criterion or hold it di
 value is `none`, or exactly one live act the owner should perform on the running system once the change
 is live (open a page, run a command, read the published piece), worded so he can do it without opening
 the PR. One act, not a list: if two things need his eyes, name the one that would show the other is
-wrong. A verdict without the line is malformed, and `workspace/delivery.py` refuses it.
+wrong. A verdict without the line is malformed, and `mhw delivery merge` refuses it.
 
 **When the value is not `none`, post it verbatim on each Issue the PR references, before you merge**:
 one line, `owner-check: <the same act>`, plus the link to your verdict comment, through

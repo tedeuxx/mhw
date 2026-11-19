@@ -4,7 +4,8 @@
 //   macOS and Linux: runs the package's ./mhw with the same arguments.
 //   Windows:         runs global\install.ps1 (install, install --method, check, status = check) and
 //                    answers update itself; install --admin and uninstall do not exist there.
-// Moved commands (the strangler's later steps) are answered here on every OS: `mhw milestone` (#475).
+// Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474)
+// and `mhw milestone` (#475).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // run by absolute path, never looked up on PATH. node: modules only (convention 5 of #470: this file is
 // on the hook path once `mhw hook prompt` moves here; test/deps-graph.test.js holds that).
@@ -13,6 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { enginesNode, nodeLine, releaseOf } from './lib/version.js';
 import { runAbsolute } from './lib/run.js';
+import { delivery } from './commands/delivery.js';
 import { main as milestoneMain } from './commands/milestone.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -137,6 +139,13 @@ function printNodeLine(nodeVersion) {
  */
 export function main(argv, platform, env, opts = {}) {
   const stdio = opts.stdio || 'inherit';
+  // The first moved command (#474, S03): mhw delivery runs here on every platform, never forwarded.
+  if (argv[0] === 'delivery') {
+    const r = delivery(argv.slice(1), { cwd: process.cwd(), env, platform: process.platform });
+    if (r.stdout) fs.writeSync(1, r.stdout);
+    if (r.stderr) fs.writeSync(2, r.stderr);
+    return r.code;
+  }
   // Moved to Node (#475, S04): answered here on every OS, never forwarded.
   if (argv[0] === 'milestone') return milestoneMain(argv.slice(1), env);
   if (argv[0] === 'status') printNodeLine(opts.nodeVersion || process.version);

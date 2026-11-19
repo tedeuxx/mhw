@@ -204,7 +204,7 @@ flowchart LR
 **The console is an owner surface. It adds no new merge path for agents.**
 
 - **Slices:** agents merge slices into `rc/next` only through the checked route
-  (`python3 -B workspace/delivery.py merge --pr N`), with its checks, the review gate and, on harness
+  (~~`python3 -B workspace/delivery.py merge --pr N`~~ `./mhw delivery merge --pr N` since #474), with its checks, the review gate and, on harness
   paths, the `agents-lead` lens, exactly as [`AGENTS.md`](../AGENTS.md) states. A session running in a
   container follows the same route; the console does not shortcut it.
 - **Release candidate:** `rc/next` → `main` merges only on the owner's explicit act. The console may be

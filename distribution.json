@@ -130,7 +130,7 @@
         ".workstation-version",
         "workspace/README.md",
         "workspace/session-policy.json",
-        "workspace/delivery.py"
+        "src/commands/delivery.js"
       ]
     },
     {

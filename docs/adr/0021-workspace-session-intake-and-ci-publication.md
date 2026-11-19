@@ -185,8 +185,12 @@ Status unchanged. The owner decided, recorded on PR #233
 `.claude/skills/session-finish/` and `.agents/skills/session-finish/` are deleted; there was no
 `.kiro/skills/`. The amendment of 2026-10-26 above is superseded by this one.
 
-- **What remains.** `workspace/README.md` and `workspace/delivery.py` are the only delivery route: a
-  slice merges into `rc/next` through `python3 -B workspace/delivery.py merge --pr N`, and the release
+- **What remains.** `workspace/README.md` and ~~`workspace/delivery.py`~~ `mhw delivery` are the only delivery route: a
+  slice merges into `rc/next` through ~~`python3 -B workspace/delivery.py merge --pr N`~~
+  `./mhw delivery merge --pr N` *(amended 2026-11-18, #474: the route moved to Node with the same gate
+  decisions, and a CLOSED lens at an earlier head may carry forward under the conditions
+  `workspace/README.md` states; `delivery.py` and `delivery_test.py` are deleted, and the assertion
+  below moved to `test/delivery/carriers.test.js`)*, and the release
   candidate `rc/next` -> `main` is never merged without the owner's explicit go. Agents on every
   harness follow `AGENTS.md` and `workspace/README.md` directly.
 - **What holds it.** Unchanged: the release-candidate rule is an instruction; nothing mechanical

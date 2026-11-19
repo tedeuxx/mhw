@@ -5,11 +5,12 @@
 # global/workstation.py; global/install.sh and global/install-managed.sh stay the internals.
 # Windows keeps global/install.ps1. (The deprecated ./workstation alias was removed, Issue #206.)
 dir=$(cd "$(dirname "$0")" && pwd)
-# mhw milestone read|create|update|close moved to Node (#475, S04 of #470): it runs bin/mhw.js, never
-# workstation.py.
-if [ "${1:-}" = milestone ]; then
-  command -v node >/dev/null 2>&1 || { echo "mhw: node (26 or later) is required for mhw milestone" >&2; exit 2; }
-  exec node "$dir/bin/mhw.js" "$@"
-fi
+# The commands moved to Node run bin/mhw.js, never workstation.py: mhw delivery merge|verify (#474, S03
+# of #470) and mhw milestone read|create|update|close (#475, S04 of #470).
+case "${1:-}" in
+  delivery|milestone)
+    command -v node >/dev/null 2>&1 || { echo "mhw: node (26 or later) is required for mhw $1" >&2; exit 2; }
+    exec node "$dir/bin/mhw.js" "$@" ;;
+esac
 command -v python3 >/dev/null 2>&1 || { echo "mhw: python3 (3.9 or later) is required" >&2; exit 2; }
 exec python3 -B "$dir/global/workstation.py" "$@"
