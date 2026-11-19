@@ -188,8 +188,8 @@ test('./mhw worklog and ./mhw launch-line forward to bin/mhw.js', { skip: !POSIX
   }
 });
 
-test('the Python originals and their suite are gone; confine.py stays for milestone_common.py until S04 lands', () => {
-  for (const f of ['worklog.py', 'worklog.test.py', 'launch-line.py']) {
+test('the Python originals, their suite and confine.py (their last importer gone with S04) are deleted', () => {
+  for (const f of ['worklog.py', 'worklog.test.py', 'launch-line.py', 'confine.py']) {
     assert.ok(!fs.existsSync(path.join(ROOT, 'method', 'scripts', f)), f + ' still exists');
   }
 });

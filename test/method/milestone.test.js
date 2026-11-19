@@ -339,9 +339,9 @@ test('no inline description option exists, on either write verb', () => {
   }
 });
 
-test('the Python routes and their suite are gone; confine.py stays for its remaining importers', () => {
+test('the Python routes and their suite are gone (and confine.py, with its last importers, since #476)', () => {
   for (const f of ['milestone-read.py', 'milestone-create.py', 'milestone-update.py', 'milestone-close.py', 'milestone_common.py', 'milestone.test.py']) {
     assert.ok(!fs.existsSync(path.join(ROOT, 'method', 'scripts', f)), f + ' still exists');
   }
-  assert.ok(fs.existsSync(path.join(ROOT, 'method', 'scripts', 'confine.py')));
+  assert.ok(!fs.existsSync(path.join(ROOT, 'method', 'scripts', 'confine.py')));
 });
