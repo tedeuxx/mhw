@@ -194,6 +194,9 @@
       "rules:\n  - capability: shell\n    effect: deny\n    match: [a, , b]\n",
       "rules:\n  - capability: shell\n    effect: deny\n    match: [\"a,b\", 'c,d']\n",
       "rules:\n  - capability: shell\n    effect: deny\n    match: [a, {b}]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [a, {b]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: [{]\n",
+      "rules:\n  - capability: shell\n    effect: deny\n    match: ['a''#b', 'c'' #d'] # e\n",
       "rules:\n  - capability: shell\n    effect: deny\n    match: ['it''s', \"q\\\"x\", \"back\\\\\"]\n",
       "rules:\n  - capability: shell\n    effect: deny\n    match: [a\n",
       "rules:\n  - capability: shell\n    effect: deny\n    match: a]\n",
@@ -1623,6 +1626,29 @@
       },
       {
         "refuse": "line 4: a nested flow collection"
+      },
+      {
+        "refuse": "line 4: a nested flow collection"
+      },
+      {
+        "refuse": "line 4: a nested flow collection"
+      },
+      {
+        "doc": {
+          "rules": [
+            {
+              "capability": "shell",
+              "effect": "deny",
+              "match": [
+                "a'#b",
+                "c' #d"
+              ]
+            }
+          ],
+          "policies": null
+        },
+        "emit": "# managed-by: personal-multi-harness-workstation-configuration; source: x via global/kiro/kiro_permissions.py (only the deny-floor rules recorded as ours are this project's; every other rule is yours); release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; re-run the installer\n# The workstation deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036). A deny wins over any allow in\n# any scope. Your own rules are kept; comments are not (the installer re-serialises this file).\nrules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a'#b\"\n      - \"c' #d\"\n",
+        "bare": "rules:\n  - capability: \"shell\"\n    effect: \"deny\"\n    match:\n      - \"a'#b\"\n      - \"c' #d\"\n"
       },
       {
         "doc": {

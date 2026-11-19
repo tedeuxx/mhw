@@ -107,13 +107,9 @@ function stripComment(text, lineno) {
       }
       if (ch === '"') quote = null;
     } else if (quote === "'") {
-      if (ch === "'") {
-        if (text[i + 1] === "'") {
-          i += 2;
-          continue;
-        }
-        quote = null;
-      }
+      // The original stepped over a doubled quote ('') here. Closing at the first quote and opening again
+      // at the second leaves the same state at the same place, so that step is not reproduced.
+      if (ch === "'") quote = null;
     } else if (ch === '"' || ch === "'") {
       quote = ch;
     } else if (ch === '#' && (i === 0 || text[i - 1] === ' ' || text[i - 1] === '\t')) {
