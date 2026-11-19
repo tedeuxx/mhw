@@ -171,6 +171,19 @@
       "rules:[]\n",
       "Rules: []\n",
       "rules: [ ]\n",
+      "rules: {}\n",
+      "rules: ~\n",
+      "rules: null\n",
+      "rules: [a]\n",
+      "rules: [{capability: shell, effect: deny}]\n",
+      "rules: \"[]\"\n",
+      "rules: '[]'\n",
+      "rules: []x\n",
+      "rules: [] []\n",
+      "rules: -\n",
+      "rules: - capability: shell\n",
+      "policies: {}\nrules: []\n",
+      "policies: ~\nrules: []\n",
       "rules:\n",
       "rules\n",
       "9rules: []\n",
@@ -1479,6 +1492,45 @@
       },
       {
         "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: rules must be a block list of rules (or [])"
+      },
+      {
+        "refuse": "line 1: a flow sequence must open and close on one line"
+      },
+      {
+        "refuse": "line 1: a flow sequence must open and close on one line"
       },
       {
         "refuse": "line 1: rules has no value"
