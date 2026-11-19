@@ -378,7 +378,7 @@ Follow `/agents-configuration`. Nothing here relaxes it:
 - **Record explicit worklog events when #499's contract is in use:** implementation start freezes the
   estimate and provenance; a checkpoint or handoff records the new segment; an outcome names accepted,
   reopened or non-delivery state with public evidence. Prepare the canonical body with
-  `{{method-scripts}}/worklog.py prepare-event` and publish only through the existing file-backed Issue-comment
+  `mhw worklog prepare-event` (until mhw#476 the script `method/scripts/worklog.py`) and publish only through the existing file-backed Issue-comment
   route. This is an instruction, not automatic capture; unknown runtime or plugin evidence stays
   unknown, and `dispatch-metrics` remains a separate instrument.
 - `product-lead` on reader-facing copy, long-form prose included — it holds the copy lens since
