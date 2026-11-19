@@ -211,8 +211,8 @@ names one file of `method/scripts/` by its bare name and renders it with the ins
 that file, in every tier. The installer refuses a script entry in the narrow tier, a program other than
 sh, bash or python3, an option other than -B or -I, a path, a test file, or a name with no file in
 `method/scripts/`. A copy without `method/`, or an installed path holding a character a rule cannot carry,
-renders no rule and says so in a NOTE. The one entry is `milestone-read.py`; create, update and close
-still ask.
+renders no rule and says so in a NOTE. ~~The one entry is `milestone-read.py`~~ (struck 2026-11-18:
+the kind is gone, see the amendment of that date); create, update and close still ask.
 
 What it does not close, stated: the script runs `gh api` in a subprocess, which no settings rule sees;
 that is the read path the owner chose. A Bash write to the installed file is not covered by the `Edit`
@@ -226,6 +226,48 @@ marked proposed; the ruling is recorded on [Issue #24](https://github.com/tedeux
 accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
 proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
 Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+## Amendment 2026-11-18: the `script` kind gives way to a closed `route` kind ([Issue #475](https://github.com/tedeuxx/mhw/issues/475))
+
+Slice S04 of #470 moved the milestone routes to Node, as `mhw milestone read|create|update|close`, and
+deleted `method/scripts/milestone-read.py`, the one file the `script` kind named. The kind is replaced, not kept empty: a fourth kind, `route`, names one read-only
+subcommand of the `mhw` CLI by its words. The installer accepts exactly one route, `mhw milestone read`,
+in the wide tier only, and renders `Bash(mhw milestone read:*)` for Claude Code only. Any other route,
+a route in the narrow tier, extra words, and `mhw` as a `cmd` stay refused; the refusal of `mhw` and
+`workstation` as a `cmd` is unchanged. Create, update and close still ask.
+
+What it changes, stated: the `script` rule named an absolute installed file and carried an `Edit` deny
+on it. A route names a command that `PATH` resolves, so the installer has no file to protect, and a
+directory earlier on `PATH` holding another `mhw` would run in its place under the same rule. An `Edit`
+~~deny on the package's `src/` was rejected: in a checkout of this repository it would deny the edits its
+own development needs.~~ deny is rendered on the npm install only (struck 2026-11-19, see the amendment
+of that date). The `gh api` call still runs in a subprocess no settings rule sees. The route
+needs `mhw` on `PATH` (an npm install); without it the rule matches nothing. Windows renders no allow
+list. Written and tested in throwaway homes (`global/allow-list.test.sh`); not installed.
+
+## Amendment 2026-11-19: an Edit deny on the installed npm package ([owner ruling on PR #509](https://github.com/tedeuxx/mhw/pull/509#issuecomment-7007902457))
+
+The owner ruled, after the `agents-lead` lens escalated the dropped protection
+([lens on PR #509](https://github.com/tedeuxx/mhw/pull/509#issuecomment-6994173322)): keep
+`mhw milestone read` pre-authorised, and render an `Edit` deny on the installed npm package directory,
+only when the installer runs from an npm install, never from a checkout.
+
+The installer renders `Edit(/<real package directory>/**)` into Claude Code's `permissions.deny`, in
+every tier, when `repo_root` resolves to a real directory with a `package.json`, no `.git`, whose parent
+directory is named `node_modules`. That test was measured on 2026-11-19 with npm 11 on two routes into
+throwaway prefixes: `github:tedeuxx/mhw#<branch>` (the route [ADR-0034](0034-npm-distribution-from-github-by-tag.md) documents) and
+`git+file://`. Both leave a real directory with no `.git` under `node_modules`. `.workstation-archive`
+was rejected as the signal: `git+file://` leaves its placeholders unfilled. A checkout or a linked
+worktree has `.git`; `npm link` and a directory install are symbolic links whose real path is the
+checkout; a copy outside `node_modules` is not an npm install. The deny covers more than the retired
+`script` deny did: the whole package, the modules a route imports included. It errs toward protecting:
+a copy of the sources placed under a `node_modules` directory without `.git` is denied too.
+
+**Stated limit, as ruled.** It does not cover a shadowing `mhw` earlier on `PATH`: the rule runs
+whatever `mhw` resolves first, and that program's file is not this package. It does not cover a write
+through Bash, which no `Edit` rule sees. Claude Code only; Windows renders no allow list. Written and
+tested: the npm, plain-copy and npm-with-`.git` layouts in `global/allow-list.test.sh`, and a real
+`git+file://` npm install in `test/git-route.test.js`; not installed.
 
 ## Links
 

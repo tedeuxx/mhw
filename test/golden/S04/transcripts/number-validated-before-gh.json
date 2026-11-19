@@ -1,0 +1,38 @@
+{
+  "name": "number-validated-before-gh",
+  "steps": [
+    {
+      "code": 1,
+      "stdout": "",
+      "stderr": "the milestone number must be a positive integer\n",
+      "gh": []
+    },
+    {
+      "code": 1,
+      "stdout": "",
+      "stderr": "the milestone number must be a positive integer\n",
+      "gh": []
+    },
+    {
+      "code": 0,
+      "stdout": "{\n  \"closed_issues\": 0,\n  \"description\": \"before\",\n  \"number\": 7,\n  \"open_issues\": 0,\n  \"repository\": \"owner/repo\",\n  \"state\": \"open\",\n  \"title\": \"sprint-05\"\n}\n",
+      "stderr": "",
+      "gh": [
+        [
+          "api",
+          "repos/owner/repo/milestones/7"
+        ]
+      ]
+    }
+  ],
+  "state": {
+    "milestone": {
+      "closed_issues": 0,
+      "description": "before",
+      "number": 7,
+      "open_issues": 0,
+      "state": "open",
+      "title": "sprint-05"
+    }
+  }
+}

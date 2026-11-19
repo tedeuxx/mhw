@@ -414,7 +414,11 @@ class MethodScripts(unittest.TestCase):
         self.assertEqual(missing, [])
         self.assertGreater(refs, 0, "no rendered file points into the scripts directory")
         planning = (self.home / ".claude" / "skills" / "sprint-planning" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("python3 %smilestone-create.py" % prefix, planning)
+        # #475: the milestone routes are `mhw milestone <verb>` now, and the rendered rite says so; its
+        # one installed-script path left is the worklog's.
+        self.assertIn("%sworklog.py" % prefix, planning)
+        self.assertIn("mhw milestone create \"<iteration>\"", planning)
+        self.assertNotIn("%smilestone-" % prefix, planning)
 
     def test_source_references_are_shipped_or_listed(self):
         """QA's table on #170, over method/**/*.md: every `{{method-scripts}}/<name>` names a shipped script,

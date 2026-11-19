@@ -89,6 +89,47 @@ protect_ok() { # $1 settings file
 }
 if protect_ok "$s"; then ok "narrow tier: Edit denies protect the allow-list source, overlay, rendered files and .git config/hooks"; else ko "a protecting Edit deny is missing (narrow)"; fi
 
+# 1c. Issue #475, owner ruling 2026-11-19 on PR #509: the installed npm package directory is Edit-denied
+# when the installer runs from an npm install, and never from a checkout. The npm layout is emulated as
+# npm leaves it (measured on the github: and git+file:// routes: a real directory, no .git, under
+# node_modules); a plain copy of the same files elsewhere is not an npm install either.
+pkg_deny_n() { # $1 settings, $2 directory: how many "Edit(/<real dir>/**)" denies it carries
+  jq --arg r "Edit(/$(cd "$2" && pwd -P)/**)" '[.permissions.deny[]? | select(. == $r)] | length' "$1"
+}
+pkg_deny_any() { # $1 settings: every deny of a whole directory tree by absolute path
+  jq -c '[.permissions.deny[]? | select(test("^Edit\\(//.*/\\*\\*\\)$")) | select(test("/overlay/\\*\\*\\)$") | not)]' "$1"
+}
+if [ "$(pkg_deny_n "$s" "$here/..")" -eq 0 ] && [ "$(pkg_deny_any "$s")" = "[]" ]; then
+  ok "a checkout renders no Edit deny on itself"
+else
+  ko "a checkout denied edits to a directory: $(pkg_deny_any "$s")"
+fi
+for layout in npm copy npm-with-git; do
+  case $layout in
+    npm) d="$base/npm-prefix/lib/node_modules/mhw" ;;
+    copy) d="$base/plain-copy/mhw" ;;
+    npm-with-git) d="$base/npm-git/lib/node_modules/mhw" ;;
+  esac
+  mkdir -p "$d"
+  cp -R "$here/../global" "$here/../overlay" "$d/"
+  cp "$here/../.bumpversion.toml" "$here/../package.json" "$here/../.workstation-archive" "$d/"
+  [ "$layout" = npm-with-git ] && printf 'gitdir: /nowhere\n' > "$d/.git"
+  hl="$base/home-$layout"; mkdir -p "$hl"
+  HOME="$hl" sh "$d/global/install.sh" --managed-root="$empty" > "$base/$layout.out" 2>&1; expect "install from the $layout layout" 0 $?
+  n=$(pkg_deny_n "$hl/.claude/settings.json" "$d")
+  if [ "$layout" = npm ]; then
+    if [ "$n" -eq 1 ] && [ "$(pkg_deny_any "$hl/.claude/settings.json")" = "[\"Edit(/$(cd "$d" && pwd -P)/**)\"]" ]; then
+      ok "npm install: the installed package directory is Edit-denied, and nothing else is denied whole"
+    else
+      ko "npm install: package Edit deny missing or extra: $(pkg_deny_any "$hl/.claude/settings.json")"
+    fi
+  elif [ "$n" -eq 0 ] && [ "$(pkg_deny_any "$hl/.claude/settings.json")" = "[]" ]; then
+    ok "$layout: no Edit deny on the package directory"
+  else
+    ko "$layout: an Edit deny on the directory was rendered: $(pkg_deny_any "$hl/.claude/settings.json")"
+  fi
+done
+
 # 2. The admin floor installed under a throwaway root: check notes it, install widens.
 root="$base/root-admin"; mkdir -p "$root"
 TMPDIR="$base" HOME="$h" sh "$mgr" --root="$root" > "$base/mr.out" 2>&1
@@ -136,15 +177,15 @@ if [ "$overlay_allow" != /dev/null ] && [ "$(jq '[.permissions.allow[]? | select
   miss=1; echo "  no repository suite in the wide allow list"
 fi
 if [ "$miss" -eq 0 ]; then ok "wide tier: read/build routes, pinned add and commit, suites, escaping options denied"; else ko "wide tier entries wrong"; fi
-# The installed milestone read route (Issue #242): pre-authorised by its absolute installed path in the
-# wide tier, Claude Code only, with an Edit deny on that file; no other milestone script, no Codex rule.
-mr="$h/.local/share/personal-multi-harness-workstation-configuration/method/scripts/milestone-read.py"
-if [ "$(jq --arg r "Bash(python3 $mr:*)" '[.permissions.allow[]? | select(. == $r)] | length' "$s")" -eq 1 ] \
-   && [ "$(jq --arg r "Edit(/$mr)" '[.permissions.deny[]? | select(. == $r)] | length' "$s")" -eq 1 ] \
-   && [ "$(jq '[.permissions.allow[]? | select(test("milestone-(create|update|close)"))] | length' "$s")" -eq 0 ] \
+# The milestone read route (Issue #242; since #475 the CLI route): exactly "Bash(mhw milestone read:*)" in
+# the wide tier, Claude Code only; no other milestone verb, no other mhw rule, no Codex or Kiro rule, and
+# nothing left of the retired python3 script rule.
+if [ "$(jq '[.permissions.allow[]? | select(. == "Bash(mhw milestone read:*)")] | length' "$s")" -eq 1 ] \
+   && [ "$(jq '[.permissions.allow[]? | select(startswith("Bash(mhw") or startswith("Bash(workstation"))] | length' "$s")" -eq 1 ] \
+   && [ "$(jq '[(.permissions.allow[]?, .permissions.deny[]?) | select(test("milestone-|milestone (create|update|close)"))] | length' "$s")" -eq 0 ] \
    && ! grep -q milestone "$h/.codex/rules/workstation-allow-list.rules" \
    && ! grep -q milestone "$h/.kiro/agents/workstation.json"; then
-  ok "wide tier: python3 <installed>/milestone-read.py is pre-authorised (Claude Code only), its file Edit-denied, no other milestone script"
+  ok "wide tier: mhw milestone read is pre-authorised (Claude Code only), no other milestone verb or mhw rule"
 else
   ko "the milestone read route is not pre-authorised as expected: $(jq -c '[.permissions.allow[]? | select(test("milestone"))]' "$s")"
 fi
@@ -225,10 +266,10 @@ for bad in "wide cmd git push" "narrow cmd sudo -n" "narrow cmd git *" "loose cm
            "wide cmd gh pr --repo=o" "wide cmd gh pr view -Ro" \
            "wide cmd GIT_CONFIG_PARAMETERS=x git log" "narrow cmd GIT_PAGER=x git status" \
            "wide deny GIT_PAGER=x git diff" \
-           "narrow script python3 milestone-read.py" "wide script node milestone-read.py" \
-           "wide script python3 scripts/milestone-read.py" "wide script python3 /abs/milestone-read.py" \
-           "wide script python3 milestone.test.py" "wide script python3 no-such-script.py" \
-           "wide script python3 -c milestone-read.py" "wide script python3 milestone-read.txt"; do
+           "wide script python3 milestone-read.py" "narrow route mhw milestone read" \
+           "wide route mhw milestone create" "wide route mhw milestone" "wide route mhw" \
+           "wide route mhw install" "wide route workstation milestone read" "wide route mhw milestone read 7" \
+           "wide route mhw milestone read --repo" "wide cmd mhw milestone read"; do
   ov="$base/ov-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"; hb="$base/home-bad-$(printf '%s' "$bad" | tr -c '[:lower:]' '_')"
   mkdir -p "$ov" "$hb"
   printf '%s\n' "$bad" > "$ov/allow-list.conf"
