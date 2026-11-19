@@ -260,7 +260,9 @@ v4.1.0, `--ignore-scripts`, local install, `npm uninstall -g`). Not installed on
 - **Session-start model and effort defaults** ([ADR-0035](docs/adr/0035-workstation-blueprint-reconciliation.md)
   slice B, amending [ADR-0007](docs/adr/0007-session-start-model-and-effort-defaults.md)): each
   harness's model pinned by ID, at medium effort (no effort on Kiro), from `overlay/model-defaults.json`
-  through `global/models/model_defaults.py`. *Written and tested* in throwaway homes; **not installed**
+  through ~~`global/models/model_defaults.py`~~ `src/render/model-defaults.js` (Node since
+  [#481](https://github.com/tedeuxx/mhw/issues/481): same files and exit codes; the output differences are declared in
+  `test/golden/S10/expected-differences.json`). *Written and tested* in throwaway homes; **not installed**
   on the reference machine, and no default checked in a new session. ~~macOS and Linux only.~~ Windows
   too since the #145 follow-up (`install.ps1`, CI-tested). ~~On that
   machine the owner holds his own Claude Code `model` and Codex `model_reasoning_effort`; install keeps

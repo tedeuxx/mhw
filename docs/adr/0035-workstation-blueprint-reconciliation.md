@@ -253,7 +253,8 @@ same pull request. One line per slice, with the files it touches:
    first finds where the rendered entries come from.
 3. **Model and effort, pinned by ID** (decisions 5 and 8): ~~the overlay profile (`overlay/profile.json`,
    `overlay/profile-plan.json`) and its renderer under `global/profile/`.~~ *Struck 2026-10-10 (slice
-   B):* `overlay/model-defaults.json` and its renderer `global/models/model_defaults.py`; see the slice
+   B):* `overlay/model-defaults.json` and its renderer ~~`global/models/model_defaults.py`~~
+   `src/render/model-defaults.js` (struck 2026-11-19, #481: see the amendment of that date); see the slice
    B amendment below for why the carrier changed.
 4. **Codex MCP removal** (decision 2): the `aws-api` entry in the Codex user configuration, and in the
    untracked local MCP overlay ([ADR-0017](0017-single-source-mcp-with-secret-indirection.md)) if it
@@ -308,7 +309,8 @@ ships its own carrier, run as one step of `global/install.sh`:
 
 - **Policy:** `overlay/model-defaults.json`, owner-specific because the IDs depend on his
   subscriptions. The generic layer pins nothing: with no overlay file the policy is empty.
-- **Renderer:** `global/models/model_defaults.py`, standard library only, Python 3.9 or later. It
+- **Renderer:** ~~`global/models/model_defaults.py`, standard library only, Python 3.9 or later~~
+  `src/render/model-defaults.js`, Node 26 or later (struck 2026-11-19, #481: see the amendment of that date). It
   writes only `model` and `effortLevel` (Claude Code, `~/.claude/settings.json`), `model` and
   `model_reasoning_effort` (Codex, top-level keys of `${CODEX_HOME:-~/.codex}/config.toml`) and
   `chat.defaultModel` (Kiro CLI, `~/.kiro/settings/cli.json`). The policy loader refuses any other
@@ -561,7 +563,8 @@ owner actions into installer work: #123 (the model pins), #124 (the Codex MCP se
 share three properties: a backup of the previous file, an output line naming old -> new (`CHANGED`, which
 `mhw install` always shows, without `--verbose`), and a way back.
 
-**2. Model and effort (decisions 5 and 8).** `global/models/model_defaults.py` writes the pinned value
+**2. Model and effort (decisions 5 and 8).** ~~`global/models/model_defaults.py`~~
+`src/render/model-defaults.js` (struck 2026-11-19, #481: see the amendment of that date) writes the pinned value
 whatever the key holds. The owner's latest value is recorded beside the key, under `"replaced"` in the
 ownership record, and uninstall restores it: a value he sets after an install replaces the one recorded
 earlier (review of #146), and a key he deleted records nothing. A key that had no value is removed. `--check` reports a
@@ -605,7 +608,8 @@ under a throwaway HOME had written the block into an exported `ZDOTDIR`; each su
 shell gets the line printed as an owner step, the one residual.
 
 **6. Evidence level.** *Written and tested* in throwaway homes (`global/install.test.sh` sections 2,
-2c'', 17 to 20, `global/models/model_defaults_test.py`, `global/mcp/mcp_retire_test.py`,
+2c'', 17 to 20, ~~`global/models/model_defaults_test.py`~~ `test/render/model-defaults.test.js` (struck 2026-11-19, #481: see the amendment of that date),
+`global/mcp/mcp_retire_test.py`,
 `global/workstation_test.py`); **not installed** on the reference machine.
 
 **7. Declared gaps.**
@@ -636,7 +640,7 @@ the retired server):
 | #145 item | `install.ps1` |
 | --- | --- |
 | Codex MCP: `aws-api` leaves `config.toml` | ~~`global/mcp/mcp_retire.py`, unchanged~~ removed 2026-10-18 (#206) |
-| Model and effort pins (Claude Code, Codex, Kiro CLI) | `global/models/model_defaults.py --home=%USERPROFILE%`, with the overlay's `model-defaults.json` |
+| Model and effort pins (Claude Code, Codex, Kiro CLI) | ~~`global/models/model_defaults.py --home=%USERPROFILE%`~~ `node src\render\model-defaults.js --home=%USERPROFILE%` (struck 2026-11-19, #481: see the amendment of that date), with the overlay's `model-defaults.json` |
 | Retired `find` and `awk` allows | in PowerShell, from `global/allow-retired.conf`: exactly the listed rules leave `permissions.allow`, backup `settings.json.pmhwc-allow-backup`, the same `CHANGED`, `DRIFT` and `WOULD CHANGE` lines |
 | Paste wrapper start-up block | **cannot apply**: the wrapper needs a POSIX pty and `/usr/bin/python3` (ADR-0011, ADR-0033). One `NOTE` line says so |
 
@@ -858,6 +862,30 @@ of the two, with the exact notice line. A typo falls back to the same nine block
 category in both lists blocks, with no report-only notice. Each contract cue word is pinned one by one,
 and there are near-misses for a phone number over 15 digits and a one-digit health code. Each new test
 was turned red by mutating the source, then restored. *Written and tested*; not installed.
+
+## Amendment 2026-11-19: the model defaults renderer is Node ([#481](https://github.com/tedeuxx/mhw/issues/481), S10 of [#470](https://github.com/tedeuxx/mhw/issues/470))
+
+The renderer of slice B moved from `global/models/model_defaults.py` (Python 3.9 or later) to
+`src/render/model-defaults.js` (Node 26 or later); the Python file and its suite are deleted. Nothing
+the slice B and #145 amendments decided changes: the same policy file, the same native keys per agent
+harness, the pinned value written whatever the key holds, the owner's latest value recorded under
+`"replaced"` and restored on uninstall, the 0600 backup, and Codex's `config.toml` edited line by
+line at top level, never re-serialised.
+
+- **Who runs it.** `install.sh` and `install.ps1` run `node src/render/model-defaults.js`, with the
+  node `bin/mhw.js` runs on (`MHW_NODE`, an absolute path), else the first `node` on `PATH`. A
+  missing node is `SKIP` and exit 2, as a missing Python was. An absolute `MHW_NODE` that is not an
+  executable file is `REFUSE` and exit 2, never replaced by another node. The version is not checked.
+- **What is the same.** The files written, the exit codes and every output line, except as declared in
+  `test/golden/S10/expected-differences.json`: the reason text of the parse-guard refusal comes from
+  the vendored TOML parser instead of tomllib, and four residuals are named (the guard always runs,
+  where Python 3.9 and 3.10 skipped it; integer-like JSON keys are written first; Windows stdout lines
+  end in `\n`; a crash prints a Node stack).
+- **Evidence level.** *Written and tested*: `test/render/model-defaults.test.js` against golden
+  transcripts recorded from the Python original (CPython 3.14.6, macOS), on macOS, Linux and Windows CI;
+  `test/render/model-defaults-install.test.js` for the node lookup in `install.sh`;
+  `global/install.test.sh` section 17; `global/install.test.ps1` sections 14 and 15. **Not installed**
+  on the reference machine.
 
 ## Links
 

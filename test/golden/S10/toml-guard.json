@@ -1,0 +1,296 @@
+{
+  "comment": "The TOML parse guard against tomllib (PR #515 QA, B1): one document per form, and whether CPython 3.14.6's tomllib accepts it (recorded by running tomllib.loads on each text). test/render/model-defaults.test.js requires src/render/toml-guard.js to give the same answer for every row, and its live arm re-asks the recorded CPython.",
+  "cpython": "3.14.6",
+  "rows": [
+    {
+      "name": "inline-table-newline",
+      "text": "t = {\n a = 1\n}\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "inline-table-trailing-comma",
+      "text": "t = {a = 1,}\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "inline-table-multiline-array",
+      "text": "t = {a = [\n 1,\n 2,\n]}\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "inline-table-nested",
+      "text": "t = {a = {b = 1}, c = [1, 2]}\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "escape-e",
+      "text": "s = \"\\e\"\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "escape-x",
+      "text": "s = \"\\x41\"\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "escape-x-multiline-basic",
+      "text": "s = \"\"\"\\x41\"\"\"\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "escape-x-in-literal",
+      "text": "s = '\\x41'\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "escape-backslash-x-text",
+      "text": "s = \"\\\\x41\"\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "escape-u",
+      "text": "s = \"\\u0041\"\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "time-without-seconds",
+      "text": "t = 07:32\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "datetime-without-seconds",
+      "text": "t = 1979-05-27T07:32Z\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "datetime-space-without-seconds",
+      "text": "t = 1979-05-27 07:32\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "time-with-seconds",
+      "text": "t = 07:32:00\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "datetime-space",
+      "text": "d = 1979-05-27 07:32:00Z\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "datetime-lower-t",
+      "text": "d = 1979-05-27t07:32:00Z\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "date-feb-30",
+      "text": "d = 2026-02-30\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "date-feb-29-non-leap",
+      "text": "d = 2025-02-29\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "date-feb-29-leap",
+      "text": "d = 2024-02-29\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "date-feb-29-1900",
+      "text": "d = 1900-02-29\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "date-feb-29-2000",
+      "text": "d = 2000-02-29\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "date-month-13",
+      "text": "d = 2026-13-01\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "date-day-00",
+      "text": "d = 2026-01-00\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "date-apr-31",
+      "text": "d = 2026-04-31\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "date-in-array",
+      "text": "d = [2026-02-30]\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "date-like-bare-key",
+      "text": "2026-02-30 = 1\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "date-like-table-header",
+      "text": "[2026-02-30]\na = 1\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "date-like-array-table",
+      "text": "[[2026-02-30]]\na = 1\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "date-in-string",
+      "text": "s = \"2026-02-30 07:32\"\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "time-in-comment",
+      "text": "a = 1 # 07:32 on 2026-02-30\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "int-2pow53-plus1",
+      "text": "n = 9007199254740993\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "int-i64-max",
+      "text": "n = 9223372036854775807\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "int-i64-min",
+      "text": "n = -9223372036854775808\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "int-over-i64",
+      "text": "n = 99999999999999999999\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "bom-document-start",
+      "text": "﻿a = 1\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "bom-second-line",
+      "text": "model = \"x\"\n﻿a = 1\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "bom-in-string",
+      "text": "s = \"a﻿b\"\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "bom-in-comment",
+      "text": "# a﻿b\na = 1\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "commented-fixture",
+      "text": "# c\napproval_policy = \"on-request\"   # t\nmodel = \"gpt\" # m\n\nsandbox_mode = 'w'\n\n[profiles.fast]\n# x\nmodel = \"o\"\n\n[mcp_servers.k]\ncommand = \"x\"\nargs = [\"a\", \"b\"]\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "multiline-basic-quotes",
+      "text": "s = \"\"\"a\"\"\"\"\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "multiline-literal",
+      "text": "s = '''a\nb'''\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "hour-24",
+      "text": "t = 24:00:00\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "float-exp",
+      "text": "f = 1E5\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "empty-quoted-key",
+      "text": "\"\" = 1\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "duplicate-key",
+      "text": "model = \"a\"\nmodel = \"b\"\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "array-trailing-comma",
+      "text": "a = [1, 2,]\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "unicode-bare-key",
+      "text": "café = 1\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "leading-zero",
+      "text": "n = 012\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "second-60",
+      "text": "t = 23:59:60\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "offset-99",
+      "text": "d = 1979-05-27T07:32:00+99:00\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "nan-signed",
+      "text": "f = -nan\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "del-in-basic",
+      "text": "s = \"ab\"\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "del-in-literal",
+      "text": "s = 'ab'\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "tab-in-basic",
+      "text": "s = \"a\tb\"\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "table-after-array-of-tables",
+      "text": "[[a]]\n[a]\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "extend-inline-table",
+      "text": "t = {a = 1}\n[t.b]\n",
+      "tomllib": "refuse"
+    },
+    {
+      "name": "multiline-five-quotes",
+      "text": "s = \"\"\"a\"\"\"\"\"\n",
+      "tomllib": "accept"
+    },
+    {
+      "name": "fraction-ten-digits",
+      "text": "t = 07:32:00.1234567891\n",
+      "tomllib": "accept"
+    }
+  ]
+}

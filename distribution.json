@@ -95,7 +95,7 @@
     {
       "id": "model-defaults",
       "layer": "user",
-      "paths": ["global/models/"]
+      "paths": ["src/render/model-defaults.js"]
     },
     {
       "id": "personal-profile",

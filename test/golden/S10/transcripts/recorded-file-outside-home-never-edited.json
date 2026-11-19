@@ -1,0 +1,105 @@
+{
+  "name": "recorded-file-outside-home-never-edited",
+  "runs": [
+    {
+      "code": 0,
+      "stdout": "NOTE    <BASE>/outside/settings.json: recorded, but outside <BASE>/home; left untouched\nOK      <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"<BASE>/outside/settings.json\": {\"harness\": \"claude-code\", \"keys\": {\"model\": \"claude-opus-5-5[1m]\"}}}}"
+        },
+        {
+          "path": "outside",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "outside/settings.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"model\": \"claude-opus-5-5[1m]\", \"theme\": \"dark\"}"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    },
+    {
+      "code": 1,
+      "stdout": "MISSING <BASE>/home/.claude/settings.json: install would change model (absent) -> \"claude-opus-5-5[1m]\"; effortLevel (absent) -> \"medium\" (model defaults claude-code)\nMISSING <BASE>/home/.codex/config.toml: install would change model (absent) -> \"gpt-5.6-sol\"; model_reasoning_effort (absent) -> \"medium\" (model defaults codex)\nMISSING <BASE>/home/.kiro/settings/cli.json: install would change chat.defaultModel (absent) -> \"claude-sonnet-4.5\" (model defaults kiro-cli)\nNOTE    <BASE>/outside/settings.json: recorded, but outside <BASE>/home; left untouched\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: x; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x\", \"set\": {\"<BASE>/outside/settings.json\": {\"harness\": \"claude-code\", \"keys\": {\"model\": \"claude-opus-5-5[1m]\"}}}}"
+        },
+        {
+          "path": "outside",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "outside/settings.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"model\": \"claude-opus-5-5[1m]\", \"theme\": \"dark\"}"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,275 @@
+{
+  "name": "policy-shapes",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: an object with \"version\": 1 is required; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":2}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: an object with \"version\": 1 is required; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "[1]"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: an object with \"version\": 1 is required; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"claude-code\":{\"model\":\"x\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: codex needs a \"model\" string; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"codex\":\"gpt\"}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: codex needs a \"model\" string; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"codex\":{\"model\":5}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: codex needs a \"model\" string; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"codex\":{\"effort\":\"low\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: codex model '-starts-with-dash' is not a pinned model ID (an alias is refused); nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"codex\":{\"model\":\"-starts-with-dash\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: codex model 'a b' is not a pinned model ID (an alias is refused); nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"codex\":{\"model\":\"a b\"}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: codex effort 1 is not one of minimal, low, medium, high, xhigh; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"codex\":{\"model\":\"gpt\",\"effort\":1}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: codex effort None is not one of minimal, low, medium, high, xhigh; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"codex\":{\"model\":\"gpt\",\"effort\":null}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: codex effort ['low'] is not one of minimal, low, medium, high, xhigh; nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"codex\":{\"model\":\"gpt\",\"effort\":[\"low\"]}}"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  model defaults: <BASE>/policy.json: claude-code takes no 'temperature' here (its fields: model, effort); nothing written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-x\",\"temperature\":1}}"
+        }
+      ]
+    },
+    {
+      "code": 1,
+      "stdout": "MISSING <BASE>/home/.codex/config.toml: install would change model (absent) -> \"gpt\" (model defaults codex)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":true,\"codex\":{\"model\":\"gpt\"}}"
+        }
+      ]
+    },
+    {
+      "code": 0,
+      "stdout": "",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1}"
+        }
+      ]
+    },
+    {
+      "code": 1,
+      "stdout": "MISSING <BASE>/home/.claude/settings.json: install would change model (absent) -> \"claude-x[1m]\"; effortLevel (absent) -> \"max\" (model defaults claude-code)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-x[1m]\",\"effort\":\"max\"}}"
+        }
+      ]
+    }
+  ]
+}

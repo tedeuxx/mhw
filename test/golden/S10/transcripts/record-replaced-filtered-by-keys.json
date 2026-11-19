@@ -1,0 +1,105 @@
+{
+  "name": "record-replaced-filtered-by-keys",
+  "runs": [
+    {
+      "code": 0,
+      "stdout": "NOTE    <BASE>/outside/settings.json: recorded, but outside <BASE>/home; left untouched\nWROTE   <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<BASE>/outside/settings.json\": {\n      \"harness\": \"claude-code\",\n      \"keys\": {\n        \"model\": \"m\"\n      },\n      \"replaced\": {\n        \"model\": \"owner\"\n      }\n    }\n  }\n}\n"
+        },
+        {
+          "path": "outside",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "outside/settings.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"model\": \"m\"}"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    },
+    {
+      "code": 0,
+      "stdout": "NOTE    <BASE>/outside/settings.json: recorded, but outside <BASE>/home; left untouched\nOK      <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<BASE>/outside/settings.json\": {\n      \"harness\": \"claude-code\",\n      \"keys\": {\n        \"model\": \"m\"\n      },\n      \"replaced\": {\n        \"model\": \"owner\"\n      }\n    }\n  }\n}\n"
+        },
+        {
+          "path": "outside",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "outside/settings.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"model\": \"m\"}"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    }
+  ]
+}

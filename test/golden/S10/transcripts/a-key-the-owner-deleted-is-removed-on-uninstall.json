@@ -1,0 +1,260 @@
+{
+  "name": "a-key-the-owner-deleted-is-removed-on-uninstall",
+  "runs": [
+    {
+      "code": 0,
+      "stdout": "CHANGED <BASE>/home/.claude/settings.json: model (absent) -> \"claude-opus-5-5[1m]\"; effortLevel (absent) -> \"medium\" (model defaults claude-code; new file)\nCHANGED <BASE>/home/.codex/config.toml: model (absent) -> \"gpt-5.6-sol\"; model_reasoning_effort \"owner-x\" -> \"medium\" (model defaults codex; previous file kept as <BASE>/home/.codex/config.toml.pmhwc-models-backup)\nCHANGED <BASE>/home/.kiro/settings/cli.json: chat.defaultModel (absent) -> \"claude-sonnet-4.5\" (model defaults kiro-cli; new file)\nWROTE   <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/settings.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n    \"model\": \"claude-opus-5-5[1m]\",\n    \"effortLevel\": \"medium\"\n}\n"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.codex/config.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "model = \"gpt-5.6-sol\"\nmodel_reasoning_effort = \"medium\"\n"
+        },
+        {
+          "path": "home/.codex/config.toml.pmhwc-models-backup",
+          "kind": "file",
+          "mode": "600",
+          "text": "model_reasoning_effort = \"owner-x\"\n"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/settings",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/settings/cli.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<BASE>/home/.claude/settings.json\": {\n      \"harness\": \"claude-code\",\n      \"keys\": {\n        \"model\": \"claude-opus-5-5[1m]\",\n        \"effortLevel\": \"medium\"\n      }\n    },\n    \"<BASE>/home/.codex/config.toml\": {\n      \"harness\": \"codex\",\n      \"keys\": {\n        \"model\": \"gpt-5.6-sol\",\n        \"model_reasoning_effort\": \"medium\"\n      },\n      \"replaced\": {\n        \"model_reasoning_effort\": \"owner-x\"\n      }\n    },\n    \"<BASE>/home/.kiro/settings/cli.json\": {\n      \"harness\": \"kiro-cli\",\n      \"keys\": {\n        \"chat.defaultModel\": \"claude-sonnet-4.5\"\n      }\n    }\n  }\n}\n"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    },
+    {
+      "code": 0,
+      "stdout": "OK      <BASE>/home/.claude/settings.json: model = \"claude-opus-5-5[1m]\", effortLevel = \"medium\" (model defaults claude-code)\nCHANGED <BASE>/home/.codex/config.toml: model_reasoning_effort (absent) -> \"medium\" (model defaults codex; previous file kept as <BASE>/home/.codex/config.toml.pmhwc-models-backup)\nOK      <BASE>/home/.kiro/settings/cli.json: chat.defaultModel = \"claude-sonnet-4.5\" (model defaults kiro-cli)\nWROTE   <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/settings.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n    \"model\": \"claude-opus-5-5[1m]\",\n    \"effortLevel\": \"medium\"\n}\n"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.codex/config.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "model_reasoning_effort = \"medium\"\nmodel = \"gpt-5.6-sol\"\n"
+        },
+        {
+          "path": "home/.codex/config.toml.pmhwc-models-backup",
+          "kind": "file",
+          "mode": "600",
+          "text": "model = \"gpt-5.6-sol\"\n"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/settings",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/settings/cli.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<BASE>/home/.claude/settings.json\": {\n      \"harness\": \"claude-code\",\n      \"keys\": {\n        \"model\": \"claude-opus-5-5[1m]\",\n        \"effortLevel\": \"medium\"\n      }\n    },\n    \"<BASE>/home/.codex/config.toml\": {\n      \"harness\": \"codex\",\n      \"keys\": {\n        \"model\": \"gpt-5.6-sol\",\n        \"model_reasoning_effort\": \"medium\"\n      }\n    },\n    \"<BASE>/home/.kiro/settings/cli.json\": {\n      \"harness\": \"kiro-cli\",\n      \"keys\": {\n        \"chat.defaultModel\": \"claude-sonnet-4.5\"\n      }\n    }\n  }\n}\n"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    },
+    {
+      "code": 0,
+      "stdout": "REMOVED <BASE>/home/.claude/settings.json: model \"claude-opus-5-5[1m]\" -> (absent); effortLevel \"medium\" -> (absent) (model defaults claude-code; previous file kept as <BASE>/home/.claude/settings.json.pmhwc-models-backup)\nREMOVED <BASE>/home/.codex/config.toml: model \"gpt-5.6-sol\" -> (absent); model_reasoning_effort \"medium\" -> (absent) (model defaults codex; previous file kept as <BASE>/home/.codex/config.toml.pmhwc-models-backup)\nREMOVED <BASE>/home/.kiro/settings/cli.json: chat.defaultModel \"claude-sonnet-4.5\" -> (absent) (model defaults kiro-cli; previous file kept as <BASE>/home/.kiro/settings/cli.json.pmhwc-models-backup)\nREMOVED <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/settings.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{}\n"
+        },
+        {
+          "path": "home/.claude/settings.json.pmhwc-models-backup",
+          "kind": "file",
+          "mode": "600",
+          "text": "{\n    \"model\": \"claude-opus-5-5[1m]\",\n    \"effortLevel\": \"medium\"\n}\n"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.codex/config.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": ""
+        },
+        {
+          "path": "home/.codex/config.toml.pmhwc-models-backup",
+          "kind": "file",
+          "mode": "600",
+          "text": "model_reasoning_effort = \"medium\"\nmodel = \"gpt-5.6-sol\"\n"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/settings",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/settings/cli.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{}\n"
+        },
+        {
+          "path": "home/.kiro/settings/cli.json.pmhwc-models-backup",
+          "kind": "file",
+          "mode": "600",
+          "text": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "policy.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"version\":1,\"claude-code\":{\"model\":\"claude-opus-5-5[1m]\",\"effort\":\"medium\"},\"codex\":{\"model\":\"gpt-5.6-sol\",\"effort\":\"medium\"},\"kiro-cli\":{\"model\":\"claude-sonnet-4.5\"}}"
+        }
+      ]
+    }
+  ]
+}
