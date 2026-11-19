@@ -113,7 +113,10 @@ function setup(c) {
  */
 function norm(s, base) {
   let out = s.replace(/\r\n/g, '\n').split(base).join('<BASE>');
-  if (!POSIX) out = out.split(base.replace(/\\/g, '/')).join('<BASE>').replace(/\\/g, '/');
+  // Windows: a path under <BASE> uses \ where the POSIX recording used /. Only the separators of that
+  // path are rewritten: a JSON escape elsewhere ("\n" in stdout) is content and stays as it is. (CI
+  // run 44521816331 caught the earlier form, which rewrote every backslash.)
+  if (!POSIX) out = out.split(base.replace(/\\/g, '/')).join('<BASE>').replace(/<BASE>[^\s"']*/g, (p) => p.replace(/\\/g, '/'));
   return out;
 }
 
