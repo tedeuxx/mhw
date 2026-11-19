@@ -1,0 +1,48 @@
+[
+  {
+    "case": ["unexpected-argument"],
+    "stream": ["stderr"],
+    "base": "\\(usage: mcp-launch\\.sh ",
+    "head": "\\(usage: mhw mcp launch ",
+    "replace": "(usage: <launcher> ",
+    "why": "The usage hint names the command as it is now called (mhw mcp launch, not the deleted script's file name). The message, the stream and the exit code (2) are still compared."
+  },
+  {
+    "case": ["command-not-found"],
+    "stream": ["stderr"],
+    "base": "^<SCRIPT>: [^\\n]*no-such-server[^\\n]*\\n$",
+    "head": "^mcp-launch: cannot start '<DIR>/no-such-server': not found\\n$",
+    "replace": "<the server could not be started>\n",
+    "why": "The shell launcher exec'd the command, so a missing one was reported by /bin/sh itself, in its own wording (bash: 'No such file or directory', dash: 'not found', with the script's path and line). Node cannot exec in place; the launcher spawns the server and reports a missing command in one line of its own. Nothing is started on either side."
+  },
+  {
+    "case": ["command-not-found"],
+    "stream": ["code"],
+    "base": "^(?:1|127)$",
+    "head": "^127$",
+    "replace": "<exec failure status>",
+    "why": "The status of a failed exec is the shell's: 127 from dash (Linux), 1 from bash as /bin/sh (macOS, measured on 3.2). The Node launcher always exits 127, the POSIX status for a command not found."
+  },
+  {
+    "case": ["render-dry-run", "render-install-check-reinstall"],
+    "stream": ["*"],
+    "head": "command = \"<NODE>\"\\nargs = \\[\"<LAUNCHER>\", ",
+    "replace": "command = \"<LAUNCHER>\"\nargs = [",
+    "why": "The one expected difference of mcp_render.py (#483): a server with secrets is now started as <node> <the installed launcher copy> --secret ... -- <command>, where it was <the shell launcher> --secret ... -- <command>. This is the Codex TOML form; the JSON form follows. Node is named by absolute path (MHW_NODE, else node on PATH), so a harness whose PATH has no node still starts it."
+  },
+  {
+    "case": ["render-dry-run", "render-install-check-reinstall"],
+    "stream": ["*"],
+    "head": "\"command\": \"<NODE>\",\\n( *)\"args\": \\[\\n *\"<LAUNCHER>\",\\n",
+    "replace": "\"command\": \"<LAUNCHER>\",\n$1\"args\": [\n",
+    "why": "The same rendered-command difference in the JSON surfaces (Claude Code, Claude desktop, Kiro): command is node, and the launcher copy is the first argument."
+  },
+  {
+    "case": ["render-dry-run"],
+    "stream": ["*"],
+    "base": "\\(the credential launcher, [0-9]+ bytes\\)",
+    "head": "\\(the credential launcher, [0-9]+ bytes\\)",
+    "replace": "(the credential launcher, <N> bytes)",
+    "why": "The launcher file is the Node launcher now (src/commands/mcp-launch.js, installed as mcp-launch.mjs instead of mcp-launch.sh; both paths are normalised to <LAUNCHER>), so its size differs. Its mode (0700) and its marker line are still checked, in the tree and by mcp_render_test.py."
+  }
+]

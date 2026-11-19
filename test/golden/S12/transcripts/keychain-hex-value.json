@@ -1,0 +1,6 @@
+{
+  "code": 3,
+  "signal": null,
+  "stdout": "",
+  "stderr": "mcp-launch: secret K_TOKEN: the Keychain value for 'svc.hex' is not printable text, and security would hand it over hex-encoded; store it as text\n"
+}

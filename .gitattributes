@@ -21,3 +21,5 @@ test/golden/S07/** -text
 method/scripts/fixtures/funnel-review/** -text
 # Golden transcripts of the S09 parity test (#480): byte for byte on every OS.
 test/golden/S09/** -text
+# Golden transcripts of the S12 parity test (#483): byte for byte on every OS.
+test/golden/S12/** -text

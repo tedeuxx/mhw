@@ -1,0 +1,6 @@
+{
+  "code": 3,
+  "signal": null,
+  "stdout": "",
+  "stderr": "mcp-launch: secret K_TOKEN: no readable Keychain item for service 'svc.none' (absent, or the Keychain is locked)\n"
+}

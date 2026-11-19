@@ -73,7 +73,8 @@ tree that does not ignore it**, and `.gitignore` here ignores `mcp-servers.json`
 copy dropped into this repository is not committable by accident. The repository ships:
 
 - `global/mcp/mcp_render.py`, the renderer (standard library only);
-- `global/mcp/mcp-launch.sh`, the launcher (POSIX `sh`);
+- ~~`global/mcp/mcp-launch.sh`, the launcher (POSIX `sh`);~~ the launcher, `mhw mcp launch`
+  (`src/commands/mcp-launch.js`, Node, since #483; see the 2026-11-19 amendment);
 - `global/mcp/mcp-servers.schema.json`, the schema (the renderer enforces the same rules itself, and a
   test keeps the two vocabularies equal);
 - `global/mcp/mcp-servers.example.json`, three synthetic servers named `example-*`.
@@ -286,6 +287,34 @@ The owner ratified this record on 2026-11-17, answering a picker in session with
 accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
 proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
 Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+## Amendment 2026-11-19: the launcher is Node, `mhw mcp launch` ([#483](https://github.com/tedeuxx/mhw/issues/483), S12 of #470)
+
+`global/mcp/mcp-launch.sh` is deleted. The launcher is `src/commands/mcp-launch.js`, run as `mhw mcp
+launch` and, in use, as the copy the renderer installs beside its other managed files
+(`<data dir>/mcp-launch.mjs`, 0700, with the marker line; the unmanaged-file refusal is unchanged). A
+server with secrets is now rendered as `<node> <that copy> --secret NAME=SOURCE ... -- <command>
+<args>`, with node by absolute path (`MHW_NODE`, else node on `PATH`), so a harness whose `PATH` has no
+node still starts it; with no node the render is refused (exit 2) before anything is written. An
+earlier release's `mcp-launch.sh` in the data directory is removed on install when it carries the
+marker (`--check` names it `STALE`). Every argument and source rule, every message naming `NAME` and
+its source, and every exit code are the shell launcher's; the golden transcripts in
+`test/golden/S12/` hold that, with the intended differences listed beside them.
+
+What changed because Node cannot `exec` in place: the launcher stays as the server's parent. The
+server inherits stdin, stdout and stderr themselves, so it is still the process the harness talks to,
+byte for byte. SIGINT, SIGTERM and SIGHUP are forwarded; the server's exit code is the launcher's, and
+a server killed by a signal makes the launcher die of the same signal. A watcher process, holding only
+a pipe from the launcher and the server's pid, stops the server (SIGTERM, then SIGKILL after two
+seconds) when the launcher is killed in a way no handler sees, so the server is not orphaned. The
+shell's `set +x` has a Node counterpart: `NODE_DEBUG=child_process` makes node print every spawn's
+environment, secrets included (measured on node 26), and node reads it at startup, so the launcher
+refuses a launch that carries a secret while `NODE_DEBUG` is set. `security` now gets the launcher's
+own environment without the values read so far (the shell passed them on as exported variables).
+Secrets stay refused on Windows, as before; the Windows refusal message still says "POSIX launcher".
+
+*Written and tested* (`test/mcp/launch.test.js` on the Node security stub, the Python suite on its
+stub and, on the macOS CI runner, on a throwaway keychain). Not installed on the reference machine.
 
 ## Links
 

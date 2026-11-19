@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Tests for mcp_render.py and mcp-launch.sh (ADR-0017). Everything runs under throwaway HOMEs:
+# Tests for mcp_render.py and the launcher it installs (ADR-0017; the launcher is Node since #483,
+# src/commands/mcp-launch.js, whose own behaviour is covered by test/mcp/launch.test.js). Everything runs under throwaway HOMEs:
 #   python3 -B global/mcp/mcp_render_test.py <empty-or-new base directory>
 # Every server, command and credential below is SYNTHETIC, and each credential value is generated at
 # run time. Issue #58: by default the Keychain test runs against global/security.test.stub, which
@@ -28,10 +29,12 @@ sys.path.insert(0, os.path.dirname(HERE))
 import keychain_test_guard as kg  # noqa: E402
 
 RENDER = os.path.join(HERE, "mcp_render.py")
-LAUNCH = os.path.join(HERE, "mcp-launch.sh")
+LAUNCH = r.LAUNCHER_SRC
+LAUNCHER = r.LAUNCHER_NAME            # the installed copy's file name, mcp-launch.mjs
 EXAMPLE = os.path.join(HERE, "mcp-servers.example.json")
 SCHEMA = os.path.join(HERE, "mcp-servers.schema.json")
 DARWIN = sys.platform == "darwin"
+NODE = r.node_binary()                  # the node the renderer renders as the launcher's command
 BASE = None
 FAKE_SERVER = """import hashlib, os, sys
 with open(sys.argv[1], "w") as fh:
@@ -144,8 +147,8 @@ def all_bytes(home):
 
 # ------------------------------------------------------------------------- real-keychain guard (#58)
 # The shared guard (global/keychain_test_guard.py) holds the rules; this suite adds the launcher's.
-KEYCHAIN_ARG = '${keychain:+"$keychain"}'
-STUB_LAUNCHER = "mcp-launch.stub.sh"    # a test copy of the launcher whose `security` calls go to the stub
+KEYCHAIN_ARG = "...kc"                  # how the launcher hands --keychain to every security call
+STUB_LAUNCHER = "mcp-launch.stub.mjs"   # a test copy of the launcher whose `security` calls go to the stub
 GUARD = None                            # set in __main__, once BASE is known
 
 
@@ -163,17 +166,17 @@ def _launcher_ok(guard, rest):
 def launcher_check(guard, argv, kw):
     for i, a in enumerate(argv):
         b = os.path.basename(a)
-        if b in ("mcp-launch.sh", STUB_LAUNCHER):
+        if b in (LAUNCHER, STUB_LAUNCHER):
             rest = argv[i + 1:]
             if not (guard.home_ok(kw) and _launcher_ok(guard, rest)):
                 raise kg.RealKeychainRefused("a launcher run could reach the real keychain")
-            if b == "mcp-launch.sh" and _reads_keychain(rest):
+            if b == LAUNCHER and _reads_keychain(rest):
                 guard.require_real("the real launcher reading the Keychain")
             break
 
 
 def make_guard(base):
-    return kg.Guard(base, extra=launcher_check, watched=("mcp-launch.sh", STUB_LAUNCHER),
+    return kg.Guard(base, extra=launcher_check, watched=(LAUNCHER, STUB_LAUNCHER),
                     words=("security", "mcp-launch"))
 
 
@@ -210,16 +213,16 @@ class KeychainIsolation(unittest.TestCase):
         G.assert_mode(self)
         kc = os.path.join(BASE, "never-created.keychain-db")
         env = {"env": clean_env(os.path.join(BASE, "never-created-home"))}
-        launcher = os.path.join(BASE, "x", "mcp-launch.sh")
+        launcher = os.path.join(BASE, "x", LAUNCHER)
         stub_launcher = os.path.join(BASE, "x", STUB_LAUNCHER)
         read_kc = ["--secret", "T=keychain:svc", "--", "true"]
         refused_always = G.refused_cases(kc, env, {})
         for lch in (launcher, stub_launcher):
-            refused_always += [([lch] + read_kc, env), (["sh", "-x", lch, "--keychain", kc] + read_kc, {}),
-                               ([lch, "--secret", "T=env:V", "--", "true"], {})]
-        real_only = G.real_only_cases(kc, env) + [([launcher, "--keychain", kc] + read_kc, env)]
+            refused_always += [([NODE, lch] + read_kc, env), ([NODE, lch, "--keychain", kc] + read_kc, {}),
+                               ([NODE, lch, "--secret", "T=env:V", "--", "true"], {})]
+        real_only = G.real_only_cases(kc, env) + [([NODE, launcher, "--keychain", kc] + read_kc, env)]
         allowed = [([kg.SECURITY_STUB, "find-generic-password", "-s", "svc", "-w", kc], env),
-                   ([stub_launcher, "--keychain", kc] + read_kc, env)]
+                   ([NODE, stub_launcher, "--keychain", kc] + read_kc, env)]
         calls = []
         saved = (G.exec, G.real)
         try:
@@ -234,10 +237,14 @@ class KeychainIsolation(unittest.TestCase):
         finally:
             G.exec, G.real = saved
         self.assertEqual(len(calls), 6, "the guard refused a throwaway-keychain call it must allow")
-        # The production launcher must hand the --keychain path to EVERY `security` call it makes.
-        code = [ln for ln in read(LAUNCH).splitlines() if not ln.lstrip().startswith("#")]
-        reads = [ln for ln in code if re.search(r"/usr/bin/security\s+(-[A-Za-z]\b|[a-z]+-[a-z-]+)", ln)]
+        # The production launcher must hand the --keychain path to EVERY `security` call it makes, and name
+        # the binary in one place only (the stub copy replaces that one literal).
+        code = [ln for ln in read(LAUNCH).splitlines() if not ln.lstrip().startswith("//")]
+        self.assertEqual(sum(ln.count(kg.REAL_SECURITY) for ln in code), 1, "security is named once, as SECURITY")
+        reads = [ln for ln in code if re.search(r"spawnSync\(security,", ln)]
         self.assertEqual(len(reads), 2, "the launcher's security calls changed; re-check this guard")
+        self.assertEqual(len(re.findall(r"spawn(Sync)?\(", "\n".join(code))), 4,
+                         "the launcher's processes changed (security twice, the server, the watcher); re-check this guard")
         for ln in reads:
             self.assertIn(KEYCHAIN_ARG, ln, "a launcher security call ignores --keychain")
 
@@ -475,24 +482,27 @@ class Render(unittest.TestCase):
         p = run(h)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         t = targets(h)
-        launcher = os.path.join(data(h), "mcp-launch.sh")
+        launcher = os.path.join(data(h), LAUNCHER)
         cx = tload(t["codex"])["mcp_servers"]
         self.assertEqual(set(cx), {"fake-plain", "fake-secret", "fake-codex-only"})
         self.assertEqual(cx["fake-plain"], {"command": "/bin/echo", "args": ["hello"], "env": {"FAKE_REGION": "zz-1"}})
-        self.assertEqual(cx["fake-secret"]["command"], launcher)
-        self.assertEqual(cx["fake-secret"]["args"][:3], ["--secret", "FAKE_API_TOKEN=env:FAKE_SRC_VAR", "--"])
+        self.assertEqual(cx["fake-secret"]["command"], NODE)
+        self.assertEqual(cx["fake-secret"]["args"][:4], [launcher, "--secret", "FAKE_API_TOKEN=env:FAKE_SRC_VAR", "--"])
         self.assertEqual(cx["fake-secret"]["env_vars"], ["FAKE_SRC_VAR"])
         for s in ("claude-code", "kiro", "claude-desktop"):
             if s not in t:
                 continue
             servers = jload(t[s])["mcpServers"]
             self.assertEqual(set(servers), {"fake-plain", "fake-secret"}, s)
-            self.assertEqual(servers["fake-secret"]["command"], launcher, s)
+            self.assertEqual(servers["fake-secret"]["command"], NODE, s)
+            self.assertEqual(servers["fake-secret"]["args"][0], launcher, s)
         self.assertEqual(jload(t["claude-code"])["mcpServers"]["fake-plain"]["type"], "stdio")
         self.assertNotIn("type", jload(t["kiro"])["mcpServers"]["fake-plain"])
         self.assertTrue(os.access(launcher, os.X_OK))
         self.assertEqual(stat.S_IMODE(os.stat(launcher).st_mode), 0o700, "the launcher is owner-only")
-        self.assertEqual(read(launcher).splitlines()[0], "#!/bin/sh")
+        self.assertEqual(read(launcher).splitlines()[0], "#!/usr/bin/env node")
+        self.assertEqual(read(launcher).split("\n", 2)[2], read(LAUNCH).split("\n", 1)[1],
+                         "the installed launcher is the source with one marker line added")
         self.assertIn(r.MARKER_ID, read(launcher).splitlines()[1])
         for path in t.values():
             self.assertEqual(stat.S_IMODE(os.stat(path).st_mode), 0o600, path)
@@ -523,7 +533,7 @@ class Render(unittest.TestCase):
                                env=clean_env(ih), capture_output=True, text=True)
             self.assertIn("SOURCE  %s\n" % src, q.stdout, q.stderr)
         t = targets(h)
-        launcher = os.path.join(data(h), "mcp-launch.sh")
+        launcher = os.path.join(data(h), LAUNCHER)
         self.assertEqual(r.stamp_of(read(launcher)), src)
         self.assertEqual(r.stamp_of(read(t["codex"])), src)
         stamps = jload(os.path.join(data(h), "mcp-managed.json"))["stamps"]
@@ -562,7 +572,8 @@ class Render(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stderr)
         got = {s["name"]: s["transport"] for s in json.loads(p.stdout)}
         self.assertEqual(set(got), {"fake-plain", "fake-secret", "fake-codex-only"})
-        self.assertEqual(got["fake-secret"]["command"], os.path.join(data(h), "mcp-launch.sh"))
+        self.assertEqual(got["fake-secret"]["command"], NODE)
+        self.assertEqual(got["fake-secret"]["args"][0], os.path.join(data(h), LAUNCHER))
         self.assertEqual(got["fake-secret"]["env_vars"], ["FAKE_SRC_VAR"])
         self.assertEqual(got["fake-plain"]["env"], {"FAKE_REGION": "zz-1"})
 
@@ -701,13 +712,61 @@ class Render(unittest.TestCase):
     def test_an_unmanaged_file_at_the_launcher_path_stops_everything(self):
         h = mk_home("home-foreign-launcher")
         os.makedirs(data(h), exist_ok=True)
-        with open(os.path.join(data(h), "mcp-launch.sh"), "w") as fh:
-            fh.write("#!/bin/sh\necho someone else\n")
+        with open(os.path.join(data(h), LAUNCHER), "w") as fh:
+            fh.write("#!/usr/bin/env node\nconsole.log('someone else')\n")
         write_source(h, source_doc())
         p = run(h)
         self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
         for path in targets(h).values():
             self.assertFalse(os.path.exists(path), path)
+
+    def test_the_retired_shell_launcher_is_removed_only_when_managed(self):
+        # #483: an earlier release installed mcp-launch.sh. Once the Node launcher is in place, check names it
+        # STALE (exit 1), dry-run names it and writes nothing, install removes it; an unmanaged file stays.
+        h = mk_home("home-legacy-launcher")
+        old = os.path.join(data(h), "mcp-launch.sh")
+        os.makedirs(data(h), exist_ok=True)
+        write_source(h, source_doc())
+        self.assertEqual(run(h).returncode, 0)
+        with open(old, "w") as fh:
+            fh.write("#!/bin/sh\n# %s; source: global/mcp/mcp-launch.sh; x; do not edit\nexec \"$@\"\n" % r.MARKER_ID)
+        c = run(h, "--check")
+        self.assertEqual(c.returncode, 1, c.stdout + c.stderr)
+        self.assertIn("STALE   %s" % old, c.stdout)
+        d = run(h, "--dry-run")
+        self.assertEqual(d.returncode, 0, d.stderr)
+        self.assertIn("WOULD REMOVE %s" % old, d.stdout)
+        self.assertTrue(os.path.exists(old))
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("REMOVED %s" % old, p.stdout)
+        self.assertFalse(os.path.exists(old))
+        self.assertEqual(run(h, "--check").returncode, 0)
+        with open(old, "w") as fh:
+            fh.write("#!/bin/sh\necho someone else\n")
+        p = run(h)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue(os.path.exists(old), "an unmanaged file at the old launcher path was removed")
+        self.assertNotIn(old, p.stdout)
+
+    def test_secrets_without_node_are_refused_and_nothing_is_written(self):
+        # #483: a server with secrets runs under the Node launcher, by node's absolute path. With no node
+        # (MHW_NODE unset, none on PATH) the render is refused before anything is written.
+        h = mk_home("home-no-node")
+        write_source(h, source_doc())
+        empty = os.path.join(BASE, "empty-path")
+        os.makedirs(empty, exist_ok=True)
+        env = clean_env(h, PATH=empty)
+        env.pop("MHW_NODE", None)
+        before = fingerprint(h)
+        p = run(h, env=env)
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertIn("no node was found", p.stderr)
+        self.assertEqual(fingerprint(h), before)
+        plain = source_doc()
+        del plain["servers"]["fake-secret"]
+        write_source(h, plain)
+        self.assertEqual(run(h, env=env).returncode, 0, "a definition without secrets needs no node")
 
     def test_invalid_existing_config_is_refused_and_untouched(self):
         h = mk_home("home-badjson")
@@ -756,29 +815,31 @@ class Render(unittest.TestCase):
 
 
 class Secrets(unittest.TestCase):
-    def assert_value_reaches_server_only(self, h, value, server_env, pre=(), command=None):
-        """The value is in no file under the throwaway HOME, and the launched server sees it. `pre` is put
-        before the rendered launcher arguments (the throwaway --keychain); `command` replaces the rendered
-        launcher (its stub copy)."""
+    def rendered_launch(self, h, pre=(), script=None):
+        """The rendered command line of fake-secret: node, the installed launcher (or `script`, its stub
+        copy), then `pre` (the throwaway --keychain), then the rendered launcher arguments."""
+        cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
+        self.assertEqual(cx["command"], NODE)
+        return [cx["command"], script or cx["args"][0]] + list(pre) + cx["args"][1:]
+
+    def assert_value_reaches_server_only(self, h, value, server_env, pre=(), script=None):
+        """The value is in no file under the throwaway HOME, and the launched server sees it."""
         blob = all_bytes(h)
         self.assertNotIn(value.encode(), blob, "a secret value is in a rendered file")
-        cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
-        launch = [command or cx["command"]] + list(pre) + cx["args"]
+        launch = self.rendered_launch(h, pre, script)
         out = os.path.join(BASE, "out-env.txt")
         if os.path.exists(out):
             os.remove(out)
-        # Inherited tracing must not print the value: SHELLOPTS reaches /bin/sh where it is bash (macOS).
-        env = dict(server_env, SHELLOPTS="xtrace")
-        p = subprocess.run(launch, env=env, capture_output=True, text=True)
+        p = subprocess.run(launch, env=server_env, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(read(out), sha(value), "the server did not receive the secret")
-        self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under SHELLOPTS=xtrace")
-        p = subprocess.run(["sh", "-x"] + launch, env=server_env, capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stderr)
-        self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under sh -x")
-        if shutil.which("bash"):
-            p = subprocess.run(["bash", "-x"] + launch, env=env, capture_output=True, text=True)
-            self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under bash -x")
+        self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret")
+        # Node's own tracing would print the server's environment (the shell launcher's xtrace, in Node):
+        # the launcher refuses to start under it, and prints nothing of the value.
+        p = subprocess.run(launch, env=dict(server_env, NODE_DEBUG="child_process"), capture_output=True, text=True)
+        self.assertEqual(p.returncode, 2, p.stderr)
+        self.assertIn("NODE_DEBUG is set", p.stderr)
+        self.assertNotIn(value, p.stdout + p.stderr, "the launcher printed the secret under NODE_DEBUG")
 
     def test_env_indirection_renders_names_only_and_launches_with_the_value(self):
         h = mk_home("home-env-secret")
@@ -786,8 +847,7 @@ class Secrets(unittest.TestCase):
         write_source(h, source_doc())
         self.assertEqual(run(h, env=clean_env(h, FAKE_SRC_VAR=value)).returncode, 0)
         self.assert_value_reaches_server_only(h, value, clean_env(h, FAKE_SRC_VAR=value))
-        cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
-        p = subprocess.run([cx["command"]] + cx["args"], env=clean_env(h), capture_output=True, text=True)
+        p = subprocess.run(self.rendered_launch(h), env=clean_env(h), capture_output=True, text=True)
         self.assertNotEqual(p.returncode, 0, "the launcher started a server without its secret")
         self.assertIn("FAKE_SRC_VAR is not set", p.stderr)
 
@@ -822,11 +882,11 @@ class Secrets(unittest.TestCase):
             self.assertIn(service, read(targets(h)["codex"]), "the Keychain service NAME is rendered")
             self.assertNotIn(kc, read(targets(h)["codex"]), "the renderer must never write --keychain")
             cx = tload(targets(h)["codex"])["mcp_servers"]["fake-secret"]
-            launcher = keychain_launcher(cx["command"], "keychain-secret")
-            self.assert_value_reaches_server_only(h, value, env, pre=("--keychain", kc), command=launcher)
+            launcher = keychain_launcher(cx["args"][0], "keychain-secret")
+            self.assert_value_reaches_server_only(h, value, env, pre=("--keychain", kc), script=launcher)
             subprocess.run([GUARD.security, "delete-generic-password", "-s", service, "-a", account, kc],
                            capture_output=True, env=env)
-            launch = [launcher, "--keychain", kc] + cx["args"]
+            launch = self.rendered_launch(h, ("--keychain", kc), launcher)
             p = subprocess.run(launch, env=env, capture_output=True, text=True)
             self.assertEqual(p.returncode, 3, "the launcher started a server after its Keychain item was deleted")
             self.assertIn("no readable Keychain item", p.stderr)
@@ -842,26 +902,8 @@ class Secrets(unittest.TestCase):
             drop_keychain(h, kc)
         self.assertFalse(os.path.exists(kc), "the throwaway keychain was not deleted")
 
-    def test_launcher_refuses_a_misplaced_or_relative_keychain(self):
-        marker = os.path.join(BASE, "should-not-exist-kc")
-        for args in (["--keychain", "relative.keychain-db"], ["--keychain"],
-                     ["--secret", "OK=env:SET_ONE", "--keychain", os.path.join(BASE, "k.keychain-db")]):
-            p = subprocess.run(["sh", LAUNCH] + args + ["--", "touch", marker],
-                               env=clean_env(BASE, SET_ONE="x"), capture_output=True, text=True)
-            self.assertEqual(p.returncode, 2, args)
-            self.assertFalse(os.path.exists(marker), args)
-
-    def test_launcher_refuses_bad_specs_without_running_anything(self):
-        marker = os.path.join(BASE, "should-not-exist")
-        for spec in ("NOEQUALS", "1BAD=env:X", "OK=file:/x", "OK=env:", "OK=env:BAD-NAME"):
-            p = subprocess.run(["sh", LAUNCH, "--secret", spec, "--", "touch", marker],
-                               env=clean_env(BASE), capture_output=True, text=True)
-            self.assertEqual(p.returncode, 2, spec)
-            self.assertFalse(os.path.exists(marker), spec)
-        p = subprocess.run(["sh", LAUNCH, "--secret", "OK=env:EMPTY_ONE", "--", "touch", marker],
-                           env=clean_env(BASE, EMPTY_ONE=""), capture_output=True, text=True)
-        self.assertEqual(p.returncode, 3)
-        self.assertFalse(os.path.exists(marker))
+    # The launcher's own refusals (a misplaced or relative --keychain, a bad spec, an empty value) moved
+    # with it to test/mcp/launch.test.js (#483), on the Node security stub.
 
 
 class BackupMode(unittest.TestCase):
