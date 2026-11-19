@@ -77,7 +77,9 @@ const homeOf = (env) => (env.HOME !== undefined ? env.HOME : os.homedir());
  */
 export function pathlibJoin(home, parts) {
   if (process.platform === 'win32') return path.join(home, ...parts);
-  const lead = /^\/\/(?!\/)/.test(home) ? '//' : home.startsWith('/') ? '/' : '';
+  let lead = '';
+  if (/^\/\/(?!\/)/.test(home)) lead = '//';
+  else if (home.startsWith('/')) lead = '/';
   const comps = [...home.split('/'), ...parts].filter((c) => c !== '' && c !== '.');
   return lead + comps.join('/');
 }
@@ -157,8 +159,8 @@ function splitPy(s) {
  * @param {Record<string, string | undefined>} env
  */
 export function chromeRunning(system, env) {
+  if (!Object.hasOwn(PROCESS, system)) return true;
   const name = PROCESS[system];
-  if (name === undefined) return true;
   const exe = onPath('pgrep', env);
   if (!exe) return true;
   const p = spawnSync(exe, ['-x', name], { env, stdio: 'ignore', shell: false, windowsHide: true });
@@ -211,13 +213,12 @@ export const IO = {
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
 /**
- * Set the key to true, keeping every other field and key order. Atomic: write beside, then rename.
- * Throws an Error when nothing was written, NotSynced when the file is in place but its directory was not
- * synced.
+ * The file's text with the key set to true, every other field and key order kept. Throws when the file
+ * is not a JSON object or an intermediate key is not an object.
  * @param {string} p
- * @param {Io} [io]
+ * @param {Io} io
  */
-export function setOn(p, io = IO) {
+function withKeyOn(p, io) {
   const doc = loads(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(io.readFileSync(p)), { ordered: true });
   if (!isMap(doc)) throw new Error('not a JSON object');
   let node = doc;
@@ -227,11 +228,20 @@ export function setOn(p, io = IO) {
     if (!isMap(child)) throw new Error('an intermediate key is not an object');
     node = child;
   }
-  node.set(KEY[KEY.length - 1], true);
-  const text = dumps(doc, { sortKeys: false, separators: [',', ':'] });
+  node.set(/** @type {string} */ (KEY.at(-1)), true);
+  return dumps(doc, { sortKeys: false, separators: [',', ':'] });
+}
+
+/**
+ * Write text to a new file beside p, sync it, give it p's mode and rename it over p. On any failure the
+ * temporary file is removed and p is untouched.
+ * @param {string} p
+ * @param {string} text
+ * @param {Io} io
+ */
+function replaceBeside(p, text, io) {
   const mode = io.statSync(p).mode & 0o777;
-  const dir = path.dirname(p);
-  const tmp = path.join(dir, '.Local State.mhw-' + crypto.randomBytes(6).toString('base64url'));
+  const tmp = path.join(path.dirname(p), '.Local State.mhw-' + crypto.randomBytes(6).toString('base64url'));
   let fd = io.openSync(tmp, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL, 0o600);
   try {
     // CPython's UTF-8 encoder refuses a lone surrogate, after the temporary file exists.
@@ -244,20 +254,34 @@ export function setOn(p, io = IO) {
     io.chmodSync(tmp, mode);
     io.renameSync(tmp, p);
   } catch (e) {
-    if (fd !== -1) {
-      try {
-        io.closeSync(fd);
-      } catch {
-        // already closed by the failing call
-      }
-    }
+    if (fd !== -1) closeQuietly(fd, io);
     if (io.existsSync(tmp)) io.unlinkSync(tmp);
     throw e;
   }
+}
+
+/** @param {number} fd @param {Io} io */
+function closeQuietly(fd, io) {
+  try {
+    io.closeSync(fd);
+  } catch {
+    // already closed by the failing call
+  }
+}
+
+/**
+ * Set the key to true, keeping every other field and key order. Atomic: write beside, then rename.
+ * Throws an Error when nothing was written, NotSynced when the file is in place but its directory was not
+ * synced.
+ * @param {string} p
+ * @param {Io} [io]
+ */
+export function setOn(p, io = IO) {
+  replaceBeside(p, withKeyOn(p, io), io);
   // Durability of the rename itself: fsync the directory that holds it. The file is already replaced
   // here, so a failure is reported as such, never as "nothing was written".
   try {
-    const dfd = io.openSync(dir || '.', fs.constants.O_RDONLY);
+    const dfd = io.openSync(path.dirname(p), fs.constants.O_RDONLY);
     try {
       io.fsyncSync(dfd);
     } finally {

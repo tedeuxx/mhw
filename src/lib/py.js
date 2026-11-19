@@ -202,6 +202,13 @@ class StopIteration extends Error {
  */
 export function loads(text, opts = {}) {
   const ordered = opts.ordered === true;
+  /** A new dict: a Map when ordered. @returns {Record<string, unknown> | Map<string, unknown>} */
+  const newDict = () => (ordered ? new Map() : {});
+  /** dict[k] = v. @param {Record<string, unknown> | Map<string, unknown>} obj @param {string} k @param {unknown} v */
+  const put = (obj, k, v) => {
+    if (obj instanceof Map) obj.set(k, v);
+    else Object.defineProperty(obj, k, { value: v, writable: true, enumerable: true, configurable: true });
+  };
   const s = codePoints(text);
   const len = s.length;
   /** @param {string} msg @param {number} pos */
@@ -317,8 +324,7 @@ export function loads(text, opts = {}) {
   };
   /** @param {number} i after the brace @returns {[unknown, number]} */
   const scanObject = (i) => {
-    /** @type {Record<string, unknown> | Map<string, unknown>} */
-    const obj = ordered ? new Map() : {};
+    const obj = newDict();
     i = skip(i);
     if (i >= len || s[i] !== '}') {
       for (;;) {
@@ -328,8 +334,7 @@ export function loads(text, opts = {}) {
         if (i >= len || s[i] !== ':') throw fail("Expecting ':' delimiter", i);
         i = skip(i + 1);
         const [val, next] = scan(i);
-        if (obj instanceof Map) obj.set(key, val);
-        else Object.defineProperty(obj, key, { value: val, writable: true, enumerable: true, configurable: true });
+        put(obj, key, val);
         i = skip(next);
         if (i < len && s[i] === '}') break;
         if (i >= len || s[i] !== ',') throw fail("Expecting ',' delimiter", i);
@@ -415,18 +420,12 @@ export function dumps(value, opts = {}) {
       if (!v.length) return '[]';
       return '[' + v.map((x) => nl + enc(x, depth + 1)).join(item) + close + ']';
     }
-    if (v instanceof Map) {
-      const keys = sortKeys ? [...v.keys()].sort(cmpStr) : [...v.keys()];
-      if (!keys.length) return '{}';
-      return '{' + keys.map((k) => nl + dumpString(k, ascii) + key + enc(v.get(k), depth + 1)).join(item) + close + '}';
-    }
-    if (typeof v === 'object') {
-      const o = /** @type {Record<string, unknown>} */ (v);
-      const keys = sortKeys ? Object.keys(o).sort(cmpStr) : Object.keys(o);
-      if (!keys.length) return '{}';
-      return '{' + keys.map((k) => nl + dumpString(k, ascii) + key + enc(o[k], depth + 1)).join(item) + close + '}';
-    }
-    throw new TypeError('not JSON serializable');
+    if (typeof v !== 'object') throw new TypeError('not JSON serializable');
+    // A Map (an ordered loads()) and a plain object are both a dict; only the entries differ.
+    const entries = v instanceof Map ? [...v.entries()] : Object.entries(/** @type {Record<string, unknown>} */ (v));
+    if (sortKeys) entries.sort((a, b) => cmpStr(a[0], b[0]));
+    if (!entries.length) return '{}';
+    return '{' + entries.map(([k, x]) => nl + dumpString(k, ascii) + key + enc(x, depth + 1)).join(item) + close + '}';
   };
   return enc(value, 0);
 }

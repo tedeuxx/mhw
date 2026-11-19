@@ -136,6 +136,20 @@ function printNodeLine(nodeVersion) {
 }
 
 /**
+ * The commands moved to Node: answered here on every OS, never forwarded.
+ * @type {Record<string, (argv: string[], env: Record<string, string | undefined>) => number>}
+ */
+const MOVED = {
+  milestone: milestoneMain, // #475, S04
+  worklog: worklogMain, // #476, S05
+  'launch-line': launchLineMain, // #476, S05
+  'rite-cadence': riteCadenceMain, // #477, S06
+  'funnel-review': funnelReviewMain, // #478, S07
+  // #480, S09: the install step install.sh spawns, and the status line workstation.py reads.
+  'chrome-debugging': chromeDebuggingMain,
+};
+
+/**
  * @param {string[]} argv
  * @param {string} platform
  * @param {Record<string, string | undefined>} env
@@ -151,17 +165,8 @@ export function main(argv, platform, env, opts = {}) {
     if (r.stderr) fs.writeSync(2, r.stderr);
     return r.code;
   }
-  // Moved to Node (#475, S04): answered here on every OS, never forwarded.
-  if (argv[0] === 'milestone') return milestoneMain(argv.slice(1), env);
-  // Moved to Node (#476, S05): mhw worklog and mhw launch-line run here on every OS, never forwarded.
-  if (argv[0] === 'worklog') return worklogMain(argv.slice(1), env);
-  if (argv[0] === 'launch-line') return launchLineMain(argv.slice(1), env);
-  // Moved to Node (#477, S06).
-  if (argv[0] === 'rite-cadence') return riteCadenceMain(argv.slice(1), env);
-  // Moved to Node (#478, S07): mhw funnel-review runs here on every OS, never forwarded.
-  if (argv[0] === 'funnel-review') return funnelReviewMain(argv.slice(1), env);
-  // Moved to Node (#480, S09): the install step install.sh spawns, and the status line workstation.py reads.
-  if (argv[0] === 'chrome-debugging') return chromeDebuggingMain(argv.slice(1), env);
+  // own keys only, so `mhw constructor` is forwarded like any unknown word
+  if (argv.length && Object.hasOwn(MOVED, argv[0])) return MOVED[argv[0]](argv.slice(1), env);
   if (argv[0] === 'status') printNodeLine(opts.nodeVersion || process.version);
   if (platform !== 'win32') {
     // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.

@@ -111,7 +111,8 @@ for layout in npm copy npm-with-git; do
     npm-with-git) d="$base/npm-git/lib/node_modules/mhw" ;;
   esac
   mkdir -p "$d"
-  cp -R "$here/../global" "$here/../overlay" "$d/"
+  # bin/ and src/ too, as the npm package ships them: install.sh's Chrome step runs bin/mhw.js (#480).
+  cp -R "$here/../global" "$here/../overlay" "$here/../bin" "$here/../src" "$d/"
   cp "$here/../.bumpversion.toml" "$here/../package.json" "$here/../.workstation-archive" "$d/"
   [ "$layout" = npm-with-git ] && printf 'gitdir: /nowhere\n' > "$d/.git"
   hl="$base/home-$layout"; mkdir -p "$hl"
