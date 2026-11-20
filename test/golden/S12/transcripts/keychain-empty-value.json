@@ -1,0 +1,6 @@
+{
+  "code": 3,
+  "signal": null,
+  "stdout": "",
+  "stderr": "mcp-launch: secret K_TOKEN: the source keychain:svc.blank is empty\n"
+}

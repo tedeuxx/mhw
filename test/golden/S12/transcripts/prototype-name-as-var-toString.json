@@ -1,0 +1,6 @@
+{
+  "code": 3,
+  "signal": null,
+  "stdout": "",
+  "stderr": "mcp-launch: secret X: environment variable toString is not set in the launcher's environment\n"
+}
