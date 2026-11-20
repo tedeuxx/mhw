@@ -43,7 +43,7 @@
       "text": "{\n  \"mcpServers\": {\n    \"fake-plain\": {\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    }\n  }\n}\n"
     },
     ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {
@@ -51,7 +51,7 @@
       "text": "#!/usr/bin/env node\n// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/mcp-launch.js; <STAMP>; do not edit, re-run the renderer\n<the launcher source>"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.sh": {
-      "mode": "644",
+      "mode": "600",
       "text": "#!/bin/sh\necho someone else\n"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": {

@@ -36,19 +36,19 @@
   "step6 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
   "files": {
     ".claude/plugins/cache/mkt/plug2/1.0.0/.claude-plugin/plugin.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"name\":\"plug2\",\"mcpServers\":{\"local\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"]}}}"
     },
     ".claude/plugins/installed_plugins.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"version\":2,\"plugins\":{\"plug2@mkt\":[{\"installPath\":\"<HOME>/.claude/plugins/cache/mkt/plug2/1.0.0\",\"scope\":\"user\"}]}}"
     },
     ".claude/plugins/synced/src1/plug1/.mcp.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"mcpServers\":{\"web\":{\"type\":\"http\",\"url\":\"https://synth.example/mcp\"},\"varred\":{\"command\":\"${CLAUDE_PLUGIN_ROOT}/bin/x\"},\"leaky\":{\"type\":\"http\",\"url\":\"https://synth.example/mcp?token=synthetic-s13-canary-4b1d7e\"},\"envurl\":{\"type\":\"http\",\"url\":\"https://${SYNTH_HOST}/mcp\"}}}"
     },
     ".claude/settings.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\n  \"model\": \"synthetic\",\n  \"deniedMcpServers\": [\n    {\n      \"serverName\": \"owners-own\"\n    }\n  ]\n}\n"
     },
     ".claude/settings.json.pmhwc-mcp-active-backup": {
@@ -56,11 +56,11 @@
       "text": "{\n  \"model\": \"synthetic\",\n  \"deniedMcpServers\": [\n    {\n      \"serverName\": \"owners-own\"\n    },\n    {\n      \"serverName\": \"out-u\"\n    },\n    {\n      \"serverCommand\": [\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    },\n    {\n      \"serverUrl\": \"https://synth.example/mcp\"\n    },\n    {\n      \"serverName\": \"claude.ai Synth Off\"\n    }\n  ]\n}\n"
     },
     ".claude.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"numStartups\":3,\"mcpServers\":{\"set-a\":{\"type\":\"stdio\",\"command\":\"/bin/echo\"},\"out-u\":{\"type\":\"stdio\",\"command\":\"/bin/echo\"},\"chrome-devtools\":{\"command\":\"/bin/sh\"},\"claude-in-chrome\":{\"command\":\"/bin/echo\"}}}"
     },
     ".codex/config.toml": {
-      "mode": "644",
+      "mode": "600",
       "text": "approval_policy = \"on-request\"\n\n[mcp_servers.set-a]\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b]\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b.env]\nSYNTH = \"synthetic-s13-canary-4b1d7e\"\n\n[mcp_servers.out-c]\nenabled = true # kept as written\ncommand = \"/bin/echo\"\n\n[mcp_servers.own-off]\nenabled = false\ncommand = \"/bin/echo\"\n\n[mcp_servers.node_repl]\ncommand = \"/bin/echo\"\n"
     },
     ".codex/config.toml.pmhwc-mcp-active-backup": {
@@ -68,7 +68,7 @@
       "text": "approval_policy = \"on-request\"\n\n[mcp_servers.set-a]\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b]\nenabled = false  # managed-by: personal-multi-harness-workstation-configuration (mcp active set)\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b.env]\nSYNTH = \"synthetic-s13-canary-4b1d7e\"\n\n[mcp_servers.out-c]\nenabled = false  # managed-by: personal-multi-harness-workstation-configuration (mcp active set)\ncommand = \"/bin/echo\"\n\n[mcp_servers.own-off]\nenabled = false\ncommand = \"/bin/echo\"\n\n[mcp_servers.node_repl]\ncommand = \"/bin/echo\"\n"
     },
     ".kiro/settings/mcp.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\n  \"mcpServers\": {\n    \"set-a\": {\n      \"command\": \"/bin/echo\"\n    },\n    \"out-k\": {\n      \"command\": \"/bin/echo\",\n      \"env\": {\n        \"SYNTH\": \"synthetic-s13-canary-4b1d7e\"\n      }\n    },\n    \"out-k2\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": false\n    },\n    \"own-off\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": true\n    }\n  }\n}\n"
     },
     ".kiro/settings/mcp.json.pmhwc-mcp-active-backup": {
@@ -76,7 +76,7 @@
       "text": "{\n  \"mcpServers\": {\n    \"set-a\": {\n      \"command\": \"/bin/echo\"\n    },\n    \"out-k\": {\n      \"command\": \"/bin/echo\",\n      \"env\": {\n        \"SYNTH\": \"synthetic-s13-canary-4b1d7e\"\n      },\n      \"disabled\": true\n    },\n    \"out-k2\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": true\n    },\n    \"own-off\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": true\n    }\n  }\n}\n"
     },
     ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"version\":1,\"servers\":{\"set-a\":{\"command\":\"/bin/echo\"}},\"active_set\":{\"connectors\":{\"Synth On\":\"on\",\"Synth Off\":\"off\"}}}"
     }
   }

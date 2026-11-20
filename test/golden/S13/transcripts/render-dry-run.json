@@ -6,7 +6,7 @@
   "step0 --dry-run stderr": "",
   "files": {
     ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
     }
   }

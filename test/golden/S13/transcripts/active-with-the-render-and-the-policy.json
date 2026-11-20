@@ -47,7 +47,7 @@
       "text": "{\n  \"mcpServers\": {\n    \"set-a\": {\n      \"command\": \"/bin/echo\",\n      \"args\": []\n    },\n    \"chrome-devtools\": {\n      \"command\": \"/bin/sh\",\n      \"args\": [\n        \"-c\",\n        \"exec /bin/echo synthetic\"\n      ]\n    },\n    \"fake-secret\": {\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"S_TOKEN=env:S_SRC\",\n        \"--\",\n        \"/bin/cat\"\n      ]\n    }\n  }\n}\n"
     },
     ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"version\":1,\"active_set\":{},\"servers\":{\"set-a\":{\"command\":\"/bin/echo\"},\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec /bin/echo other\"]}}}"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {

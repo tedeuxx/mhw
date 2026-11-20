@@ -11,11 +11,11 @@
   "step1 --surfaces=codex --adopt stderr": "REFUSE  <HOME>/.codex/config.toml: server(s) fake-plain are also configured outside the managed block, by hand. Codex refuses to load a config with a duplicate table, so nothing was written: remove those tables (after moving any credential to the Keychain), then re-run\n",
   "files": {
     ".codex/config.toml": {
-      "mode": "644",
+      "mode": "600",
       "text": "[mcp_servers.fake-plain]\ncommand = \"mine\"\n"
     },
     ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {

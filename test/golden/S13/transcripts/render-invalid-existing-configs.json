@@ -11,19 +11,19 @@
   "step1 --check stderr": "REFUSE  <HOME>/.codex/config.toml: not valid TOML (Invalid value (at line 1, column 9)); left untouched\nREFUSE  <HOME>/.claude.json: not readable JSON (Expecting value: line 1 column 18 (char 17)); left untouched\nREFUSE  <HOME>/.kiro/settings/mcp.json: not a JSON object; left untouched\n",
   "files": {
     ".claude.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{ \"numStartups\": "
     },
     ".codex/config.toml": {
-      "mode": "644",
+      "mode": "600",
       "text": "model = \n"
     },
     ".kiro/settings/mcp.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "[\"not\",\"an\",\"object\"]"
     },
     ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {

@@ -241,6 +241,26 @@ group('the definition', () => {
     assert.ok(Date.now() - t0 < 2000, 'a long input is searched in linear time');
   });
 
+  test("the URL scan answers as the original's URL pattern, run in CPython", { skip: !PY && 'needs python3 for the oracle' }, () => {
+    const inputs = ['https://u:p@h/', 'https://u:@h/', 'https://:p@h/', 'https://u@h/', 'https://u:p/h@x', 'https://u p:q@h', 'http://a:b:c@h',
+      'x://:a:@h', 'https://h/?token=1', 'https://h/?Token=1', 'https://h/?a=1&api_key=2', 'https://h/?apikey', 'https://h/?x.auth-y=1', 'https://h/?pre-passwd=1',
+      'https://h/x?mytoken', '?secret=', '&k=1', '?key=', '?ke y=1', '://a:b@', ':// a:b@', 'no url at all', '', 'https://h/?ſecret=1'];
+    const rnd = crypto.createHash('sha256');
+    for (let i = 0; i < 300; i++) {
+      rnd.update(String(i));
+      const bytes = rnd.copy().digest();
+      inputs.push([...bytes].map((b) => ':/@?&=. akstp-_'[b % 15]).join(''));
+    }
+    const oracle = 'import json, re, sys\nrx = re.compile(r"(://[^/@\\s]+:[^/@\\s]+@)|([?&][A-Za-z0-9_.-]*(token|key|secret|passw|auth)[A-Za-z0-9_.-]*=)", re.I)\n'
+      + 'print(json.dumps([bool(rx.search(s)) for s in json.load(sys.stdin)]))\n';
+    const p = spawnSync(/** @type {string} */ (PY), ['-c', oracle], { input: JSON.stringify(inputs), encoding: 'utf8' });
+    assert.equal(p.status, 0, p.stderr);
+    /** @type {boolean[]} */
+    const want = JSON.parse(p.stdout);
+    inputs.forEach((s, i) => assert.equal(M.urlCredential(s), want[i], JSON.stringify(s)));
+    assert.ok(want.some(Boolean) && want.some((x) => !x), 'the inputs hold both answers');
+  });
+
   test('not_secret is the reviewed escape', () => {
     assert.deepEqual(M.validate({ version: 1, servers: { s: { command: 'x', env: { AUTH_MODE: 'device' }, args: ['--token-file', '/p'], not_secret: ['AUTH_MODE', '--token-file'] } } }, 'darwin'), []);
   });
@@ -274,7 +294,7 @@ group('the definition', () => {
     assert.equal(run(h, ['--source=' + link, '--dry-run']).code, 0);
   });
 
-  test('a definition that could be committed is refused', { skip: !GIT && 'git not available' }, () => {
+  test('a definition that could be committed is refused', { skip: (!POSIX && 'the fixture names a secret, refused on Windows') || (!GIT && 'git not available') }, () => {
     const h = mkHome('home-git');
     const repo = path.join(BASE, 'a-git-repo');
     fs.rmSync(repo, { recursive: true, force: true });
@@ -384,7 +404,7 @@ group('the trusted path', () => {
 
 // -------------------------------------------------------------------------------------------- render
 
-group('render', () => {
+group('render', { skip: !POSIX && 'the fixture names a secret, refused on Windows; see "render on Windows"' }, () => {
   test('a dry run writes nothing and prints no current value', () => {
     const h = mkHome('home-dry');
     const planted = synth();
@@ -765,7 +785,48 @@ group('render', () => {
 
 // ------------------------------------------------------------------------------------------- secrets
 
-group('secrets', () => {
+// The render on every OS, with a definition that names no secret (secrets are refused on Windows): a
+// fresh install, a clean check, an idempotent re-run, every surface's entries, and a refused secret.
+group('render on every OS (no secret)', () => {
+  /** @param {string} h */
+  const noSecret = (h) => {
+    const d = sourceDoc();
+    delete (/** @type {any} */ (d.servers))['fake-secret'];
+    return writeSource(h, d);
+  };
+
+  test('install, check and a re-run that changes nothing', () => {
+    const h = mkHome('home-every-os');
+    noSecret(h);
+    const p = run(h, []);
+    assert.equal(p.code, 0, p.all);
+    const t = targets(h);
+    const cx = tload(t.codex).mcp_servers;
+    assert.deepEqual(Object.keys(cx), ['fake-plain', 'fake-codex-only']);
+    assert.deepEqual(plain(cx['fake-plain']), { command: '/bin/echo', args: ['hello'], env: { FAKE_REGION: 'zz-1' } });
+    assert.deepEqual(jload(t['claude-code']).mcpServers, { 'fake-plain': { type: 'stdio', command: '/bin/echo', args: ['hello'], env: { FAKE_REGION: 'zz-1' } } });
+    assert.deepEqual(jload(t.kiro).mcpServers, { 'fake-plain': { command: '/bin/echo', args: ['hello'], env: { FAKE_REGION: 'zz-1' } } });
+    assert.ok(!fs.existsSync(path.join(data(h), M.LAUNCHER_NAME)), 'no secret, no launcher');
+    if (!POSIX) assert.ok(fs.readFileSync(t.codex, 'utf8').includes('\r\n'), 'Windows text mode writes \\r\\n, as Python did');
+    assert.equal(run(h, ['--check']).code, 0);
+    const before = fingerprint(h);
+    assert.equal(run(h, []).code, 0);
+    assert.deepEqual(fingerprint(h), before, 'a re-run changed a file');
+  });
+
+  test('a secret is refused on Windows and rendered elsewhere', () => {
+    const h = mkHome('home-every-os-secret');
+    writeSource(h, sourceDoc());
+    const p = run(h, ['--dry-run']);
+    if (POSIX) assert.equal(p.code, 0, p.all);
+    else {
+      assert.equal(p.code, 2);
+      assert.match(p.stderr, /secrets are not supported on Windows/);
+    }
+  });
+});
+
+group('secrets', { skip: !POSIX && 'secrets are not rendered on Windows' }, () => {
   /** The rendered command line of fake-secret: node, the installed launcher (or script), pre, its arguments. @param {string} h @param {string[]} [pre] @param {string} [script] */
   const renderedLaunch = (h, pre = [], script = undefined) => {
     const cx = tload(targets(h).codex).mcp_servers['fake-secret'];
@@ -857,7 +918,7 @@ test('a backup is owner-only and never written through a link at its path', { sk
   fs.mkdirSync(d, { recursive: true });
   const p = path.join(d, 'config.toml');
   fs.writeFileSync(p, 'old = 1\n');
-  fs.chmodSync(p, 0o644);
+  fs.chmodSync(p, 0o640);
   const decoy = path.join(d, 'decoy');
   fs.writeFileSync(decoy, 'decoy\n');
   fs.rmSync(p + '.pmhwc-backup', { force: true });
@@ -867,7 +928,7 @@ test('a backup is owner-only and never written through a link at its path', { sk
   assert.equal(mode(p + '.pmhwc-backup'), 0o600);
   assert.equal(read(p + '.pmhwc-backup'), 'old = 1\n');
   assert.equal(read(decoy), 'decoy\n');
-  assert.equal(mode(p), 0o644);
+  assert.equal(mode(p), 0o640);
   assert.equal(read(p), 'new = 2\n');
 });
 
@@ -965,6 +1026,7 @@ group('the policy servers (ADR-0038)', () => {
     const h = mkHome('home-policy');
     const cfg = targets(h)['claude-code'];
     putJson(cfg, { numStartups: 7, mcpServers: { mine: { command: '/bin/echo' } } });
+    fs.chmodSync(cfg, 0o640);
     const seed = read(cfg);
     let p = policy(h, 'check');
     assert.equal(p.code, 1);
@@ -978,7 +1040,7 @@ group('the policy servers (ADR-0038)', () => {
     assert.equal(got.numStartups, 7);
     assert.equal(read(cfg + M.POLICY_BACKUP), seed);
     assert.equal(mode(cfg + M.POLICY_BACKUP), 0o600);
-    assert.equal(mode(cfg), 0o644, 'the config keeps its own mode');
+    assert.equal(mode(cfg), 0o640, 'the config keeps its own mode');
     const before = fingerprint(h);
     assert.match(policy(h, 'install').stdout, /OK {6}/);
     assert.deepEqual(fingerprint(h), before);
@@ -1263,7 +1325,7 @@ group('the active set, through the CLI (mcp_active.py until #485)', { skip: noPy
   });
 });
 
-group('policy extension (render)', () => {
+group('policy extension (render)', { skip: !POSIX && 'the policy is not rendered on Windows' }, () => {
   test('an identical copy renders on the other surfaces and never on the policy\'s', { skip: !POSIX && 'the policy is not rendered on Windows' }, () => {
     const h = mkHome('home-ext');
     writeSource(h, sourceDoc({ 'chrome-devtools': policyCopy() }));

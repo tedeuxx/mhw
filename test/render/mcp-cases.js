@@ -18,11 +18,11 @@ export const CANARY = 'synthetic-s13-canary-4b1d7e';
  * @typedef {{ name: string, setup?: (w: Where) => void, steps: Step[], dirs?: string[] }} Case
  */
 
-/** Write a fixture file, 0644 whatever the umask. @param {string} file @param {string} text */
+/** Write a fixture file, owner-only (0600) whatever the umask, so a transcript records the same mode on every runner. @param {string} file @param {string} text */
 export function put(file, text) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, text);
-  fs.chmodSync(file, 0o644);
+  fs.chmodSync(file, 0o600);
 }
 /** @param {string} file @param {unknown} doc */
 export const putJson = (file, doc) => put(file, JSON.stringify(doc));
@@ -186,7 +186,7 @@ export const CASES = [
           extra: 1,
           servers: {
             'bad name': { command: 'x' },
-            k: { command: 'x', commandd: 'y', args: ['--auth-token=v', 'a\nb'], secrets: { T: 'file:/x', U: 'keychain:svc', V: 'env:BAD-NAME' }, surfaces: ['vim'] },
+            k: { command: 'x', commandd: 'y', args: ['--auth-token=v', 'a\nb'], secrets: { T: 'file:/x', V: 'env:BAD-NAME' }, surfaces: ['vim'] },
             e: { command: ' ', env: { T: 'v' }, not_secret: ['T'], secrets: { T: 'env:V' } },
           },
           active_set: { connectors: { ' Synth': 'maybe' }, unknown: 1, description: 3 },

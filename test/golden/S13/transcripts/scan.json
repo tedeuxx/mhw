@@ -11,27 +11,27 @@
   "step1 --scan --surfaces=kiro stderr": "",
   "files": {
     ".claude.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"mcpServers\":{\"svc-c\":{\"command\":\"x\",\"env\":{\"SETTING\":\"<TOKEN-SHAPED>\"}}}}"
     },
     ".claude.json.pmhwc-mcp-policy-backup": {
-      "mode": "644",
+      "mode": "600",
       "text": "{ broken"
     },
     ".codex/config.toml": {
-      "mode": "644",
+      "mode": "600",
       "text": "[mcp_servers.svc-a]\ncommand = \"x\"\nargs = [\"--api-key\", \"synthetic-s13-canary-4b1d7e-0\"]\nenv = { SVC_TOKEN = \"synthetic-s13-canary-4b1d7e-1\", REGION = \"eu\" }\n\n[mcp_servers.svc-r]\nurl = \"https://h/mcp\"\nbearer_token = \"synthetic-s13-canary-4b1d7e-2\"\n"
     },
     ".kiro/settings/mcp.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"mcpServers\":{\"svc-b\":{\"command\":\"x\",\"args\":[\"--password=synthetic-s13-canary-4b1d7e-3\"],\"headers\":{\"Authorization\":\"synthetic-s13-canary-4b1d7e-4\"}},\"svc-u\":{\"url\":\"https://h/mcp?access_token=synthetic-s13-canary-4b1d7e-5\"}}}"
     },
     ".kiro/settings/mcp.json.new.4242": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"mcpServers\":{\"svc-b\":{\"command\":\"x\",\"args\":[\"--password=synthetic-s13-canary-4b1d7e-3\"],\"headers\":{\"Authorization\":\"synthetic-s13-canary-4b1d7e-4\"}},\"svc-u\":{\"url\":\"https://h/mcp?access_token=synthetic-s13-canary-4b1d7e-5\"}}}"
     },
     ".kiro/settings/mcp.json.pmhwc-backup": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"mcpServers\":{\"svc-b\":{\"command\":\"x\",\"args\":[\"--password=synthetic-s13-canary-4b1d7e-3\"],\"headers\":{\"Authorization\":\"synthetic-s13-canary-4b1d7e-4\"}},\"svc-u\":{\"url\":\"https://h/mcp?access_token=synthetic-s13-canary-4b1d7e-5\"}}}"
     }
   }

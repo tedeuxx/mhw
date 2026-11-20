@@ -16,7 +16,7 @@
   "step2 --check stderr": "",
   "files": {
     ".claude.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\n  \"preferences\": {\n    \"theme\": \"dark\"\n  },\n  \"numStartups\": 3,\n  \"mcpServers\": {\n    \"hand-made\": {\n      \"command\": \"x\",\n      \"args\": []\n    },\n    \"fake-plain\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"type\": \"stdio\",\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    }\n  }\n}\n"
     },
     ".claude.json.pmhwc-backup": {
@@ -32,7 +32,7 @@
       "text": "# my own comment\nmodel = \"m\"\n\n[mcp_servers.hand-made]\ncommand = \"x\"\nenv = { HAND_TOKEN = \"synthetic-s13-canary-4b1d7e\" }\n\n[projects.\"/tmp/p\"]\ntrust_level = \"trusted\"\n"
     },
     ".kiro/settings/mcp.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\n  \"preferences\": {\n    \"theme\": \"dark\"\n  },\n  \"numStartups\": 3,\n  \"mcpServers\": {\n    \"hand-made\": {\n      \"command\": \"x\",\n      \"args\": []\n    },\n    \"fake-plain\": {\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    }\n  }\n}\n"
     },
     ".kiro/settings/mcp.json.pmhwc-backup": {
@@ -40,7 +40,7 @@
       "text": "{\"preferences\":{\"theme\":\"dark\"},\"numStartups\":3,\"mcpServers\":{\"hand-made\":{\"command\":\"x\",\"args\":[]}}}"
     },
     ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {

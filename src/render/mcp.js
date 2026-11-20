@@ -93,7 +93,33 @@ const SERVICE_RE = /^[A-Za-z0-9][A-Za-z0-9._@:+-]{0,127}\n?$/;
 // an escape (not_secret).
 const CRED_RE = /TOKEN|SECRET|PASSW(?:OR)?D|PASSPHRASE|PWD|API[_-]?KEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|CLIENT[_-]?KEY|CREDENTIAL|AUTH|BEARER|COOKIE|SESSION|DSN|SIGNATURE|(?:^|[_.-])(?:PAT|KEY|KEYS|APIKEY|CERT)(?:[_.-]|\n?$)/iu;
 const ARG_FLAG_RE = /^(--?[\w.-]+)(=[\s\S]*)?\n?$/;
-const URL_CRED_RE = /(?::\/\/[^/@\s]+:[^/@\s]+@)|(?:[?&][\w.-]*(?:token|key|secret|passw|auth)[\w.-]*=)/iu;
+const URL_WORD = /token|key|secret|passw|auth/iu;
+const URL_PARAM_CHAR = /[\w.-]/iu;
+const SPACE = /\s/u;
+
+/**
+ * The original's URL pattern, (://[^/@\s]+:[^/@\s]+@)|([?&][A-Za-z0-9_.-]*(token|key|secret|passw|auth)
+ * [A-Za-z0-9_.-]*=) under re.I, answered by one linear pass instead of a backtracking search: userinfo is
+ * the run after :// of characters that are not /, @ or a blank, ended by @ and holding a : with a character
+ * on each side; a credential parameter is the run of [\w.-] after ? or &, ended by = and holding one of the
+ * words. A run is maximal, so the regex matches exactly when one of these holds.
+ * @param {string} s
+ */
+export function urlCredential(s) {
+  for (let i = s.indexOf('://'); i !== -1; i = s.indexOf('://', i + 1)) {
+    let j = i + 3;
+    while (j < s.length && s[j] !== '/' && s[j] !== '@' && !SPACE.test(s[j])) j++;
+    const run = s.slice(i + 3, j);
+    if (s[j] === '@' && run.slice(1, -1).includes(':')) return true;
+  }
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] !== '?' && s[i] !== '&') continue;
+    let j = i + 1;
+    while (j < s.length && URL_PARAM_CHAR.test(s[j])) j++;
+    if (s[j] === '=' && URL_WORD.test(s.slice(i + 1, j))) return true;
+  }
+  return false;
+}
 // Python's \b before a word character: the previous character is not a Python word character.
 const WB = '(?<![\\p{L}\\p{N}_])';
 // A credential-looking VALUE, whatever its key is called: userinfo or a credential query parameter in a
@@ -102,7 +128,7 @@ const WB = '(?<![\\p{L}\\p{N}_])';
 // is the original's with its redundant prefixes dropped: a search finds `token:` wherever it found
 // `x-token:`, and `authorization:` wherever `proxy-authorization:`, so the answer is the same.
 const VALUE_CRED_RES = [
-  URL_CRED_RE,
+  { test: urlCredential },
   /(?:authorization|api[-_]?key|token|secret|password|cookie)\s*:\s*\S/iu,
   new RegExp(WB + '(?:bearer|basic|token)\\s+[\\w.~+/=-]{8,}', 'iu'),
   new RegExp(WB + '(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\\w{20,}|glpat-[\\w-]{16,}|sk-[\\w-]{16,}|'
@@ -1606,7 +1632,7 @@ export function scanServer(server) {
     });
   }
   const url = get(server, 'url');
-  if (isStr(url) && URL_CRED_RE.test(url)) out.push('url (userinfo or a credential-like query parameter)');
+  if (isStr(url) && urlCredential(url)) out.push('url (userinfo or a credential-like query parameter)');
   walk(server, '');
   return out;
 }

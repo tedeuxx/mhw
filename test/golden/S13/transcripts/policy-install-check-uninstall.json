@@ -46,7 +46,7 @@
   "step8 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
   "files": {
     ".claude.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\n  \"numStartups\": 7,\n  \"mcpServers\": {\n    \"mine\": {\n      \"command\": \"/bin/echo\"\n    }\n  }\n}\n"
     },
     ".claude.json.pmhwc-mcp-policy-backup": {

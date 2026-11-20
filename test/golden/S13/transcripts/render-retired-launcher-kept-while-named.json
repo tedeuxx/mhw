@@ -16,7 +16,7 @@
   "step2 install stderr": "REFUSE  <HOME>/.claude.json: not readable JSON (Expecting property name enclosed in double quotes: line 1 column 3 (char 2)); left untouched\n",
   "files": {
     ".claude.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{ not json"
     },
     ".codex/config.toml": {
@@ -24,11 +24,11 @@
       "text": "# >>> managed-by: personal-multi-harness-workstation-configuration (mcp servers); <STAMP>; generated, do not edit inside this block: re-run global/mcp/mcp_render.py\n[mcp_servers.fake-plain]\ncommand = \"/bin/echo\"\nargs = [\"hello\"]\nenv = { FAKE_REGION = \"zz-1\" }\n\n[mcp_servers.fake-secret]\ncommand = \"<NODE>\"\nargs = [\"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\", \"--secret\", \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\", \"--\", \"/bin/cat\", \"-u\"]\nenv_vars = [\"FAKE_SRC_VAR\"]\n\n[mcp_servers.fake-codex-only]\ncommand = \"/bin/cat\"\nargs = []\n# <<< managed-by: personal-multi-harness-workstation-configuration (mcp servers)\n"
     },
     ".kiro/settings/mcp.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"mcpServers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"<NODE>\",\"args\":[\"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\"--secret\",\"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\"--\",\"/bin/cat\",\"-u\"]},\"hand-made\":{\"command\":\"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.sh\",\"args\":[\"--\",\"/bin/true\"]}}}"
     },
     ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
-      "mode": "644",
+      "mode": "600",
       "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {
@@ -36,7 +36,7 @@
       "text": "#!/usr/bin/env node\n// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/mcp-launch.js; <STAMP>; do not edit, re-run the renderer\n<the launcher source>"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.sh": {
-      "mode": "644",
+      "mode": "600",
       "text": "#!/bin/sh\n# managed-by: personal-multi-harness-workstation-configuration; source: global/mcp/mcp-launch.sh; x; do not edit\nexec \"$@\"\n"
     },
     ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": {
