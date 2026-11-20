@@ -134,7 +134,8 @@ against a throwaway work directory, or `.github/scripts/prod-canary-container.sh
    no owner comment, so the go is an instruction here, not a check. It refuses a head branch other than `rc/next`, dirty workspaces, a different/unpushed
    head, a stale base, a non-clean merge state, missing labels, a missing `tests` run and
    incomplete or failed checks. The stable `delivery-ci` job requires every test matrix to pass; the
-   semver and Sonar checks must also be present and successful. Only the most recent run of each
+   semver, Sonar and `docs-baseline` checks must also be present and successful (`docs-baseline` since
+   #523; `semver-label` runs only on a PR into `main`). Only the most recent run of each
    check on the head counts: a re-run that passed supersedes an older failure of the same check, and
    a newer failed or still running re-run blocks. A Sonar check not yet registered is pending, not
    permission to race ahead of analysis.
