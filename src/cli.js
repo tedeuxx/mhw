@@ -7,7 +7,7 @@
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
 // `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
-// and `mhw scan` (#486).
+// and `mhw scan` (#486); new in Node: `mhw docs-baseline check` and `mhw onboard` (#523).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
 // PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
@@ -29,6 +29,7 @@ import { main as profileMain } from './commands/profile.js';
 import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
 import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as scanMain } from './commands/scan.js';
+import { checkMain as docsBaselineMain, onboardMain } from './commands/docs-baseline.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -159,6 +160,9 @@ const MOVED = {
   // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`.
   mcp: mcpMain,
   scan: scanMain, // #486, S15: the outbound scan, on the cleaning core (src/lib/clean.js)
+  // #523: the documentation baseline's pull-request check, and the onboarding entry point.
+  'docs-baseline': docsBaselineMain,
+  onboard: onboardMain,
 };
 
 /**

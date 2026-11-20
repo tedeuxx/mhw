@@ -55,6 +55,10 @@ KNOWN_PATTERNS = {p: re.compile(p) for p in (
     r"^[a-z0-9][a-z0-9-]*$",
     r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
     r"^@[A-Za-z0-9-]+$",
+    # Issue #523: a free-text field must carry a letter or digit. minLength 1 let a blank "when" on the
+    # one required high-risk rule, or a blank journey, through. [\s\S] is every character in both
+    # Python and ECMA-262, so the two dialects agree; linear, with one star on each side of one class.
+    r"^[\s\S]*[A-Za-z0-9][\s\S]*$",
 )}
 # What a broken schema can raise inside evaluate(): a type name the evaluator lacks (KeyError), a list
 # where a name belongs (TypeError), a non-string pattern (AttributeError), a schema that is not an object.
@@ -262,6 +266,10 @@ def classify(path, keyword, doc):
         return "missing or invalid risk classification"
     if path.startswith("$.approval"):
         return "risk-based approval weakened"
+    if path == "$.coverage.threshold_percent" and keyword == "minimum":
+        return "coverage below the mhw floor of 85 percent"
+    if path.startswith("$.baseline_override"):
+        return "baseline override invalid (it may only add)"
     if path.startswith(("$.mandatory_scenarios", "$.coverage")):
         return "missing mandatory evidence"
     if path.startswith("$.madr"):
