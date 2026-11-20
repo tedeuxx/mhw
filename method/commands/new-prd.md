@@ -2,8 +2,6 @@
 name: "new-prd"
 description: "Turn a new idea, or a plan to refine, given in the owner's own words as the argument, into an agreed product requirements document (PRD): interview the owner round by round until every decision is settled, then write docs/<repo>-product-requirements-document-<subject>.md. Use when the owner brings an idea or a plan that is not yet agreed. Not for a one-off request (see new-issue) or for cutting an agreed document into Issues (see prd-to-issues)."
 purpose: "a plan reaches building only after shared understanding, and that understanding lands in a versioned document instead of staying in the chat"
-deprecated-aliases:
-  - new-idea
 ---
 
 Turn `$ARGUMENTS` into an agreed requirements document for the current repository.
