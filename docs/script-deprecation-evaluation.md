@@ -95,8 +95,8 @@ Measured by searching the tree for each script's name, test files and decision r
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
 | ~~`global/mcp/mcp_render.py`~~ `mhw mcp render`, `src/render/mcp.js` (Node since #484) | Renders the policy MCP servers into each agent harness, checking credential names. | `install.sh`, `workstation.py`. | Each agent harness's MCP configuration is the native target (documented). No cross-harness sync from one source (assumed). | One MCP definition for all agent harnesses ([ADR-0017](adr/0017-single-source-mcp-with-secret-indirection.md)). | **keep** |
-| `global/mcp/mcp_active.py` | Turns off every MCP server outside the declared active set, through each agent harness's own switch. | `mhw mcp render --active` on every install, check and uninstall (it runs this file with python3 until #485, and this file reaches the renderer through `src/render/mcp.js --lib`). | It writes the native switches: Cx `enabled = false`, CC `deniedMcpServers`, K `"disabled": true` (per the script; documented). The Claude desktop app has no per-server switch. | The active set ([ADR-0041](adr/0041-mcp-active-set-native-switch-off-per-harness.md)). | **keep** |
-| `global/mcp/mcp_connect.py` | Opt-in probe: starts each active server as each agent harness would and reports whether it answers, never printing a value. | `mhw status --mcp-connect`. | Partial. CC `claude mcp list` reports server health (documented). K lists loaded servers with `/mcp` (documented). Cx `codex mcp list` lists configuration; a health check is not documented (assumed absent). | One uniform, value-free check across all three; the "needs login" distinction. | **keep as the exception** (gap: Cx) |
+| ~~`global/mcp/mcp_active.py`~~ `src/commands/mcp-active.js` (Node since #485) | Turns off every MCP server outside the declared active set, through each agent harness's own switch. | `mhw mcp render --active` on every install, check and uninstall (it runs this file with python3 until #485, and this file reaches the renderer through `src/render/mcp.js --lib`). | It writes the native switches: Cx `enabled = false`, CC `deniedMcpServers`, K `"disabled": true` (per the script; documented). The Claude desktop app has no per-server switch. | The active set ([ADR-0041](adr/0041-mcp-active-set-native-switch-off-per-harness.md)). | **keep** |
+| ~~`global/mcp/mcp_connect.py`~~ `src/commands/mcp-connect.js` (Node since #485) | Opt-in probe: starts each active server as each agent harness would and reports whether it answers, never printing a value. | `mhw status --mcp-connect`. | Partial. CC `claude mcp list` reports server health (documented). K lists loaded servers with `/mcp` (documented). Cx `codex mcp list` lists configuration; a health check is not documented (assumed absent). | One uniform, value-free check across all three; the "needs login" distinction. | **keep as the exception** (gap: Cx) |
 | ~~`global/mcp/mcp-launch.sh`~~ `mhw mcp launch` (Node since #483) | Starts an MCP server with its secret read from the keychain. | MCP configuration rendered by `mhw mcp render`; `mcp_connect.py`. | MCP configuration expands environment variables (CC documented; Cx and K assumed). That reads the process environment, not the keychain. | Secrets never at rest in configuration or the shell environment. | **keep as the exception** (no native keychain read) |
 | `global/chrome_debugging.py` | Sets Chrome's remote-debugging preference so the `chrome-devtools` server can attach, only when Chrome is not running. | `install.sh`, `workstation.py`. | None in any agent harness: it is a browser preference. The alternative is the owner's own click at `chrome://inspect`, which the owner chose to automate (#224). | The automatic setup the owner asked for. | **keep as the exception** |
 
@@ -161,9 +161,14 @@ The rows stay as this evaluation read them.*
 
 *Amended 2026-11-19 ([#484](https://github.com/tedeuxx/mhw/issues/484)): `mcp_render.py`, kept below, was
 moved, not removed: it is `mhw mcp render` (`src/render/mcp.js`) in Node, with the same files and exit
-codes (the differences are declared in `test/golden/S13/expected-differences.json`). `mcp_active.py`
-and `mcp_connect.py` reach it through the CLI until #485 moves them. `private_copy.py`, whose last user
+codes (the differences are declared in `test/golden/S13/expected-differences.json`). ~~`mcp_active.py`
+and `mcp_connect.py` reach it through the CLI until #485 moves them.~~ `private_copy.py`, whose last user
 it was, is deleted with it.*
+
+*Amended 2026-11-20 ([#485](https://github.com/tedeuxx/mhw/issues/485)): `mcp_active.py` and
+`mcp_connect.py`, kept below, were moved, not removed: they are `src/commands/mcp-active.js` and
+`mcp-connect.js`, run by `mhw mcp render --active` as before (differences declared in
+`test/golden/S14/expected-differences.json`). The rows stay as this evaluation read them.*
 
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
@@ -203,7 +208,7 @@ carrier. The change to watch for:
 | Script | What would make it replaceable |
 | --- | --- |
 | `bin/postinstall.js` | npm fixes the dangling global install from a git dependency. |
-| `mcp_connect.py` | Codex gains a native MCP health check, so all three report health. |
+| ~~`mcp_connect.py`~~ `mcp-connect.js` | Codex gains a native MCP health check, so all three report health. |
 | ~~`mcp-launch.sh`~~ `mhw mcp launch` | MCP configuration reads a secret from the OS keychain natively, on all three. |
 | `chrome_debugging.py` | The `chrome-devtools` server no longer needs the preference, or the owner prefers his own click. |
 | `clipboard_guard.py`, `paste_wrapper.py` | Native prompt-content filtering on all three, including the Kiro IDE and the Kiro V3 engine. |

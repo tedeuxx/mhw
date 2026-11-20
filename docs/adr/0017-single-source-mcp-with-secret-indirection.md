@@ -368,10 +368,13 @@ every run (`test/render/mcp-golden.test.js`). This record's decisions do not cha
   `mhw mcp render --check` until the owner runs it once; install does not run that mode); a TOML parse
   refusal quotes smol-toml's message instead of tomllib's; the usage lines and the POLICY line name
   `mhw mcp render`; two active-set report lines name it instead of the deleted file.
-- **The active set and its connection check stay Python until S14 (#485)**: `mhw mcp render --active`
+- ~~**The active set and its connection check stay Python until S14 (#485)**: `mhw mcp render --active`
   runs `global/mcp/mcp_active.py` with the python3 on PATH (SKIP, exit 2, without one; the Codex surface
   still needs 3.11+ for tomllib, as before), and that file reaches
-  the renderer only through the CLI, `src/render/mcp.js --lib=<op>` (JSON in, JSON out), never by import.
+  the renderer only through the CLI, `src/render/mcp.js --lib=<op>` (JSON in, JSON out), never by import.~~
+  *Struck 2026-11-20 (#485, S14):* both are Node (`src/commands/mcp-active.js`, `mcp-connect.js`), call
+  the renderer in-process, and need no python3; the `--lib` bridge is removed (ADR-0041, 2026-11-20
+  amendment).
 - **`global/private_copy.py` is deleted** with its last Python user; backups are written by
   `src/lib/private-copy.js`, held equal to `install.sh`'s shell form by `test/lib/private-copy.test.js`.
 - The evidence against the real `security` binary is unchanged in level (the 2026-10-05 amendment): with

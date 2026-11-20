@@ -7,7 +7,8 @@
 //   live:   where the base revision still holds mcp_render.py, the original runs beside the head on the
 //           same case. MHW_UPDATE_GOLDEN=1 rewrites the golden transcripts from the original side only.
 // POSIX only: the original's active set and policy modes do not run on Windows, and the cases use
-// POSIX modes. The intended differences are in test/golden/S13/expected-differences.json, with reasons.
+// POSIX modes. Since #485 the head's active set is Node (src/commands/mcp-active.js), so its four cases
+// here need no python3; the S14 transcripts (test/golden/S14) hold the rest. The intended differences are in test/golden/S13/expected-differences.json, with reasons.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -177,7 +178,7 @@ test('no golden transcript carries a synthetic value outside the files the fixtu
   }
 });
 
-test('golden: src/render/mcp.js matches the transcripts of mcp_render.py', { skip: (!POSIX && 'POSIX only') || (!pyOk && 'the active set still runs on python3 3.11+') || (UPDATE && 'MHW_UPDATE_GOLDEN=1') }, () => {
+test('golden: src/render/mcp.js matches the transcripts of mcp_render.py', { skip: (!POSIX && 'POSIX only') || (UPDATE && 'MHW_UPDATE_GOLDEN=1') }, () => {
   /** @type {string[]} */
   const diffs = [];
   for (const c of CASES) diffs.push(...differences(c.name, readGolden(SLICE, goldenName(c.name)), play(c, HEAD)));

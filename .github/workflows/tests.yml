@@ -65,7 +65,7 @@ jobs:
                   compile(fh.read(), f, "exec")' \
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
-            global/mcp/mcp_active.py global/mcp/mcp_connect.py global/keychain_test_guard.py \
+            global/keychain_test_guard.py \
             global/project-policy/project_policy.py global/project-policy/project_policy_test.py \
             global/project-policy/project_policy_check_test.py \
             global/project-policy/delivery_gate.py global/project-policy/delivery_gate_test.py \
@@ -160,6 +160,22 @@ jobs:
         run: |
           python3 --version
           node --test --test-name-pattern="^live" test/render/mcp-golden.test.js
+      # #485 (S14 of #470): the live arm of test/mcp/active-golden.test.js runs the base revision's
+      # mcp_active.py and mcp_connect.py (through its src/render/mcp.js --active) beside the Node active set
+      # and connection check on every case, on the same CPython. MHW_S14_LIVE_REQUIRED=1 turns a skip into a
+      # failure while the base still holds mcp_active.py. The node:test files are named one by one: a
+      # directory argument does not load them.
+      - name: S14 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S14_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/mcp/active-golden.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          echo "$out" | grep -E '^ *ok [0-9]+ - live: mcp_active\.py' | grep -vq SKIP
       # ADR-0017, 2026-10-05 amendment (restored by #484 after the agents-lead lens on PR #520): the one test
       # that runs the production MCP launcher against the real /usr/bin/security, on this ephemeral macOS
       # runner only, in a throwaway keychain the test creates and deletes under RUNNER_TEMP with a throwaway

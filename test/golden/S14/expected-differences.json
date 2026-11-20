@@ -1,0 +1,74 @@
+[
+  {
+    "case": [
+      "connect-not-a-url"
+    ],
+    "stream": [
+      "--mode=connect --timeout=2 stderr"
+    ],
+    "base": "^<traceback>\\nValueError: unknown url type: '[^'\\n]*'\\n$",
+    "head": "^$",
+    "replace": "<the original stopped with a traceback; the head prints nothing on stderr>",
+    "why": "A configured URL with no scheme (here an unexpanded ${VAR} on Codex, which does not expand it, and a bare word on Claude Code and Kiro): the original built its urllib Request outside its try, so urllib's ValueError ended the whole check with a Python traceback on stderr at the first such server, and no server after it was checked. The Node check reports that server as fail: unreachable, the result the original gives an unreachable URL, and goes on to the next one. The exit code is 1 on both sides and is still compared."
+  },
+  {
+    "case": [
+      "connect-not-a-url"
+    ],
+    "stream": [
+      "--mode=connect --timeout=2 stdout"
+    ],
+    "base": "^$",
+    "head": "^(?:FAIL    [a-z-]+: h-noscheme: fail: unreachable \\(MCP connect\\)\\n)+$",
+    "replace": "<one line per server: the original printed none, it stopped at the first>",
+    "why": "The same row as the stderr entry, on stdout: the original stopped before printing its first line, so its stdout is empty; the Node check prints one FAIL line per agent harness that has the server, with the server's name and the result only (never the URL)."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "kind": "not in a transcript",
+    "why": "python3 is no longer needed. The original ran under python3 3.11 or later, and the renderer printed \"SKIP    MCP active set: python3 is required until #485 moves it to Node\" (exit 2) where there was none, and the Codex surface said \"SKIP    codex: needs Python 3.11+ (tomllib)\" on an older one. Node reads config.toml itself (the vendored TOML parser and the S10 guard), so neither line is printed any more, and mhw status never shows Codex as not read for that reason."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "kind": "not in a transcript",
+    "why": "The --lib bridge is removed. mcp_active.py reached the renderer through node src/render/mcp.js --lib=<op> (paths, set, manifest, manifest-write, provenance, write, credential), and --lib=write refused any file but the three configs the active set edits. The active set now calls the same renderer functions in-process, so the bridge and its write allow-list have no caller and are gone; the files the active set writes are still exactly those three configs and the manifest, resolved by the same surfaceTarget(). A --lib argument is now an unknown argument (exit 2)."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "kind": "not in a transcript",
+    "why": "An I/O error writing a config or the manifest (a permission refused, a full disk): the original's renderer bridge died with a JavaScript stack on stderr and mcp_active.py exited 3 with \"the MCP renderer ... exited 1 without an answer\"; removing the manifest failed with a Python traceback (exit 1). The Node run refuses with \"cannot write <file> (<the error>)\" on stderr, exit 3, in both cases, and stops there, as the original did."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "kind": "not in a transcript",
+    "why": "The Codex record's key order in mcp-managed.json: the original built the record of servers it had already turned off from a Python set, in hash order, which differs between runs; the Node record lists them sorted, then the servers this run turned off, sorted, as the original did. The content is the same; with one such server the bytes are the same too."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "kind": "not in a transcript",
+    "why": "The http and sse probes: urllib used the proxy environment (http_proxy, https_proxy, no_proxy, and the macOS system proxy settings) and the OpenSSL certificate store of the Python it ran on; the Node probe connects directly and verifies TLS against Node's bundled certificate store. A redirect to an ftp: URL was followed by urllib and is fail: http <status> here, and a first URL with a scheme other than http or https (file:, ftp:) is fail: unreachable here, where urllib opened it (and, for file:, crashed reading its status). Header names are sent as written (User-Agent) where urllib capitalised them (User-agent); HTTP header names are case-insensitive. The request still carries no configured header, its User-Agent, Accept, Content-Type, Accept-Encoding: identity and Connection: close as urllib sent them, and the per-operation timeout."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "kind": "not in a transcript",
+    "why": "Edge cases of the stdio probe and the Codex read, none reachable from a well-formed config: a response line that is not UTF-8, or is UTF-16 or UTF-32 JSON, or starts with a byte-order mark, was decoded by json.loads(bytes) and is ignored here (the check waits for the next line, then times out); a config.toml that is not UTF-8 ended the original's check with a traceback and is SKIP (its configuration could not be read) here; a server that exits while a child it left holds stdout open is reported once stdout has been silent for 0.5 s after the exit, which is when the original's 0.5 s poll saw it."
+  }
+]

@@ -1,0 +1,33 @@
+{
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  codex: unreadable (IsADirectoryError); left untouched (<HOME>/.codex/config.toml) (MCP active set)\n",
+  "step1 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step1 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step1 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  codex: not valid TOML; left untouched (<HOME>/.codex/config.toml) (MCP active set)\n",
+  "step2 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step2 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step2 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  codex: unreadable (UnicodeDecodeError); left untouched (<HOME>/.codex/config.toml) (MCP active set)\n",
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  codex: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step4 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step4 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  codex: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step4 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "files": {
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\":1,\"active_set\":{},\"servers\":{\"set-a\":{\"command\":\"/bin/echo\"}}}"
+    }
+  }
+}

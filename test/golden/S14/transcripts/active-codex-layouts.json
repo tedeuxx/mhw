@@ -1,0 +1,51 @@
+{
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "DRIFT   codex: on outside the set: last-w, lit-y, q-x, sub-z (4); install turns them off (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  codex: server(s) escApe (1) are not written as an [mcp_servers.<name>] table, so the switch cannot be added; turn them off by hand (<HOME>/.codex/config.toml) (MCP active set)\n",
+  "step1 --active --mode=dry-run --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step1 --active --mode=dry-run --stamp=release: v0.0.0-test; commit: synthetic stdout": "WOULD   codex: would change: on outside the set: last-w, lit-y, q-x, sub-z (4); install turns them off; backup config.toml.pmhwc-mcp-active-backup (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step1 --active --mode=dry-run --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  codex: server(s) escApe (1) are not written as an [mcp_servers.<name>] table, so the switch cannot be added; turn them off by hand (<HOME>/.codex/config.toml) (MCP active set)\n",
+  "step2 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step2 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "CHANGED codex: turned off last-w, lit-y, q-x, sub-z (4); previous file kept as <HOME>/.codex/config.toml.pmhwc-mcp-active-backup (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step2 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  codex: server(s) escApe (1) are not written as an [mcp_servers.<name>] table, so the switch cannot be added; turn them off by hand (<HOME>/.codex/config.toml) (MCP active set)\n",
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "OK      codex: nothing on outside the set (4 turned off by mhw) (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  codex: server(s) escApe (1) are not written as an [mcp_servers.<name>] table, so the switch cannot be added; turn them off by hand (<HOME>/.codex/config.toml) (MCP active set)\n",
+  "step4 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step4 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "OK      codex: nothing on outside the set (4 turned off by mhw) (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step4 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  codex: server(s) escApe (1) are not written as an [mcp_servers.<name>] table, so the switch cannot be added; turn them off by hand (<HOME>/.codex/config.toml) (MCP active set)\n",
+  "step5 --active --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step5 --active --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stdout": "CHANGED codex: turned back on last-w, lit-y, q-x, sub-z (4); previous file kept as <HOME>/.codex/config.toml.pmhwc-mcp-active-backup (<HOME>/.codex/config.toml) (MCP active set)\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-managed.json (it recorded only what the MCP active set turned off)\n",
+  "step5 --active --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step6 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step6 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "DRIFT   codex: on outside the set: last-w, lit-y, q-x, sub-z (4); install turns them off (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (0 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step6 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  codex: server(s) escApe (1) are not written as an [mcp_servers.<name>] table, so the switch cannot be added; turn them off by hand (<HOME>/.codex/config.toml) (MCP active set)\n",
+  "files": {
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": "model = \"m\"\n\n[mcp_servers.\"q-x\"]   # a quoted name and a comment\ncommand = \"/bin/echo\"\n\n[mcp_servers.'lit-y']\ncommand = \"/bin/echo\"\nenabled = \"yes\"\n\n[mcp_servers.set-a]\ncommand = \"/bin/echo\"\n\n[mcp_servers.\"esc\\u0041pe\"]\ncommand = \"/bin/echo\"\n\n[mcp_servers.sub-z]\ncommand = \"/bin/echo\"\n\n[mcp_servers.sub-z.env]\nLEVEL = \"1\"\n\n[mcp_servers.own-off]\nenabled = false\ncommand = \"/bin/echo\"\n\n[projects.\"/tmp/p\"]\ntrust_level = \"trusted\"\n\n[mcp_servers.last-w]\ncommand = \"/bin/echo\""
+    },
+    ".codex/config.toml.pmhwc-mcp-active-backup": {
+      "mode": "600",
+      "text": "model = \"m\"\n\n[mcp_servers.\"q-x\"]   # a quoted name and a comment\nenabled = false  # managed-by: personal-multi-harness-workstation-configuration (mcp active set)\ncommand = \"/bin/echo\"\n\n[mcp_servers.'lit-y']\ncommand = \"/bin/echo\"\nenabled = false  # managed-by: personal-multi-harness-workstation-configuration (mcp active set)\n\n[mcp_servers.set-a]\ncommand = \"/bin/echo\"\n\n[mcp_servers.\"esc\\u0041pe\"]\ncommand = \"/bin/echo\"\n\n[mcp_servers.sub-z]\nenabled = false  # managed-by: personal-multi-harness-workstation-configuration (mcp active set)\ncommand = \"/bin/echo\"\n\n[mcp_servers.sub-z.env]\nLEVEL = \"1\"\n\n[mcp_servers.own-off]\nenabled = false\ncommand = \"/bin/echo\"\n\n[projects.\"/tmp/p\"]\ntrust_level = \"trusted\"\n\n[mcp_servers.last-w]\nenabled = false  # managed-by: personal-multi-harness-workstation-configuration (mcp active set)\ncommand = \"/bin/echo\""
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\":1,\"active_set\":{},\"servers\":{\"set-a\":{\"command\":\"/bin/echo\"}}}"
+    }
+  }
+}
