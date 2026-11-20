@@ -1695,16 +1695,64 @@ const REAL_VERBS = new Set(['create-keychain', 'delete-keychain', 'add-generic-p
  * @param {string} base @param {string[]} args @param {Record<string, string>} env @param {string} [input] for -i
  */
 function realSecurity(base, args, env, input) {
-  const inside = (/** @type {string} */ p) => path.isAbsolute(p) && path.resolve(p).startsWith(base + path.sep);
   assert.ok(REAL_OPT_IN, 'the real security binary runs only under the CI opt-in');
-  assert.ok(inside(env.HOME), 'HOME must be a throwaway one under the base');
-  if (args.length === 1 && args[0] === '-i') {
-    const lines = String(input).split('\n').filter(Boolean);
-    assert.ok(lines.length && lines.every((l) => REAL_VERBS.has(l.split(' ')[0]) && l.endsWith('"') && inside(l.slice(0, -1).split('"').at(-1) ?? '')), 'a -i line outside the rules');
-  } else {
-    assert.ok(REAL_VERBS.has(args[0]) && inside(/** @type {string} */ (args.at(-1))), 'a security call outside the rules: ' + args[0]);
-  }
+  const why = realSecurityRefusal(base, args, env, input);
+  assert.equal(why, null, 'refused before it ran: ' + why);
   return spawnSync(REAL_SECURITY, args, { env, input, encoding: 'utf8' });
+}
+
+/**
+ * os.path.realpath: the longest existing prefix resolved by the OS (symbolic links followed), the rest
+ * appended as written.
+ * @param {string} p
+ */
+function realpathOf(p) {
+  let head = path.resolve(p);
+  /** @type {string[]} */
+  const tail = [];
+  for (;;) {
+    try {
+      return path.join(fs.realpathSync.native(head), ...tail);
+    } catch {
+      if (path.dirname(head) === head) return path.join(head, ...tail);
+      tail.unshift(path.basename(head));
+      head = path.dirname(head);
+    }
+  }
+}
+
+/**
+ * True when p, symbolic links resolved, is base or a path below it, by whole path components (the Python
+ * guard's os.path.commonpath over realpath): a sibling sharing base's prefix is outside.
+ * @param {string} base @param {string | undefined} p
+ */
+function underBase(base, p) {
+  if (!p || !path.isAbsolute(p)) return false;
+  const rel = path.relative(realpathOf(base), realpathOf(p));
+  return rel === '' || (rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel));
+}
+
+/**
+ * Why the real security binary may not run this call, or null: an allowed verb only, its keychain FILE (the
+ * last argument, or each -i line's last quoted operand) under base, and a HOME under base. The guard
+ * realSecurity() applies it; it runs without the opt-in, so the rules are tested everywhere.
+ * @param {string} base @param {string[]} args @param {Record<string, string | undefined>} env @param {string} [input]
+ * @returns {string | null}
+ */
+function realSecurityRefusal(base, args, env, input) {
+  if (!underBase(base, env.HOME)) return 'HOME is not a throwaway one under the base';
+  if (args.length === 1 && args[0] === '-i') {
+    const lines = String(input ?? '').split('\n').filter(Boolean);
+    if (!lines.length) return 'a -i run with no line';
+    for (const l of lines) {
+      if (!REAL_VERBS.has(l.split(' ')[0])) return 'a -i line with a verb outside the rules';
+      if (!l.endsWith('"') || !underBase(base, l.slice(0, -1).split('"').at(-1))) return 'a -i line whose keychain is outside the base';
+    }
+    return null;
+  }
+  if (!REAL_VERBS.has(args[0])) return 'a verb outside the rules: ' + args[0];
+  if (!underBase(base, args.at(-1))) return 'a keychain outside the base';
+  return null;
 }
 
 group('the real security binary (PMHWC_REAL_KEYCHAIN_TESTS=1, GitHub Actions macOS only)', { skip: !REAL_OPT_IN && 'the CI opt-in is not set here: the real binary and the real Keychain are never used outside the ephemeral macOS runner' }, () => {
@@ -1753,10 +1801,40 @@ group('the real security binary (PMHWC_REAL_KEYCHAIN_TESTS=1, GitHub Actions mac
   });
 });
 
-test('the real-binary arm refuses itself without the opt-in, and its guard refuses a call outside the base', () => {
-  if (REAL_OPT_IN) return;
+test('the real-binary arm refuses itself without the opt-in', { skip: REAL_OPT_IN && 'the opt-in is set here' }, () => {
   const base = path.join(BASE, 'real-guard');
   assert.throws(() => realSecurity(base, ['create-keychain', '-p', 'x', path.join(base, 'k.keychain-db')], { HOME: path.join(base, 'h') }), /only under the CI opt-in/);
+});
+
+test("the real-binary guard's rules, one row each (they run without the opt-in)", { skip: !POSIX && 'POSIX paths and symbolic links' }, () => {
+  // agents-lead lens B3 on PR #520: the rules are a pure function, tested here without the real binary.
+  const base = fs.realpathSync(fs.mkdtempSync(path.join(BASE, 'real-guard-')));
+  const home = path.join(base, 'home');
+  const kc = path.join(base, 'k.keychain-db');
+  const outsideDir = fs.mkdtempSync(path.join(BASE, 'real-guard-outside-'));
+  const link = path.join(base, 'escape');
+  fs.symlinkSync(outsideDir, link);
+  const sibling = base + '-sibling';
+  const line = (/** @type {string} */ verb, /** @type {string} */ k) => verb + ' -s "svc" -a "t" -w "v" "' + k + '"\n';
+  /** @type {Array<[string, string[], Record<string, string>, string | undefined, boolean]>} name, args, env, -i input, allowed */
+  const rows = [
+    ['an allowed call inside the base', ['create-keychain', '-p', 'x', kc], { HOME: home }, undefined, true],
+    ['an allowed -i line inside the base', ['-i'], { HOME: home }, line('add-generic-password', kc), true],
+    ['a keychain outside the base', ['create-keychain', '-p', 'x', path.join(outsideDir, 'k.keychain-db')], { HOME: home }, undefined, false],
+    ['a -i line whose keychain is outside', ['-i'], { HOME: home }, line('add-generic-password', path.join(outsideDir, 'k.keychain-db')), false],
+    ['a -i line with a verb that is not allowed', ['-i'], { HOME: home }, 'list-keychains -s "' + kc + '"\n', false],
+    ['a verb that is not allowed', ['find-generic-password', '-s', 'svc', '-w', kc], { HOME: home }, undefined, false],
+    ['HOME outside the base', ['create-keychain', '-p', 'x', kc], { HOME: outsideDir }, undefined, false],
+    ['a symbolic link inside the base that points out', ['create-keychain', '-p', 'x', path.join(link, 'k.keychain-db')], { HOME: home }, undefined, false],
+    ['HOME through a symbolic link that points out', ['create-keychain', '-p', 'x', kc], { HOME: path.join(link, 'home') }, undefined, false],
+    ['a sibling directory sharing the base prefix', ['create-keychain', '-p', 'x', path.join(sibling, 'k.keychain-db')], { HOME: home }, undefined, false],
+    ['a .. walk out of the base', ['create-keychain', '-p', 'x', path.join(base, '..', path.basename(outsideDir), 'k.keychain-db')], { HOME: home }, undefined, false],
+    ['a relative keychain path', ['create-keychain', '-p', 'x', 'k.keychain-db'], { HOME: home }, undefined, false],
+    ['a -i run with no line', ['-i'], { HOME: home }, '', false],
+  ];
+  for (const [name, args, env, input, allowed] of rows) {
+    assert.equal(realSecurityRefusal(base, args, env, input) === null, allowed, name);
+  }
 });
 
 group('the bridge mcp_active.py reaches the renderer through', () => {

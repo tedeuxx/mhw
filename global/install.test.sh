@@ -1468,5 +1468,24 @@ if grep -q "^REFUSE  $kh: exists and is NOT managed" "$base/kh4.out" && grep -q 
 HOME="$hh" sh "$inst" --uninstall > "$base/kh-un2.out" 2>&1
 if grep -q '"mine"' "$kh" && grep -q "^NOTE    $kh exists and is NOT managed" "$base/kh-un2.out"; then ok "uninstall leaves an unmanaged Kiro hook file alone"; else ko "uninstall touched an unmanaged Kiro hook file"; fi
 
+# mcp_step's two refusals (#484, agents-lead lens A3 on PR #520): the function alone, extracted from
+# install.sh and run with an empty PATH, so no installer runs and nothing outside $base is touched.
+mcp_fn=$(sed -n '/^mcp_step() {/,/^}/p' "$inst")
+mkdir -p "$base/mcp-step-empty-path"
+printf '#!/bin/sh\nexit 0\n' > "$base/mcp-step-not-executable"
+chmod 644 "$base/mcp-step-not-executable"
+# shellcheck disable=SC2016 # expanded by the child sh that runs the extracted function, not here
+mcp_prelude='status=0; raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }; mode=check; stamp=x; script_dir=/nonexistent'
+out=$(env -i PATH="$base/mcp-step-empty-path" /bin/sh -c "$mcp_prelude
+$mcp_fn
+mcp_step; echo \"status=\$status\"")
+if [ "$out" = "SKIP    the policy MCP servers and the MCP active set: node (26 or later) is required
+status=2" ]; then ok "mcp_step without node says SKIP and raises 2"; else ko "mcp_step without node: $out"; fi
+out=$(env -i PATH="$base/mcp-step-empty-path" MHW_NODE="$base/mcp-step-not-executable" /bin/sh -c "$mcp_prelude
+$mcp_fn
+mcp_step; echo \"status=\$status\"")
+if [ "$out" = "REFUSE  the MCP servers: MHW_NODE ($base/mcp-step-not-executable) is not an executable file; nothing written
+status=2" ]; then ok "mcp_step refuses an MHW_NODE that is not executable, never another node"; else ko "mcp_step with a bad MHW_NODE: $out"; fi
+
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
