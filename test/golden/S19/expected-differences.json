@@ -1,0 +1,44 @@
+[
+  {
+    "name": "the head program's diagnostic on a directory at a managed target",
+    "stream": "stderr",
+    "pattern": "^head: ",
+    "why": "allow-list.sh read the first five lines of a target with head, which prints its own error when the target is a directory (Apple head: 'head: Error reading <path>'; GNU head words it differently). The Node step reads the file itself and prints no such line. The REFUSE line after it, the exit code 3 and the untouched tree are still compared."
+  },
+  {
+    "name": "jq is no longer needed by the step itself",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. install.sh keeps its own 'REFUSE  allow list: jq is required' line before it starts the Node step, so a machine without jq still gets no allow list (merge_settings, which merges the user deny floor, needs jq too: rendering the allow list without it would put allow rules in settings.json without the floor beside them). Uninstall needs no jq any more: it removes the allow rules it added even where jq is missing."
+  },
+  {
+    "name": "an empty deny floor never reads as a complete admin floor",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario; pinned in allow-list.test.js. With a floor of no cmd entry, allow-list.sh compared 0 with 0 and read the admin floor as complete (wide) whenever the admin file existed, for Claude Code even when that file was not JSON. The Node step reads an empty floor, a missing one and a missing or empty --managed-root as narrow. Narrower only."
+  },
+  {
+    "name": "the Codex admin floor must contain every floor entry",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario; pinned in allow-list.test.js. allow-list.sh counted the admin lines equal to some floor entry (grep -cxF) and compared that count with the number of floor entries, so an admin file repeating one entry and missing another read as complete. The Node step requires that count AND every entry present, so it reads wide only where the shell did. The Claude Code admin floor counts only string deny rules (the shell's jq also counted a matching value inside a deny object or a nested array). Narrower only."
+  },
+  {
+    "name": "an ownership record or permissions section of another shape is refused",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario; pinned in allow-list.test.js. Where the allow-list ownership record's allow, defaultMode or deny is not a list (a hand edit), jq treated a string as text to search and an object as a list of its values, or failed with its own error. The Node step refuses: install prints the existing REFUSE line and exits 3, and uninstall prints 'REFUSE  <settings>: its permissions section or the allow-list ownership record has an unexpected shape; left untouched' and exits 3. allow-list.sh's uninstall printed UNMERGED and left settings.json.new.<pid> behind when its jq failed, and emptied settings.json when permissions was a string or a number. Retired-rule matching and the hit list consider only strings."
+  },
+  {
+    "name": "a backup that cannot be written stops the step, not the whole installer",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. When the settings.json.pmhwc-allow-backup could not be written, allow-list.sh printed one of private_copy's REFUSE lines and, under set -e, ended install.sh at once with exit 1. The Node step prints 'REFUSE  <backup>: the backup could not be created exclusively; no backup written', leaves settings.json untouched and writes no allow file, as before, and exits 1; install.sh then still runs its later steps (the method step and the floor report) and exits 1."
+  },
+  {
+    "name": "node is needed to render the allow list",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. Without a node (an absolute MHW_NODE that is not an executable file, or no node on PATH), install.sh prints 'REFUSE  the allow list: MHW_NODE (<path>) is not an executable file; nothing written' or 'SKIP    the allow list: node (26 or later) is required', writes no allow file and exits 2 after its other steps. The entries are then not validated either, so an invalid overlay entry no longer stops the other steps from writing. bin/mhw.js always sets MHW_NODE."
+  }
+]

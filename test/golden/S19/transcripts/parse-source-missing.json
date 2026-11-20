@@ -1,0 +1,9 @@
+[
+  {
+    "run": "parse",
+    "code": 2,
+    "stdout": "",
+    "stderr": "source not found: <T>/pkg/global/allow-list.conf\n",
+    "tree": []
+  }
+]

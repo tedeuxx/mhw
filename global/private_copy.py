@@ -6,8 +6,8 @@ src/render/kiro-permissions.js; both use src/lib/private-copy.js), which each ca
 global/mcp/mcp_retire.py, a fourth user, was removed in Issue #206). Each of them puts this directory on
 sys.path and imports it; they all run from the checkout or the npm package, where global/ is whole.
 
-install.sh keeps a shell form of the same helper (it, and allow-list.sh which it sources, need no python3:
-python3 is optional there and only the steps written in Python skip without it). global/private_copy_test.py
+install.sh keeps a shell form of the same helper (it needs no python3: python3 is optional there and only
+the steps written in Python skip without it; its allow-list step, Node since #490, uses src/lib/private-copy.js). global/private_copy_test.py
 runs both forms on the same cases and requires the same result, so the two cannot drift apart unnoticed.
 install.ps1 keeps a PowerShell form (Copy-Private) for the backups it writes itself, with the same Windows
 access control as below; global/install.test.ps1 asserts it on every backup.
