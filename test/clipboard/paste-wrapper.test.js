@@ -333,6 +333,11 @@ function modes(line) {
   return line.trim().replace(/lflag=([0-9a-f]+)/, (_, v) => 'lflag=' + (Number.parseInt(v, 16) & ~0x20000000).toString(16));
 }
 
+/** `stty -g` of a terminal device, by its path: -f on macOS (BSD stty), -F on Linux (GNU). @param {string} dev */
+function ttyModes(dev) {
+  return spawnSync('/bin/stty', ['-g', process.platform === 'darwin' ? '-f' : '-F', dev], { encoding: 'utf8' }).stdout;
+}
+
 /** A wrapper process on a pty this suite owns, running the fake CLI. */
 class Session {
   /**
@@ -394,6 +399,11 @@ class Session {
     } catch {
       return '';
     }
+  }
+
+  /** Wait for the wrapper to exit on its own, sending nothing; null on timeout. @param {number} [timeout] */
+  async exit(timeout = 10000) {
+    return Promise.race([this.exited, sleep(timeout).then(() => null)]);
   }
 
   /** @param {number} [timeout] */
@@ -502,7 +512,9 @@ test('live: SIGTERM to the wrapper is forwarded to the CLI', { skip: LIVE }, asy
   const s = new Session('term');
   await s.ready();
   process.kill(s.term.pid, 'SIGTERM');
-  const code = await s.finish();
+  // Wait for the forwarded signal to end the session: finish() would type EXIT into the CLI, which can
+  // overtake a signal still waiting for the wrapper's event loop (seen on linux-arm64).
+  const code = (await s.exit()) ?? (await s.finish());
   const why = 'exit ' + code + '; events ' + JSON.stringify(s.events().slice(-300)) + '; out ' + JSON.stringify(s.out.toString('latin1').slice(-300));
   assert.equal(code, 128 + os.constants.signals.SIGTERM, why);
   // The CLI received the signal itself: a wrapper that died instead of forwarding leaves no such line.
@@ -536,18 +548,18 @@ test('live: job control: the CLI stops, the wrapper restores the terminal and st
   await s.ready();
   const child = s.child();
   const ttyName = /** @type {any} */ (s.term)._pty;
-  const raw = spawnSync('/bin/stty', ['-g', '-f', ttyName], { encoding: 'utf8' }).stdout;
+  const raw = ttyModes(ttyName);
   s.send('\x1d\x1dSTOP');
   let end = Date.now() + 5000;
   while (Date.now() < end && !state(s.term.pid).startsWith('T')) await sleep(20);
   assert.ok(state(s.term.pid).startsWith('T'), 'the wrapper did not stop with the CLI');
-  const whileStopped = spawnSync('/bin/stty', ['-g', '-f', ttyName], { encoding: 'utf8' }).stdout;
+  const whileStopped = ttyModes(ttyName);
   assert.notEqual(modes(whileStopped), modes(raw), 'the terminal was left raw while stopped');
   process.kill(s.term.pid, 'SIGCONT');
   end = Date.now() + 5000;
   while (Date.now() < end && state(child).startsWith('T')) await sleep(20);
   assert.ok(!state(child).startsWith('T'), 'the CLI was not continued');
-  assert.equal(modes(spawnSync('/bin/stty', ['-g', '-f', ttyName], { encoding: 'utf8' }).stdout), modes(raw), 'terminal not raw again');
+  assert.equal(modes(ttyModes(ttyName)), modes(raw), 'terminal not raw again');
   s.send(Buffer.concat([S, Buffer.from(EMAIL), E]));
   assert.ok(await s.waitOut('<ACK1>'));
   assert.equal(await s.finish(), 0);
