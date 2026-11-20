@@ -68,9 +68,9 @@ RITE_COMMAND_HISTORY = [
     ("skills/funnel-review/SKILL.md", "The original wording is in the plugin's `commands/funnel-review.md` at"),
     ("skills/funnel-review/SKILL.md", "Both are in the plugin's `commands/funnel-review.md` at `4882b911`"),
 ]
-# The old names, kept for one release as deprecated aliases (owner, 2026-10-26: "-idea- deveria ser
-# renomeado para -prd em todos comandos com esse termo"). Each must still run the whole command.
-DEPRECATED = {"new-idea": "new-prd", "idea-to-issues": "prd-to-issues"}
+# The old names, kept for one release as deprecated aliases (owner, 2026-10-26) and removed at #524
+# (owner, 2026-11-20: "isso nao deveria existir depois do /new-prd"). None may render in any carrier.
+RETIRED = {"new-idea": "new-prd", "idea-to-issues": "prd-to-issues"}
 RETIRED_NOTE = "> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).**"
 # Phrases that carry the behaviour the Issues require, beyond the headings.
 PHRASES = {
@@ -165,23 +165,18 @@ class Commands(unittest.TestCase):
                 missing += ["%s/%s: %r" % (name, harness, p) for p in PHRASES[name] if p not in text]
         self.assertEqual(missing, [])
 
-    def test_deprecated_names_still_run_the_whole_command(self):
-        missing = []
-        for old, new in DEPRECATED.items():
+    def test_retired_names_are_not_rendered(self):
+        found = []
+        for old, new in RETIRED.items():
             for harness, path in carriers(self.home, old).items():
+                if path.exists():
+                    found.append("%s/%s" % (old, harness))
+            if (self.home / ".agents" / "skills" / old).exists():
+                found.append("%s/codex skill directory" % old)
+            for harness, path in carriers(self.home, new).items():
                 if not path.is_file():
-                    missing.append("%s/%s: not rendered" % (old, harness))
-                    continue
-                text = path.read_text(encoding="utf-8")
-                lines = text.split("\n")
-                missing += ["%s/%s: %s" % (old, harness, h) for h in REQUIRED[new] if h not in lines]
-                missing += ["%s/%s: %r" % (old, harness, p) for p in PHRASES[new] if p not in text]
-                if "is the old name of `%s`" % new not in text:
-                    missing.append("%s/%s: no deprecation note naming %s" % (old, harness, new))
-            policy = self.home / ".agents" / "skills" / old / "agents" / "openai.yaml"
-            if "allow_implicit_invocation: false" not in policy.read_text(encoding="utf-8"):
-                missing.append("%s/codex: implicit invocation on" % old)
-        self.assertEqual(missing, [])
+                    found.append("%s/%s: the current name is not rendered" % (new, harness))
+        self.assertEqual(found, [])
 
     def test_never_section_forbids_merge_publish_and_hooks(self):
         for name in REQUIRED:
