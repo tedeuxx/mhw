@@ -1,0 +1,27 @@
+{
+  "why": "node-pty 1.1.0 ships no Linux binary. These files were built by this repository's CI from the pinned source, not taken from npm: no npm integrity covers them. ADR-0042; owner decision on PR #521.",
+  "workflow": ".github/workflows/node-pty-linux.yml",
+  "run": "https://github.com/tedeuxx/mhw/actions/runs/44811001228",
+  "commit": "4f6b5a9acdb67b8fa478b7a252b149d0afe44cbb",
+  "source": {
+    "node-pty": {
+      "version": "1.1.0",
+      "integrity": "sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg=="
+    },
+    "node-addon-api": {
+      "version": "7.1.1",
+      "integrity": "sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ=="
+    }
+  },
+  "toolchain": {
+    "runner": "ubuntu-22.04 (x64), ubuntu-22.04-arm (arm64)",
+    "glibc": "2.35",
+    "node": "v26.13.1",
+    "npm": "11.20.0",
+    "node-gyp": "12.4.0 (bundled with npm)"
+  },
+  "sha256": {
+    "prebuilds/linux-x64/pty.node": "b9d2d6d8d52a28450d66103254908463531b52d454b3b546ddae939a27a0f7f8",
+    "prebuilds/linux-arm64/pty.node": "2ddfe0da896b357015e23c52fd694cf7d6988c97a45687af987a076997f63052"
+  }
+}

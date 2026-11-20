@@ -73,8 +73,8 @@
       "behaviour"
     ],
     "base": "Python's pty module is always there on macOS and Linux",
-    "head": "on a platform with no vendored prebuild (Linux, Windows), with a spawn-helper that lost its execute bit, or with a module that does not load, the wrapper refuses: one line on stderr, exit 126; mhw status prints PASTE FAIL with the reason",
-    "why": "The pty is a native addon (node-pty 1.1.0). Only its macOS prebuilds are vendored, because a git install of mhw leaves npm runtime dependencies unmet (#472) and a build from source would run node-gyp at install time. On Linux the shell functions therefore stop starting the CLI wrapped; `command claude` runs it, and the prompt hook still checks."
+    "head": "where the pty cannot load (Windows: no vendored prebuild; musl Linux; a macOS spawn-helper without its execute bit; a module that does not load) the wrapper refuses: one line on stderr, exit 126; mhw status prints PASTE FAIL with the reason",
+    "why": "The pty is a native addon (node-pty 1.1.0). The macOS prebuilds are vendored from npm; the Linux pty.node for x64 and arm64 (glibc 2.35 or later) is built by this repository's CI from the pinned source (ADR-0042, owner decision on PR #521). Where none loads, the wrapper refuses instead of running the CLI unwrapped; `command <cli>` runs it, and the prompt hook still checks."
   },
   {
     "case": [

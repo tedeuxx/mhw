@@ -242,17 +242,22 @@ answers held as goldens (`test/golden/S16/`). The shell functions run it as
 `"<node>" "<package>/bin/mhw.js" paste-wrapper run --config … -- <cli>`; install no longer copies a
 wrapper into the data directory and retires the earlier Python copy. Its pseudo-terminal is node-pty
 1.1.0, vendored with the macOS prebuilds only ([ADR-0042](0042-node-pty-vendored-for-the-paste-wrapper.md),
-proposed). Where that library cannot load (Linux and Windows, which have no vendored prebuild; a
+proposed). Where that library cannot load (~~Linux and~~ Windows, which has no vendored prebuild; a
 spawn-helper without its execute bit; a damaged module) the wrapper **refuses** in one line, exit 126,
 and `mhw status` prints `PASTE   FAIL` with the reason: it never starts the CLI unwrapped on a terminal.
-So on Linux the shell functions no longer start the CLI; `command <cli>` does, and the prompt hook
-checks. Windows is not measured (D7). Evidence level: *written and tested* (the live relay tests run on
+~~So on Linux the shell functions no longer start the CLI; `command <cli>` does, and the prompt hook
+checks.~~ Windows is not measured (D7). Evidence level: *written and tested* (the live relay tests run on
 macOS through the vendored pty); not installed on the reference machine.
 
 *Amended the same day, PR #521 lens:*
 
-- **The Linux refusal is the owner's decision.** It is an escalation on PR #521. Until he answers, the
-  Linux behaviour above stands as written.
+- ~~**The Linux refusal is the owner's decision.** It is an escalation on PR #521. Until he answers, the
+  Linux behaviour above stands as written.~~
+- **Linux keeps the wrapper.** The owner
+  [decided on PR #521](https://github.com/tedeuxx/mhw/pull/521#issuecomment-7049084616) to build the
+  Linux binary in CI from the pinned source and vendor it. The Linux `pty.node` files are vendored, built
+  for x64 and arm64 by run 44811001228 (ADR-0042 amendment), so on Linux the wrapper cleans pastes again.
+  The live relay tests run there in CI. This works on glibc 2.35 or later; musl is not covered.
 - **Two pasted shapes reach the CLI unchecked.** Both are inherited: the lens's probe found the base
   Python wrapper (`rc/next` at `478f9de`) forwarding them in the same way, so they are limits of the
   design, not of the port.

@@ -199,11 +199,11 @@ jobs:
           python3 --version
           node --test --test-name-pattern="^live" test/clipboard/paste-wrapper-golden.test.js
       # #487: the live relay tests run a real wrapper between a pty the suite owns and a fake CLI, through
-      # the vendored node-pty. Only its macOS prebuilds are vendored, so they run on macOS, where
-      # MHW_S16_LIVE_REQUIRED=1 turns a pty that does not load into a failure; elsewhere they skip and the
-      # refusal tests run. Windows is not measured (D7).
-      - name: S16 live relay through the vendored pty (macOS)
-        if: runner.os == 'macOS'
+      # the vendored node-pty: its macOS prebuilds from npm, and on Linux the pty.node node-pty-linux.yml
+      # built from the pinned source (ADR-0042). MHW_S16_LIVE_REQUIRED=1 turns a pty that does not load
+      # into a failure. Windows is not measured (D7): there the tests skip and the refusal tests run.
+      - name: S16 live relay through the vendored pty (macOS and Linux)
+        if: runner.os != 'Windows'
         shell: bash
         env:
           TMPDIR: ${{ runner.temp }}

@@ -48,8 +48,8 @@ choice:
      - The probe preloaded a module into each node process. In the inner run it recorded argv, the
        directory and `node_modules`, and set `npm_config_ignore_scripts`, so no downloaded script could run.
      - The `github:` route itself, and Linux, were not measured.
-   - Bad: about 200 KB of binaries in the repository; no Linux prebuild exists in the package, so on
-     Linux the wrapper refuses (below); Windows binaries are not vendored (D7).
+   - Bad: about 340 KB of binaries in the repository. No Linux prebuild exists in the package; the Linux
+     ones are built by this repository's CI (amendment below). Windows binaries are not vendored (D7).
 2. **node-pty as an npm dependency.** Rejected: unmet on the git install route (#472); with scripts it
    builds with node-gyp where no prebuild exists, and its macOS `spawn-helper` arrives without its
    execute bit (the tarball carries it 0644: with `--ignore-scripts` the spawn fails with
@@ -73,12 +73,56 @@ prints `PASTE   FAIL` with the same reason.
 
 - Good: the wrapper runs on the macOS reference machine from a git install with no install-time code.
 - Good: the refusal is visible where the pty is missing; a session is never silently unwrapped.
-- Bad: **on Linux the shell functions stop starting the CLI**: they refuse, and the owner runs
+- ~~Bad: **on Linux the shell functions stop starting the CLI**: they refuse, and the owner runs
   `command claude` (the prompt hook still checks). Under Python they worked there. Building node-pty on
-  Linux, or vendoring a Linux binary built elsewhere, is an open option for the owner.
+  Linux, or vendoring a Linux binary built elsewhere, is an open option for the owner.~~ *Struck the same
+  day: the owner decided it, and the Linux binaries are vendored (amendment below).*
 - Bad: job control is relayed by reading the CLI's state every 250 ms (node-pty reports no stop), and the
   CLI's pty starts with node-pty's default modes instead of the terminal's own.
 - Neutral: Windows is *not measured* (D7); no shell functions are installed there.
+
+## Amendment 2026-11-20: Linux binaries built by our CI (owner decision, PR #521, proposed)
+
+The agents-lead lens escalated E1: on Linux the wrapper refused, so the primary cleaner was gone there.
+The owner decided in [his comment on PR #521](https://github.com/tedeuxx/mhw/pull/521#issuecomment-7049084616):
+build the Linux binary in CI from the pinned source and vendor it. He rejected the other two options:
+keeping the Python wrapper on Linux, and accepting the refusal.
+
+**What is vendored.** `src/vendor/node-pty/prebuilds/linux-x64/pty.node` and `linux-arm64/pty.node`.
+Linux builds no `spawn-helper`, because node-pty uses `forkpty` there (`binding.gyp`).
+
+**How they were built.** `.github/workflows/node-pty-linux.yml` does this:
+
+1. It packs `node-pty@1.1.0` and `node-addon-api@7.1.1` with `--ignore-scripts`.
+2. It checks both tarballs against the `npm-shrinkwrap.json` integrity before using them.
+3. It compiles `pty.node` with the node-gyp bundled with npm (node-gyp 12.4.0, npm 11.20.0), against
+   the headers of the installed Node v26.13.1 (`--nodedir`).
+4. It runs on `ubuntu-22.04` (x64) and `ubuntu-22.04-arm` (arm64), both glibc 2.35.
+5. It runs the 17 live relay tests through the built binary; all 17 passed on both architectures.
+6. It publishes the binary and its sha256 as a workflow artifact.
+
+The job has `contents: read` only, and every action is pinned by SHA. node-gyp runs only inside that
+ephemeral runner, never at install.
+
+**Provenance, stated as it is.**
+- These files come from **run
+  [44811001228](https://github.com/tedeuxx/mhw/actions/runs/44811001228), at commit `4f6b5a9a`**.
+  Their sha256 is:
+  - `linux-x64`: `b9d2d6d8d52a28450d66103254908463531b52d454b3b546ddae939a27a0f7f8`
+  - `linux-arm64`: `2ddfe0da896b357015e23c52fd694cf7d6988c97a45687af987a076997f63052`
+- `src/vendor/node-pty/linux-prebuilds.json` records the run, the commit, the source integrities, the
+  toolchain and these hashes. `test/vendor.test.js` holds each committed file to its recorded sha256 (a
+  changed byte turns it red, calibrated) and holds the recorded source to the shrinkwrap.
+- **No npm integrity covers these two files**, because npm publishes no Linux binary for node-pty 1.1.0.
+  Their trust rests on our CI run, on a source that is integrity-checked, and on a toolchain the runner
+  image provides. That is weaker than the macOS files, which are byte-identical to the npm package.
+- The artifact expires after 90 days. The run's log and the committed record stay.
+- Whether a rebuild is byte-reproducible has not been established. The job reports whether its build
+  matches the committed file, and does not fail on a mismatch.
+- The binaries need glibc 2.35 or later. musl (Alpine) is not covered.
+
+**Evidence level:** *written and tested*; the live relay ran on both Linux architectures in CI. Not
+installed on any Linux machine of the owner's.
 
 ## Links
 
