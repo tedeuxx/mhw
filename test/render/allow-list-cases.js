@@ -18,7 +18,7 @@ export const OTHER = 'release: v9.9.8; commit: ' + 'b'.repeat(40);
  * @typedef {{ phase: 'parse' | 'step' | 'uninstall', mode?: 'install' | 'check' | 'dry-run', stamp?: string,
  *   overlay?: boolean, before?: Change[], label?: string }} Run
  * @typedef {{ name: string, layout?: 'plain' | 'npm', codexHome?: string, cmd?: string, admin?: string,
- *   setup?: Change[], runs: Run[] }} Scenario
+ *   setup?: Change[], runs: Run[], declared?: boolean }} Scenario
  */
 
 const install = /** @type {Run} */ ({ phase: 'step', mode: 'install' });
@@ -93,6 +93,23 @@ export const SCENARIOS = [
     runs: [install, { phase: 'uninstall' }, { ...install, label: 'install after uninstall' }] },
   { name: 'uninstall-unmanaged-files', setup: [{ write: 'H/.kiro/agents/workstation.json', text: '{}\n' }],
     runs: [{ phase: 'uninstall' }] },
+  // PR #519 QA B1: settings.json jq 1.7.1 refuses (a, b, c): the shell said nothing and touched nothing,
+  // and so does the Node step.
+  ...[['jq-refuses-lone-high-surrogate', '"\\ud800"'], ['jq-refuses-300-levels', '['.repeat(299) + ']'.repeat(299)],
+    ['jq-refuses-10000-levels', '['.repeat(10000) + ']'.repeat(10000)]].map(([name, x]) => (/** @type {Scenario} */ ({
+    name, setup: [{ write: 'H/.claude/settings.json', text: '{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}, "x": ' + x + '}\n' }],
+    runs: [check, install, { phase: 'uninstall' }] }))),
+  // QA B1 d: settings.json jq reads and strict JSON does not. The shell acted on it; the Node step refuses
+  // it visibly and touches nothing (expected-differences.json, "a settings.json jq reads and strict JSON
+  // does not"). declared: the shell's transcript is kept as the record, and the Node side is held to its
+  // own golden, <name>.node.json.
+  ...[['jq-only-nan', '{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}, "n": NaN}\n'],
+    ['jq-only-byte-order-mark', '﻿{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}}\n'],
+    ['jq-only-leading-zero', '{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}, "n": 01}\n'],
+    ['jq-only-infinity', '{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}, "n": Infinity}\n'],
+    ['jq-only-two-documents', '{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}} {}\n'],
+    ['jq-only-trailing-nul', '{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}}\n\u0000']].map(([name, text]) => (/** @type {Scenario} */ ({
+    name, declared: true, setup: [{ write: 'H/.claude/settings.json', text }], runs: [check, dry, install, { phase: 'uninstall' }] }))),
   { name: 'parse-refusals', runs: [{ phase: 'parse', before: [{ write: 'P/overlay/allow-list.conf',
     text: 'wide cmd git push\nnarrow cmd sudo -n\r\n  # a comment\n\n\twide runner sh global/../x.sh\nloose cmd x\nwide\nwide route mhw milestone read\n'
       + 'narrow cmd gh pr -Rx\nwide cmd GIT_PAGER=x git diff\nwide runner python3 -X global/x.py\nnarrow cmd git log\n'

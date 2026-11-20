@@ -4,8 +4,9 @@
 // number is a JqNumber holding its literal, printed as jq 1.7.1 prints a literal it did not compute: the
 // decNumber scientific string (1e2 -> 1E+2, 0.10 -> 0.10, 0.00000012 -> 1.2E-7). Strings are escaped as
 // jq escapes them: the JSON escapes, every other control character and DEL as \u00xx, nothing else.
-// Measured against jq-1.7.1 on 2026-11-19. Not covered: input jq accepts and JSON does not (nan, several
-// documents in one file), which this reader refuses. node: modules only.
+// Measured against jq-1.7.1 on 2026-11-19. The reader refuses what jq refuses; what jq reads and JSON does
+// not (NaN, a byte-order mark, several documents, 01 ...) it refuses too, and classify() names that case so a
+// caller can refuse it visibly (PR #519 QA B1). node: modules only.
 
 export class JqNumber {
   /** @param {string} raw the literal as written */
@@ -29,106 +30,159 @@ const SIMPLE = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '
 /** How quote() writes each character JSON escapes by name. @type {Record<string, string>} */
 const NAMED = { '"': String.raw`\"`, '\\': String.raw`\\`, '\n': String.raw`\n`, '\t': String.raw`\t`, '\r': String.raw`\r`, '\b': String.raw`\b`, '\f': String.raw`\f` };
 
+/** jq 1.7.1's parser stack limit: containers open plus object keys pending (measured: 256 nested arrays
+ * parse and 257 do not; an object counts its pending key too, so {"a": 254 arrays} parses and 255 do not). */
+export const MAX_DEPTH = 256;
+const STRUCTURAL = new Set(['[', ']', '{', '}', ',', ':', '"']);
+/** The literals jq's lexer reads as a number beyond JSON's: nan, inf and infinity in any case, a sign,
+ * leading zeros, a bare fraction or exponent dot (measured on jq-1.7.1). */
+const JQ_NUMBER = /^[+-]?(?:(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?|nan\d*|inf(?:inity)?)$/i;
+
 /**
- * Parse one JSON document. Throws JqParseError on anything else.
+ * Parse one JSON document as jq 1.7.1 accepts it, and refuse with a JqParseError what jq refuses:
+ * a high surrogate escape not followed by a low one, nesting past jq's stack (MAX_DEPTH), and anything
+ * that is not JSON. A lone low surrogate escape reads as U+FFFD, as jq prints it.
+ *
+ * { jqOnly: true } accepts, in addition, what jq reads and JSON does not: one leading byte-order mark,
+ * input cut at the first NUL, several documents in a row, and jq's number literals (NaN, Infinity, 01,
+ * .5, 1., +1 and the like; each reads as null here, since nothing uses the value). It exists only to tell
+ * "jq would have read this file" from "nobody can", and returns the last document.
  * @param {string} text
+ * @param {{ jqOnly?: boolean }} [opts]
  * @returns {JqValue}
  */
-export function parse(text) {
+export function parse(text, opts = {}) {
+  const lenient = opts.jqOnly === true;
+  let src = text;
+  if (lenient) {
+    if (src.startsWith('﻿')) src = src.slice(1);
+    const nul = src.indexOf('\u0000');
+    if (nul >= 0) src = src.slice(0, nul);
+  }
   let i = 0;
+  let stack = 0;
   const fail = (/** @type {string} */ why) => {
     throw new JqParseError(why + ' at offset ' + i);
   };
   const skip = () => {
-    while (i < text.length && WS.has(text[i])) i++;
+    while (i < src.length && WS.has(src[i])) i++;
+  };
+  const open = () => {
+    if (stack >= MAX_DEPTH) fail('exceeds the depth limit');
+    stack++;
+  };
+  /** A bare literal: true, false, null, a JSON number, or (jqOnly) one of jq's own number literals. @returns {JqValue} */
+  const literal = () => {
+    const start = i;
+    while (i < src.length && !WS.has(src[i]) && !STRUCTURAL.has(src[i])) i++;
+    const token = src.slice(start, i);
+    if (token === 'true') return true;
+    if (token === 'false') return false;
+    if (token === 'null') return null;
+    if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(token)) return new JqNumber(token);
+    if (lenient && JQ_NUMBER.test(token)) return null;
+    i = start;
+    return fail('unexpected character');
   };
   /** @returns {JqValue} */
   const value = () => {
     skip();
-    const c = text[i];
+    const c = src[i];
     if (c === '{') return object();
     if (c === '[') return array();
     if (c === '"') return string();
-    if (c === '-' || (c >= '0' && c <= '9')) return number();
-    for (const [word, v] of /** @type {Array<[string, JqValue]>} */ ([['true', true], ['false', false], ['null', null]])) {
-      if (text.startsWith(word, i)) {
-        i += word.length;
-        return v;
-      }
-    }
-    return fail('unexpected character');
+    return literal();
   };
   const object = () => {
+    open();
     /** @type {Map<string, JqValue>} */
     const m = new Map();
     i++;
     skip();
-    if (text[i] === '}') {
+    if (src[i] === '}') {
       i++;
+      stack--;
       return m;
     }
     for (;;) {
       skip();
-      if (text[i] !== '"') fail('expected a key');
+      if (src[i] !== '"') fail('expected a key');
       const k = string();
       skip();
-      if (text[i] !== ':') fail('expected a colon');
+      if (src[i] !== ':') fail('expected a colon');
       i++;
+      stack++;
       m.set(k, value());
+      stack--;
       skip();
-      if (text[i] === ',') {
+      if (src[i] === ',') {
         i++;
         continue;
       }
-      if (text[i] === '}') {
+      if (src[i] === '}') {
         i++;
+        stack--;
         return m;
       }
       fail('expected , or }');
     }
   };
   const array = () => {
+    open();
     /** @type {JqValue[]} */
     const a = [];
     i++;
     skip();
-    if (text[i] === ']') {
+    if (src[i] === ']') {
       i++;
+      stack--;
       return a;
     }
     for (;;) {
       a.push(value());
       skip();
-      if (text[i] === ',') {
+      if (src[i] === ',') {
         i++;
         continue;
       }
-      if (text[i] === ']') {
+      if (src[i] === ']') {
         i++;
+        stack--;
         return a;
       }
       fail('expected , or ]');
     }
   };
-  /** One escape at text[i] (the backslash): the character it stands for. @returns {string} */
+  /** Four hex digits after \u at i; returns the code unit. */
+  const unit = () => {
+    const hex = src.slice(i + 2, i + 6);
+    if (src[i + 1] !== 'u' || !/^[0-9A-Fa-f]{4}$/.test(hex)) fail(String.raw`bad \u escape`);
+    i += 6;
+    return Number.parseInt(hex, 16);
+  };
+  /** One escape at src[i] (the backslash): the character it stands for. @returns {string} */
   const escape = () => {
-    const e = text[i + 1] ?? '';
+    const e = src[i + 1] ?? '';
     if (Object.hasOwn(SIMPLE, e)) {
       i += 2;
       return SIMPLE[e];
     }
     if (e !== 'u') return fail('bad escape');
-    const hex = text.slice(i + 2, i + 6);
-    if (!/^[0-9A-Fa-f]{4}$/.test(hex)) fail(String.raw`bad \u escape`);
-    i += 6;
-    return String.fromCodePoint(Number.parseInt(hex, 16));
+    const u = unit();
+    if (u >= 0xdc00 && u <= 0xdfff) return '�';
+    if (u < 0xd800 || u > 0xdbff) return String.fromCodePoint(u);
+    // jq refuses a high surrogate escape unless a low surrogate escape follows it at once.
+    if (src[i] !== '\\') fail('unpaired high surrogate');
+    const low = unit();
+    if (low < 0xdc00 || low > 0xdfff) fail('unpaired high surrogate');
+    return String.fromCodePoint(0x10000 + ((u - 0xd800) << 10) + (low - 0xdc00));
   };
   const string = () => {
     i++;
     let out = '';
     for (;;) {
-      if (i >= text.length) fail('unterminated string');
-      const c = text[i];
+      if (i >= src.length) fail('unterminated string');
+      const c = src[i];
       if (c === '"') {
         i++;
         return out;
@@ -141,31 +195,36 @@ export function parse(text) {
       }
     }
   };
-  const number = () => {
-    const start = i;
-    if (text[i] === '-') i++;
-    const digits = () => {
-      const s = i;
-      while (i < text.length && text[i] >= '0' && text[i] <= '9') i++;
-      return i - s;
-    };
-    if (text[i] === '0') i++;
-    else if (!digits()) fail('bad number');
-    if (text[i] === '.') {
-      i++;
-      if (!digits()) fail('bad number');
-    }
-    if (text[i] === 'e' || text[i] === 'E') {
-      i++;
-      if (text[i] === '+' || text[i] === '-') i++;
-      if (!digits()) fail('bad number');
-    }
-    return new JqNumber(text.slice(start, i));
-  };
-  const v = value();
+  let v = value();
   skip();
-  if (i !== text.length) fail('trailing content');
+  while (lenient && i < src.length) {
+    v = value();
+    skip();
+  }
+  if (i !== src.length) fail('trailing content');
   return v;
+}
+
+/**
+ * What became of reading a file the allow-list step acts on: 'json' (strict JSON, the value given),
+ * 'jq-only' (jq 1.7.1 would have read it, this reader does not: refuse visibly) or 'unreadable' (jq
+ * refuses it too: the shell step said nothing, and neither does this).
+ * @param {string} text
+ * @returns {{ kind: 'json', value: JqValue } | { kind: 'jq-only' | 'unreadable' }}
+ */
+export function classify(text) {
+  try {
+    return { kind: 'json', value: parse(text) };
+  } catch (e) {
+    if (!(e instanceof JqParseError)) throw e;
+  }
+  try {
+    parse(text, { jqOnly: true });
+    return { kind: 'jq-only' };
+  } catch (e) {
+    if (!(e instanceof JqParseError)) throw e;
+    return { kind: 'unreadable' };
+  }
 }
 
 /**

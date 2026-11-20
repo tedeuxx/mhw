@@ -1148,14 +1148,21 @@ allow_uninstall() {
        || { [ -f "$allow_codex_profile" ] && is_managed "$allow_codex_profile"; } \
        || { [ -f "$allow_kiro_agent" ] && is_managed "$allow_kiro_agent"; }; then
       echo "$allow_why" >&2
-      echo "REFUSE  uninstall: the allow list this installer wrote cannot be removed without node, and the deny floor must not leave from beside it; nothing uninstalled" >&2
+      echo "REFUSE  uninstall: the allow list this installer wrote cannot be removed without node, and the deny floor must not leave from beside it; nothing uninstalled. Re-run with node 26 or later on PATH (or MHW_NODE)" >&2
       exit 2
     fi
     echo "$allow_why"
     raise 2
     return 0
   fi
-  "$allow_node" "$allow_js" --phase=uninstall "--settings=$settings" "--home=$HOME" "--codex-home=${CODEX_HOME:-}" || raise $?
+  # A failed allow step (a hand-edited ownership record, exit 3) may have left our allow rules in
+  # settings.json: stop here, before uninstall_user takes the deny floor out from beside them (PR #519 lens A3).
+  allow_rc=0
+  "$allow_node" "$allow_js" --phase=uninstall "--settings=$settings" "--home=$HOME" "--codex-home=${CODEX_HOME:-}" || allow_rc=$?
+  if [ "$allow_rc" -ne 0 ]; then
+    echo "REFUSE  uninstall: the allow-list step failed (exit $allow_rc), and the deny floor must not leave from beside its allow rules; nothing else uninstalled. Fix $settings (or move it aside) and re-run" >&2
+    exit "$allow_rc"
+  fi
 }
 if [ "$mode" = uninstall ]; then
   allow_uninstall

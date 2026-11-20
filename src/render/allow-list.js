@@ -28,7 +28,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MARKER_ID, isManaged, unstamp } from '../lib/marker.js';
 import { privateCopy } from '../lib/private-copy.js';
-import { parse as parseJson, stringify, equal, contains, alt, get, codepointCompare, JqParseError } from '../lib/jq-json.js';
+import { parse as parseJson, classify, stringify, equal, contains, alt, get, codepointCompare } from '../lib/jq-json.js';
 import { unifiedHunks } from '../lib/unified-diff.js';
 
 /** @typedef {import('../lib/jq-json.js').JqValue} JqValue */
@@ -401,7 +401,29 @@ function claudeComplete(file, floorText) {
   } catch {
     return false;
   }
-  return Array.isArray(deny) && new Set(deny.filter((r) => typeof r === 'string' && want.includes(r))).size === want.length;
+  if (!Array.isArray(deny)) return false;
+  // Wide only where the shell read wide (its jq count equals the floor's size) AND every floor rule is
+  // there as a string, so this never reads wide where the shell read narrow (PR #519 QA B2).
+  const strings = new Set(deny.filter((r) => typeof r === 'string' && want.includes(r)));
+  return strings.size === want.length && shellCount(want, deny) === want.length;
+}
+
+/**
+ * allow-list.sh's count: the distinct deny elements e for which jq's `$floor | index(e)` is not null. A
+ * string matches a floor rule equal to it; a non-empty array of strings matches where it is a contiguous
+ * run of the floor list (jq's subarray index), so it counts too; anything else matches nothing.
+ * @param {string[]} floor @param {JqValue[]} deny
+ */
+export function shellCount(floor, deny) {
+  /** @param {JqValue} e */
+  const matches = (e) => {
+    if (typeof e === 'string') return floor.includes(e);
+    if (!Array.isArray(e) || !e.length || !e.every((x) => typeof x === 'string')) return false;
+    for (let k = 0; k + e.length <= floor.length; k++) if (e.every((x, j) => floor[k + j] === x)) return true;
+    return false;
+  };
+  const seen = new Set(deny.filter(matches).map((e) => stringify(e, { indent: 0, sortKeys: true })));
+  return seen.size;
 }
 
 /**
@@ -534,13 +556,23 @@ const indent4 = (v) => stringify(v, { indent: 4 }) + '\n';
 function readObject(file) {
   const t = readOrNull(file);
   if (t === null) return null;
-  try {
-    const v = parseJson(t);
-    return v instanceof Map ? v : null;
-  } catch (e) {
-    if (e instanceof JqParseError) return null;
-    throw e;
-  }
+  const c = classify(t);
+  return c.kind === 'json' && c.value instanceof Map ? c.value : null;
+}
+
+/**
+ * A settings file jq 1.7.1 reads and this step does not (NaN, a byte-order mark, several documents ...):
+ * the shell acted on it, this step cannot, so it says so and touches nothing (PR #519 QA B1). Returns
+ * true when the step must leave settings.json alone.
+ * @param {Ctx} ctx
+ */
+function jqOnlySettings(ctx) {
+  const settings = ctx.opts['--settings'];
+  const t = isFile(settings) ? readOrNull(settings) : null;
+  if (t === null || classify(t).kind !== 'jq-only') return false;
+  ctx.err('REFUSE  ' + settings + ': not readable by the allow-list step (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents or the like); left untouched\n');
+  raise(ctx, 3);
+  return true;
 }
 
 /** @param {Ctx} ctx @param {number} n */
@@ -821,8 +853,10 @@ export function step(ctx, parsed) {
     ctx.out('RISK    admin deny floor incomplete (Claude Code: ' + tier.claude + ', Codex: ' + tier.codex + ' tier): an allow list without the admin barrier is limited to reading; '
       + cmd + ' install (it asks for your administrator password once) widens it\n');
   }
-  if (!retireStep(ctx)) return;
-  claudeStep(ctx, parsed, tier.claude);
+  if (!jqOnlySettings(ctx)) {
+    if (!retireStep(ctx)) return;
+    claudeStep(ctx, parsed, tier.claude);
+  }
   const t = targets(ctx);
   const wide = tier.codex === 'wide';
   place(ctx, codexRules(parsed, tier.codex, stamp), t.rules, wide ? codexRules(parsed, 'narrow', stamp) : null);
@@ -834,6 +868,9 @@ export function step(ctx, parsed) {
 
 /** Uninstall: our files go, and only the allow rules and permission mode this installer added leave settings.json. @param {Ctx} ctx */
 export function uninstall(ctx) {
+  // Nothing is removed while settings.json cannot be read: install.sh then stops the uninstall, so the
+  // deny floor stays beside whatever allow rules the file holds (PR #519 QA B1, lens A3).
+  if (jqOnlySettings(ctx)) return;
   const t = targets(ctx);
   for (const u of [t.rules, t.profile, t.kiro]) {
     if (isFile(u) && managed(u)) {

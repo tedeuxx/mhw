@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { parse, stringify, formatNumber, quote, equal, alt, codepointCompare, JqNumber, JqParseError, typeOf, get, contains } from '../../src/lib/jq-json.js';
+import { parse, classify, MAX_DEPTH, stringify, formatNumber, quote, equal, alt, codepointCompare, JqNumber, JqParseError, typeOf, get, contains } from '../../src/lib/jq-json.js';
 import { which } from '../helpers/home.js';
 
 const NUMBERS = [['1.0', '1.0'], ['0.5e1', '5'], ['1e-7', '1E-7'], ['123e-2', '1.23'], ['0e3', '0E+3'], ['-1.50', '-1.50'],
@@ -60,4 +60,69 @@ test('equality, alternatives and helpers', () => {
   assert.ok(codepointCompare('\u{1F600}', '\uFFFF') > 0, 'by codepoint, not by UTF-16 unit');
   assert.ok(codepointCompare('a', 'ab') < 0);
   assert.equal(quote('\u001f'), '"\\u001f"');
+});
+
+// ---- acceptance (PR #519 QA B1): what jq 1.7.1 reads, what it refuses ------------------------------
+// Each row: the input, and what jq-1.7.1 did with it (measured 2026-11-20): 'json' (strict JSON, read by
+// both), 'jq-only' (jq reads it, strict JSON does not) or 'unreadable' (jq refuses it).
+const nest = (/** @type {number} */ n, /** @type {string} */ open, /** @type {string} */ close, inner = '1') => open.repeat(n) + inner + close.repeat(n);
+/** @type {Array<[string, 'json' | 'jq-only' | 'unreadable', string]>} */
+const ACCEPTANCE = [
+  // (a) a high surrogate escape not followed by a low one: jq refuses.
+  ['"\\ud800"', 'unreadable', 'lone high surrogate'],
+  ['"\\ud83dA"', 'unreadable', 'high surrogate then a letter'],
+  ['"\\ud83d\u{1F600}"', 'unreadable', 'high surrogate then a raw astral character'],
+  ['"\\ude00\\ud83d"', 'unreadable', 'low then high'],
+  ['"\\ud800\\u0000"', 'unreadable', 'high surrogate then a non-surrogate escape'],
+  ['"\\udc00"', 'json', 'a lone low surrogate (U+FFFD)'],
+  ['"\\ud800\\udc00"', 'json', 'a pair'],
+  // (b) and (c) nesting: 256 arrays parse, 257 do not; an object counts its pending key.
+  [nest(MAX_DEPTH, '[', ']', ''), 'json', '256 arrays'],
+  [nest(MAX_DEPTH + 1, '[', ']', ''), 'unreadable', '257 arrays'],
+  ['{"a":' + nest(254, '[', ']', '') + '}', 'json', 'an object and 254 arrays'],
+  ['{"a":' + nest(255, '[', ']', '') + '}', 'unreadable', 'an object and 255 arrays'],
+  [nest(300, '{"a":', '}'), 'unreadable', '300 objects'],
+  [nest(10000, '[', ']'), 'unreadable', '10,000 arrays (no RangeError)'],
+  // (d) what jq reads and strict JSON does not.
+  ['\ufeff{}', 'jq-only', 'a byte-order mark'],
+  ['[nan]', 'jq-only', 'nan'], ['[NaN]', 'jq-only', 'NaN'], ['[-NaN]', 'jq-only', '-NaN'], ['[NAN]', 'jq-only', 'NAN'],
+  ['[Infinity]', 'jq-only', 'Infinity'], ['[-Infinity]', 'jq-only', '-Infinity'], ['[infinity]', 'jq-only', 'infinity'],
+  ['[inf]', 'jq-only', 'inf'], ['[01]', 'jq-only', '01'], ['[00]', 'jq-only', '00'], ['[-01]', 'jq-only', '-01'],
+  ['[.5]', 'jq-only', '.5'], ['[-.5]', 'jq-only', '-.5'], ['[1.]', 'jq-only', '1.'], ['[0.]', 'jq-only', '0.'],
+  ['[1.e5]', 'jq-only', '1.e5'], ['[+1]', 'jq-only', '+1'], ['[+.5]', 'jq-only', '+.5'], ['[00.5]', 'jq-only', '00.5'],
+  ['{} {}', 'jq-only', 'two documents'], ['{}{}', 'jq-only', 'two documents, no space'], ['[1] [2]', 'jq-only', 'two arrays'],
+  ['{}\u0000', 'jq-only', 'a trailing NUL'], ['{"a":1}\u0000x', 'jq-only', 'input cut at a NUL'],
+  // Refused by both.
+  ['', 'unreadable', 'empty'], ['\u0000{}', 'unreadable', 'a leading NUL'], ['[1,]', 'unreadable', 'a trailing comma'],
+  ['{"a":1,}', 'unreadable', 'a trailing comma in an object'], ['[1 2]', 'unreadable', 'no comma'], ['{a:1}', 'unreadable', 'a bare key'],
+  ['"a\tb"', 'unreadable', 'a raw tab in a string'], ['[1e]', 'unreadable', '1e'], ['[0x1]', 'unreadable', '0x1'],
+  ['[--1]', 'unreadable', '--1'], ['[tru]', 'unreadable', 'tru'], ['[true1]', 'unreadable', 'true1'], ['[-]', 'unreadable', '-'],
+  ['\ufeff\ufeff{}', 'unreadable', 'two byte-order marks'], ['{"a":"x\u0000y"}', 'unreadable', 'a raw NUL in a string'],
+  ['{"a" 1}', 'unreadable', 'no colon'], ['[\f1]', 'unreadable', 'a form feed'],
+];
+
+test('acceptance: each input is read, jq-only or unreadable as jq 1.7.1 found it', () => {
+  for (const [input, want, name] of ACCEPTANCE) assert.equal(classify(input).kind, want, name);
+  assert.equal(stringify(parse('"\\udc00"')), '"\ufffd"');
+  assert.equal(stringify(parse('"\\ud83d\\ude00"')), '"\u{1F600}"');
+  // Anything that is not JSON throws JqParseError, never another error.
+  assert.throws(() => parse(nest(20000, '[', ']')), JqParseError);
+});
+
+test('acceptance: the same inputs through jq itself, where jq is on PATH', (t) => {
+  const jq = which('jq');
+  if (!jq) return t.skip('jq is not on PATH');
+  const wrong = [];
+  for (const [input, , name] of ACCEPTANCE) {
+    const p = spawnSync(jq, ['-c', '.'], { input: Buffer.from(input, 'utf8') });
+    const jqReads = p.status === 0 && p.stdout.length > 0;
+    const kind = classify(input).kind;
+    // jq reads it: this reader reads it or names it jq-only (never silent). jq refuses it: never read.
+    if (jqReads ? kind === 'unreadable' : kind === 'json') wrong.push(name + ': jq ' + (jqReads ? 'reads' : 'refuses') + ', classify says ' + kind);
+  }
+  assert.deepEqual(wrong, []);
+});
+
+test('jq -S orders keys by code point, astral keys included (QA A7)', () => {
+  assert.equal(stringify(parse('{"\u{1F600}":2,"\uffff":1}'), { sortKeys: true }), '{\n  "\uffff": 1,\n  "\u{1F600}": 2\n}');
 });

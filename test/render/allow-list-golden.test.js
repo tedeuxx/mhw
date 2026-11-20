@@ -231,9 +231,30 @@ function baseRevision() {
   return p.status === 0 ? p.stdout.trim() : null;
 }
 
+/** The golden a scenario's Node side is held to: the shell's, or its own for a declared one. @param {import('./allow-list-cases.js').Scenario} sc */
+const nodeGolden = (sc) => 'transcripts/' + sc.name + (sc.declared ? '.node.json' : '.json');
+
 test('golden: the Node step matches the transcripts recorded from allow-list.sh', { skip: (!POSIX && 'POSIX only') || (UPDATE && 'MHW_UPDATE_GOLDEN=1') }, () => {
   for (const sc of SCENARIOS) {
-    assert.deepEqual(intended(runScenario(sc, null)), readGolden(SLICE, 'transcripts/' + sc.name + '.json'), sc.name);
+    assert.deepEqual(intended(runScenario(sc, null)), readGolden(SLICE, nodeGolden(sc)), sc.name);
+  }
+});
+
+test('declared: each declared scenario refuses visibly, leaves settings.json as it was, and the shell acted on it', { skip: !POSIX && 'POSIX only' }, () => {
+  for (const sc of SCENARIOS.filter((s) => s.declared)) {
+    /** @type {Array<{ run: string, code: number, stdout: string, stderr: string, tree: Array<{ path: string, data: string }> }>} */
+    const node = readGolden(SLICE, nodeGolden(sc));
+    /** @type {Array<{ stdout: string }>} */
+    const shell = readGolden(SLICE, 'transcripts/' + sc.name + '.json');
+    const text = /** @type {{ text: string }} */ ((sc.setup || [])[0]).text;
+    for (const r of node) {
+      assert.equal(r.code, 3, sc.name + ' ' + r.run);
+      assert.match(r.stderr, /^REFUSE  <T>\/home\/\.claude\/settings\.json: not readable by the allow-list step/m, sc.name + ' ' + r.run);
+      const settings = r.tree.find((e) => e.path === '.claude/settings.json');
+      assert.equal(settings && settings.data, text.replaceAll('\r\n', '\n'), sc.name + ' ' + r.run);
+    }
+    // The record of what the shell did instead: it acted on the file in at least one mode.
+    assert.ok(shell.some((r) => /^(DRIFT|WOULD|CHANGED|MERGED|UNMERGED) /m.test(r.stdout)), sc.name);
   }
 });
 
@@ -249,8 +270,13 @@ test('live: the Node step matches allow-list.sh of the base revision on the same
   for (const sc of SCENARIOS) {
     const shell = intended(runScenario(sc, path.join(dest, 'tree')));
     if (UPDATE) writeGolden(SLICE, 'transcripts/' + sc.name + '.json', shell);
+    const node = intended(runScenario(sc, null));
+    // A declared scenario's Node side is its own golden (written here from the Node side, the one
+    // exception, since no shell transcript can be its reference).
+    if (UPDATE && sc.declared) writeGolden(SLICE, nodeGolden(sc), node);
     try {
-      assert.deepEqual(hunksAsSets(intended(runScenario(sc, null))), hunksAsSets(shell), sc.name);
+      if (sc.declared) assert.deepEqual(node, readGolden(SLICE, nodeGolden(sc)), sc.name);
+      else assert.deepEqual(hunksAsSets(node), hunksAsSets(shell), sc.name);
     } catch (e) {
       failed.push(e instanceof Error ? e.message : String(e));
     }
@@ -260,5 +286,6 @@ test('live: the Node step matches allow-list.sh of the base revision on the same
 
 test('every scenario has a golden transcript, and every transcript a scenario', { skip: !POSIX && 'POSIX only' }, () => {
   const files = fs.readdirSync(goldenPath(SLICE, 'transcripts')).sort((a, b) => (a < b ? -1 : Number(a > b)));
-  assert.deepEqual(files, SCENARIOS.map((s) => s.name + '.json').sort((a, b) => (a < b ? -1 : Number(a > b))));
+  const want = SCENARIOS.flatMap((s) => (s.declared ? [s.name + '.json', s.name + '.node.json'] : [s.name + '.json']));
+  assert.deepEqual(files, want.sort((a, b) => (a < b ? -1 : Number(a > b))));
 });

@@ -14,7 +14,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
-  parseList, why, fields, prefix, words, adminState, adminPaths, codexAdminWords, claudeRender, unmerged, main,
+  parseList, why, fields, prefix, words, adminState, adminPaths, codexAdminWords, claudeRender, unmerged, main, shellCount,
   codexRules, kiroAgent, retiredRules, stampOf, npmPackage,
 } from '../../src/render/allow-list.js';
 import { parse as parseJson, stringify } from '../../src/lib/jq-json.js';
@@ -115,6 +115,13 @@ test('every invalid or floor-overlapping entry is refused, with the reason', () 
     const { errors } = parseList(bad + '\n', FLOOR.cmd);
     assert.equal(errors.length, 1, bad);
     assert.match(errors[0], /^invalid allow-list entry \(.+\): /, bad);
+  }
+});
+
+test('an option before the gh or git subcommand is refused for that reason (QA B3)', () => {
+  for (const [line, opt] of [['narrow cmd gh --hostname x', 'gh --hostname'], ['wide cmd gh --help', 'gh --help'],
+    ['narrow cmd git --no-pager log', 'git --no-pager'], ['wide cmd gh -h', 'gh -h']]) {
+    assert.equal(why(fields(line), FLOOR.cmd), '"' + opt + '" is an option before the subcommand: it reaches every subcommand (and "git -c" can run any program)', line);
   }
 });
 
@@ -226,6 +233,33 @@ test('the tier is wide only with every tier input present and the admin floor co
     }
     assert.deepEqual(adminState(ctxOf(opts)), want, name);
   }
+});
+
+test('the Claude Code admin floor reads wide only where the shell read wide (QA B2)', () => {
+  const floor = ['Bash(a:*)', 'Bash(b:*)'];
+  // The shell's count, as jq computed it (measured with jq 1.7.1): a nested array that is a run of the
+  // floor list counts, an empty one, a non-string or a run in the wrong order does not.
+  assert.equal(shellCount(floor, /** @type {any} */ (['Bash(a:*)', 'Bash(b:*)', ['Bash(a:*)'], ['Bash(a:*)'], [], 5, null])), 3);
+  assert.equal(shellCount(floor, ['Bash(a:*)', 'Bash(b:*)', ['Bash(a:*)', 'Bash(b:*)']]), 3);
+  assert.equal(shellCount(floor, /** @type {any} */ (['Bash(a:*)', 'Bash(b:*)', ['Bash(b:*)', 'Bash(a:*)'], [['Bash(a:*)']], {}, true])), 2);
+  const d = freshDir('b2');
+  const fc = path.join(d, 'floor.claude');
+  fs.writeFileSync(fc, floor.join('\n') + '\n');
+  const root = path.join(d, 'admin');
+  const opts = { '--managed-root': root, '--floor-claude': fc, '--floor-codex': path.join(d, 'none') };
+  const admin = (/** @type {unknown[]} */ deny) => {
+    for (const platform of ['darwin', 'linux']) {
+      const p = adminPaths(root, platform).claude;
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.writeFileSync(p, JSON.stringify({ permissions: { deny } }));
+    }
+  };
+  admin([...floor, 'Bash(other:*)']);
+  assert.equal(adminState(ctxOf(opts)).claude, 'wide', 'every floor rule, plus one the floor does not name');
+  admin([...floor, ['Bash(a:*)']]);
+  assert.equal(adminState(ctxOf(opts)).claude, 'narrow', 'every floor rule plus a nested run of it: the shell counted 3 and read narrow');
+  admin([floor]);
+  assert.equal(adminState(ctxOf(opts)).claude, 'narrow', 'the floor as one nested array: the shell counted 1');
 });
 
 test('an incomplete or unmanaged admin floor is narrow (declared differences: stricter than the shell)', () => {
@@ -603,8 +637,15 @@ function snapshot(dir) {
   return Object.fromEntries(filesUnder(dir).sort((a, b) => (a < b ? -1 : Number(a > b))).map((f) => [f, fs.readFileSync(f, 'latin1')]));
 }
 
-for (const tier of ['narrow', 'wide']) {
-  test('install.sh: an uninstall without a usable node never removes the floor from beside the allow list (' + tier + ', lens B1)', { skip: E2E }, (t) => {
+const NO_NODE = POSIX ? pathWithoutNode() : null;
+/** @type {Array<[string, () => Record<string, string>, string | false]>} */
+const NODELESS = [
+  ['MHW_NODE is not node', () => ({ MHW_NODE: '/usr/bin/true' }), false],
+  ['no node on PATH', () => ({ MHW_NODE: '', PATH: /** @type {string} */ (NO_NODE) }),
+    NO_NODE ? false : 'jq shares its directory with node on this machine, so PATH cannot hold one without the other'],
+];
+for (const tier of ['narrow', 'wide']) for (const [how, extra, cannot] of NODELESS) {
+  test('install.sh: an uninstall without a usable node never removes the floor from beside the allow list (' + tier + ', ' + how + ', lens B1)', { skip: E2E || cannot }, () => {
     const d = freshDir('b1-' + tier);
     const h = path.join(d, 'home');
     const root = path.join(d, 'root');
@@ -614,17 +655,10 @@ for (const tier of ['narrow', 'wide']) {
     assert.equal(r.code, 0, r.out);
     assert.equal(permsOf(h + '/.claude/settings.json').has('defaultMode'), tier === 'wide');
     const before = snapshot(h);
-    /** @type {Array<[string, Record<string, string>]>} */
-    const ways = [['MHW_NODE is not node', { MHW_NODE: '/usr/bin/true' }]];
-    const noNode = pathWithoutNode();
-    if (noNode) ways.push(['no node on PATH', { MHW_NODE: '', PATH: noNode }]);
-    else t.diagnostic('jq shares its directory with node here: the no-node-on-PATH arm did not run');
-    for (const [how, extra] of ways) {
-      r = install(h, ['--uninstall'], extra);
-      assert.equal(r.code, 2, how + r.out);
-      assert.match(r.out, /^REFUSE  uninstall: the allow list this installer wrote cannot be removed without node/m, how);
-      assert.deepEqual(snapshot(h), before, how + ': nothing uninstalled');
-    }
+    r = install(h, ['--uninstall'], extra());
+    assert.equal(r.code, 2, r.out);
+    assert.match(r.out, /^REFUSE  uninstall: the allow list this installer wrote cannot be removed without node, .*nothing uninstalled\. Re-run with node 26 or later on PATH \(or MHW_NODE\)$/m);
+    assert.deepEqual(snapshot(h), before, 'nothing uninstalled');
     // With a node, the same uninstall removes both.
     r = install(h, ['--uninstall']);
     assert.equal(r.code, 0, r.out);
@@ -636,6 +670,131 @@ for (const tier of ['narrow', 'wide']) {
     assert.ok(!fs.existsSync(h + '/.codex/rules/workstation-allow-list.rules'));
   });
 }
+
+// QA B4: one row per artefact the no-node guard reads, each left alone after install, so each arm of the
+// guard is the only thing that can refuse.
+const OWN_KEY = 'personal-multi-harness-workstation-configuration-owned-allow';
+const ARTEFACTS = ['the ownership key', '.codex/rules/workstation-allow-list.rules', '.codex/workstation.config.toml', '.kiro/agents/workstation.json'];
+for (const keep of ARTEFACTS) {
+  test('install.sh: the no-node uninstall guard refuses with only ' + keep + ' left (QA B4)', { skip: E2E }, () => {
+    const d = freshDir('b4');
+    const h = path.join(d, 'home');
+    fs.mkdirSync(path.join(d, 'root'));
+    let r = install(h, ['--managed-root=' + path.join(d, 'root')]);
+    assert.equal(r.code, 0, r.out);
+    const s = h + '/.claude/settings.json';
+    if (keep !== 'the ownership key') {
+      const doc = settingsOf(s);
+      doc.delete(OWN_KEY);
+      fs.writeFileSync(s, stringify(doc, { indent: 4 }) + '\n');
+    }
+    for (const f of ARTEFACTS.slice(1)) if (f !== keep) fs.rmSync(path.join(h, f));
+    const before = snapshot(h);
+    r = install(h, ['--uninstall'], { MHW_NODE: '/usr/bin/true' });
+    assert.equal(r.code, 2, r.out);
+    assert.match(r.out, /^REFUSE  uninstall: the allow list this installer wrote cannot be removed without node/m);
+    assert.deepEqual(snapshot(h), before);
+  });
+}
+
+test('the allow step stops after a backup it cannot write, and touches nothing (declared difference 7, QA A6)', { skip: !POSIX && 'POSIX paths' }, () => {
+  const d = freshDir('a6');
+  const { home, args } = stepArgs(d);
+  fs.mkdirSync(home + '/.claude', { recursive: true });
+  const s = home + '/.claude/settings.json';
+  fs.writeFileSync(s, '{"permissions": {"allow": ["Bash(find *)"]}}\n');
+  fs.mkdirSync(s + '.pmhwc-allow-backup');
+  fs.writeFileSync(s + '.pmhwc-allow-backup/keep', 'x');
+  const r = run(argv(args), 'linux');
+  assert.equal(r.code, 1, r.err);
+  assert.match(r.err, /^REFUSE  .*settings\.json\.pmhwc-allow-backup: the backup could not be created exclusively; no backup written$/m);
+  assert.equal(fs.readFileSync(s, 'utf8'), '{"permissions": {"allow": ["Bash(find *)"]}}\n');
+  assert.ok(!fs.existsSync(home + '/.codex/rules/workstation-allow-list.rules'));
+  assert.doesNotMatch(r.out, /^ALLOW /m);
+});
+
+/** Inputs jq 1.7.1 reads and strict JSON does not (QA B1 d), each in an installed-looking settings.json. */
+const JQ_ONLY = [['NaN', '{"permissions": {"allow": ["Bash(find:*)"]}, "n": NaN}\n'],
+  ['a byte-order mark', '﻿{"permissions": {"allow": ["Bash(find:*)"]}}\n'],
+  ['a leading zero', '{"permissions": {"allow": ["Bash(find:*)"]}, "n": 01}\n'],
+  ['two documents', '{"permissions": {"allow": ["Bash(find:*)"]}} {}\n'],
+  ['a trailing NUL', '{"permissions": {"allow": ["Bash(find:*)"]}}\n\u0000']];
+for (const [name, text] of JQ_ONLY) {
+  test('a settings.json jq reads and strict JSON does not is refused visibly and left untouched: ' + name + ' (QA B1)', { skip: !POSIX && 'POSIX paths' }, () => {
+    for (const mode of ['check', 'dry-run', 'install', 'uninstall']) {
+      const d = freshDir('b1d');
+      const { home, args } = stepArgs(d);
+      fs.mkdirSync(home + '/.claude', { recursive: true });
+      const s = home + '/.claude/settings.json';
+      fs.writeFileSync(s, text);
+      /** @type {Record<string, string>} */
+      const a = mode === 'uninstall'
+        ? { '--phase': 'uninstall', '--settings': s, '--home': home, '--codex-home': '' }
+        : { ...args, '--mode': mode };
+      const r = run(argv(a), 'linux');
+      assert.equal(r.code, 3, mode + r.err);
+      assert.match(r.err, /^REFUSE  .*settings\.json: not readable by the allow-list step .*; left untouched$/m, mode);
+      assert.equal(fs.readFileSync(s, 'utf8'), text, mode);
+      assert.ok(!fs.existsSync(s + '.pmhwc-allow-backup'), mode);
+    }
+  });
+}
+
+test('install.sh: where merge_settings refuses the file, no allow rule lands in it (QA B1 a, b, c)', { skip: E2E }, () => {
+  for (const [name, text] of [['a lone high surrogate', '{"permissions": {"allow": ["Bash(find:*)"]}, "x": "\\ud800"}\n'],
+    ['300 levels', '{"permissions": {"allow": ["Bash(find:*)"]}, "x": ' + '['.repeat(299) + ']'.repeat(299) + '}\n'],
+    ['10,000 levels', '{"permissions": {"allow": ["Bash(find:*)"]}, "x": ' + '['.repeat(10000) + ']'.repeat(10000) + '}\n']]) {
+    const d = freshDir('b1a');
+    const h = path.join(d, 'home');
+    fs.mkdirSync(h + '/.claude', { recursive: true });
+    fs.writeFileSync(h + '/.claude/settings.json', text);
+    fs.mkdirSync(path.join(d, 'root'));
+    // --overlay=none: the overlay's model defaults (src/render/model-defaults.js, S10) rewrite such a file
+    // with a parser of their own, which is that step's behaviour, not this one's.
+    const r = install(h, ['--overlay=none', '--managed-root=' + path.join(d, 'root')]);
+    assert.match(r.out, /settings\.json: .*left untouched/, name);
+    assert.doesNotMatch(r.out, /RangeError|^MERGED  .*settings\.json/m, name);
+    assert.match(r.out, /^ALLOW   /m, name + ': the rest of the step still runs');
+    assert.equal(fs.readFileSync(h + '/.claude/settings.json', 'utf8'), text, name);
+  }
+});
+
+test('install.sh: an uninstall over a settings.json jq reads and strict JSON does not keeps the floor (QA B1 d, lens A3)', { skip: E2E }, () => {
+  const d = freshDir('b1d-e2e');
+  const h = path.join(d, 'home');
+  fs.mkdirSync(path.join(d, 'root'));
+  let r = install(h, ['--managed-root=' + path.join(d, 'root')]);
+  assert.equal(r.code, 0, r.out);
+  const s = h + '/.claude/settings.json';
+  fs.writeFileSync(s, fs.readFileSync(s, 'utf8').replace(/^\{/, '{\n    "n": NaN,'));
+  const before = fs.readFileSync(s, 'utf8');
+  r = install(h, ['--uninstall']);
+  assert.equal(r.code, 3, r.out);
+  assert.match(r.out, /^REFUSE  .*settings\.json: not readable by the allow-list step/m);
+  assert.match(r.out, /^REFUSE  uninstall: the allow-list step failed \(exit 3\)/m);
+  assert.equal(fs.readFileSync(s, 'utf8'), before, 'settings.json, its floor and its allow rules, untouched');
+  assert.ok(fs.existsSync(h + '/.codex/rules/workstation-allow-list.rules'));
+});
+
+test('install.sh: a failed allow uninstall stops the uninstall, so the floor stays beside the allow rules (lens A3)', { skip: E2E }, () => {
+  const d = freshDir('a3');
+  const h = path.join(d, 'home');
+  fs.mkdirSync(path.join(d, 'root'));
+  let r = install(h, ['--managed-root=' + path.join(d, 'root')]);
+  assert.equal(r.code, 0, r.out);
+  const s = h + '/.claude/settings.json';
+  const doc = settingsOf(s);
+  doc.set('personal-multi-harness-workstation-configuration-owned-allow', 'edited by hand');
+  fs.writeFileSync(s, stringify(doc, { indent: 4 }) + '\n');
+  const denyBefore = denyOf(s).length;
+  const allowBefore = allowOf(s);
+  r = install(h, ['--uninstall']);
+  assert.equal(r.code, 3, r.out);
+  assert.match(r.out, /^REFUSE  uninstall: the allow-list step failed \(exit 3\), and the deny floor must not leave from beside its allow rules; nothing else uninstalled\. Fix .*settings\.json \(or move it aside\) and re-run$/m);
+  assert.equal(denyOf(s).length, denyBefore, 'the deny floor is still there');
+  assert.ok(denyBefore > FLOOR.claude.filter((x) => x.startsWith('Bash(')).length);
+  assert.deepEqual(allowOf(s), allowBefore);
+});
 
 test('install.sh: an uninstall without node and nothing of the allow list left says so and goes on', { skip: E2E }, () => {
   const d = freshDir('b1-none');
