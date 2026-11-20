@@ -1245,7 +1245,7 @@ if grep -q "$canary" "$base/mcp-r2.out"; then ko "a server value was printed"; e
 
 # 19b. the policy MCP server (ADR-0038, Issue #174): install writes chrome-devtools into the Claude Code user
 # configuration (~/.claude.json), prints old -> new and keeps an 0600 backup; uninstall removes it and
-# keeps the owner's own servers. Per-case semantics: global/mcp/mcp_render_test.py, class Policy.
+# keeps the owner's own servers. Per-case semantics: test/render/mcp.test.js, "the policy servers".
 hp="$base/home-mcp-policy"; mkdir -p "$hp/.claude"
 printf '%s\n' '{"numStartups": 2, "mcpServers": {"mine": {"command": "/bin/echo"}}}' > "$hp/.claude.json"
 chmod 644 "$hp/.claude.json"
@@ -1299,7 +1299,7 @@ fi
 
 # 19c. the MCP active set (Issue #219, ADR-0041), through install.sh: undeclared, install turns nothing off;
 # declared, install turns off a Codex server outside the set, check is clean after it, and uninstall restores
-# the Codex configuration byte for byte. Per-case semantics: global/mcp/mcp_render_test.py, class ActiveSet.
+# the Codex configuration byte for byte. Per-case semantics: test/render/mcp.test.js, "the active set".
 ha="$base/home-mcp-active"; mkdir -p "$ha/.codex" "$ha/.local/share/personal-multi-harness-workstation-configuration/local-overlay"
 printf '%s\n' '[mcp_servers.set-a]' 'command = "/bin/echo"' '' '[mcp_servers.out-b]' 'command = "/bin/echo"' > "$ha/.codex/config.toml"
 act_seed=$(cksum < "$ha/.codex/config.toml")
@@ -1467,6 +1467,25 @@ HOME="$hh" sh "$inst" > "$base/kh4.out" 2>&1; expect "install refuses a Kiro hoo
 if grep -q "^REFUSE  $kh: exists and is NOT managed" "$base/kh4.out" && grep -q '"mine"' "$kh"; then ok "the owner's own file at that name is left untouched"; else ko "the owner's Kiro hook file was touched"; fi
 HOME="$hh" sh "$inst" --uninstall > "$base/kh-un2.out" 2>&1
 if grep -q '"mine"' "$kh" && grep -q "^NOTE    $kh exists and is NOT managed" "$base/kh-un2.out"; then ok "uninstall leaves an unmanaged Kiro hook file alone"; else ko "uninstall touched an unmanaged Kiro hook file"; fi
+
+# mcp_step's two refusals (#484, agents-lead lens A3 on PR #520): the function alone, extracted from
+# install.sh and run with an empty PATH, so no installer runs and nothing outside $base is touched.
+mcp_fn=$(sed -n '/^mcp_step() {/,/^}/p' "$inst")
+mkdir -p "$base/mcp-step-empty-path"
+printf '#!/bin/sh\nexit 0\n' > "$base/mcp-step-not-executable"
+chmod 644 "$base/mcp-step-not-executable"
+# shellcheck disable=SC2016 # expanded by the child sh that runs the extracted function, not here
+mcp_prelude='status=0; raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }; mode=check; stamp=x; script_dir=/nonexistent'
+out=$(env -i PATH="$base/mcp-step-empty-path" /bin/sh -c "$mcp_prelude
+$mcp_fn
+mcp_step; echo \"status=\$status\"")
+if [ "$out" = "SKIP    the policy MCP servers and the MCP active set: node (26 or later) is required
+status=2" ]; then ok "mcp_step without node says SKIP and raises 2"; else ko "mcp_step without node: $out"; fi
+out=$(env -i PATH="$base/mcp-step-empty-path" MHW_NODE="$base/mcp-step-not-executable" /bin/sh -c "$mcp_prelude
+$mcp_fn
+mcp_step; echo \"status=\$status\"")
+if [ "$out" = "REFUSE  the MCP servers: MHW_NODE ($base/mcp-step-not-executable) is not an executable file; nothing written
+status=2" ]; then ok "mcp_step refuses an MHW_NODE that is not executable, never another node"; else ko "mcp_step with a bad MHW_NODE: $out"; fi
 
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

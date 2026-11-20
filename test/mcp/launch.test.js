@@ -467,11 +467,12 @@ test('the copy the renderer installs (one marker line added, .mjs, anywhere) run
   assert.equal(imported.status, 0, String(imported.stderr));
 });
 
-test('mhw mcp without launch is a usage error', async () => {
+test('mhw mcp without launch or render is a usage error', async () => {
   for (const args of [[], ['launchx'], ['--', 'x']]) {
     const p = spawnSync(NODE, [BIN, 'mcp', ...args], { env: BASE_ENV, encoding: 'utf8' });
     assert.equal(p.status, 2, JSON.stringify(args));
-    assert.equal(p.stderr, 'usage: mhw mcp launch [--keychain PATH] [--secret NAME=SOURCE]... -- command [args...]\n');
+    assert.equal(p.stderr, 'usage: mhw mcp launch [--keychain PATH] [--secret NAME=SOURCE]... -- command [args...]\n'
+      + '       mhw mcp render [--dry-run | --check | --scan | --policy ... | --active ...] (mhw mcp render --help)\n');
   }
 });
 

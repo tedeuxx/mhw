@@ -2,7 +2,7 @@
 declared active set as each agent harness has it configured, and say whether it answers an MCP
 initialize.
 
-    mcp_render.py --active --mode=connect [--timeout=SECONDS] [--source=FILE]
+    mhw mcp render --active --mode=connect [--timeout=SECONDS] [--source=FILE]
     mhw status --mcp-connect[=SECONDS]
 
 Opt-in, never part of the default status: starting a server has side effects (a package fetch, a sign-in
@@ -33,7 +33,8 @@ import time
 import urllib.error
 import urllib.request
 
-import mcp_render as r
+# The renderer is reached through the CLI (src/render/mcp.js --lib, #484): mcp_active holds that route.
+from mcp_active import r  # noqa: E402
 
 TAG = "(MCP connect)"
 DEFAULT_TIMEOUT = 30

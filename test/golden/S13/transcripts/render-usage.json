@@ -1,0 +1,63 @@
+{
+  "step0 --bogus": {
+    "code": 2
+  },
+  "step0 --bogus stdout": "",
+  "step0 --bogus stderr": "unknown argument: --bogus\n",
+  "step1 --surfaces=vim,codex": {
+    "code": 2
+  },
+  "step1 --surfaces=vim,codex stdout": "",
+  "step1 --surfaces=vim,codex stderr": "unknown surface(s): vim (known: codex, claude-code, claude-desktop, kiro)\n",
+  "step2 --surfaces=": {
+    "code": 2
+  },
+  "step2 --surfaces= stdout": "",
+  "step2 --surfaces= stderr": "unknown surface(s): none given (known: codex, claude-code, claude-desktop, kiro)\n",
+  "step3 --policy --active": {
+    "code": 2
+  },
+  "step3 --policy --active stdout": "",
+  "step3 --policy --active stderr": "--policy and --active are separate runs\n",
+  "step4 --policy --mode=report --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 2
+  },
+  "step4 --policy --mode=report --stamp=release: v0.0.0-test; commit: synthetic stdout": "",
+  "step4 --policy --mode=report --stamp=release: v0.0.0-test; commit: synthetic stderr": "usage: mcp_render.py --policy --mode=install|check|dry-run|uninstall [--stamp=S]\n",
+  "step5 --policy --stamp=": {
+    "code": 2
+  },
+  "step5 --policy --stamp= stdout": "",
+  "step5 --policy --stamp= stderr": "usage: mcp_render.py --policy --mode=install|check|dry-run|uninstall [--stamp=S]\n",
+  "step6 --policy --adopt": {
+    "code": 2
+  },
+  "step6 --policy --adopt stdout": "",
+  "step6 --policy --adopt stderr": "usage: mcp_render.py --policy --mode=install|check|dry-run|uninstall [--stamp=S]\n",
+  "step7 --active --mode=report --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 2
+  },
+  "step7 --active --mode=report --stamp=release: v0.0.0-test; commit: synthetic stdout": "",
+  "step7 --active --mode=report --stamp=release: v0.0.0-test; commit: synthetic stderr": "usage: mcp_render.py --active --mode=install|check|dry-run|uninstall|connect [--stamp=S] [--source=FILE] [--timeout=SECONDS, connect only]\n",
+  "step8 --active --stamp=": {
+    "code": 2
+  },
+  "step8 --active --stamp= stdout": "",
+  "step8 --active --stamp= stderr": "usage: mcp_render.py --active --mode=install|check|dry-run|uninstall|connect [--stamp=S] [--source=FILE] [--timeout=SECONDS, connect only]\n",
+  "step9 --active --adopt": {
+    "code": 2
+  },
+  "step9 --active --adopt stdout": "",
+  "step9 --active --adopt stderr": "usage: mcp_render.py --active --mode=install|check|dry-run|uninstall|connect [--stamp=S] [--source=FILE] [--timeout=SECONDS, connect only]\n",
+  "step10 --active --mode=connect --timeout=0": {
+    "code": 2
+  },
+  "step10 --active --mode=connect --timeout=0 stdout": "",
+  "step10 --active --mode=connect --timeout=0 stderr": "usage: mcp_render.py --active --mode=install|check|dry-run|uninstall|connect [--stamp=S] [--source=FILE] [--timeout=SECONDS, connect only]\n",
+  "step11 --active --mode=check --timeout=5": {
+    "code": 2
+  },
+  "step11 --active --mode=check --timeout=5 stdout": "",
+  "step11 --active --mode=check --timeout=5 stderr": "--timeout applies to --mode=connect only\n",
+  "files": {}
+}

@@ -1,0 +1,47 @@
+{
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "SKIP    MCP active set: not declared in <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json (no \"active_set\"), so nothing is turned off (MCP active set)\n",
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step1 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step1 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "SKIP    MCP active set: not declared in <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json (no \"active_set\"), so nothing is turned off (MCP active set)\n",
+  "step1 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step2 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step2 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "SKIP    MCP active set: no local MCP definition at <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json, so nothing is turned off (MCP active set)\n",
+  "step2 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "files": {
+    ".claude/plugins/cache/mkt/plug2/1.0.0/.claude-plugin/plugin.json": {
+      "mode": "600",
+      "text": "{\"name\":\"plug2\",\"mcpServers\":{\"local\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"]}}}"
+    },
+    ".claude/plugins/installed_plugins.json": {
+      "mode": "600",
+      "text": "{\"version\":2,\"plugins\":{\"plug2@mkt\":[{\"installPath\":\"<HOME>/.claude/plugins/cache/mkt/plug2/1.0.0\",\"scope\":\"user\"}]}}"
+    },
+    ".claude/plugins/synced/src1/plug1/.mcp.json": {
+      "mode": "600",
+      "text": "{\"mcpServers\":{\"web\":{\"type\":\"http\",\"url\":\"https://synth.example/mcp\"},\"varred\":{\"command\":\"${CLAUDE_PLUGIN_ROOT}/bin/x\"},\"leaky\":{\"type\":\"http\",\"url\":\"https://synth.example/mcp?token=synthetic-s13-canary-4b1d7e\"},\"envurl\":{\"type\":\"http\",\"url\":\"https://${SYNTH_HOST}/mcp\"}}}"
+    },
+    ".claude/settings.json": {
+      "mode": "600",
+      "text": "{\"model\":\"synthetic\",\"deniedMcpServers\":[{\"serverName\":\"owners-own\"}]}"
+    },
+    ".claude.json": {
+      "mode": "600",
+      "text": "{\"numStartups\":3,\"mcpServers\":{\"set-a\":{\"type\":\"stdio\",\"command\":\"/bin/echo\"},\"out-u\":{\"type\":\"stdio\",\"command\":\"/bin/echo\"},\"chrome-devtools\":{\"command\":\"/bin/sh\"},\"claude-in-chrome\":{\"command\":\"/bin/echo\"}}}"
+    },
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": "approval_policy = \"on-request\"\n\n[mcp_servers.set-a]\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b]\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b.env]\nSYNTH = \"synthetic-s13-canary-4b1d7e\"\n\n[mcp_servers.out-c]\nenabled = true # kept as written\ncommand = \"/bin/echo\"\n\n[mcp_servers.own-off]\nenabled = false\ncommand = \"/bin/echo\"\n\n[mcp_servers.node_repl]\ncommand = \"/bin/echo\"\n"
+    },
+    ".kiro/settings/mcp.json": {
+      "mode": "600",
+      "text": "{\"mcpServers\":{\"set-a\":{\"command\":\"/bin/echo\"},\"out-k\":{\"command\":\"/bin/echo\",\"env\":{\"SYNTH\":\"synthetic-s13-canary-4b1d7e\"}},\"out-k2\":{\"command\":\"/bin/echo\",\"disabled\":false},\"own-off\":{\"command\":\"/bin/echo\",\"disabled\":true}}}"
+    }
+  }
+}

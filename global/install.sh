@@ -345,8 +345,8 @@ raise() { [ "$1" -gt "$status" ] && status=$1; return 0; }
 # a fresh file mktemp made beside it (O_EXCL, 0600), which is then hard-linked to DST. link(2) creates DST
 # exclusively and never follows a link already there, so anything planted at DST after the check (a link to a
 # FIFO or a device included) makes ln fail and nothing is fed to it. DST must then be a regular file, not a
-# link, or the copy is refused. The Python steps share one form, global/private_copy.py. This one stays in
-# shell because install.sh needs no python3; global/private_copy_test.py runs both forms on the same cases and
+# link, or the copy is refused. The Node renderers share one form, src/lib/private-copy.js. This one stays in
+# shell because install.sh needs no node for it; test/lib/private-copy.test.js runs both forms on the same cases and
 # requires the same result.
 private_copy() {
   pc_src=$1
@@ -1086,20 +1086,35 @@ kiro_step() {
 # The retired-server removal (mcp_retire.py, ADR-0035 decision 2, #145) was removed in v7 (Issue #206):
 # an aws-api table still in the Codex configuration is removed by hand.
 mcp_step() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "SKIP    the policy MCP servers: python3 3.9 or later is required"
-    raise 2
-    return 0
-  fi
+  # The MCP renderer is Node since #484 (S13 of #470): src/render/mcp.js, run by the node lookup of
+  # models_step and kiro_step (an absolute MHW_NODE that is not an executable file is refused, never
+  # replaced by another node).
+  mcp_node=${MHW_NODE:-}
+  case $mcp_node in
+    /*) if [ ! -f "$mcp_node" ] || [ ! -x "$mcp_node" ]; then
+          echo "REFUSE  the MCP servers: MHW_NODE ($mcp_node) is not an executable file; nothing written"
+          raise 2
+          return 0
+        fi ;;
+    *) mcp_node=$(command -v node 2>/dev/null || true) ;;
+  esac
+  case $mcp_node in
+    /*) ;;
+    *) echo "SKIP    the policy MCP servers and the MCP active set: node (26 or later) is required"
+       raise 2
+       return 0 ;;
+  esac
   # The policy MCP servers (ADR-0038, Issue #174): chrome-devtools in the Claude Code user configuration
   # (~/.claude.json), with no origin bound since ADR-0038 amendment D8. old -> new, a 0600 backup, removed
   # on uninstall.
-  python3 -B "$script_dir/mcp/mcp_render.py" --policy "--mode=$mode" "--stamp=$stamp" || raise $?
+  "$mcp_node" "$script_dir/../src/render/mcp.js" --policy "--mode=$mode" "--stamp=$stamp" || raise $?
   # The MCP active set (Issue #219, ADR-0041): once the local MCP definition declares "active_set", every
   # server outside it is turned off through each agent harness's own switch (Codex enabled = false,
   # Claude Code deniedMcpServers, Kiro "disabled"); the Claude desktop app is reported only. Undeclared,
-  # nothing is turned off, and uninstall turns back on what install turned off.
-  python3 -B "$script_dir/mcp/mcp_render.py" --active "--mode=$mode" "--stamp=$stamp" || raise $?
+  # nothing is turned off, and uninstall turns back on what install turned off. Still
+  # global/mcp/mcp_active.py until S14 (#485): the renderer runs it with python3 3.11+, and says SKIP
+  # (exit 2) when there is none.
+  "$mcp_node" "$script_dir/../src/render/mcp.js" --active "--mode=$mode" "--stamp=$stamp" || raise $?
 }
 # Chrome's remote-debugging toggle (Issue #224, ADR-0038 amendment 2026-10-24): the chrome-devtools server
 # attaches to the owner's Chrome, so `mhw chrome-debugging` (src/render/chrome-debugging.js, Node since

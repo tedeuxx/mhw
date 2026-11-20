@@ -1,0 +1,39 @@
+{
+  "step0 --surfaces=kiro": {
+    "code": 3
+  },
+  "step0 --surfaces=kiro stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step0 --surfaces=kiro stderr": "REFUSE  <HOME>/.kiro/settings/mcp.json: server(s) fake-plain already exist and are not managed by this project. Re-run with --adopt to replace them (a backup is kept), or rename them in the definition\n",
+  "step1 --surfaces=kiro --adopt": {
+    "code": 0
+  },
+  "step1 --surfaces=kiro --adopt stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nWROTE   <HOME>/.kiro/settings/mcp.json (add fake-secret; update fake-plain; previous version kept as .pmhwc-backup)\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step1 --surfaces=kiro --adopt stderr": "",
+  "step2 --surfaces=kiro --check": {
+    "code": 0
+  },
+  "step2 --surfaces=kiro --check stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nOK      <HOME>/.kiro/settings/mcp.json (2 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step2 --surfaces=kiro --check stderr": "",
+  "files": {
+    ".kiro/settings/mcp.json": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {\n    \"fake-plain\": {\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    }\n  }\n}\n"
+    },
+    ".kiro/settings/mcp.json.pmhwc-backup": {
+      "mode": "600",
+      "text": "{\"mcpServers\":{\"fake-plain\":{\"command\":\"mine\"}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {
+      "mode": "700",
+      "text": "#!/usr/bin/env node\n// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/mcp-launch.js; <STAMP>; do not edit, re-run the renderer\n<the launcher source>"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": {
+      "mode": "600",
+      "text": "{\n  \"version\": 1,\n  \"surfaces\": {\n    \"kiro\": [\n      \"fake-plain\",\n      \"fake-secret\"\n    ]\n  },\n  \"stamps\": {\n    \"kiro\": \"<STAMP>\"\n  }\n}\n"
+    }
+  }
+}

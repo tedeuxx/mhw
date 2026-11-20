@@ -1,0 +1,22 @@
+{
+  "step0 --scan": {
+    "code": 0
+  },
+  "step0 --scan stdout": "codex\tconfig\t<HOME>/.codex/config.toml\tzeta\tenv.SVC_TOKEN\ncodex\tconfig\t<HOME>/.codex/config.toml\t7\tenv.SVC_TOKEN\ncodex\tconfig\t<HOME>/.codex/config.toml\t10\tenv.SVC_TOKEN\ncodex\tconfig\t<HOME>/.codex/config.toml\t2\turl (userinfo or a credential-like query parameter)\ncodex\tbackup\t<HOME>/.codex/config.toml.pmhwc-backup\tzeta\tenv.SVC_TOKEN\ncodex\tbackup\t<HOME>/.codex/config.toml.pmhwc-backup\t7\tenv.SVC_TOKEN\ncodex\tbackup\t<HOME>/.codex/config.toml.pmhwc-backup\t10\tenv.SVC_TOKEN\ncodex\tbackup\t<HOME>/.codex/config.toml.pmhwc-backup\t2\turl (userinfo or a credential-like query parameter)\n8 credential-looking key(s) found. Key names only: no value was printed. Move each value to the Keychain (security add-generic-password -s <service> -a \"$USER\" -w, typed at the prompt), reference it under \"secrets\", remove the plain-text entry, delete the .pmhwc-backup files, and rotate the credential: it has been on disk in plain text.\n",
+  "step0 --scan stderr": "",
+  "step1 --scan --surfaces=codex": {
+    "code": 0
+  },
+  "step1 --scan --surfaces=codex stdout": "codex\tconfig\t<HOME>/.codex/config.toml\tzeta\tenv.SVC_TOKEN\ncodex\tconfig\t<HOME>/.codex/config.toml\t7\tenv.SVC_TOKEN\ncodex\tconfig\t<HOME>/.codex/config.toml\t10\tenv.SVC_TOKEN\ncodex\tconfig\t<HOME>/.codex/config.toml\t2\turl (userinfo or a credential-like query parameter)\ncodex\tbackup\t<HOME>/.codex/config.toml.pmhwc-backup\tzeta\tenv.SVC_TOKEN\ncodex\tbackup\t<HOME>/.codex/config.toml.pmhwc-backup\t7\tenv.SVC_TOKEN\ncodex\tbackup\t<HOME>/.codex/config.toml.pmhwc-backup\t10\tenv.SVC_TOKEN\ncodex\tbackup\t<HOME>/.codex/config.toml.pmhwc-backup\t2\turl (userinfo or a credential-like query parameter)\n8 credential-looking key(s) found. Key names only: no value was printed. Move each value to the Keychain (security add-generic-password -s <service> -a \"$USER\" -w, typed at the prompt), reference it under \"secrets\", remove the plain-text entry, delete the .pmhwc-backup files, and rotate the credential: it has been on disk in plain text.\n",
+  "step1 --scan --surfaces=codex stderr": "",
+  "files": {
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": "[mcp_servers.zeta]\ncommand = \"x\"\nenv = { SVC_TOKEN = \"synthetic-s13-canary-4b1d7e-zeta\" }\n\n[mcp_servers.7]\ncommand = \"x\"\nenv = { SVC_TOKEN = \"synthetic-s13-canary-4b1d7e-7\" }\n\n[mcp_servers.10]\ncommand = \"x\"\nenv = { SVC_TOKEN = \"synthetic-s13-canary-4b1d7e-10\" }\n\n[mcp_servers.\"2\"]\nurl = \"https://h/mcp?token=synthetic-s13-canary-4b1d7e\"\n"
+    },
+    ".codex/config.toml.pmhwc-backup": {
+      "mode": "600",
+      "text": "[mcp_servers.zeta]\ncommand = \"x\"\nenv = { SVC_TOKEN = \"synthetic-s13-canary-4b1d7e-zeta\" }\n\n[mcp_servers.7]\ncommand = \"x\"\nenv = { SVC_TOKEN = \"synthetic-s13-canary-4b1d7e-7\" }\n\n[mcp_servers.10]\ncommand = \"x\"\nenv = { SVC_TOKEN = \"synthetic-s13-canary-4b1d7e-10\" }\n\n[mcp_servers.\"2\"]\nurl = \"https://h/mcp?token=synthetic-s13-canary-4b1d7e\"\n"
+    }
+  }
+}
