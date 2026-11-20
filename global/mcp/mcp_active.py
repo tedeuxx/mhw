@@ -65,7 +65,7 @@ class ActiveSet:
                       for n, s in doc["servers"].items()} if self.declared else {}
         # Set members whose local copy differs from the policy's on a surface both name: the default render
         # refuses them (mcp_render.py policy_conflicts), name -> those surfaces.
-        self.conflicts = r.policy_conflicts(doc, policy_doc, r.launcher_dest()) if self.declared else {}
+        self.conflicts = r.policy_conflicts(doc, policy_doc, r.launcher_for(doc, required=False)) if self.declared else {}
         # Set members whose local copy differs from the policy's and is rendered only where the policy is not
         # (it leaves the policy's surfaces out, so the render does not refuse it): name -> the surfaces where
         # the local copy runs another command, args or env than the policy's would. Reported, not refused.
@@ -74,13 +74,13 @@ class ActiveSet:
             if n not in policy or n in self.conflicts:
                 continue
             for surface in sorted(set(s.get("surfaces", r.SURFACES)) - set(covered.get(n, ()))):
-                if r.entry(surface, s, r.launcher_dest()) != r.entry(surface, policy[n], None):
+                if r.entry(surface, s, r.launcher_for(doc, required=False)) != r.entry(surface, policy[n], None):
                     self.divergent.setdefault(n, []).append(surface)
         # name -> the Claude Code entries a kept server is rendered as: a set member (with the launcher for a
         # secret-bearing one) and a policy server. A deny that matches one of these would block it too.
         self.kept = {}
         if self.declared:
-            for n, e in r.local_desired(doc, "claude-code", r.launcher_dest(), covered).items():
+            for n, e in r.local_desired(doc, "claude-code", r.launcher_for(doc, required=False), covered).items():
                 self.kept.setdefault(n, []).append(e)
         for n, e in r.desired(policy_doc, "claude-code", None).items():
             self.kept.setdefault(n, []).append(e)

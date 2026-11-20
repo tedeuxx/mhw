@@ -9,7 +9,7 @@ Opt-in, never part of the default status: starting a server has side effects (a 
 prompt, a process) and costs time. Per server and agent harness where it is enabled:
 
     stdio       the configured command, args and env, spawned as the agent harness would (a secret-bearing
-                server through mcp-launch.sh, which reads the secret itself; this probe never reads one).
+                server through the Node launcher, mhw mcp launch (#483), which reads the secret itself; this probe never reads one).
                 One initialize request on stdin; ok on the matching result, "fail: error response" on the
                 matching error, "fail: exited <code>" or "fail: timeout" otherwise. Then the process is
                 killed.

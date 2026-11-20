@@ -1,0 +1,23 @@
+{
+  "step0 install": {
+    "code": 0
+  },
+  "step0 stdout": "SOURCE  <STAMP>\nWROTE   <LAUNCHER>\nWROTE   <HOME>/.codex/config.toml (add fake-plain, fake-secret, fake-codex-only)\nWROTE   <HOME>/.claude.json (add fake-plain, fake-secret)\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nSKIP    claude-desktop: <skipped>\nWROTE   <HOME>/.kiro/settings/mcp.json (add fake-plain, fake-secret)\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step0 stderr": "",
+  "step1 --check": {
+    "code": 0
+  },
+  "step1 stdout": "SOURCE  <STAMP>\nOK      <LAUNCHER> (<STAMP>)\nOK      <HOME>/.codex/config.toml (3 managed server(s); <STAMP>)\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nSKIP    claude-desktop: <skipped>\nOK      <HOME>/.kiro/settings/mcp.json (2 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step1 stderr": "",
+  "step2 install": {
+    "code": 0
+  },
+  "step2 stdout": "SOURCE  <STAMP>\nOK      <LAUNCHER> (<STAMP>)\nOK      <HOME>/.codex/config.toml (3 managed server(s); <STAMP>)\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nSKIP    claude-desktop: <skipped>\nOK      <HOME>/.kiro/settings/mcp.json (2 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step2 stderr": "",
+  ".codex/config.toml": "# >>> managed-by: personal-multi-harness-workstation-configuration (mcp servers); <STAMP>; generated, do not edit inside this block: re-run global/mcp/mcp_render.py\n[mcp_servers.fake-plain]\ncommand = \"/bin/echo\"\nargs = [\"hello\"]\nenv = { FAKE_REGION = \"zz-1\" }\n\n[mcp_servers.fake-secret]\ncommand = \"<LAUNCHER>\"\nargs = [\"--secret\", \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\", \"--\", \"/bin/cat\", \"-u\"]\nenv_vars = [\"FAKE_SRC_VAR\"]\n\n[mcp_servers.fake-codex-only]\ncommand = \"/bin/cat\"\nargs = []\n# <<< managed-by: personal-multi-harness-workstation-configuration (mcp servers)\n",
+  ".claude.json": "{\n  \"mcpServers\": {\n    \"fake-plain\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"type\": \"stdio\",\n      \"command\": \"<LAUNCHER>\",\n      \"args\": [\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    }\n  }\n}\n",
+  ".kiro/settings/mcp.json": "{\n  \"mcpServers\": {\n    \"fake-plain\": {\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"command\": \"<LAUNCHER>\",\n      \"args\": [\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    }\n  }\n}\n",
+  "launcher": {
+    "mode": "700"
+  }
+}
