@@ -32,6 +32,9 @@ Each is raised one at a time, when a slice reaches it.
 4. **The agent runtime interview** ([#79](https://github.com/tedeuxx/mhw/issues/79)):
    local containers, cloud-ready, a web console. A new idea, not yet a slice; it goes through the
    requirements route first.
+5. **Ratify ADR-0043** ([#522](https://github.com/tedeuxx/mhw/issues/522)): the batch confirmation
+   for backlog grooming and its safeguards. Since 2026-11-20 it is the one record in this index that is
+   proposed. The switch to `scrum` it records is already the owner's ruling.
 
 ## Index
 
@@ -79,3 +82,4 @@ Each is raised one at a time, when a slice reaches it.
 | [0040](0040-presence-conditioned-secret-renewal-through-the-browser.md) | With the owner present, the agent may create or renew a secret through his browser, copying without reading; the Bash denies unchanged (2026-10-24) | ~~proposed~~ accepted 2026-11-17; ~~canary owed~~ real-page canary passed for the script route on 2026-10-29, rerun owed under the D8 launch |
 | [0041](0041-mcp-active-set-native-switch-off-per-harness.md) | The MCP active set, turned off natively in each agent harness outside it (2026-10-24) | ~~proposed~~ accepted 2026-11-17 |
 | [0042](0042-node-pty-vendored-for-the-paste-wrapper.md) | node-pty 1.1.0, vendored with its macOS prebuilds from npm and Linux pty.node built by our CI from the pinned source, is the paste wrapper's pty; where it cannot load the wrapper refuses visibly (2026-11-20, #487) | proposed |
+| [0043](0043-backlog-grooming-batch-confirmation-and-scrum-for-mhw.md) | Backlog grooming closes and rewrites the owner's Issues on one batch confirmation, under safeguards; mhw runs `scrum`, scoped by `loop-mode-repos` (2026-11-20) | proposed |

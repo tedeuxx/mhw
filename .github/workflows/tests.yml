@@ -366,6 +366,9 @@ jobs:
       # carries no four-option ceiling and names exactly three options; it confirms the owner-action label
       # before reading an empty list as zero, against owner_actions.py's repository and label; and its
       # source names no Issue-creating or label-adding command. These are text checks, not behaviour.
+      # /backlog-grooming (#522): its headings and phrases reach every carrier; its source names no milestone
+      # write, no Issue creation and no merge; no tracker write precedes its one activation, which offers
+      # exactly three options; and sprint-planning steps 0 and 1 and autonomy read loop-mode-repos. Text checks.
       - name: workflow-commands suite
         env:
           TMPDIR: ${{ runner.temp }}
