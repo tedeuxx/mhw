@@ -38,9 +38,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { onPath } from '../lib/onpath.js';
 import * as core from '../lib/clean.js';
-import { readSalt, CLIPBOARD_DIR } from '../lib/salt.js';
+import { readSalt } from '../lib/salt.js';
 
-export { CLIPBOARD_DIR };
+export { CLIPBOARD_DIR } from '../lib/salt.js';
 const NO_REPOSITORY = 'not inside a git repository; mhw scan needs one, in every mode';
 const NO_GIT = 'git was not found on PATH; mhw scan needs it in this mode';
 const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;

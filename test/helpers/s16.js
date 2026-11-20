@@ -32,13 +32,13 @@ export function filterCases() {
   const cases = [];
   /** @param {string} name @param {Op[]} ops @param {Partial<FilterCase>} [more] */
   const add = (name, ops, more = {}) => cases.push({ name, max_bytes: 1000, ops, ...more });
-  const typed = Buffer.concat([Buffer.from([...Array(256).keys()].filter((b) => b !== 0x1b)), Buffer.from('\x1b[A\x1b[B\x1bOP\x1b[I', 'latin1')]);
+  const typed = Buffer.concat([Buffer.from(Array.from({ length: 256 }, (_, i) => i).filter((b) => b !== 0x1b)), Buffer.from('\x1b[A\x1b[B\x1bOP\x1b[I', 'latin1')]);
   add('typed-bytes', [['feed', hex(typed)]]);
   const stream = 'ab' + S + u('contact ' + EMAIL + ' now') + E + 'cd';
   for (let cut = 1; cut < stream.length; cut++) {
     add('redacted-split-' + cut, [['feed', hex(stream.slice(0, cut))], ['feed', hex(stream.slice(cut))], ['advance', 1], ['flush']]);
   }
-  add('no-finding', [['feed', hex(Buffer.concat([Buffer.from(S, 'latin1'), Buffer.from([...Array(95).keys()].map((i) => i + 32)),
+  add('no-finding', [['feed', hex(Buffer.concat([Buffer.from(S, 'latin1'), Buffer.from(Array.from({ length: 95 }, (_, i) => i + 32)),
     Buffer.from('\r\n\t\xc3\xa9\xff\xfe', 'latin1'), Buffer.from(E, 'latin1')]))]]);
   add('lone-escape', [['feed', hex('\x1b')], ['advance', HOLD / 2], ['flush'], ['advance', HOLD], ['flush']]);
   for (let k = 1; k < S.length; k++) {

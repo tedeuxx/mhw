@@ -295,7 +295,7 @@ paste_ok=1
 # The paste wrapper's command (#487): the node that runs mhw (MHW_NODE, set by bin/mhw.js; an absolute
 # path), else the first node on PATH, and this package's bin/mhw.js, both by absolute path.
 wrap_node=${MHW_NODE:-}
-case $wrap_node in /*) ;; *) wrap_node=$(command -v node 2>/dev/null || true) ;; esac
+if [ "${wrap_node#/}" = "$wrap_node" ]; then wrap_node=$(command -v node 2>/dev/null || true); fi
 wrap_mhw="$repo_root/bin/mhw.js"
 case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`]*) paste_ok=0 ;; esac
 paste_cmd() {

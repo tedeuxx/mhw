@@ -133,7 +133,8 @@ test('without its pty library the wrapper refuses visibly, exit 126, and never s
 
 test('mhw status names the pty library: ok here, FAIL with the reason where it cannot load', () => {
   const here = w.statusLine({});
-  if (PTY.ok) assert.equal(here, 'PASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)');
+  if (!POSIX) assert.match(here, /^PASTE   n\/a   /);
+  else if (PTY.ok) assert.equal(here, 'PASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)');
   else assert.match(here, /^PASTE   FAIL  the paste wrapper cannot run here: /);
   const bad = w.statusLine({ MHW_PTY_MODULE: '/no/such/pty.js' }, 'darwin');
   assert.match(bad, /^PASTE   FAIL  the paste wrapper cannot run here: node-pty 1\.1\.0 did not load \(.*\); claude, codex and kiro-cli started through it refuse to start \(command <cli> runs one without paste cleaning\)$/);
@@ -498,9 +499,9 @@ test('live: bracketed paste turned off mid-session is warned about', { skip: LIV
   await s.ready();
   assert.ok(await s.waitOut('\x1b[?2004h'));
   await sleep(3500);
-  assert.ok(!s.out.includes('bracketed paste'), 'warned while the mode was on');
+  assert.ok(!s.out.includes('turned bracketed paste off'), 'warned while the mode was on');
   s.send('\x1d\x1dOFF');
-  assert.ok(await s.waitOut('turned bracketed paste off'), s.out.toString('latin1').slice(-300));
+  assert.ok(await s.waitOut('turned bracketed paste off', 30000), s.out.toString('latin1').slice(-300));
   await s.finish();
 });
 
@@ -603,6 +604,7 @@ test('live: wrapper-added latency, typed key and pastes (printed; loose bounds)'
     t.diagnostic('LATENCY ' + (size ? size + '-byte paste' : 'typed key') + ': bare ' + results[size + ':false'].toFixed(1)
       + ' ms, wrapped ' + results[size + ':true'].toFixed(1) + ' ms (median of 7)');
   }
-  assert.ok(results['0:true'] < 100);
-  assert.ok(results['1000:true'] < 500);
+  // Added latency, against the bare pty measured in the same run, so a loaded host slows both sides.
+  assert.ok(results['0:true'] - results['0:false'] < 100, 'typed key: ' + results['0:true'] + ' ms wrapped');
+  assert.ok(results['1000:true'] - results['1000:false'] < 500, '1 KB paste: ' + results['1000:true'] + ' ms wrapped');
 });

@@ -166,10 +166,11 @@ class Launcher(Base):
         self.assertEqual(run("install", "--method", "--overlay=none"),
                          (0, base + ["-Method", "-Overlay", "none"], ""))
         self.assertEqual(run("check"), (0, base + ["-Check"], ""))
-        # #472, D11: status prints the NODE line first, then forwards as before.
+        # #472, D11: status prints the NODE line first, then (#487) the PASTE line, then forwards as before.
         code, out, err = run("status")
-        self.assertEqual((code, out[1:], err), (0, base + ["-Check"], ""))
+        self.assertEqual((code, out[2:], err), (0, base + ["-Check"], ""))
         self.assertRegex(out[0], r"^NODE    (ok|FAIL)  ")
+        self.assertRegex(out[1], r"^PASTE   n/a   the paste wrapper is not installed on Windows")
         for args in (("install", "--admin"), ("uninstall",), ("check", "--method"), ("install", "--overlay=")):
             code, out, err = run(*args)
             self.assertEqual((code, out), (2, []), args)

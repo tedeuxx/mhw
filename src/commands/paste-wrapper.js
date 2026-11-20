@@ -321,7 +321,7 @@ export function makeCleaner(conf, terms, salt, termLists = {}) {
   const clean = Object.assign(
     /** @param {Buffer} payload @returns {[Buffer, string[]]} */
     (payload) => {
-      const [text, units] = decodeEscaped(payload);
+      const text = decodeEscaped(payload);
       const found = core.findSpans(text, terms, salt, termLists);
       const reported = core.categories(found.filter((s) => report.has(s[2])));
       if (reported.length) {
@@ -330,7 +330,7 @@ export function makeCleaner(conf, terms, salt, termLists = {}) {
       }
       const spans = found.filter((s) => wanted.has(s[2]));
       if (!spans.length) return [payload, []];
-      return [encodeEscaped(core.sanitise(text, spans), units), core.categories(spans)];
+      return [encodeEscaped(core.sanitise(text, spans)), core.categories(spans)];
     },
     { reportedPastes: 0, reported: new Set() },
   );
@@ -340,30 +340,31 @@ export function makeCleaner(conf, terms, salt, termLists = {}) {
 // Python decodes a paste with utf-8 and surrogateescape: each byte that is not part of valid UTF-8
 // becomes a lone surrogate U+DC80..U+DCFF, and encoding back restores it. These two functions do the
 // same, so a payload with invalid UTF-8 round-trips byte for byte around the [REDACTED:...] markers.
-/**
- * @param {Buffer} buf
- * @returns {[string, null]}
- */
+
+/** The length a UTF-8 sequence starting with lead byte b claims (0: never a lead byte). @param {number} b */
+function sequenceLength(b) {
+  if (b < 0x80) return 1;
+  if (b >= 0xc2 && b <= 0xdf) return 2;
+  if (b >= 0xe0 && b <= 0xef) return 3;
+  if (b >= 0xf0 && b <= 0xf4) return 4;
+  return 0;
+}
+
+/** @param {Buffer} buf @returns {string} */
 export function decodeEscaped(buf) {
   let out = '';
   let i = 0;
   while (i < buf.length) {
-    const b = buf[i];
-    const n = b < 0x80 ? 1 : b >= 0xc2 && b <= 0xdf ? 2 : b >= 0xe0 && b <= 0xef ? 3 : b >= 0xf0 && b <= 0xf4 ? 4 : 0;
-    if (n === 1) {
-      out += String.fromCharCode(b);
-      i += 1;
-      continue;
-    }
+    const n = sequenceLength(buf[i]);
     if (n && i + n <= buf.length && validSequence(buf, i, n)) {
       out += buf.toString('utf8', i, i + n);
       i += n;
-      continue;
+    } else {
+      out += String.fromCodePoint(0xdc00 + buf[i]);
+      i += 1;
     }
-    out += String.fromCharCode(0xdc00 + b);
-    i += 1;
   }
-  return [out, null];
+  return out;
 }
 
 /** Is buf[i..i+n) one well-formed UTF-8 sequence (no overlong, no surrogate, at most U+10FFFF)? */
@@ -371,42 +372,32 @@ function validSequence(/** @type {Buffer} */ buf, /** @type {number} */ i, /** @
   for (let k = 1; k < n; k++) if ((buf[i + k] & 0xc0) !== 0x80) return false;
   const b0 = buf[i];
   const b1 = buf[i + 1];
-  if (n === 3) {
-    if (b0 === 0xe0 && b1 < 0xa0) return false;
-    if (b0 === 0xed && b1 >= 0xa0) return false;
-  }
-  if (n === 4) {
-    if (b0 === 0xf0 && b1 < 0x90) return false;
-    if (b0 === 0xf4 && b1 >= 0x90) return false;
-  }
+  if (b0 === 0xe0) return b1 >= 0xa0;
+  if (b0 === 0xed) return b1 < 0xa0;
+  if (b0 === 0xf0) return b1 >= 0x90;
+  if (b0 === 0xf4) return b1 < 0x90;
   return true;
 }
 
-/**
- * @param {string} text
- * @param {null} _units
- * @returns {Buffer}
- */
-export function encodeEscaped(text, _units) {
+/** decodeEscaped's inverse. @param {string} text @returns {Buffer} */
+export function encodeEscaped(text) {
   /** @type {Buffer[]} */
   const out = [];
   let run = '';
-  for (let i = 0; i < text.length; i++) {
-    const c = text.charCodeAt(i);
-    if (c >= 0xdc80 && c <= 0xdcff && !(i > 0 && isHigh(text.charCodeAt(i - 1)))) {
+  for (const ch of text) {
+    // A code point, so a surrogate pair is one ch and a lone escaped byte is another.
+    const cp = /** @type {number} */ (ch.codePointAt(0));
+    if (cp >= 0xdc80 && cp <= 0xdcff) {
       if (run) out.push(Buffer.from(run, 'utf8'));
       run = '';
-      out.push(Buffer.from([c - 0xdc00]));
+      out.push(Buffer.from([cp - 0xdc00]));
     } else {
-      run += text[i];
+      run += ch;
     }
   }
   if (run) out.push(Buffer.from(run, 'utf8'));
   return Buffer.concat(out);
 }
-
-/** @param {number} c */
-const isHigh = (c) => c >= 0xd800 && c <= 0xdbff;
 
 /**
  * Python's str.format for the notice templates: {name} and the {{ }} escapes. Anything else (a format
@@ -792,7 +783,8 @@ export function statusLine(env, platform = process.platform) {
  */
 function execStraight(real, argv0, rest, env) {
   const e = childEnv(env, false);
-  if (typeof process.execve === 'function') process.execve(real, [argv0, ...rest], e);
+  // process.execve is POSIX only: on Windows it exists and throws ERR_FEATURE_UNAVAILABLE_ON_PLATFORM.
+  if (process.platform !== 'win32' && typeof process.execve === 'function') process.execve(real, [argv0, ...rest], e);
   const r = spawnSync(real, rest, { stdio: 'inherit', env: e, argv0, shell: false });
   if (r.error) {
     process.stderr.write(argv0 + ': ' + r.error.message + '\n');
@@ -864,15 +856,13 @@ export function main(argv, env, opts = {}) {
     err.write(refusal(argv0, p.reason) + '\n');
     return REFUSED;
   }
-  let session;
-  try {
-    session = relay(p.pty, real, argv0, rest, conf, { env, grace });
-  } catch (e) {
-    // The pty loaded but the spawn failed (posix_spawnp, a damaged helper): refuse, never run unwrapped.
-    if (process.stdin.isTTY) process.stdin.setRawMode(false);
-    err.write(refusal(argv0, 'the spawn failed (' + (e instanceof Error ? e.message.split('\n')[0] : String(e)) + ')') + '\n');
-    return REFUSED;
-  }
-  // The CLI is gone; stdin may still hold the event loop open, so exit explicitly.
-  return session.then((code) => process.exit(code));
+  // The CLI is gone, or never started; stdin may still hold the event loop open, so exit explicitly.
+  return Promise.resolve()
+    .then(() => relay(p.pty, real, argv0, rest, conf, { env, grace }))
+    .then((code) => process.exit(code), (e) => {
+      // The pty loaded but the spawn failed (posix_spawnp, a damaged helper): refuse, never run unwrapped.
+      if (process.stdin.isTTY) process.stdin.setRawMode(false);
+      err.write(refusal(argv0, 'the spawn failed (' + (e instanceof Error ? e.message.split('\n')[0] : String(e)) + ')') + '\n');
+      process.exit(REFUSED);
+    });
 }
