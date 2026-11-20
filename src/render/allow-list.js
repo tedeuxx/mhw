@@ -44,7 +44,7 @@ import { unifiedHunks } from '../lib/unified-diff.js';
 export const ALLOW_OWN_KEY = 'personal-multi-harness-workstation-configuration-owned-allow';
 export const ALLOW_PROFILE = 'workstation';
 const PROG = 'allow-list.js';
-const KINDS = /** @type {const} */ (['cmd', 'runner', 'route', 'deny']);
+const KINDS = new Set(['cmd', 'runner', 'route', 'deny']);
 
 // A shell, an interpreter or a dispatcher runs anything it is handed: an allow on one is an allow on
 // everything, and an agent able to edit this list would grant itself the world.
@@ -108,55 +108,75 @@ function runnerPath(p) {
  * @param {string[]} floor the floor's word lists
  */
 export function why(f, floor) {
-  const nf = f.length;
-  let w = '';
-  let reason = '';
-  if (f[0] !== 'narrow' && f[0] !== 'wide') reason = 'tier must be narrow or wide';
-  else if (!KINDS.includes(/** @type {Kind} */ (f[1]))) reason = 'kind must be cmd, runner, route or deny';
-  else if (nf < 3) reason = 'no words';
-  w = f.slice(2).join(' ');
-  const $ = (/** @type {number} */ i) => f[i - 1] ?? '';
-  if (reason === '' && $(2) === 'route') {
+  const w = f.slice(2).join(' ');
+  // Each check runs only while every earlier one passed, in the shell's order.
+  const checks = [
+    () => shapeWhy(f),
+    () => kindWhy(f, w),
+    // A leading VAR=value runs the command with that environment: GIT_CONFIG_PARAMETERS=... git log is
+    // "git -c", GIT_PAGER=... runs any program (Issue #65, lens finding on PR #100).
+    () => (envAssignment(f[2] ?? '') ? '"' + f[2] + '" is an environment assignment before the command; it can run any program' : ''),
+    () => repoWhy(f),
+    () => (f[1] === 'cmd' ? cmdWhy(f, w) : ''),
+    () => (f[1] === 'deny' ? '' : floorWhy(w, floor)),
+  ];
+  for (const check of checks) {
+    const reason = check();
+    if (reason) return reason;
+  }
+  return '';
+}
+
+/** The tier, the kind and at least one word. @param {string[]} f */
+function shapeWhy(f) {
+  if (f[0] !== 'narrow' && f[0] !== 'wide') return 'tier must be narrow or wide';
+  if (!KINDS.has(f[1])) return 'kind must be cmd, runner, route or deny';
+  return f.length < 3 ? 'no words' : '';
+}
+
+/** The route and runner rules, or the word set of every other kind. @param {string[]} f @param {string} w */
+function kindWhy(f, w) {
+  if (f[1] === 'route') {
     // A route names ONE reviewed, read-only subcommand of the mhw CLI, by its words (Issue #475; it
     // replaced the "script" kind of #242 when the milestone routes moved to Node). Wide tier only,
     // Claude Code only. The set is closed and written here: every other mhw subcommand installs,
     // removes or writes, and stays never pre-authorised.
-    if ($(1) !== 'wide') reason = 'a route runs installed code, so it belongs to the wide tier only';
-    else if (w !== 'mhw milestone read') reason = 'a route names a reviewed read-only mhw subcommand, and the only one is "mhw milestone read"';
-  } else if (reason === '' && $(2) === 'runner') {
-    // A runner names ONE repository script, by relative path, through sh, bash or python3, with no
-    // option but -B or -I: an exact suite, never the interpreter (ADR-0031, owner 2026-10-05).
-    if ($(1) !== 'wide') reason = 'a runner runs repository code, so it belongs to the wide tier only';
-    else if (!['sh', 'bash', 'python3'].includes($(3))) reason = 'a runner starts with sh, bash or python3';
-    else if (!runnerPath($(nf))) reason = 'a runner ends with one relative .sh or .py script path';
-    for (let i = 4; i < nf && reason === ''; i++) if ($(i) !== '-B' && $(i) !== '-I') reason = 'a runner takes no option but -B or -I';
-  } else {
-    for (let i = 3; i <= nf && reason === ''; i++) {
-      if (!all($(i), WORD_CHAR)) reason = 'word outside the allowed set (no path, no wildcard)';
-    }
+    if (f[0] !== 'wide') return 'a route runs installed code, so it belongs to the wide tier only';
+    return w === 'mhw milestone read' ? '' : 'a route names a reviewed read-only mhw subcommand, and the only one is "mhw milestone read"';
   }
-  // A leading VAR=value runs the command with that environment: GIT_CONFIG_PARAMETERS=... git log is
-  // "git -c", GIT_PAGER=... runs any program (Issue #65, lens finding on PR #100).
-  if (reason === '' && envAssignment($(3))) {
-    reason = '"' + $(3) + '" is an environment assignment before the command; it can run any program';
+  if (f[1] === 'runner') return runnerWhy(f);
+  return f.slice(2).every((x) => all(x, WORD_CHAR)) ? '' : 'word outside the allowed set (no path, no wildcard)';
+}
+
+/**
+ * A runner names ONE repository script, by relative path, through sh, bash or python3, with no option
+ * but -B or -I: an exact suite, never the interpreter (ADR-0031, owner 2026-10-05).
+ * @param {string[]} f
+ */
+function runnerWhy(f) {
+  if (f[0] !== 'wide') return 'a runner runs repository code, so it belongs to the wide tier only';
+  if (!['sh', 'bash', 'python3'].includes(f[2])) return 'a runner starts with sh, bash or python3';
+  if (!runnerPath(f.at(-1) ?? '')) return 'a runner ends with one relative .sh or .py script path';
+  return f.slice(3, -1).every((x) => x === '-B' || x === '-I') ? '' : 'a runner takes no option but -B or -I';
+}
+
+/**
+ * -R/--repo, in any position and any spelling, retargets gh at any repository and widens the prefix past
+ * every per-subcommand pin: "gh pr -R o/r merge" (Issue #65, lens finding on PR #100).
+ * @param {string[]} f
+ */
+function repoWhy(f) {
+  const x = f.slice(2).find((y) => y.startsWith('-R') || y === '--repo' || y.startsWith('--repo='));
+  return x === undefined ? '' : '"' + x + '" (-R/--repo) retargets the command at another repository and reaches every subcommand';
+}
+
+/** A line that covers a floor entry, or that a floor entry covers. @param {string} w @param {string[]} floor */
+function floorWhy(w, floor) {
+  for (const fl of floor) {
+    if (prefix(w, fl)) return 'it covers the floor entry "' + fl + '", which denies only part of that family';
+    if (prefix(fl, w)) return 'the floor entry "' + fl + '" denies it, so it could never apply';
   }
-  // -R/--repo, in any position and any spelling, retargets gh at any repository and widens the prefix
-  // past every per-subcommand pin: "gh pr -R o/r merge" (Issue #65, lens finding on PR #100).
-  for (let i = 3; i <= nf && reason === ''; i++) {
-    const x = $(i);
-    if (x === '-R' || x.startsWith('-R=') || x === '--repo' || x.startsWith('--repo=') || (x.startsWith('-R') && x.length > 2)) {
-      reason = '"' + x + '" (-R/--repo) retargets the command at another repository and reaches every subcommand';
-    }
-  }
-  if (reason === '' && $(2) === 'cmd') reason = cmdWhy(f, w);
-  if (reason === '' && $(2) !== 'deny') {
-    for (const fl of floor) {
-      if (prefix(w, fl)) reason = 'it covers the floor entry "' + fl + '", which denies only part of that family';
-      else if (prefix(fl, w)) reason = 'the floor entry "' + fl + '" denies it, so it could never apply';
-      if (reason) break;
-    }
-  }
-  return reason;
+  return '';
 }
 
 /** @param {string} s */
@@ -164,7 +184,7 @@ function envAssignment(s) {
   const eq = s.indexOf('=');
   if (eq < 1) return false;
   const name = s.slice(0, eq);
-  return /[A-Za-z_]/.test(name[0]) && all(name, /[A-Za-z0-9_]/);
+  return /[A-Za-z_]/.test(name[0]) && all(name, /\w/);
 }
 
 /** The cmd kind's own checks. @param {string[]} f @param {string} w */
@@ -355,41 +375,47 @@ export function codexAdminWords(text) {
  * @returns {{ claude: Tier, codex: Tier }}
  */
 export function adminState(ctx) {
-  /** @type {{ claude: Tier, codex: Tier }} */
-  const tier = { claude: 'narrow', codex: 'narrow' };
   const root = ctx.opts['--managed-root'] || '';
-  if (!root) return tier;
+  if (!root) return { claude: 'narrow', codex: 'narrow' };
   const a = adminPaths(root, ctx.platform);
-  const fc = ctx.opts['--floor-claude'] || '';
-  const floorClaude = fc ? readOrNull(fc) : null;
-  const want = [...new Set(records(floorClaude ?? '').filter((l) => l.length > 0))];
-  if (want.length && isFile(a.claude)) {
-    let deny = null;
-    try {
-      const doc = parseJson(fs.readFileSync(a.claude, 'utf8'));
-      const perms = get(doc, 'permissions');
-      deny = alt(perms instanceof Map ? get(perms, 'deny') : null, []);
-    } catch {
-      deny = null;
-    }
-    if (Array.isArray(deny)) {
-      const present = new Set(deny.filter((r) => typeof r === 'string' && want.includes(r)));
-      if (present.size === want.length) tier.claude = 'wide';
-    }
+  return {
+    claude: claudeComplete(a.claude, tierInput(ctx, '--floor-claude')) ? 'wide' : 'narrow',
+    codex: codexComplete(a.codex, tierInput(ctx, '--floor-codex')) ? 'wide' : 'narrow',
+  };
+}
+
+/** A tier input file's text: '' when the option is missing or empty, or the file cannot be read. @param {Ctx} ctx @param {string} key */
+function tierInput(ctx, key) {
+  const file = ctx.opts[key] || '';
+  return (file && readOrNull(file)) || '';
+}
+
+/** Does the Claude Code admin file deny every rule of the floor? @param {string} file @param {string} floorText */
+function claudeComplete(file, floorText) {
+  const want = [...new Set(records(floorText).filter((l) => l.length > 0))];
+  if (!want.length || !isFile(file)) return false;
+  let deny;
+  try {
+    const perms = get(parseJson(fs.readFileSync(file, 'utf8')), 'permissions');
+    deny = alt(perms instanceof Map ? get(perms, 'deny') : null, []);
+  } catch {
+    return false;
   }
-  const fx = ctx.opts['--floor-codex'] || '';
-  const floorCodex = fx ? readOrNull(fx) : null;
-  const patterns = records(floorCodex ?? '');
-  const floorCount = patterns.filter((l) => l.length > 0).length;
-  if (floorCount && isFile(a.codex) && managed(a.codex)) {
-    const admin = codexAdminWords(readOrNull(a.codex) ?? '');
-    // The shell's count (grep -cxF -f floor | grep -c .), and every floor entry present: wide only when
-    // both hold, so this never reads wide where the shell read narrow.
-    const counted = admin.filter((l) => patterns.includes(l)).length;
-    const every = patterns.filter((l) => l.length > 0).every((l) => admin.includes(l));
-    if (counted === floorCount && every) tier.codex = 'wide';
-  }
-  return tier;
+  return Array.isArray(deny) && new Set(deny.filter((r) => typeof r === 'string' && want.includes(r))).size === want.length;
+}
+
+/**
+ * Does the Codex admin requirements file forbid every floor entry? The shell's count (grep -cxF -f floor
+ * against grep -c .) and every floor entry present: wide only when both hold, so this never reads wide
+ * where the shell read narrow.
+ * @param {string} file @param {string} floorText
+ */
+function codexComplete(file, floorText) {
+  const patterns = records(floorText);
+  const entries = patterns.filter((l) => l.length > 0);
+  if (!entries.length || !isFile(file) || !managed(file)) return false;
+  const admin = codexAdminWords(readOrNull(file) ?? '');
+  return admin.filter((l) => patterns.includes(l)).length === entries.length && entries.every((l) => admin.includes(l));
 }
 
 // ---- Claude Code -------------------------------------------------------------------------------------
@@ -433,6 +459,31 @@ function asList(v) {
   throw new Error('unexpected shape');
 }
 
+/** The shape allow_claude_render refused. @param {JqObject} doc @param {JqValue} perms */
+function badShape(doc, perms) {
+  if (perms === null) return get(doc, 'hooks') !== null && !(get(doc, 'hooks') instanceof Map);
+  if (!(perms instanceof Map)) return true;
+  const notList = (/** @type {JqValue} */ v) => v !== null && !Array.isArray(v);
+  return notList(get(perms, 'allow')) || notList(get(perms, 'deny')) || (get(doc, 'hooks') !== null && !(get(doc, 'hooks') instanceof Map));
+}
+
+/**
+ * One list merged with what the ownership record holds: a rule we added and no longer want leaves, a
+ * wanted rule missing is appended. Returns the list and the record's new list.
+ * @param {JqValue[]} list @param {JqValue[]} prev @param {string[]} want
+ */
+function mergeOwned(list, prev, want) {
+  const kept = list.filter((r) => !(contains(prev, r) && !contains(want, r)));
+  const add = want.filter((r) => !contains(kept, r));
+  return { list: [...kept, ...add], owns: [...prev.filter((r) => contains(want, r)), ...add] };
+}
+
+/** key = list, or no key when the list is empty. @param {JqObject} p @param {string} key @param {JqValue[]} list */
+function setList(p, key, list) {
+  p.set(key, list);
+  if (!list.length) p.delete(key);
+}
+
 /**
  * allow-list.sh's allow_claude_render jq program. Throws when the permissions section has an unexpected shape.
  * @param {JqObject} doc
@@ -443,40 +494,28 @@ function asList(v) {
  */
 export function claudeRender(doc, w, m, pd) {
   const perms = doc.get('permissions') ?? null;
-  const bad = (perms !== null && !(perms instanceof Map))
-    || (perms instanceof Map && get(perms, 'allow') !== null && !Array.isArray(get(perms, 'allow')))
-    || (perms instanceof Map && get(perms, 'deny') !== null && !Array.isArray(get(perms, 'deny')))
-    || (get(doc, 'hooks') !== null && !(get(doc, 'hooks') instanceof Map));
-  if (bad) throw new Error('permissions has an unexpected shape');
+  if (badShape(doc, perms)) throw new Error('permissions has an unexpected shape');
   const own = alt(get(doc, ALLOW_OWN_KEY), new Map());
   const o = own instanceof Map ? own : new Map();
-  const prev = asList(get(o, 'allow'));
+  const allow = mergeOwned(asList(alt(get(perms, 'allow'), [])), asList(get(o, 'allow')), w);
   const pmode = alt(get(o, 'defaultMode'), null);
-  const allow = asList(alt(get(perms, 'allow'), []));
-  const a1 = allow.filter((r) => !(contains(prev, r) && !contains(w, r)));
-  const add = w.filter((r) => !contains(a1, r));
-  const owns = [...prev.filter((r) => contains(w, r)), ...add];
   const cur = alt(get(perms, 'defaultMode'), null);
-  let mode;
-  if (m !== null && (cur === null || equal(cur, pmode))) mode = m;
+  const ours = cur === null || equal(cur, pmode);
+  let mode = cur;
+  if (m !== null && ours) mode = m;
   else if (m === null && cur !== null && equal(cur, pmode)) mode = null;
-  else mode = cur;
-  const omode = m !== null && equal(mode, m) && (cur === null || equal(cur, pmode)) ? m : null;
+  const omode = m !== null && equal(mode, m) && ours ? m : null;
   const out = new Map(doc);
   /** @type {JqObject} */
   const p = new Map(perms instanceof Map ? perms : []);
-  p.set('allow', [...a1, ...add]);
-  if (/** @type {JqValue[]} */ (p.get('allow')).length === 0) p.delete('allow');
+  setList(p, 'allow', allow.list);
   if (mode === null) p.delete('defaultMode');
   else p.set('defaultMode', mode);
   out.set('permissions', p);
-  const pdeny = asList(get(o, 'deny'));
-  const deny = asList(alt(get(p, 'deny'), []));
-  const d1 = deny.filter((r) => !(contains(pdeny, r) && !contains(pd, r)));
-  const dadd = pd.filter((r) => !contains(d1, r));
-  const downs = [...pdeny.filter((r) => contains(pd, r)), ...dadd];
-  p.set('deny', [...d1, ...dadd]);
-  if (/** @type {JqValue[]} */ (p.get('deny')).length === 0) p.delete('deny');
+  const deny = mergeOwned(asList(alt(get(p, 'deny'), [])), asList(get(o, 'deny')), pd);
+  setList(p, 'deny', deny.list);
+  const owns = allow.owns;
+  const downs = deny.owns;
   if (p.size === 0) out.delete('permissions');
   if (owns.length === 0 && omode === null && downs.length === 0) out.delete(ALLOW_OWN_KEY);
   else out.set(ALLOW_OWN_KEY, new Map(/** @type {Array<[string, JqValue]>} */ ([['allow', owns], ['defaultMode', omode], ['deny', downs]])));
@@ -525,6 +564,16 @@ function replaceFile(file, text, keepMode) {
   fs.renameSync(tmp, file);
 }
 
+/** The wide tier keeps a permission mode the owner set himself, and says so. @param {Ctx} ctx @param {JqObject} cur */
+function ownModeNote(ctx, cur) {
+  const curPerms = get(cur, 'permissions');
+  const curMode = raw(alt(get(curPerms, 'defaultMode'), ''));
+  const ownMode = raw(alt(get(get(cur, ALLOW_OWN_KEY), 'defaultMode'), ''));
+  if (curMode !== '' && ownMode === '' && raw(get(curPerms, 'defaultMode')) !== 'acceptEdits') {
+    ctx.out('NOTE    ' + ctx.opts['--settings'] + ': your own permissions.defaultMode (' + raw(get(curPerms, 'defaultMode')) + ') is kept; the recommended one is acceptEdits\n');
+  }
+}
+
 /** @param {Ctx} ctx @param {Parsed} parsed @param {Tier} tier */
 function claudeStep(ctx, parsed, tier) {
   const settings = ctx.opts['--settings'];
@@ -549,12 +598,7 @@ function claudeStep(ctx, parsed, tier) {
   const wantPerms = get(want, 'permissions');
   const nAllow = asList(get(wantPerms, 'allow')).length;
   const modeNow = raw(alt(get(wantPerms, 'defaultMode'), 'default (none set)'));
-  const curPerms = get(cur, 'permissions');
-  const curMode = alt(get(curPerms, 'defaultMode'), '');
-  const ownMode = alt(get(get(cur, ALLOW_OWN_KEY), 'defaultMode'), '');
-  if (tier === 'wide' && raw(curMode) !== '' && raw(ownMode) === '' && raw(get(curPerms, 'defaultMode')) !== 'acceptEdits') {
-    ctx.out('NOTE    ' + settings + ': your own permissions.defaultMode (' + raw(get(curPerms, 'defaultMode')) + ') is kept; the recommended one is acceptEdits\n');
-  }
+  if (tier === 'wide') ownModeNote(ctx, cur);
   if (has && equal(cur, want)) {
     ctx.out('OK      ' + settings + ' (allow list: ' + tier + ' tier, ' + nAllow + ' allow rules; permission mode ' + modeNow + ')\n');
     return;
@@ -873,24 +917,35 @@ function options(argv) {
 }
 
 /**
+ * The phase, when the command line is complete for it; '' for a usage error.
+ * @param {string[]} argv @param {Record<string, string>} opts
+ * @returns {'' | keyof typeof REQUIRED}
+ */
+function usable(argv, opts) {
+  if (options(argv) === null) return '';
+  const phase = opts['--phase'] ?? '';
+  if (phase !== 'parse' && phase !== 'step' && phase !== 'uninstall') return '';
+  if (REQUIRED[phase].some((k) => !opts[k])) return '';
+  return phase === 'step' && !['install', 'check', 'dry-run'].includes(opts['--mode']) ? '' : phase;
+}
+
+/**
  * The command line. Returns the exit code.
  * @param {string[]} argv
  * @param {{ out?: (s: string | Buffer) => void, err?: (s: string | Buffer) => void, platform?: string }} [io]
  */
 export function main(argv, io = {}) {
-  const opts = options(argv);
+  const opts = options(argv) ?? {};
   /** @type {Ctx} */
   const ctx = {
     out: io.out || ((s) => process.stdout.write(s)),
     err: io.err || ((s) => process.stderr.write(s)),
     platform: io.platform || process.platform,
     status: 0,
-    opts: opts || {},
+    opts,
   };
-  const phase = /** @type {keyof typeof REQUIRED} */ (opts?.['--phase'] ?? '');
-  const required = Object.hasOwn(REQUIRED, phase) ? REQUIRED[phase] : null;
-  if (!opts || !required || required.some((k) => !opts[k])
-      || (phase === 'step' && !['install', 'check', 'dry-run'].includes(opts['--mode']))) {
+  const phase = usable(argv, opts);
+  if (!phase) {
     ctx.err(USAGE);
     return 2;
   }

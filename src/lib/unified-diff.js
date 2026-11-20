@@ -12,8 +12,37 @@
  * @returns {string} the hunks, each line ending with a newline; '' when the two are equal
  */
 export function unifiedHunks(before, after, context = 3) {
-  const a = lines(before);
-  const b = lines(after);
+  const ops = editScript(lines(before), lines(after));
+  let out = '';
+  for (const [first, lastChange] of changeGroups(ops, context)) {
+    const from = Math.max(0, first - context);
+    const to = Math.min(ops.length - 1, lastChange + context);
+    const slice = ops.slice(from, to + 1);
+    const aCount = slice.filter((o) => o.op !== '+').length;
+    const bCount = slice.filter((o) => o.op !== '-').length;
+    out += '@@ -' + range(slice[0].ai, aCount) + ' +' + range(slice[0].bi, bCount) + ' @@\n';
+    for (const o of slice) out += o.op + o.text + '\n';
+  }
+  return out;
+}
+
+/** @typedef {{ op: ' ' | '-' | '+', text: string, ai: number, bi: number }} Op */
+
+/** The changed positions of ops, grouped where fewer than 2 * context equal lines separate them. @param {Op[]} ops @param {number} context */
+function changeGroups(ops, context) {
+  /** @type {Array<[number, number]>} */
+  const groups = [];
+  ops.forEach((o, k) => {
+    if (o.op === ' ') return;
+    const last = groups.at(-1);
+    if (last && k - last[1] - 1 <= 2 * context) last[1] = k;
+    else groups.push([k, k]);
+  });
+  return groups;
+}
+
+/** A shortest edit script, deletions before insertions. @param {string[]} a @param {string[]} b @returns {Op[]} */
+function editScript(a, b) {
   const n = a.length;
   const m = b.length;
   // L[i][j]: the length of a longest common subsequence of a[i..] and b[j..].
@@ -23,7 +52,7 @@ export function unifiedHunks(before, after, context = 3) {
       L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
     }
   }
-  /** @type {Array<{ op: ' ' | '-' | '+', text: string, ai: number, bi: number }>} */
+  /** @type {Op[]} */
   const ops = [];
   let i = 0;
   let j = 0;
@@ -40,28 +69,7 @@ export function unifiedHunks(before, after, context = 3) {
       j++;
     }
   }
-  const changed = ops.map((o, k) => (o.op === ' ' ? -1 : k)).filter((k) => k >= 0);
-  if (!changed.length) return '';
-  /** @type {Array<[number, number]>} */
-  const groups = [];
-  for (const k of changed) {
-    const last = groups.at(-1);
-    if (last && k - last[1] - 1 <= 2 * context) last[1] = k;
-    else groups.push([k, k]);
-  }
-  let out = '';
-  for (const [first, lastChange] of groups) {
-    const from = Math.max(0, first - context);
-    const to = Math.min(ops.length - 1, lastChange + context);
-    const slice = ops.slice(from, to + 1);
-    const aCount = slice.filter((o) => o.op !== '+').length;
-    const bCount = slice.filter((o) => o.op !== '-').length;
-    const aStart = slice[0].ai;
-    const bStart = slice[0].bi;
-    out += '@@ -' + range(aStart, aCount) + ' +' + range(bStart, bCount) + ' @@\n';
-    for (const o of slice) out += o.op + o.text + '\n';
-  }
-  return out;
+  return ops;
 }
 
 /** @param {number} start0 @param {number} count */

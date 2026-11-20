@@ -24,6 +24,10 @@ export class JqNumber {
 export class JqParseError extends Error {}
 
 const WS = new Set([' ', '\t', '\n', '\r']);
+/** The one-character escapes of a JSON string. @type {Record<string, string>} */
+const SIMPLE = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' };
+/** How quote() writes each character JSON escapes by name. @type {Record<string, string>} */
+const NAMED = { '"': String.raw`\"`, '\\': String.raw`\\`, '\n': String.raw`\n`, '\t': String.raw`\t`, '\r': String.raw`\r`, '\b': String.raw`\b`, '\f': String.raw`\f` };
 
 /**
  * Parse one JSON document. Throws JqParseError on anything else.
@@ -106,6 +110,19 @@ export function parse(text) {
       fail('expected , or ]');
     }
   };
+  /** One escape at text[i] (the backslash): the character it stands for. @returns {string} */
+  const escape = () => {
+    const e = text[i + 1] ?? '';
+    if (Object.hasOwn(SIMPLE, e)) {
+      i += 2;
+      return SIMPLE[e];
+    }
+    if (e !== 'u') return fail('bad escape');
+    const hex = text.slice(i + 2, i + 6);
+    if (!/^[0-9A-Fa-f]{4}$/.test(hex)) fail(String.raw`bad \u escape`);
+    i += 6;
+    return String.fromCodePoint(Number.parseInt(hex, 16));
+  };
   const string = () => {
     i++;
     let out = '';
@@ -117,22 +134,11 @@ export function parse(text) {
         return out;
       }
       if (c < ' ') fail('control character in a string');
-      if (c !== '\\') {
+      if (c === '\\') out += escape();
+      else {
         out += c;
         i++;
-        continue;
       }
-      const e = text[i + 1];
-      const simple = /** @type {Record<string, string>} */ ({ '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' });
-      if (e !== undefined && Object.hasOwn(simple, e)) {
-        out += simple[e];
-        i += 2;
-      } else if (e === 'u') {
-        const hex = text.slice(i + 2, i + 6);
-        if (!/^[0-9A-Fa-f]{4}$/.test(hex)) fail('bad \\u escape');
-        out += String.fromCharCode(Number.parseInt(hex, 16));
-        i += 6;
-      } else fail('bad escape');
     }
   };
   const number = () => {
@@ -203,14 +209,8 @@ export function quote(s) {
   let out = '"';
   for (const ch of s) {
     const c = ch.codePointAt(0) || 0;
-    if (ch === '"') out += '\\"';
-    else if (ch === '\\') out += '\\\\';
-    else if (ch === '\n') out += '\\n';
-    else if (ch === '\t') out += '\\t';
-    else if (ch === '\r') out += '\\r';
-    else if (ch === '\b') out += '\\b';
-    else if (ch === '\f') out += '\\f';
-    else if (c < 0x20 || c === 0x7f) out += '\\u' + c.toString(16).padStart(4, '0');
+    if (Object.hasOwn(NAMED, ch)) out += NAMED[ch];
+    else if (c < 0x20 || c === 0x7f) out += String.raw`\u` + c.toString(16).padStart(4, '0');
     else out += ch;
   }
   return out + '"';
