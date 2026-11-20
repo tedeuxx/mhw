@@ -122,9 +122,9 @@ Option 1.
 - Bad: the check is narrow. A trivial doc edit, or a `none` line with a convenient reason, passes it;
   `in #N` is not resolved against the tracker. The gate's judgement still carries the meaning.
 - Bad: a coarse manifest (one catch-all capability whose documents include `docs/**`) makes almost any
-  doc edit satisfy almost any code change. In mhw's own manifest the catch-all owns 697 of the 823
-  tracked files at this record's writing (85%); the seven specific capabilities own the other 126
-  (working-method 59, project-policy 18, mcp 14, outbound-scan 13, delivery-contract 12,
+  doc edit satisfy almost any code change. In mhw's own manifest the catch-all owns 698 of the 825
+  tracked files at this record's writing (85%); the seven specific capabilities own the other 127
+  (working-method 60, project-policy 18, mcp 14, outbound-scan 13, delivery-contract 12,
   paste-cleaning 6, documentation-baseline 4). Re-measure with `mhw onboard`, whose `NOTE  tracked
   files each capability owns (first match)` line prints the current split. The manifest
   `mhw onboard --scaffold` writes is one catch-all, so in a freshly onboarded project the check reduces
