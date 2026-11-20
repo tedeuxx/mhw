@@ -50,9 +50,9 @@ SCRIPTS_DIR = ".local/share/personal-multi-harness-workstation-configuration/met
 # Stated, not derived from the renderer: the documents a rite names and the render installs (#181).
 DOCUMENTS = ["funnel-review-contract/README.md"]
 COMMANDS = sorted(p.stem for p in (SOURCE / "commands").glob("*.md"))
-# Stated, not derived: a command's deprecated old names, each kept for one release (owner, 2026-10-26:
-# "-idea- deveria ser renomeado para -prd em todos comandos com esse termo").
-ALIASES = {"new-idea": "new-prd", "idea-to-issues": "prd-to-issues"}
+# The old command names, kept for one release as deprecated aliases (2026-10-26) and removed at #524 once
+# that release had shipped. Stated, so the regression below names exactly what an earlier install left.
+RETIRED_ALIASES = {"new-idea": "new-prd", "idea-to-issues": "prd-to-issues"}
 AGENTS = source_agents()
 
 
@@ -85,7 +85,7 @@ class Home:
         out = []
         for s in SKILLS:
             out += [".claude/skills/%s/SKILL.md" % s, ".agents/skills/%s/SKILL.md" % s, ".kiro/skills/%s/SKILL.md" % s]
-        for c in COMMANDS + sorted(ALIASES):
+        for c in COMMANDS:
             out += [".claude/commands/%s.md" % c, ".agents/skills/%s/SKILL.md" % c,
                     ".agents/skills/%s/agents/openai.yaml" % c, ".kiro/skills/%s/SKILL.md" % c]
         for a in AGENTS:
@@ -124,12 +124,14 @@ class SourceShape(unittest.TestCase):
         self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-prd", "prd-to-issues", "what-else",
                                            "blueprint", "handoff", "need-me"]))
 
-    def test_the_deprecated_aliases(self):
-        _, _, commands = mr.load(SOURCE)
-        declared = {a: name for name, c in commands.items() for a in c["aliases"]}
-        self.assertEqual(declared, ALIASES)
-        # no command name carries "idea" any more; the old names live only as aliases (owner, 2026-10-26)
+    def test_no_old_command_name_is_left(self):
+        # #524: the one-release aliases are gone; no command name carries "idea" (owner, 2026-10-26 and
+        # 2026-11-20: "isso nao deveria existir depois do /new-prd").
         self.assertEqual([c for c in COMMANDS if "idea" in c], [])
+        for c in COMMANDS:
+            text = (SOURCE / "commands" / (c + ".md")).read_text(encoding="utf-8")
+            self.assertNotIn("deprecated-aliases", "\n".join(front_matter(SOURCE / "commands" / (c + ".md"))), c)
+            self.assertNotIn("is the old name of", text, c)
 
     def test_planning_poker_no_longer_says_reference_pattern_only(self):
         fields, _ = mr.split_front_matter((SOURCE / "skills/planning-poker/SKILL.md").read_text(encoding="utf-8"), "pp")
@@ -697,59 +699,81 @@ class Render(unittest.TestCase):
             head = "\n".join(front_matter(self.h.p(".claude/commands/%s.md" % c)))
             (self.assertIn if hinted else self.assertNotIn)("argument-hint:", head, c)
 
-    def test_a_deprecated_alias_renders_the_command_under_its_old_name(self):
-        for alias, target in ALIASES.items():
-            yaml_text = self.h.p(".agents/skills/%s/agents/openai.yaml" % alias).read_text(encoding="utf-8")
-            self.assertIn("\npolicy:\n  allow_implicit_invocation: false\n", yaml_text, alias)
-            src = "source: method/commands/%s.md" % target
-            copies = {"claude": (self.h.p(".claude/commands/%s.md" % alias), "/" + target),
-                      "codex": (self.h.p(".agents/skills/%s/SKILL.md" % alias), "$" + target),
-                      "kiro": (self.h.p(".kiro/skills/%s/SKILL.md" % alias), "/" + target)}
-            body = (SOURCE / "commands" / (target + ".md")).read_text(encoding="utf-8").split("\n---\n", 1)[1]
-            for harness, (path, invoke) in copies.items():
-                text = path.read_text(encoding="utf-8")
-                head = "\n".join(front_matter(path))
-                self.assertIn(src, head, (alias, harness))
-                self.assertIn("`%s` is the old name of `%s`" % (alias, target), text, (alias, harness))
-                self.assertIn("the name is now `%s`" % invoke, text, (alias, harness))
-                self.assertIn("Deprecated name of %s, kept for one release." % target, head, (alias, harness))
-                if harness != "claude":
-                    self.assertIn("name: " + json.dumps(alias), front_matter(path), (alias, harness))
-                    self.assertIn("Owner-typed command %s%s" % (invoke[0], alias), text, (alias, harness))
-                # the alias carries the whole body of the command it stands for
-                self.assertIn(body.strip(), text, (alias, harness))
+    @staticmethod
+    def retired_alias_files():
+        """rel -> text: the eight files an install before #524 rendered for the two retired aliases."""
+        out = {}
+        for alias, target in RETIRED_ALIASES.items():
+            mark = mr.marker("method/commands/%s.md" % target, OTHER)
+            md = '---\n# %s\nname: "%s"\ndescription: "Deprecated name of %s."\n---\nold body\n' % (mark, alias, target)
+            out[".claude/commands/%s.md" % alias] = md
+            out[".agents/skills/%s/SKILL.md" % alias] = md
+            out[".agents/skills/%s/agents/openai.yaml" % alias] = mr.codex_policy("method/commands/%s.md" % target,
+                                                                                  OTHER)
+            out[".kiro/skills/%s/SKILL.md" % alias] = md
+        return out
 
-    def test_a_colliding_alias_stops_the_render(self):
-        src = Path(tempfile.mkdtemp(prefix="src-", dir=BASE)) / "method"
-        shutil.copytree(SOURCE, src)
-        f = src / "commands" / "new-prd.md"
-        f.write_text(f.read_text(encoding="utf-8").replace("  - new-idea\n", "  - new-issue\n"), encoding="utf-8")
-        h = Home()
-        code, out = h.run("--mode=install", "--source=" + str(src))
-        self.assertEqual(code, 2, out)
-        self.assertIn("deprecated alias new-issue collides", out)
-        self.assertFalse(h.p(".claude/commands").exists())
-
-    def test_a_dropped_alias_is_removed_on_the_next_install(self):
+    def test_the_retired_aliases_an_earlier_install_left_are_removed(self):
+        # #524: a home carrying the eight stamped alias files from an earlier release.
         h = Home()
         self.assertEqual(h.run("--mode=install")[0], 0)
-        src = Path(tempfile.mkdtemp(prefix="src-", dir=BASE)) / "method"
-        shutil.copytree(SOURCE, src)
-        f = src / "commands" / "new-prd.md"
-        f.write_text(f.read_text(encoding="utf-8").replace("deprecated-aliases:\n  - new-idea\n", ""),
-                     encoding="utf-8")
-        code, out = h.run("--mode=check", "--source=" + str(src))
+        planted = self.retired_alias_files()
+        self.assertEqual(len(planted), 8)
+        for rel, text in planted.items():
+            h.p(rel).parent.mkdir(parents=True, exist_ok=True)
+            h.p(rel).write_text(text, encoding="utf-8")
+        code, out = h.run("--mode=check")
         self.assertEqual(code, 1, out)
-        self.assertRegex(out, r"(?m)^STALE   .*\.claude/commands/new-idea\.md")
-        self.assertEqual(h.run("--mode=install", "--source=" + str(src))[0], 0)
-        for rel in (".claude/commands/new-idea.md", ".agents/skills/new-idea/SKILL.md",
-                    ".agents/skills/new-idea/agents/openai.yaml", ".kiro/skills/new-idea/SKILL.md"):
+        for rel in planted:
+            self.assertRegex(out, r"(?m)^STALE   .*%s: " % re.escape(rel), rel)
+        code, out = h.run("--mode=install")
+        self.assertEqual(code, 0, out)
+        for rel in planted:
+            self.assertRegex(out, r"(?m)^REMOVED .*%s " % re.escape(rel), rel)
             self.assertFalse(h.p(rel).exists(), rel)
-        self.assertTrue(h.p(".claude/commands/new-prd.md").is_file())
-        self.assertTrue(h.p(".claude/commands/idea-to-issues.md").is_file())
+        for alias in RETIRED_ALIASES:
+            self.assertFalse(h.p(".agents/skills/%s" % alias).exists(), alias)
+            self.assertFalse(h.p(".kiro/skills/%s" % alias).exists(), alias)
+        for target in RETIRED_ALIASES.values():
+            for rel in (".claude/commands/%s.md" % target, ".agents/skills/%s/SKILL.md" % target,
+                        ".agents/skills/%s/agents/openai.yaml" % target, ".kiro/skills/%s/SKILL.md" % target):
+                self.assertTrue(h.p(rel).is_file(), rel)
+        self.assertEqual(h.run("--mode=check")[0], 0)
+
+    def test_an_unstamped_copy_of_a_retired_alias_is_left_alone(self):
+        # A copy whose managed-by line was edited away is the owner's file: never removed, never reported.
+        h = Home()
+        self.assertEqual(h.run("--mode=install")[0], 0)
+        f = h.p(".claude/commands/new-idea.md")
+        text = '---\ndescription: "my own copy"\n---\nedited by hand\n'
+        f.write_text(text, encoding="utf-8")
+        code, out = h.run("--mode=check")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("new-idea", out)
+        code, out = h.run("--mode=install")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("new-idea", out)
+        self.assertEqual(f.read_text(encoding="utf-8"), text)
+
+    def test_an_unknown_front_matter_field_stops_the_render(self):
+        # #524: the retired field, restored, is refused rather than ignored; so is any other unknown field.
+        cases = [("commands/new-prd.md", "deprecated-aliases:\n  - new-idea\n", "deprecated-aliases"),
+                 ("skills/shell/SKILL.md", "colour: blue\n", "colour"),
+                 ("agents/developer.md", "colour: blue\n", "colour")]
+        for rel, extra, field in cases:
+            src = Path(tempfile.mkdtemp(prefix="src-", dir=BASE)) / "method"
+            shutil.copytree(SOURCE, src)
+            f = src / rel
+            f.write_text(f.read_text(encoding="utf-8").replace("\n---\n", "\n" + extra + "---\n", 1),
+                         encoding="utf-8")
+            h = Home()
+            code, out = h.run("--mode=install", "--source=" + str(src))
+            self.assertEqual(code, 2, (rel, out))
+            self.assertIn("method/%s: unknown front matter field %s" % (rel, field), out)
+            self.assertFalse(h.p(".claude/commands").exists(), rel)
 
     def test_skill_front_matter_is_what_codex_and_kiro_read(self):
-        for s in SKILLS + COMMANDS + sorted(ALIASES):
+        for s in SKILLS + COMMANDS:
             fm = front_matter(self.h.p(".kiro/skills/%s/SKILL.md" % s))
             self.assertIn("name: %s" % json.dumps(s), fm)
             desc = [l for l in fm if l.startswith("description: ")]

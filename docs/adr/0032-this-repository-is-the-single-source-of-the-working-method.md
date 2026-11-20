@@ -564,7 +564,8 @@ per agent harness and was not measured, so the alias could run nothing.
 
 - Good: `/new-idea`, `$new-idea` and their Kiro form keep running the same steps for one release, and
   the agent tells the owner the new name.
-- Good: the next rename uses the same field, with no renderer change.
+- ~~Good: the next rename uses the same field, with no renderer change.~~ *(Struck 2026-11-20, #524: the
+  field and its renderer code were removed with the two aliases; see the note below.)*
 - Bad: for one release each old name is a second full copy in every carrier, so a harness command list
   shows both names, distinguished only by the description.
 - Bad: removing an alias is a breaking change (major), and nothing schedules it: the next release that
@@ -580,6 +581,36 @@ no deprecation note, the body dropped, the collision check off, the description 
 undeclared, the alias misspelled) each turned at least one suite red, and both recovered on restore.
 Not run on Windows. Nothing is installed on the reference machine, and no agent harness was observed
 listing or running an alias.
+
+**Note 2026-11-20: the grace period is served and the aliases are removed (#524).** The owner, on
+2026-11-20: *"outro ponto que erradamente ainda temos /new-idea . isso nao deveria existir depois do
+/new-prd"* (`/new-idea` should not exist now that `/new-prd` replaces it). Releases v10.0.0, v10.1.0 and
+v10.1.1 shipped after this amendment, so its "one release" is past.
+
+- **Removed:** `deprecated-aliases` from `method/commands/new-prd.md` and
+  `method/commands/prd-to-issues.md`, so `/new-idea`, `$new-idea`, `/idea-to-issues`, `$idea-to-issues`
+  and their Kiro forms no longer render. The field itself is gone from `global/method/method_render.py`
+  too (its parsing, its collision check, `alias_command` and the count in the `METHOD` line), because
+  nothing else used it.
+- **Added in its place:** each source kind (skill, command, agent) accepts only the front-matter fields
+  the renderer reads, and any other field stops the render with nothing written. Before this, an
+  unknown field was ignored without a word, so a restored `deprecated-aliases` line would have rendered
+  nothing and said nothing.
+- **What an earlier install left:** the eight stamped alias files (four per alias) are reported `STALE`
+  by `--mode=check` and removed by the next install, through the existing stale path; their skill
+  directories are pruned. A copy whose managed-by line was edited away is the owner's file: it is never
+  removed and never reported. A stamped copy the owner edited keeps its marker, so it is removed like
+  any stale rendered file.
+- **Cut:** major, as the "Bad" consequence above said: a name the owner could type stops working.
+- **Evidence, 2026-11-20.** *Written and tested.* `global/method/method_render_test.py`:
+  `test_no_old_command_name_is_left`, `test_the_retired_aliases_an_earlier_install_left_are_removed`,
+  `test_an_unstamped_copy_of_a_retired_alias_is_left_alone` and
+  `test_an_unknown_front_matter_field_stops_the_render`; `global/method/method_commands_test.py`:
+  `test_retired_names_are_not_rendered`. Restoring the field in `method/commands/new-prd.md` turned 27
+  tests of the renderer suite red, the regression test among them; dropping the command field check
+  from the renderer turned exactly the unknown-field test red; both recovered on restore. Not run on
+  Windows. Not installed on the reference machine: the owner's install of the release and his check that
+  the aliases are gone from all three agent harnesses are what remains.
 
 ## Amendment 2026-10-26: the sprint rites are skills, not commands
 
