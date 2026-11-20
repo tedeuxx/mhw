@@ -117,8 +117,11 @@ ephemeral runner, never at install.
   Their trust rests on our CI run, on a source that is integrity-checked, and on a toolchain the runner
   image provides. That is weaker than the macOS files, which are byte-identical to the npm package.
 - The artifact expires after 90 days. The run's log and the committed record stay.
-- Whether a rebuild is byte-reproducible has not been established. The job reports whether its build
-  matches the committed file, and does not fail on a mismatch.
+- **A rebuild matched, measured once.** The next run of the same job
+  ([44812010860](https://github.com/tedeuxx/mhw/actions/runs/44812010860)) rebuilt both files
+  byte-identical to the committed ones, so on this runner image the build is reproducible. A future image
+  can change that. The job reports a mismatch and does not fail on one, because the committed file is held
+  to its recorded sha256, not to a rebuild.
 - The binaries need glibc 2.35 or later. musl (Alpine) is not covered.
 
 **Evidence level:** *written and tested*; the live relay ran on both Linux architectures in CI. Not
