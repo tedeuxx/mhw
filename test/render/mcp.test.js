@@ -16,6 +16,7 @@ import { spawnSync, spawn } from 'node:child_process';
 import { throwawayHome, which } from '../helpers/home.js';
 import * as M from '../../src/render/mcp.js';
 import { loads } from '../../src/lib/py.js';
+import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
 import { CASES, PROJECT, put, putJson, activeHome, policyCopy, sourceDoc as baseSourceDoc } from './mcp-cases.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -241,24 +242,36 @@ group('the definition', () => {
     assert.ok(Date.now() - t0 < 2000, 'a long input is searched in linear time');
   });
 
-  test("the URL scan answers as the original's URL pattern, run in CPython", { skip: !PY && 'needs python3 for the oracle' }, () => {
-    const inputs = ['https://u:p@h/', 'https://u:@h/', 'https://:p@h/', 'https://u@h/', 'https://u:p/h@x', 'https://u p:q@h', 'http://a:b:c@h',
-      'x://:a:@h', 'https://h/?token=1', 'https://h/?Token=1', 'https://h/?a=1&api_key=2', 'https://h/?apikey', 'https://h/?x.auth-y=1', 'https://h/?pre-passwd=1',
-      'https://h/x?mytoken', '?secret=', '&k=1', '?key=', '?ke y=1', '://a:b@', ':// a:b@', 'no url at all', '', 'https://h/?ſecret=1'];
-    const rnd = crypto.createHash('sha256');
-    for (let i = 0; i < 300; i++) {
-      rnd.update(String(i));
-      const bytes = rnd.copy().digest();
-      inputs.push([...bytes].map((b) => ':/@?&=. akstp-_'[b % 15]).join(''));
+  test('the credential detectors answer as the original patterns did in CPython 3.14.6 (recorded oracle)', () => {
+    // test/golden/S13/credential-oracle.json: the inputs and what mcp_render.py's own patterns answered for
+    // each, recorded from CPython 3.14.6. Non-ASCII on purpose: Python's \s holds \x1c-\x1f and \x85 and
+    // not U+FEFF; its re.I accepts U+0130 and U+0131 for i, U+212A for k and U+017F for s.
+    const g = readGolden('S13', 'credential-oracle.json');
+    const inputs = oracleInputs();
+    // The inputs are generated here, never stored: several are token-shaped on purpose. The golden pins their digest.
+    assert.equal(g.inputs_sha256, inputsDigest(inputs), 'the oracle inputs changed: re-record with MHW_UPDATE_GOLDEN=1 on CPython 3.14.6');
+    /** @type {Record<string, (s: string) => boolean>} */
+    const fns = { url: M.urlCredential, value: M.looksLikeCredentialValue, name: M.credentialName };
+    /** @type {string[]} */
+    const wrong = [];
+    for (const kind of Object.keys(fns)) {
+      /** @type {Record<string, string[]>} */ (inputs)[kind].forEach((/** @type {string} */ x, /** @type {number} */ i) => {
+        if (fns[kind](x) !== g.answers[kind][i]) wrong.push(kind + ' ' + JSON.stringify(x) + ': CPython ' + g.answers[kind][i]);
+      });
+      assert.ok(g.answers[kind].includes(true) && g.answers[kind].includes(false), kind + ': the inputs hold both answers');
     }
-    const oracle = 'import json, re, sys\nrx = re.compile(r"(://[^/@\\s]+:[^/@\\s]+@)|([?&][A-Za-z0-9_.-]*(token|key|secret|passw|auth)[A-Za-z0-9_.-]*=)", re.I)\n'
-      + 'print(json.dumps([bool(rx.search(s)) for s in json.load(sys.stdin)]))\n';
-    const p = spawnSync(/** @type {string} */ (PY), ['-c', oracle], { input: JSON.stringify(inputs), encoding: 'utf8' });
-    assert.equal(p.status, 0, p.stderr);
-    /** @type {boolean[]} */
-    const want = JSON.parse(p.stdout);
-    inputs.forEach((s, i) => assert.equal(M.urlCredential(s), want[i], JSON.stringify(s)));
-    assert.ok(want.some(Boolean) && want.some((x) => !x), 'the inputs hold both answers');
+    assert.deepEqual(wrong, []);
+  });
+
+  test('live: the recorded oracle is what CPython 3.14.6 answers now', (t) => {
+    const version = PY ? spawnSync(PY, ['-c', 'import platform; print(platform.python_version())'], { encoding: 'utf8' }).stdout.trim() : '';
+    if (version !== '3.14.6') {
+      t.skip('the oracle was recorded from CPython 3.14.6; python3 here is ' + (version || 'absent'));
+      return;
+    }
+    const answers = cpythonAnswers(oracleInputs());
+    if (UPDATE) writeGolden('S13', 'credential-oracle.json', { cpython: version, why: 'The answers of the patterns of the deleted global/mcp/mcp_render.py (URL_CRED_RE, VALUE_CRED_RES, CRED_RE), copied verbatim into the oracle script of test/render/mcp.test.js, on the inputs oracleInputs() generates (their digest is inputs_sha256).', inputs_sha256: inputsDigest(oracleInputs()), answers });
+    assert.deepEqual(answers, readGolden('S13', 'credential-oracle.json').answers);
   });
 
   test('not_secret is the reviewed escape', () => {
@@ -889,7 +902,7 @@ group('secrets', { skip: !POSIX && 'secrets are not rendered on Windows' }, () =
   test('no secret value reaches a rendered file, on every parity case', { skip: noPy, timeout: 600000 }, () => {
     // Every env: source the cases name gets a synthetic value; every case is played on the head; no file
     // under its HOME may hold one. The calibration above shows the byte search finds a value that is written.
-    const names = ['FAKE_SRC_VAR', 'S_SRC', 'B_SRC', 'C_SRC', 'SYNTH_SRC'];
+    const names = ['FAKE_SRC_VAR', 'S_SRC', 'B_SRC', 'C_SRC', 'SYNTH_SRC', 'V'];
     /** @type {Record<string, string>} */
     const values = Object.fromEntries(names.map((n) => [n, synth('synthetic-' + n)]));
     for (const c of CASES) {
@@ -1290,7 +1303,7 @@ group('the active set, through the CLI (mcp_active.py until #485)', { skip: noPy
     assert.match(p.stderr, /no node was found/);
     const q = run(h, ['--active', '--mode=check'], env);
     assert.equal(q.code, 2);
-    assert.match(q.stdout, /python3 3\.11 or later is required/);
+    assert.match(q.stdout, /python3 is required until #485/);
   });
 
   test('the Python marker strings are the renderer\'s', () => {
@@ -1348,6 +1361,20 @@ group('policy extension (render)', { skip: !POSIX && 'the policy is not rendered
     assert.equal(run(h, ['--check']).code, 0);
   });
 
+  test('a name recorded on a policy surface is never removed by the local mode', () => {
+    const h = mkHome('home-ext-legacy');
+    assert.equal(policy(h, 'install').code, 0);
+    const m = jload(manifest(h));
+    m.surfaces = { 'claude-code': ['chrome-devtools'] }; // recorded by the local mode of an earlier release
+    putJson(manifest(h), m);
+    writeSource(h, sourceDoc());
+    const p = run(h, ['--surfaces=claude-code']);
+    assert.equal(p.code, 0, p.all);
+    assert.deepEqual(jload(targets(h)['claude-code']).mcpServers['chrome-devtools'], plain(policyEntry()));
+    assert.ok(!jload(manifest(h)).surfaces['claude-code'].includes('chrome-devtools'));
+    assert.equal(policy(h, 'check').code, 0);
+  });
+
   test('a differing copy is refused alone; an earlier copy is kept; leaving the policy surface out renders it', () => {
     const h = mkHome('home-ext-conflict');
     const different = policyCopy({ args: ['-c', 'exec /bin/echo synthetic'] });
@@ -1377,12 +1404,23 @@ group('policy extension (render)', { skip: !POSIX && 'the policy is not rendered
 // ------------------------------------------------------------------------------- the connection check
 
 group('the connection check, through the CLI (mcp_connect.py until #485)', { skip: noPy }, () => {
+  // A tiny stdio MCP stub, the deleted suite's STUB_SERVER verbatim: it reads one request and answers by its
+  // mode, writes a canary to stderr (never printed by the check) and its pid to a file (so a test can show
+  // the check killed it); fork-* modes start a child that must die with it.
   const STUB_SERVER = path.join(BASE, 'mcp_stub_server.py');
   fs.writeFileSync(STUB_SERVER, [
     'import json, os, sys, time',
     'mode, pidfile = sys.argv[1], sys.argv[2]',
     'open(pidfile, "w").write(str(os.getpid()))',
     'sys.stderr.write("STDERR-CANARY-" + os.environ.get("SYNTH_CANARY", "") + "\\n"); sys.stderr.flush()',
+    'if mode.startswith("fork-"):',
+    '    import subprocess',
+    '    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(600)"])',
+    '    open(pidfile + ".child", "w").write(str(child.pid))',
+    '    if mode == "fork-exit":',
+    '        sys.exit(3)',
+    'if mode == "argcheck" and (sys.argv[3:4] != ["expanded-value"] or os.environ.get("SYNTH_E") != "expanded-value"):',
+    '    sys.exit(5)',
     'if mode == "exit":',
     '    sys.exit(3)',
     'req = json.loads(sys.stdin.readline())',
@@ -1391,6 +1429,7 @@ group('the connection check, through the CLI (mcp_connect.py until #485)', { ski
     'if mode == "needenv" and not os.environ.get("SYNTH_TOKEN"):',
     '    sys.exit(4)',
     'print("not json, a log line a server prints first"); sys.stdout.flush()',
+    'print(json.dumps({"jsonrpc": "2.0", "id": 99, "result": {}}))',
     'if mode == "error":',
     '    print(json.dumps({"jsonrpc": "2.0", "id": req["id"], "error": {"code": -32603, "message": "x"}}))',
     'else:',
@@ -1400,31 +1439,68 @@ group('the connection check, through the CLI (mcp_connect.py until #485)', { ski
     '',
   ].join('\n'));
 
-  /** An HTTP stub: /ok 200, /login 401 with WWW-Authenticate, /missing 404. @param {string} canary */
+  /**
+   * A local HTTP stub, as the deleted suite's _Stub: /ok 200, /login 401 with WWW-Authenticate, /bare401 401
+   * without it, /missing 404, /boom 500; /sse answers a GET with 200 and a POST with 405. Every body carries
+   * a canary the check must never print. Requests are recorded (User-Agent and every header).
+   * @param {string} canary
+   * @returns {Promise<{ server: http.Server, agents: string[], headers: Record<string, unknown>[], url: string }>}
+   */
   const stub = (canary) => new Promise((resolve) => {
     /** @type {string[]} */
     const agents = [];
+    /** @type {Record<string, unknown>[]} */
+    const headers = [];
     const server = http.createServer((req, res) => {
-      agents.push(String(req.headers['user-agent']));
-      const code = { '/ok': 200, '/login': 401, '/missing': 404, '/boom': 500 }[/** @type {string} */ (req.url)] || 404;
+      agents.push(String(req.headers['user-agent'] || ''));
+      headers.push({ ...req.headers });
+      /** @type {Record<string, number>} */
+      const codes = { '/ok': 200, '/login': 401, '/bare401': 401, '/missing': 404, '/boom': 500, '/sse': req.method === 'GET' ? 200 : 405 };
+      const code = codes[String(req.url)] || 404;
       if (req.url === '/login') res.setHeader('WWW-Authenticate', 'Bearer resource_metadata="x"');
       req.resume();
       res.writeHead(code);
       res.end('BODY-CANARY-' + canary);
     });
-    server.listen(0, '127.0.0.1', () => resolve({ server, agents, url: 'http://127.0.0.1:' + /** @type {import('node:net').AddressInfo} */ (server.address()).port }));
+    server.listen(0, '127.0.0.1', () => resolve({ server, agents, headers, url: 'http://127.0.0.1:' + /** @type {import('node:net').AddressInfo} */ (server.address()).port }));
   });
 
-  /** @param {string[]} args @param {Record<string, string>} env @returns {Promise<{ code: number | null, out: string }>} */
-  const runAsync = (args, env) => new Promise((resolve) => {
-    const c = spawn(NODE, [RENDER, ...args], { env, cwd: BASE });
-    let out = '';
-    c.stdout.on('data', (b) => { out += b; });
-    c.stderr.on('data', (b) => { out += b; });
-    c.on('close', (code) => resolve({ code, out }));
+  /** A child run while this process keeps serving the HTTP stub. @param {string} cmd @param {string[]} args @param {Record<string, string>} env @param {string} [input] */
+  const runAsync = (cmd, args, env, input = '') => /** @type {Promise<{ code: number | null, stdout: string, stderr: string }>} */ (new Promise((resolve) => {
+    const c = spawn(cmd, args, { env, cwd: BASE });
+    let stdout = '';
+    let stderr = '';
+    c.stdout.on('data', (b) => { stdout += b; });
+    c.stderr.on('data', (b) => { stderr += b; });
+    c.stdin.end(input);
+    c.on('close', (code) => resolve({ code, stdout, stderr }));
+  }));
+  /** @param {string} pidfile */
+  const pidAlive = (pidfile) => {
+    try {
+      process.kill(Number(read(pidfile)), 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  test('http results map to ok, needs login and fail; the probe names itself and reaches nothing unreachable', async () => {
+    const s = await stub(synth());
+    try {
+      const script = 'import json, mcp_connect as c\nu = sys.argv[1]\n'
+        + 'got = {p: c.probe_http(u + p, "http", 5) for p in ("/ok", "/login", "/bare401", "/missing", "/boom")}\n'
+        + 'got["sse"] = c.probe_http(u + "/sse", "sse", 5)\ngot["unreachable"] = c.probe_http("http://127.0.0.1:9/mcp", "http", 3)\nprint(json.dumps(got))\n';
+      const p = await runAsync(/** @type {string} */ (PY), ['-B', '-c', 'import sys\nsys.path.insert(0, ' + JSON.stringify(path.join(ROOT, 'global', 'mcp')) + ')\n' + script, s.url], cleanEnv(BASE));
+      assert.equal(p.code, 0, p.stderr);
+      assert.deepEqual(JSON.parse(p.stdout), { '/ok': 'ok', '/login': 'needs login', '/bare401': 'fail: http 401', '/missing': 'fail: http 404', '/boom': 'fail: http 500', sse: 'ok', unreachable: 'fail: unreachable' });
+      assert.ok(s.agents.length && s.agents.every((a) => a.startsWith('mhw-mcp-connect/')), JSON.stringify(s.agents));
+    } finally {
+      s.server.close();
+    }
   });
 
-  test('stdio members are started as each harness has them; http maps to ok, needs login and fail', async () => {
+  test('stdio members are started as each harness has them, a hang times out, every server is killed, nothing is printed but names', async () => {
     const canary = synth();
     const h = mkHome('home-connect');
     const pids = path.join(h, 'pids');
@@ -1432,43 +1508,256 @@ group('the connection check, through the CLI (mcp_connect.py until #485)', { ski
     const parity = ['codex', 'claude-code', 'kiro'];
     const server = (/** @type {string} */ m, more = {}) => ({ command: PY, args: [STUB_SERVER, m, path.join(pids, m)], surfaces: parity, ...more });
     const src = writeSource(h, { version: 1, active_set: {}, servers: { 's-ok': server('ok'), 's-err': server('error'), 's-exit': server('exit'), 's-hang': server('hang'), 's-secret': server('needenv', { secrets: { SYNTH_TOKEN: 'env:SYNTH_SRC' } }), 's-web': { command: '/bin/echo', surfaces: parity } } });
-    assert.equal(run(h, ['--source=' + src]).code, 0);
-    const s = /** @type {any} */ (await stub(canary));
+    assert.equal(run(h, ['--source=' + src]).code, 0, 'the renderer writes every surface');
+    const s = await stub(canary);
+    const started = path.join(h, 'not-a-member-started');
+    let p;
     try {
       const cc = jload(targets(h)['claude-code']);
       cc.mcpServers['s-web'] = { type: 'http', url: s.url + '/login' };
+      // Not set members: the policy server and an exempt one are never started.
+      cc.mcpServers['chrome-devtools'] = { command: '/usr/bin/touch', args: [started] };
+      cc.mcpServers['claude-in-chrome'] = { command: '/usr/bin/touch', args: [started] };
       putJson(targets(h)['claude-code'], cc);
-      const p = await runAsync(['--active', '--mode=connect', '--timeout=3'], cleanEnv(h, { SYNTH_SRC: 'synthetic-token', SYNTH_CANARY: canary }));
-      assert.equal(p.code, 1, p.out);
-      for (const surface of parity) {
-        assert.ok(p.out.includes('OK      ' + surface + ': s-ok: ok (MCP connect)'), surface);
-        assert.ok(p.out.includes('FAIL    ' + surface + ': s-err: fail: error response (MCP connect)'), surface);
-        assert.ok(p.out.includes('FAIL    ' + surface + ': s-exit: fail: exited 3 (MCP connect)'), surface);
-        assert.ok(p.out.includes('OK      ' + surface + ': s-secret: ok (MCP connect)'), surface);
-      }
-      assert.ok(p.out.includes('OK      claude-code: s-web: needs login (MCP connect)'));
-      assert.ok(!p.out.includes(canary) && !p.out.includes('synthetic-token') && !p.out.includes('127.0.0.1'));
-      assert.ok(s.agents.every((/** @type {string} */ a) => a.startsWith('mhw-mcp-connect/')));
+      const kiro = jload(targets(h).kiro);
+      kiro.mcpServers['s-hang'].disabled = true; // off in Kiro: not checked there
+      putJson(targets(h).kiro, kiro);
+      p = await runAsync(NODE, [RENDER, '--active', '--mode=connect', '--timeout=3'], cleanEnv(h, { SYNTH_SRC: 'synthetic-token', SYNTH_CANARY: canary }));
     } finally {
       s.server.close();
     }
+    const out = p.stdout + p.stderr;
+    assert.equal(p.code, 1, out);
+    for (const surface of parity) {
+      assert.ok(p.stdout.includes('OK      ' + surface + ': s-ok: ok (MCP connect)'), surface);
+      assert.ok(p.stdout.includes('FAIL    ' + surface + ': s-err: fail: error response (MCP connect)'), surface);
+      assert.ok(p.stdout.includes('FAIL    ' + surface + ': s-exit: fail: exited 3 (MCP connect)'), surface);
+      assert.ok(p.stdout.includes('OK      ' + surface + ': s-secret: ok (MCP connect)'), surface + ': the secret reaches the server through the launcher');
+    }
+    assert.ok(p.stdout.includes('FAIL    codex: s-hang: fail: timeout (MCP connect)'));
+    assert.ok(!p.stdout.includes('kiro: s-hang'), 'a member turned off on an agent harness is not checked there');
+    assert.ok(p.stdout.includes('OK      claude-code: s-web: needs login (MCP connect)'));
+    assert.ok(!out.includes(canary), 'neither stderr nor a response body is printed');
+    assert.ok(!out.includes('synthetic-token'));
+    assert.ok(!out.includes('127.0.0.1'), 'no URL is printed');
+    assert.ok(!out.includes(STUB_SERVER), 'no command is printed');
+    assert.ok(!fs.existsSync(started), 'the policy server and an exempt server are not started');
+    assert.ok(!pidAlive(path.join(pids, 'hang')), 'a server that never answered is killed');
+    assert.ok(!pidAlive(path.join(pids, 'ok')), 'a server that answered is killed too');
   });
 
   test('all ok exits 0; an undeclared set checks nothing', async () => {
     const h = mkHome('home-connect-ok');
     const src = writeSource(h, { version: 1, active_set: {}, servers: { 's-ok': { command: PY, args: [STUB_SERVER, 'ok', path.join(h, 'pid')], surfaces: ['codex', 'claude-code', 'kiro'] } } });
     assert.equal(run(h, ['--source=' + src]).code, 0);
-    let p = await runAsync(['--active', '--mode=connect'], cleanEnv(h));
-    assert.equal(p.code, 0, p.out);
-    assert.equal(p.out.split(': s-ok: ok (MCP connect)').length - 1, 3);
+    let p = await runAsync(NODE, [RENDER, '--active', '--mode=connect'], cleanEnv(h));
+    assert.equal(p.code, 0, p.stdout + p.stderr);
+    assert.equal(p.stdout.split(': s-ok: ok (MCP connect)').length - 1, 3);
     writeSource(h, { version: 1, servers: { 's-ok': { command: '/bin/echo' } } });
-    p = await runAsync(['--active', '--mode=connect'], cleanEnv(h));
+    p = await runAsync(NODE, [RENDER, '--active', '--mode=connect'], cleanEnv(h));
     assert.equal(p.code, 0);
-    assert.match(p.out, /SKIP {4}MCP connect: no active set is declared/);
+    assert.match(p.stdout, /SKIP {4}MCP connect: no active set is declared/);
+  });
+
+  test('the behaviour table: one row per behaviour the amendment, the README row or the usage text states', async () => {
+    // #225 QA: each row fails when its behaviour is removed from mcp_connect.py (two of them were
+    // mutation-checked on #484: the process-group kill and the header strip).
+    const d = path.join(BASE, 'connect-table');
+    fs.mkdirSync(d, { recursive: true });
+    const h = mkHome('home-connect-table');
+    put(targets(h).codex, '[mcp_servers.on-a]\ncommand = "/bin/echo"\n\n[mcp_servers.off-b]\nenabled = false\ncommand = "/bin/echo"\n');
+    const canary = synth();
+    const s = await stub('x');
+    let p;
+    try {
+      const script = String.raw`import json, os, time
+import mcp_connect as c
+stub_py, d, url, canary, py = sys.argv[1:6]
+def argv(mode, extra=()):
+    return [py, stub_py, mode, os.path.join(d, mode)] + list(extra)
+def alive(pidfile):
+    try:
+        os.kill(int(open(pidfile).read()), 0)
+    except (OSError, ValueError):
+        return False
+    return True
+def dead(pidfile):
+    deadline = time.monotonic() + 5
+    while alive(pidfile) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    return not alive(pidfile)
+rows = {}
+for mode in ("fork-ok", "fork-exit"):
+    got = c.probe_stdio(argv(mode), dict(os.environ), 10)
+    rows["group killed, " + mode] = [got, dead(os.path.join(d, mode) + ".child")]
+entry = {"command": py, "args": [stub_py, "argcheck", os.path.join(d, "argcheck"), "${"$"}{SYNTH_X}"], "env": {"SYNTH_E": "${"$"}{SYNTH_X}"}}
+os.environ["SYNTH_X"] = "expanded-value"
+for surface in ("claude-code", "kiro", "codex"):
+    rows["expansion, " + surface] = c.probe(surface, entry, 10)
+del os.environ["SYNTH_X"]
+rows["default"] = c.expand("${"$"}{SYNTH_UNSET_X:-value}", {})
+rows["default, set wins"] = c.expand("${"$"}{SYNTH_SET_X:-value}", {"SYNTH_SET_X": "mine"})
+rows["codex enabled = false"] = sorted(c.configured("codex"))
+c.r.tomllib = None
+rows["codex without tomllib"] = c.configured("codex")
+rows["no configured header"] = c.probe("claude-code", {"type": "http", "url": url + "/ok", "headers": {"X-Synth-Auth": canary}}, 5)
+rows["default timeout"] = c.DEFAULT_TIMEOUT
+print(json.dumps(rows))
+`.replaceAll('${"$"}', '$');
+      const env = cleanEnv(h);
+      delete env.CODEX_HOME;
+      p = await runAsync(/** @type {string} */ (PY), ['-B', '-c', 'import sys\nsys.path.insert(0, ' + JSON.stringify(path.join(ROOT, 'global', 'mcp')) + ')\n' + script, STUB_SERVER, d, s.url, canary, /** @type {string} */ (PY)], env);
+    } finally {
+      s.server.close();
+    }
+    assert.equal(p.code, 0, p.stderr);
+    const rows = JSON.parse(p.stdout);
+    /** @type {Array<[string, unknown]>} */
+    const want = [
+      ['group killed, fork-ok', ['ok', true]],
+      ['group killed, fork-exit', ['fail: exited 3', true]],
+      ['expansion, claude-code', 'ok'],
+      ['expansion, kiro', 'ok'],
+      ['expansion, codex', 'fail: exited 5'],
+      ['default', 'value'],
+      ['default, set wins', 'mine'],
+      ['codex enabled = false', ['on-a']],
+      ['codex without tomllib', null],
+      ['no configured header', 'ok'],
+      ['default timeout', 30],
+    ];
+    for (const [name, value] of want) assert.deepEqual(rows[name], value, name);
+    assert.ok(!JSON.stringify(s.headers).includes(canary), 'no configured header is sent (a header can carry a credential)');
+  });
+
+  test('connect starts a policy server in the set where each harness has it', async () => {
+    const h = mkHome('home-ext-connect');
+    const pids = path.join(h, 'pids');
+    fs.mkdirSync(pids);
+    const ok = { command: PY, args: [STUB_SERVER, 'ok', path.join(pids, 'ok')] };
+    writeSource(h, { version: 1, active_set: {}, servers: { 'chrome-devtools': { ...ok, surfaces: ['codex', 'kiro'] } } });
+    assert.equal(run(h, []).code, 0);
+    // The policy's copy on Claude Code, with the stub's command instead of the package (no fetch in a test).
+    putJson(targets(h)['claude-code'], { mcpServers: { 'chrome-devtools': { ...ok, type: 'stdio' } } });
+    const p = await runAsync(NODE, [RENDER, '--active', '--mode=connect', '--timeout=5'], cleanEnv(h));
+    assert.equal(p.code, 0, p.stdout + p.stderr);
+    for (const surface of ['codex', 'kiro', 'claude-code']) assert.ok(p.stdout.includes('OK      ' + surface + ': chrome-devtools: ok (MCP connect)'), surface);
   });
 });
 
+// The two probes of the real Codex binary (the deleted suite skipped them where codex is not on PATH).
+const CODEX = which('codex');
+group('the real Codex binary reads what was rendered', { skip: !CODEX && 'codex is not on PATH: the rendered config.toml was not parsed by Codex here' }, () => {
+  test('codex mcp list parses the rendered config', () => {
+    const h = mkHome('home-codex');
+    put(targets(h).codex, 'model = "some-model"\n\n[projects."/tmp/x"]\ntrust_level = "trusted"\n');
+    writeSource(h, sourceDoc());
+    assert.equal(run(h, []).code, 0);
+    const p = spawnSync(/** @type {string} */ (CODEX), ['mcp', 'list', '--json'], { env: cleanEnv(h, { CODEX_HOME: path.join(h, '.codex') }), encoding: 'utf8' });
+    assert.equal(p.status, 0, p.stderr);
+    const got = Object.fromEntries(JSON.parse(p.stdout).map((/** @type {any} */ x) => [x.name, x.transport]));
+    assert.deepEqual(Object.keys(got).sort(cmpNames), ['fake-codex-only', 'fake-plain', 'fake-secret']);
+    assert.equal(got['fake-secret'].args[0], path.join(data(h), M.LAUNCHER_NAME));
+    assert.deepEqual(got['fake-secret'].env_vars, ['FAKE_SRC_VAR']);
+    assert.deepEqual(got['fake-plain'].env, { FAKE_REGION: 'zz-1' });
+  });
+
+  test('codex mcp list shows the active set\'s switch', { skip: noPy }, () => {
+    const h = mkHome('home-active-codex');
+    activeHome({ home: h, data: data(h), base: BASE });
+    assert.equal(active(h, 'install').code, 0);
+    const p = spawnSync(/** @type {string} */ (CODEX), ['mcp', 'list', '--json'], { env: cleanEnv(h, { CODEX_HOME: path.join(h, '.codex') }), encoding: 'utf8' });
+    assert.equal(p.status, 0, p.stderr);
+    const listed = Object.fromEntries(JSON.parse(p.stdout).map((/** @type {any} */ x) => [x.name, x.enabled]));
+    assert.deepEqual(listed, { 'set-a': true, 'out-b': false, 'out-c': false, 'own-off': false, node_repl: true });
+  });
+});
+/** @param {string} a @param {string} b */
+const cmpNames = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
 // --------------------------------------------------------------------------- the bridge (--lib) itself
+
+// ---------------------------------------------------------------- the real security binary (CI only)
+// ADR-0017's evidence against the real /usr/bin/security (the 2026-10-05 amendment; the Python suite
+// carried it until #484). It runs ONLY with PMHWC_REAL_KEYCHAIN_TESTS=1 on a GitHub Actions macOS runner,
+// which is ephemeral; tests.yml sets the variable there and nowhere else. Every call is checked before it
+// runs: an allowed verb only, against a throwaway keychain FILE this test creates under RUNNER_TEMP, with a
+// throwaway HOME under the same directory, never the login or default keychain or the search list. The
+// production launcher installed by the renderer (mcp-launch.mjs, which names /usr/bin/security itself) is
+// what reads the secret.
+const REAL_OPT_IN = process.env.PMHWC_REAL_KEYCHAIN_TESTS === '1' && process.env.GITHUB_ACTIONS === 'true' && DARWIN
+  && !!process.env.RUNNER_TEMP && path.isAbsolute(process.env.RUNNER_TEMP);
+const REAL_SECURITY = '/usr/bin/security';
+const REAL_VERBS = new Set(['create-keychain', 'delete-keychain', 'add-generic-password', 'delete-generic-password']);
+
+/**
+ * Run the real security binary once, refused unless every argument stays inside the throwaway base.
+ * @param {string} base @param {string[]} args @param {Record<string, string>} env @param {string} [input] for -i
+ */
+function realSecurity(base, args, env, input) {
+  const inside = (/** @type {string} */ p) => path.isAbsolute(p) && path.resolve(p).startsWith(base + path.sep);
+  assert.ok(REAL_OPT_IN, 'the real security binary runs only under the CI opt-in');
+  assert.ok(inside(env.HOME), 'HOME must be a throwaway one under the base');
+  if (args.length === 1 && args[0] === '-i') {
+    const lines = String(input).split('\n').filter(Boolean);
+    assert.ok(lines.length && lines.every((l) => REAL_VERBS.has(l.split(' ')[0]) && l.endsWith('"') && inside(l.slice(0, -1).split('"').at(-1) ?? '')), 'a -i line outside the rules');
+  } else {
+    assert.ok(REAL_VERBS.has(args[0]) && inside(/** @type {string} */ (args.at(-1))), 'a security call outside the rules: ' + args[0]);
+  }
+  return spawnSync(REAL_SECURITY, args, { env, input, encoding: 'utf8' });
+}
+
+group('the real security binary (PMHWC_REAL_KEYCHAIN_TESTS=1, GitHub Actions macOS only)', { skip: !REAL_OPT_IN && 'the CI opt-in is not set here: the real binary and the real Keychain are never used outside the ephemeral macOS runner' }, () => {
+  test('a keychain secret reaches only the server; a deleted item exits 3; a non-printable value is refused', () => {
+    const base = fs.realpathSync(fs.mkdtempSync(path.join(/** @type {string} */ (process.env.RUNNER_TEMP), 'mhw-real-keychain-')));
+    const h = path.join(base, 'home');
+    for (const d of ['.codex', '.claude', '.kiro']) fs.mkdirSync(path.join(h, d), { recursive: true });
+    const env = cleanEnv(h);
+    const kc = path.join(base, 'mcp-secret.keychain-db');
+    const service = PROJECT + '.mcp-real-test-' + process.pid;
+    const value = synth();
+    const account = 'mhw-test';
+    try {
+      assert.equal(realSecurity(base, ['create-keychain', '-p', synth('throwaway-pw'), kc], env).status, 0, 'the throwaway keychain is not created');
+      const add = 'add-generic-password -s "' + service + '" -a "' + account + '" -w "' + value + '" "' + kc + '"\n';
+      assert.equal(realSecurity(base, ['-i'], env, add).status, 0, 'the throwaway keychain is not writable');
+      const doc = sourceDoc();
+      /** @type {any} */ (doc.servers)['fake-secret'].secrets = { FAKE_API_TOKEN: 'keychain:' + service };
+      writeSource(h, doc);
+      const p = run(h, [], env);
+      assert.equal(p.code, 0, p.all);
+      assert.ok(!p.all.includes(value));
+      assert.ok(!allBytes(h).includes(value), 'a secret value is in a rendered file');
+      const cx = tload(targets(h).codex).mcp_servers['fake-secret'];
+      const launch = [cx.args[0], '--keychain', kc, ...cx.args.slice(1)];
+      fs.rmSync(OUT, { force: true });
+      const ok = spawnSync(cx.command, launch, { env, encoding: 'utf8' });
+      assert.equal(ok.status, 0, ok.stderr);
+      assert.equal(read(OUT), sha(value), 'the server did not receive the secret');
+      assert.ok(!(ok.stdout + ok.stderr).includes(value), 'the launcher printed the secret');
+      assert.equal(realSecurity(base, ['delete-generic-password', '-s', service, '-a', account, kc], env).status, 0);
+      const gone = spawnSync(cx.command, launch, { env, encoding: 'utf8' });
+      assert.equal(gone.status, 3, 'the launcher started a server after its Keychain item was deleted');
+      assert.match(gone.stderr, /no readable Keychain item/);
+      assert.ok(!gone.stderr.includes(value));
+      // A non-printable value: the real `security -w` would hand it over hex-encoded, so the launcher refuses.
+      const hex = 'add-generic-password -s "' + service + '" -a "' + account + '" -X "0001ff41" "' + kc + '"\n';
+      assert.equal(realSecurity(base, ['-i'], env, hex).status, 0);
+      const bin = spawnSync(cx.command, launch, { env, encoding: 'utf8' });
+      assert.equal(bin.status, 3, bin.stderr);
+      assert.match(bin.stderr, /not printable text/);
+    } finally {
+      if (fs.existsSync(kc)) realSecurity(base, ['delete-keychain', kc], env);
+    }
+    assert.ok(!fs.existsSync(kc), 'the throwaway keychain was not deleted');
+  });
+});
+
+test('the real-binary arm refuses itself without the opt-in, and its guard refuses a call outside the base', () => {
+  if (REAL_OPT_IN) return;
+  const base = path.join(BASE, 'real-guard');
+  assert.throws(() => realSecurity(base, ['create-keychain', '-p', 'x', path.join(base, 'k.keychain-db')], { HOME: path.join(base, 'h') }), /only under the CI opt-in/);
+});
 
 group('the bridge mcp_active.py reaches the renderer through', () => {
   /** @param {string} op @param {unknown} req @param {Record<string, string>} env */
@@ -1486,11 +1775,26 @@ group('the bridge mcp_active.py reaches the renderer through', () => {
     assert.deepEqual(lib('credential', { values: ['plain', 'Bearer ' + 'a'.repeat(9), 3] }, env).answer.ok, [false, true, false]);
     assert.match(lib('provenance', {}, env).answer.ok, /^release: /);
     assert.deepEqual(lib('manifest', {}, env).answer.ok, {});
-    const f = path.join(h, 'x.json');
-    fs.writeFileSync(f, 'old');
-    assert.equal(lib('write', { path: f, text: 'new\n', suffix: '.bak' }, env).answer.ok, null);
+    // write: only the three configs the active set edits, with its own backup suffix (lens A2 on PR #520).
+    const f = targets(h).kiro;
+    put(f, 'old');
+    assert.equal(lib('write', { path: f, text: 'new\n', suffix: M.ACTIVE_BACKUP }, env).answer.ok, null);
     assert.equal(read(f), POSIX ? 'new\n' : 'new\r\n');
-    assert.equal(read(f + '.bak'), 'old');
+    assert.equal(read(f + M.ACTIVE_BACKUP), 'old');
+    const outside = path.join(BASE, 'outside-home', 'x.txt');
+    for (const [req, why] of /** @type {Array<[Record<string, unknown>, string]>} */ ([[{ path: outside, text: 'x', suffix: M.ACTIVE_BACKUP }, 'a path outside the targets'],
+      [{ path: path.join(h, '.claude.json'), text: 'x', suffix: M.ACTIVE_BACKUP }, '~/.claude.json, read and never written'],
+      [{ path: f, text: 'x', suffix: '.bak' }, 'another backup suffix'],
+      [{ path: f + '/../mcp.json.other', text: 'x', suffix: M.ACTIVE_BACKUP }, 'a path that only starts like a target'],
+      [{ path: f, text: 3, suffix: M.ACTIVE_BACKUP }, 'text that is not a string']])) {
+      const a = lib('write', req, env).answer;
+      assert.equal(a.refuse && a.refuse[0], 2, why);
+    }
+    assert.ok(!fs.existsSync(outside), 'nothing was written outside the targets');
+    assert.equal(read(f), POSIX ? 'new\n' : 'new\r\n', 'a refused write leaves the target as it was');
+    for (const t of [targets(h).codex, path.join(h, '.claude', 'settings.json')]) {
+      assert.equal(lib('write', { path: t, text: 'ok\n', suffix: M.ACTIVE_BACKUP }, env).answer.ok, null, t);
+    }
     assert.equal(lib('manifest-write', { doc: { active: { codex: { a: null } } } }, env).answer.ok, null);
     assert.deepEqual(jload(manifest(h)), { version: 1, surfaces: {}, stamps: {}, active: { codex: { a: null } } });
     put(manifest(h), '{"surfaces": 3}');
@@ -1503,3 +1807,73 @@ group('the bridge mcp_active.py reaches the renderer through', () => {
     assert.equal(spawnSync(NODE, [RENDER, '--lib=paths'], { input: '{ not json', env }).status, 2);
   });
 });
+
+// ------------------------------------------------------------------------- the credential oracle (#484)
+
+/** sha256 of the inputs as JSON, so the golden pins them without holding any. @param {unknown} inputs */
+function inputsDigest(inputs) {
+  return crypto.createHash('sha256').update(JSON.stringify(inputs)).digest('hex');
+}
+
+/** The oracle's inputs: named cases and a deterministic generated set, by detector. */
+function oracleInputs() {
+  const odd = ['\x1c', '\x1d', '\x1e', '\x1f', '\x85', '\ufeff', '\u00a0', '\u2028', '\u0130', '\u0131', '\u212a', '\u017f', ' ', '\t'];
+  /** @param {string} alphabet @param {string} seed @param {number} n @param {number} len */
+  const gen = (alphabet, seed, n, len) => {
+    const chars = Array.from(alphabet);
+    /** @type {string[]} */
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const bytes = crypto.createHash('sha256').update(seed + i).digest();
+      out.push([...bytes].slice(0, len).map((b) => chars[b % chars.length]).join(''));
+    }
+    return out;
+  };
+  const url = ['https://u:p@h/', 'https://u:@h/', 'https://:p@h/', 'https://u@h/', 'https://u:p/h@x', 'https://u p:q@h', 'http://a:b:c@h', 'x://:a:@h',
+    'https://h/?token=1', 'https://h/?Token=1', 'https://h/?a=1&api_key=2', 'https://h/?apikey', 'https://h/?x.auth-y=1', 'https://h/?pre-passwd=1',
+    'https://h/x?mytoken', '?secret=', '&k=1', '?key=', '?ke y=1', '://a:b@', ':// a:b@', 'no url at all', '',
+    ...odd.flatMap((c) => ['https://u' + c + ':p@h', 'https://u:p' + c + '@h', 'https://h/?api' + c + 'key=1', 'https://h/?' + c + 'token=1', '?to' + c + 'ken=1']),
+    ...gen(':/@?&=. akstpe-_\u0130\u0131\u212a\u017f\x85\ufeff', 'url', 200, 14)];
+  const value = ['Bearer ' + 'a'.repeat(9), 'Bearer short', 'x-token: v', 'Cookie:v', 'authorization: x', 'api-key:\tv', 'secret :v', 'password:',
+    'basic ' + 'Zm9vOmJhcg=='.repeat(2), 'token ' + 'a'.repeat(8), 'xtoken ' + 'a'.repeat(8), '-----BEGIN ' + 'PRIVATE KEY-----', '-----BEGIN RSA ' + 'PRIVATE KEY-----',
+    'gh' + 'p_' + 'a'.repeat(20), 'xgh' + 'p_' + 'a'.repeat(20), '\u00e9gh' + 'p_' + 'a'.repeat(20), 'sk' + '-' + 'a'.repeat(16), 'AK' + 'IA' + 'A'.repeat(16),
+    ...odd.flatMap((c) => ['Bearer' + c + 'a'.repeat(9), 'Bearer ' + c.repeat(8), 'tok' + c + 'en: v', 'secret' + c + ': v', 'authorization:' + c, 'authorization: ' + c + 'x',
+      'token aaaaaaa' + c, 'bearer ' + 'b'.repeat(4) + c + 'b'.repeat(4), c + 'basic ' + 'c'.repeat(9), 'coo' + c + 'kie:x', 'pa' + c + 'ssword:x']),
+    ...gen('abeknorst :\u0130\u0131\u212a\u017f\x85\ufeff\x1c=', 'value', 200, 16)];
+  const name = ['API_KEY', 'api-key', 'MY_TOKEN', 'SESSION_ID', 'X_PAT', 'PAT', 'PATH', 'KEYS', 'MONKEY', 'A_KEY_B', 'KEY\n', 'REGION', 'auth_mode',
+    ...odd.flatMap((c) => ['TO' + c + 'KEN', 'A' + c + 'KEY', 'KEY' + c, 'secret' + c, 'P' + c + 'T']),
+    'ap\u0130_key', 'ap\u0131_key', 'to\u212aen', '\u017fecret', 'pa\u017f\u017fword', 'cooK\u0131e',
+    ...gen('ACEIKNOPSTY_.-\u0130\u0131\u212a\u017f', 'name', 150, 8)];
+  return { url, value, name };
+}
+
+/**
+ * What the deleted mcp_render.py's own patterns answer, in the python3 on PATH. The patterns are copied
+ * verbatim from global/mcp/mcp_render.py at the base revision of #484.
+ * @param {{ url: string[], value: string[], name: string[] }} inputs
+ */
+function cpythonAnswers(inputs) {
+  const script = String.raw`import json, re, sys
+CRED_RE = re.compile(r"(TOKEN|SECRET|PASSW(OR)?D|PASSPHRASE|PWD|API[_-]?KEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|"
+                     r"CLIENT[_-]?KEY|CREDENTIAL|AUTH|BEARER|COOKIE|SESSION|DSN|SIGNATURE|"
+                     r"(^|[_.-])(PAT|KEY|KEYS|APIKEY|CERT)([_.-]|$))", re.I)
+URL_CRED_RE = re.compile(r"(://[^/@\s]+:[^/@\s]+@)|([?&][A-Za-z0-9_.-]*(token|key|secret|passw|auth)[A-Za-z0-9_.-]*=)", re.I)
+VALUE_CRED_RES = (
+    URL_CRED_RE,
+    re.compile(r"(authorization|proxy-authorization|x-api-key|api[-_]?key|[a-z-]*token|secret|password|cookie)"
+               r"\s*:\s*\S", re.I),
+    re.compile(r"\b(bearer|basic|token)\s+[A-Za-z0-9._~+/=-]{8,}", re.I),
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{16,}|"
+               r"sk-[A-Za-z0-9_-]{16,}|(sk|rk|pk)_(live|test)_[A-Za-z0-9]{10,}|xox[abposr]-[A-Za-z0-9-]{10,}|"
+               r"AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|npm_[A-Za-z0-9]{30,})"),
+)
+d = json.load(sys.stdin)
+print(json.dumps({"url": [bool(URL_CRED_RE.search(s)) for s in d["url"]],
+                  "value": [any(rx.search(s) for rx in VALUE_CRED_RES) for s in d["value"]],
+                  "name": [bool(CRED_RE.search(s)) for s in d["name"]]}))
+`;
+  const p = spawnSync(/** @type {string} */ (PY), ['-I', '-c', script], { input: JSON.stringify(inputs), encoding: 'utf8' });
+  assert.equal(p.status, 0, p.stderr);
+  return JSON.parse(p.stdout);
+}

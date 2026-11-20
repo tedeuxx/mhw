@@ -160,6 +160,20 @@ jobs:
         run: |
           python3 --version
           node --test --test-name-pattern="^live" test/render/mcp-golden.test.js
+      # ADR-0017, 2026-10-05 amendment (restored by #484 after the agents-lead lens on PR #520): the one test
+      # that runs the production MCP launcher against the real /usr/bin/security, on this ephemeral macOS
+      # runner only, in a throwaway keychain the test creates and deletes under RUNNER_TEMP with a throwaway
+      # HOME. PMHWC_REAL_KEYCHAIN_TESTS=1 is set here and nowhere else. The step fails if the arm skipped.
+      - name: MCP launcher against the real security binary (macOS runner only)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          PMHWC_REAL_KEYCHAIN_TESTS: "1"
+        run: |
+          out=$(node --test --test-reporter=tap --test-name-pattern="real security binary" test/render/mcp.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          echo "$out" | grep -E '^ *ok [0-9]+ - a keychain secret reaches only the server' | grep -vq SKIP
       # #486 (S15 of #470): the live arms of the cleaning core and mhw scan against the same CPython:
       # the shared corpus answered by clipboard_guard.py (it stays in this slice), the base revision's
       # scan.py on the same repositories, and a fresh recording of every Unicode table clean.js pins
@@ -382,7 +396,7 @@ jobs:
         run: python3 -B global/clipboard/paste_wrapper_test.py "$RUNNER_TEMP/paste-wrapper"
       # ADR-0017: the MCP renderer is Node since #484 (S13 of #470), src/render/mcp.js; its suites,
       # test/render/mcp.test.js and test/render/mcp-golden.test.js, run in the node job on all three OSes, on
-      # the Node security stub only (no test runs the real security binary or reads a real Keychain).
+      # the Node security stub; the one real-binary arm runs in the node job on macOS only, by opt-in.
       - name: nothing was written into the exported ZDOTDIR sentinel
         if: always()
         run: |

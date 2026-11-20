@@ -54,6 +54,8 @@ import { parse as tomlParseRaw } from '../vendor/smol-toml/dist/index.js';
 import { tomlInvalid } from './toml-guard.js';
 import { PyOSError, pyOSError, utf8Error } from './kiro-permissions.js';
 import { splitLines } from './model-defaults.js';
+import { ci, py } from '../lib/clean.js';
+import { SPACE as PY_SPACE_RANGES, IGNORE_CASE } from '../lib/clean-unicode.js';
 
 export { PROJECT, MARKER_ID };
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -88,40 +90,63 @@ const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}\n?$/;
 const ENV_RE = /^[A-Za-z_]\w*\n?$/;
 const SERVICE_PATTERN = '^[A-Za-z0-9][A-Za-z0-9._@:+-]{0,127}$';
 const SERVICE_RE = /^[A-Za-z0-9][A-Za-z0-9._@:+-]{0,127}\n?$/;
-// A key NAME that suggests a credential (re.I, Unicode case folding as Python's). Used to refuse a plain env
-// value in the definition, and by --scan to list keys in the surfaces. A false positive is visible and has
-// an escape (not_secret).
-const CRED_RE = /TOKEN|SECRET|PASSW(?:OR)?D|PASSPHRASE|PWD|API[_-]?KEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|CLIENT[_-]?KEY|CREDENTIAL|AUTH|BEARER|COOKIE|SESSION|DSN|SIGNATURE|(?:^|[_.-])(?:PAT|KEY|KEYS|APIKEY|CERT)(?:[_.-]|\n?$)/iu;
+// Python's re semantics, built with the cleaning core's tables (src/lib/clean.js, S15): \s is Python's
+// whitespace set (it holds \x1c-\x1f and \x85, and not U+FEFF, unlike JavaScript's), \b is Python's word
+// boundary, and every letter under re.I is the set of code points CPython's (?i) accepts for it (i also
+// matches U+0130 and U+0131, k U+212A, s U+017F). The S13 credential oracle (test/golden/S13) holds each
+// pattern to CPython 3.14.6's answers.
+/** @param {number} cp */
+const hexCp = (cp) => String.raw`\u{` + cp.toString(16) + '}';
+const PY_SPACE_BODY = (() => {
+  let b = '';
+  for (let i = 0; i < PY_SPACE_RANGES.length; i += 2) b += hexCp(PY_SPACE_RANGES[i]) + '-' + hexCp(PY_SPACE_RANGES[i + 1]);
+  return b;
+})();
+const PS = '[' + PY_SPACE_BODY + ']';
+const PNS = '[^' + PY_SPACE_BODY + ']';
+const PY_SPACE_CHAR = new RegExp('^' + PS + '$', 'u');
+const PB = py(String.raw`\b`);
+/** [A-Za-z0-9<extra>] under re.I: every ASCII letter's (?i) set, the digits, and extra as written. @param {string} extra */
+function ciAsciiClass(extra) {
+  const cps = new Set();
+  for (const c of 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz') for (const cp of IGNORE_CASE[/** @type {keyof typeof IGNORE_CASE} */ (c)]) cps.add(cp);
+  return '[0-9' + extra + [...cps].sort((a, b) => a - b).map(hexCp).join('') + ']';
+}
+// A key NAME that suggests a credential (re.I). Used to refuse a plain env value in the definition, and by
+// --scan to list keys in the surfaces. A false positive is visible and has an escape (not_secret).
+const CRED_RE = new RegExp(ci(String.raw`TOKEN|SECRET|PASSW(?:OR)?D|PASSPHRASE|PWD|API[_-]?KEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|CLIENT[_-]?KEY|CREDENTIAL|AUTH|BEARER|COOKIE|SESSION|DSN|SIGNATURE|(?:^|[_.-])(?:PAT|KEY|KEYS|APIKEY|CERT)(?:[_.-]|\n?$)`), 'u');
+/** CRED_RE.search(name): the key name looks like a credential's. @param {string} name */
+export const credentialName = (name) => CRED_RE.test(name);
 const ARG_FLAG_RE = /^(--?[\w.-]+)(=[\s\S]*)?\n?$/;
-const URL_WORD = /token|key|secret|passw|auth/iu;
-const URL_PARAM_CHAR = /[\w.-]/iu;
-const SPACE = /\s/u;
+const URL_WORD = new RegExp(ci('token|key|secret|passw|auth'), 'u');
+const URL_PARAM_CHAR = new RegExp('^' + ciAsciiClass('_.\\-') + '$', 'u');
 
 /**
  * The original's URL pattern, (://[^/@\s]+:[^/@\s]+@)|([?&][A-Za-z0-9_.-]*(token|key|secret|passw|auth)
  * [A-Za-z0-9_.-]*=) under re.I, answered by one linear pass instead of a backtracking search: userinfo is
- * the run after :// of characters that are not /, @ or a blank, ended by @ and holding a : with a character
- * on each side; a credential parameter is the run of [\w.-] after ? or &, ended by = and holding one of the
- * words. A run is maximal, so the regex matches exactly when one of these holds.
+ * the run after :// of characters that are not /, @ or Python whitespace, ended by @ and holding a : with
+ * a character on each side; a credential parameter is the run of the class's characters (under re.I) after
+ * ? or &, ended by = and holding one of the words. A run is maximal, so on the characters CPython's tables
+ * cover the scan answers what the regex answers; test/render/mcp.test.js holds it to CPython 3.14.6's
+ * recorded answers, non-ASCII input included.
  * @param {string} s
  */
 export function urlCredential(s) {
-  for (let i = s.indexOf('://'); i !== -1; i = s.indexOf('://', i + 1)) {
+  const cps = Array.from(s);
+  for (let i = 0; i + 2 < cps.length; i++) {
+    if (cps[i] !== ':' || cps[i + 1] !== '/' || cps[i + 2] !== '/') continue;
     let j = i + 3;
-    while (j < s.length && s[j] !== '/' && s[j] !== '@' && !SPACE.test(s[j])) j++;
-    const run = s.slice(i + 3, j);
-    if (s[j] === '@' && run.slice(1, -1).includes(':')) return true;
+    while (j < cps.length && cps[j] !== '/' && cps[j] !== '@' && !PY_SPACE_CHAR.test(cps[j])) j++;
+    if (cps[j] === '@' && cps.slice(i + 4, j - 1).includes(':')) return true;
   }
-  for (let i = 0; i < s.length; i++) {
-    if (s[i] !== '?' && s[i] !== '&') continue;
+  for (let i = 0; i < cps.length; i++) {
+    if (cps[i] !== '?' && cps[i] !== '&') continue;
     let j = i + 1;
-    while (j < s.length && URL_PARAM_CHAR.test(s[j])) j++;
-    if (s[j] === '=' && URL_WORD.test(s.slice(i + 1, j))) return true;
+    while (j < cps.length && URL_PARAM_CHAR.test(cps[j])) j++;
+    if (cps[j] === '=' && URL_WORD.test(cps.slice(i + 1, j).join(''))) return true;
   }
   return false;
 }
-// Python's \b before a word character: the previous character is not a Python word character.
-const WB = '(?<![\\p{L}\\p{N}_])';
 // A credential-looking VALUE, whatever its key is called: userinfo or a credential query parameter in a
 // URL, an Authorization-style header, a bearer/basic scheme, a private key block, or a well-known token
 // prefix. A hit is refused and reported by location only; the value is never echoed. The header pattern
@@ -129,10 +154,10 @@ const WB = '(?<![\\p{L}\\p{N}_])';
 // `x-token:`, and `authorization:` wherever `proxy-authorization:`, so the answer is the same.
 const VALUE_CRED_RES = [
   { test: urlCredential },
-  /(?:authorization|api[-_]?key|token|secret|password|cookie)\s*:\s*\S/iu,
-  new RegExp(WB + '(?:bearer|basic|token)\\s+[\\w.~+/=-]{8,}', 'iu'),
-  new RegExp(WB + '(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\\w{20,}|glpat-[\\w-]{16,}|sk-[\\w-]{16,}|'
-    + '(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{10,}|xox[abposr]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|AIza[\\w-]{30,}|'
+  new RegExp(ci('(?:authorization|api[-_]?key|token|secret|password|cookie)') + PS + '*:' + PS + '*' + PNS, 'u'),
+  new RegExp(PB + ci('(?:bearer|basic|token)') + PS + '+' + ciAsciiClass('._~+/=\\-') + '{8,}', 'u'),
+  new RegExp(PB + '(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{16,}|sk-[A-Za-z0-9_-]{16,}|'
+    + '(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{10,}|xox[abposr]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|'
     + 'npm_[A-Za-z0-9]{30,})', 'u'),
 ];
 
@@ -353,6 +378,77 @@ export function tomlLoads(text) {
   const why = tomlInvalid(text);
   if (why) throw new TomlError(why);
   return tomlParseRaw(text, { integersAsBigInt: 'asNeeded' });
+}
+
+const TOML_KEY = String.raw`("(?:[^"\\]|\\.)*"|'[^']*'|[A-Za-z0-9_-]+)`;
+const SERVER_HEADER = new RegExp(String.raw`^[ \t]*\[[ \t]*mcp_servers[ \t]*\.[ \t]*` + TOML_KEY);
+const SERVERS_TABLE = /^[ \t]*\[[ \t]*mcp_servers[ \t]*\][ \t]*(?:#.*)?$/;
+const ANY_HEADER = /^[ \t]*\[/;
+const KEY_IN_SERVERS = new RegExp(String.raw`^[ \t]*` + TOML_KEY + String.raw`[ \t]*[.=]`);
+const DOTTED_AT_ROOT = new RegExp(String.raw`^[ \t]*mcp_servers[ \t]*\.[ \t]*` + TOML_KEY + String.raw`[ \t]*[.=]`);
+
+/** A TOML key as written: a basic string, a literal string or a bare key. @param {string} tok */
+function tomlKey(tok) {
+  if (tok.startsWith("'")) return tok.slice(1, -1);
+  if (tok.startsWith('"')) {
+    try {
+      return JSON.parse(tok);
+    } catch {
+      return tok.slice(1, -1);
+    }
+  }
+  return tok;
+}
+
+/**
+ * The server names of a config.toml in the order tomllib's dict holds them: the order each is first
+ * defined in the text, by an [mcp_servers.<name>] header, a key of the [mcp_servers] table, or a dotted
+ * mcp_servers.<name> key at the top level. A plain JavaScript object lists integer-like keys first (PR #520
+ * QA B1), so a TOML read is put back in document order before anything iterates over it.
+ * @param {string} text
+ */
+export function serverOrder(text) {
+  /** @type {string[]} */
+  const order = [];
+  /** @type {'root' | 'servers' | 'other'} */
+  let table = 'root';
+  /** @param {string} k */
+  const add = (k) => {
+    if (!order.includes(k)) order.push(k);
+  };
+  for (const ln of text.split('\n')) {
+    const header = SERVER_HEADER.exec(ln);
+    if (header) {
+      add(tomlKey(header[1]));
+      table = 'other';
+      continue;
+    }
+    if (SERVERS_TABLE.test(ln)) {
+      table = 'servers';
+      continue;
+    }
+    if (ANY_HEADER.test(ln)) {
+      table = 'other';
+      continue;
+    }
+    const m = table === 'servers' ? KEY_IN_SERVERS.exec(ln) : table === 'root' ? DOTTED_AT_ROOT.exec(ln) : null;
+    if (m) add(tomlKey(m[1]));
+  }
+  return order;
+}
+
+/**
+ * tomllib.loads(text).get("mcp_servers", {}) with its servers in document order (a Map), or the value as
+ * it is when it is not a table.
+ * @param {string} text
+ */
+export function tomlServers(text) {
+  const servers = get(tomlLoads(text), 'mcp_servers', dict());
+  if (!isD(servers)) return servers;
+  const out = dict();
+  for (const k of serverOrder(text)) if (has(servers, k)) out.set(k, get(servers, k));
+  for (const [k, v] of entries(servers)) if (!out.has(k)) out.set(k, v);
+  return out;
 }
 
 /** shutil.which(name) on POSIX and Windows, relative PATH entries made absolute (QA P8). @param {string} name @param {Ctx} ctx */
@@ -958,7 +1054,7 @@ export function codexPlan(oldText, want, stamp = null) {
   try {
     old = tomlLoads(oldText);
     out = tomlLoads(outside);
-    oursBefore = get(tomlLoads(blockText), 'mcp_servers', dict());
+    oursBefore = tomlServers(blockText);
   } catch (e) {
     throw new Refuse(3, 'not valid TOML (' + msgOf(e) + '); left untouched');
   }
@@ -1670,7 +1766,7 @@ export function scan(surfaces, ctx) {
           } catch {
             throw new PyOSError('UnicodeDecodeError', utf8Error(raw));
           }
-          servers = get(tomlLoads(text), 'mcp_servers', dict());
+          servers = tomlServers(text);
         } else {
           const doc = readJson(p);
           if (!isD(doc)) throw new AttrError("'list' object has no attribute 'get'");
@@ -1748,6 +1844,21 @@ export function activeFacts(doc, ctx) {
   return facts;
 }
 
+/** The backup suffix of every file the MCP active set writes (mcp_active.py BACKUP). */
+export const ACTIVE_BACKUP = '.pmhwc-mcp-active-backup';
+
+/**
+ * The only files `--lib=write` may write: the configs mcp_active.py edits (Codex config.toml, Kiro mcp.json,
+ * Claude Code settings.json), as this renderer resolves them. The bridge is not a general file writer.
+ * @param {Ctx} ctx
+ */
+export function activeTargets(ctx) {
+  const codex = surfaceTarget('codex', ctx);
+  const kiro = surfaceTarget('kiro', ctx);
+  return [/** @type {[string, string]} */ (codex)[0], /** @type {[string, string]} */ (kiro)[0], path.join(home(ctx), '.claude', 'settings.json')]
+    .map((p) => path.resolve(ctx.cwd, p));
+}
+
 /**
  * One bridge request from mcp_active.py: `--lib=<op>`, a JSON request on stdin, one JSON answer on stdout,
  * {"ok": value} or {"refuse": [code, message]}.
@@ -1789,7 +1900,13 @@ export function lib(op, input, ctx) {
     } else if (op === 'provenance') {
       value = provenance(ctx);
     } else if (op === 'write') {
-      atomicWrite(get(req, 'path'), get(req, 'text'), true, get(req, 'suffix'), ctx);
+      const file = get(req, 'path');
+      const text = get(req, 'text');
+      if (!isStr(file) || !isStr(text) || get(req, 'suffix') !== ACTIVE_BACKUP || !activeTargets(ctx).includes(path.resolve(ctx.cwd, file))) {
+        throw new Refuse(2, 'mcp render --lib=write writes only the configs the MCP active set edits ('
+          + activeTargets(ctx).join(', ') + '), each with its ' + ACTIVE_BACKUP + ' backup; refused, nothing written');
+      }
+      atomicWrite(path.resolve(ctx.cwd, file), text, true, ACTIVE_BACKUP, ctx);
       value = null;
     } else if (op === 'credential') {
       value = get(req, 'values', []).map((/** @type {unknown} */ v) => isStr(v) && looksLikeCredentialValue(v));
@@ -1835,7 +1952,7 @@ function activeMain(argv, ctx) {
   }
   const py = pyWhich('python3', ctx);
   if (!py) {
-    ctx.out('SKIP    MCP active set: python3 3.11 or later is required until #485 moves it to Node\n');
+    ctx.out('SKIP    MCP active set: python3 is required until #485 moves it to Node (3.11 or later for the Codex surface)\n');
     return 2;
   }
   const env = { ...ctx.env, MHW_MCP_RENDER_NODE: process.execPath };

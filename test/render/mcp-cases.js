@@ -317,6 +317,28 @@ export const CASES = [
     ],
   },
   {
+    // PR #520 QA B1: integer-like server names keep the definition's order (a raw JSON text, since a plain
+    // JavaScript object would list them first) through the Codex block, check and the remove list.
+    name: 'render-integer-like-server-names',
+    setup: (w) => put(sourcePath(w), '{"version": 1, "servers": {"zeta": {"command": "/bin/echo"}, "10": {"command": "/bin/cat"}, "9": {"command": "/bin/true"}}}'),
+    steps: [
+      { args: [] },
+      { args: ['--check'] },
+      { args: ['--check'], pre: (w) => put(sourcePath(w), '{"version": 1, "servers": {}}') },
+      { args: [] },
+    ],
+  },
+  {
+    name: 'scan-integer-like-server-names',
+    setup: (w) => {
+      const text = ['zeta', '7', '10'].map((n) => '[mcp_servers.' + n + ']\ncommand = "x"\nenv = { SVC_TOKEN = "' + CANARY + '-' + n + '" }\n').join('\n')
+        + '\n[mcp_servers."2"]\nurl = "https://h/mcp?token=' + CANARY + '"\n';
+      put(t(w).codex, text);
+      put(t(w).codex + '.pmhwc-backup', text);
+    },
+    steps: [{ args: ['--scan'] }, { args: ['--scan', '--surfaces=codex'] }],
+  },
+  {
     name: 'scan',
     setup: (w) => {
       put(t(w).codex, '[mcp_servers.svc-a]\ncommand = "x"\nargs = ["--api-key", "' + CANARY + '-0"]\nenv = { SVC_TOKEN = "' + CANARY + '-1", REGION = "eu" }\n\n[mcp_servers.svc-r]\nurl = "https://h/mcp"\nbearer_token = "' + CANARY + '-2"\n');

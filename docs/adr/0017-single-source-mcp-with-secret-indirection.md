@@ -369,12 +369,20 @@ every run (`test/render/mcp-golden.test.js`). This record's decisions do not cha
   refusal quotes smol-toml's message instead of tomllib's; the usage lines and the POLICY line name
   `mhw mcp render`; two active-set report lines name it instead of the deleted file.
 - **The active set and its connection check stay Python until S14 (#485)**: `mhw mcp render --active`
-  runs `global/mcp/mcp_active.py` with python3 3.11+ (SKIP, exit 2, without one), and that file reaches
+  runs `global/mcp/mcp_active.py` with the python3 on PATH (SKIP, exit 2, without one; the Codex surface
+  still needs 3.11+ for tomllib, as before), and that file reaches
   the renderer only through the CLI, `src/render/mcp.js --lib=<op>` (JSON in, JSON out), never by import.
 - **`global/private_copy.py` is deleted** with its last Python user; backups are written by
   `src/lib/private-copy.js`, held equal to `install.sh`'s shell form by `test/lib/private-copy.test.js`.
-- The real `security` binary is no longer run by any MCP test: the keychain case runs the launcher on the
-  Node security stub.
+- The evidence against the real `security` binary is unchanged in level (the 2026-10-05 amendment): with
+  `PMHWC_REAL_KEYCHAIN_TESTS=1`, set only on the ephemeral macOS GitHub Actions runner, a node:test arm of
+  `test/render/mcp.test.js` runs the production launcher the renderer installs against `/usr/bin/security`
+  in a throwaway keychain it creates and deletes, with a throwaway HOME. It checks that the value reaches
+  only the server, that a deleted item exits 3, and that a non-printable value is refused. Every other run,
+  local runs included, uses the Node security stub and never the real binary or a real Keychain.
+- The credential-value and credential-name detectors use Python's whitespace set, word boundary and
+  `re.I` letter sets (the tables of `src/lib/clean.js`, S15), and are held to the original patterns'
+  answers recorded from CPython 3.14.6, non-ASCII input included (`test/golden/S13/credential-oracle.json`).
 
 *Written and tested* in throwaway HOMEs (macOS locally; Linux and Windows in CI). Not installed on the
 reference machine.
