@@ -200,6 +200,72 @@ is done, a verbatim quote that also carries its translation is the form to prefe
   labels table for the same retirement, carried there with the "kept, not corrected" flag this line
   lacked.
 
+### The documentation baseline — declared once, kept current by every merge request (#523)
+
+The owner's rule: no merge request may leave a repository's documentation of the features it
+maintains out of date, and onboarding a project validates or puts in place a default documentation
+baseline. The baseline is what this Part I already asks for; what is new is that a repository
+**declares** it, so a check can read it.
+
+**The default proposal, five items:**
+
+| Item | Default path | What it must be |
+|---|---|---|
+| README | `README.md` | It mirrors the requirements document |
+| Requirements document | `docs/<repo>-product-requirements-document-project.md` | Named per *Documents* above |
+| ADR library | `docs/adr/` | Its `README.md` index and the MADR `template.md`; **never a placeholder record** (Part II: a record earns its place by explaining the current code) |
+| Architecture | `docs/architecture.md` | A layer diagram, a `mermaid` block |
+| Sequences | `docs/sequences.md` | A sequential diagram, a `mermaid` block |
+
+**The manifest is `docs/documentation-baseline.json`.** It names the five items, each a path or
+`{"not_applicable": "<reason>"}` (architecture and sequences only: a repository always has a README,
+a requirements document and an ADR library), and it maps each **capability** to the `code` globs it
+owns and the `docs` that describe it:
+
+```json
+{
+  "schema_version": 1,
+  "baseline": { "readme": "README.md", "prd": "docs/<repo>-product-requirements-document-project.md",
+                "adr_library": "docs/adr", "architecture": "docs/architecture.md",
+                "sequences": { "not_applicable": "<why this shape has no flow to draw>" } },
+  "capabilities": [
+    { "id": "<capability>", "code": ["src/<capability>/**"], "docs": ["docs/<capability>.md"] },
+    { "id": "everything-else", "code": ["**"], "docs": ["README.md", "docs/**"] }
+  ]
+}
+```
+
+- **The baseline is conditional on the project's shape.** An item the shape does not have is declared
+  not applicable with its reason, in the manifest, where a reviewer can disagree. A missing file is a
+  gap; a declared absence is not.
+- **Globs:** `**` is zero or more whole segments; `*` and `?` stay inside one segment. Nothing else
+  (no braces, classes or negation).
+- **A changed path belongs to the first capability, in manifest order, whose `code` matches it.**
+  Order from specific to general, and end with a catch-all if the repository has one.
+
+**The check: `mhw docs-baseline check --base=<ref> [--body-file=<pull-request body>]`**, run by CI on
+every pull request. Every capability a change touches must change one of its `docs` by **more than
+whitespace** (`git diff -w --ignore-blank-lines`). Otherwise the pull-request body carries, at column
+0 and outside a code fence, one of:
+
+```
+docs-baseline: none — <reason>
+docs-baseline: in #<N>
+```
+
+`none` says no document needed to change, and why. `in #N` says a sibling task carries the update.
+**A changed path outside every capability fails, and no escape waives it**: the manifest is amended in
+the same change. The check is mechanical and narrow: a one-word doc edit passes it, and so does a
+dishonest `none`. Whether the right document changed in the right way stays the gate's judgement.
+
+**Onboarding: `mhw onboard [--project=DIR]`** validates read-only and reports each gap: the manifest,
+the five items, that every tracked file belongs to a capability, and any `additional_docs` a
+`project-policy.json` declares. **`mhw onboard --scaffold`** first writes the missing files of the
+default proposal, never one that exists and never an ADR record. Run it on an existing repository to
+see its gaps; run it with `--scaffold` on a new one. A project adds documents or Definition-of-Done
+criteria on top of this baseline through the optional `baseline_override` section of its
+`project-policy.json`, which may only add (`mhw policy check` refuses anything else).
+
 ### Licensing — the `LICENSE` file and the manifest field
 
 **Folded in from the standalone `license` skill (#384), on the owner's ruling — *«deveria»*.** It was

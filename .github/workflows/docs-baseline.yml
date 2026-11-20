@@ -5,7 +5,7 @@
 # capability fails whatever the body says. It is not among delivery-ci's needs in tests.yml, but
 # mhw delivery merge refuses any head check that is not green, so a red check holds the checked merge.
 # It runs again when the body is edited, so adding an escape line re-decides. It is a check, not a
-# hook: nothing stops a push, and a trivial doc edit or a dishonest escape still passes (ADR-0042).
+# hook: nothing stops a push, and a trivial doc edit or a dishonest escape still passes (ADR-0044).
 # The command imports only node: modules, so nothing is installed from a registry here.
 name: docs-baseline
 

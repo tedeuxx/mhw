@@ -173,7 +173,7 @@ gate tables, the thresholds and the enforcement wiring, which are CI/CD metrics 
 | 3 | Lint + typecheck clean | **yes** — CI |
 | 4 | **Observability instrumented for the new behaviour**, in whatever form this repo's runtime supports | **no** — a reviewer's judgement |
 | 5 | Security/resilience posture applied (least-privilege, idempotency, fail-fast/open, retries) | **partly** — SAST and dependency scanning catch a subset; the posture is not enumerable |
-| 6 | **Docs/Mermaid updated**; debt named in the review | **no** |
+| 6 | **Docs/Mermaid updated**; debt named in the review | ~~**no**~~ **partly** (#523) — where the repository declares `docs/documentation-baseline.json`, the `docs-baseline` check proves a touched capability changed one of its documents by more than whitespace, or that the body declares why not; whether the change is the right one stays the reviewer's |
 | 7 | **Conventional-commit** subject (the commit log is the changelog) | **no** — a convention this repo keeps and does not enforce; the derived commit↔issue coverage check that would is deliberately deferred, per `/agents-configuration` |
 | 8 | **Validated locally**, with real command output rather than a claim | **no** — the report is the only artifact |
 | 9 | **Where the slice's consumer is an artifact somebody has to AUTHOR, that artifact is named and its existence stated** (#362) | **no, and it cannot be** — see below; the row is admitted knowing that |
@@ -259,12 +259,14 @@ Read the right-hand column above as the whole of the claim, and **read the membe
 repository's own gate exists because it rots:
 
 - **fully proved by a gate:** rows 1 and 3;
-- **proved in part, with the uncovered part named in the row:** rows 2 and 5;
-- **not proved by anything mechanical:** rows 4, 6, 7, 8 and 9 — and row 9 is the one that **cannot**
-  be, by construction rather than for want of someone building it.
+- **proved in part, with the uncovered part named in the row:** rows 2 and 5, and since #523 row 6
+  where the repository declares a documentation baseline;
+- **not proved by anything mechanical:** rows 4, ~~6,~~ 7, 8 and 9 (and row 6 where no baseline is
+  declared) — and row 9 is the one that **cannot** be, by construction rather than for want of someone
+  building it.
 
-A pipeline that is entirely green has established rows 1 and 3, part of 2 and part of 5, **and nothing
-else**.
+A pipeline that is entirely green has established rows 1 and 3, part of 2, part of 5 and, with a
+declared baseline, part of 6, **and nothing else**.
 
 The consequence runs in both directions, and the second one is the one that gets missed:
 

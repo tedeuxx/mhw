@@ -316,6 +316,7 @@ test('onboard --scaffold: a not-applicable item is not scaffolded, and a symlink
   onboard(dir, ['--scaffold']);
   assert.equal(fs.existsSync(path.join(dir, 'docs', 'sequences.md')), false);
   assert.ok(fs.existsSync(path.join(dir, 'docs', 'architecture.md')));
+  if (process.platform === 'win32') return; // a symlink needs a privilege a Windows runner may lack
   const outside = path.join(h.dir, 'outside');
   fs.mkdirSync(outside);
   const q = path.join(h.dir, 'q');

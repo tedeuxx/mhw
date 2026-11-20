@@ -18,7 +18,7 @@
       ],
       "docs": [
         "method/skills/documentation-standard/SKILL.md",
-        "docs/adr/0042-*.md"
+        "docs/adr/0044-*.md"
       ]
     },
     {
