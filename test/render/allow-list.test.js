@@ -752,10 +752,19 @@ test('install.sh: where merge_settings refuses the file, no allow rule lands in 
     // --overlay=none: the overlay's model defaults (src/render/model-defaults.js, S10) rewrite such a file
     // with a parser of their own, which is that step's behaviour, not this one's.
     const r = install(h, ['--overlay=none', '--managed-root=' + path.join(d, 'root')]);
-    assert.match(r.out, /settings\.json: .*left untouched/, name);
-    assert.doesNotMatch(r.out, /RangeError|^MERGED  .*settings\.json/m, name);
+    assert.doesNotMatch(r.out, /RangeError|^MERGED  .*settings\.json \(allow list/m, name);
     assert.match(r.out, /^ALLOW   /m, name + ': the rest of the step still runs');
-    assert.equal(fs.readFileSync(h + '/.claude/settings.json', 'utf8'), text, name);
+    const after = fs.readFileSync(h + '/.claude/settings.json', 'utf8');
+    if (name === 'a lone high surrogate') {
+      // Every jq build refuses it: merge_settings left it untouched, and so did the allow step.
+      assert.match(r.out, /settings\.json: .*left untouched/, name);
+      assert.equal(after, text, name);
+    } else {
+      // Apple's jq refuses it (merge_settings leaves it untouched); the Ubuntu build reads it and merges
+      // the floor. Either way the allow step refuses it visibly and adds nothing of its own.
+      assert.match(r.out, /^REFUSE  .*settings\.json: not readable by the allow-list step/m, name);
+      assert.ok(!after.includes('"' + OWN_KEY + '"') && !after.includes('Edit(~/.kiro/agents/**)'), name);
+    }
   }
 });
 

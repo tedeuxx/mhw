@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { parse, classify, MAX_DEPTH, stringify, formatNumber, quote, equal, alt, codepointCompare, JqNumber, JqParseError, typeOf, get, contains } from '../../src/lib/jq-json.js';
+import { parse, classify, jqNumberToken, MAX_DEPTH, stringify, formatNumber, quote, equal, alt, codepointCompare, JqNumber, JqParseError, typeOf, get, contains } from '../../src/lib/jq-json.js';
 import { which } from '../helpers/home.js';
 
 const NUMBERS = [['1.0', '1.0'], ['0.5e1', '5'], ['1e-7', '1E-7'], ['123e-2', '1.23'], ['0e3', '0E+3'], ['-1.50', '-1.50'],
@@ -76,13 +76,15 @@ const ACCEPTANCE = [
   ['"\\ud800\\u0000"', 'unreadable', 'high surrogate then a non-surrogate escape'],
   ['"\\udc00"', 'json', 'a lone low surrogate (U+FFFD)'],
   ['"\\ud800\\udc00"', 'json', 'a pair'],
-  // (b) and (c) nesting: 256 arrays parse, 257 do not; an object counts its pending key.
+  // (b) and (c) nesting: Apple's jq reads 256 arrays and not 257 (an object counts its pending key); the
+  // Ubuntu and Windows builds read deeper (CI, PR #519). Past the limit this reader stops, and names it
+  // jq-only, so the step refuses visibly on every build.
   [nest(MAX_DEPTH, '[', ']', ''), 'json', '256 arrays'],
-  [nest(MAX_DEPTH + 1, '[', ']', ''), 'unreadable', '257 arrays'],
+  [nest(MAX_DEPTH + 1, '[', ']', ''), 'jq-only', '257 arrays'],
   ['{"a":' + nest(254, '[', ']', '') + '}', 'json', 'an object and 254 arrays'],
-  ['{"a":' + nest(255, '[', ']', '') + '}', 'unreadable', 'an object and 255 arrays'],
-  [nest(300, '{"a":', '}'), 'unreadable', '300 objects'],
-  [nest(10000, '[', ']'), 'unreadable', '10,000 arrays (no RangeError)'],
+  ['{"a":' + nest(255, '[', ']', '') + '}', 'jq-only', 'an object and 255 arrays'],
+  [nest(300, '{"a":', '}'), 'jq-only', '300 objects'],
+  [nest(10000, '[', ']'), 'jq-only', '10,000 arrays (no RangeError)'],
   // (d) what jq reads and strict JSON does not.
   ['\ufeff{}', 'jq-only', 'a byte-order mark'],
   ['[nan]', 'jq-only', 'nan'], ['[NaN]', 'jq-only', 'NaN'], ['[-NaN]', 'jq-only', '-NaN'], ['[NAN]', 'jq-only', 'NAN'],
@@ -107,6 +109,11 @@ test('acceptance: each input is read, jq-only or unreadable as jq 1.7.1 found it
   assert.equal(stringify(parse('"\\ud83d\\ude00"')), '"\u{1F600}"');
   // Anything that is not JSON throws JqParseError, never another error.
   assert.throws(() => parse(nest(20000, '[', ']')), JqParseError);
+  for (const [t, want] of /** @type {Array<[string, boolean]>} */ ([['nan', true], ['NaN12', true], ['-inf', true], ['+Infinity', true],
+    ['1.', true], ['.5', true], ['1.e5', true], ['00.5', true], ['1e-3', true], ['nana', false], ['infx', false], ['.', false],
+    ['1e', false], ['1e+', false], ['0x1', false], ['1.5.', false], ['.e5', false], ['1e5e5', false], ['--1', false], ['', false]])) {
+    assert.equal(jqNumberToken(t), want, t);
+  }
 });
 
 test('acceptance: the same inputs through jq itself, where jq is on PATH', (t) => {

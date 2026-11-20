@@ -253,8 +253,9 @@ test('declared: each declared scenario refuses visibly, leaves settings.json as 
       const settings = r.tree.find((e) => e.path === '.claude/settings.json');
       assert.equal(settings && settings.data, text.replaceAll('\r\n', '\n'), sc.name + ' ' + r.run);
     }
-    // The record of what the shell did instead: it acted on the file in at least one mode.
-    assert.ok(shell.some((r) => /^(DRIFT|WOULD|CHANGED|MERGED|UNMERGED) /m.test(r.stdout)), sc.name);
+    // The record of what the shell did instead, on the machine the goldens were recorded on.
+    const acted = shell.some((r) => /^(DRIFT|WOULD|CHANGED|MERGED|UNMERGED) /m.test(r.stdout));
+    assert.equal(acted, sc.shellActs !== false, sc.name);
   }
 });
 

@@ -884,7 +884,7 @@ export function uninstall(ctx) {
   }
   if (!isFile(settings)) return;
   const doc = readObject(settings);
-  if (!doc || !doc.has(ALLOW_OWN_KEY)) return;
+  if (!doc?.has(ALLOW_OWN_KEY)) return;
   let out;
   try {
     out = unmerged(doc);
@@ -909,20 +909,21 @@ export function unmerged(doc) {
   const out = new Map(doc);
   if (perms instanceof Map) {
     const p = new Map(perms);
-    for (const [key, list] of /** @type {Array<[string, JqValue[]]>} */ ([['allow', mine], ['deny', mdeny]])) {
-      const v = p.get(key);
-      if (key === 'deny' && m !== null && equal(p.get('defaultMode') ?? null, m)) p.delete('defaultMode');
-      if (Array.isArray(v)) {
-        const kept = v.filter((r) => !contains(list, r));
-        if (kept.length) p.set(key, kept);
-        else p.delete(key);
-      }
-    }
+    withoutOurs(p, 'allow', mine);
+    if (m !== null && equal(p.get('defaultMode') ?? null, m)) p.delete('defaultMode');
+    withoutOurs(p, 'deny', mdeny);
     if (p.size) out.set('permissions', p);
     else out.delete('permissions');
   }
   out.delete(ALLOW_OWN_KEY);
   return out;
+}
+
+/** The list at key without the rules in ours; no key when nothing is left. @param {JqObject} p @param {string} key @param {JqValue[]} ours */
+function withoutOurs(p, key, ours) {
+  const v = p.get(key);
+  if (!Array.isArray(v)) return;
+  setList(p, key, v.filter((r) => !contains(ours, r)));
 }
 
 // ---- The command line --------------------------------------------------------------------------------

@@ -18,7 +18,7 @@ export const OTHER = 'release: v9.9.8; commit: ' + 'b'.repeat(40);
  * @typedef {{ phase: 'parse' | 'step' | 'uninstall', mode?: 'install' | 'check' | 'dry-run', stamp?: string,
  *   overlay?: boolean, before?: Change[], label?: string }} Run
  * @typedef {{ name: string, layout?: 'plain' | 'npm', codexHome?: string, cmd?: string, admin?: string,
- *   setup?: Change[], runs: Run[], declared?: boolean }} Scenario
+ *   setup?: Change[], runs: Run[], declared?: boolean, shellActs?: boolean }} Scenario
  */
 
 const install = /** @type {Run} */ ({ phase: 'step', mode: 'install' });
@@ -93,12 +93,18 @@ export const SCENARIOS = [
     runs: [install, { phase: 'uninstall' }, { ...install, label: 'install after uninstall' }] },
   { name: 'uninstall-unmanaged-files', setup: [{ write: 'H/.kiro/agents/workstation.json', text: '{}\n' }],
     runs: [{ phase: 'uninstall' }] },
-  // PR #519 QA B1: settings.json jq 1.7.1 refuses (a, b, c): the shell said nothing and touched nothing,
-  // and so does the Node step.
-  ...[['jq-refuses-lone-high-surrogate', '"\\ud800"'], ['jq-refuses-300-levels', '['.repeat(299) + ']'.repeat(299)],
-    ['jq-refuses-10000-levels', '['.repeat(10000) + ']'.repeat(10000)]].map(([name, x]) => (/** @type {Scenario} */ ({
-    name, setup: [{ write: 'H/.claude/settings.json', text: '{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}, "x": ' + x + '}\n' }],
-    runs: [check, install, { phase: 'uninstall' }] }))),
+  // PR #519 QA B1 a: a settings.json every jq 1.7.1 build refuses: the shell said nothing and touched
+  // nothing, and so does the Node step.
+  { name: 'jq-refuses-lone-high-surrogate', setup: [{ write: 'H/.claude/settings.json',
+    text: '{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}, "x": ' + String.raw`"\ud800"` + '}\n' }],
+    runs: [check, install, { phase: 'uninstall' }] },
+  // QA B1 b, c: nesting past 256. Apple's jq (the goldens were recorded with it) refuses it and the shell
+  // said nothing; the Ubuntu and Windows builds read it and the shell acted. The Node step refuses it
+  // visibly on every build and touches nothing: declared, with shellActs false for the recording machine.
+  ...[['jq-deep-300-levels', '['.repeat(299) + ']'.repeat(299)], ['jq-deep-10000-levels', '['.repeat(10000) + ']'.repeat(10000)]]
+    .map(([name, x]) => (/** @type {Scenario} */ ({ name, declared: true, shellActs: false,
+      setup: [{ write: 'H/.claude/settings.json', text: '{"permissions": {"allow": ["Bash(find:*)", "Bash(git status:*)"]}, "x": ' + x + '}\n' }],
+      runs: [check, install, { phase: 'uninstall' }] }))),
   // QA B1 d: settings.json jq reads and strict JSON does not. The shell acted on it; the Node step refuses
   // it visibly and touches nothing (expected-differences.json, "a settings.json jq reads and strict JSON
   // does not"). declared: the shell's transcript is kept as the record, and the Node side is held to its

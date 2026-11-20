@@ -23,6 +23,9 @@ export class JqNumber {
 /** @typedef {null | boolean | string | JqNumber | JqValue[] | Map<string, any>} JqValue */
 
 export class JqParseError extends Error {}
+/** Nesting past MAX_DEPTH. Apple's jq 1.7.1 build refuses it; the Ubuntu and Windows builds on the CI
+ * runners read it (measured on PR #519), so classify() names it jq-only, never unreadable. */
+export class JqDepthError extends JqParseError {}
 
 const WS = new Set([' ', '\t', '\n', '\r']);
 /** The one-character escapes of a JSON string. @type {Record<string, string>} */
@@ -30,13 +33,29 @@ const SIMPLE = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '
 /** How quote() writes each character JSON escapes by name. @type {Record<string, string>} */
 const NAMED = { '"': String.raw`\"`, '\\': String.raw`\\`, '\n': String.raw`\n`, '\t': String.raw`\t`, '\r': String.raw`\r`, '\b': String.raw`\b`, '\f': String.raw`\f` };
 
-/** jq 1.7.1's parser stack limit: containers open plus object keys pending (measured: 256 nested arrays
- * parse and 257 do not; an object counts its pending key too, so {"a": 254 arrays} parses and 255 do not). */
+/** Apple's jq 1.7.1 parser stack limit: containers open plus object keys pending (measured: 256 nested
+ * arrays parse and 257 do not; an object counts its pending key too, so {"a": 254 arrays} parses and 255
+ * do not). Other builds read deeper; this reader never does, so it also never overflows its own stack. */
 export const MAX_DEPTH = 256;
 const STRUCTURAL = new Set(['[', ']', '{', '}', ',', ':', '"']);
-/** The literals jq's lexer reads as a number beyond JSON's: nan, inf and infinity in any case, a sign,
- * leading zeros, a bare fraction or exponent dot (measured on jq-1.7.1). */
-const JQ_NUMBER = /^[+-]?(?:(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?|nan\d*|inf(?:inity)?)$/i;
+const DIGITS = /^\d*$/;
+
+/**
+ * Is token one of the literals jq's lexer reads as a number beyond JSON's? nan (then digits), inf and
+ * infinity in any case, a sign, leading zeros, a bare fraction or exponent dot (measured on jq-1.7.1).
+ * @param {string} token
+ */
+export function jqNumberToken(token) {
+  const t = (token[0] === '+' || token[0] === '-' ? token.slice(1) : token).toLowerCase();
+  if (t === 'inf' || t === 'infinity') return true;
+  if (t.startsWith('nan')) return DIGITS.test(t.slice(3));
+  const parts = t.split('e');
+  if (parts.length > 2) return false;
+  if (parts.length === 2 && !/^[+-]?\d+$/.test(parts[1])) return false;
+  const dot = parts[0].split('.');
+  if (dot.length > 2 || !dot.every((d) => DIGITS.test(d))) return false;
+  return dot.some((d) => d.length > 0);
+}
 
 /**
  * Parse one JSON document as jq 1.7.1 accepts it, and refuse with a JqParseError what jq refuses:
@@ -68,7 +87,7 @@ export function parse(text, opts = {}) {
     while (i < src.length && WS.has(src[i])) i++;
   };
   const open = () => {
-    if (stack >= MAX_DEPTH) fail('exceeds the depth limit');
+    if (stack >= MAX_DEPTH) throw new JqDepthError('exceeds the depth limit at offset ' + i);
     stack++;
   };
   /** A bare literal: true, false, null, a JSON number, or (jqOnly) one of jq's own number literals. @returns {JqValue} */
@@ -80,7 +99,7 @@ export function parse(text, opts = {}) {
     if (token === 'false') return false;
     if (token === 'null') return null;
     if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(token)) return new JqNumber(token);
-    if (lenient && JQ_NUMBER.test(token)) return null;
+    if (lenient && jqNumberToken(token)) return null;
     i = start;
     return fail('unexpected character');
   };
@@ -197,9 +216,11 @@ export function parse(text, opts = {}) {
   };
   let v = value();
   skip();
-  while (lenient && i < src.length) {
-    v = value();
-    skip();
+  if (lenient) {
+    while (i < src.length) {
+      v = value();
+      skip();
+    }
   }
   if (i !== src.length) fail('trailing content');
   return v;
@@ -207,24 +228,23 @@ export function parse(text, opts = {}) {
 
 /**
  * What became of reading a file the allow-list step acts on: 'json' (strict JSON, the value given),
- * 'jq-only' (jq 1.7.1 would have read it, this reader does not: refuse visibly) or 'unreadable' (jq
- * refuses it too: the shell step said nothing, and neither does this).
+ * 'jq-only' (a jq 1.7.1 build would have read it, this reader does not: refuse visibly; nesting past
+ * MAX_DEPTH is here, since some builds read it) or 'unreadable' (jq refuses it too: the shell step said
+ * nothing, and neither does this).
  * @param {string} text
  * @returns {{ kind: 'json', value: JqValue } | { kind: 'jq-only' | 'unreadable' }}
  */
 export function classify(text) {
-  try {
-    return { kind: 'json', value: parse(text) };
-  } catch (e) {
-    if (!(e instanceof JqParseError)) throw e;
+  for (const jqOnly of [false, true]) {
+    try {
+      const value = parse(text, { jqOnly });
+      return jqOnly ? { kind: 'jq-only' } : { kind: 'json', value };
+    } catch (e) {
+      if (e instanceof JqDepthError) return { kind: 'jq-only' };
+      if (!(e instanceof JqParseError)) throw e;
+    }
   }
-  try {
-    parse(text, { jqOnly: true });
-    return { kind: 'jq-only' };
-  } catch (e) {
-    if (!(e instanceof JqParseError)) throw e;
-    return { kind: 'unreadable' };
-  }
+  return { kind: 'unreadable' };
 }
 
 /**
