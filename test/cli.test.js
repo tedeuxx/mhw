@@ -57,7 +57,8 @@ test('status forwards to install.ps1 after the NODE line, and its exit code is t
     const r = mhw(['status'], 'v20.11.1', { WORKSTATION_POWERSHELL: stub });
     assert.equal(r.code, 0);
     assert.match(r.out[0], /^NODE    FAIL  /);
-    assert.deepEqual(r.out.slice(1, -1), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File',
+    assert.match(r.out[1], /^PASTE   n\/a   the paste wrapper is not installed on Windows; whether it works there is not measured \(D7\)$/);
+    assert.deepEqual(r.out.slice(2, -1), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File',
       path.join(ROOT, 'global', 'install.ps1'), '-Check']);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });

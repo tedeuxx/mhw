@@ -43,7 +43,7 @@
     {
       "id": "paste-wrapper",
       "layer": "managed",
-      "paths": ["global/clipboard/paste_wrapper.py"],
+      "paths": ["src/commands/paste-wrapper.js", "src/lib/pty.js", "src/vendor/node-pty"],
       "gap": "No harness carrier: a shell launcher the owner activates by sourcing it (ADR-0033, proposed)."
     },
     {

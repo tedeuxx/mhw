@@ -234,6 +234,46 @@ Ratification changes no evidence level stated above: it installs, loads or enfor
 
 The Kiro canary results amended in on 2026-11-08 (Issues #455 and #462) stay as written.
 
+## Amendment 2026-11-20: the wrapper runs on Node ([#487](https://github.com/tedeuxx/mhw/issues/487), proposed)
+
+~~The wrapper (`global/clipboard/paste_wrapper.py`)~~ The wrapper is `mhw paste-wrapper`
+(`src/commands/paste-wrapper.js`), the Node port, with the same properties and the Python original's
+answers held as goldens (`test/golden/S16/`). The shell functions run it as
+`"<node>" "<package>/bin/mhw.js" paste-wrapper run --config … -- <cli>`; install no longer copies a
+wrapper into the data directory and retires the earlier Python copy. Its pseudo-terminal is node-pty
+1.1.0, vendored with the macOS prebuilds only ([ADR-0042](0042-node-pty-vendored-for-the-paste-wrapper.md),
+proposed). Where that library cannot load (~~Linux and~~ Windows, which has no vendored prebuild; a
+spawn-helper without its execute bit; a damaged module) the wrapper **refuses** in one line, exit 126,
+and `mhw status` prints `PASTE   FAIL` with the reason: it never starts the CLI unwrapped on a terminal.
+~~So on Linux the shell functions no longer start the CLI; `command <cli>` does, and the prompt hook
+checks.~~ Windows is not measured (D7). Evidence level: *written and tested* (the live relay tests run on
+macOS through the vendored pty); not installed on the reference machine.
+
+*Amended the same day, PR #521 lens:*
+
+- ~~**The Linux refusal is the owner's decision.** It is an escalation on PR #521. Until he answers, the
+  Linux behaviour above stands as written.~~
+- **Linux keeps the wrapper.** The owner
+  [decided on PR #521](https://github.com/tedeuxx/mhw/pull/521#issuecomment-7049084616) to build the
+  Linux binary in CI from the pinned source and vendor it. The Linux `pty.node` files are vendored, built
+  for x64 and arm64 by run 44811001228 (ADR-0042 amendment), so on Linux the wrapper cleans pastes again.
+  The live relay tests run there in CI. This works on glibc 2.35 or later; musl is not covered.
+- **Two pasted shapes reach the CLI unchecked.** Both are inherited: the lens's probe found the base
+  Python wrapper (`rc/next` at `478f9de`) forwarding them in the same way, so they are limits of the
+  design, not of the port.
+  1. A paste that stalls longer than `PASTE_IDLE_SECONDS` (2 s) partway through its payload is closed
+     and cleaned as it stands. The rest of the payload then passes as typing.
+  2. A payload that carries its own end marker (`ESC[201~`) ends the paste there. The bytes after it
+     pass as typing.
+
+  The "never forwarded" property in the wrapper's header holds only outside these two shapes and the
+  split-marker case already stated. Whether the owner's terminal strips `ESC[201~` from clipboard text
+  is not measured.
+- **The shell functions name node on `PATH` when it is the same file as the node running mhw.** This is
+  ADR-0017's rule. Before it, they pinned the versioned Homebrew path, which an upgrade removes.
+- **`mhw status` checks the installed functions.** It prints `PASTE FAIL` when the node or the `mhw.js`
+  they name is gone.
+
 ## Links
 
 - ADR-0011 (superseded; the history). ADR-0005 (no log). ADR-0008 (no persistence). ADR-0025 (admin

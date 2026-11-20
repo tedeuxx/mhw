@@ -51,9 +51,10 @@
 # managed plist left by an earlier version is removed on install. launchctl is never run: the installer
 # prints the bootout command for the owner. The term list is never written by this installer (only
 # `clipboard_guard.py add-term` does).
-# The paste wrapper (ADR-0011, automatic cleaning at the paste boundary) is installed beside the core with
-# a managed shell snippet defining claude, codex and kiro-cli functions that run the CLIs through it. The
-# installer never sources that snippet. Since Issue #145 it adds one marked block that sources it to the
+# The paste wrapper (ADR-0011, automatic cleaning at the paste boundary) is `mhw paste-wrapper`, Node since
+# #487 (S16 of #470), run from this package by the node that runs mhw; a managed shell snippet defines
+# claude, codex and kiro-cli functions that run the CLIs through it. The Python copy an earlier install
+# put beside the core is retired. The installer never sources that snippet. Since Issue #145 it adds one marked block that sources it to the
 # shell start-up file (see shell_rc_line), with a backup; uninstall removes exactly that block.
 # The wrapper exports a session marker; the prompt hook stays as the safety net and blocks only where
 # the marker is absent (sessions not opened through the wrapper; ADR-0011, 2026-10-05 amendment).
@@ -76,7 +77,6 @@ repo_root=$(dirname "$script_dir")
 src="$script_dir/AGENTS.md"
 floor_src="$script_dir/deny-floor.conf"
 clip_src="$script_dir/clipboard/clipboard_guard.py"
-wrap_src="$script_dir/clipboard/paste_wrapper.py"
 clip_conf_src="$script_dir/clipboard.conf"
 CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-guard"
 
@@ -112,7 +112,7 @@ case $shell_rc in
   *) echo "--shell-rc needs an absolute path, got: $shell_rc" >&2; exit 2 ;;
 esac
 
-for f in "$src" "$floor_src" "$clip_src" "$clip_conf_src" "$wrap_src"; do
+for f in "$src" "$floor_src" "$clip_src" "$clip_conf_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -147,7 +147,7 @@ glasscmd_dest="$HOME/.claude/commands/breaking-glass.md"   # removed (ADR-0028);
 settings="$HOME/.claude/settings.json"
 clip_dest="$data_dir/clipboard_guard.py"
 clip_conf_dest="$data_dir/clipboard.conf"
-wrap_dest="$data_dir/paste_wrapper.py"
+wrap_dest="$data_dir/paste_wrapper.py"            # the Python wrapper, removed (#487); retired below
 snippet_dest="$data_dir/paste-filter.sh"
 clip_plist="$HOME/Library/LaunchAgents/$CLIP_LABEL.plist"
 codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-deny-floor.rules"
@@ -320,12 +320,42 @@ if [ -n "$overlay" ] && [ -f "$overlay/clipboard.conf" ]; then cat "$overlay/cli
 # and writing no bytecode (-B). Paths go inside double quotes, so a path holding a character that is
 # special there, or in JSON, is refused rather than mis-quoted.
 paste_ok=1
-case "$clip_dest$clip_conf_dest$wrap_dest" in *[\"\\\$\`]*) paste_ok=0 ;; esac
+# The paste wrapper's command (#487): the node that runs mhw (MHW_NODE, set by bin/mhw.js; an absolute
+# path), else the first node on PATH, and this package's bin/mhw.js, both by absolute path. The rule of
+# ADR-0017 for the MCP launcher (PR #516 lens A1): MHW_NODE is process.execPath, the resolved, versioned
+# path (a Homebrew Cellar directory an upgrade removes), so node on PATH is rendered when it is the same
+# file. An absolute MHW_NODE that is not an executable file is refused, never replaced by another node
+# (the models_step lookup, PR #515 lens A1); the snippet is then not written.
+wrap_node=${MHW_NODE:-}
+wrap_path_node=$(command -v node 2>/dev/null || true)
+wrap_refused=0
+case $wrap_node in
+  /*)
+    if [ ! -f "$wrap_node" ] || [ ! -x "$wrap_node" ]; then
+      wrap_refused=1
+      wrap_node=
+    else
+      case $wrap_path_node in
+        /*)
+          # The same file: node itself compares the two resolved paths (test -ef is not POSIX sh).
+          if "$wrap_node" -e 'const f = require("node:fs"); process.exit(f.realpathSync(process.argv[1]) === f.realpathSync(process.argv[2]) ? 0 : 1)' \
+              "$wrap_path_node" "$wrap_node" 2>/dev/null; then
+            wrap_node=$wrap_path_node
+          fi
+          ;;
+        *) ;;
+      esac
+    fi
+    ;;
+  *) wrap_node=$wrap_path_node ;;
+esac
+wrap_mhw="$repo_root/bin/mhw.js"
+case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`]*) paste_ok=0 ;; esac
 paste_cmd() {
   printf '/usr/bin/python3 -I -B "%s" prompt-hook --harness %s --config "%s"' "$clip_dest" "$1" "$clip_conf_dest"
 }
 if [ "$paste_ok" = 0 ]; then
-  echo "REFUSE  paste filter: the data directory path holds a quote, backslash, dollar sign or backtick" >&2
+  echo "REFUSE  paste filter: the data directory, node or package path holds a quote, backslash, dollar sign or backtick" >&2
 elif [ ! -e /usr/bin/python3 ]; then
   paste_ok=0
   echo "REFUSE  paste filter: /usr/bin/python3 not found; the hook is not registered" >&2
@@ -610,7 +640,7 @@ shell_rc_uninstall() {
 }
 
 render() {
-  # $1 = kind (plain|kiro|codexrules|clipscript|clipconf|wrapscript|snippet|codexhooks|kirohook), $2 = output file
+  # $1 = kind (plain|kiro|codexrules|clipscript|clipconf|snippet|codexhooks|kirohook), $2 = output file
   case $1 in
     plain|kiro)
       {
@@ -644,14 +674,6 @@ render() {
         cat "$clip_conf"
       } > "$2"
       ;;
-    wrapscript)
-      {
-        sed -n 1p "$wrap_src"
-        printf '# %s; source: global/clipboard/paste_wrapper.py; %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$stamp"
-        sed 1d "$wrap_src"
-      } > "$2"
-      ;;
     snippet)
       # Shell functions for zsh and bash. Sourcing this file is the owner's act; nothing here runs it.
       {
@@ -665,8 +687,8 @@ render() {
         printf '# CLI sees them and marks the session (%s=1), so the prompt hook lets its prompts\n' "PMHWC_PASTE_WRAPPER"
         printf '# through. "command claude" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\n'
         for cli in claude codex kiro-cli; do
-          printf '%s() { /usr/bin/python3 -I -B "%s" run --config "%s" -- %s "$@"; }\n' \
-            "$cli" "$wrap_dest" "$clip_conf_dest" "$cli"
+          printf '%s() { "%s" "%s" paste-wrapper run --config "%s" -- %s "$@"; }\n' \
+            "$cli" "$wrap_node" "$wrap_mhw" "$clip_conf_dest" "$cli"
         done
       } > "$2"
       ;;
@@ -1228,9 +1250,21 @@ if [ "$paste_ok" = 1 ]; then
     retire "$codex_hooks" "the user-level Codex hooks, now registered in the admin layer (ADR-0025)"
   fi
   process kirohook "$kiro_hook" backup
-  process wrapscript "$wrap_dest"
-  process snippet "$snippet_dest"
-  shell_rc_line
+  retire "$wrap_dest" "the Python paste wrapper, replaced by mhw paste-wrapper (Node, #487)"
+  case $wrap_node in
+    /*)
+      process snippet "$snippet_dest"
+      shell_rc_line
+      ;;
+    *)
+      raise 2
+      if [ "$wrap_refused" = 1 ]; then
+        echo "REFUSE  $snippet_dest: MHW_NODE (${MHW_NODE:-}) is not an executable file; the paste wrapper's snippet is not written, the prompt hook still checks"
+      else
+        echo "SKIP    $snippet_dest: the paste wrapper needs node (26 or later), and none was found; the prompt hook still checks"
+      fi
+      ;;
+  esac
 else
   raise 2
   echo "SKIP    $codex_hooks: the paste filter cannot run here (see the REFUSE line above)"

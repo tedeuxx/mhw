@@ -1,0 +1,101 @@
+[
+  {
+    "case": [
+      "cleaner-error"
+    ],
+    "stream": [
+      "filter"
+    ],
+    "base": "[ERR ValueError]",
+    "head": "[ERR Error]",
+    "why": "A cleaner that fails names its exception class in the notice that replaces the paste. Python names the Python class (here ValueError); Node names the JavaScript one (Error, TypeError, RangeError). The paste is still replaced and never forwarded, and the count of replaced pastes is still compared."
+  },
+  {
+    "case": [
+      "relay"
+    ],
+    "stream": [
+      "behaviour"
+    ],
+    "base": "the CLI's pty is created with the terminal's own modes (tcgetattr/tcsetattr in the child)",
+    "head": "the CLI's pty is created by node-pty with its default modes (canonical, echo, signals, UTF-8 input)",
+    "why": "node-pty has no option to copy the outer terminal's attributes into the pty it creates. The CLIs set the modes they need (raw) themselves; an owner's custom erase or kill character is not carried into the session. Not measured on a CLI."
+  },
+  {
+    "case": [
+      "relay"
+    ],
+    "stream": [
+      "behaviour"
+    ],
+    "base": "job control is relayed on SIGCHLD with WUNTRACED, at once",
+    "head": "job control is relayed by reading the CLI's state with /bin/ps every 250 ms",
+    "why": "node-pty reports an exit and never a stop. A stopped CLI (Ctrl+Z) is seen within about a quarter of a second; the launcher then restores the terminal and stops itself, as before."
+  },
+  {
+    "case": [
+      "relay"
+    ],
+    "stream": [
+      "environment"
+    ],
+    "base": "TERM and PWD as the launcher had them",
+    "head": "TERM as the launcher had it, else xterm-256color; PWD set to the launcher's current directory",
+    "why": "node-pty sets TERM and PWD in the child's environment. A shell sets both the same way for an interactive session, so a CLI started from one sees the same values."
+  },
+  {
+    "case": [
+      "not-a-terminal"
+    ],
+    "stream": [
+      "behaviour"
+    ],
+    "base": "os.execve: the CLI replaces the launcher",
+    "head": "process.execve where Node has it (macOS, Linux: the CLI replaces the launcher), else a child with the same stdio, whose status is returned",
+    "why": "Node 26 has process.execve on POSIX only. Windows does not run the wrapper (no shell functions are installed there)."
+  },
+  {
+    "case": [
+      "program lookup"
+    ],
+    "stream": [
+      "behaviour"
+    ],
+    "base": "shutil.which, which also searches a relative PATH entry",
+    "head": "src/lib/onpath.js, which skips a relative PATH entry",
+    "why": "A relative PATH entry lets the current directory decide which program runs; the rest of mhw already refuses it."
+  },
+  {
+    "case": [
+      "pty unavailable"
+    ],
+    "stream": [
+      "behaviour"
+    ],
+    "base": "Python's pty module is always there on macOS and Linux",
+    "head": "where the pty cannot load (Windows: no vendored prebuild; musl Linux; a macOS spawn-helper without its execute bit; a module that does not load) the wrapper refuses: one line on stderr, exit 126; mhw status prints PASTE FAIL with the reason",
+    "why": "The pty is a native addon (node-pty 1.1.0). The macOS prebuilds are vendored from npm; the Linux pty.node for x64 and arm64 (glibc 2.35 or later) is built by this repository's CI from the pinned source (ADR-0042, owner decision on PR #521). Where none loads, the wrapper refuses instead of running the CLI unwrapped; `command <cli>` runs it, and the prompt hook still checks."
+  },
+  {
+    "case": [
+      "installer"
+    ],
+    "stream": [
+      "file tree"
+    ],
+    "base": "install writes <data>/paste_wrapper.py; the snippet runs /usr/bin/python3 -I -B <data>/paste_wrapper.py run",
+    "head": "install writes no wrapper copy and retires an earlier one; the snippet runs \"<node>\" \"<package>/bin/mhw.js\" paste-wrapper run",
+    "why": "The wrapper is part of the package now, run by the node that runs mhw (MHW_NODE, else node on PATH). The snippet's function line is the only rendered line that changes; with no node found, the snippet is skipped with a SKIP line."
+  },
+  {
+    "case": [
+      "--grace"
+    ],
+    "stream": [
+      "arguments"
+    ],
+    "base": "float(value): an unparsable value raised ValueError, a traceback and exit 1; digit groups with underscores (1_0) were accepted",
+    "head": "the same forms as float() (.5, 1e1, 2., a sign, blanks, inf, nan); an unparsable value is refused in one line, exit 2; 1_0 is refused",
+    "why": "PR #521 QA B3: the Node side now takes what Python took, except digit groups, and refuses the rest as it refuses any other bad argument instead of crashing. The snippet passes no --grace; usage goes to stdout again as in Python."
+  }
+]
