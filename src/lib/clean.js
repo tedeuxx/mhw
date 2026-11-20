@@ -99,26 +99,23 @@ const B = '(?:(?<=[' + W + '])(?![' + W + '])|(?<![' + W + '])(?=[' + W + ']))';
  * @param {string} src
  */
 export function py(src) {
-  let out = '';
   let inClass = false;
-  for (let i = 0; i < src.length; i++) {
-    const ch = src[i];
-    if (ch === '\\') {
-      const next = src[i + 1];
-      i++;
-      const set = PY_CLASSES[next] ?? null;
-      if (set !== null) out += inClass ? set : '[' + set + ']';
-      else if (next === 'b' && !inClass) out += B;
-      else if (next === 'Z' && !inClass) out += '$';
-      else out += '\\' + next;
-      continue;
+  return src.replace(PY_TOKEN, (t) => {
+    if (t.length === 1) {
+      if (t === '[' && !inClass) inClass = true;
+      else if (t === ']' && inClass) inClass = false;
+      return t;
     }
-    if (ch === '[' && !inClass) inClass = true;
-    else if (ch === ']' && inClass) inClass = false;
-    out += ch;
-  }
-  return out;
+    const next = t[1];
+    if (Object.hasOwn(PY_CLASSES, next)) return inClass ? PY_CLASSES[next] : '[' + PY_CLASSES[next] + ']';
+    if (next === 'b' && !inClass) return B;
+    if (next === 'Z' && !inClass) return '$';
+    return t;
+  });
 }
+
+/** An escape (a backslash and the character after it), or one UTF-16 unit. */
+const PY_TOKEN = /\\[^]|[^]/g;
 
 /** @param {string} letter */
 function ignoreCaseSet(letter) {
