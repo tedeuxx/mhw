@@ -271,6 +271,20 @@ class BacklogGrooming(unittest.TestCase):
         apply = self.body.split("### 7 · Apply, only after confirmation", 1)[1].split("### 8", 1)[0]
         self.assertLess(apply.index("grep -F -- "), apply.index("quoting his ruling"))
 
+    def test_a_missed_criterion_stops_the_merge(self):
+        # QA on PR #526: the merge safeguard's sentence must keep its stop; "A miss may be ignored" is a red.
+        apply = " ".join(self.body.split("### 7 · Apply, only after confirmation", 1)[1].split("### 8", 1)[0].split())
+        self.assertIn("Any miss, or any exit other than 0, stops that merge. Then close the source", apply)
+
+    def test_the_loop_mode_record_reads_scrum(self):
+        # #522 (owner, 2026-11-20, "mhw passa a scrum"): the record's first column-0 line is the value of record.
+        record = (REPO / "docs" / "loop-mode.md").read_text(encoding="utf-8")
+        values = re.findall(r"(?m)^loop-mode: (\S+)$", record)
+        self.assertEqual(values[:1], ["scrum"])
+        self.assertEqual(re.findall(r"(?m)^loop-mode-since: (\S+)$", record)[:1], ["2026-11-20"])
+        self.assertEqual(re.findall(r"(?m)^loop-mode-repos: (.+)$", record)[:1], ["tedeuxx/mhw"])
+        self.assertIn("issues/522#issuecomment-7049476494", record)
+
     def test_exactly_three_options(self):
         activation = self.body.split("### 6 · ONE owner activation, before any write", 1)[1].split("### 7", 1)[0]
         rows = re.findall(r"(?m)^\| \*\*([a-z ]+)\*\* \|", activation)
