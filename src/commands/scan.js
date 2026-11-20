@@ -28,8 +28,10 @@
 // The salt in the macOS Keychain is read the way the prompt hook reads it, by clipboard_guard.py's own
 // SaltStore(interactive=False): a non-interactive lock probe through Security.framework, then a bounded
 // `security` read. Node has no such probe, so until the hook moves to Node this one step runs
-// clipboard_guard.py (python3 on PATH); without it the salt reads as unreadable and the NOTE says so.
-// The salt reaches this process on a pipe, never in an argument or a file. Reads files and git objects;
+// clipboard_guard.py: the first python3 on PATH (absolute entries only), run by its absolute path, isolated
+// (-I) and from clipboard_guard.py's own directory, so nothing in the scanned repository or on PYTHONPATH
+// is imported. Without python3 a NOTE says so and no term list is checked. The salt reaches this process
+// on a pipe, never in an argument or a file. Reads files and git objects;
 // writes nothing. node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -209,18 +211,25 @@ export function scanText(text, terms = new Set(), salt = null, lists = {}) {
 }
 
 /**
- * The salt for the term lists, or null, read without a prompt.
+ * The salt for the term lists, or null, read without a prompt; noPython when the Keychain read had no
+ * python3 to run it.
  * @param {Ctx} ctx
  * @param {Record<string, string>} conf
+ * @returns {{ salt: string | null, noPython?: boolean }}
  */
 function readSalt(ctx, conf) {
-  if (conf.salt_store !== 'keychain') return core.fileSalt(conf.salt_file);
+  if (conf.salt_store !== 'keychain') return { salt: core.fileSalt(conf.salt_file) };
   // Off macOS there is no Security.framework, and clipboard_guard.py's probe answers "unknown" there.
-  if (ctx.platform !== 'darwin' || !ctx.python) return null;
-  const p = spawnSync(ctx.python, ['-B', '-c', KEYCHAIN_READ, CLIPBOARD_DIR, conf.keychain_service, conf.keychain_path || ''],
-    { env: ctx.env, stdio: ['ignore', 'pipe', 'ignore'], timeout: 15000, shell: false, windowsHide: true, encoding: 'utf8' });
+  if (ctx.platform !== 'darwin') return { salt: null };
+  if (!ctx.python) return { salt: null, noPython: true };
+  // -I (isolated: no current directory, no PYTHONPATH, no user site on sys.path, no PYTHON* variable):
+  // the child imports hashlib, hmac, json, re, secrets, subprocess and unicodedata, and without it a
+  // module of one of those names in the scanned repository, or on PYTHONPATH, would run. The child also
+  // runs in clipboard_guard.py's own directory, never the scanned one. ctx.python is an absolute path.
+  const p = spawnSync(ctx.python, ['-I', '-B', '-c', KEYCHAIN_READ, CLIPBOARD_DIR, conf.keychain_service, conf.keychain_path || ''],
+    { cwd: CLIPBOARD_DIR, env: ctx.env, stdio: ['ignore', 'pipe', 'ignore'], timeout: 15000, shell: false, windowsHide: true, encoding: 'utf8' });
   const value = p.status === 0 && typeof p.stdout === 'string' ? p.stdout : '';
-  return /^[0-9a-f]{64}$/.test(value) ? value : null;
+  return { salt: /^[0-9a-f]{64}$/.test(value) ? value : null };
 }
 
 /**
@@ -242,8 +251,12 @@ function termDetector(ctx, conf) {
     }
   }
   if (!terms.size && !Object.values(lists).some((h) => h.size)) return [terms, null, lists];
-  const salt = readSalt(ctx, conf);
-  if (!salt) {
+  const { salt, noPython } = readSalt(ctx, conf);
+  if (!salt && noPython) {
+    ctx.out.push("NOTE    the term list's salt is in the Keychain and python3 was not found on PATH to read it "
+      + '(until the prompt hook moves to Node, clipboard_guard.py reads it); no term list was checked '
+      + '(employer-client-term, and the term half of health and colleague-name)\n');
+  } else if (!salt) {
     ctx.out.push("NOTE    the term list's salt could not be read without a prompt; no term list was checked "
       + '(employer-client-term, and the term half of health and colleague-name)\n');
   }

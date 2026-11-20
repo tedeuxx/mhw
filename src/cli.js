@@ -9,7 +9,10 @@
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
 // and `mhw scan` (#486).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
-// run by absolute path, never looked up on PATH. node: modules only (convention 5 of #470: this file is
+// this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
+// PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
+// does so for python3, which it runs isolated (-I) for the Keychain salt read (#486). node: modules only
+// (convention 5 of #470: this file is
 // on the hook path once `mhw hook prompt` moves here; test/deps-graph.test.js holds that).
 import fs from 'node:fs';
 import path from 'node:path';

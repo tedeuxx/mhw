@@ -142,12 +142,23 @@ export function ci(src) {
 const CI_TOKEN = /\\.|\{[^}]*\}|\[[^\]]*\]|[^]/gu;
 const LETTER = /^\p{L}$/u;
 
-/** A class under (?i): its letters' recorded sets added, everything else kept. @param {string} body */
+/**
+ * A class under (?i): its letters' recorded sets added, everything else kept. A range (an unescaped -
+ * between two members) throws: its letters would be taken one by one and the range dropped, so the class
+ * would silently match less. The patterns here use no range inside a ci() class; one that needs it must
+ * spell its letters out.
+ * @param {string} body
+ */
 function ciClass(body) {
   /** @type {Set<number>} */
   const set = new Set();
   let raw = '';
-  for (const tok of body.match(/\\.|[^]/gu) || []) {
+  const toks = body.match(/\\.|[^]/gu) || [];
+  const start = toks[0] === '^' ? 1 : 0;
+  if (toks.some((t, i) => t === '-' && i > start && i < toks.length - 1)) {
+    throw new Error('ci(): a range in a class is not supported: [' + body + ']');
+  }
+  for (const tok of toks) {
     if (LETTER.test(tok)) for (const cp of ignoreCaseSet(tok)) set.add(cp);
     else raw += tok;
   }

@@ -130,6 +130,16 @@ test('ci() refuses a letter it has no recorded set for, so a pattern never turns
   assert.equal(new RegExp('^' + clean.ci('a{2}') + '$', 'u').test('aA'), true);
 });
 
+test('ci() refuses a range inside a class, at load, rather than match less', () => {
+  for (const src of ['[a-c]', 'x[a-c]y', '[^a-c]', '[aá-c]']) assert.throws(() => clean.ci(src), /a range in a class is not supported/, src);
+  // A hyphen first, last, after the negation, or escaped is a literal, and the letters still expand.
+  for (const [src, yes, no] of /** @type {Array<[string, string, string]>} */ ([['[-a]', '-', 'b'], ['[a-]', 'A', 'b'], ['[^-a]', 'b', 'A'], [String.raw`[a\-c]`, 'C', 'b']])) {
+    const re = new RegExp('^' + clean.ci(src) + '$', 'u');
+    assert.ok(re.test(yes), src + ' accepts ' + yes);
+    assert.ok(!re.test(no), src + ' refuses ' + no);
+  }
+});
+
 test('py() keeps escapes it does not translate, and translates \\w \\d \\s inside a class', () => {
   assert.equal(clean.py(String.raw`\.\$`), String.raw`\.\$`);
   assert.ok(new RegExp('^[' + clean.py(String.raw`\d`).slice(1, -1) + ']$', 'u').test('٣'));

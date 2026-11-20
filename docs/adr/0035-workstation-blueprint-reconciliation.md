@@ -902,7 +902,9 @@ until their slices move. There is still one detector per runtime and one answer.
   line where Python crashed; a term list or salt file that is not ASCII reads as unreadable, with its
   NOTE, where Python crashed; the Keychain salt is read by a `python3` child running
   `clipboard_guard.py`'s own non-interactive `SaltStore`, because Node has no equivalent of its
-  Security.framework lock probe (no `python3`: the salt NOTE).
+  Security.framework lock probe. That child is isolated (`python3 -I`, run from `clipboard_guard.py`'s
+  own directory), so no module of the scanned repository or of `PYTHONPATH` runs; without `python3` a
+  NOTE names the missing interpreter. It ends when the prompt hook moves to Node and carries the probe.
 - **Fail-open, the main risk.** Python's `re` and JavaScript's `RegExp` disagree on `\w`, `\d`, `\s`,
   `\b`, case-insensitive matching, and on offsets (code points against UTF-16 units). `clean.js` uses
   none of JavaScript's own: every class, the ignore-case sets and `str.casefold()` are pinned to
