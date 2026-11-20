@@ -591,6 +591,73 @@ test('install.sh: invalid entries stop the run before anything is written', { sk
   }
 });
 
+/** A PATH with no node on it, or null when that would also lose jq (PR #519 lens B1). */
+function pathWithoutNode() {
+  const dirs = (process.env.PATH || '').split(path.delimiter).filter((d) => d && !fs.existsSync(path.join(d, 'node')));
+  const p = dirs.join(path.delimiter);
+  return dirs.some((d) => fs.existsSync(path.join(d, 'jq'))) ? p : null;
+}
+
+/** Every file under dir with its bytes. @param {string} dir */
+function snapshot(dir) {
+  return Object.fromEntries(filesUnder(dir).sort((a, b) => (a < b ? -1 : Number(a > b))).map((f) => [f, fs.readFileSync(f, 'latin1')]));
+}
+
+for (const tier of ['narrow', 'wide']) {
+  test('install.sh: an uninstall without a usable node never removes the floor from beside the allow list (' + tier + ', lens B1)', { skip: E2E }, (t) => {
+    const d = freshDir('b1-' + tier);
+    const h = path.join(d, 'home');
+    const root = path.join(d, 'root');
+    if (tier === 'wide') adminFloor(path.join(d, 'mgr'), root);
+    else fs.mkdirSync(root);
+    let r = install(h, ['--managed-root=' + root]);
+    assert.equal(r.code, 0, r.out);
+    assert.equal(permsOf(h + '/.claude/settings.json').has('defaultMode'), tier === 'wide');
+    const before = snapshot(h);
+    /** @type {Array<[string, Record<string, string>]>} */
+    const ways = [['MHW_NODE is not node', { MHW_NODE: '/usr/bin/true' }]];
+    const noNode = pathWithoutNode();
+    if (noNode) ways.push(['no node on PATH', { MHW_NODE: '', PATH: noNode }]);
+    else t.diagnostic('jq shares its directory with node here: the no-node-on-PATH arm did not run');
+    for (const [how, extra] of ways) {
+      r = install(h, ['--uninstall'], extra);
+      assert.equal(r.code, 2, how + r.out);
+      assert.match(r.out, /^REFUSE  uninstall: the allow list this installer wrote cannot be removed without node/m, how);
+      assert.deepEqual(snapshot(h), before, how + ': nothing uninstalled');
+    }
+    // With a node, the same uninstall removes both.
+    r = install(h, ['--uninstall']);
+    assert.equal(r.code, 0, r.out);
+    const s = h + '/.claude/settings.json';
+    if (fs.existsSync(s)) {
+      assert.ok(!allowOf(s).some((a) => a.startsWith('Bash(git ')), 'our allows left');
+      assert.ok(!settingsOf(s).has('personal-multi-harness-workstation-configuration-owned-allow'));
+    }
+    assert.ok(!fs.existsSync(h + '/.codex/rules/workstation-allow-list.rules'));
+  });
+}
+
+test('install.sh: an uninstall without node and nothing of the allow list left says so and goes on', { skip: E2E }, () => {
+  const d = freshDir('b1-none');
+  const h = path.join(d, 'home');
+  fs.mkdirSync(h + '/.claude', { recursive: true });
+  fs.writeFileSync(h + '/.claude/settings.json', '{"permissions": {"allow": ["Bash(make:*)"]}}\n');
+  const r = install(h, ['--uninstall'], { MHW_NODE: '/usr/bin/true' });
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /^REFUSE  the allow list: \/usr\/bin\/true did not run as node; nothing written$/m);
+  assert.doesNotMatch(r.out, /^REFUSE  uninstall:/m);
+});
+
+test('install.sh: a MHW_NODE that does not run as node is refused, never a silent success (lens A1)', { skip: E2E }, () => {
+  const d = freshDir('a1');
+  const h = path.join(d, 'home');
+  const r = install(h, ['--overlay=none', '--managed-root=' + d], { MHW_NODE: '/usr/bin/true' });
+  assert.notEqual(r.code, 0, r.out);
+  assert.match(r.out, /^REFUSE  the allow list: \/usr\/bin\/true did not run as node; nothing written$/m);
+  assert.ok(!fs.existsSync(h + '/.codex/rules/workstation-allow-list.rules'));
+  assert.ok(!fs.existsSync(h + '/.kiro/agents/workstation.json'));
+});
+
 test('install.sh: an absolute MHW_NODE that is not executable is refused and no allow file is written', { skip: E2E }, () => {
   const d = freshDir('badnode');
   const h = path.join(d, 'home');

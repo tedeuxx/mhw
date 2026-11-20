@@ -285,6 +285,10 @@ fi
 # refused, never replaced by another node (PR #515 lens A1). Without a node the list is neither checked
 # nor rendered: allow_step and allow_uninstall say so and nothing is written for it.
 allow_js="$script_dir/../src/render/allow-list.js"
+ALLOW_OWN_KEY="personal-multi-harness-workstation-configuration-owned-allow"
+allow_codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-allow-list.rules"
+allow_codex_profile="${CODEX_HOME:-$HOME/.codex}/workstation.config.toml"
+allow_kiro_agent="$HOME/.kiro/agents/workstation.json"
 allow_node=${MHW_NODE:-}
 allow_why=
 case $allow_node in
@@ -297,6 +301,11 @@ case $allow_why$allow_node in
   REFUSE*|/*) ;;
   *) allow_why="SKIP    the allow list: node (26 or later) is required" ;;
 esac
+# The node must answer as node, so a program that exits 0 and prints nothing (MHW_NODE=/usr/bin/true)
+# never reads as an allow step that ran (PR #519 lens A1).
+if [ -z "$allow_why" ] && [ "$("$allow_node" -e 'process.stdout.write("mhw-node-ok")' 2>/dev/null || true)" != mhw-node-ok ]; then
+  allow_why="REFUSE  the allow list: $allow_node did not run as node; nothing written"
+fi
 if [ -z "$allow_why" ]; then
   "$allow_node" "$allow_js" --phase=parse "--source=$script_dir/allow-list.conf" "--overlay=$overlay" \
     "--floor-codex=$floor_codex" || exit 2
@@ -1130,7 +1139,22 @@ allow_step() {
 # Uninstall: our files go, and only the allow rules and permission mode this installer added leave
 # settings.json (a rule the owner wrote himself stays).
 allow_uninstall() {
-  if [ -n "$allow_why" ]; then echo "$allow_why"; raise 2; return 0; fi
+  if [ -n "$allow_why" ]; then
+    # Nothing to remove: say why the step did not run, and go on. Something of ours left: uninstall_user
+    # would take the deny floor out from beside our allow rules (PR #519 lens B1), so nothing is
+    # uninstalled at all.
+    if { [ -f "$settings" ] && grep -qF "\"$ALLOW_OWN_KEY\"" "$settings"; } \
+       || { [ -f "$allow_codex_rules" ] && is_managed "$allow_codex_rules"; } \
+       || { [ -f "$allow_codex_profile" ] && is_managed "$allow_codex_profile"; } \
+       || { [ -f "$allow_kiro_agent" ] && is_managed "$allow_kiro_agent"; }; then
+      echo "$allow_why" >&2
+      echo "REFUSE  uninstall: the allow list this installer wrote cannot be removed without node, and the deny floor must not leave from beside it; nothing uninstalled" >&2
+      exit 2
+    fi
+    echo "$allow_why"
+    raise 2
+    return 0
+  fi
   "$allow_node" "$allow_js" --phase=uninstall "--settings=$settings" "--home=$HOME" "--codex-home=${CODEX_HOME:-}" || raise $?
 }
 if [ "$mode" = uninstall ]; then
