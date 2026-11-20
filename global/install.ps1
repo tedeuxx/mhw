@@ -497,7 +497,7 @@ if ($modelsRefused) {
 
 # The user-level Claude Code allow entries the policy retired (ADR-0035 decision 4: find and awk, every
 # wildcard spelling), listed in global\allow-retired.conf: removed by name from permissions.allow only, as
-# install.sh's allow_retire does, with the previous file kept as settings.json.pmhwc-allow-backup. Nothing
+# install.sh's allow-list step does (src/render/allow-list.js), with the previous file kept as settings.json.pmhwc-allow-backup. Nothing
 # else is removed; install.ps1 renders no allow list of its own (ADR-0031 is POSIX only).
 function Remove-RetiredAllow([string]$settings) {
     $src = Join-Path $scriptDir 'allow-retired.conf'
