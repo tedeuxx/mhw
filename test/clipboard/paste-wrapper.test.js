@@ -83,9 +83,9 @@ function envFor(home) {
 // ------------------------------------------------------------------------------------ no pty needed
 
 test('the pty loader names why it cannot be used, and never throws', () => {
-  const linux = loadPty({ env: {}, platform: 'linux', arch: 'x64' });
-  assert.equal(linux.ok, false);
-  assert.match(/** @type {any} */ (linux).reason, /^node-pty 1\.1\.0 has no prebuild for linux-x64 in this package \(macOS only\)$/);
+  const other = loadPty({ env: {}, platform: 'freebsd', arch: 'x64' });
+  assert.equal(other.ok, false);
+  assert.match(/** @type {any} */ (other).reason, /^node-pty 1\.1\.0 has no prebuild for freebsd-x64 in this package$/);
   const win = loadPty({ env: {}, platform: 'win32', arch: 'x64' });
   assert.match(/** @type {any} */ (win).reason, /no prebuild for win32-x64/);
   assert.match(/** @type {any} */ (loadPty({ env: { MHW_PTY_MODULE: 'relative.js' } })).reason, /not an absolute path/);
@@ -188,11 +188,20 @@ test('usage, an unknown flag, a missing program', () => {
   const help = spawnSync(process.execPath, [MHW, 'paste-wrapper', '--help'], { encoding: 'utf8' });
   assert.equal(help.status, 0);
   assert.match(help.stdout, /^usage:\n {2}mhw paste-wrapper run /);
-  assert.equal(spawnSync(process.execPath, [MHW, 'paste-wrapper'], { encoding: 'utf8' }).status, 2);
+  const bare = spawnSync(process.execPath, [MHW, 'paste-wrapper'], { encoding: 'utf8' });
+  assert.equal(bare.status, 2);
+  assert.match(bare.stdout, /^usage:\n/, 'usage on stdout, as paste_wrapper.py wrote it');
+  assert.equal(bare.stderr, '');
+  assert.equal(spawnSync(process.execPath, [MHW, 'paste-wrapper', 'nope'], { encoding: 'utf8' }).stdout.startsWith('usage:'), true);
   const flag = spawnSync(process.execPath, [MHW, 'paste-wrapper', 'run', '--nope', '--', 'x'], { encoding: 'utf8' });
   assert.equal(flag.status, 2);
   assert.match(flag.stderr, /unknown or incomplete argument: --nope/);
   assert.equal(spawnSync(process.execPath, [MHW, 'paste-wrapper', 'run', '--grace', 'soon', '--', 'x'], { encoding: 'utf8' }).status, 2);
+  // --grace takes what Python's float() takes (QA B3): these reach the program lookup, past the flags.
+  for (const g of ['.5', '1e1', '2.', ' 3 ', '+1', 'inf']) {
+    const p = spawnSync(process.execPath, [MHW, 'paste-wrapper', 'run', '--grace', g, '--', 'no-such-cli-pmhwc'], { encoding: 'utf8', env: envFor(fresh()) });
+    assert.equal(p.status, 127, g + ': ' + p.stderr);
+  }
   assert.equal(spawnSync(process.execPath, [MHW, 'paste-wrapper', 'run', '--'], { encoding: 'utf8' }).status, 2);
   const r = spawnSync(process.execPath, [MHW, 'paste-wrapper', 'run', '--', 'no-such-cli-pmhwc'], { encoding: 'utf8', env: envFor(fresh()) });
   assert.equal(r.status, 127);
@@ -252,6 +261,30 @@ test('a report-only category is forwarded and counted; a paste is cleaned around
   const [out, cats] = clean(raw);
   assert.deepEqual(cats, ['email']);
   assert.deepEqual(out, Buffer.concat([Buffer.from([0xff, 0xc3]), Buffer.from(' [REDACTED:email] '), Buffer.from([0xed, 0xa0, 0x80])]));
+});
+
+test('Python\'s float() for --grace', () => {
+  assert.equal(w.pyFloat('.5'), 0.5);
+  assert.equal(w.pyFloat('1e1'), 10);
+  assert.equal(w.pyFloat(' -2.5E-1 '), -0.25);
+  assert.equal(w.pyFloat('Infinity'), Infinity);
+  assert.ok(Number.isNaN(/** @type {number} */ (w.pyFloat('nan'))));
+  for (const bad of ['', '.', 'e1', '1e', '1_0', 'soon', '0x10', '1.2.3']) assert.equal(w.pyFloat(bad), null, bad);
+});
+
+test('the mode tracker: a split mode-2004 sequence, a list of modes, another mode (port of test_mode_tracker)', () => {
+  const m = new w.ModeTracker();
+  m.feed(Buffer.from('xx\x1b[?20', 'latin1'));
+  assert.equal(m.ever, false);
+  m.feed(Buffer.from('04hyy', 'latin1'));
+  assert.ok(m.enabled && m.ever, 'a sequence split across two reads was not recognised');
+  m.feed(Buffer.from('\x1b[?1004;2004l', 'latin1'));
+  assert.equal(m.enabled, false);
+  assert.equal(m.ever, true);
+  m.feed(Buffer.from('\x1b[?25h zz', 'latin1'));
+  assert.equal(m.enabled, false, 'another mode changed the state');
+  m.feed(Buffer.from('\x1b[?2004h', 'latin1'));
+  assert.equal(m.enabled, true);
 });
 
 test('the Python notice templates: placeholders, escapes, and the default for a bad one', () => {
@@ -470,6 +503,8 @@ test('live: SIGTERM to the wrapper is forwarded to the CLI', { skip: LIVE }, asy
   await s.ready();
   process.kill(s.term.pid, 'SIGTERM');
   assert.equal(await s.finish(), 128 + os.constants.signals.SIGTERM);
+  // The CLI received the signal itself: a wrapper that died instead of forwarding leaves no such line.
+  assert.match(s.events(), /^SIGNAL SIGTERM$/m);
 });
 
 test('live: Ctrl-C reaches the CLI as SIGINT through its own terminal', { skip: LIVE }, async (t) => {

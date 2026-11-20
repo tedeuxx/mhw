@@ -760,6 +760,23 @@ function windowSize(out) {
   return [80, 24];
 }
 
+/**
+ * Python's float() for --grace (PR #521 QA B3): decimal and exponent forms (".5", "1e1", "2."), a sign,
+ * surrounding blanks, inf/infinity and nan in any case; null for anything else. Python also accepts digit
+ * groups with underscores ("1_0"); they are refused here (test/golden/S16/expected-differences.json).
+ * @param {string} s
+ * @returns {number | null}
+ */
+export function pyFloat(s) {
+  const t = s.trim().toLowerCase();
+  const body = t.startsWith('+') || t.startsWith('-') ? t.slice(1) : t;
+  const sign = t.startsWith('-') ? -1 : 1;
+  if (body === 'inf' || body === 'infinity') return sign * Infinity;
+  if (body === 'nan') return Number.NaN;
+  if (!/^(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/.test(body)) return null;
+  return sign * Number(body);
+}
+
 const USAGE = 'usage:\n'
   + '  mhw paste-wrapper run [--config FILE] [--grace SECONDS] -- <program> [args...]\n'
   + '  mhw paste-wrapper check\n'
@@ -856,9 +873,9 @@ export function main(argv, env, opts = {}) {
     return 1;
   }
   if (!argv.length || argv[0] !== 'run') {
-    const help = argv[0] === '-h' || argv[0] === '--help';
-    (help ? process.stdout : process.stderr).write(USAGE);
-    return help ? 0 : 2;
+    // On stdout, help or not, as paste_wrapper.py wrote it (PR #521 QA B3); exit 0 only for help.
+    process.stdout.write(USAGE);
+    return argv[0] === '-h' || argv[0] === '--help' ? 0 : 2;
   }
   const args = argv.slice(1);
   let config = null;
@@ -866,7 +883,7 @@ export function main(argv, env, opts = {}) {
   while (args.length && args[0] !== '--') {
     const flag = /** @type {string} */ (args.shift());
     if (flag === '--config' && args.length) config = /** @type {string} */ (args.shift());
-    else if (flag === '--grace' && args.length && /^\d+(?:\.\d+)?$/.test(args[0])) grace = Number(args.shift());
+    else if (flag === '--grace' && args.length && pyFloat(args[0]) !== null) grace = /** @type {number} */ (pyFloat(/** @type {string} */ (args.shift())));
     else {
       err.write('unknown or incomplete argument: ' + flag + '\n');
       return 2;

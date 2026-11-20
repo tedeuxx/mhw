@@ -18,6 +18,12 @@ process.on('SIGWINCH', () => {
   // process.stdout's size is refreshed on the same signal; read it on the next tick.
   setImmediate(() => event('WINCH ' + size()));
 });
+// A forwarded SIGTERM is recorded before the exit, so a test can tell forwarding apart from the wrapper
+// dying on its own (PR #521 QA pw12).
+process.on('SIGTERM', () => {
+  event('SIGNAL SIGTERM');
+  process.exit(143);
+});
 event('START ' + size());
 event('MARKER ' + JSON.stringify(process.env.PMHWC_PASTE_WRAPPER ?? null));
 if (mode !== 'nobp') fs.writeSync(1, '\x1b[?2004h');
