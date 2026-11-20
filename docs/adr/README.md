@@ -33,8 +33,13 @@ Each is raised one at a time, when a slice reaches it.
    local containers, cloud-ready, a web console. A new idea, not yet a slice; it goes through the
    requirements route first.
 5. **Ratify ADR-0043** ([#522](https://github.com/tedeuxx/mhw/issues/522)): the batch confirmation
-   for backlog grooming and its safeguards. Since 2026-11-20 it is the one record in this index that is
-   proposed. The switch to `scrum` it records is already the owner's ruling.
+   for backlog grooming and its safeguards. ~~Since 2026-11-20 it is the one record in this index that is
+   proposed.~~ It is proposed, as is ADR-0042 (ask 6). The switch to `scrum` it records is already the
+   owner's ruling.
+6. **Ratify ADR-0042** ([#487](https://github.com/tedeuxx/mhw/issues/487), PR #521): node-pty 1.1.0
+   vendored as the paste wrapper's pty, with the macOS binaries byte-identical to npm and the Linux ones
+   built by this repository's CI from the pinned source (no npm integrity covers those). The Linux build
+   is already the owner's decision on PR #521; the record as a whole is proposed.
 
 ## Index
 
