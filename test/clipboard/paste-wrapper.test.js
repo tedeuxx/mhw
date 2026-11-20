@@ -141,6 +141,41 @@ test('mhw status names the pty library: ok here, FAIL with the reason where it c
   assert.match(w.statusLine({}, 'win32'), /^PASTE   n\/a   .*not measured \(D7\)$/);
 });
 
+test('mhw status says PASTE FAIL when the installed shell functions name a node or an mhw that is gone (PR #521 lens A1)', { skip: !POSIX && 'no shell functions on Windows' }, () => {
+  const home = fresh();
+  const data = path.join(home, 'xdg', core.PROJECT);
+  fs.mkdirSync(data, { recursive: true });
+  const env = { HOME: home, XDG_DATA_HOME: path.join(home, 'xdg') };
+  /** @param {string} node @param {string} mhw */
+  const snippet = (node, mhw) => fs.writeFileSync(path.join(data, w.SNIPPET), '# managed-by: x\n'
+    + ['claude', 'codex', 'kiro-cli'].map((c) => c + '() { "' + node + '" "' + mhw + '" paste-wrapper run --config "/c" -- ' + c + ' "$@"; }').join('\n') + '\n');
+  assert.equal(w.snippetProblem(env, 'darwin'), null, 'no snippet: nothing to check');
+  snippet(process.execPath, MHW);
+  assert.equal(w.snippetProblem(env, 'darwin'), null);
+  assert.doesNotMatch(w.statusLine(env, 'darwin'), /shell functions name/);
+  const gone = path.join(home, 'Cellar', 'node', '25.0.0', 'bin', 'node');
+  snippet(gone, MHW);
+  assert.equal(w.statusLine(env, 'darwin'), 'PASTE   FAIL  the paste wrapper\'s shell functions name node ' + gone
+    + ', which is not an executable file any more; claude, codex and kiro-cli started through them fail to start. Run mhw install to render them again');
+  snippet(process.execPath, path.join(home, 'old', 'bin', 'mhw.js'));
+  assert.match(w.statusLine(env, 'darwin'), /^PASTE   FAIL  the paste wrapper's shell functions name mhw at .*old\/bin\/mhw\.js, which is not there any more;/);
+  // The Python form an earlier install rendered is not this check's subject.
+  fs.writeFileSync(path.join(data, w.SNIPPET), 'claude() { /usr/bin/python3 -I -B "/gone/paste_wrapper.py" run -- claude "$@"; }\n');
+  assert.equal(w.snippetProblem(env, 'darwin'), null);
+});
+
+test('a spawn that fails after the pty loads is refused, exit 126, and starts nothing', () => {
+  const d = fresh();
+  const stub = path.join(d, 'throwing-pty.cjs');
+  fs.writeFileSync(stub, 'module.exports = { spawn() { throw new Error("posix_spawnp failed."); } };\n');
+  const marker = path.join(d, 'started');
+  const r = spawnSync(process.execPath, [DRIVER, 'run', '--config', confIn(d), '--', process.execPath, '-e',
+    'require("node:fs").writeFileSync(' + JSON.stringify(marker) + ', "")'], { env: { ...envFor(d), MHW_PTY_MODULE: stub }, encoding: 'utf8' });
+  assert.equal(fs.existsSync(marker), false, 'the CLI ran unwrapped');
+  assert.equal(r.status, w.REFUSED, r.stderr);
+  assert.match(r.stderr, /was NOT started: the paste wrapper needs its pty library and the spawn failed \(posix_spawnp failed\.\)\. Run `command node(\.exe)?`/);
+});
+
 test('mhw paste-wrapper check answers whether the pty loads', () => {
   const ok = spawnSync(process.execPath, [MHW, 'paste-wrapper', 'check'], { encoding: 'utf8', env: envFor(fresh()) });
   assert.equal(ok.status, PTY.ok ? 0 : 1, ok.stderr);

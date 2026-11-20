@@ -32,10 +32,22 @@ choice:
 ## Considered options
 
 1. **node-pty 1.1.0 (Microsoft, MIT), vendored: the five `lib/` files the POSIX path loads and the
-   `darwin-arm64` and `darwin-x64` prebuilds (`pty.node`, `spawn-helper`).** *Chosen.* The most widely
-   used maintained pty library for Node. Its prebuilds are N-API, so they do not depend on the Node ABI.
-   - Good: nothing runs at install; the git route needs nothing from the registry; the vendored bytes are
-     held equal to the pinned package (`test/vendor.test.js`).
+   `darwin-arm64` and `darwin-x64` prebuilds (`pty.node`, `spawn-helper`).** *Chosen.* The maintained pty
+   library for Node that the Visual Studio Code terminal uses (as node-pty's README states); how widely it is used compared with others
+   was not measured. Its prebuilds are built on N-API (`node-addon-api`). The vendored module loaded and
+   passed the live relay tests on Node 25.9.0 (locally) and 26.13.1 (CI): two versions, which is
+   evidence and not a proof that the module is independent of the Node ABI.
+   - Good: the vendored bytes are held equal to the pinned package (`test/vendor.test.js`).
+   - Good: no script of node-pty runs at install. **Measured once** on macOS, npm 11.13.0, the
+     `git+file` route, both offline and online.
+     - npm's git-dependency preparation (pacote `lib/git.js`, `#prepareDir`) does run
+       `npm install --force … --include=dev` in the clone, because mhw has a `postinstall`.
+     - That inner run inherits `npm_config_global=true` from the outer global install. So it installs
+       the clone as a global package and fetches no dependency tree: the clone ends with no
+       `node_modules`, and the npm cache holds no `node-pty` entry.
+     - The probe preloaded a module into each node process. In the inner run it recorded argv, the
+       directory and `node_modules`, and set `npm_config_ignore_scripts`, so no downloaded script could run.
+     - The `github:` route itself, and Linux, were not measured.
    - Bad: about 200 KB of binaries in the repository; no Linux prebuild exists in the package, so on
      Linux the wrapper refuses (below); Windows binaries are not vendored (D7).
 2. **node-pty as an npm dependency.** Rejected: unmet on the git install route (#472); with scripts it

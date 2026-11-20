@@ -20,7 +20,10 @@
 //     replaced by a one-line notice instead of being forwarded unchecked. "Never" holds for a paste whose
 //     start marker arrives as one piece, or split at any byte with the pieces at most
 //     HOLD_SEQUENCE_SECONDS apart; a split marker whose halves are further apart than that is not
-//     recognised and its paste passes as typing (stated in ADR-0011's limits);
+//     recognised and its paste passes as typing (stated in ADR-0011's limits). Two more shapes pass
+//     unchecked, in the Python original too (PR #521 lens, ADR-0033 limits): a paste that stalls longer
+//     than PASTE_IDLE_SECONDS partway is closed there, and the rest passes as typing; and a payload that
+//     carries its own end marker ends the paste there, and the bytes after it pass as typing;
 //   - it writes NO file, keeps no log or record of what matched (ADR-0005), never reads or writes the
 //     system clipboard, and calls no dialog, notification or launchd tool;
 //   - window size, the four forwarded signals, the CLI stopping (job control), the terminal mode and the
@@ -762,6 +765,44 @@ const USAGE = 'usage:\n'
   + '  mhw paste-wrapper check\n'
   + 'Runs <program> on a pseudo-terminal and cleans bracketed pastes before it sees them (ADR-0033).\n';
 
+export const SNIPPET = 'paste-filter.sh';
+// One function line of the snippet install.sh renders: <cli>() { "<node>" "<mhw.js>" paste-wrapper run ...
+const SNIPPET_LINE = /^(?:claude|codex|kiro-cli)\(\) \{ "([^"]+)" "([^"]+)" paste-wrapper run /;
+
+/**
+ * What the installed snippet's function lines name that is no longer there (PR #521 lens A1: the node it
+ * pins can be a versioned path an upgrade removes), or null: no snippet, an earlier snippet's form, or
+ * every named file present. A read only.
+ * @param {Record<string, string | undefined>} env
+ * @param {string} platform
+ * @returns {string | null}
+ */
+export function snippetProblem(env, platform) {
+  let text;
+  try {
+    text = fs.readFileSync(path.join(core.dataDir(env, platform), SNIPPET), 'utf8');
+  } catch {
+    return null;
+  }
+  for (const line of text.split('\n')) {
+    const m = SNIPPET_LINE.exec(line);
+    if (!m) continue;
+    if (!runnableFile(m[1])) return 'node ' + m[1] + ', which is not an executable file any more';
+    if (!fs.existsSync(m[2])) return 'mhw at ' + m[2] + ', which is not there any more';
+  }
+  return null;
+}
+
+/** @param {string} p */
+function runnableFile(p) {
+  try {
+    fs.accessSync(p, fs.constants.X_OK);
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The PASTE line of `mhw status`: whether the wrapper can run here.
  * @param {Record<string, string | undefined>} env
@@ -770,6 +811,11 @@ const USAGE = 'usage:\n'
 export function statusLine(env, platform = process.platform) {
   if (platform === 'win32') {
     return 'PASTE   n/a   the paste wrapper is not installed on Windows; whether it works there is not measured (D7)';
+  }
+  const pinned = snippetProblem(env, platform);
+  if (pinned) {
+    return 'PASTE   FAIL  the paste wrapper\'s shell functions name ' + pinned + '; claude, codex and kiro-cli started '
+      + 'through them fail to start. Run mhw install to render them again';
   }
   const p = loadPty({ env, platform });
   if (p.ok) return 'PASTE   ok    the paste wrapper loads its pty library (' + PTY_NAME + ')';

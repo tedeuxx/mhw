@@ -249,6 +249,26 @@ So on Linux the shell functions no longer start the CLI; `command <cli>` does, a
 checks. Windows is not measured (D7). Evidence level: *written and tested* (the live relay tests run on
 macOS through the vendored pty); not installed on the reference machine.
 
+*Amended the same day, PR #521 lens:*
+
+- **The Linux refusal is the owner's decision.** It is an escalation on PR #521. Until he answers, the
+  Linux behaviour above stands as written.
+- **Two pasted shapes reach the CLI unchecked.** Both are inherited: the lens's probe found the base
+  Python wrapper (`rc/next` at `478f9de`) forwarding them in the same way, so they are limits of the
+  design, not of the port.
+  1. A paste that stalls longer than `PASTE_IDLE_SECONDS` (2 s) partway through its payload is closed
+     and cleaned as it stands. The rest of the payload then passes as typing.
+  2. A payload that carries its own end marker (`ESC[201~`) ends the paste there. The bytes after it
+     pass as typing.
+
+  The "never forwarded" property in the wrapper's header holds only outside these two shapes and the
+  split-marker case already stated. Whether the owner's terminal strips `ESC[201~` from clipboard text
+  is not measured.
+- **The shell functions name node on `PATH` when it is the same file as the node running mhw.** This is
+  ADR-0017's rule. Before it, they pinned the versioned Homebrew path, which an upgrade removes.
+- **`mhw status` checks the installed functions.** It prints `PASTE FAIL` when the node or the `mhw.js`
+  they name is gone.
+
 ## Links
 
 - ADR-0011 (superseded; the history). ADR-0005 (no log). ADR-0008 (no persistence). ADR-0025 (admin

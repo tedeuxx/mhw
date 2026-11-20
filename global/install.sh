@@ -293,9 +293,34 @@ if [ -n "$overlay" ] && [ -f "$overlay/clipboard.conf" ]; then cat "$overlay/cli
 # special there, or in JSON, is refused rather than mis-quoted.
 paste_ok=1
 # The paste wrapper's command (#487): the node that runs mhw (MHW_NODE, set by bin/mhw.js; an absolute
-# path), else the first node on PATH, and this package's bin/mhw.js, both by absolute path.
+# path), else the first node on PATH, and this package's bin/mhw.js, both by absolute path. The rule of
+# ADR-0017 for the MCP launcher (PR #516 lens A1): MHW_NODE is process.execPath, the resolved, versioned
+# path (a Homebrew Cellar directory an upgrade removes), so node on PATH is rendered when it is the same
+# file. An absolute MHW_NODE that is not an executable file is refused, never replaced by another node
+# (the models_step lookup, PR #515 lens A1); the snippet is then not written.
 wrap_node=${MHW_NODE:-}
-if [ "${wrap_node#/}" = "$wrap_node" ]; then wrap_node=$(command -v node 2>/dev/null || true); fi
+wrap_path_node=$(command -v node 2>/dev/null || true)
+wrap_refused=0
+case $wrap_node in
+  /*)
+    if [ ! -f "$wrap_node" ] || [ ! -x "$wrap_node" ]; then
+      wrap_refused=1
+      wrap_node=
+    else
+      case $wrap_path_node in
+        /*)
+          # The same file: node itself compares the two resolved paths (test -ef is not POSIX sh).
+          if "$wrap_node" -e 'const f = require("node:fs"); process.exit(f.realpathSync(process.argv[1]) === f.realpathSync(process.argv[2]) ? 0 : 1)' \
+              "$wrap_path_node" "$wrap_node" 2>/dev/null; then
+            wrap_node=$wrap_path_node
+          fi
+          ;;
+        *) ;;
+      esac
+    fi
+    ;;
+  *) wrap_node=$wrap_path_node ;;
+esac
 wrap_mhw="$repo_root/bin/mhw.js"
 case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`]*) paste_ok=0 ;; esac
 paste_cmd() {
@@ -1151,7 +1176,11 @@ if [ "$paste_ok" = 1 ]; then
       ;;
     *)
       raise 2
-      echo "SKIP    $snippet_dest: the paste wrapper needs node (26 or later), and none was found; the prompt hook still checks"
+      if [ "$wrap_refused" = 1 ]; then
+        echo "REFUSE  $snippet_dest: MHW_NODE (${MHW_NODE:-}) is not an executable file; the paste wrapper's snippet is not written, the prompt hook still checks"
+      else
+        echo "SKIP    $snippet_dest: the paste wrapper needs node (26 or later), and none was found; the prompt hook still checks"
+      fi
       ;;
   esac
 else

@@ -422,6 +422,40 @@ if head -n 1 "$sn" | grep -q '^# managed-by: personal-multi-harness-workstation-
 else
   ko "the snippet is wrong"
 fi
+# PR #521 lens A1: MHW_NODE is the resolved, versioned node path (a Homebrew Cellar directory an upgrade
+# removes). When node on PATH is the same file, the snippet names node on PATH (ADR-0017's rule); a
+# different file keeps MHW_NODE; an MHW_NODE that is not an executable file is refused and no snippet is
+# written. The "versioned" node is a symlink to the real one in a throwaway directory.
+nb="$base/node-pin"; mkdir -p "$nb/cellar/26.0.0/bin" "$nb/bin" "$nb/other"
+real_node=$(node -p process.execPath)
+ln -s "$real_node" "$nb/cellar/26.0.0/bin/node"
+ln -s "$nb/cellar/26.0.0/bin/node" "$nb/bin/node"
+hn="$base/home-node-same"; mkdir -p "$hn"
+HOME="$hn" MHW_NODE="$nb/cellar/26.0.0/bin/node" PATH="$nb/bin:$PATH" sh "$inst" > "$base/node-same.out" 2>&1
+if grep -qF "claude() { \"$nb/bin/node\" \"$wrap_mhw\" paste-wrapper run " "$(data "$hn")/paste-filter.sh" \
+   && ! grep -qF "$nb/cellar" "$(data "$hn")/paste-filter.sh"; then
+  ok "the snippet names node on PATH when it is the same file as MHW_NODE, not the versioned path"
+else
+  ko "the snippet pins the versioned node path: $(grep '^claude()' "$(data "$hn")/paste-filter.sh")"
+fi
+printf '#!/bin/sh\nexit 0\n' > "$nb/other/node"; chmod 755 "$nb/other/node"
+hd="$base/home-node-different"; mkdir -p "$hd"
+HOME="$hd" MHW_NODE="$real_node" PATH="$nb/other:$PATH" sh "$inst" > "$base/node-different.out" 2>&1
+if grep -qF "claude() { \"$real_node\" \"$wrap_mhw\" paste-wrapper run " "$(data "$hd")/paste-filter.sh"; then
+  ok "a different node on PATH leaves the snippet on MHW_NODE"
+else
+  ko "the snippet took another node than MHW_NODE: $(grep '^claude()' "$(data "$hd")/paste-filter.sh")"
+fi
+hx="$base/home-node-refused"; mkdir -p "$hx"
+printf 'not a program\n' > "$nb/not-node"
+# --overlay=none: the profile compiler would otherwise run MHW_NODE first and stop the install there.
+HOME="$hx" MHW_NODE="$nb/not-node" sh "$inst" --overlay=none > "$base/node-refused.out" 2>&1; rc=$?
+if [ "$rc" -eq 2 ] && [ ! -e "$(data "$hx")/paste-filter.sh" ] \
+   && grep -qF "REFUSE  $(data "$hx")/paste-filter.sh: MHW_NODE ($nb/not-node) is not an executable file" "$base/node-refused.out"; then
+  ok "an MHW_NODE that is not an executable file is refused, exit 2, and no snippet is written"
+else
+  ko "a non-executable MHW_NODE was not refused (exit $rc)"
+fi
 # An earlier install's Python wrapper (managed) is retired by the next install; an unmanaged file stays.
 hr="$base/home-retire"; mkdir -p "$(data "$hr")"
 printf '#!/usr/bin/python3\n# managed-by: personal-multi-harness-workstation-configuration; source: global/clipboard/paste_wrapper.py\n' > "$(data "$hr")/paste_wrapper.py"
