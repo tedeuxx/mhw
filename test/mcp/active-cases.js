@@ -261,7 +261,7 @@ export const CASES = [
   },
   {
     name: 'connect-http',
-    setup: (w) => source(w, { version: 1, active_set: {}, servers: Object.fromEntries(['h-ok', 'h-login', 'h-bare', 'h-empty', 'h-404', 'h-500', 'h-sse', 'h-sse-post', 'h-302', 'h-307', 'h-loop', 'h-closed', 'h-env', 'h-header'].map((n) => [n, { command: '/bin/echo' }])) }),
+    setup: (w) => source(w, { version: 1, active_set: {}, servers: Object.fromEntries(['h-ok', 'h-login', 'h-bare', 'h-empty', 'h-404', 'h-500', 'h-sse', 'h-sse-post', 'h-302', 'h-307', 'h-loop', 'h-closed', 'h-env', 'h-header', 'h-userinfo', 'h-redir-userinfo'].map((n) => [n, { command: '/bin/echo' }])) }),
     steps: [
       { args: [] },
       {
@@ -284,6 +284,8 @@ export const CASES = [
             'h-closed': { type: 'http', url: w.closed + '/mcp' },
             'h-env': { type: 'http', url: '${SYNTH_HOST_URL}/ok' },
             'h-header': { type: 'http', url: w.url + '/ok', headers: { 'X-Synth-Auth': CANARY } },
+            'h-userinfo': { type: 'http', url: w.url.replace('//', '//synthuser:' + CANARY + '@') + '/ok' },
+            'h-redir-userinfo': { type: 'sse', url: w.url + '/touser' },
           };
           for (const f of [t(w).cc, t(w).kiro]) {
             const d = readJ(w, f);

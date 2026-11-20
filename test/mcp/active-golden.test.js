@@ -46,12 +46,13 @@ before(async () => {
   server = http.createServer((req, res) => {
     seenHeaders.push({ ...req.headers });
     /** @type {Record<string, number>} */
-    const codes = { '/ok': 200, '/login': 401, '/bare401': 401, '/empty401': 401, '/missing': 404, '/boom': 500, '/sse': req.method === 'GET' ? 200 : 405, '/redir302': 302, '/redir307': 307, '/loop': 302 };
+    const codes = { '/ok': 200, '/login': 401, '/bare401': 401, '/empty401': 401, '/missing': 404, '/boom': 500, '/sse': req.method === 'GET' ? 200 : 405, '/redir302': 302, '/redir307': 307, '/loop': 302, '/touser': 302 };
     const code = codes[String(req.url)] || 404;
     if (req.url === '/login') res.setHeader('WWW-Authenticate', 'Bearer resource_metadata="x"');
     if (req.url === '/empty401') res.setHeader('WWW-Authenticate', '');
     if (req.url === '/redir302' || req.url === '/redir307') res.setHeader('Location', '/ok');
     if (req.url === '/loop') res.setHeader('Location', '/loop');
+    if (req.url === '/touser') res.setHeader('Location', URL_BASE.replace('//', '//synthuser:' + CANARY + '@') + '/ok');
     req.resume();
     res.writeHead(code);
     res.end('BODY-CANARY-' + CANARY);
@@ -120,7 +121,7 @@ async function play(c, side) {
   const w = { home, data, base, url: URL_BASE, closed: CLOSED };
   c.setup?.(w);
   /** @type {Array<[string, string]>} */
-  const subs = [[home, '<HOME>'], [base, '<BASE>'], [NODE, '<NODE>'], [side.root, '<ROOT>'], [URL_BASE, '<URL>'], [CLOSED, '<CLOSED>']];
+  const subs = [[home, '<HOME>'], [base, '<BASE>'], [NODE, '<NODE>'], [side.root, '<ROOT>'], [URL_BASE, '<URL>'], [CLOSED, '<CLOSED>'], [URL_BASE.slice('http://'.length), '<HOST:PORT>']];
   if (STABLE_NODE) subs.push([STABLE_NODE, '<NODE>']);
   /** @param {string} s */
   const fill = (s) => s.replaceAll('<BASE>', base).replaceAll('<DATA>', data).replaceAll('<URL>', URL_BASE);
@@ -160,6 +161,7 @@ test('golden: the Node active set and connection check match the transcripts of 
   for (const c of CASES) diffs.push(...differences(c.name, readGolden(SLICE, goldenName(c.name)), await play(c, HEAD)));
   assert.deepEqual(diffs, []);
   assert.ok(!JSON.stringify(seenHeaders).includes(CANARY), 'a configured header was sent');
+  assert.ok(seenHeaders.every((r) => !('authorization' in r)), 'an Authorization header was sent (lens F1, PR #530)');
 });
 
 test('live: mcp_active.py and mcp_connect.py of the base revision, side by side with the head', async (t) => {

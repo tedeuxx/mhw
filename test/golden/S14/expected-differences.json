@@ -61,7 +61,7 @@
     "head": "(?!)",
     "replace": "",
     "kind": "not in a transcript",
-    "why": "The http and sse probes: urllib used the proxy environment (http_proxy, https_proxy, no_proxy, and the macOS system proxy settings) and the OpenSSL certificate store of the Python it ran on; the Node probe connects directly and verifies TLS against Node's bundled certificate store. A redirect to an ftp: URL was followed by urllib and is fail: http <status> here, and a first URL with a scheme other than http or https (file:, ftp:) is fail: unreachable here, where urllib opened it (and, for file:, crashed reading its status). Header names are sent as written (User-Agent) where urllib capitalised them (User-agent); HTTP header names are case-insensitive. The request still carries no configured header, its User-Agent, Accept, Content-Type, Accept-Encoding: identity and Connection: close as urllib sent them, and the per-operation timeout."
+    "why": "The http and sse probes: urllib used the proxy environment (http_proxy, https_proxy, no_proxy, and the macOS system proxy settings) and the OpenSSL certificate store of the Python it ran on; the Node probe connects directly and verifies TLS against Node's bundled certificate store. A redirect to an ftp: URL was followed by urllib and is fail: http <status> here, and a first URL with a scheme other than http or https (file:, ftp:) is fail: unreachable here, where urllib opened it (and, for file:, crashed reading its status). Header names are sent as written (User-Agent) where urllib capitalised them (User-agent); HTTP header names are case-insensitive. The request still carries no configured header, its User-Agent, Accept, Content-Type, Accept-Encoding: identity and Connection: close as urllib sent them, and the per-operation timeout. On a private CA, NODE_EXTRA_CA_CERTS names the extra certificate. test/mcp/connect.test.js shows, on the node the suite runs on (Node 26 in CI), that a default request goes through a synthetic proxy named in HTTP_PROXY with NODE_USE_ENV_PROXY=1 while the probe does not."
   },
   {
     "case": [],
@@ -70,5 +70,13 @@
     "replace": "",
     "kind": "not in a transcript",
     "why": "Edge cases of the stdio probe and the Codex read, none reachable from a well-formed config: a response line that is not UTF-8, or is UTF-16 or UTF-32 JSON, or starts with a byte-order mark, was decoded by json.loads(bytes) and is ignored here (the check waits for the next line, then times out); a config.toml that is not UTF-8 ended the original's check with a traceback and is SKIP (its configuration could not be read) here; a server that exits while a child it left holds stdout open is reported once stdout has been silent for 0.5 s after the exit, which is when the original's 0.5 s poll saw it."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "kind": "not in a transcript",
+    "why": "A URL with userinfo (user:pass@host, user@host or an empty @host), as configured or in a redirect's Location: urllib took the userinfo for part of the host and failed before sending anything, so the original said fail: unreachable. The Node probe refuses such a URL with the same fail: unreachable and never sends it, so userinfo never becomes an Authorization header, which Node's http module would otherwise derive from it (lens F1 on PR #530). The same result on both sides is pinned by the connect-http transcript (h-userinfo, h-redir-userinfo); that no Authorization header reaches the synthetic server is asserted there and in test/mcp/connect.test.js, after a ${VAR} expansion too."
   }
 ]

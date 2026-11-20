@@ -43,6 +43,15 @@ const runAsync = (args, env) => /** @type {Promise<{ code: number | null, stdout
   c.stdin.end();
   c.on('close', (code) => resolve({ code, stdout, stderr, ms: Date.now() - t0 }));
 }));
+/** node with these arguments, while this process keeps serving its stubs. @param {string[]} args @param {Record<string, string>} env */
+const nodeAsync = (args, env) => /** @type {Promise<{ code: number | null, stdout: string, stderr: string }>} */ (new Promise((resolve) => {
+  const c = spawn(NODE, args, { env, cwd: BASE, stdio: ['ignore', 'pipe', 'pipe'] });
+  let stdout = '';
+  let stderr = '';
+  c.stdout.on('data', (b) => { stdout += b; });
+  c.stderr.on('data', (b) => { stderr += b; });
+  c.on('close', (code) => resolve({ code, stdout, stderr }));
+}));
 /** @param {string} pidfile */
 function alive(pidfile) {
   try {
@@ -76,12 +85,13 @@ before(async () => {
   server = http.createServer((req, res) => {
     seen.push({ method: req.method, url: req.url, ...req.headers });
     /** @type {Record<string, number>} */
-    const codes = { '/ok': 200, '/login': 401, '/bare401': 401, '/missing': 404, '/boom': 500, '/sse': req.method === 'GET' ? 200 : 405, '/redir303': 303, '/redir308': 308, '/far': 301, '/slow': 200, '/noloc': 302, '/toftp': 302 };
+    const codes = { '/ok': 200, '/login': 401, '/bare401': 401, '/missing': 404, '/boom': 500, '/sse': req.method === 'GET' ? 200 : 405, '/redir303': 303, '/redir308': 308, '/far': 301, '/slow': 200, '/noloc': 302, '/toftp': 302, '/touser': 302 };
     const code = codes[String(req.url).split('?')[0]] || 404;
     if (req.url === '/login') res.setHeader('WWW-Authenticate', 'Bearer resource_metadata="x"');
     if (req.url === '/redir303' || req.url === '/redir308') res.setHeader('Location', '/ok');
     if (String(req.url).startsWith('/far')) res.setHeader('Location', '/far?' + seen.length);
     if (req.url === '/toftp') res.setHeader('Location', 'ftp://127.0.0.1/x');
+    if (req.url === '/touser') res.setHeader('Location', URL_BASE.replace('//', '//SYNTHUSER:synthetic-pass@') + '/ok');
     req.resume();
     if (req.url === '/slow') return; // never answers: the per-operation timeout ends it
     res.writeHead(code);
@@ -179,6 +189,70 @@ group('the behaviour table', { skip: POSIX_ONLY }, () => {
     assert.equal(await C.probeHttp('http://127.0.0.1:9/mcp', 'http', 3), 'fail: unreachable');
     assert.equal(await C.probeHttp('no-scheme-here', 'http', 3), 'fail: unreachable');
     assert.equal(await C.probeHttp('file:///etc/hosts', 'http', 3), 'fail: unreachable', 'only http and https are opened');
+  });
+
+  test('a URL with userinfo is never sent, first or after a redirect: no Authorization header (lens F1, PR #530)', async () => {
+    const before = seen.length;
+    const withUser = URL_BASE.replace('//', '//SYNTHUSER:synthetic-pass@') + '/ok';
+    for (const u of [withUser, URL_BASE.replace('//', '//SYNTHUSER@') + '/ok', URL_BASE.replace('//', '//@') + '/ok']) {
+      for (const kind of ['http', 'sse']) assert.equal(await C.probeHttp(u, kind, 5), 'fail: unreachable', kind + ' ' + u.replace(/\/\/[^@]*@/, '//<userinfo>@'));
+    }
+    assert.equal(seen.length, before, 'a URL with userinfo reached the server');
+    for (const kind of ['http', 'sse']) assert.equal(await C.probeHttp(URL_BASE + '/touser', kind, 5), 'fail: unreachable', kind + ' redirect');
+    const sent = seen.slice(before);
+    assert.deepEqual(sent.map((r) => r.url), ['/touser', '/touser'], 'the redirect target with userinfo was requested');
+    assert.ok(sent.every((r) => !('authorization' in r)), 'an Authorization header was sent');
+    // Through the CLI on Claude Code: a ${VAR} expanded into userinfo stays on this machine.
+    const h = mkHome('home-connect-userinfo');
+    writeSource(h, { version: 1, active_set: {}, servers: { 'h-u': { command: '/bin/echo' } } });
+    assert.equal(spawnSync(NODE, [RENDER], { env: cleanEnv(h), cwd: BASE }).status, 0);
+    const cc = jload(targets(h)['claude-code']);
+    cc.mcpServers['h-u'] = { type: 'http', url: URL_BASE.replace('//', '//${SYNTH_SECRET_VAR}@') + '/ok' };
+    putJson(targets(h)['claude-code'], cc);
+    const n = seen.length;
+    const p = await runAsync(['--active', '--mode=connect', '--timeout=3'], cleanEnv(h, { SYNTH_SECRET_VAR: 'synthetic-value-' + synth() }));
+    assert.ok(p.stdout.includes('FAIL    claude-code: h-u: fail: unreachable (MCP connect)'), p.stdout);
+    assert.ok(seen.slice(n).every((r) => !('authorization' in r)), 'the expanded value left in a header');
+    assert.equal(C.hasUserinfo('https://a@b/c@d'), true);
+    assert.equal(C.hasUserinfo('https://b/c@d?e@f#g@h'), false);
+    assert.equal(C.hasUserinfo('//u@h/x'), true);
+    assert.equal(C.hasUserinfo('/path@x'), false);
+    assert.equal(C.hasUserinfo('mailto:a@b'), false);
+    assert.equal(C.hasUserinfo('x y://u@h'), false, 'not a scheme: not an authority');
+  });
+
+  test('the proxy environment is not used, on the engine this runs on (declared difference 6)', async () => {
+    /** @type {string[]} */
+    const proxied = [];
+    const proxy = http.createServer((req, res) => {
+      proxied.push(String(req.url));
+      res.writeHead(502);
+      res.end();
+    });
+    await new Promise((resolve) => proxy.listen(0, '127.0.0.1', () => resolve(undefined)));
+    const proxyUrl = 'http://127.0.0.1:' + /** @type {import('node:net').AddressInfo} */ (proxy.address()).port;
+    /** @type {Record<string, string>} */
+    const env = { ...cleanEnv(BASE), HTTP_PROXY: proxyUrl, http_proxy: proxyUrl, HTTPS_PROXY: proxyUrl, NODE_USE_ENV_PROXY: '1' };
+    delete env.NO_PROXY;
+    delete env.no_proxy;
+    try {
+      // The control: on this node, does a default http request honour the proxy environment?
+      const control = await nodeAsync(['-e', 'require("http").get(process.argv[1], (r) => { r.resume(); }).on("error", () => {})', URL_BASE + '/ok'], env);
+      assert.equal(control.code, 0, control.stderr);
+      const honoured = proxied.length > 0;
+      assert.ok(honoured, 'the control request did not use the proxy, so the probe row would prove nothing on this node');
+      // The probe, in a child with the same environment.
+      const script = 'import(' + JSON.stringify(new URL('../../src/commands/mcp-connect.js', import.meta.url).href) + ').then(async (C) => { process.stdout.write(await C.probeHttp(process.argv[1], "http", 5)); })';
+      const before = seen.length;
+      const n = proxied.length;
+      const probe = await nodeAsync(['--input-type=module', '-e', script, URL_BASE + '/ok'], env);
+      assert.equal(probe.stdout, 'ok', probe.stderr);
+      assert.equal(proxied.length, n, 'the probe went through the proxy');
+      assert.equal(seen.length, before + 1, 'the probe went straight to the server');
+      process.stdout.write('# node ' + process.version + ': a default request ' + (honoured ? 'honours' : 'ignores') + ' NODE_USE_ENV_PROXY; the probe ignores it\n');
+    } finally {
+      proxy.close();
+    }
   });
 
   test('the verdict of one line: the initialize id only, CPython JSON', () => {

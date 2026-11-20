@@ -17,6 +17,7 @@
 //           carry a credential, and this probe sends none): 2xx is ok, 401 with WWW-Authenticate is "needs
 //           login" (reachable), anything else, or a network error, fails.
 //   sse     a GET of the event stream, headers only: 2xx is ok, 401 as above.
+//   A URL with userinfo (user:pass@host), first or in a redirect, is "fail: unreachable" and is never sent.
 //
 // One line per server per agent harness, its name and its result. Never stderr, never a response body, never
 // a URL or a command: they can carry values. Exit 1 when a set member fails, 0 otherwise. Only the set members
@@ -285,6 +286,25 @@ function awaitResponse(p, deadline) {
 }
 
 /**
+ * True when a URL as written carries userinfo (an @ in its authority, an empty one included): urllib took
+ * "user:pass@host" for the host and failed before sending anything, so the probe refuses it too, never
+ * turning it into an Authorization header (lens F1 on PR #530).
+ * @param {string} raw
+ */
+export function hasUserinfo(raw) {
+  const start = raw.indexOf('//');
+  if (start < 0) return false;
+  const before = raw.slice(0, start);
+  if (before && !/^[A-Za-z][A-Za-z0-9+.-]*:$/.test(before)) return false;
+  let end = raw.length;
+  for (const d of '/?#') {
+    const k = raw.indexOf(d, start + 2);
+    if (k >= 0 && k < end) end = k;
+  }
+  return raw.slice(start + 2, end).includes('@');
+}
+
+/**
  * One HTTP request, headers only: [status, WWW-Authenticate value, Location value]. Rejects on a network
  * error or when the socket is idle for the timeout.
  * @param {URL} url @param {string} method @param {Record<string, string>} headers @param {string | null} body @param {number} timeout seconds
@@ -317,6 +337,7 @@ export async function probeHttp(url, kind, timeout) {
   /** @type {URL} */
   let u;
   try {
+    if (hasUserinfo(url)) return 'fail: unreachable';
     u = new URL(url);
   } catch {
     return 'fail: unreachable';
@@ -332,6 +353,7 @@ export async function probeHttp(url, kind, timeout) {
   const visited = new Map();
   for (;;) {
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'fail: unreachable';
+    if (u.username || u.password) return 'fail: unreachable'; // never an Authorization header
     if (body !== null) headers = { ...headers, 'Content-Length': String(Buffer.byteLength(body)) };
     let status;
     let auth;
@@ -353,6 +375,7 @@ export async function probeHttp(url, kind, timeout) {
       return 'fail: http ' + status;
     }
     if (next.protocol !== 'http:' && next.protocol !== 'https:') return 'fail: http ' + status;
+    if (hasUserinfo(location)) return 'fail: unreachable'; // urllib failed on the follow-up, before sending
     const key = next.href;
     if ((visited.get(key) ?? 0) >= MAX_REPEATS || visited.size >= MAX_REDIRECTIONS) return 'fail: http ' + status;
     visited.set(key, (visited.get(key) ?? 0) + 1);
