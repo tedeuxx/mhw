@@ -1,0 +1,13 @@
+{
+  "name": "unrelated-base-has-no-merge-base",
+  "runs": [
+    {
+      "args": [
+        "--base=other"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: cannot find a merge base of HEAD and other\n"
+    }
+  ]
+}

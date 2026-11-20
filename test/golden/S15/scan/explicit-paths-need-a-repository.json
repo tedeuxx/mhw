@@ -1,0 +1,19 @@
+{
+  "name": "explicit-paths-need-a-repository",
+  "runs": [
+    {
+      "args": [
+        "f.txt"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: not inside a git repository; mhw scan needs one, in every mode\n"
+    },
+    {
+      "args": [],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: not inside a git repository; mhw scan needs one, in every mode\n"
+    }
+  ]
+}

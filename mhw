@@ -8,9 +8,9 @@ dir=$(cd "$(dirname "$0")" && pwd)
 # The commands moved to Node run bin/mhw.js, never workstation.py: mhw delivery merge|verify (#474, S03
 # of #470), mhw milestone read|create|update|close (#475, S04 of #470), mhw worklog and
 # mhw launch-line (#476, S05 of #470), mhw rite-cadence (#477, S06 of #470), mhw funnel-review
-# (#478, S07 of #470), and mhw profile (#479, S08 of #470).
+# (#478, S07 of #470), mhw profile (#479, S08 of #470), and mhw scan (#486, S15 of #470).
 case "${1:-}" in
-  delivery|milestone|worklog|launch-line|rite-cadence|funnel-review|profile)
+  delivery|milestone|worklog|launch-line|rite-cadence|funnel-review|profile|scan)
     command -v node >/dev/null 2>&1 || { echo "mhw: node (26 or later) is required for mhw $1" >&2; exit 2; }
     exec node "$dir/bin/mhw.js" "$@" ;;
 esac

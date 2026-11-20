@@ -1,0 +1,56 @@
+{
+  "name": "file-missing-or-misused",
+  "runs": [
+    {
+      "args": [
+        "--file=absent.txt"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --file=absent.txt: no such regular file\n"
+    },
+    {
+      "args": [
+        "--file=."
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --file=.: no such regular file\n"
+    },
+    {
+      "args": [
+        "--file="
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --file takes a path\n"
+    },
+    {
+      "args": [
+        "--file=present.txt",
+        "--file=present.txt"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --file takes one path; pass it once\n"
+    },
+    {
+      "args": [
+        "--file=new.txt",
+        "clean.txt"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --file cannot be combined with --base or with PATH arguments\n"
+    },
+    {
+      "args": [
+        "--file=new.txt",
+        "--base=base"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --file cannot be combined with --base or with PATH arguments\n"
+    }
+  ]
+}

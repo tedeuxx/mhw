@@ -1,0 +1,22 @@
+{
+  "name": "encodings-bom-crlf-invalid-utf8",
+  "runs": [
+    {
+      "args": [
+        "bom.txt",
+        "crlf.txt",
+        "latin1.txt",
+        "astral.txt"
+      ],
+      "code": 0,
+      "stdout": "NOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\nbom.txt:1: credential, 20 chars\ncrlf.txt:3: email, 33 chars\nlatin1.txt:3: cpf, 14 chars\nastral.txt:1: credential, 20 chars\nastral.txt:2: email, 33 chars\nmhw scan: 5 finding(s); 4 of 4 scanned file(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    },
+    {
+      "args": [],
+      "code": 0,
+      "stdout": "NOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\nastral.txt:1: credential, 20 chars\nastral.txt:2: email, 33 chars\nSKIPPED blob.bin: binary, not scanned\nbom.txt:1: credential, 20 chars\ncrlf.txt:3: email, 33 chars\nlatin1.txt:3: cpf, 14 chars\nnew.txt:5: cpf, 14 chars\ntouched.md:3: credential, 20 chars\ntouched.md:3: email, 33 chars\nSKIPPED 6d5bc1e:blob.bin: binary, not scanned\n6d5bc1e:new.txt:5: cpf, 14 chars\n6d5bc1e:touched.md:3: credential, 20 chars\n6d5bc1e:touched.md:3: email, 33 chars\ncef01c0:astral.txt:1: credential, 20 chars\ncef01c0:astral.txt:2: email, 33 chars\ncef01c0:bom.txt:1: credential, 20 chars\ncef01c0:crlf.txt:3: email, 33 chars\ncef01c0:latin1.txt:3: cpf, 14 chars\nmhw scan: 16 finding(s); 6 of 7 scanned file(s) and 2 of 2 commit(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    }
+  ]
+}

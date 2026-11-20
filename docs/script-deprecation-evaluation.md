@@ -111,7 +111,7 @@ output and the same written file, byte for byte, and the Python file and its sui
 | --- | --- | --- | --- | --- | --- |
 | `global/clipboard/clipboard_guard.py` | The prompt hook body: blocks a prompt carrying an employer or client reference, a credential or personal data, and shows a redacted copy. Also stores salted term hashes. | The native prompt hook (CC `UserPromptSubmit`, Cx `hooks.json`), registered by `install.sh` and `install-managed.sh`. | The prompt hook itself is native on CC and Cx (documented) and meets the existential-risk rule. No agent harness filters prompt content natively (assumed). K IDE has no prompt hook (cited: README). | The safety net of the confidentiality floor ([ADR-0033](adr/0033-paste-cleaning-wrapper-primary-hook-safety-net.md)). | **keep as the exception** (gap: K) |
 | `global/clipboard/paste_wrapper.py` | pty launcher that replaces sensitive content in a bracketed paste before the agent harness sees it. | Shell functions `install.sh` adds to the owner's shell start file. | None: no agent harness redacts a paste (assumed). Gaps: ~~the K V3 engine does not enable bracketed paste (cited: the README records it as observed on 2026-10-11)~~ *amended 2026-11-08 (#455, #463): on K CLI 3.1.0 (V3) the wrapper cleaned a paste, measured once; typed text is not checked*; desktop apps and the K IDE are not reached. | The primary cleaner of the confidentiality floor. | **keep as the exception** (gaps: K V3, IDEs, desktop apps) |
-| `global/scan.py` | `mhw scan`: checks a branch's files and unpushed commits and prints file, line, category and length, never the text. | `workstation.py`; `outbound-scan.yml`; the global brief before every push. | Forge push protection covers secrets only (documented). Nothing native covers personal data or employer and client terms (assumed). | Outbound coverage beyond secrets. | **keep as the exception** |
+| ~~`global/scan.py`~~ `mhw scan` (Node since #486, `src/commands/scan.js` on `src/lib/clean.js`) | `mhw scan`: checks a branch's files and unpushed commits and prints file, line, category and length, never the text. | `workstation.py`; `outbound-scan.yml`; the global brief before every push. | Forge push protection covers secrets only (documented). Nothing native covers personal data or employer and client terms (assumed). | Outbound coverage beyond secrets. | **keep as the exception** |
 
 ### Checks and reports
 
@@ -201,7 +201,7 @@ carrier. The change to watch for:
 | ~~`mcp-launch.sh`~~ `mhw mcp launch` | MCP configuration reads a secret from the OS keychain natively, on all three. |
 | `chrome_debugging.py` | The `chrome-devtools` server no longer needs the preference, or the owner prefers his own click. |
 | `clipboard_guard.py`, `paste_wrapper.py` | Native prompt-content filtering on all three, including the Kiro IDE and the Kiro V3 engine. |
-| `scan.py` | Forge or agent harness outbound scanning that covers personal data and owner-defined terms. |
+| ~~`scan.py`~~ `mhw scan` | Forge or agent harness outbound scanning that covers personal data and owner-defined terms. |
 | `merge_authority.py` | An agent harness that validates a project brief against a declared schema or a skill's contract. |
 | `delivery.js` | A forge rule that requires a verdict pinned to the head before merge. |
 | `method_issue_sync.py` | A CI agent allow list that can limit writes to one Issue. |

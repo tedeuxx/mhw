@@ -1,0 +1,53 @@
+{
+  "name": "cannot-run-exit-two",
+  "runs": [
+    {
+      "args": [],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: this branch has no upstream; pass --base=REF (for example --base=origin/main)\n"
+    },
+    {
+      "args": [
+        "--bogus"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: unknown argument --bogus\n"
+    },
+    {
+      "args": [
+        "--base=nope-not-a-ref"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --base=nope-not-a-ref is not a commit\n"
+    },
+    {
+      "args": [
+        "--base=base",
+        "new.txt"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: name files or pass --base, not both\n"
+    },
+    {
+      "args": [
+        "-"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: unknown argument -\n"
+    },
+    {
+      "args": [
+        "--file=a",
+        "--file=b"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --file takes one path; pass it once\n"
+    }
+  ]
+}
