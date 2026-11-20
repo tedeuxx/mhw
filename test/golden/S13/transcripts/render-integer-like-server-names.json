@@ -1,0 +1,56 @@
+{
+  "step0 install": {
+    "code": 0
+  },
+  "step0 install stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.codex/config.toml (add zeta, 10, 9)\nWROTE   <HOME>/.claude.json (add zeta, 10, 9)\nWROTE   <HOME>/.kiro/settings/mcp.json (add zeta, 10, 9)\n",
+  "step0 install stderr": "",
+  "step1 --check": {
+    "code": 0
+  },
+  "step1 --check stdout": "SOURCE  <STAMP>\nOK      <HOME>/.codex/config.toml (3 managed server(s); <STAMP>)\nOK      <HOME>/.claude.json (3 managed server(s))\nOK      <HOME>/.kiro/settings/mcp.json (3 managed server(s))\n",
+  "step1 --check stderr": "",
+  "step2 --check": {
+    "code": 1
+  },
+  "step2 --check stdout": "SOURCE  <STAMP>\nDRIFT   <HOME>/.codex/config.toml (remove zeta, 10, 9)\nDRIFT   <HOME>/.claude.json (remove zeta, 10, 9)\nDRIFT   <HOME>/.kiro/settings/mcp.json (remove zeta, 10, 9)\n",
+  "step2 --check stderr": "",
+  "step3 install": {
+    "code": 0
+  },
+  "step3 install stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.codex/config.toml (remove zeta, 10, 9; previous version kept as .pmhwc-backup)\nWROTE   <HOME>/.claude.json (remove zeta, 10, 9; previous version kept as .pmhwc-backup)\nWROTE   <HOME>/.kiro/settings/mcp.json (remove zeta, 10, 9; previous version kept as .pmhwc-backup)\n",
+  "step3 install stderr": "",
+  "files": {
+    ".claude.json": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {}\n}\n"
+    },
+    ".claude.json.pmhwc-backup": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {\n    \"zeta\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/echo\",\n      \"args\": []\n    },\n    \"10\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/cat\",\n      \"args\": []\n    },\n    \"9\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/true\",\n      \"args\": []\n    }\n  }\n}\n"
+    },
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": ""
+    },
+    ".codex/config.toml.pmhwc-backup": {
+      "mode": "600",
+      "text": "# >>> managed-by: personal-multi-harness-workstation-configuration (mcp servers); <STAMP>; generated, do not edit inside this block: re-run global/mcp/mcp_render.py\n[mcp_servers.zeta]\ncommand = \"/bin/echo\"\nargs = []\n\n[mcp_servers.10]\ncommand = \"/bin/cat\"\nargs = []\n\n[mcp_servers.9]\ncommand = \"/bin/true\"\nargs = []\n# <<< managed-by: personal-multi-harness-workstation-configuration (mcp servers)\n"
+    },
+    ".kiro/settings/mcp.json": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {}\n}\n"
+    },
+    ".kiro/settings/mcp.json.pmhwc-backup": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {\n    \"zeta\": {\n      \"command\": \"/bin/echo\",\n      \"args\": []\n    },\n    \"10\": {\n      \"command\": \"/bin/cat\",\n      \"args\": []\n    },\n    \"9\": {\n      \"command\": \"/bin/true\",\n      \"args\": []\n    }\n  }\n}\n"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\": 1, \"servers\": {}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": {
+      "mode": "600",
+      "text": "{\n  \"version\": 1,\n  \"surfaces\": {\n    \"claude-code\": [],\n    \"kiro\": []\n  },\n  \"stamps\": {}\n}\n"
+    }
+  }
+}

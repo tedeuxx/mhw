@@ -267,7 +267,7 @@ const OS_ERROR_CLASS = /** @type {Record<string, string>} */ ({
 
 /**
  * e.__class__.__name__ for an OSError Python would have raised; OSError for one with no errno code (the
- * Windows owner-only access list failure is an OSError in private_copy.py too).
+ * Windows owner-only access list failure was an OSError in the deleted private_copy.py too).
  * @param {unknown} e
  */
 export function pyErrorClass(e) {

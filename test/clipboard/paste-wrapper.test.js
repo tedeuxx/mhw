@@ -502,9 +502,11 @@ test('live: SIGTERM to the wrapper is forwarded to the CLI', { skip: LIVE }, asy
   const s = new Session('term');
   await s.ready();
   process.kill(s.term.pid, 'SIGTERM');
-  assert.equal(await s.finish(), 128 + os.constants.signals.SIGTERM);
+  const code = await s.finish();
+  const why = 'exit ' + code + '; events ' + JSON.stringify(s.events().slice(-300)) + '; out ' + JSON.stringify(s.out.toString('latin1').slice(-300));
+  assert.equal(code, 128 + os.constants.signals.SIGTERM, why);
   // The CLI received the signal itself: a wrapper that died instead of forwarding leaves no such line.
-  assert.match(s.events(), /^SIGNAL SIGTERM$/m);
+  assert.match(s.events(), /^SIGNAL SIGTERM$/m, why);
 });
 
 test('live: Ctrl-C reaches the CLI as SIGINT through its own terminal', { skip: LIVE }, async (t) => {

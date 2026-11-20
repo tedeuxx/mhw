@@ -1,0 +1,31 @@
+{
+  "step0 --surfaces=codex": {
+    "code": 0
+  },
+  "step0 --surfaces=codex stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\nWROTE   <HOME>/.codex/config.toml (add fake-plain, fake-secret, fake-codex-only)\n",
+  "step0 --surfaces=codex stderr": "",
+  "step1 --surfaces=codex": {
+    "code": 3
+  },
+  "step1 --surfaces=codex stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\n",
+  "step1 --surfaces=codex stderr": "REFUSE  <HOME>/.codex/config.toml: content after the managed block is parsed into its last table, so moving the block would change what that content means; move it above the block by hand\n",
+  "step2 --surfaces=codex": {
+    "code": 3
+  },
+  "step2 --surfaces=codex stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\n",
+  "step2 --surfaces=codex stderr": "REFUSE  <HOME>/.codex/config.toml: the managed block's markers are damaged (missing, repeated or out of order); fix or remove them by hand, then re-run\n",
+  "files": {
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": "# >>> managed-by: personal-multi-harness-workstation-configuration (mcp servers); <STAMP>; generated, do not edit inside this block: re-run global/mcp/mcp_render.py\n[mcp_servers.fake-plain]\ncommand = \"/bin/echo\"\nargs = [\"hello\"]\nenv = { FAKE_REGION = \"zz-1\" }\n\n[mcp_servers.fake-secret]\ncommand = \"<NODE>\"\nargs = [\"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\", \"--secret\", \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\", \"--\", \"/bin/cat\", \"-u\"]\nenv_vars = [\"FAKE_SRC_VAR\"]\n\n[mcp_servers.fake-codex-only]\ncommand = \"/bin/cat\"\nargs = []\n\nstartup_timeout_sec = 30\n"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {
+      "mode": "700",
+      "text": "#!/usr/bin/env node\n// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/mcp-launch.js; <STAMP>; do not edit, re-run the renderer\n<the launcher source>"
+    }
+  }
+}

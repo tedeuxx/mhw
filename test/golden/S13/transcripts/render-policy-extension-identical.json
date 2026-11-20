@@ -1,0 +1,67 @@
+{
+  "step0 install": {
+    "code": 0
+  },
+  "step0 install stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\nWROTE   <HOME>/.codex/config.toml (add fake-plain, fake-secret, fake-codex-only, chrome-devtools)\nPOLICY  claude-code: chrome-devtools rendered here by the policy servers (mcp_render.py --policy, ADR-0038), not by the local definition\nWROTE   <HOME>/.claude.json (add fake-plain, fake-secret)\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nWROTE   <HOME>/.kiro/settings/mcp.json (add fake-plain, fake-secret, chrome-devtools)\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step0 install stderr": "",
+  "step1 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step1 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "CHANGED <HOME>/.claude.json: chrome-devtools absent -> /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' (policy MCP servers, ADR-0038; previous file kept as <HOME>/.claude.json.pmhwc-mcp-policy-backup)\n",
+  "step1 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step2 install": {
+    "code": 0
+  },
+  "step2 install stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nOK      <HOME>/.codex/config.toml (4 managed server(s); <STAMP>)\nPOLICY  claude-code: chrome-devtools rendered here by the policy servers (mcp_render.py --policy, ADR-0038), not by the local definition\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nOK      <HOME>/.kiro/settings/mcp.json (3 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step2 install stderr": "",
+  "step3 --check": {
+    "code": 0
+  },
+  "step3 --check stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nOK      <HOME>/.codex/config.toml (4 managed server(s); <STAMP>)\nPOLICY  claude-code: chrome-devtools rendered here by the policy servers (mcp_render.py --policy, ADR-0038), not by the local definition\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nOK      <HOME>/.kiro/settings/mcp.json (3 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step3 --check stderr": "",
+  "step4 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step4 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "OK      <HOME>/.claude.json: 1 policy MCP server(s) (ADR-0038)\n",
+  "step4 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step5 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step5 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stdout": "CHANGED <HOME>/.claude.json: chrome-devtools /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' -> absent (policy MCP servers, ADR-0038; previous file kept as <HOME>/.claude.json.pmhwc-mcp-policy-backup)\n",
+  "step5 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step6 --check": {
+    "code": 0
+  },
+  "step6 --check stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nOK      <HOME>/.codex/config.toml (4 managed server(s); <STAMP>)\nPOLICY  claude-code: chrome-devtools rendered here by the policy servers (mcp_render.py --policy, ADR-0038), not by the local definition\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nOK      <HOME>/.kiro/settings/mcp.json (3 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step6 --check stderr": "",
+  "files": {
+    ".claude.json": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {\n    \"fake-plain\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"type\": \"stdio\",\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    }\n  }\n}\n"
+    },
+    ".claude.json.pmhwc-mcp-policy-backup": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {\n    \"fake-plain\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"type\": \"stdio\",\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    },\n    \"chrome-devtools\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/sh\",\n      \"args\": [\n        \"-c\",\n        \"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"\n      ]\n    }\n  }\n}\n"
+    },
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": "# >>> managed-by: personal-multi-harness-workstation-configuration (mcp servers); <STAMP>; generated, do not edit inside this block: re-run global/mcp/mcp_render.py\n[mcp_servers.fake-plain]\ncommand = \"/bin/echo\"\nargs = [\"hello\"]\nenv = { FAKE_REGION = \"zz-1\" }\n\n[mcp_servers.fake-secret]\ncommand = \"<NODE>\"\nargs = [\"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\", \"--secret\", \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\", \"--\", \"/bin/cat\", \"-u\"]\nenv_vars = [\"FAKE_SRC_VAR\"]\n\n[mcp_servers.fake-codex-only]\ncommand = \"/bin/cat\"\nargs = []\n\n[mcp_servers.chrome-devtools]\ncommand = \"/bin/sh\"\nargs = [\"-c\", \"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"]\n# <<< managed-by: personal-multi-harness-workstation-configuration (mcp servers)\n"
+    },
+    ".kiro/settings/mcp.json": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {\n    \"fake-plain\": {\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    },\n    \"chrome-devtools\": {\n      \"command\": \"/bin/sh\",\n      \"args\": [\n        \"-c\",\n        \"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"\n      ]\n    }\n  }\n}\n"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]},\"chrome-devtools\":{\"command\":\"/bin/sh\",\"args\":[\"-c\",\"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"]}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {
+      "mode": "700",
+      "text": "#!/usr/bin/env node\n// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/mcp-launch.js; <STAMP>; do not edit, re-run the renderer\n<the launcher source>"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": {
+      "mode": "600",
+      "text": "{\n  \"version\": 1,\n  \"surfaces\": {\n    \"claude-code\": [\n      \"fake-plain\",\n      \"fake-secret\"\n    ],\n    \"kiro\": [\n      \"fake-plain\",\n      \"fake-secret\",\n      \"chrome-devtools\"\n    ]\n  },\n  \"stamps\": {\n    \"claude-code\": \"<STAMP>\",\n    \"kiro\": \"<STAMP>\"\n  }\n}\n"
+    }
+  }
+}

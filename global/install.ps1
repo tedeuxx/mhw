@@ -22,7 +22,7 @@
 # have, so no shell start-up file is written. There is no uninstall on Windows: each step's backup beside
 # its file is the way back. Every backup is owner-only: its access list grants the current user alone, with
 # inheritance disabled, set before a byte is written (Copy-Private here, owner_only_acl in
-# global/private_copy.py for the Python steps).
+# src/lib/private-copy.js for the Node renderers).
 #
 # Exit codes: 0 ok, 1 drift, stamp or missing (-Check), 2 usage or invalid floor entry, 3 an UNMANAGED or
 # unreadable file is in the way.
@@ -258,7 +258,7 @@ function Get-StampOf([string]$text) {
 
 function Set-Status([int]$code) { if ($code -gt $script:status) { $script:status = $code } }
 
-# Copy-Private SRC DST: the PowerShell form of private_copy (global/private_copy.py). A backup can hold what
+# Copy-Private SRC DST: the PowerShell form of private_copy (src/lib/private-copy.js). A backup can hold what
 # install removed, so it is owner-only from its first byte: whatever is at DST is removed, DST is created
 # empty and exclusively (CreateNew), its access list is set to the current user alone with inheritance
 # disabled, and only then are the bytes written (the access list stays on the existing file). Any failure

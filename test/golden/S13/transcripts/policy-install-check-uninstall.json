@@ -1,0 +1,57 @@
+{
+  "step0 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 1
+  },
+  "step0 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "DRIFT   <HOME>/.claude.json: install would change chrome-devtools absent -> /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' (policy MCP servers, ADR-0038)\n",
+  "step0 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step1 --policy --mode=dry-run --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step1 --policy --mode=dry-run --stamp=release: v0.0.0-test; commit: synthetic stdout": "WOULD CHANGE <HOME>/.claude.json: chrome-devtools absent -> /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' (policy MCP servers; backup .claude.json.pmhwc-mcp-policy-backup)\n",
+  "step1 --policy --mode=dry-run --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step2 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step2 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "CHANGED <HOME>/.claude.json: chrome-devtools absent -> /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' (policy MCP servers, ADR-0038; previous file kept as <HOME>/.claude.json.pmhwc-mcp-policy-backup)\n",
+  "step2 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step3 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step3 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "OK      <HOME>/.claude.json: 1 policy MCP server(s) (ADR-0038)\n",
+  "step3 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step4 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step4 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "OK      <HOME>/.claude.json: 1 policy MCP server(s) (ADR-0038)\n",
+  "step4 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step5 --policy --mode=check --stamp=release: other; commit: other": {
+    "code": 1
+  },
+  "step5 --policy --mode=check --stamp=release: other; commit: other stdout": "STAMP   <HOME>/.claude.json: policy MCP server(s) match, but recorded under (<STAMP>) and the source is (<STAMP>)\n",
+  "step5 --policy --mode=check --stamp=release: other; commit: other stderr": "",
+  "step6 --policy --mode=dry-run --stamp=release: other; commit: other": {
+    "code": 0
+  },
+  "step6 --policy --mode=dry-run --stamp=release: other; commit: other stdout": "WOULD RECORD <HOME>/.claude.json's policy stamp (<STAMP>) in <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-managed.json\n",
+  "step6 --policy --mode=dry-run --stamp=release: other; commit: other stderr": "",
+  "step7 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step7 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stdout": "CHANGED <HOME>/.claude.json: chrome-devtools /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' -> absent (policy MCP servers, ADR-0038; previous file kept as <HOME>/.claude.json.pmhwc-mcp-policy-backup)\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-managed.json (it recorded only the policy MCP servers)\n",
+  "step7 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step8 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step8 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stdout": "",
+  "step8 --policy --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "files": {
+    ".claude.json": {
+      "mode": "600",
+      "text": "{\n  \"numStartups\": 7,\n  \"mcpServers\": {\n    \"mine\": {\n      \"command\": \"/bin/echo\"\n    }\n  }\n}\n"
+    },
+    ".claude.json.pmhwc-mcp-policy-backup": {
+      "mode": "600",
+      "text": "{\n  \"numStartups\": 7,\n  \"mcpServers\": {\n    \"mine\": {\n      \"command\": \"/bin/echo\"\n    },\n    \"chrome-devtools\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/sh\",\n      \"args\": [\n        \"-c\",\n        \"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"\n      ]\n    }\n  }\n}\n"
+    }
+  }
+}
