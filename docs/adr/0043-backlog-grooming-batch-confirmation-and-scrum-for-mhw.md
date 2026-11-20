@@ -1,6 +1,7 @@
 # ADR-0043: Backlog grooming closes and rewrites the owner's Issues on one batch confirmation, and mhw runs scrum
 
-- **Status:** proposed
+- **Status:** ~~proposed~~ accepted (2026-11-20; the owner's ratification, «Ratificar», recorded on
+  [Issue #522](https://github.com/tedeuxx/mhw/issues/522#issuecomment-7050932440))
 - **Date:** 2026-11-20
 - **Deciders:** the owner (the request for the command, and the switch to `scrum`); written by the
   implementing agent from the `agents-lead` intake on the Issue

@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BEHIND_JQ, STATUS_JQ, RUNS_JQ } from '../../src/commands/delivery.js';
 
 /**
  * @typedef {{
@@ -41,6 +42,27 @@ export function quotePath(p) {
 const ok =(stdout) => ({ code: 0, stdout: stdout + '\n', stderr: '' });
 /** @param {number} code @returns {Answer} */
 const fail = (code) => ({ code, stdout: '', stderr: 'synthetic failure\n' });
+
+/**
+ * gh's printing of a jq result: a string raw, null as an empty line, anything else as compact JSON.
+ * @param {unknown} v
+ */
+const jqOut = (v) => ok(typeof v === 'string' ? v : v === null || v === undefined ? '' : JSON.stringify(v));
+/** @param {unknown} v @returns {v is Record<string, any>} */
+const isObj = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+const RUN_KEYS = ['id', 'head_sha', 'event', 'conclusion'];
+// The three --jq filters the route passes to gh api, as gh (gojq) evaluates them on these bodies. A
+// filter gh would reject (iterating a non-array, with_entries on a non-object) exits 5, as gh does.
+/** @type {Record<string, (body: any) => Answer>} */
+const JQ = {
+  [BEHIND_JQ]: (b) => (isObj(b) ? jqOut(b.behind_by) : fail(5)),
+  [STATUS_JQ]: (b) => (isObj(b) ? jqOut({ status: Object.hasOwn(b, 'status') ? b.status : null }) : fail(5)),
+  [RUNS_JQ]: (b) => {
+    if (!isObj(b) || !Array.isArray(b.workflow_runs) || !b.workflow_runs.every(isObj)) return fail(5);
+    const runs = b.workflow_runs.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => RUN_KEYS.includes(k))));
+    return jqOut({ ...b, workflow_runs: runs });
+  },
+};
 
 /**
  * @param {Scenario} s @param {string} tool @param {string[]} args
@@ -83,10 +105,11 @@ export function answer(s, tool, args) {
   if (tool === 'gh') {
     if (args[0] === 'pr' && args[1] === 'view') return ok(JSON.stringify(s.pr));
     if (args[0] === 'pr' && args[1] === 'merge') return ok('');
-    if (args[0] === 'api' && args.length === 2) {
+    if (args[0] === 'api' && (args.length === 2 || (args.length === 3 && Object.hasOwn(JQ, args[2])))) {
       const key = args[1].replace(/^repos\/[^/]+\/[^/]+\//, '');
-      if (s.api && Object.hasOwn(s.api, key)) return ok(JSON.stringify(s.api[key]));
-      return fail(1);
+      if (!s.api || !Object.hasOwn(s.api, key)) return fail(1);
+      // Without --jq the whole body is printed, as gh prints it (a large one is what overflowed, #519).
+      return args.length === 2 ? ok(JSON.stringify(s.api[key])) : JQ[args[2]](s.api[key]);
     }
   }
   return { code: 97, stdout: '', stderr: 'unexpected command: ' + line + '\n' };

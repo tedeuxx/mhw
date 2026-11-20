@@ -62,6 +62,15 @@ export const TRUSTED_AUTHORS = Object.freeze(['OWNER', 'MEMBER', 'COLLABORATOR']
 export const HARNESS_DIRS = Object.freeze(new Set(['.claude', '.codex', '.github', '.agents', '.kiro']));
 export const HARNESS_FILES = Object.freeze(new Set(['AGENTS.md', 'CLAUDE.md']));
 export const MERGED = 'MERGED: ';
+// gh api filters with --jq so only what a gate reads crosses the pipe: a compare payload carries every
+// file's patch, and a large PR's compare ran past spawnSync's buffer (ENOBUFS). One argument each, `--jq=`.
+// The behind count prints as a bare integer; anything else (an absent key prints nothing) refuses.
+export const BEHIND_JQ = '--jq=.behind_by';
+export const STATUS_JQ = '--jq={status}';
+// Each run keeps only the keys read below, and a key that is absent stays absent.
+export const RUNS_JQ = '--jq=.workflow_runs |= map(with_entries(select(.key == "id" or .key == "head_sha"'
+  + ' or .key == "event" or .key == "conclusion")))';
+const BEHIND_BY = /^(?:0|[1-9][0-9]*)$/;
 const USAGE = 'usage: mhw delivery {merge,verify} --pr N';
 
 // Python's str whitespace (str.isspace, which re's \s and str.strip use), as a character-class body.
@@ -81,6 +90,15 @@ const CURRENT_VERSION = new RegExp('current_version[' + SP + ']*=[' + SP + ']*"(
 export class Pending extends Error {}
 /** Anything unexpected: exit 1, with no detail that could carry remote content. */
 class Unavailable extends Error {}
+
+/**
+ * Why a tool could not run, for an Unavailable: its output overflowing the buffer is told apart. The
+ * route still prints no detail; the reason is for tests and a debugger.
+ * @param {Error & { code?: string }} error
+ */
+export function failureReason(error) {
+  return error && error.code === 'ENOBUFS' ? 'output too large' : 'could not run';
+}
 
 /** @param {unknown} v @returns {v is Record<string, any>} */
 const isDict = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -377,7 +395,7 @@ export function gitHistory(exec, base) {
   /** @param {string[]} args */
   const git = (...args) => {
     const r = exec('git', args);
-    if (r.error) throw new Unavailable('could not run');
+    if (r.error) throw new Unavailable(failureReason(r.error));
     if (r.code) throw new Pending('command failed or remote unavailable: git; details omitted');
     return r.stdout;
   };
@@ -569,21 +587,21 @@ function route(action, number, opts, out) {
   /** Run a tool; its stripped stdout, or a refusal when it fails. @param {string[]} argv */
   const run = (...argv) => {
     const r = exec(argv[0], argv.slice(1));
-    if (r.error) throw new Unavailable('could not run');
+    if (r.error) throw new Unavailable(failureReason(r.error));
     if (r.code) throw new Pending('command failed or remote unavailable: ' + argv[0] + '; details omitted');
     return strip(r.stdout);
   };
   /** Run a tool; its stdout untouched (a -z list must not lose a path's own spaces). @param {string[]} argv */
   const runRaw = (...argv) => {
     const r = exec(argv[0], argv.slice(1));
-    if (r.error) throw new Unavailable('could not run');
+    if (r.error) throw new Unavailable(failureReason(r.error));
     if (r.code) throw new Pending('command failed or remote unavailable: ' + argv[0] + '; details omitted');
     return r.stdout;
   };
-  /** @param {string} repo @param {string} p @returns {any} */
-  const api = (repo, p) => {
+  /** @param {string} repo @param {string} p @param {string} [jq] @returns {any} */
+  const api = (repo, p, jq) => {
     try {
-      return JSON.parse(run('gh', 'api', 'repos/' + repo + '/' + p));
+      return JSON.parse(run('gh', 'api', 'repos/' + repo + '/' + p, ...(jq ? [jq] : [])));
     } catch (e) {
       if (e instanceof SyntaxError) throw new Unavailable('json');
       throw e;
@@ -622,7 +640,9 @@ function route(action, number, opts, out) {
     }
     const refs = run('git', 'ls-remote', '--heads', 'origin', 'refs/heads/' + branch).split(SPLIT_WS).filter(Boolean);
     if (!refs.length || refs[0] !== head) throw new Pending('session HEAD has not been pushed');
-    if (truthy(get(api(repo, 'compare/' + base + '...' + head), 'behind_by', 1))) {
+    const behind = run('gh', 'api', 'repos/' + repo + '/compare/' + base + '...' + head, BEHIND_JQ);
+    if (!BEHIND_BY.test(behind)) throw new Unavailable('behind_by');
+    if (behind !== '0') {
       throw new Pending('head is behind ' + base + '; update it and rerun CI');
     }
     run(...mergeCommand(String(number), repo, head));
@@ -642,9 +662,9 @@ function route(action, number, opts, out) {
   const release = api(repo, 'releases/latest');
   const tag = get(release, 'tag_name', '');
   version(tag); // validate before putting a remote value in an API path
-  const comparison = api(repo, 'compare/' + str(need(need(pr, 'mergeCommit'), 'oid')) + '...' + tag);
+  const comparison = api(repo, 'compare/' + str(need(need(pr, 'mergeCommit'), 'oid')) + '...' + tag, STATUS_JQ);
   releaseMatches(release, baseline, comparison);
-  const runs = need(api(repo, 'actions/workflows/version-main.yml/runs?per_page=100'), 'workflow_runs');
+  const runs = need(api(repo, 'actions/workflows/version-main.yml/runs?per_page=100', RUNS_JQ), 'workflow_runs');
   if (!Array.isArray(runs)) throw new Unavailable('runs');
   const matching = runs.filter((r) => get(r, 'head_sha') === head && get(r, 'event') === 'pull_request');
   let best = null;

@@ -1,0 +1,9 @@
+[
+  {
+    "run": "parse",
+    "code": 2,
+    "stdout": "",
+    "stderr": "the allow list has no entry\n",
+    "tree": []
+  }
+]
