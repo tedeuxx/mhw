@@ -43,8 +43,8 @@ export const TESTS_WORKFLOW = 'tests';
 // Required per base, in the order a refusal names them. semver-label runs only on PRs into main.
 /** @type {Readonly<Record<string, readonly string[]>>} */
 export const REQUIRED = Object.freeze({
-  [INTEGRATION]: Object.freeze(['delivery-ci', 'SonarCloud Code Analysis']),
-  [RELEASE]: Object.freeze(['delivery-ci', 'semver-label', 'SonarCloud Code Analysis']),
+  [INTEGRATION]: Object.freeze(['delivery-ci', 'SonarCloud Code Analysis', 'docs-baseline']),
+  [RELEASE]: Object.freeze(['delivery-ci', 'semver-label', 'SonarCloud Code Analysis', 'docs-baseline']),
 });
 // mergeStateStatus values a merge may proceed from; DIRTY, BEHIND, BLOCKED, UNKNOWN, UNSTABLE refuse.
 export const MERGEABLE_STATES = Object.freeze(['CLEAN', 'HAS_HOOKS']);

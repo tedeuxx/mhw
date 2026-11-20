@@ -204,7 +204,7 @@ The source of truth for every layer lives here, versioned; what is installed on 
 - Follow `workspace/README.md` and `workspace/session-policy.json`. For a slice and for the release
   candidate alike, use the checked merge command (`./mhw delivery merge --pr N`, Node, #474), then the
   read-only delivery verifier (`./mhw delivery verify --pr N`). For a slice into `rc/next` it requires the `tests` run registered on
-  the head, `delivery-ci` and Sonar green, a clean merge state, a `quality-assurance` verdict
+  the head, `delivery-ci`, Sonar and `docs-baseline` green, a clean merge state, a `quality-assurance` verdict
   approving that exact head and, on harness paths, the `agents-lead` lens CLOSED at that head, or at
   an earlier head it carries forward from (the owner's ruling on #474; the exact three-line templates
   and the carry-forward conditions are in `workspace/README.md`; the lens's line 3, `the lens is CLOSED`,

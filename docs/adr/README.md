@@ -32,9 +32,14 @@ Each is raised one at a time, when a slice reaches it.
 4. **The agent runtime interview** ([#79](https://github.com/tedeuxx/mhw/issues/79)):
    local containers, cloud-ready, a web console. A new idea, not yet a slice; it goes through the
    requirements route first.
-5. **Ratify ADR-0043** ([#522](https://github.com/tedeuxx/mhw/issues/522)): the batch confirmation
+5. ~~**Ratify ADR-0043** ([#522](https://github.com/tedeuxx/mhw/issues/522)): the batch confirmation
    for backlog grooming and its safeguards. Since 2026-11-20 it is the one record in this index that is
-   proposed. The switch to `scrum` it records is already the owner's ruling.
+   proposed. The switch to `scrum` it records is already the owner's ruling.~~
+   *Ratified on 2026-11-20 ([«Ratificar»](https://github.com/tedeuxx/mhw/issues/522#issuecomment-7050932440)).
+   ~~No record in this index is proposed.~~ ADR-0044 is, since #523 (ask 6).*
+6. **Ratify [ADR-0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md)** and
+   ADR-0015's 2026-11-20 amendment ([#523](https://github.com/tedeuxx/mhw/issues/523)): the
+   documentation baseline, its check and the add-only override. Both are proposed and agent-written.
 
 ## Index
 
@@ -81,4 +86,5 @@ Each is raised one at a time, when a slice reaches it.
 | [0039](0039-codex-managed-daemon-version-and-headroom.md) | Review Codex daemon descriptor configuration without managing it (2026-10-18) | ~~proposed~~ accepted 2026-11-17 |
 | [0040](0040-presence-conditioned-secret-renewal-through-the-browser.md) | With the owner present, the agent may create or renew a secret through his browser, copying without reading; the Bash denies unchanged (2026-10-24) | ~~proposed~~ accepted 2026-11-17; ~~canary owed~~ real-page canary passed for the script route on 2026-10-29, rerun owed under the D8 launch |
 | [0041](0041-mcp-active-set-native-switch-off-per-harness.md) | The MCP active set, turned off natively in each agent harness outside it (2026-10-24) | ~~proposed~~ accepted 2026-11-17 |
-| [0043](0043-backlog-grooming-batch-confirmation-and-scrum-for-mhw.md) | Backlog grooming closes and rewrites the owner's Issues on one batch confirmation, under safeguards; mhw runs `scrum`, scoped by `loop-mode-repos` (2026-11-20) | proposed |
+| [0043](0043-backlog-grooming-batch-confirmation-and-scrum-for-mhw.md) | Backlog grooming closes and rewrites the owner's Issues on one batch confirmation, under safeguards; mhw runs `scrum`, scoped by `loop-mode-repos` (2026-11-20) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/522#issuecomment-7050932440)) |
+| [0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md) | A declared documentation baseline kept current by every merge request (`mhw docs-baseline check`, `mhw onboard`), and an add-only test/DoD override in `project-policy.json` with a coverage floor of 85; amends 0015 (2026-11-20) | proposed |

@@ -1,0 +1,120 @@
+[
+  {
+    "run": "step install",
+    "code": 0,
+    "stdout": "RISK    admin deny floor incomplete (Claude Code: narrow, Codex: narrow tier): an allow list without the admin barrier is limited to reading; ./mhw install (it asks for your administrator password once) widens it\nMERGED  <T>/home/.claude/settings.json (allow list: narrow tier, 10 allow rules; permission mode default (none set))\nWROTE   <T>/home/.codex/rules/workstation-allow-list.rules (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\nWROTE   <T>/home/.codex/workstation.config.toml (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\nWROTE   <T>/home/.kiro/agents/workstation.json (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\nALLOW   Claude Code: narrow tier · Codex: narrow tier, profile workstation · Kiro: narrow tier, agent workstation (Kiro CLI 2.x reads no deny floor; the floor is in permissions.yaml, IDE and CLI V3, ADR-0036)\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n    \"permissions\": {\n        \"allow\": [\n            \"Bash(git status:*)\",\n            \"Bash(git rev-parse:*)\",\n            \"Bash(git describe:*)\",\n            \"Bash(git worktree list:*)\",\n            \"Bash(gh issue view:*)\",\n            \"Bash(gh issue list:*)\",\n            \"Bash(gh pr view:*)\",\n            \"Bash(gh pr list:*)\",\n            \"Bash(gh pr diff:*)\",\n            \"Bash(gh pr checks:*)\"\n        ],\n        \"deny\": [\n            \"Edit(~/.claude/settings.json)\",\n            \"Edit(~/.codex/rules/**)\",\n            \"Edit(~/.codex/config.toml)\",\n            \"Edit(~/.codex/*.config.toml)\",\n            \"Edit(~/.kiro/agents/**)\",\n            \"Edit(/<T>/pkg/global/allow-list.conf)\",\n            \"Edit(/<T>/pkg/overlay/**)\",\n            \"Edit(**/.git/config)\",\n            \"Edit(**/.git/hooks/**)\"\n        ]\n    },\n    \"personal-multi-harness-workstation-configuration-owned-allow\": {\n        \"allow\": [\n            \"Bash(git status:*)\",\n            \"Bash(git rev-parse:*)\",\n            \"Bash(git describe:*)\",\n            \"Bash(git worktree list:*)\",\n            \"Bash(gh issue view:*)\",\n            \"Bash(gh issue list:*)\",\n            \"Bash(gh pr view:*)\",\n            \"Bash(gh pr list:*)\",\n            \"Bash(gh pr diff:*)\",\n            \"Bash(gh pr checks:*)\"\n        ],\n        \"defaultMode\": null,\n        \"deny\": [\n            \"Edit(~/.claude/settings.json)\",\n            \"Edit(~/.codex/rules/**)\",\n            \"Edit(~/.codex/config.toml)\",\n            \"Edit(~/.codex/*.config.toml)\",\n            \"Edit(~/.kiro/agents/**)\",\n            \"Edit(/<T>/pkg/global/allow-list.conf)\",\n            \"Edit(/<T>/pkg/overlay/**)\",\n            \"Edit(**/.git/config)\",\n            \"Edit(**/.git/hooks/**)\"\n        ]\n    }\n}\n"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules/workstation-allow-list.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/allow-list.conf; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\n# The workstation allow list, narrow tier (ADR-0031). A forbidden rule (the deny floor) beats an allow\n# rule whatever file holds it (measured, codex execpolicy check). Test runners have no rule here:\n# they run inside the workspace-write sandbox of the \"workstation\" profile without one.\nprefix_rule(pattern=[\"git\", \"status\"], decision=\"allow\")\nprefix_rule(pattern=[\"git\", \"rev-parse\"], decision=\"allow\")\nprefix_rule(pattern=[\"git\", \"describe\"], decision=\"allow\")\nprefix_rule(pattern=[\"git\", \"worktree\", \"list\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"issue\", \"view\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"issue\", \"list\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"view\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"list\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"diff\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"checks\"], decision=\"allow\")\n"
+      },
+      {
+        "path": ".codex/workstation.config.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/allow-list.conf; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\n# The workstation permission profile, narrow tier (ADR-0031). Use it with: codex --profile workstation\napproval_policy = \"on-request\"\nsandbox_mode = \"read-only\"\n"
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/agents",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/agents/workstation.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"name\": \"workstation\",\n  \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/allow-list.conf; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\",\n  \"tools\": [\n    \"*\"\n  ],\n  \"allowedTools\": [\n    \"fs_read\"\n  ],\n  \"toolsSettings\": {\n    \"execute_bash\": {\n      \"allowedCommands\": [\n        \"^git status( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^git rev-parse( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^git describe( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^git worktree list( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh issue view( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh issue list( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh pr view( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh pr list( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh pr diff( [^;&|<>$`(){}\\\\n\\\\r]*)?$\",\n        \"^gh pr checks( [^;&|<>$`(){}\\\\n\\\\r]*)?$\"\n      ],\n      \"autoAllowReadonly\": false\n    }\n  },\n  \"permissions\": {\n    \"rules\": [\n      {\n        \"capability\": \"shell\",\n        \"match\": [\n          \"git status *\",\n          \"git status\",\n          \"git rev-parse *\",\n          \"git rev-parse\",\n          \"git describe *\",\n          \"git describe\",\n          \"git worktree list *\",\n          \"git worktree list\",\n          \"gh issue view *\",\n          \"gh issue view\",\n          \"gh issue list *\",\n          \"gh issue list\",\n          \"gh pr view *\",\n          \"gh pr view\",\n          \"gh pr list *\",\n          \"gh pr list\",\n          \"gh pr diff *\",\n          \"gh pr diff\",\n          \"gh pr checks *\",\n          \"gh pr checks\"\n        ],\n        \"exclude\": [\n          \"*;*\",\n          \"*&*\",\n          \"*|*\",\n          \"*<*\",\n          \"*>*\",\n          \"*$*\",\n          \"*`*\",\n          \"*(*\",\n          \"*)*\",\n          \"*{*\",\n          \"*}*\",\n          \"*\\n*\",\n          \"*\\r*\"\n        ],\n        \"effect\": \"allow\"\n      },\n      {\n        \"capability\": \"fs_read\",\n        \"effect\": \"allow\"\n      }\n    ]\n  }\n}\n"
+      }
+    ]
+  },
+  {
+    "run": "check a missing agent",
+    "code": 1,
+    "stdout": "RISK    admin deny floor incomplete (Claude Code: narrow, Codex: narrow tier): an allow list without the admin barrier is limited to reading; ./mhw install (it asks for your administrator password once) widens it\nOK      <T>/home/.claude/settings.json: no allow entry the policy retired\nOK      <T>/home/.claude/settings.json (allow list: narrow tier, 10 allow rules; permission mode default (none set))\nOK      <T>/home/.codex/rules/workstation-allow-list.rules (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\nOK      <T>/home/.codex/workstation.config.toml (release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\nMISSING <T>/home/.kiro/agents/workstation.json\nALLOW   Claude Code: narrow tier · Codex: narrow tier, profile workstation · Kiro: narrow tier, agent workstation (Kiro CLI 2.x reads no deny floor; the floor is in permissions.yaml, IDE and CLI V3, ADR-0036)\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n    \"permissions\": {\n        \"allow\": [\n            \"Bash(git status:*)\",\n            \"Bash(git rev-parse:*)\",\n            \"Bash(git describe:*)\",\n            \"Bash(git worktree list:*)\",\n            \"Bash(gh issue view:*)\",\n            \"Bash(gh issue list:*)\",\n            \"Bash(gh pr view:*)\",\n            \"Bash(gh pr list:*)\",\n            \"Bash(gh pr diff:*)\",\n            \"Bash(gh pr checks:*)\"\n        ],\n        \"deny\": [\n            \"Edit(~/.claude/settings.json)\",\n            \"Edit(~/.codex/rules/**)\",\n            \"Edit(~/.codex/config.toml)\",\n            \"Edit(~/.codex/*.config.toml)\",\n            \"Edit(~/.kiro/agents/**)\",\n            \"Edit(/<T>/pkg/global/allow-list.conf)\",\n            \"Edit(/<T>/pkg/overlay/**)\",\n            \"Edit(**/.git/config)\",\n            \"Edit(**/.git/hooks/**)\"\n        ]\n    },\n    \"personal-multi-harness-workstation-configuration-owned-allow\": {\n        \"allow\": [\n            \"Bash(git status:*)\",\n            \"Bash(git rev-parse:*)\",\n            \"Bash(git describe:*)\",\n            \"Bash(git worktree list:*)\",\n            \"Bash(gh issue view:*)\",\n            \"Bash(gh issue list:*)\",\n            \"Bash(gh pr view:*)\",\n            \"Bash(gh pr list:*)\",\n            \"Bash(gh pr diff:*)\",\n            \"Bash(gh pr checks:*)\"\n        ],\n        \"defaultMode\": null,\n        \"deny\": [\n            \"Edit(~/.claude/settings.json)\",\n            \"Edit(~/.codex/rules/**)\",\n            \"Edit(~/.codex/config.toml)\",\n            \"Edit(~/.codex/*.config.toml)\",\n            \"Edit(~/.kiro/agents/**)\",\n            \"Edit(/<T>/pkg/global/allow-list.conf)\",\n            \"Edit(/<T>/pkg/overlay/**)\",\n            \"Edit(**/.git/config)\",\n            \"Edit(**/.git/hooks/**)\"\n        ]\n    }\n}\n"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules/workstation-allow-list.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/allow-list.conf; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\n# The workstation allow list, narrow tier (ADR-0031). A forbidden rule (the deny floor) beats an allow\n# rule whatever file holds it (measured, codex execpolicy check). Test runners have no rule here:\n# they run inside the workspace-write sandbox of the \"workstation\" profile without one.\nprefix_rule(pattern=[\"git\", \"status\"], decision=\"allow\")\nprefix_rule(pattern=[\"git\", \"rev-parse\"], decision=\"allow\")\nprefix_rule(pattern=[\"git\", \"describe\"], decision=\"allow\")\nprefix_rule(pattern=[\"git\", \"worktree\", \"list\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"issue\", \"view\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"issue\", \"list\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"view\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"list\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"diff\"], decision=\"allow\")\nprefix_rule(pattern=[\"gh\", \"pr\", \"checks\"], decision=\"allow\")\n"
+      },
+      {
+        "path": ".codex/workstation.config.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/allow-list.conf; release: v9.9.9; commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; do not edit, re-run the installer\n# The workstation permission profile, narrow tier (ADR-0031). Use it with: codex --profile workstation\napproval_policy = \"on-request\"\nsandbox_mode = \"read-only\"\n"
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/agents",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  }
+]

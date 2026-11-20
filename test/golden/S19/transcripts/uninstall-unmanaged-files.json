@@ -1,0 +1,28 @@
+[
+  {
+    "run": "uninstall",
+    "code": 0,
+    "stdout": "NOTE    <T>/home/.kiro/agents/workstation.json exists and is NOT managed by this project; left alone\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/agents",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/agents/workstation.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{}\n"
+      }
+    ]
+  }
+]
