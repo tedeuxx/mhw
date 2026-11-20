@@ -137,5 +137,18 @@
     "head": "(?!)",
     "replace": "",
     "why": "Declared, no transcript: under exec the server owned the harness's pid and received every signal sent to it. The Node launcher forwards SIGINT, SIGTERM, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2, SIGWINCH, SIGALRM and SIGPIPE (three on Windows). It does not forward the job-control signals (SIGTSTP, SIGTTIN, SIGTTOU, SIGCONT stop or continue the launcher and not the server) or the signals a process raises against itself or a profiler sends (SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGABRT, SIGTRAP, SIGSYS, SIGXCPU, SIGXFSZ, SIGVTALRM, SIGPROF). A server killed by SIGUSR1 or SIGPIPE makes the launcher exit 128+n rather than die of the signal (node opens its inspector on SIGUSR1 and ignores SIGPIPE)."
+  },
+  {
+    "case": [
+      "render-dry-run",
+      "render-install-check-reinstall",
+      "render-without-secrets"
+    ],
+    "stream": [
+      "*"
+    ],
+    "head": "re-run mhw mcp render",
+    "replace": "re-run global/mcp/mcp_render.py",
+    "why": "Since #484 (S13) the renderer is src/render/mcp.js, and the opening line of the Codex managed block names the command that replaces the deleted mcp_render.py, mhw mcp render. S13 declares the same difference against its own goldens (test/golden/S13/expected-differences.json); this entry keeps the S12 transcripts comparable with the Node renderer."
   }
 ]

@@ -1,0 +1,33 @@
+{
+  "step0 install": {
+    "code": 2
+  },
+  "step0 install stdout": "",
+  "step0 install stderr": "invalid MCP definition <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json:\n  - server 's': env 'MY_SECRET' looks like a credential, so its value may not be written in plain text. Move it to \"secrets\", or list it in \"not_secret\" if it is not one\n",
+  "step1 --dry-run": {
+    "code": 2
+  },
+  "step1 --dry-run stdout": "",
+  "step1 --dry-run stderr": "invalid MCP definition <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json:\n  - server 's': the value of env 'SETTING' looks like a credential (not shown). Put the whole value in the Keychain and reference it under \"secrets\"\n",
+  "step2 --check": {
+    "code": 2
+  },
+  "step2 --check stdout": "",
+  "step2 --check stderr": "invalid MCP definition <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json:\n  - unknown top-level key 'extra'\n  - \"version\" must be 1\n  - server 'bad name': the name must match ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$\n  - server 'k': unknown key 'commandd'\n  - server 'k': \"surfaces\" must be a non-empty list of codex, claude-code, claude-desktop, kiro\n  - server 'k': a control character is in a string\n  - server 'k': args[0] flag '--auth-token' looks like it carries a credential on the command line. Pass it through \"secrets\" (an environment variable), or list the flag in \"not_secret\" if it is not one\n  - server 'k': secret 'T': the source must be \"keychain:<service>\" or \"env:<VAR>\"\n  - server 'k': secret 'V': 'env:BAD-NAME' is not a valid variable name\n  - server 'k': the active set is on in Claude Code, Codex and Kiro alike (Issue #219, parity), so \"surfaces\" must include codex, claude-code, kiro, or be left out (a policy server's own surfaces count)\n  - server 'e': \"command\" must be a non-empty string\n  - server 'e': 'T' is both in env and in secrets\n  - active_set: unknown key 'unknown'\n  - active_set: \"description\" must be a string\n  - active_set: connector ' Synth': the name must be the display name claude.ai shows, without leading or trailing blanks or control characters\n  - active_set: connector ' Synth': the state must be \"on\" or \"off\"\n",
+  "step3 --dry-run": {
+    "code": 2
+  },
+  "step3 --dry-run stdout": "",
+  "step3 --dry-run stderr": "cannot read the MCP definition <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json: Expecting property name enclosed in double quotes: line 1 column 17 (char 16)\n",
+  "step4 --dry-run": {
+    "code": 2
+  },
+  "step4 --dry-run stdout": "",
+  "step4 --dry-run stderr": "no MCP definition at <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json. Copy global/mcp/mcp-servers.example.json there and edit it (the directory is outside every repository)\n",
+  "step5 --dry-run --source=<BASE>/a-directory": {
+    "code": 2
+  },
+  "step5 --dry-run --source=<BASE>/a-directory stdout": "",
+  "step5 --dry-run --source=<BASE>/a-directory stderr": "the MCP definition <BASE>/a-directory is not a regular file\n",
+  "files": {}
+}

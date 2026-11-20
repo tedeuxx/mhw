@@ -349,6 +349,44 @@ Secrets stay refused on Windows, as before; the message now says the launcher is
 *Written and tested* (`test/mcp/launch.test.js` on the Node security stub, the Python suite on its
 stub and, on the macOS CI runner, on a throwaway keychain). Not installed on the reference machine.
 
+## Amendment 2026-11-19: the renderer is Node, `mhw mcp render` ([#484](https://github.com/tedeuxx/mhw/issues/484), S13 of #470)
+
+`global/mcp/mcp_render.py` and its suite are deleted. The renderer is `src/render/mcp.js`, run as
+`mhw mcp render` (or `node src/render/mcp.js`, which `global/install.sh` runs for `--policy` and
+`--active`). The arguments, output lines, exit codes and files it writes are the original's, recorded as
+golden transcripts in `test/golden/S13/` from the Python original on throwaway HOMEs and compared on
+every run (`test/render/mcp-golden.test.js`). This record's decisions do not change:
+
+- **Secret indirection is unchanged.** The definition names a secret and its source; the renderer renders
+  the launcher with names only and never reads a value. `test/render/mcp.test.js` plays every parity case
+  with a synthetic value in every `env:` source the cases name and finds none in any file under the
+  throwaway HOME; a calibration case shows the same search finds a value that is written.
+- **The Codex TOML is still edited as one marked block and proved before it is written**, now with the
+  vendored smol-toml and the TOML 1.0 guard of S10 (`src/render/toml-guard.js`) where it used tomllib.
+- **What differs, declared in `test/golden/S13/expected-differences.json`:** the block's opening line
+  says `re-run mhw mcp render` (an existing block is reported DRIFT, no server change, by
+  `mhw mcp render --check` until the owner runs it once; install does not run that mode); a TOML parse
+  refusal quotes smol-toml's message instead of tomllib's; the usage lines and the POLICY line name
+  `mhw mcp render`; two active-set report lines name it instead of the deleted file.
+- **The active set and its connection check stay Python until S14 (#485)**: `mhw mcp render --active`
+  runs `global/mcp/mcp_active.py` with the python3 on PATH (SKIP, exit 2, without one; the Codex surface
+  still needs 3.11+ for tomllib, as before), and that file reaches
+  the renderer only through the CLI, `src/render/mcp.js --lib=<op>` (JSON in, JSON out), never by import.
+- **`global/private_copy.py` is deleted** with its last Python user; backups are written by
+  `src/lib/private-copy.js`, held equal to `install.sh`'s shell form by `test/lib/private-copy.test.js`.
+- The evidence against the real `security` binary is unchanged in level (the 2026-10-05 amendment): with
+  `PMHWC_REAL_KEYCHAIN_TESTS=1`, set only on the ephemeral macOS GitHub Actions runner, a node:test arm of
+  `test/render/mcp.test.js` runs the production launcher the renderer installs against `/usr/bin/security`
+  in a throwaway keychain it creates and deletes, with a throwaway HOME. It checks that the value reaches
+  only the server, that a deleted item exits 3, and that a non-printable value is refused. Every other run,
+  local runs included, uses the Node security stub and never the real binary or a real Keychain.
+- The credential-value and credential-name detectors use Python's whitespace set, word boundary and
+  `re.I` letter sets (the tables of `src/lib/clean.js`, S15), and are held to the original patterns'
+  answers recorded from CPython 3.14.6, non-ASCII input included (`test/golden/S13/credential-oracle.json`).
+
+*Written and tested* in throwaway HOMEs (macOS locally; Linux and Windows in CI). Not installed on the
+reference machine.
+
 ## Links
 
 - Issue #8. ADR-0003 (h4: connectors are cloud-side). ADR-0006 (surfaces; this record discharges its

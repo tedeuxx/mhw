@@ -69,7 +69,7 @@
         "global/owner_actions.py",
         "global/merge_authority.py",
         "src/render/chrome-debugging.js",
-        "global/private_copy.py",
+        "src/lib/private-copy.js",
         "mhw",
         "bin/",
         "package.json",
@@ -111,7 +111,7 @@
     {
       "id": "mcp-single-source",
       "layer": "user",
-      "paths": ["global/mcp/"]
+      "paths": ["global/mcp/", "src/render/mcp.js"]
     },
     {
       "id": "working-method",

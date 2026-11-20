@@ -1,0 +1,13 @@
+{
+  "step0 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step0 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "SKIP    claude-code: not installed (<HOME>/.claude absent)\n",
+  "step0 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step1 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step1 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "SKIP    claude-code: not installed (<HOME>/.claude absent)\n",
+  "step1 --policy --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "files": {}
+}

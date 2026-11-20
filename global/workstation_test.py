@@ -491,7 +491,7 @@ class ModelsLine(unittest.TestCase):
         lines = ok + [
             "DRIFT   kiro: on outside the set: synth-b (1); install turns them off (/h/.kiro/settings/mcp.json)" + tag,
             "ABSENT  claude-code: set member(s) not configured: synth-a (1); render them with "
-            "global/mcp/mcp_render.py (/h/.claude.json)" + tag,
+            "mhw mcp render (/h/.claude.json)" + tag,
             "REPORT  claude-desktop: on outside the set, no native switch for one server (remove it by hand): "
             "synth-c (1) (/h/Library/Application Support/Claude/claude_desktop_config.json)" + tag,
             "NOTE    claude-code: 1 claude.ai connector(s) declared on (/h/.claude/settings.json)" + tag]
@@ -500,7 +500,7 @@ class ModelsLine(unittest.TestCase):
         self.assertEqual(self.mcp(lines[2:4])[0], "2 finding(s)", "nothing for install to fix: no fix is named")
         self.assertEqual(rest, ["kiro: on outside the set: synth-b (1); install turns them off",
                                 "claude-code: set member(s) not configured: synth-a (1); render them with "
-                                "global/mcp/mcp_render.py",
+                                "mhw mcp render",
                                 "claude-desktop: on outside the set, no native switch for one server (remove it by "
                                 "hand): synth-c (1)"])
         self.assertEqual(ws.issues(lines), 1, "only DRIFT is a target install fixes; ABSENT and REPORT are not")
@@ -527,12 +527,17 @@ class ModelsLine(unittest.TestCase):
                 return code, lines
             return run
 
-        with mock.patch("builtins.print"):
+        with mock.patch("builtins.print"), mock.patch.object(ws, "node_binary", lambda: "/synthetic/node"):
             with mock.patch.object(ws, "run", fake_run(1, ["FAIL    codex: s-b: fail: timeout" + tag])):
                 self.assertEqual(ws.mcp_connect_status(5), 1)
             with mock.patch.object(ws, "run", fake_run(0, ["OK      codex: s-a: ok" + tag])):
                 self.assertEqual(ws.mcp_connect_status(5), 0)
             self.assertIn("--timeout=5", calls[-1])
+            # #484: the check is the Node renderer's (src/render/mcp.js), spawned by the node lookup.
+            self.assertEqual(calls[-1][:2], ["/synthetic/node", str(ws.ROOT / "src" / "render" / "mcp.js")])
+            with mock.patch.object(ws, "node_binary", lambda: None), \
+                    mock.patch.object(ws, "run", fake_run(0, [])):
+                self.assertEqual(ws.mcp_connect_status(5), 1, "no node: not run, and said")
             seen = []
             with mock.patch.object(ws, "gather", lambda project: facts()), \
                     mock.patch.object(ws, "mcp_connect_status", lambda t: seen.append(t) or 1):

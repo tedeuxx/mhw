@@ -1,7 +1,7 @@
-// privateCopy: the Node form of global/private_copy.py (Issue #145), the helper behind every
+// privateCopy: the Node form of the deleted global/private_copy.py (Issue #145; #484 removed it), the helper behind every
 // .pmhwc-*backup. Owner-only from the first byte, never written through whatever sits at the
-// destination. test/lib/private-copy.test.js runs this form and the Python one on the Python suite's
-// own cases and requires the same result. node: modules only.
+// destination. test/lib/private-copy.test.js runs this form and install.sh's shell form on the deleted
+// Python suite's cases and requires the same result. node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
 import { runAbsolute } from './run.js';
