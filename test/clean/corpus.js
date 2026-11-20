@@ -135,6 +135,9 @@ add('contract-value/cue-beyond-window', 'salário ' + 'x'.repeat(81) + ' ' + AMO
 add('contract-value/cue-at-window-edge', 'salário ' + 'x'.repeat(70) + ' ' + AMOUNT);
 add('contract-value/cue-near', 'salário ' + 'x'.repeat(10) + ' ' + AMOUNT);
 add('contract-value/cue-after', AMOUNT + ' de salário');
+// The 80-character window, pinned on both sides of its edge, before the amount and after it.
+for (const n of [71, 72, 73]) add('contract-value/window-before-' + n, 'salary ' + 'x'.repeat(n) + ' ' + AMOUNT);
+for (const n of [71, 72, 73, 74]) add('contract-value/window-after-' + n, AMOUNT + ' ' + 'x'.repeat(n) + ' salary');
 add('contract-value/lines-around', 'x\nproposta ' + AMOUNT + '\n' + AMOUNT + '\nbonus\n' + AMOUNT + ' bonus\n\n' + AMOUNT);
 add('contract-value/newline-first', '\n' + AMOUNT + ' salário');
 add('contract-value/cue-before-on-the-line-above-with-emoji', '\u{1F600} salário \u{1F600}\n\u{1F600} ' + AMOUNT + ' \u{1F600} pacote');

@@ -139,6 +139,36 @@ test('the Keychain salt is read through clipboard_guard.py, on a pipe, never in 
   assert.doesNotMatch(none.stdout, /employer-client-term, \d+ chars/);
 });
 
+test('the salt never reaches the argv or the environment of any process mhw scan starts', { skip: (!POSIX || !GIT) && 'POSIX, git' }, () => {
+  const b = box();
+  b.configure('salt_store=keychain\nkeychain_service=svc.test\n');
+  fs.writeFileSync(path.join(b.repo, 'm.txt'), 'one\nmet ' + TERM + '\n');
+  b.git(['add', '-A']);
+  b.git(['commit', '-q', '-m', 'add m']);
+  // Every program scan.js starts is git or python3: both are replaced by loggers on PATH. The git logger
+  // runs the real git; the python3 logger answers the salt.
+  const bin = path.join(b.dir, 'loggers');
+  fs.mkdirSync(bin);
+  const log = path.join(b.dir, 'spawns.jsonl');
+  const logLine = 'require("fs").appendFileSync(' + JSON.stringify(log) + ', JSON.stringify({ argv: process.argv.slice(1), env: process.env }) + "\\n");\n';
+  fs.writeFileSync(path.join(bin, 'git'), '#!' + process.execPath + '\n' + logLine
+    + 'const r = require("child_process").spawnSync(' + JSON.stringify(GIT) + ', process.argv.slice(2), { stdio: "inherit" });\n'
+    + 'process.exit(r.status === null ? 1 : r.status);\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(bin, 'python3'), '#!' + process.execPath + '\n' + logLine + 'process.stdout.write(' + JSON.stringify(SALT) + ');\n', { mode: 0o755 });
+  const env = { ...b.env, PATH: bin + path.delimiter + b.env.PATH };
+  for (const args of [[], ['m.txt'], ['--base=base']]) {
+    const r = run(args, { cwd: b.repo, env, platform: 'darwin' });
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /m\.txt:2: employer-client-term, 12 chars\n/, JSON.stringify(args));
+  }
+  const spawns = fs.readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+  assert.ok(spawns.filter((s) => s.argv[0].endsWith('git')).length > 5 && spawns.some((s) => s.argv[0].endsWith('python3')), 'both loggers ran');
+  for (const s of spawns) {
+    assert.ok(!JSON.stringify(s.argv).includes(SALT), 'the salt reached the argv of ' + s.argv[0]);
+    assert.ok(!JSON.stringify(s.env).includes(SALT), 'the salt reached the environment of ' + s.argv[0]);
+  }
+});
+
 test('the Keychain salt child is isolated: no module from the scanned repository or PYTHONPATH runs', { skip: (!POSIX || !GIT || !which('python3')) && 'POSIX, git, python3' }, () => {
   const b = box();
   // A nonexistent service and keychain file: the probe answers locked or unknown, and no real Keychain is read.

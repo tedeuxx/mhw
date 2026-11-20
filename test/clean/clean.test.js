@@ -165,6 +165,29 @@ test('a line of a megabyte of amounts is not quadratic (the Python original took
   assert.ok(performance.now() - t < 10000, 'took ' + Math.round(performance.now() - t) + ' ms');
 });
 
+test('the merges join overlapping findings only; touching ones stay apart, as Python\'s `start < end` does', () => {
+  // pattern_spans(): one category, overlap merged, touch kept, another category never merged.
+  assert.deepEqual(clean.mergeSameCategory([[0, 5, 'phone'], [4, 9, 'phone'], [9, 12, 'phone'], [10, 11, 'health']]),
+    [[10, 11, 'health'], [0, 9, 'phone'], [9, 12, 'phone']]);
+  // sanitise(): any categories, overlap merged under the earliest label, touch kept as two markers.
+  assert.equal(clean.sanitise('abcdefghij', [[0, 3, 'email'], [3, 5, 'cpf'], [4, 7, 'phone']]), '[REDACTED:email][REDACTED:cpf]hij');
+});
+
+test('scanText reports exactly findSpans\' categories and lengths (scan_test.py ScanText, both tests)', async () => {
+  const { scanText } = await import('../../src/commands/scan.js');
+  const { AWS, EMAIL, CPF } = await import('../scan/cases.js');
+  // test_returns_positions_never_text
+  const found = scanText('x\n\ny ' + AWS + '\n');
+  assert.deepEqual(found, [[3, 'credential', AWS.length]]);
+  for (const part of found.flat()) assert.ok(!String(part).includes(AWS));
+  // test_reuses_the_paste_filter_engine
+  const text = EMAIL + ' ' + CPF;
+  const want = clean.findSpans(text).map(([s, e, c]) => [e - s, c]).sort((a, b) => Number(a[0]) - Number(b[0]) || String(a[1]).localeCompare(String(b[1])));
+  const got = scanText(text).map(([, c, n]) => [n, c]).sort((a, b) => Number(a[0]) - Number(b[0]) || String(a[1]).localeCompare(String(b[1])));
+  assert.deepEqual(got, want);
+  assert.ok(want.length);
+});
+
 test('blocking and report-only sets, as clipboard_guard.py computes them', () => {
   const conf = clean.loadConfig(null, { env: { HOME: '/nonexistent-home' }, platform: 'linux' });
   assert.deepEqual([...clean.blockingSet(conf)].sort(), clean.CATEGORY_ORDER.filter((c) => c !== 'postal-address' && c !== 'contract-value').sort());

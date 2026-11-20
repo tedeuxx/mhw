@@ -434,6 +434,16 @@ export function patternSpans(text, o = offsets(text)) {
   }
   for (const re of HEALTH_PATTERNS) for (const m of finditer(re, text, o)) spans.push([m.start, m.end, 'health']);
   for (const m of finditer(COLLEAGUE_PATTERN, text, o, 1)) spans.push([m.start, m.end, 'colleague-name']);
+  return mergeSameCategory(spans);
+}
+
+/**
+ * pattern_spans()'s merge: findings of one category that OVERLAP become one (start < previous end);
+ * findings that only touch stay two, as in Python.
+ * @param {Span[]} spans
+ * @returns {Span[]}
+ */
+export function mergeSameCategory(spans) {
   /** @type {Span[]} */
   const merged = [];
   for (const s of [...spans].sort(byCategoryStartEndDesc)) {

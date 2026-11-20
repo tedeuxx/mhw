@@ -138,6 +138,9 @@ export const CASES = [
     { write: 'repo/tab\tname.txt', text: 'y ' + CPF + '\n' }, { git: ['add', '-A'] }, { git: ['commit', '-q', '-m', 'names'] }, { scan: [] }], posix: true },
   { name: 'deleted-file-and-binary-in-history', steps: [...SETUP, { git: ['rm', '-q', 'old.txt'] }, { git: ['commit', '-q', '-m', 'drop old'] }, { scan: [] }] },
   { name: 'max-bytes-from-the-installed-config', steps: [...SETUP, { conf: 'max_bytes=20\nsalt_store=file\n' }, { scan: [] }, { scan: ['clean.txt', 'touched.md'] }] },
+  // clean.txt and its added lines are 18 bytes: at max_bytes=18 they are scanned, at 17 skipped.
+  { name: 'max-bytes-boundary', steps: [...SETUP, { conf: 'max_bytes=18\nsalt_store=file\n' }, { scan: ['clean.txt'] }, { scan: [] },
+    { conf: 'max_bytes=17\nsalt_store=file\n' }, { scan: ['clean.txt'] }, { scan: [] }] },
   { name: 'unreadable-config-uses-defaults', steps: [...SETUP, { confBytes: Buffer.from([0x6d, 0x61, 0x78, 0xff, 0x0a]).toString('base64') }, { scan: ['new.txt'] }] },
   { name: 'unicode-digit-max-bytes-is-a-value-error', steps: [...SETUP, { conf: 'max_bytes=²³\nsalt_store=file\n' }, { scan: ['new.txt'] }] },
   { name: 'arabic-digit-max-bytes-is-read', steps: [...SETUP, { conf: 'max_bytes=٢٠\nsalt_store=file\n' }, { scan: ['new.txt', 'clean.txt'] }] },

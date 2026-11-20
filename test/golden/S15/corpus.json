@@ -3802,6 +3802,311 @@
       "categories": [
         "contract-value"
       ],
+      "name": "contract-value/window-before-71",
+      "sanitised": "salary xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          79,
+          12
+        ]
+      ],
+      "text_sha256": "67e500202fb28f6db014597fe6b23c029a5f7c9c11366cb39815037dd84c6289",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          78,
+          "87a1e4c1c92b7b7a"
+        ],
+        [
+          79,
+          80,
+          "454349e422f05297"
+        ],
+        [
+          82,
+          84,
+          "6b51d431df5d7f14"
+        ],
+        [
+          85,
+          88,
+          "0604cd3138feed20"
+        ],
+        [
+          89,
+          91,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/window-before-72",
+      "sanitised": "salary xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          80,
+          12
+        ]
+      ],
+      "text_sha256": "3aed7c82a0f35dfd5a08c84a5b3caf65a492c395776105615c252c04ea11f70d",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          79,
+          "5bd2fd7019be4014"
+        ],
+        [
+          80,
+          81,
+          "454349e422f05297"
+        ],
+        [
+          83,
+          85,
+          "6b51d431df5d7f14"
+        ],
+        [
+          86,
+          89,
+          "0604cd3138feed20"
+        ],
+        [
+          90,
+          92,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/window-before-73",
+      "sanitised": "salary xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx R$ 12.500,00",
+      "spans": [],
+      "text_sha256": "4e7f5e9d6888aa91b7f5355660a9f1db4ccedfc928f73feff2ae2578965df640",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          80,
+          "71b07785703e311e"
+        ],
+        [
+          81,
+          82,
+          "454349e422f05297"
+        ],
+        [
+          84,
+          86,
+          "6b51d431df5d7f14"
+        ],
+        [
+          87,
+          90,
+          "0604cd3138feed20"
+        ],
+        [
+          91,
+          93,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/window-after-71",
+      "sanitised": "[REDACTED:contract-value] xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx salary",
+      "spans": [
+        [
+          "contract-value",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "31c120b6d0c8f8479cc25ba99727e36d9fc7ee84c692974a9e3dbc3304e90d02",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          9,
+          "0604cd3138feed20"
+        ],
+        [
+          10,
+          12,
+          "f1534392279bddbf"
+        ],
+        [
+          13,
+          84,
+          "87a1e4c1c92b7b7a"
+        ],
+        [
+          85,
+          91,
+          "6384e43c02b1fbdf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/window-after-72",
+      "sanitised": "[REDACTED:contract-value] xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx salary",
+      "spans": [
+        [
+          "contract-value",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "30022a065e23c5d66c07e694e26adfb2ef900c64f1e56a645b25a817500c0677",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          9,
+          "0604cd3138feed20"
+        ],
+        [
+          10,
+          12,
+          "f1534392279bddbf"
+        ],
+        [
+          13,
+          85,
+          "5bd2fd7019be4014"
+        ],
+        [
+          86,
+          92,
+          "6384e43c02b1fbdf"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/window-after-73",
+      "sanitised": "R$ 12.500,00 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx salary",
+      "spans": [],
+      "text_sha256": "2a5d56c663c386148c3122a1d699ee0b606e1c30939b666450cc988a3f1f111b",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          9,
+          "0604cd3138feed20"
+        ],
+        [
+          10,
+          12,
+          "f1534392279bddbf"
+        ],
+        [
+          13,
+          86,
+          "71b07785703e311e"
+        ],
+        [
+          87,
+          93,
+          "6384e43c02b1fbdf"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/window-after-74",
+      "sanitised": "R$ 12.500,00 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx salary",
+      "spans": [],
+      "text_sha256": "728a51957928c923a1117872cbe3a95cbd3df2b2a13e5cb526d5b8d91698e173",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          9,
+          "0604cd3138feed20"
+        ],
+        [
+          10,
+          12,
+          "f1534392279bddbf"
+        ],
+        [
+          13,
+          87,
+          "0e72fa9b833e39a1"
+        ],
+        [
+          88,
+          94,
+          "6384e43c02b1fbdf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
       "name": "contract-value/lines-around",
       "sanitised": "x\nproposta [REDACTED:contract-value]\nR$ 12.500,00\nbonus\n[REDACTED:contract-value] bonus\n\nR$ 12.500,00",
       "spans": [
