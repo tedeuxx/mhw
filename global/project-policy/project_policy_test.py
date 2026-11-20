@@ -87,6 +87,23 @@ def property_names(schema):
     return names
 
 
+# Issue #523: the pattern that makes a free-text field carry a letter or digit. It accepts a trailing
+# newline on purpose (prose may end in one), so it has its own test instead of a trailing-newline case.
+NONBLANK = r"^[\s\S]*[A-Za-z0-9][\s\S]*$"
+
+
+def with_override(doc):
+    """doc with a full baseline_override section (Issue #523), every optional object present."""
+    doc = copy.deepcopy(doc)
+    doc["baseline_override"] = {
+        "definition_of_done": {"additional_criteria": [
+            {"id": "accessibility-audit", "description": "Every new page passes an automated accessibility audit."}]},
+        "documentation": {"additional_docs": [
+            {"path": "docs/runbooks/rollback.md", "description": "The rollback runbook is current."}]},
+    }
+    return doc
+
+
 def load(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -165,6 +182,7 @@ class ProjectPolicyContractTests(unittest.TestCase):
             ("$.risk_classification.rules", "contains"),
             ("$.recovery.runbook", "required"),
             ("$.recovery.operator", "required"),
+            ("$.coverage.threshold_percent", "minimum"),
         ]:
             with self.subTest(path=path):
                 self.assertIn((path, keyword), errors)
@@ -235,8 +253,14 @@ class ProjectPolicyContractTests(unittest.TestCase):
             (("recovery", "runbook", "path"), "docs/runbooks/rollback.md\n", manual, "$.recovery.runbook.path"),
             (("recovery", "runbook", "last_tested"), "2026-10-30\n", manual, "$.recovery.runbook.last_tested"),
             (("recovery", "operator"), "@example-operator\n", manual, "$.recovery.operator"),
+            (("baseline_override", "definition_of_done", "additional_criteria", 0, "id"), "accessibility-audit\n",
+             with_override(self.valid), "$.baseline_override.definition_of_done.additional_criteria[0].id"),
+            (("baseline_override", "documentation", "additional_docs", 0, "path"), "docs/runbooks/rollback.md\n",
+             with_override(self.valid), "$.baseline_override.documentation.additional_docs[0].path"),
         ]
-        self.assertEqual(len(cases), json.dumps(self.schema).count('"pattern"'), "one case per pattern")
+        text = json.dumps(self.schema)
+        self.assertEqual(len(cases), text.count('"pattern"') - text.count(json.dumps(NONBLANK)),
+                         "one case per pattern other than the non-blank one")
         for path, value, base, where in cases:
             with self.subTest(field=where):
                 self.assertRejects(self.mutate(path, value, base), where, "pattern")
@@ -260,6 +284,90 @@ class ProjectPolicyContractTests(unittest.TestCase):
         for threshold in (0, -1, 101):
             with self.subTest(threshold=threshold):
                 self.assertNotEqual(self.errors(self.mutate(("coverage", "threshold_percent"), threshold)), [])
+
+    def test_coverage_cannot_go_below_the_mhw_floor_of_85(self):
+        # Issue #523, measured on 2026-11-20: the schema accepted threshold_percent 5 while the DoD asks
+        # for at least 85. A project may tighten the number, never lower it.
+        for threshold in (5, 50, 84, 84.99):
+            with self.subTest(threshold=threshold):
+                self.assertRejects(self.mutate(("coverage", "threshold_percent"), threshold),
+                                   "$.coverage.threshold_percent", "minimum")
+        for threshold in (85, 85.5, 90, 100):
+            with self.subTest(threshold=threshold):
+                self.assertEqual(self.errors(self.mutate(("coverage", "threshold_percent"), threshold)), [],
+                                 "85 or more is the floor or stricter")
+        self.assertEqual(self.schema["properties"]["coverage"]["properties"]["threshold_percent"]["minimum"], 85)
+
+    def test_free_text_must_carry_a_letter_or_digit(self):
+        # Issue #523: minLength 1 let a blank "when" on the one required high-risk rule through, which
+        # makes the high-risk approval apply to nothing, and a blank label that finds no bug Issue.
+        rules = copy.deepcopy(self.valid["risk_classification"]["rules"])
+        rules[0]["when"] = " "
+        override = with_override(self.valid)
+        cases = [
+            (("mandatory_scenarios", "critical_user_journeys", 0, "description"), None,
+             "$.mandatory_scenarios.critical_user_journeys[0].description"),
+            (("mandatory_scenarios", "risk_scenarios", 0, "description"), None,
+             "$.mandatory_scenarios.risk_scenarios[0].description"),
+            (("low_findings", "issue_label"), None, "$.low_findings.issue_label"),
+            (("risk_classification", "rules", 0, "when"), None, "$.risk_classification.rules[0].when"),
+            (("baseline_override", "definition_of_done", "additional_criteria", 0, "description"), override,
+             "$.baseline_override.definition_of_done.additional_criteria[0].description"),
+            (("baseline_override", "documentation", "additional_docs", 0, "description"), override,
+             "$.baseline_override.documentation.additional_docs[0].description"),
+        ]
+        self.assertEqual(len(cases), json.dumps(self.schema).count(json.dumps(NONBLANK)), "one case per use")
+        for path, base, where in cases:
+            for blank in (" ", "\t\n", "- . -"):
+                with self.subTest(field=where, value=blank):
+                    self.assertRejects(self.mutate(path, blank, base), where, "pattern")
+            with self.subTest(field=where, value="text"):
+                self.assertEqual(self.errors(self.mutate(path, "Ends in a newline.\n", base)), [])
+
+    # -- the baseline override (Issue #523): optional, and it may only add ------------------------
+
+    def test_the_baseline_override_is_optional_and_valid_when_full(self):
+        self.assertNotIn("baseline_override", self.schema["required"])
+        self.assertEqual(self.errors(with_override(self.valid)), [])
+        self.assertEqual(self.errors(self.mutate(("baseline_override",), {})), [])
+
+    def test_the_baseline_override_carries_no_key_that_lowers_or_waives(self):
+        override = self.schema["properties"]["baseline_override"]
+        self.assertEqual(sorted(property_names(override)), sorted([
+            "definition_of_done", "additional_criteria", "id", "description",
+            "documentation", "additional_docs", "path"]))
+        for trail, key in [((), "waive"), ((), "coverage_threshold_percent"), (("definition_of_done",), "skip"),
+                           (("documentation",), "not_applicable")]:
+            with self.subTest(key=key):
+                doc = with_override(self.valid)
+                parent = doc["baseline_override"]
+                for step in trail:
+                    parent = parent[step]
+                parent[key] = True
+                where = "$.baseline_override" + "".join("." + t for t in trail) + "." + key
+                self.assertRejects(doc, where, "additionalProperties")
+
+    def test_the_baseline_override_lists_are_not_empty_and_fully_described(self):
+        for section, key in (("definition_of_done", "additional_criteria"), ("documentation", "additional_docs")):
+            with self.subTest(section=section, case="empty list"):
+                doc = with_override(self.valid)
+                doc["baseline_override"][section][key] = []
+                self.assertRejects(doc, "$.baseline_override.%s.%s" % (section, key), "minItems")
+            with self.subTest(section=section, case="list missing"):
+                doc = with_override(self.valid)
+                del doc["baseline_override"][section][key]
+                self.assertRejects(doc, "$.baseline_override.%s.%s" % (section, key), "required")
+            item = with_override(self.valid)["baseline_override"][section][key][0]
+            for field in item:
+                with self.subTest(section=section, dropped=field):
+                    doc = with_override(self.valid)
+                    del doc["baseline_override"][section][key][0][field]
+                    self.assertRejects(doc, "$.baseline_override.%s.%s[0].%s" % (section, key, field), "required")
+        for path in ("/etc/x.md", "../x.md", "docs/x.txt"):
+            with self.subTest(path=path):
+                doc = with_override(self.valid)
+                doc["baseline_override"]["documentation"]["additional_docs"][0]["path"] = path
+                self.assertRejects(doc, "$.baseline_override.documentation.additional_docs[0].path", "pattern")
 
     def test_the_madr_must_be_ratified_and_inside_the_repository(self):
         self.assertRejects(self.mutate(("madr", "status"), "proposed"), "$.madr.status", "const")
@@ -292,13 +400,16 @@ class ProjectPolicyContractTests(unittest.TestCase):
             ("mandatory_scenarios", "critical_user_journeys", 0), ("mandatory_scenarios", "risk_scenarios", 0),
             ("severity",), ("low_findings",), ("risk_classification",), ("risk_classification", "rules", 0),
             ("approval",), ("recovery",), ("recovery", "runbook"),
+            ("baseline_override",), ("baseline_override", "definition_of_done"),
+            ("baseline_override", "definition_of_done", "additional_criteria", 0),
+            ("baseline_override", "documentation"), ("baseline_override", "documentation", "additional_docs", 0),
         ]
         self.assertEqual(len(objects), json.dumps(self.schema).count('"additionalProperties": false'),
                          "one case per object that declares it")
         for trail in objects:
             where = "$" + "".join("[%d]" % s if isinstance(s, int) else "." + s for s in trail)
             with self.subTest(object=where):
-                doc = copy.deepcopy(manual)
+                doc = with_override(manual)
                 parent = doc
                 for step in trail:
                     parent = parent[step]
