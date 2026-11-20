@@ -122,7 +122,9 @@ class SourceShape(unittest.TestCase):
                                          "funnel-review"]))
         # #198 added /handoff.
         self.assertEqual(COMMANDS, sorted(["autonomy", "new-issue", "new-prd", "prd-to-issues", "what-else",
-                                           "blueprint", "handoff", "need-me"]))
+                                           "blueprint", "handoff", "need-me",
+                                           # #522 added /backlog-grooming.
+                                           "backlog-grooming"]))
 
     def test_no_old_command_name_is_left(self):
         # #524: the one-release aliases are gone; no command name carries "idea" (owner, 2026-10-26 and
@@ -695,7 +697,7 @@ class Render(unittest.TestCase):
             self.assertIn("Owner-typed command $%s" % c, self.h.p(".agents/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
             self.assertIn("Owner-typed command /%s" % c, self.h.p(".kiro/skills/%s/SKILL.md" % c).read_text(encoding="utf-8"))
             # #196: argument-hint only on the plugin standard's allowlisted owner-typed commands.
-            hinted = c not in ("prd-to-issues", "new-prd", "what-else", "need-me")
+            hinted = c not in ("prd-to-issues", "new-prd", "what-else", "need-me", "backlog-grooming")
             head = "\n".join(front_matter(self.h.p(".claude/commands/%s.md" % c)))
             (self.assertIn if hinted else self.assertNotIn)("argument-hint:", head, c)
 
