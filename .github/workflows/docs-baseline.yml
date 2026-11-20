@@ -1,0 +1,42 @@
+# The documentation baseline check (Issue #523) on every pull request into main or rc/next: every
+# capability a change touches, per docs/documentation-baseline.json, must also change one of its
+# documents by more than whitespace, or the pull-request body must carry a column-0
+# `docs-baseline: none — <reason>` or `docs-baseline: in #N` line. A changed path outside every
+# capability fails whatever the body says. It is not among delivery-ci's needs in tests.yml, but
+# mhw delivery merge refuses any head check that is not green, so a red check holds the checked merge.
+# It runs again when the body is edited, so adding an escape line re-decides. It is a check, not a
+# hook: nothing stops a push, and a trivial doc edit or a dishonest escape still passes (ADR-0042).
+# The command imports only node: modules, so nothing is installed from a registry here.
+name: docs-baseline
+
+on:
+  pull_request:
+    branches: [main, rc/next]
+    types: [opened, synchronize, reopened, edited]
+
+permissions: {}
+
+jobs:
+  docs-baseline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # actions/checkout v6.1.0 (same pin as tests.yml). The pull request's head commit, with full
+      # history, so the merge base with the base branch exists.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      # actions/setup-node v7.1.0, the same pin and Node release as tests.yml's node job.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
+      - name: every touched capability changed a document, or the body says why not
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          node bin/mhw.js docs-baseline check "--base=origin/$BASE_REF" "--body-file=$RUNNER_TEMP/pr-body.md"

@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "readme": "README.md",
+    "prd": "docs/mhw-product-requirements-document-project.md",
+    "adr_library": "docs/adr",
+    "architecture": "README.md",
+    "sequences": "README.md"
+  },
+  "capabilities": [
+    {
+      "id": "documentation-baseline",
+      "code": [
+        "src/commands/docs-baseline.js",
+        "test/docs-baseline/**",
+        ".github/workflows/docs-baseline.yml",
+        "docs/documentation-baseline.json"
+      ],
+      "docs": [
+        "method/skills/documentation-standard/SKILL.md",
+        "docs/adr/0042-*.md"
+      ]
+    },
+    {
+      "id": "project-policy",
+      "code": [
+        "global/project-policy/**",
+        ".github/workflows/reference-delivery-*.yml"
+      ],
+      "docs": [
+        "docs/project-policy-contract.md",
+        "docs/reference-cicd.md",
+        "docs/recovery-reference.md",
+        "docs/deployment-lock-coverage.md",
+        "docs/adr/0015-*.md"
+      ]
+    },
+    {
+      "id": "working-method",
+      "code": [
+        "method/**",
+        "global/method/**",
+        ".github/scripts/method_issue_sync*.py",
+        ".github/workflows/method-issue-sync.yml"
+      ],
+      "docs": [
+        "method/**/*.md",
+        "docs/runbooks/method-*.md",
+        "docs/adr/0032-*.md"
+      ]
+    },
+    {
+      "id": "delivery-contract",
+      "code": [
+        "workspace/**",
+        "src/commands/delivery.js",
+        "test/delivery/**",
+        "test/helpers/delivery-*.js",
+        ".kiro/**",
+        ".workstation-version"
+      ],
+      "docs": [
+        "workspace/README.md",
+        "AGENTS.md",
+        "docs/adr/0021-*.md"
+      ]
+    },
+    {
+      "id": "outbound-scan",
+      "code": [
+        "src/commands/scan.js",
+        "src/lib/clean*.js",
+        "test/scan/**",
+        "test/clean/**",
+        "test/helpers/s15*",
+        ".github/workflows/outbound-scan.yml"
+      ],
+      "docs": [
+        "README.md",
+        "docs/adr/0035-*.md"
+      ]
+    },
+    {
+      "id": "paste-cleaning",
+      "code": [
+        "global/clipboard/**",
+        "global/clipboard.conf",
+        "global/profile/locales/**"
+      ],
+      "docs": [
+        "README.md",
+        "docs/adr/0033-*.md",
+        "docs/native-enforcement-matrix.md"
+      ]
+    },
+    {
+      "id": "mcp",
+      "code": [
+        "global/mcp/**",
+        "src/render/mcp.js",
+        "src/commands/mcp-launch.js",
+        "test/mcp/**",
+        "test/render/mcp*",
+        "test/helpers/mcp-*.js"
+      ],
+      "docs": [
+        "README.md",
+        "docs/adr/0038-*.md",
+        "docs/adr/0040-*.md",
+        "docs/adr/0041-*.md"
+      ]
+    },
+    {
+      "id": "workstation",
+      "code": [
+        "**"
+      ],
+      "docs": [
+        "README.md",
+        "AGENTS.md",
+        "docs/**"
+      ]
+    }
+  ]
+}
