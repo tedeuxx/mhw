@@ -48,7 +48,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$WORK/pkg" "$WORK/cache"
-          node --version; npm --version; uname -m; ldd --version | head -n 1
+          node --version; npm --version; uname -m
+          ldd --version > "$WORK/ldd.txt"; head -n 1 "$WORK/ldd.txt"
           for spec in node-pty@1.1.0 node-addon-api@7.1.1; do
             npm pack "$spec" --ignore-scripts --pack-destination "$WORK/pkg" --cache "$WORK/cache" >/dev/null
           done
@@ -58,7 +59,7 @@ jobs:
             for (const [name, file] of [["node-pty", "node-pty-1.1.0.tgz"], ["node-addon-api", "node-addon-api-7.1.1.tgz"]]) {
               const want = lock.packages["node_modules/" + name].integrity;
               const got = "sha512-" + crypto.createHash("sha512").update(fs.readFileSync(path.join(process.env.WORK, "pkg", file))).digest("base64");
-              if (got !== want) { console.error(name + ": integrity " + got + " is not the shrinkwrap's " + want); process.exit(1); }
+              if (got !== want) { console.error(name + ": integrity " + got + " differs from npm-shrinkwrap.json, " + want); process.exit(1); }
               console.log(name + ": " + got + " (matches npm-shrinkwrap.json)");
             }'
       - name: build pty.node with node-gyp from npm, against the installed Node headers
