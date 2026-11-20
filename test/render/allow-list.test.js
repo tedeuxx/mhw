@@ -303,6 +303,44 @@ test('the shell counted against the floor as jq unique sorts it, not in file ord
   assert.equal(adminState(ctxOf(opts)).claude, 'narrow', 'the repository floor plus a pair adjacent only in sorted order');
 });
 
+test('the admin floor: code-point order, not UTF-16 order, and every rule as a string (QA B5, B6)', (t) => {
+  const d = freshDir('b5b6');
+  const fc = path.join(d, 'floor.claude');
+  const root = path.join(d, 'admin');
+  const opts = { '--managed-root': root, '--floor-claude': fc, '--floor-codex': path.join(d, 'none') };
+  const jq = POSIX ? which('jq') : null;
+  /** @param {string[]} floor @param {unknown[]} deny */
+  const setUp = (floor, deny) => {
+    fs.writeFileSync(fc, floor.join('\n') + '\n');
+    for (const platform of ['darwin', 'linux']) {
+      const p = adminPaths(root, platform).claude;
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.writeFileSync(p, JSON.stringify({ permissions: { deny } }));
+    }
+  };
+  /** The shell's count, by allow-list.sh's own two jq programs; null without jq. */
+  const jqCount = () => {
+    if (!jq) return null;
+    const f = spawnSync(jq, ['-cR', '-s', 'split("\\n") | map(select(length > 0)) | unique', fc], { encoding: 'utf8' }).stdout.trim();
+    return Number(spawnSync(jq, ['--argjson', 'f', f, '[(.permissions.deny? // [])[] | select(. as $r | $f | index($r))] | unique | length',
+      adminPaths(root, 'linux').claude], { encoding: 'utf8' }).stdout.trim());
+  };
+  // B5: U+FFFF sorts before U+1F600 by code point (jq) and after it by UTF-16 unit (a plain sort()). The
+  // pair adjacent in code-point order counted in the shell: 3 against a floor of 2, narrow.
+  const astral = ['Bash(\u{1F600}:*)', 'Bash(￿:*)'];
+  setUp(astral, [...astral, ['Bash(￿:*)', 'Bash(\u{1F600}:*)']]);
+  assert.equal(adminState(ctxOf(opts)).claude, 'narrow', 'a pair adjacent in code-point order');
+  const n = jqCount();
+  if (n !== null) assert.equal(n, 3, 'jq itself counts the pair');
+  // B6: the shell counted a floor rule inside a nested array as present (2 of 2, wide); this reads wide
+  // only with every floor rule there as a string (declared difference 6: narrower).
+  setUp(['Bash(a:*)', 'Bash(b:*)'], ['Bash(a:*)', ['Bash(b:*)']]);
+  assert.equal(adminState(ctxOf(opts)).claude, 'narrow', 'a floor rule only inside a nested array');
+  const m = jqCount();
+  if (m !== null) assert.equal(m, 2, 'jq itself counted it: the shell read wide, this reads narrow, as declared');
+  if (!jq) t.diagnostic('jq is not on PATH: the shell counts were not checked against jq');
+});
+
 test('an incomplete or unmanaged admin floor is narrow (declared differences: stricter than the shell)', () => {
   const d = freshDir('admin');
   const f = floorFiles(d);
