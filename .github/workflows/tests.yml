@@ -64,7 +64,6 @@ jobs:
               with open(f, encoding="utf-8") as fh:
                   compile(fh.read(), f, "exec")' \
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
-            global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
             global/mcp/mcp_render.py global/mcp/mcp_active.py global/mcp/mcp_connect.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
             global/project-policy/project_policy.py global/project-policy/project_policy_test.py \
             global/project-policy/project_policy_check_test.py \
@@ -162,6 +161,31 @@ jobs:
         run: |
           python3 --version
           node --test --test-name-pattern="^live" test/clean/clean.test.js test/clean/unicode.test.js test/scan/scan.test.js
+      # #487 (S16 of #470): the live arm of the paste wrapper's parity test plays the recorded cases on the
+      # base revision's paste_wrapper.py with the same CPython. MHW_S16_LIVE_REQUIRED=1 turns a skip into a
+      # failure while the base still holds it.
+      - name: S16 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S16_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          node --test --test-name-pattern="^live" test/clipboard/paste-wrapper-golden.test.js
+      # #487: the live relay tests run a real wrapper between a pty the suite owns and a fake CLI, through
+      # the vendored node-pty. Only its macOS prebuilds are vendored, so they run on macOS, where
+      # MHW_S16_LIVE_REQUIRED=1 turns a pty that does not load into a failure; elsewhere they skip and the
+      # refusal tests run. Windows is not measured (D7).
+      - name: S16 live relay through the vendored pty (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S16_LIVE_REQUIRED: "1"
+        run: |
+          node --test --test-name-pattern="^live" test/clipboard/paste-wrapper.test.js
+          node bin/mhw.js paste-wrapper check
 
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
@@ -369,10 +393,6 @@ jobs:
         run: |
           python3 -B global/clipboard/clipboard_guard_test.py "$RUNNER_TEMP/clipboard"
           echo "security calls (probe):"; cat "$PMHWC_SECURITY_CALL_LOG" 2>/dev/null || echo "(none)"
-      # ADR-0011, the paste wrapper: a real wrapper process between a pty the suite owns and a recorder
-      # child. No real harness CLI, no shell rc, no terminal preferences, no clipboard.
-      - name: paste wrapper suite
-        run: python3 -B global/clipboard/paste_wrapper_test.py "$RUNNER_TEMP/paste-wrapper"
       # ADR-0017. Throwaway HOMEs only. Needs Python 3.11+ (tomllib) for the Codex surface. Issue #58:
       # the real `security` binary runs ONLY here, on the ephemeral macOS runner, through this explicit
       # opt-in; elsewhere the Keychain test uses global/security.test.stub. Keychains are throwaway

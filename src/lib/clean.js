@@ -37,8 +37,9 @@ export const LIST_FILES = Object.freeze({ health: 'clipboard-terms-health', 'col
 const REPORT_ONLY_DEFAULT = ['postal-address', 'contract-value'];
 
 /**
- * The settings clipboard_guard.py's DEFAULTS carries that this core reads. The notices stay in the
- * Python original until the hook moves; a notice_ key is kept verbatim, as Python keeps it.
+ * The settings clipboard_guard.py's DEFAULTS carries that this core reads. The paste wrapper's notices
+ * moved with it (#487), verbatim; the prompt hook's stay in the Python original until the hook moves. A
+ * notice_ key is kept verbatim, as Python keeps it.
  * @type {Readonly<Record<string, string>>}
  */
 export const DEFAULTS = Object.freeze({
@@ -53,6 +54,29 @@ export const DEFAULTS = Object.freeze({
   health_terms_file: '',
   colleague_terms_file: '',
   salt_file: '',
+  // The paste wrapper (src/commands/paste-wrapper.js). The first two REPLACE a paste inside the CLI's
+  // input, so they stay one line.
+  notice_paste_too_large: '[paste filter (ADR-0033): a paste over {max} bytes was NOT forwarded, it could not '
+    + 'be checked]',
+  notice_paste_error: '[paste filter (ADR-0033): internal error ({error}), the paste was NOT forwarded]',
+  notice_no_bracketed_paste: 'Paste filter (ADR-0033): {program} has not enabled bracketed paste, so pastes in '
+    + 'this session are NOT cleaned.',
+  // Appended to the two notices above when the CLI is kiro-cli (Issue #455).
+  notice_kiro_hook_on: 'The Kiro prompt hook checks each prompt instead, but only in a trusted workspace: in '
+    + 'an untrusted one Kiro runs no hooks, so nothing checks.',
+  notice_kiro_hook_off: 'No Kiro prompt hook from this project is installed, so nothing checks a prompt.',
+  notice_bracketed_paste_off: 'Paste filter (ADR-0033): {program} turned bracketed paste off, so pastes are '
+    + 'NOT cleaned until it turns it back on.',
+  notice_session_summary: 'Paste filter (ADR-0033): {count} paste(s) cleaned in this session ({categories}); '
+    + '{replaced} paste(s) replaced by a notice.',
+  notice_wrapper_no_salt: 'Paste filter (ADR-0033): the term list exists but its salt could not be read without '
+    + 'a prompt, so term matching (employer/client terms, health terms, colleague names) is NOT '
+    + 'applied in this session.',
+  notice_wrapper_args_unmarked: 'Paste filter (ADR-0033): a command-line argument carries {categories} or could '
+    + 'not be checked, so this session is NOT marked and the prompt hook checks '
+    + 'every prompt.',
+  notice_session_report_only: 'Paste filter (ADR-0033): {count} paste(s) in this session carried report-only '
+    + 'categories ({categories}) and were forwarded unchanged.',
 });
 
 // ---------------------------------------------------------------------------------- character sets

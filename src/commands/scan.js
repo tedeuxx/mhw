@@ -27,7 +27,7 @@
 //
 // The salt in the macOS Keychain is read the way the prompt hook reads it, by clipboard_guard.py's own
 // SaltStore(interactive=False): a non-interactive lock probe through Security.framework, then a bounded
-// `security` read. Node has no such probe, so until the hook moves to Node this one step runs
+// `security` read (src/lib/salt.js since #487). Node has no such probe, so until the hook moves to Node this one step runs
 // clipboard_guard.py: the first python3 on PATH (absolute entries only), run by its absolute path, isolated
 // (-I) and from clipboard_guard.py's own directory, so nothing in the scanned repository or on PYTHONPATH
 // is imported. Without python3 a NOTE says so and no term list is checked. The salt reaches this process
@@ -35,13 +35,12 @@
 // writes nothing. node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { onPath } from '../lib/onpath.js';
 import * as core from '../lib/clean.js';
+import { readSalt, CLIPBOARD_DIR } from '../lib/salt.js';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-export const CLIPBOARD_DIR = path.join(ROOT, 'global', 'clipboard');
+export { CLIPBOARD_DIR };
 const NO_REPOSITORY = 'not inside a git repository; mhw scan needs one, in every mode';
 const NO_GIT = 'git was not found on PATH; mhw scan needs it in this mode';
 const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
@@ -50,9 +49,6 @@ const ATTRIBUTION_ADDRESSES = ['noreply' + '@' + 'anthropic.com', 'noreply' + '@
 // Python's ^ and $ under re.MULTILINE: only at a \n (JavaScript's m flag also takes \r, U+2028, U+2029).
 const ATTRIBUTION_TRAILER = new RegExp(String.raw`(?<![^\n])` + core.ci('co-authored-by') + String.raw`:([^<>\n]*)<(?:`
   + ATTRIBUTION_ADDRESSES.map((a) => a.replaceAll('.', String.raw`\.`)).join('|') + String.raw`)>[ \t]*(?![^\n])`, 'gu');
-const KEYCHAIN_READ = 'import sys\nsys.path.insert(0, sys.argv[1])\nimport clipboard_guard as g\n'
-  + 'conf = dict(g.DEFAULTS, salt_store="keychain", keychain_service=sys.argv[2], keychain_path=sys.argv[3])\n'
-  + 'v = g.SaltStore(conf, interactive=False).get()\nsys.stdout.write(v or "")\n';
 
 /**
  * @typedef {{ cwd: string, env: Record<string, string | undefined>, platform: string, out: string[], git: string | null,
@@ -208,28 +204,6 @@ export function scanText(text, terms = new Set(), salt = null, lists = {}) {
   /** @type {Array<[number, string, number]>} */
   const found = core.findSpans(text, terms, salt, lists).map(([s, e, cat]) => [lineAt(o.toUnit(s)), cat, e - s]);
   return found.sort((a, b) => a[0] - b[0] || core.CATEGORY_ORDER.indexOf(a[1]) - core.CATEGORY_ORDER.indexOf(b[1]) || a[2] - b[2]);
-}
-
-/**
- * The salt for the term lists, or null, read without a prompt; noPython when the Keychain read had no
- * python3 to run it.
- * @param {Ctx} ctx
- * @param {Record<string, string>} conf
- * @returns {{ salt: string | null, noPython?: boolean }}
- */
-function readSalt(ctx, conf) {
-  if (conf.salt_store !== 'keychain') return { salt: core.fileSalt(conf.salt_file) };
-  // Off macOS there is no Security.framework, and clipboard_guard.py's probe answers "unknown" there.
-  if (ctx.platform !== 'darwin') return { salt: null };
-  if (!ctx.python) return { salt: null, noPython: true };
-  // -I (isolated: no current directory, no PYTHONPATH, no user site on sys.path, no PYTHON* variable):
-  // the child imports hashlib, hmac, json, re, secrets, subprocess and unicodedata, and without it a
-  // module of one of those names in the scanned repository, or on PYTHONPATH, would run. The child also
-  // runs in clipboard_guard.py's own directory, never the scanned one. ctx.python is an absolute path.
-  const p = spawnSync(ctx.python, ['-I', '-B', '-c', KEYCHAIN_READ, CLIPBOARD_DIR, conf.keychain_service, conf.keychain_path || ''],
-    { cwd: CLIPBOARD_DIR, env: ctx.env, stdio: ['ignore', 'pipe', 'ignore'], timeout: 15000, shell: false, windowsHide: true, encoding: 'utf8' });
-  const value = p.status === 0 && typeof p.stdout === 'string' ? p.stdout : '';
-  return { salt: /^[0-9a-f]{64}$/.test(value) ? value : null };
 }
 
 /**

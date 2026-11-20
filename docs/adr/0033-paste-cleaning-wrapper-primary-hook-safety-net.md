@@ -234,6 +234,21 @@ Ratification changes no evidence level stated above: it installs, loads or enfor
 
 The Kiro canary results amended in on 2026-11-08 (Issues #455 and #462) stay as written.
 
+## Amendment 2026-11-20: the wrapper runs on Node ([#487](https://github.com/tedeuxx/mhw/issues/487), proposed)
+
+~~The wrapper (`global/clipboard/paste_wrapper.py`)~~ The wrapper is `mhw paste-wrapper`
+(`src/commands/paste-wrapper.js`), the Node port, with the same properties and the Python original's
+answers held as goldens (`test/golden/S16/`). The shell functions run it as
+`"<node>" "<package>/bin/mhw.js" paste-wrapper run --config … -- <cli>`; install no longer copies a
+wrapper into the data directory and retires the earlier Python copy. Its pseudo-terminal is node-pty
+1.1.0, vendored with the macOS prebuilds only ([ADR-0042](0042-node-pty-vendored-for-the-paste-wrapper.md),
+proposed). Where that library cannot load (Linux and Windows, which have no vendored prebuild; a
+spawn-helper without its execute bit; a damaged module) the wrapper **refuses** in one line, exit 126,
+and `mhw status` prints `PASTE   FAIL` with the reason: it never starts the CLI unwrapped on a terminal.
+So on Linux the shell functions no longer start the CLI; `command <cli>` does, and the prompt hook
+checks. Windows is not measured (D7). Evidence level: *written and tested* (the live relay tests run on
+macOS through the vendored pty); not installed on the reference machine.
+
 ## Links
 
 - ADR-0011 (superseded; the history). ADR-0005 (no log). ADR-0008 (no persistence). ADR-0025 (admin

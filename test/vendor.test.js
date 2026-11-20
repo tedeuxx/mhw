@@ -2,6 +2,8 @@
 // runtime dependencies unmet, so mhw has none. Each vendored package must be byte-identical to the same
 // version installed as a devDependency, which npm ci fetched against the integrity in
 // npm-shrinkwrap.json and npm audit covers. So the vendored copy is exactly the audited, pinned one.
+// node-pty (#487) is vendored in part: the five lib/ files the POSIX path loads and the macOS prebuilds;
+// its spawn-helper is committed executable, which the npm tarball does not carry (its bytes are equal).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -22,10 +24,12 @@ function files(dir) {
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const lock = JSON.parse(fs.readFileSync(path.join(ROOT, 'npm-shrinkwrap.json'), 'utf8'));
 const vendored = fs.readdirSync(VENDOR).sort();
+/** The file each vendored package is loaded through. @type {Record<string, string>} */
+const ENTRY = { 'node-pty': 'lib/index.js', 'smol-toml': 'dist/index.js' };
 
 test('mhw has no npm runtime dependency; every vendored package is a pinned devDependency', () => {
   assert.equal(pkg.dependencies, undefined);
-  assert.deepEqual(vendored, ['smol-toml']);
+  assert.deepEqual(vendored, ['node-pty', 'smol-toml']);
   for (const name of vendored) {
     const v = JSON.parse(fs.readFileSync(path.join(VENDOR, name, 'package.json'), 'utf8')).version;
     assert.equal(pkg.devDependencies[name], v, name + ': devDependency pins the vendored version');
@@ -44,9 +48,22 @@ test('each vendored file is byte-identical to the installed devDependency', (t) 
     }
     // package.json is mhw's own reduced manifest (no upstream author fields); everything else is copied.
     const mine = files(path.join(VENDOR, name)).filter((rel) => rel !== 'package.json');
-    assert.ok(mine.includes('dist/index.js'), name);
+    assert.ok(mine.includes(ENTRY[name]), name);
     for (const rel of mine) {
       assert.ok(fs.readFileSync(path.join(VENDOR, name, rel)).equals(fs.readFileSync(path.join(installed, rel))), name + '/' + rel + ' differs from the installed package');
     }
   }
+});
+
+test('node-pty is vendored with the macOS prebuilds only, and its loader is the one file that reaches it', () => {
+  const mine = files(path.join(VENDOR, 'node-pty'));
+  assert.deepEqual(mine, ['LICENSE', 'lib/eventEmitter2.js', 'lib/index.js', 'lib/terminal.js', 'lib/unixTerminal.js', 'lib/utils.js',
+    'package.json', 'prebuilds/darwin-arm64/pty.node', 'prebuilds/darwin-arm64/spawn-helper', 'prebuilds/darwin-x64/pty.node',
+    'prebuilds/darwin-x64/spawn-helper']);
+  const manifest = JSON.parse(fs.readFileSync(path.join(VENDOR, 'node-pty', 'package.json'), 'utf8'));
+  assert.equal(manifest.type, 'commonjs', 'the lib/ files are CommonJS inside a "type": "module" package');
+  assert.equal(lock.packages['node_modules/node-pty'].hasInstallScript, true, 'npm ci --ignore-scripts must stay the CI install');
+  const users = files(path.join(ROOT, 'src')).filter((f) => f.endsWith('.js') && !f.startsWith('vendor/'))
+    .filter((f) => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8').includes("'vendor', 'node-pty'"));
+  assert.deepEqual(users, ['lib/pty.js']);
 });

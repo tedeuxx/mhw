@@ -37,11 +37,12 @@ targets() {
   echo "$targets_home/.claude/settings.json"
   echo "$targets_home/.codex/rules/workstation-deny-floor.rules"
   echo "$(data "$targets_home")/clipboard_guard.py $(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
-  echo "$(data "$targets_home")/paste_wrapper.py $(data "$targets_home")/paste-filter.sh"
+  echo "$(data "$targets_home")/paste-filter.sh"
 }
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
 clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
-wrap_src="$(cd "$(dirname "$0")" && pwd)/clipboard/paste_wrapper.py"
+wrap_mhw="$(cd "$(dirname "$0")/.." && pwd)/bin/mhw.js"
+wrap_node=$(command -v node)
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
 ours() { # number of entries of the removed HITL picker guard in a settings file (must stay 0)
   jq '[.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"))] | length' "$1"
@@ -408,21 +409,33 @@ else
 fi
 if [ -e "$(plist "$h")" ] || [ -d "$h/Library/LaunchAgents" ]; then ko "a LaunchAgent was written"; else ok "no LaunchAgent written (the watcher is withdrawn)"; fi
 
-# 2c'. the paste wrapper (ADR-0011, automatic cleaning at the paste boundary): installed beside the core,
-# with a managed snippet of shell functions. The installer sources nothing and writes no shell rc.
+# 2c'. the paste wrapper (ADR-0011, automatic cleaning at the paste boundary): mhw paste-wrapper (Node since
+# #487), run from this package by node, with a managed snippet of shell functions. The installer sources
+# nothing and writes no shell rc, and no copy of the wrapper is installed any more.
 pw="$(data "$h")/paste_wrapper.py"
-if sed 2d "$pw" | cmp -s - "$wrap_src" && sed -n 2p "$pw" | grep -q '^# managed-by: personal-multi-harness-workstation-configuration'; then
-  ok "paste wrapper installed: the source plus a marker on line 2"
-else
-  ko "installed paste wrapper differs from its source"
-fi
+if [ ! -e "$pw" ]; then ok "no Python paste wrapper is installed (#487)"; else ko "a Python paste wrapper was installed"; fi
 sn="$(data "$h")/paste-filter.sh"
-want_fn="claude() { /usr/bin/python3 -I -B \"$pw\" run --config \"$cc\" -- claude \"\$@\"; }"
+want_fn="claude() { \"$wrap_node\" \"$wrap_mhw\" paste-wrapper run --config \"$cc\" -- claude \"\$@\"; }"
 if head -n 1 "$sn" | grep -q '^# managed-by: personal-multi-harness-workstation-configuration' && grep -qxF "$want_fn" "$sn" \
-   && [ "$(grep -c '^[a-z-]*() { /usr/bin/python3 -I -B ' "$sn")" -eq 3 ] && grep -q '^kiro-cli() ' "$sn" && grep -q '^codex() ' "$sn"; then
-  ok "the snippet defines claude, codex and kiro-cli through the installed wrapper"
+   && [ "$(grep -cF "\"$wrap_node\" \"$wrap_mhw\" paste-wrapper run " "$sn")" -eq 3 ] && grep -q '^kiro-cli() ' "$sn" && grep -q '^codex() ' "$sn"; then
+  ok "the snippet defines claude, codex and kiro-cli through mhw paste-wrapper"
 else
   ko "the snippet is wrong"
+fi
+# An earlier install's Python wrapper (managed) is retired by the next install; an unmanaged file stays.
+hr="$base/home-retire"; mkdir -p "$(data "$hr")"
+printf '#!/usr/bin/python3\n# managed-by: personal-multi-harness-workstation-configuration; source: global/clipboard/paste_wrapper.py\n' > "$(data "$hr")/paste_wrapper.py"
+HOME="$hr" sh "$inst" --check > "$base/retire-check.out" 2>&1
+if grep -qF "STALE   $(data "$hr")/paste_wrapper.py: the Python paste wrapper, replaced by mhw paste-wrapper (Node, #487); install removes it" "$base/retire-check.out"; then
+  ok "check names the earlier Python wrapper as stale"
+else
+  ko "check did not name the stale Python wrapper"
+fi
+HOME="$hr" sh "$inst" > "$base/retire.out" 2>&1
+if [ ! -e "$(data "$hr")/paste_wrapper.py" ] && grep -qF "REMOVED $(data "$hr")/paste_wrapper.py (the Python paste wrapper, replaced by mhw paste-wrapper (Node, #487))" "$base/retire.out"; then
+  ok "install removes the earlier Python wrapper and says so"
+else
+  ko "install did not retire the earlier Python wrapper"
 fi
 # Issue #145: the block goes into the start-up file of $SHELL (zsh here) and nowhere else, and install
 # names no "add this line yourself" step.
