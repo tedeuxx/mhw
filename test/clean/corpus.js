@@ -61,7 +61,12 @@ function cnpj(twelve) {
 function luhnComplete(prefix15) {
   for (const last of '0123456789') {
     const d = [...(prefix15 + last)].reverse().map(Number);
-    if (d.reduce((t, x, i) => t + (i % 2 ? (x > 4 ? x * 2 - 9 : x * 2) : x), 0) % 10 === 0) return prefix15 + last;
+    /** @param {number} x @param {number} i */
+    const term = (x, i) => {
+      if (!(i % 2)) return x;
+      return x > 4 ? x * 2 - 9 : x * 2;
+    };
+    if (d.reduce((t, x, i) => t + term(x, i), 0) % 10 === 0) return prefix15 + last;
   }
   throw new Error('no Luhn digit');
 }

@@ -46,8 +46,8 @@ const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 const HUNK = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 const ATTRIBUTION_ADDRESSES = ['noreply' + '@' + 'anthropic.com', 'noreply' + '@' + 'openai.com'];
 // Python's ^ and $ under re.MULTILINE: only at a \n (JavaScript's m flag also takes \r, U+2028, U+2029).
-const ATTRIBUTION_TRAILER = new RegExp('(?<![^\\n])' + core.ci('co-authored-by') + ':([^<>\\n]*)<(?:'
-  + ATTRIBUTION_ADDRESSES.map((a) => a.replaceAll('.', '\\.')).join('|') + ')>[ \\t]*(?![^\\n])', 'gu');
+const ATTRIBUTION_TRAILER = new RegExp(String.raw`(?<![^\n])` + core.ci('co-authored-by') + String.raw`:([^<>\n]*)<(?:`
+  + ATTRIBUTION_ADDRESSES.map((a) => a.replaceAll('.', String.raw`\.`)).join('|') + String.raw`)>[ \t]*(?![^\n])`, 'gu');
 const KEYCHAIN_READ = 'import sys\nsys.path.insert(0, sys.argv[1])\nimport clipboard_guard as g\n'
   + 'conf = dict(g.DEFAULTS, salt_store="keychain", keychain_service=sys.argv[2], keychain_path=sys.argv[3])\n'
   + 'v = g.SaltStore(conf, interactive=False).get()\nsys.stdout.write(v or "")\n';
@@ -133,7 +133,9 @@ function outbound(ctx, base) {
 
 /** The path from a '+++ b/<path>' line; null for /dev/null. @param {string} name */
 function patchPath(name) {
-  let n = name.replace(/\t+$/, '');
+  let end = name.length;
+  while (end > 0 && name[end - 1] === '\t') end--;
+  let n = name.slice(0, end);
   if (n.length > 1 && n.startsWith('"') && n.endsWith('"')) n = n.slice(1, -1);
   return n.startsWith('b/') ? n.slice(2) : null;
 }
@@ -296,7 +298,8 @@ function explicitTargets(args, files, cwd) {
   }
   /** @type {Map<string, string>} */
   const byCase = new Map();
-  for (const key of byKey.keys()) if (!byCase.has(core.casefold(key))) byCase.set(core.casefold(key), key);
+  // The value is git's own entry, so the name shown has git's / on Windows too (normpath's key has \).
+  for (const [key, f] of byKey) if (!byCase.has(core.casefold(key))) byCase.set(core.casefold(key), f);
   return args.map((arg) => {
     const key = lookupKey(arg, cwd);
     if (key === null) return /** @type {Target} */ ([arg, null, 'outside the working directory, not scanned']);

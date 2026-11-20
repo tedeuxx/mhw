@@ -3,7 +3,7 @@
 // a throwaway git repository under a throwaway HOME and XDG_DATA_HOME, with the global and system git
 // configuration switched off and fixed dates, so commit ids are the same on every machine.
 // Every fixture is synthetic, assembled at run time (J), so this file carries no literal finding.
-import { J, SALT } from '../clean/corpus.js';
+import { J } from '../clean/corpus.js';
 
 export const AWS = J('AKIA', 'IOSFODNN7', 'EXAMPLE');
 export const EMAIL = J('synthetic.person', '@', 'fixture-mail.dev');
@@ -17,7 +17,7 @@ export const CODEX = J('noreply', '@', 'openai.com');
 export const NEW_FIXTURES = [J('+55 (11) 9', '0000-0001'), J('CEP 01', '000-000'), J('salary ', 'US$', ' 90,000'), J('CID F', '32.1'),
   J('my colleague ', 'Quillo Zyxwer')];
 export const NEW_SPANS = [J('+55 (11) 9', '0000-0001'), J('01', '000-000'), J('US$', ' 90,000'), J('CID F', '32.1'), J('Quillo ', 'Zyxwer')];
-export { SALT };
+export { SALT } from '../clean/corpus.js';
 
 /**
  * A step: write a file (text or base64 bytes), run git, make a directory or a symlink, remove a file,

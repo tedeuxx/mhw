@@ -58,7 +58,7 @@ export const DEFAULTS = Object.freeze({
 // ---------------------------------------------------------------------------------- character sets
 
 /** @param {number} cp */
-const hex = (cp) => '\\u{' + cp.toString(16) + '}';
+const hex = (cp) => String.raw`\u{` + cp.toString(16) + '}';
 
 /** A class body (no brackets) for inclusive ranges. @param {number[]} r */
 function classBody(r) {
@@ -87,6 +87,8 @@ export function inRanges(r, cp) {
 const W = classBody(WORD);
 const D = classBody(DIGIT);
 const S = classBody(SPACE);
+/** The class bodies py() puts in place of \w, \d and \s. @type {Record<string, string>} */
+const PY_CLASSES = { w: W, d: D, s: S };
 /** Python's \b over its own \w. */
 const B = '(?:(?<=[' + W + '])(?![' + W + '])|(?<![' + W + '])(?=[' + W + ']))';
 
@@ -104,7 +106,7 @@ export function py(src) {
     if (ch === '\\') {
       const next = src[i + 1];
       i++;
-      const set = next === 'w' ? W : next === 'd' ? D : next === 's' ? S : null;
+      const set = PY_CLASSES[next] ?? null;
       if (set !== null) out += inClass ? set : '[' + set + ']';
       else if (next === 'b' && !inClass) out += B;
       else if (next === 'Z' && !inClass) out += '$';
@@ -132,45 +134,27 @@ function ignoreCaseSet(letter) {
  * @param {string} src
  */
 export function ci(src) {
-  let out = '';
-  /** @type {Set<number> | null} */
-  let cls = null;
-  let clsRaw = '';
-  for (let i = 0; i < src.length; i++) {
-    const ch = src[i];
-    if (ch === '\\') {
-      if (cls) clsRaw += ch + src[i + 1];
-      else out += ch + src[i + 1];
-      i++;
-      continue;
-    }
-    if (ch === '{' && !cls) {
-      const end = src.indexOf('}', i);
-      out += src.slice(i, end + 1);
-      i = end;
-      continue;
-    }
-    if (ch === '[' && !cls) {
-      cls = new Set();
-      clsRaw = '';
-      continue;
-    }
-    if (ch === ']' && cls) {
-      out += '[' + clsRaw + [...cls].sort((a, b) => a - b).map(hex).join('') + ']';
-      cls = null;
-      continue;
-    }
-    const isLetter = /\p{L}/u.test(ch);
-    if (cls) {
-      if (isLetter) for (const cp of ignoreCaseSet(ch)) cls.add(cp);
-      else clsRaw += ch;
-    } else if (isLetter) {
-      out += '[' + ignoreCaseSet(ch).map(hex).join('') + ']';
-    } else {
-      out += ch;
-    }
+  return src.replace(CI_TOKEN, (t) => {
+    if (t.length > 1 && (t[0] === '\\' || t[0] === '{')) return t;
+    if (t.length > 1 && t[0] === '[') return ciClass(t.slice(1, -1));
+    return LETTER.test(t) ? '[' + ignoreCaseSet(t).map(hex).join('') + ']' : t;
+  });
+}
+
+/** An escape, a {m,n} quantifier, a class (none here holds a ]), or one code point. */
+const CI_TOKEN = /\\.|\{[^}]*\}|\[[^\]]*\]|[^]/gu;
+const LETTER = /^\p{L}$/u;
+
+/** A class under (?i): its letters' recorded sets added, everything else kept. @param {string} body */
+function ciClass(body) {
+  /** @type {Set<number>} */
+  const set = new Set();
+  let raw = '';
+  for (const tok of body.match(/\\.|[^]/gu) || []) {
+    if (LETTER.test(tok)) for (const cp of ignoreCaseSet(tok)) set.add(cp);
+    else raw += tok;
   }
-  return out;
+  return '[' + raw + [...set].sort((a, b) => a - b).map(hex).join('') + ']';
 }
 
 /** @param {string} src @param {string} [flags] */
@@ -197,7 +181,7 @@ const CREDENTIAL_PATTERNS = [
 ].map((s) => rx(py(s)));
 
 const EMAIL = rx(py(String.raw`(?<![A-Za-z0-9._%+\-])([A-Za-z0-9._%+\-]+)@((?:[A-Za-z0-9\-]+\.)+[A-Za-z]{2,})\b`), 'gdu');
-const EMAIL_SKIP_LOCAL = ['git'];
+const EMAIL_SKIP_LOCAL = new Set(['git']);
 // re.IGNORECASE over the whole pattern; $ is only ever reached at the end of the domain group.
 const EMAIL_SKIP_DOMAIN = rx(ci(String.raw`(?:^|\.)(?:example\.(?:com|org|net)|example|test|invalid|localhost|users\.noreply\.github\.com)$`), 'u');
 
@@ -224,7 +208,7 @@ const CONTRACT_AMOUNT = rx(py(
   + String.raw`|(?<![\w$])\$\d+(?:\.\d+)?[kK]\b`));
 const CONTRACT_CUE = rx(py(ci(
   String.raw`\b(?:sal[aá]rios?|salar(?:y|ies)|remunera[çc][ãa]o|compensation|pretens[ãa]o|contratos?|contracts?|`
-  + String.raw`proposta|offer|b[ôo]nus|PLR|CLT|PJ|honor[áa]rios|day rate|hourly rate|por hora|per hour|valor/hora|`
+  + 'proposta|offer|b[ôo]nus|PLR|CLT|PJ|honor[áa]rios|day rate|hourly rate|por hora|per hour|valor/hora|'
   + String.raw`pacote|package|stock options?|equity)\b`)), 'u');
 export const CONTRACT_WINDOW = 80;
 const HEALTH_PATTERNS = [
@@ -232,7 +216,7 @@ const HEALTH_PATTERNS = [
 ].map((s) => rx(py(s)));
 const COLLEAGUE_PATTERN = rx(py(ci(
   String.raw`\b(?:meu|minha|meus|minhas|nosso|nossa|my|our)\s+(?:ex-?)?(?:colegas?|gestora?|chefe|l[íi]der|`
-  + String.raw`diretora?|colleagues?|coworkers?|co-workers?|manager|boss|teammates?|team lead|tech lead|director)`
+  + 'diretora?|colleagues?|coworkers?|co-workers?|manager|boss|teammates?|team lead|tech lead|director)'
   + String.raw`(?:\s+(?:de\s+(?:time|equipe|trabalho)|at work))?\s+`)
   + String.raw`([${UPPER}][${LOWER}]+(?:\s+(?:d[aeo]s?\s+)?[${UPPER}][${LOWER}]+){0,3})`), 'gdu');
 
@@ -333,12 +317,14 @@ export function offsets(text) {
   /** @type {number[]} */
   const cpToUnit = [];
   let c = 0;
-  for (let u = 0; u < text.length; c++) {
+  let u = 0;
+  while (u < text.length) {
     cpToUnit.push(u);
     const step = (/** @type {number} */ (text.codePointAt(u))) > 0xffff ? 2 : 1;
     unitToCp[u] = c;
     if (step === 2) unitToCp[u + 1] = c + 1;
     u += step;
+    c += 1;
   }
   unitToCp[text.length] = c;
   cpToUnit.push(text.length);
@@ -403,6 +389,12 @@ function finditer(re, text, o, group = 0) {
   return out;
 }
 
+/** Python's str ordering for the ASCII names compared here. @param {string} a @param {string} b */
+function byString(a, b) {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
+}
+
 /** @param {Span} a @param {Span} b */
 function byCategoryStartEndDesc(a, b) {
   if (a[2] !== b[2]) return a[2] < b[2] ? -1 : 1;
@@ -438,7 +430,7 @@ export function patternSpans(text, o = offsets(text)) {
   const merged = [];
   for (const s of [...spans].sort(byCategoryStartEndDesc)) {
     const last = merged.at(-1);
-    if (last && last[2] === s[2] && s[0] < last[1]) last[1] = Math.max(last[1], s[1]);
+    if (last?.[2] === s[2] && s[0] < last[1]) last[1] = Math.max(last[1], s[1]);
     else merged.push([s[0], s[1], s[2]]);
   }
   return merged;
@@ -531,7 +523,7 @@ export function findSpans(text, termHashes = new Set(), salt = null, termLists =
   for (const re of CREDENTIAL_PATTERNS) for (const m of finditer(re, text, o)) spans.push([m.start, m.end, 'credential']);
   for (const m of text.matchAll(EMAIL)) {
     const ix = /** @type {any} */ (m).indices;
-    if (!EMAIL_SKIP_LOCAL.includes(m[1].toLowerCase()) && !EMAIL_SKIP_DOMAIN.test(m[2])) {
+    if (!EMAIL_SKIP_LOCAL.has(m[1].toLowerCase()) && !EMAIL_SKIP_DOMAIN.test(m[2])) {
       spans.push([o.toCp(ix[0][0]), o.toCp(ix[0][1]), 'email']);
     }
   }
@@ -540,8 +532,8 @@ export function findSpans(text, termHashes = new Set(), salt = null, termLists =
   for (const m of finditer(CNPJ, text, o)) if (cnpjOk(onlyDigits(m.value))) spans.push([m.start, m.end, 'cnpj']);
   /** @type {Array<[string, Set<string>]>} */
   const lists = [/** @type {[string, Set<string>]} */ (['employer-client-term', termHashes]),
-    ...Object.entries(termLists).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))]
-    .filter((e) => e[1] && e[1].size);
+    ...Object.entries(termLists).sort((a, b) => byString(a[0], b[0]))]
+    .filter((e) => e[1]?.size);
   if (lists.length && salt) {
     const words = tokens(text, o);
     /** @type {Map<string, string>} */
@@ -577,7 +569,7 @@ export function categories(spans) {
 function byStartEndCategory(a, b) {
   if (a[0] !== b[0]) return a[0] - b[0];
   if (a[1] !== b[1]) return a[1] - b[1];
-  return a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0;
+  return byString(a[2], b[2]);
 }
 
 /**

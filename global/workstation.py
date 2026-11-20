@@ -1738,13 +1738,11 @@ def main(argv):
         return 0 if argv else 2
     command, rest = argv[0], argv[1:]
     if command == "scan":
-        # Node since #486 (S15 of #470): ./mhw runs `node bin/mhw.js scan` before reaching this file, so
-        # only a direct `python3 workstation.py scan` arrives here; it is passed on to the same command.
-        node = node_binary()
-        if node is None:
-            print("mhw: node (26 or later) is required for mhw scan", file=sys.stderr)
-            return 2
-        return subprocess.run([node, str(ROOT / "bin" / "mhw.js"), "scan"] + rest, check=False).returncode
+        # Node since #486 (S15 of #470): ./mhw and bin/mhw.js run src/commands/scan.js and never reach
+        # this file, so only a direct `python3 workstation.py scan` arrives here. It names the command
+        # instead of passing its arguments on (no caller-supplied argument reaches a subprocess here).
+        print("mhw: mhw scan is the Node command now; run ./mhw scan or node bin/mhw.js scan", file=sys.stderr)
+        return 2
     if command == "policy":
         # ADR-0015 lock 3 (Issue #245): validate a project's contract; reads one file, installs nothing.
         if not rest or rest[0] != "check":

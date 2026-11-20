@@ -18,9 +18,12 @@ const LINES = [
   J('salary ', 'US$', ' 90,000 per the contract; CID F', '32.1 noted; my colleague ', 'Quillo Zyxwer agreed'),
   'commit 3f1e2d4c5b6a79880f1e2d4c5b6a79880f1e2d4c, uuid 123e4567-e89b-12d3-a456-426614174000, port 8080.',
 ];
-let text = '';
-for (let i = 0; Buffer.byteLength(text, 'utf8') < 1000000; i++) text += LINES[i % LINES.length] + '\n';
-text = new TextDecoder().decode(Buffer.from(text, 'utf8').subarray(0, 1000000)).replace(/�+$/, '');
+const cycle = LINES.map((l) => l + '\n').join('');
+const full = Buffer.from(cycle.repeat(Math.ceil(1000000 / Buffer.byteLength(cycle, 'utf8'))), 'utf8');
+// Cut at 1,000,000 bytes, stepping back off a continuation byte so no character is split.
+let end = 1000000;
+while ((full[end] & 0xc0) === 0x80) end--;
+const text = full.subarray(0, end).toString('utf8');
 const SALT = '5a'.repeat(32);
 const TERM = 'Zyxw Quillon Synthetic';
 const terms = new Set(clean.termForms(TERM).map((f) => clean.termHash(SALT, f)));
