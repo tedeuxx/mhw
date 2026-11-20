@@ -25,8 +25,12 @@ function slice(name = 'slice-merge-is-a-pinned-merge-commit') {
   return structuredClone(c);
 }
 
-/** @param {any} c */
-const compareKey = (c) => Object.keys(c.scenario.api).find((k) => k.startsWith('compare/'));
+/** @param {any} c @returns {string} */
+function compareKey(c) {
+  const key = Object.keys(c.scenario.api).find((k) => k.startsWith('compare/'));
+  assert.ok(key, 'the case has a compare answer');
+  return key;
+}
 
 /**
  * The case in process. An unfiltered compare fails as spawnSync does when its output passes the buffer,
