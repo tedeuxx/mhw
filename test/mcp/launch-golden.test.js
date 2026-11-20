@@ -1,6 +1,7 @@
 // S12 parity (#483, convention 3 of #470): `mhw mcp launch` against the deleted global/mcp/mcp-launch.sh,
-// and global/mcp/mcp_render.py's output against the base revision's, whose rendered command named the
-// shell launcher. Throwaway HOMEs and SYNTHETIC values only; keychain: cases use the Node security stub
+// and the MCP renderer's output against the base revision's, whose rendered command named the shell
+// launcher. The renderer was global/mcp/mcp_render.py then; since #484 (S13) the head side is its Node form,
+// src/render/mcp.js, and S13's own parity is test/render/mcp-golden.test.js. Throwaway HOMEs and SYNTHETIC values only; keychain: cases use the Node security stub
 // on both sides (the base launcher through a copy whose /usr/bin/security is the stub, the head through
 // test/helpers/mcp-launch-driver.js), never the real binary or Keychain.
 //   golden: each case runs on the head and is compared with the transcript recorded from the original:
@@ -208,7 +209,7 @@ const RENDER = [
 
 /**
  * Run the renderer's steps on a fresh throwaway HOME; each step's output, then the rendered configs.
- * @param {RenderCase} c @param {string} renderer
+ * @param {RenderCase} c @param {string[]} renderer the argv that runs the renderer
  */
 function playRender(c, renderer) {
   const dir = fs.mkdtempSync(path.join(h.dir, 'render-'));
@@ -226,7 +227,7 @@ function playRender(c, renderer) {
   /** @type {Record<string, unknown>} */
   const out = {};
   c.steps.forEach((step, i) => {
-    const p = spawnSync(/** @type {string} */ (PY), ['-B', renderer, ...step], { env, encoding: 'utf8' });
+    const p = spawnSync(renderer[0], [...renderer.slice(1), ...step], { env, encoding: 'utf8' });
     out['step' + i + ' ' + (step.join(' ') || 'install')] = { code: p.status };
     // The Claude desktop app is skipped for an OS-specific reason (absent on macOS, unpublished on Linux).
     out['step' + i + ' stdout'] = normalise(p.stdout, subs).replaceAll(stamp, '<STAMP>').replaceAll(/^SKIP {4}claude-desktop: .*$/gm, 'SKIP    claude-desktop: <skipped>');
@@ -240,6 +241,9 @@ function playRender(c, renderer) {
   out.launcher = launcher ? { mode: (fs.statSync(launcher).mode & 0o777).toString(8) } : '<absent>';
   return out;
 }
+
+/** The head's renderer (Node since #484). */
+const HEAD_RENDER = [NODE, path.join(ROOT, 'src', 'render', 'mcp.js')];
 
 const pyOk = (() => {
   if (!PY) return false;
@@ -277,10 +281,10 @@ test('golden: mhw mcp launch matches the shell launcher\'s transcripts', { skip:
   assert.deepEqual(diffs, []);
 });
 
-test('golden: mcp_render.py renders what it rendered before, but for the launcher it names', { skip: (!pyOk && 'needs python3 3.11+, POSIX') || (UPDATE && 'MHW_UPDATE_GOLDEN=1') }, () => {
+test('golden: the renderer renders what it rendered before, but for the launcher it names', { skip: (!POSIX && 'POSIX only') || (UPDATE && 'MHW_UPDATE_GOLDEN=1') }, () => {
   /** @type {string[]} */
   const diffs = [];
-  for (const c of RENDER) diffs.push(...differences(c.name, readGolden(SLICE, goldenName(c.name)), playRender(c, path.join(ROOT, 'global', 'mcp', 'mcp_render.py'))));
+  for (const c of RENDER) diffs.push(...differences(c.name, readGolden(SLICE, goldenName(c.name)), playRender(c, HEAD_RENDER)));
   assert.deepEqual(diffs, []);
 });
 
@@ -315,9 +319,9 @@ test('live: the shell launcher and the renderer of the base revision, side by si
   }
   if (pyOk) {
     for (const c of RENDER) {
-      const original = playRender(c, path.join(tree, 'global', 'mcp', 'mcp_render.py'));
+      const original = playRender(c, [/** @type {string} */ (PY), '-B', path.join(tree, 'global', 'mcp', 'mcp_render.py')]);
       if (UPDATE) writeGolden(SLICE, goldenName(c.name), original);
-      diffs.push(...differences(c.name, original, playRender(c, path.join(ROOT, 'global', 'mcp', 'mcp_render.py'))));
+      diffs.push(...differences(c.name, original, playRender(c, HEAD_RENDER)));
     }
   } else {
     t.diagnostic('renderer cases skipped: needs python3 3.11+');

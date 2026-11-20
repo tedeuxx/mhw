@@ -1245,7 +1245,7 @@ if grep -q "$canary" "$base/mcp-r2.out"; then ko "a server value was printed"; e
 
 # 19b. the policy MCP server (ADR-0038, Issue #174): install writes chrome-devtools into the Claude Code user
 # configuration (~/.claude.json), prints old -> new and keeps an 0600 backup; uninstall removes it and
-# keeps the owner's own servers. Per-case semantics: global/mcp/mcp_render_test.py, class Policy.
+# keeps the owner's own servers. Per-case semantics: test/render/mcp.test.js, "the policy servers".
 hp="$base/home-mcp-policy"; mkdir -p "$hp/.claude"
 printf '%s\n' '{"numStartups": 2, "mcpServers": {"mine": {"command": "/bin/echo"}}}' > "$hp/.claude.json"
 chmod 644 "$hp/.claude.json"
@@ -1299,7 +1299,7 @@ fi
 
 # 19c. the MCP active set (Issue #219, ADR-0041), through install.sh: undeclared, install turns nothing off;
 # declared, install turns off a Codex server outside the set, check is clean after it, and uninstall restores
-# the Codex configuration byte for byte. Per-case semantics: global/mcp/mcp_render_test.py, class ActiveSet.
+# the Codex configuration byte for byte. Per-case semantics: test/render/mcp.test.js, "the active set".
 ha="$base/home-mcp-active"; mkdir -p "$ha/.codex" "$ha/.local/share/personal-multi-harness-workstation-configuration/local-overlay"
 printf '%s\n' '[mcp_servers.set-a]' 'command = "/bin/echo"' '' '[mcp_servers.out-b]' 'command = "/bin/echo"' > "$ha/.codex/config.toml"
 act_seed=$(cksum < "$ha/.codex/config.toml")

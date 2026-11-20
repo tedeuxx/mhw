@@ -1,0 +1,62 @@
+{
+  "step0 install": {
+    "code": 0
+  },
+  "step0 install stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\nWROTE   <HOME>/.codex/config.toml (add fake-plain, fake-secret, fake-codex-only)\nWROTE   <HOME>/.claude.json (add fake-plain, fake-secret)\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nWROTE   <HOME>/.kiro/settings/mcp.json (add fake-plain, fake-secret)\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step0 install stderr": "",
+  "step1 --check": {
+    "code": 1
+  },
+  "step1 --check stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nOK      <HOME>/.codex/config.toml (3 managed server(s); <STAMP>)\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nOK      <HOME>/.kiro/settings/mcp.json (2 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nSTALE   <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.sh (the retired shell launcher; install removes it)\n",
+  "step1 --check stderr": "",
+  "step2 --dry-run": {
+    "code": 0
+  },
+  "step2 --dry-run stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nOK      <HOME>/.codex/config.toml (3 managed server(s); <STAMP>)\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nOK      <HOME>/.kiro/settings/mcp.json (2 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nWOULD REMOVE <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.sh (the retired shell launcher)\n",
+  "step2 --dry-run stderr": "",
+  "step3 install": {
+    "code": 0
+  },
+  "step3 install stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nOK      <HOME>/.codex/config.toml (3 managed server(s); <STAMP>)\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nOK      <HOME>/.kiro/settings/mcp.json (2 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.sh (the retired shell launcher)\n",
+  "step3 install stderr": "",
+  "step4 --check": {
+    "code": 0
+  },
+  "step4 --check stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nOK      <HOME>/.codex/config.toml (3 managed server(s); <STAMP>)\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nOK      <HOME>/.kiro/settings/mcp.json (2 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step4 --check stderr": "",
+  "step5 install": {
+    "code": 0
+  },
+  "step5 install stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\nOK      <HOME>/.codex/config.toml (3 managed server(s); <STAMP>)\nOK      <HOME>/.claude.json (2 managed server(s))\nNOTE    claude-code: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\nOK      <HOME>/.kiro/settings/mcp.json (2 managed server(s))\nNOTE    kiro: an env: secret depends on this app passing that variable to the launcher; only Codex is told to (env_vars)\n",
+  "step5 install stderr": "",
+  "files": {
+    ".claude.json": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {\n    \"fake-plain\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"type\": \"stdio\",\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    }\n  }\n}\n"
+    },
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": "# >>> managed-by: personal-multi-harness-workstation-configuration (mcp servers); <STAMP>; generated, do not edit inside this block: re-run global/mcp/mcp_render.py\n[mcp_servers.fake-plain]\ncommand = \"/bin/echo\"\nargs = [\"hello\"]\nenv = { FAKE_REGION = \"zz-1\" }\n\n[mcp_servers.fake-secret]\ncommand = \"<NODE>\"\nargs = [\"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\", \"--secret\", \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\", \"--\", \"/bin/cat\", \"-u\"]\nenv_vars = [\"FAKE_SRC_VAR\"]\n\n[mcp_servers.fake-codex-only]\ncommand = \"/bin/cat\"\nargs = []\n# <<< managed-by: personal-multi-harness-workstation-configuration (mcp servers)\n"
+    },
+    ".kiro/settings/mcp.json": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {\n    \"fake-plain\": {\n      \"command\": \"/bin/echo\",\n      \"args\": [\n        \"hello\"\n      ],\n      \"env\": {\n        \"FAKE_REGION\": \"zz-1\"\n      }\n    },\n    \"fake-secret\": {\n      \"command\": \"<NODE>\",\n      \"args\": [\n        \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\",\n        \"--secret\",\n        \"FAKE_API_TOKEN=env:FAKE_SRC_VAR\",\n        \"--\",\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    }\n  }\n}\n"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "644",
+      "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {
+      "mode": "700",
+      "text": "#!/usr/bin/env node\n// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/mcp-launch.js; <STAMP>; do not edit, re-run the renderer\n<the launcher source>"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.sh": {
+      "mode": "644",
+      "text": "#!/bin/sh\necho someone else\n"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": {
+      "mode": "600",
+      "text": "{\n  \"version\": 1,\n  \"surfaces\": {\n    \"claude-code\": [\n      \"fake-plain\",\n      \"fake-secret\"\n    ],\n    \"kiro\": [\n      \"fake-plain\",\n      \"fake-secret\"\n    ]\n  },\n  \"stamps\": {\n    \"claude-code\": \"<STAMP>\",\n    \"kiro\": \"<STAMP>\"\n  }\n}\n"
+    }
+  }
+}

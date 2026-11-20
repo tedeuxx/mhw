@@ -1,0 +1,42 @@
+[
+  {
+    "case": ["*"],
+    "stream": ["*"],
+    "base": "re-run global/mcp/mcp_render\\.py",
+    "head": "re-run mhw mcp render",
+    "replace": "re-run <the renderer>",
+    "why": "The opening line of the managed block in the Codex config.toml tells the reader how to regenerate it. The original named global/mcp/mcp_render.py, which this slice deletes; the Node renderer names the command that replaces it, mhw mcp render. The block's servers, its stamp and every other byte are still compared. Consequence on an installed machine: an existing block keeps the old line, so mhw mcp render --check reports the Codex config as DRIFT (no server change) until the owner runs mhw mcp render once; install.sh does not run that mode, so no install changes it."
+  },
+  {
+    "case": ["render-invalid-existing-configs"],
+    "stream": ["stderr"],
+    "base": "not valid TOML \\([^\\n]*\\); left untouched",
+    "head": "not valid TOML \\([^\\n]*\\); left untouched",
+    "replace": "not valid TOML (<the parser's message>); left untouched",
+    "why": "A config.toml that does not parse is refused with the parser's own message in brackets: tomllib's in the original (\"Invalid value (at line 1, column 9)\"), smol-toml's in the Node renderer, which parses the same TOML 1.0 with the S10 guard (src/render/toml-guard.js). The refusal, its exit code (3) and the untouched file are still compared; only the bracketed text differs."
+  },
+  {
+    "case": ["render-usage"],
+    "stream": ["stderr"],
+    "base": "usage: mcp_render\\.py ",
+    "head": "usage: mhw mcp render ",
+    "replace": "usage: <the renderer> ",
+    "why": "The usage lines of the policy and active-set modes name the program: mcp_render.py in the original, mhw mcp render in the Node renderer. The rest of each line, the stream and the exit code (2) are still compared."
+  },
+  {
+    "case": ["render-policy-extension-identical", "render-policy-extension-conflict"],
+    "stream": ["stdout"],
+    "base": "\\(mcp_render\\.py --policy, ADR-0038\\)",
+    "head": "\\(mhw mcp render --policy, ADR-0038\\)",
+    "replace": "(<the renderer> --policy, ADR-0038)",
+    "why": "The POLICY line, which says a policy server is rendered on that surface by the policy mode, names that mode's command: mcp_render.py --policy in the original, mhw mcp render --policy in the Node renderer. The surface, the server names and the rest of the line are still compared."
+  },
+  {
+    "case": ["active-a-server-joins-the-set", "active-with-the-render-and-the-policy"],
+    "stream": ["stdout"],
+    "base": "(render them with|copy runs and) global/mcp/mcp_render\\.py",
+    "head": "(render them with|copy runs and) mhw mcp render",
+    "replace": "$1 <the renderer>",
+    "why": "Two active-set report lines name the renderer: an ABSENT line (\"render them with ...\") and the REPORT line for a policy conflict (\"... and ... refuses the local copy\"). global/mcp/mcp_active.py, which prints them, now names mhw mcp render, the command that replaces the deleted mcp_render.py; mhw status (global/workstation.py) shows those lines and its tests are updated with them. The rest of each line, the server names, counts and exit codes are still compared."
+  }
+]

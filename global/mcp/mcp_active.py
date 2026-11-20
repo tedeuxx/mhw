@@ -1,7 +1,7 @@
 """The MCP active set (Issue #219, ADR-0041): the servers of the local MCP definition are the set, and
 every other MCP server an agent harness would start is turned off through that harness's own switch.
 
-    mcp_render.py --active --mode=install|check|dry-run|uninstall [--stamp=S] [--source=FILE]
+    mhw mcp render --active --mode=install|check|dry-run|uninstall [--stamp=S] [--source=FILE]
 
 global/install.sh runs it on every mhw install, check and uninstall. Per agent harness:
 
@@ -25,10 +25,119 @@ import glob
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 from urllib.parse import urlsplit
 
-import mcp_render as r
+try:
+    import tomllib
+except ImportError:  # Python < 3.11: the Codex surface is skipped, the JSON surfaces still apply
+    tomllib = None
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+# The MCP renderer is Node since #484 (S13 of #470): src/render/mcp.js. Until S14 (#485) moves this file,
+# it reaches the renderer through the CLI (the strangler rule of #470), never by importing it.
+RENDERER = os.path.join(os.path.dirname(os.path.dirname(HERE)), "src", "render", "mcp.js")
+
+
+class Refuse(Exception):
+    def __init__(self, code, msg):
+        super().__init__(msg)
+        self.code = code
+
+
+class _Renderer:
+    """The facts and acts of src/render/mcp.js this file needs, each one a `node mcp.js --lib=<op>` run:
+    a JSON request on stdin, one JSON answer on stdout ({"ok": value} or {"refuse": [code, message]}).
+    The marker strings are protocol text, held equal to the renderer's by test/render/mcp.test.js."""
+
+    PROJECT = "personal-multi-harness-workstation-configuration"
+    MARKER_ID = "managed-by: " + PROJECT
+    BLOCK_BEGIN_PREFIX = "# >>> %s (mcp servers)" % MARKER_ID
+    BLOCK_END = "# <<< %s (mcp servers)" % MARKER_ID
+    SURFACES = ("codex", "claude-code", "claude-desktop", "kiro")
+    MANIFEST_KEYS = ("surfaces", "stamps", "policy", "policy_stamps", "active")
+    Refuse = Refuse
+
+    def __init__(self):
+        self.tomllib = tomllib
+        self._paths = None
+        self._credential = {}
+
+    @staticmethod
+    def node():
+        """The node that runs the renderer: the one that started this file (MHW_MCP_RENDER_NODE), else the
+        node running mhw (MHW_NODE), else the first node on PATH; an absolute executable, or None."""
+        for var in ("MHW_MCP_RENDER_NODE", "MHW_NODE"):
+            node = os.environ.get(var, "")
+            if os.path.isabs(node) and os.path.isfile(node) and os.access(node, os.X_OK):
+                return node
+        found = shutil.which("node")
+        return os.path.abspath(found) if found else None
+
+    def call(self, op, request=None):
+        node = self.node()
+        if node is None:
+            raise Refuse(2, "the MCP active set reaches the renderer through mhw (src/render/mcp.js, #484), and no node "
+                            "was found (MHW_NODE, or node on PATH); install Node 26 or later")
+        p = subprocess.run([node, RENDERER, "--lib=" + op], input=json.dumps(request or {}), capture_output=True,
+                           text=True, encoding="utf-8")
+        if p.stderr:
+            sys.stderr.write(p.stderr)
+        try:
+            answer = json.loads(p.stdout)
+        except ValueError:
+            raise Refuse(3, "the MCP renderer (src/render/mcp.js --lib=%s) exited %d without an answer"
+                         % (op, p.returncode)) from None
+        if "refuse" in answer:
+            code, msg = answer["refuse"]
+            raise Refuse(code, msg)
+        return answer["ok"]
+
+    def paths(self):
+        if self._paths is None:
+            self._paths = self.call("paths")
+        return self._paths
+
+    def home(self):
+        return self.paths()["home"]
+
+    def surface_target(self, surface):
+        t = self.paths()["targets"][surface]
+        return tuple(t) if t else None
+
+    def default_source(self):
+        return self.paths()["default_source"]
+
+    def manifest_path(self):
+        return self.paths()["manifest"]
+
+    def active_set(self, source):
+        """The renderer's facts about the declared set (committable, load_source, the policy servers and the
+        entries each harness renders), for the definition at source, or with none (source None)."""
+        return self.call("set", {"source": source})
+
+    def load_manifest_doc(self):
+        return self.call("manifest")
+
+    def write_manifest(self, doc):
+        self.call("manifest-write", {"doc": doc})
+
+    def provenance(self):
+        return self.call("provenance")
+
+    def atomic_write(self, path, text, suffix):
+        """Write text whole; the previous file is kept as path + suffix, owner-only (0600)."""
+        self.call("write", {"path": path, "text": text, "suffix": suffix})
+
+    def looks_like_credential_value(self, s):
+        if s not in self._credential:
+            self._credential[s] = self.call("credential", {"values": [s]})[0]
+        return self._credential[s]
+
+
+r = _Renderer()
 
 TAG = "(MCP active set)"
 # Decision 2 of Issue #219: an agent harness app's own browser or computer-use server. node_repl is the
@@ -49,41 +158,26 @@ ENABLED_RE = re.compile(r"^[ \t]*enabled[ \t]*=")
 class ActiveSet:
     """The declared set, or none: an undeclared set turns nothing off."""
 
-    def __init__(self, doc):
-        self.declared = doc is not None and "active_set" in doc
-        self.servers = set(doc["servers"]) if self.declared else set()
-        connectors = doc["active_set"].get("connectors", {}) if self.declared else {}
-        self.on = sorted(n for n, v in connectors.items() if v == "on")
-        self.off = sorted(n for n, v in connectors.items() if v == "off")
-        policy_doc = r.load_policy()
-        policy = policy_doc["servers"]
-        self.policy = {s: {n for n, v in policy.items() if s in v["surfaces"]} for s in r.SURFACES}
-        covered = r.policy_surfaces(policy_doc)
+    def __init__(self, facts):
+        """facts: what the renderer computed (r.active_set): the definition and the policy servers read
+        and checked there, and the entries each harness renders computed there."""
+        self.declared = facts["declared"]
+        self.servers = set(facts["servers"])
+        self.on, self.off = facts["on"], facts["off"]
+        self.policy = {s: set(names) for s, names in facts["policy"].items()}
         # name -> the surfaces a set member is configured on: its own, and a policy server's (ADR-0038
         # amendment, Issue #219: the local copy extends a policy server to the surfaces the policy does not name).
-        self.where = {n: set(s.get("surfaces", r.SURFACES)) | set(covered.get(n, ()))
-                      for n, s in doc["servers"].items()} if self.declared else {}
+        self.where = {n: set(v) for n, v in facts["where"].items()}
         # Set members whose local copy differs from the policy's on a surface both name: the default render
-        # refuses them (mcp_render.py policy_conflicts), name -> those surfaces.
-        self.conflicts = r.policy_conflicts(doc, policy_doc, r.launcher_for(doc, required=False)) if self.declared else {}
+        # refuses them (the renderer's policy conflicts), name -> those surfaces.
+        self.conflicts = facts["conflicts"]
         # Set members whose local copy differs from the policy's and is rendered only where the policy is not
         # (it leaves the policy's surfaces out, so the render does not refuse it): name -> the surfaces where
         # the local copy runs another command, args or env than the policy's would. Reported, not refused.
-        self.divergent = {}
-        for n, s in (doc["servers"].items() if self.declared else ()):
-            if n not in policy or n in self.conflicts:
-                continue
-            for surface in sorted(set(s.get("surfaces", r.SURFACES)) - set(covered.get(n, ()))):
-                if r.entry(surface, s, r.launcher_for(doc, required=False)) != r.entry(surface, policy[n], None):
-                    self.divergent.setdefault(n, []).append(surface)
+        self.divergent = facts["divergent"]
         # name -> the Claude Code entries a kept server is rendered as: a set member (with the launcher for a
         # secret-bearing one) and a policy server. A deny that matches one of these would block it too.
-        self.kept = {}
-        if self.declared:
-            for n, e in r.local_desired(doc, "claude-code", r.launcher_for(doc, required=False), covered).items():
-                self.kept.setdefault(n, []).append(e)
-        for n, e in r.desired(policy_doc, "claude-code", None).items():
-            self.kept.setdefault(n, []).append(e)
+        self.kept = facts["kept"]
 
     def policy_where(self, name):
         """The surfaces the policy servers file renders this server on."""
@@ -112,9 +206,9 @@ def read_json(path):
     except FileNotFoundError:
         return False, {}
     except (OSError, ValueError) as e:
-        raise r.Refuse(3, "not readable JSON (%s); left untouched" % type(e).__name__)
+        raise Refuse(3, "not readable JSON (%s); left untouched" % type(e).__name__)
     if not isinstance(data, dict):
-        raise r.Refuse(3, "not a JSON object; left untouched")
+        raise Refuse(3, "not a JSON object; left untouched")
     return True, data
 
 
@@ -122,7 +216,7 @@ def quiet_json(path):
     """A plugin's own file: the data, or None when it is absent or unreadable (never a refusal)."""
     try:
         return read_json(path)[1]
-    except r.Refuse:
+    except Refuse:
         return None
 
 
@@ -209,7 +303,7 @@ def plan_codex(text, aset, prior):
     except r.tomllib.TOMLDecodeError:
         same = False
     if not same:
-        raise r.Refuse(3, "the edited TOML does not parse back to the intended content; nothing written")
+        raise Refuse(3, "the edited TOML does not parse back to the intended content; nothing written")
     return new_text, add, restore, stuck, record, servers, lay
 
 
@@ -379,7 +473,7 @@ def plan_claude(data, want, prior):
     """-> (new settings, entries to add, records to remove, new record)."""
     denied = data.get("deniedMcpServers", [])
     if not isinstance(denied, list):
-        raise r.Refuse(3, "its deniedMcpServers is not a list; left untouched")
+        raise Refuse(3, "its deniedMcpServers is not a list; left untouched")
     ours = [p["entry"] for p in prior]
     wanted = [e for e, _ in want]
     keep = [e for e in denied if e in wanted or e not in ours]
@@ -426,14 +520,14 @@ class Run:
             self.say("WOULD", surface, "would change: %s; backup %s%s" % (text, os.path.basename(cfg), BACKUP), cfg)
         else:
             existed = os.path.exists(cfg)
-            r.atomic_write(cfg, new_text, backup=True, suffix=BACKUP)
+            r.atomic_write(cfg, new_text, BACKUP)
             self.say("CHANGED", surface, text + ("; previous file kept as %s%s" % (cfg, BACKUP) if existed else ""),
                      cfg)
 
     def absent(self, surface, cfg, missing, off_by_hand, blocked=()):
         if self.mode == "uninstall" or not self.aset.declared:
             return
-        parts = (["set member(s) not configured: %s; render them with global/mcp/mcp_render.py" % names(missing)]
+        parts = (["set member(s) not configured: %s; render them with mhw mcp render" % names(missing)]
                  if missing else []) + (["set member(s) turned off outside mhw: %s" % names(off_by_hand)]
                                         if off_by_hand else []) + (
             ["set member(s) blocked by a deniedMcpServers entry mhw did not write: %s" % names(blocked)]
@@ -448,7 +542,7 @@ class Run:
         here = sorted(n for n, where in self.aset.conflicts.items() if surface in where)
         if here:
             self.say("REPORT", surface, "set member(s) whose local copy differs from the policy server's here, so "
-                     "the policy's copy runs and global/mcp/mcp_render.py refuses the local copy: %s" % names(here),
+                     "the policy's copy runs and mhw mcp render refuses the local copy: %s" % names(here),
                      cfg)
         apart = sorted(n for n, where in self.aset.divergent.items() if surface in where)
         if apart:
@@ -494,7 +588,7 @@ class Run:
         except r.tomllib.TOMLDecodeError:
             self.refuse("codex", cfg, "not valid TOML; left untouched")
             return prior
-        except r.Refuse as e:
+        except Refuse as e:
             self.refuse("codex", cfg, str(e), e.code)
             return prior
         if stuck:
@@ -518,7 +612,7 @@ class Run:
             return prior
         try:
             exists, data = read_json(cfg)
-        except r.Refuse as e:
+        except Refuse as e:
             self.refuse("kiro", cfg, str(e), e.code)
             return prior
         servers = data.get("mcpServers", {})
@@ -546,12 +640,12 @@ class Run:
         cfg = os.path.join(h, ".claude", "settings.json")
         try:
             _, user = read_json(user_cfg)
-        except r.Refuse as e:
+        except Refuse as e:
             self.refuse("claude-code", user_cfg, str(e), e.code)
             return prior
         try:
             _, data = read_json(cfg)
-        except r.Refuse as e:
+        except Refuse as e:
             self.refuse("claude-code", cfg, str(e), e.code)
             return prior
         user_servers = user.get("mcpServers", {})
@@ -559,7 +653,7 @@ class Run:
         want, stuck, collide = wanted_denies(self.aset, user_servers, plugin_servers(h))
         try:
             new, add, gone, record = plan_claude(data, want, prior)
-        except r.Refuse as e:
+        except Refuse as e:
             self.refuse("claude-code", cfg, str(e), e.code)
             return prior
         if stuck and self.mode != "uninstall":
@@ -593,7 +687,7 @@ class Run:
             return
         try:
             _, data = read_json(cfg)
-        except r.Refuse as e:
+        except Refuse as e:
             self.refuse("claude-desktop", cfg, str(e), e.code)
             return
         servers = data.get("mcpServers", {})
@@ -610,19 +704,16 @@ class Run:
 
 def load_set(mode, source):
     if mode == "uninstall":
-        return ActiveSet(None)
+        return ActiveSet(r.active_set(None))
     path = source or r.default_source()
     if not os.path.lexists(path):
         print("SKIP    MCP active set: no local MCP definition at %s, so nothing is turned off %s" % (path, TAG))
-        return ActiveSet(None)
-    if r.committable(path):
-        raise r.Refuse(2, "%s is inside a git work tree and not ignored, so it could be committed. The definition "
-                          "lives only in the untracked local overlay" % path)
-    doc = r.load_source(path)
-    if "active_set" not in doc:
+        return ActiveSet(r.active_set(None))
+    facts = r.active_set(path)  # the renderer refuses a committable or invalid definition (exit 2)
+    if not facts["declared"]:
         print("SKIP    MCP active set: not declared in %s (no \"active_set\"), so nothing is turned off %s"
               % (path, TAG))
-    return ActiveSet(doc)
+    return ActiveSet(facts)
 
 
 def valid_record(prior):
@@ -643,7 +734,7 @@ def main(mode, stamp=None, source=None):
     mdoc = r.load_manifest_doc()
     prior = mdoc.get("active", {})
     if not valid_record(prior):
-        raise r.Refuse(3, "the managed-server manifest %s has an unexpected shape" % r.manifest_path())
+        raise Refuse(3, "the managed-server manifest %s has an unexpected shape" % r.manifest_path())
     run = Run(mode, load_set(mode, source), stamp or r.provenance())
     record = {"codex": run.codex(prior.get("codex", {})), "kiro": run.kiro(prior.get("kiro", {})),
               "claude-code": run.claude(prior.get("claude-code", []))}
@@ -663,3 +754,33 @@ def main(mode, stamp=None, source=None):
                 os.remove(r.manifest_path())
                 print("REMOVED %s (it recorded only what the MCP active set turned off)" % r.manifest_path())
     return run.status
+
+
+def cli(argv):
+    """The arguments src/render/mcp.js --active checked and passed on: --mode=, --stamp=, --source= and
+    --timeout= (connect only)."""
+    mode, stamp, source, timeout = "install", None, None, None
+    for a in argv:
+        key, _, value = a.partition("=")
+        if key == "--mode":
+            mode = value
+        elif key == "--stamp":
+            stamp = value
+        elif key == "--source":
+            source = value
+        elif key == "--timeout":
+            timeout = int(value)
+    try:
+        if mode == "connect":
+            import mcp_connect
+            return mcp_connect.main(load_set(mode, source), timeout or mcp_connect.DEFAULT_TIMEOUT)
+        return main(mode, stamp, source)
+    except Refuse as e:
+        print(str(e), file=sys.stderr)
+        return e.code
+
+
+if __name__ == "__main__":
+    # mcp_connect imports this module by name: let it find this run, not a second copy with its own Refuse.
+    sys.modules.setdefault("mcp_active", sys.modules[__name__])
+    sys.exit(cli(sys.argv[1:]))

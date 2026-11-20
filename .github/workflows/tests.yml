@@ -65,7 +65,7 @@ jobs:
                   compile(fh.read(), f, "exec")' \
             global/clipboard/clipboard_guard.py global/clipboard/clipboard_guard_test.py \
             global/clipboard/paste_wrapper.py global/clipboard/paste_wrapper_test.py \
-            global/mcp/mcp_render.py global/mcp/mcp_active.py global/mcp/mcp_connect.py global/mcp/mcp_render_test.py global/keychain_test_guard.py \
+            global/mcp/mcp_active.py global/mcp/mcp_connect.py global/keychain_test_guard.py \
             global/project-policy/project_policy.py global/project-policy/project_policy_test.py \
             global/project-policy/project_policy_check_test.py \
             global/project-policy/delivery_gate.py global/project-policy/delivery_gate_test.py \
@@ -80,7 +80,6 @@ jobs:
             global/method/method_commands_test.py \
             global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py \
-            global/private_copy.py global/private_copy_test.py \
             .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py
       - name: node syntax check of the npm launcher and postinstall (Issue #68)
         run: |
@@ -149,6 +148,18 @@ jobs:
         run: |
           python3 --version
           node --test --test-name-pattern="^live|tomllib" test/render/model-defaults.test.js
+      # #484 (S13 of #470): the live arm of test/render/mcp-golden.test.js runs the base revision's
+      # mcp_render.py beside src/render/mcp.js on every case, on the same CPython (its json messages are in
+      # the transcripts). MHW_S13_LIVE_REQUIRED=1 turns a skip into a failure while the base still holds it.
+      - name: S13 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S13_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          node --test --test-name-pattern="^live" test/render/mcp-golden.test.js
 
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
@@ -290,12 +301,8 @@ jobs:
         run: python3 -B global/method/method_render_test.py "$RUNNER_TEMP/method"
       # ADR-0035: the session-start model and effort defaults are Node since #481 (S10 of #470); their
       # suite, test/render/model-defaults.test.js, runs in the node job (npm test) on all three OSes.
-      # Issue #145: the one Python private_copy and install.sh's shell form, run on the same cases (both must
-      # give a 0600 copy, unlink first, never write through a link); no Python step may define its own copy.
-      - name: backup helper suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: python3 -B global/private_copy_test.py "$RUNNER_TEMP/private-copy"
+      # Issue #145: the backup helper is Node since #484 (src/lib/private-copy.js, its last Python user gone);
+      # test/lib/private-copy.test.js runs it and install.sh's shell form on the same cases, in the node job.
       # Issue #144, ADR-0036: the Kiro deny floor suite is node:test since #482 (S11 of #470),
       # test/render/kiro-permissions*.test.js, run by the node job on all three OSes.
       # Issues #71-#75: the workflow commands render on all three agent harnesses with their required
@@ -363,18 +370,9 @@ jobs:
       # child. No real harness CLI, no shell rc, no terminal preferences, no clipboard.
       - name: paste wrapper suite
         run: python3 -B global/clipboard/paste_wrapper_test.py "$RUNNER_TEMP/paste-wrapper"
-      # ADR-0017. Throwaway HOMEs only. Needs Python 3.11+ (tomllib) for the Codex surface. Issue #58:
-      # the real `security` binary runs ONLY here, on the ephemeral macOS runner, through this explicit
-      # opt-in; elsewhere the Keychain test uses global/security.test.stub. Keychains are throwaway
-      # files under $RUNNER_TEMP, under a throwaway HOME. The call log is printed as the probe.
-      - name: MCP renderer suite
-        env:
-          PMHWC_REAL_KEYCHAIN_TESTS: ${{ runner.os == 'macOS' && '1' || '' }}
-          PMHWC_SECURITY_CALL_LOG: ${{ runner.temp }}/mcp-security-calls.jsonl
-        run: |
-          python3 --version
-          python3 -B global/mcp/mcp_render_test.py "$RUNNER_TEMP/mcp"
-          echo "security calls (probe):"; cat "$PMHWC_SECURITY_CALL_LOG" 2>/dev/null || echo "(none)"
+      # ADR-0017: the MCP renderer is Node since #484 (S13 of #470), src/render/mcp.js; its suites,
+      # test/render/mcp.test.js and test/render/mcp-golden.test.js, run in the node job on all three OSes, on
+      # the Node security stub only (no test runs the real security binary or reads a real Keychain).
       - name: nothing was written into the exported ZDOTDIR sentinel
         if: always()
         run: |

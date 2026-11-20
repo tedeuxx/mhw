@@ -1,0 +1,33 @@
+{
+  "step0 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step0 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "",
+  "step0 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  <HOME>/.claude.json: server(s) chrome-devtools already exist and were not written by mhw (by hand, or by `claude mcp add`). Remove them, then re-run; nothing was written\n",
+  "step1 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic --stamp=x": {
+    "code": 3
+  },
+  "step1 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic --stamp=x stdout": "",
+  "step1 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic --stamp=x stderr": "REFUSE  <HOME>/.claude.json: server(s) chrome-devtools already exist and were not written by mhw (by hand, or by `claude mcp add`). Remove them, then re-run; nothing was written\n",
+  "step2 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step2 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "",
+  "step2 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  <HOME>/.claude.json: not a JSON object with an mcpServers object; left untouched\n",
+  "step3 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step3 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "",
+  "step3 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  <HOME>/.claude.json: not a JSON object with an mcpServers object; left untouched\n",
+  "step4 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 3
+  },
+  "step4 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "",
+  "step4 --policy --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "REFUSE  <HOME>/.claude.json: not readable JSON (JSONDecodeError); left untouched\n",
+  "files": {
+    ".claude.json": {
+      "mode": "644",
+      "text": "{ nope"
+    }
+  }
+}

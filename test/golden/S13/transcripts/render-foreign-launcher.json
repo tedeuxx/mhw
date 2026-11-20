@@ -1,0 +1,17 @@
+{
+  "step0 install": {
+    "code": 3
+  },
+  "step0 install stdout": "SOURCE  <STAMP>\n",
+  "step0 install stderr": "REFUSE  <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs: exists and is NOT managed by this project; move it aside. No surface was rendered, because every secret-bearing entry would execute that file\n",
+  "files": {
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "644",
+      "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {
+      "mode": "644",
+      "text": "#!/usr/bin/env node\nconsole.log('someone else')\n"
+    }
+  }
+}

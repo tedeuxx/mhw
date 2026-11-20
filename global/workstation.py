@@ -318,7 +318,9 @@ def mcp_active_lines(f):
     return [head + "%s%d finding(s)%s" % (prefix, count, fix)] + [MCP_INDENT + x for x in findings]
 
 
-MCP_RENDER = HERE / "mcp" / "mcp_render.py"
+# The MCP renderer is Node since #484 (S13 of #470): `mhw mcp render`, src/render/mcp.js, spawned by the
+# node lookup chrome_debugging uses (the strangler rule: this file reaches it through the CLI until S22).
+MCP_RENDER = ROOT / "src" / "render" / "mcp.js"
 
 
 def mcp_connect_lines(lines, code=0):
@@ -329,14 +331,17 @@ def mcp_connect_lines(lines, code=0):
         if line.endswith(" (MCP connect)"):
             out.append(line[:-len(" (MCP connect)")].split(None, 1)[-1])
     if not out:
-        out = ["no result (exit %d); run global/mcp/mcp_render.py --active --mode=connect for the reason" % code]
+        out = ["no result (exit %d); run mhw mcp render --active --mode=connect for the reason" % code]
     return ["  mcp connect      " + out[0]] + [MCP_INDENT + x for x in out[1:]]
 
 
 def mcp_connect_status(timeout):
     """mhw status --mcp-connect (Issue #219): the owner-run connection check, after the status view."""
-    code, lines = run([sys.executable, "-B", str(MCP_RENDER), "--active", "--mode=connect",
-                       "--timeout=%d" % timeout])
+    node = node_binary()
+    if node is None:
+        print("  mcp connect      not run (node 26 or later is required)")
+        return 1
+    code, lines = run([node, str(MCP_RENDER), "--active", "--mode=connect", "--timeout=%d" % timeout])
     for line in mcp_connect_lines(lines, code):
         print(line)
     return 1 if code else 0

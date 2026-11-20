@@ -1,6 +1,7 @@
 # Shared real-keychain guard for the paste-filter and MCP test suites (issue #58). TEST CODE ONLY: the
-# installers never copy it. It is imported by global/clipboard/clipboard_guard_test.py and
-# global/mcp/mcp_render_test.py.
+# installers never copy it. It is imported by global/clipboard/clipboard_guard_test.py (the MCP suite,
+# global/mcp/mcp_render_test.py, was deleted with the renderer in #484; its Node form runs on the Node
+# security stub, test/helpers/security-stub.js, and never on the real binary).
 #
 # Rules, enforced on every subprocess the suite starts, BEFORE it runs:
 #   - the real /usr/bin/security binary only with PMHWC_REAL_KEYCHAIN_TESTS=1 on GitHub Actions macOS (an

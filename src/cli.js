@@ -151,17 +151,24 @@ const MOVED = {
   profile: profileMain, // #479, S08
   // #480, S09: the install step install.sh spawns, and the status line workstation.py reads.
   'chrome-debugging': chromeDebuggingMain,
-  mcp: mcpMain, // #483, S12: `mhw mcp launch`, the MCP launcher mcp_render.py installs a copy of
+  // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`.
+  mcp: mcpMain,
 };
 
 /**
- * `mhw mcp launch ...` (#483). The only mcp subcommand; anything else is a usage error.
+ * `mhw mcp launch ...` (#483) and `mhw mcp render ...` (#484); anything else is a usage error.
  * @param {string[]} argv
  * @param {Record<string, string | undefined>} env
  */
 function mcpMain(argv, env) {
   if (argv[0] === 'launch') return mcpLaunchMain(argv.slice(1), env);
-  console.error('usage: mhw mcp launch [--keychain PATH] [--secret NAME=SOURCE]... -- command [args...]');
+  // A child process, not an import: the renderer loads the vendored TOML parser, which must stay off the
+  // import graph of `mhw hook prompt` (convention 5 of #470, test/deps-graph.test.js).
+  if (argv[0] === 'render') {
+    return exitWith(runAbsolute(process.execPath, [path.join(ROOT, 'src', 'render', 'mcp.js'), ...argv.slice(1)], { stdio: 'inherit', env }));
+  }
+  console.error('usage: mhw mcp launch [--keychain PATH] [--secret NAME=SOURCE]... -- command [args...]\n'
+    + '       mhw mcp render [--dry-run | --check | --scan | --policy ... | --active ...] (mhw mcp render --help)');
   return 2;
 }
 

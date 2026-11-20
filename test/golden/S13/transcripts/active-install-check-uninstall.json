@@ -1,0 +1,83 @@
+{
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 1
+  },
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "DRIFT   codex: on outside the set: out-b, out-c (2); install turns them off (<HOME>/.codex/config.toml) (MCP active set)\nDRIFT   kiro: on outside the set: out-k, out-k2 (2); install turns them off (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nREPORT  claude-code: on outside the set, a plugin server with no documented match (a ${VAR}, a wildcard or a credential-looking value in its URL or command), so it is not denied: plugin:plug1:varred, plugin:plug1:leaky, plugin:plug1:envurl (3) (<HOME>/.claude/settings.json) (MCP active set)\nNOTE    claude-code: 1 claude.ai connector(s) declared on; connectors are account-level, so whether they are connected cannot be read here (<HOME>/.claude/settings.json) (MCP active set)\nDRIFT   claude-code: on outside the set: out-u, plugin:plug2:local, plugin:plug1:web, claude.ai Synth Off (4); install turns them off (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step1 --active --mode=dry-run --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step1 --active --mode=dry-run --stamp=release: v0.0.0-test; commit: synthetic stdout": "WOULD   codex: would change: on outside the set: out-b, out-c (2); install turns them off; backup config.toml.pmhwc-mcp-active-backup (<HOME>/.codex/config.toml) (MCP active set)\nWOULD   kiro: would change: on outside the set: out-k, out-k2 (2); install turns them off; backup mcp.json.pmhwc-mcp-active-backup (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nREPORT  claude-code: on outside the set, a plugin server with no documented match (a ${VAR}, a wildcard or a credential-looking value in its URL or command), so it is not denied: plugin:plug1:varred, plugin:plug1:leaky, plugin:plug1:envurl (3) (<HOME>/.claude/settings.json) (MCP active set)\nNOTE    claude-code: 1 claude.ai connector(s) declared on; connectors are account-level, so whether they are connected cannot be read here (<HOME>/.claude/settings.json) (MCP active set)\nWOULD   claude-code: would change: on outside the set: out-u, plugin:plug2:local, plugin:plug1:web, claude.ai Synth Off (4); install turns them off; backup settings.json.pmhwc-mcp-active-backup (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step1 --active --mode=dry-run --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step2 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step2 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "CHANGED codex: turned off out-b, out-c (2); previous file kept as <HOME>/.codex/config.toml.pmhwc-mcp-active-backup (<HOME>/.codex/config.toml) (MCP active set)\nCHANGED kiro: turned off out-k, out-k2 (2); previous file kept as <HOME>/.kiro/settings/mcp.json.pmhwc-mcp-active-backup (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nREPORT  claude-code: on outside the set, a plugin server with no documented match (a ${VAR}, a wildcard or a credential-looking value in its URL or command), so it is not denied: plugin:plug1:varred, plugin:plug1:leaky, plugin:plug1:envurl (3) (<HOME>/.claude/settings.json) (MCP active set)\nNOTE    claude-code: 1 claude.ai connector(s) declared on; connectors are account-level, so whether they are connected cannot be read here (<HOME>/.claude/settings.json) (MCP active set)\nCHANGED claude-code: turned off out-u, plugin:plug2:local, plugin:plug1:web, claude.ai Synth Off (4); previous file kept as <HOME>/.claude/settings.json.pmhwc-mcp-active-backup (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step2 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "OK      codex: nothing on outside the set (2 turned off by mhw) (<HOME>/.codex/config.toml) (MCP active set)\nOK      kiro: nothing on outside the set (2 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nREPORT  claude-code: on outside the set, a plugin server with no documented match (a ${VAR}, a wildcard or a credential-looking value in its URL or command), so it is not denied: plugin:plug1:varred, plugin:plug1:leaky, plugin:plug1:envurl (3) (<HOME>/.claude/settings.json) (MCP active set)\nNOTE    claude-code: 1 claude.ai connector(s) declared on; connectors are account-level, so whether they are connected cannot be read here (<HOME>/.claude/settings.json) (MCP active set)\nOK      claude-code: nothing on outside the set (4 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step4 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step4 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "OK      codex: nothing on outside the set (2 turned off by mhw) (<HOME>/.codex/config.toml) (MCP active set)\nOK      kiro: nothing on outside the set (2 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nREPORT  claude-code: on outside the set, a plugin server with no documented match (a ${VAR}, a wildcard or a credential-looking value in its URL or command), so it is not denied: plugin:plug1:varred, plugin:plug1:leaky, plugin:plug1:envurl (3) (<HOME>/.claude/settings.json) (MCP active set)\nNOTE    claude-code: 1 claude.ai connector(s) declared on; connectors are account-level, so whether they are connected cannot be read here (<HOME>/.claude/settings.json) (MCP active set)\nOK      claude-code: nothing on outside the set (4 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step4 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step5 --active --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step5 --active --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stdout": "CHANGED codex: turned back on out-b, out-c (2); previous file kept as <HOME>/.codex/config.toml.pmhwc-mcp-active-backup (<HOME>/.codex/config.toml) (MCP active set)\nCHANGED kiro: turned back on out-k, out-k2 (2); previous file kept as <HOME>/.kiro/settings/mcp.json.pmhwc-mcp-active-backup (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nCHANGED claude-code: turned back on out-u, plugin:plug2:local, plugin:plug1:web, claude.ai Synth Off (4); previous file kept as <HOME>/.claude/settings.json.pmhwc-mcp-active-backup (<HOME>/.claude/settings.json) (MCP active set)\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-managed.json (it recorded only what the MCP active set turned off)\n",
+  "step5 --active --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step6 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 1
+  },
+  "step6 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "DRIFT   codex: on outside the set: out-b, out-c (2); install turns them off (<HOME>/.codex/config.toml) (MCP active set)\nDRIFT   kiro: on outside the set: out-k, out-k2 (2); install turns them off (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nREPORT  claude-code: on outside the set, a plugin server with no documented match (a ${VAR}, a wildcard or a credential-looking value in its URL or command), so it is not denied: plugin:plug1:varred, plugin:plug1:leaky, plugin:plug1:envurl (3) (<HOME>/.claude/settings.json) (MCP active set)\nNOTE    claude-code: 1 claude.ai connector(s) declared on; connectors are account-level, so whether they are connected cannot be read here (<HOME>/.claude/settings.json) (MCP active set)\nDRIFT   claude-code: on outside the set: out-u, plugin:plug2:local, plugin:plug1:web, claude.ai Synth Off (4); install turns them off (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step6 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "files": {
+    ".claude/plugins/cache/mkt/plug2/1.0.0/.claude-plugin/plugin.json": {
+      "mode": "644",
+      "text": "{\"name\":\"plug2\",\"mcpServers\":{\"local\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"]}}}"
+    },
+    ".claude/plugins/installed_plugins.json": {
+      "mode": "644",
+      "text": "{\"version\":2,\"plugins\":{\"plug2@mkt\":[{\"installPath\":\"<HOME>/.claude/plugins/cache/mkt/plug2/1.0.0\",\"scope\":\"user\"}]}}"
+    },
+    ".claude/plugins/synced/src1/plug1/.mcp.json": {
+      "mode": "644",
+      "text": "{\"mcpServers\":{\"web\":{\"type\":\"http\",\"url\":\"https://synth.example/mcp\"},\"varred\":{\"command\":\"${CLAUDE_PLUGIN_ROOT}/bin/x\"},\"leaky\":{\"type\":\"http\",\"url\":\"https://synth.example/mcp?token=synthetic-s13-canary-4b1d7e\"},\"envurl\":{\"type\":\"http\",\"url\":\"https://${SYNTH_HOST}/mcp\"}}}"
+    },
+    ".claude/settings.json": {
+      "mode": "644",
+      "text": "{\n  \"model\": \"synthetic\",\n  \"deniedMcpServers\": [\n    {\n      \"serverName\": \"owners-own\"\n    }\n  ]\n}\n"
+    },
+    ".claude/settings.json.pmhwc-mcp-active-backup": {
+      "mode": "600",
+      "text": "{\n  \"model\": \"synthetic\",\n  \"deniedMcpServers\": [\n    {\n      \"serverName\": \"owners-own\"\n    },\n    {\n      \"serverName\": \"out-u\"\n    },\n    {\n      \"serverCommand\": [\n        \"/bin/cat\",\n        \"-u\"\n      ]\n    },\n    {\n      \"serverUrl\": \"https://synth.example/mcp\"\n    },\n    {\n      \"serverName\": \"claude.ai Synth Off\"\n    }\n  ]\n}\n"
+    },
+    ".claude.json": {
+      "mode": "644",
+      "text": "{\"numStartups\":3,\"mcpServers\":{\"set-a\":{\"type\":\"stdio\",\"command\":\"/bin/echo\"},\"out-u\":{\"type\":\"stdio\",\"command\":\"/bin/echo\"},\"chrome-devtools\":{\"command\":\"/bin/sh\"},\"claude-in-chrome\":{\"command\":\"/bin/echo\"}}}"
+    },
+    ".codex/config.toml": {
+      "mode": "644",
+      "text": "approval_policy = \"on-request\"\n\n[mcp_servers.set-a]\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b]\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b.env]\nSYNTH = \"synthetic-s13-canary-4b1d7e\"\n\n[mcp_servers.out-c]\nenabled = true # kept as written\ncommand = \"/bin/echo\"\n\n[mcp_servers.own-off]\nenabled = false\ncommand = \"/bin/echo\"\n\n[mcp_servers.node_repl]\ncommand = \"/bin/echo\"\n"
+    },
+    ".codex/config.toml.pmhwc-mcp-active-backup": {
+      "mode": "600",
+      "text": "approval_policy = \"on-request\"\n\n[mcp_servers.set-a]\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b]\nenabled = false  # managed-by: personal-multi-harness-workstation-configuration (mcp active set)\ncommand = \"/bin/echo\"\n\n[mcp_servers.out-b.env]\nSYNTH = \"synthetic-s13-canary-4b1d7e\"\n\n[mcp_servers.out-c]\nenabled = false  # managed-by: personal-multi-harness-workstation-configuration (mcp active set)\ncommand = \"/bin/echo\"\n\n[mcp_servers.own-off]\nenabled = false\ncommand = \"/bin/echo\"\n\n[mcp_servers.node_repl]\ncommand = \"/bin/echo\"\n"
+    },
+    ".kiro/settings/mcp.json": {
+      "mode": "644",
+      "text": "{\n  \"mcpServers\": {\n    \"set-a\": {\n      \"command\": \"/bin/echo\"\n    },\n    \"out-k\": {\n      \"command\": \"/bin/echo\",\n      \"env\": {\n        \"SYNTH\": \"synthetic-s13-canary-4b1d7e\"\n      }\n    },\n    \"out-k2\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": false\n    },\n    \"own-off\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": true\n    }\n  }\n}\n"
+    },
+    ".kiro/settings/mcp.json.pmhwc-mcp-active-backup": {
+      "mode": "600",
+      "text": "{\n  \"mcpServers\": {\n    \"set-a\": {\n      \"command\": \"/bin/echo\"\n    },\n    \"out-k\": {\n      \"command\": \"/bin/echo\",\n      \"env\": {\n        \"SYNTH\": \"synthetic-s13-canary-4b1d7e\"\n      },\n      \"disabled\": true\n    },\n    \"out-k2\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": true\n    },\n    \"own-off\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": true\n    }\n  }\n}\n"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "644",
+      "text": "{\"version\":1,\"servers\":{\"set-a\":{\"command\":\"/bin/echo\"}},\"active_set\":{\"connectors\":{\"Synth On\":\"on\",\"Synth Off\":\"off\"}}}"
+    }
+  }
+}

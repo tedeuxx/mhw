@@ -5,7 +5,7 @@
 //
 //   mhw mcp launch [--keychain PATH] [--secret NAME=SOURCE]... -- <server command> [server args...]
 //
-// global/mcp/mcp_render.py installs a copy of this file beside its other managed files and renders
+// the MCP renderer (src/render/mcp.js, #484) installs a copy of this file beside its other managed files and renders
 // `<node> <that copy> --secret ... -- <command>`, so the file must run on its own: node: modules only.
 //
 // --keychain PATH names one keychain FILE that every keychain: read uses instead of the default search

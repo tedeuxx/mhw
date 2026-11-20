@@ -1,0 +1,38 @@
+{
+  "step0 --scan": {
+    "code": 0
+  },
+  "step0 --scan stdout": "codex\tconfig\t<HOME>/.codex/config.toml\tsvc-a\tenv.SVC_TOKEN\ncodex\tconfig\t<HOME>/.codex/config.toml\tsvc-a\targs[0] --api-key <value>\ncodex\tconfig\t<HOME>/.codex/config.toml\tsvc-r\tbearer_token\nclaude-code\tconfig\t<HOME>/.claude.json\tsvc-c\tenv.SETTING\nSKIP    <HOME>/.claude.json.pmhwc-mcp-policy-backup: unreadable (JSONDecodeError)\nkiro\ttemp\t<HOME>/.kiro/settings/mcp.json.new.4242\t-\ta leftover temporary copy of the config (delete it)\nkiro\tconfig\t<HOME>/.kiro/settings/mcp.json\tsvc-b\targs[0] --password=<value>\nkiro\tconfig\t<HOME>/.kiro/settings/mcp.json\tsvc-b\theaders.Authorization\nkiro\tconfig\t<HOME>/.kiro/settings/mcp.json\tsvc-u\turl (userinfo or a credential-like query parameter)\nkiro\tbackup\t<HOME>/.kiro/settings/mcp.json.pmhwc-backup\tsvc-b\targs[0] --password=<value>\nkiro\tbackup\t<HOME>/.kiro/settings/mcp.json.pmhwc-backup\tsvc-b\theaders.Authorization\nkiro\tbackup\t<HOME>/.kiro/settings/mcp.json.pmhwc-backup\tsvc-u\turl (userinfo or a credential-like query parameter)\n11 credential-looking key(s) found. Key names only: no value was printed. Move each value to the Keychain (security add-generic-password -s <service> -a \"$USER\" -w, typed at the prompt), reference it under \"secrets\", remove the plain-text entry, delete the .pmhwc-backup files, and rotate the credential: it has been on disk in plain text.\n",
+  "step0 --scan stderr": "",
+  "step1 --scan --surfaces=kiro": {
+    "code": 0
+  },
+  "step1 --scan --surfaces=kiro stdout": "kiro\ttemp\t<HOME>/.kiro/settings/mcp.json.new.4242\t-\ta leftover temporary copy of the config (delete it)\nkiro\tconfig\t<HOME>/.kiro/settings/mcp.json\tsvc-b\targs[0] --password=<value>\nkiro\tconfig\t<HOME>/.kiro/settings/mcp.json\tsvc-b\theaders.Authorization\nkiro\tconfig\t<HOME>/.kiro/settings/mcp.json\tsvc-u\turl (userinfo or a credential-like query parameter)\nkiro\tbackup\t<HOME>/.kiro/settings/mcp.json.pmhwc-backup\tsvc-b\targs[0] --password=<value>\nkiro\tbackup\t<HOME>/.kiro/settings/mcp.json.pmhwc-backup\tsvc-b\theaders.Authorization\nkiro\tbackup\t<HOME>/.kiro/settings/mcp.json.pmhwc-backup\tsvc-u\turl (userinfo or a credential-like query parameter)\n7 credential-looking key(s) found. Key names only: no value was printed. Move each value to the Keychain (security add-generic-password -s <service> -a \"$USER\" -w, typed at the prompt), reference it under \"secrets\", remove the plain-text entry, delete the .pmhwc-backup files, and rotate the credential: it has been on disk in plain text.\n",
+  "step1 --scan --surfaces=kiro stderr": "",
+  "files": {
+    ".claude.json": {
+      "mode": "644",
+      "text": "{\"mcpServers\":{\"svc-c\":{\"command\":\"x\",\"env\":{\"SETTING\":\"<TOKEN-SHAPED>\"}}}}"
+    },
+    ".claude.json.pmhwc-mcp-policy-backup": {
+      "mode": "644",
+      "text": "{ broken"
+    },
+    ".codex/config.toml": {
+      "mode": "644",
+      "text": "[mcp_servers.svc-a]\ncommand = \"x\"\nargs = [\"--api-key\", \"synthetic-s13-canary-4b1d7e-0\"]\nenv = { SVC_TOKEN = \"synthetic-s13-canary-4b1d7e-1\", REGION = \"eu\" }\n\n[mcp_servers.svc-r]\nurl = \"https://h/mcp\"\nbearer_token = \"synthetic-s13-canary-4b1d7e-2\"\n"
+    },
+    ".kiro/settings/mcp.json": {
+      "mode": "644",
+      "text": "{\"mcpServers\":{\"svc-b\":{\"command\":\"x\",\"args\":[\"--password=synthetic-s13-canary-4b1d7e-3\"],\"headers\":{\"Authorization\":\"synthetic-s13-canary-4b1d7e-4\"}},\"svc-u\":{\"url\":\"https://h/mcp?access_token=synthetic-s13-canary-4b1d7e-5\"}}}"
+    },
+    ".kiro/settings/mcp.json.new.4242": {
+      "mode": "644",
+      "text": "{\"mcpServers\":{\"svc-b\":{\"command\":\"x\",\"args\":[\"--password=synthetic-s13-canary-4b1d7e-3\"],\"headers\":{\"Authorization\":\"synthetic-s13-canary-4b1d7e-4\"}},\"svc-u\":{\"url\":\"https://h/mcp?access_token=synthetic-s13-canary-4b1d7e-5\"}}}"
+    },
+    ".kiro/settings/mcp.json.pmhwc-backup": {
+      "mode": "644",
+      "text": "{\"mcpServers\":{\"svc-b\":{\"command\":\"x\",\"args\":[\"--password=synthetic-s13-canary-4b1d7e-3\"],\"headers\":{\"Authorization\":\"synthetic-s13-canary-4b1d7e-4\"}},\"svc-u\":{\"url\":\"https://h/mcp?access_token=synthetic-s13-canary-4b1d7e-5\"}}}"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "step0 --surfaces=codex": {
+    "code": 3
+  },
+  "step0 --surfaces=codex stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs\n",
+  "step0 --surfaces=codex stderr": "REFUSE  <HOME>/.codex/config.toml: server(s) fake-plain are also configured outside the managed block, by hand. Codex refuses to load a config with a duplicate table, so nothing was written: remove those tables (after moving any credential to the Keychain), then re-run\n",
+  "step1 --surfaces=codex --adopt": {
+    "code": 3
+  },
+  "step1 --surfaces=codex --adopt stdout": "SOURCE  <STAMP>\nOK      <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs (<STAMP>)\n",
+  "step1 --surfaces=codex --adopt stderr": "REFUSE  <HOME>/.codex/config.toml: server(s) fake-plain are also configured outside the managed block, by hand. Codex refuses to load a config with a duplicate table, so nothing was written: remove those tables (after moving any credential to the Keychain), then re-run\n",
+  "files": {
+    ".codex/config.toml": {
+      "mode": "644",
+      "text": "[mcp_servers.fake-plain]\ncommand = \"mine\"\n"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "644",
+      "text": "{\"version\":1,\"servers\":{\"fake-plain\":{\"command\":\"/bin/echo\",\"args\":[\"hello\"],\"env\":{\"FAKE_REGION\":\"zz-1\"}},\"fake-secret\":{\"command\":\"/bin/cat\",\"args\":[\"-u\"],\"secrets\":{\"FAKE_API_TOKEN\":\"env:FAKE_SRC_VAR\"}},\"fake-codex-only\":{\"command\":\"/bin/cat\",\"surfaces\":[\"codex\"]}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-launch.mjs": {
+      "mode": "700",
+      "text": "#!/usr/bin/env node\n// managed-by: personal-multi-harness-workstation-configuration; source: src/commands/mcp-launch.js; <STAMP>; do not edit, re-run the renderer\n<the launcher source>"
+    }
+  }
+}
