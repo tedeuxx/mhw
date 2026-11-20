@@ -405,11 +405,14 @@ function claudeComplete(file, floorText) {
   // Wide only where the shell read wide (its jq count equals the floor's size) AND every floor rule is
   // there as a string, so this never reads wide where the shell read narrow (PR #519 QA B2).
   const strings = new Set(deny.filter((r) => typeof r === 'string' && want.includes(r)));
-  return strings.size === want.length && shellCount(want, deny) === want.length;
+  // The shell's $floor came through jq's unique, which sorts by code point: its subarray index ran over
+  // that order, not the file's (PR #519 lens, round 3).
+  return strings.size === want.length && shellCount([...want].sort(codepointCompare), deny) === want.length;
 }
 
 /**
- * allow-list.sh's count: the distinct deny elements e for which jq's `$floor | index(e)` is not null. A
+ * allow-list.sh's count: the distinct deny elements e for which jq's `$floor | index(e)` is not null, floor
+ * being the list as jq's unique left it (deduplicated, sorted by code point; the caller passes it so). A
  * string matches a floor rule equal to it; a non-empty array of strings matches where it is a contiguous
  * run of the floor list (jq's subarray index), so it counts too; anything else matches nothing.
  * @param {string[]} floor @param {JqValue[]} deny

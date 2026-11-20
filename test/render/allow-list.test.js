@@ -17,7 +17,7 @@ import {
   parseList, why, fields, prefix, words, adminState, adminPaths, codexAdminWords, claudeRender, unmerged, main, shellCount,
   codexRules, kiroAgent, retiredRules, stampOf, npmPackage,
 } from '../../src/render/allow-list.js';
-import { parse as parseJson, stringify } from '../../src/lib/jq-json.js';
+import { parse as parseJson, stringify, codepointCompare } from '../../src/lib/jq-json.js';
 import { which } from '../helpers/home.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -260,6 +260,47 @@ test('the Claude Code admin floor reads wide only where the shell read wide (QA 
   assert.equal(adminState(ctxOf(opts)).claude, 'narrow', 'every floor rule plus a nested run of it: the shell counted 3 and read narrow');
   admin([floor]);
   assert.equal(adminState(ctxOf(opts)).claude, 'narrow', 'the floor as one nested array: the shell counted 1');
+});
+
+test('the shell counted against the floor as jq unique sorts it, not in file order (PR #519 lens, round 3)', (t) => {
+  // A floor file out of code-point order: the shell's $floor was jq's unique of it, so "Bash(a:*)" came first.
+  const fileOrder = ['Bash(b:*)', 'Bash(a:*)'];
+  const d = freshDir('b2-order');
+  const fc = path.join(d, 'floor.claude');
+  fs.writeFileSync(fc, fileOrder.join('\n') + '\n');
+  const root = path.join(d, 'admin');
+  const opts = { '--managed-root': root, '--floor-claude': fc, '--floor-codex': path.join(d, 'none') };
+  /** @type {Array<[unknown[], 'wide' | 'narrow', string]>} */
+  const rows = [
+    [[...fileOrder, ['Bash(a:*)', 'Bash(b:*)']], 'narrow', 'a pair adjacent in sorted order: the shell counted 3'],
+    [[...fileOrder, ['Bash(b:*)', 'Bash(a:*)']], 'wide', 'a pair adjacent in file order only: the shell counted 2'],
+  ];
+  const jq = POSIX ? which('jq') : null;
+  for (const [deny, want, name] of rows) {
+    for (const platform of ['darwin', 'linux']) {
+      const p = adminPaths(root, platform).claude;
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.writeFileSync(p, JSON.stringify({ permissions: { deny } }));
+    }
+    assert.equal(adminState(ctxOf(opts)).claude, want, name);
+    if (!jq) continue;
+    // The shell's own two jq programs (allow-list.sh's allow_admin_state), run on the same files.
+    const f = spawnSync(jq, ['-cR', '-s', 'split("\\n") | map(select(length > 0)) | unique', fc], { encoding: 'utf8' }).stdout.trim();
+    const n = spawnSync(jq, ['--argjson', 'f', f, '[(.permissions.deny? // [])[] | select(. as $r | $f | index($r))] | unique | length',
+      adminPaths(root, 'linux').claude], { encoding: 'utf8' }).stdout.trim();
+    assert.equal(Number(n) === fileOrder.length ? 'wide' : 'narrow', want, name + ': jq itself');
+  }
+  if (!jq) t.diagnostic('jq is not on PATH: the rows were not also run through jq');
+  // The lens's measurement on the repository floor: every rule as a string, plus a pair adjacent in sorted
+  // order and not in the file's. The shell counted one more than the floor and read narrow.
+  const sorted = [...new Set(FLOOR.claude)].sort(codepointCompare);
+  const k = sorted.findIndex((r, j) => j + 1 < sorted.length && FLOOR.claude.indexOf(sorted[j + 1]) !== FLOOR.claude.indexOf(r) + 1);
+  assert.ok(k >= 0, 'the repository floor is not in sorted order');
+  fs.writeFileSync(fc, FLOOR.claude.join('\n') + '\n');
+  for (const platform of ['darwin', 'linux']) {
+    fs.writeFileSync(adminPaths(root, platform).claude, JSON.stringify({ permissions: { deny: [...FLOOR.claude, [sorted[k], sorted[k + 1]]] } }));
+  }
+  assert.equal(adminState(ctxOf(opts)).claude, 'narrow', 'the repository floor plus a pair adjacent only in sorted order');
 });
 
 test('an incomplete or unmanaged admin floor is narrow (declared differences: stricter than the shell)', () => {
