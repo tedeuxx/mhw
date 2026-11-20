@@ -45,6 +45,10 @@ REQUIRED = {
                          "## The prompt", "## The ask prompt", "## Print it"],
     "need-me": SHARED + ["## The rules this command runs", "## Gather what is pending", "## When nothing is pending",
                          "## Ask one at a time", "## After he answers"],
+    # #522 (owner, 2026-11-20): one bounded refinement pass, one confirmation, then the handoff.
+    "backlog-grooming": SHARED + ["## When to use", "## The shape: unattended, then ONE confirmation, then the writes",
+                                  "## Steps", "### 6 · ONE owner activation, before any write",
+                                  "### 8 · Hand off to sprint-planning", "## What nothing enforces"],
 }
 # The four rites moved from the plugin at #130 (owner, 2026-10-12) and became skills on 2026-10-26 (owner: "para
 # mim sao skills"). They keep the plugin's text, so they are held to the headings that carry each rite, not to
@@ -64,9 +68,9 @@ RITE_COMMAND_HISTORY = [
     ("skills/funnel-review/SKILL.md", "The original wording is in the plugin's `commands/funnel-review.md` at"),
     ("skills/funnel-review/SKILL.md", "Both are in the plugin's `commands/funnel-review.md` at `4882b911`"),
 ]
-# The old names, kept for one release as deprecated aliases (owner, 2026-10-26: "-idea- deveria ser
-# renomeado para -prd em todos comandos com esse termo"). Each must still run the whole command.
-DEPRECATED = {"new-idea": "new-prd", "idea-to-issues": "prd-to-issues"}
+# The old names, kept for one release as deprecated aliases (owner, 2026-10-26) and removed at #524
+# (owner, 2026-11-20: "isso nao deveria existir depois do /new-prd"). None may render in any carrier.
+RETIRED = {"new-idea": "new-prd", "idea-to-issues": "prd-to-issues"}
 RETIRED_NOTE = "> **Read this first: hooks named below are the retired plugin's, not controls you have (#61).**"
 # Phrases that carry the behaviour the Issues require, beyond the headings.
 PHRASES = {
@@ -85,6 +89,15 @@ PHRASES = {
     "need-me": ["**Escalating to the owner**", "**owner overlay**", "Exactly **three** authored, mutually exclusive",
                 "one line, the act and the link", "Put **only the first** to him", "**Never manufacture an ask**",
                 "--state open --label owner-action", "queue was **not read**", "--body-file", "quoting his"],
+    # #522: the acceptance criteria of the Issue, as the phrases that carry them.
+    "backlog-grooming": ["*Product Backlog refinement*", "--limit 200", "**If the count equals 200, stop and say so**",
+                         "partitioned read-only dispatches", "**exactly one** verdict",
+                         "**\"Premise no longer holds\" needs a measured command and its output.**",
+                         "never consolidate across repositories", "`docs/backlog-grooming/<YYYY-MM-DD>.md`",
+                         "verbatim", "**No comment, label, edit or close happens before step 6.**",
+                         "## Consolidated from #N", "grep -F -- '<line>'", "/blob/<commit SHA>/", "`quality-assurance` dispatches, the median",
+                         "`loop-mode-repos`", "**This command creates no milestone and admits nothing to one**",
+                         "`/sprint-planning <iteration title>`", "--body-file"],
 }
 
 
@@ -152,23 +165,18 @@ class Commands(unittest.TestCase):
                 missing += ["%s/%s: %r" % (name, harness, p) for p in PHRASES[name] if p not in text]
         self.assertEqual(missing, [])
 
-    def test_deprecated_names_still_run_the_whole_command(self):
-        missing = []
-        for old, new in DEPRECATED.items():
+    def test_retired_names_are_not_rendered(self):
+        found = []
+        for old, new in RETIRED.items():
             for harness, path in carriers(self.home, old).items():
+                if path.exists():
+                    found.append("%s/%s" % (old, harness))
+            if (self.home / ".agents" / "skills" / old).exists():
+                found.append("%s/codex skill directory" % old)
+            for harness, path in carriers(self.home, new).items():
                 if not path.is_file():
-                    missing.append("%s/%s: not rendered" % (old, harness))
-                    continue
-                text = path.read_text(encoding="utf-8")
-                lines = text.split("\n")
-                missing += ["%s/%s: %s" % (old, harness, h) for h in REQUIRED[new] if h not in lines]
-                missing += ["%s/%s: %r" % (old, harness, p) for p in PHRASES[new] if p not in text]
-                if "is the old name of `%s`" % new not in text:
-                    missing.append("%s/%s: no deprecation note naming %s" % (old, harness, new))
-            policy = self.home / ".agents" / "skills" / old / "agents" / "openai.yaml"
-            if "allow_implicit_invocation: false" not in policy.read_text(encoding="utf-8"):
-                missing.append("%s/codex: implicit invocation on" % old)
-        self.assertEqual(missing, [])
+                    found.append("%s/%s: the current name is not rendered" % (new, harness))
+        self.assertEqual(found, [])
 
     def test_never_section_forbids_merge_publish_and_hooks(self):
         for name in REQUIRED:
@@ -224,6 +232,82 @@ class NeedMe(unittest.TestCase):
         self.assertIn("It never asks two things in one message", never)
         self.assertNotIn("gh issue create", self.body)
         self.assertNotIn("--add-label", self.body)
+
+
+class BacklogGrooming(unittest.TestCase):
+    """The owner's /backlog-grooming (#522, 2026-11-20): it writes nothing before his one confirmation, never
+    touches a milestone, and offers exactly three options. Text checks over the source; nothing here can
+    assert that a session follows them."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = (REPO / "method" / "commands" / "backlog-grooming.md").read_text(encoding="utf-8")
+        cls.body = cls.text.split("\n---\n", 1)[1]
+
+    def test_no_milestone_write_and_no_issue_creation(self):
+        for needle in ("--milestone", "milestone-create", "milestone-update", "milestone-close", "gh issue create",
+                       "gh pr merge"):
+            self.assertNotIn(needle, self.text, needle)
+
+    def test_the_activation_comes_before_every_write(self):
+        steps = self.body.split("## Steps", 1)[1].split("## What this command never does", 1)[0]
+        before, after = steps.split("### 6 · ONE owner activation, before any write", 1)
+        for write in ("gh issue comment", "gh issue close", "gh issue edit", "--add-label", "--body-file"):
+            self.assertNotIn(write, before, write)
+        self.assertIn("gh issue edit", after)
+        self.assertIn("--body-file", after)
+
+    def test_the_criteria_grep_ends_its_options(self):
+        # The lens on PR #526: a criterion line starts with "- [ ]", so a grep without "--" reads it as an
+        # option and exits 2 (BSD grep and ugrep, measured). Every grep -F in the command and the ADR ends options.
+        adr = (REPO / "docs" / "adr" / "0043-backlog-grooming-batch-confirmation-and-scrum-for-mhw.md").read_text(
+            encoding="utf-8")
+        for name, text in (("command", self.body), ("ADR-0043", adr)):
+            uses = re.findall(r"grep -F[^`]*", text)
+            self.assertTrue(uses, name)
+            self.assertEqual([u for u in uses if not u.startswith("grep -F -- ")], [], name)
+
+    def test_the_ruling_comment_follows_the_check_that_can_stop_a_merge(self):
+        apply = self.body.split("### 7 · Apply, only after confirmation", 1)[1].split("### 8", 1)[0]
+        self.assertLess(apply.index("grep -F -- "), apply.index("quoting his ruling"))
+
+    def test_a_missed_criterion_stops_the_merge(self):
+        # QA on PR #526: the merge safeguard's sentence must keep its stop; "A miss may be ignored" is a red.
+        apply = " ".join(self.body.split("### 7 · Apply, only after confirmation", 1)[1].split("### 8", 1)[0].split())
+        self.assertIn("Any miss, or any exit other than 0, stops that merge. Then close the source", apply)
+
+    def test_the_loop_mode_record_reads_scrum(self):
+        # #522 (owner, 2026-11-20, "mhw passa a scrum"): the record's first column-0 line is the value of record.
+        record = (REPO / "docs" / "loop-mode.md").read_text(encoding="utf-8")
+        values = re.findall(r"(?m)^loop-mode: (\S+)$", record)
+        self.assertEqual(values[:1], ["scrum"])
+        self.assertEqual(re.findall(r"(?m)^loop-mode-since: (\S+)$", record)[:1], ["2026-11-20"])
+        self.assertEqual(re.findall(r"(?m)^loop-mode-repos: (.+)$", record)[:1], ["tedeuxx/mhw"])
+        self.assertIn("issues/522#issuecomment-7049476494", record)
+
+    def test_exactly_three_options(self):
+        activation = self.body.split("### 6 · ONE owner activation, before any write", 1)[1].split("### 7", 1)[0]
+        rows = re.findall(r"(?m)^\| \*\*([a-z ]+)\*\* \|", activation)
+        self.assertEqual(rows, ["confirm", "confirm with changes", "discard"])
+
+    def test_the_handoff_and_the_owner_name(self):
+        self.assertIn("/backlog-grooming", self.body)
+        self.assertIn("Scrum Guide", self.body)
+
+    def test_planning_and_the_drain_read_the_scope_from_the_record(self):
+        # #522: sprint-planning steps 0 and 1 and autonomy's loop-mode read are scoped to loop-mode-repos, so a
+        # handoff from a one-repository record does not stop on another repository's mode.
+        read = "grep -m1 '^loop-mode-repos: ' docs/loop-mode.md"
+        planning = (REPO / "method" / "skills" / "sprint-planning" / "SKILL.md").read_text(encoding="utf-8")
+        step0 = planning.split("\n## Step 0", 1)[1].split("\n## Step 1", 1)[0]
+        step1 = planning.split("\n## Step 1", 1)[1].split("\n## Step 2", 1)[0]
+        self.assertIn(read, step0)
+        self.assertIn("is refused by name", step0)
+        self.assertIn("named on the `loop-mode-repos:` line step 0 read", step1)
+        autonomy = (REPO / "method" / "commands" / "autonomy.md").read_text(encoding="utf-8")
+        self.assertIn(read, autonomy)
+        for text in (step0, step1, autonomy):
+            self.assertNotIn("BOTH repositories", re.sub(r"~~.*?~~", "", text))
 
 
 class Rites(unittest.TestCase):

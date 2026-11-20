@@ -2,6 +2,10 @@
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+// spawnSync's own default is 1 MiB, which a forge payload (a large PR's comments, a diff's name list)
+// can exceed; past this the child is killed and the error carries code ENOBUFS.
+export const MAX_BUFFER = 64 * 1024 * 1024;
+
 /**
  * @typedef {{ code: number, stdout: string, stderr: string, error?: Error, signal?: string | null }} RunResult
  */
@@ -9,11 +13,12 @@ import { spawnSync } from 'node:child_process';
 /**
  * Run exe (an absolute path) with args. The exit code is the child's, 1 when it died on a signal, and
  * 2 with `error` set when it could not be started; a relative or bare exe is refused before anything
- * runs, so a PATH entry can never decide which program executes.
+ * runs, so a PATH entry can never decide which program executes. Output past opts.maxBuffer (default
+ * MAX_BUFFER) is an error whose code is ENOBUFS, with the exit code 2.
  * @param {string} exe
  * @param {string[]} args
  * @param {{ stdio?: import('node:child_process').StdioOptions, env?: Record<string, string | undefined>,
- *   cwd?: string, input?: string, timeout?: number }} [opts]
+ *   cwd?: string, input?: string, timeout?: number, maxBuffer?: number }} [opts]
  * @returns {RunResult}
  */
 export function runAbsolute(exe, args, opts = {}) {
@@ -26,6 +31,7 @@ export function runAbsolute(exe, args, opts = {}) {
     cwd: opts.cwd,
     input: opts.input,
     timeout: opts.timeout,
+    maxBuffer: opts.maxBuffer ?? MAX_BUFFER,
     encoding: 'utf8',
     shell: false,
     windowsHide: true,
