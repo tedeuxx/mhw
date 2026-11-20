@@ -6,6 +6,8 @@
 # refuses any head check that is not green, so a red or pending scan DOES hold the checked merge: a scan
 # that cannot run fails closed, visibly. No term list exists on the runner, so employer and client terms
 # are not checked here, and the scan prints a NOTE saying so.
+# Since #486 (S15 of #470) the scan is the Node command (src/commands/scan.js on src/lib/clean.js). It
+# imports only node: modules, so nothing is installed from a registry here: no npm ci, no Python.
 name: outbound-scan
 
 on:
@@ -25,7 +27,11 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      # actions/setup-node v7.1.0, the same pin and Node release as tests.yml's node job.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
       - name: mhw scan of this pull request's changes (informs only)
         env:
           BASE_REF: ${{ github.base_ref }}
-        run: sh mhw scan "--base=origin/$BASE_REF"
+        run: node bin/mhw.js scan "--base=origin/$BASE_REF"

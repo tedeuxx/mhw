@@ -74,7 +74,7 @@ jobs:
             global/project-policy/reference/fixture/fixture_app.py \
             global/workstation.py global/workstation_test.py \
             .github/scripts/prod_canary.py \
-            global/scan.py global/scan_test.py \
+            test/helpers/s15-record.py \
             global/merge_authority.py global/merge_authority_test.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
@@ -160,6 +160,19 @@ jobs:
         run: |
           python3 --version
           node --test --test-name-pattern="^live" test/render/mcp-golden.test.js
+      # #486 (S15 of #470): the live arms of the cleaning core and mhw scan against the same CPython:
+      # the shared corpus answered by clipboard_guard.py (it stays in this slice), the base revision's
+      # scan.py on the same repositories, and a fresh recording of every Unicode table clean.js pins
+      # (about two minutes). MHW_S15_LIVE_REQUIRED=1 turns any skip of the three into a failure.
+      - name: S15 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S15_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          node --test --test-name-pattern="^live" test/clean/clean.test.js test/clean/unicode.test.js test/scan/scan.test.js
 
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
@@ -286,12 +299,9 @@ jobs:
         run: python3 -B global/merge_authority_test.py
       # Issue #224: Chrome's remote-debugging key in Local State is Node since #480 (mhw chrome-debugging);
       # its suite, on fixture files only, runs in the node job (npm test, test/render/chrome-debugging.test.js).
-      # ADR-0035 decision 7: mhw scan, the outbound scan, in throwaway git repositories and HOMEs, on
-      # synthetic fixtures. Findings are reported by file:line, category and length, never the text.
-      - name: outbound scan suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: python3 -B global/scan_test.py
+      # ADR-0035 decision 7: mhw scan, the outbound scan, is Node since #486 (S15 of #470); its suites
+      # (test/scan/, test/clean/) run in the node job (npm test) on all three OSes, and their live arms
+      # against the recorded CPython in that job's S15 step.
       # Issue #61, ADR-0032: the working method rendered into the three agent harnesses' user-level
       # carriers, in throwaway HOMEs only. Asserts every rendered agent keeps its tool list and every
       # rendered file its provenance stamp.

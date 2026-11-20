@@ -1,0 +1,21 @@
+{
+  "name": "file-untracked-and-outside-git",
+  "runs": [
+    {
+      "args": [
+        "--file={BASE}/scratch/post.txt"
+      ],
+      "code": 0,
+      "stdout": "NOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\n<BASE>/scratch/post.txt:3: email, 33 chars\n<BASE>/scratch/post.txt:4: credential, 20 chars\nmhw scan: 2 finding(s); 1 of 1 scanned file(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--file=post.txt"
+      ],
+      "code": 0,
+      "stdout": "NOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\npost.txt:3: email, 33 chars\npost.txt:4: credential, 20 chars\nmhw scan: 2 finding(s); 1 of 1 scanned file(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    }
+  ]
+}

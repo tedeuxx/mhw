@@ -1,0 +1,34 @@
+{
+  "comment": "S15 (#486): where src/commands/scan.js and src/lib/clean.js intentionally answer differently from global/scan.py and clipboard_guard.py. No golden transcript carries one of these: each is a path the Python original crashed on or never ran, and each has the named test in test/scan/scan-node.test.js. residuals: what is the same by construction but not measured, named so it is not discovered later (#470, convention 3).",
+  "differences": [
+    {
+      "what": "git is not on PATH, in a mode that needs git.",
+      "why": "The original called git through subprocess.run, which raised FileNotFoundError: a Python traceback on stderr and exit 1. The port prints 'mhw scan: git was not found on PATH; mhw scan needs it in this mode' and exits 2, the code the original uses for a scan that could not run. --file needs no git in either.",
+      "test": "without git on PATH a git mode exits 2 and says so; --file needs no git"
+    },
+    {
+      "what": "A term list, or the salt file, holds a byte that is not ASCII.",
+      "why": "The original opened both with encoding='ascii' and caught only OSError, so a non-ASCII byte raised UnicodeDecodeError out of mhw scan: a traceback and exit 1, with no NOTE. The port reads such a file as unreadable and prints the NOTE that says the list (or the salt) was not checked. Neither detects anything more; the port says so instead of crashing.",
+      "test": "a term list or salt file that is not ASCII reads as unreadable, with its NOTE"
+    },
+    {
+      "what": "The Keychain salt is read by a python3 child running clipboard_guard.py's own SaltStore.",
+      "why": "The original read it in process. Node has no equivalent of the Security.framework lock probe (ctypes) that keeps the read from raising an unlock dialog, so the one step stays Python until the prompt hook moves to Node. Same answer, same probe, same 2-second bound; the salt reaches Node on a pipe, never in an argument. The child is the first python3 on PATH, run by its absolute path with -I (isolated: no current directory, PYTHONPATH or user site on sys.path) and from clipboard_guard.py's own directory, so no module of the scanned repository runs (the original imported clipboard_guard.py from global/, also never from the current directory). Without python3 on PATH a NOTE names the missing interpreter and no term list is checked (fails visibly, never silently). This ends when the prompt hook moves to Node and carries the lock probe; until then the read depends on clipboard_guard.py staying in place.",
+      "test": "the Keychain salt is read through clipboard_guard.py, on a pipe, never in an argument"
+    }
+  ],
+  "residuals": [
+    {
+      "what": "Unicode version.",
+      "why": "Every character class, the case-insensitive sets and str.casefold() are pinned to CPython 3.14.6 (Unicode 16.0) in src/lib/clean-unicode.js, so Node's ICU (Unicode 17) changes nothing. NFKD is Node's own: test/clean/unicode.test.js holds it equal to CPython's on every letter, number and mark. The owner's term lists were hashed by whatever Python ran add-term (the Command Line Tools 3.9 has Unicode 13): a term whose normalised form differs between Unicode 13 and 16 would not match, in the Python original exactly as in the port."
+    },
+    {
+      "what": "Windows.",
+      "why": "The original ran on macOS and Linux only. The port runs on Windows too (the in-process suites run there in CI), prints a changed file's label with / as git does, and reads no Keychain there. The usage line on Windows still says scan is macOS and Linux only: it is pinned by S01's goldens, and the README and AGENTS.md say the same; neither is changed in this slice."
+    },
+    {
+      "what": "Lone surrogates.",
+      "why": "A file is decoded with the replacement character, as the original decoded it, so no lone surrogate reaches the engine from mhw scan. The prompt hook (a later slice) reads JSON, where Python keeps a lone surrogate and JavaScript does too; the corpus has no such case yet."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "base-not-a-commit-refused",
+  "runs": [
+    {
+      "args": [
+        "--base=HEAD:touched.md"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --base=HEAD:touched.md is not a commit\n"
+    }
+  ]
+}

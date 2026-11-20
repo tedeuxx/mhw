@@ -1,0 +1,22 @@
+{
+  "name": "upstream-mode-and-help-forms",
+  "runs": [
+    {
+      "args": [
+        "--base=base",
+        "--base=feature"
+      ],
+      "code": 0,
+      "stdout": "NOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\nmhw scan: 0 finding(s); 0 of 0 scanned file(s) and 0 of 0 commit(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-h"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: unknown argument -h\n"
+    }
+  ]
+}
