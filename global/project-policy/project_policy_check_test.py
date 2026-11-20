@@ -169,9 +169,33 @@ class PolicyCheckTests(unittest.TestCase):
                     put(VALID, ("mandatory_scenarios", "critical_user_journeys"), []),
                     put(VALID, ("mandatory_scenarios", "risk_scenarios"), []),
                     drop(VALID, ("coverage",)),
-                    put(VALID, ("coverage", "threshold_percent"), 0)):
+                    put(VALID, ("coverage", "threshold_percent"), "85")):
             with self.subTest():
                 self.assertFails(self.check_doc(doc), "missing mandatory evidence")
+
+    def test_coverage_below_85_fails_through_the_command(self):
+        # Issue #523, the measured weakening: `check` printed OK for threshold_percent 5. It now exits 1
+        # with its own class, and 85 itself still passes, through main() as CI calls it.
+        for threshold in (5, 0, 84.9):
+            with self.subTest(threshold=threshold):
+                self.assertFails(self.check_doc(put(VALID, ("coverage", "threshold_percent"), threshold)),
+                                 "$.coverage.threshold_percent: minimum (coverage below the mhw floor of 85 percent)")
+        (self.dir / "project-policy.json").write_text(
+            json.dumps(put(VALID, ("coverage", "threshold_percent"), 5)), encoding="utf-8")
+        code, out, err = self.run_main(["check", "--project=" + str(self.dir)])
+        self.assertEqual((code, out), (1, ""), err)
+        self.assertIn("coverage below the mhw floor of 85 percent", err)
+        self.assertEqual(self.check_doc(put(VALID, ("coverage", "threshold_percent"), 85))[0], 0)
+
+    def test_a_baseline_override_that_tries_to_remove_fails_with_its_own_reason(self):
+        override = {"definition_of_done": {"additional_criteria": [
+            {"id": "a11y", "description": "Pages pass an accessibility audit."}]}}
+        self.assertEqual(self.check_doc(put(VALID, ("baseline_override",), override))[0], 0)
+        for bad in ({"waive": ["docs"]}, {"definition_of_done": {"additional_criteria": []}},
+                    {"documentation": {"additional_docs": [{"path": "README.md", "description": " "}]}}):
+            with self.subTest(override=bad):
+                self.assertFails(self.check_doc(put(VALID, ("baseline_override",), bad)),
+                                 "baseline override invalid (it may only add)")
 
     def test_medium_or_higher_findings_fail(self):
         for tolerated in (["medium"], ["high"], ["critical"], ["low", "medium"]):
@@ -210,7 +234,8 @@ class PolicyCheckTests(unittest.TestCase):
         code, _, err = self.run_main(["check", "--file=" + str(HERE / "project-policy.invalid.json")])
         self.assertEqual(code, 1)
         for reason in ("medium-or-higher findings tolerated", "missing mandatory evidence",
-                       "missing or invalid risk classification", "recovery not prepared"):
+                       "missing or invalid risk classification", "recovery not prepared",
+                       "coverage below the mhw floor of 85 percent"):
             self.assertIn(reason, err)
 
     def test_last_tested_must_be_a_real_past_date(self):

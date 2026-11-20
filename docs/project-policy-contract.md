@@ -9,7 +9,7 @@ values, ratified in its own MADR.
 | --- | --- |
 | `global/project-policy/project-policy.schema.json` | The contract, a JSON Schema (draft 2020-12), `schema_version` 1 |
 | `global/project-policy/project-policy.example.json` | A valid example for a synthetic project |
-| `global/project-policy/project-policy.invalid.json` | An invalid example that weakens seven parts of the floor |
+| `global/project-policy/project-policy.invalid.json` | An invalid example that weakens several parts of the floor, its coverage threshold (5) among them |
 | `global/project-policy/project_policy_test.py` | The suite: the valid example passes, removing each required field fails, each floor is held |
 | `global/project-policy/project_policy.py` | The fail-closed validator behind `mhw policy check` ([#245](https://github.com/tedeuxx/mhw/issues/245)) |
 | `global/project-policy/project_policy_check_test.py` | The validator's suite: one test per failure class |
@@ -32,10 +32,11 @@ are ECMA-262 regular expressions, where a final `$` does not match before a trai
 `re.search` with the same `$` does, so `"@handle\n"` or a MADR path ending in a newline would pass.
 Every pattern here is anchored with `^` and `$`; the evaluator refuses one that is not (the validator
 then exits 2) and matches with `re.fullmatch`, never `re.search`. It also compiles no pattern from a
-file: the five patterns the schema uses are compiled from literals in `project_policy.py`, and any
+file: the six patterns the schema uses are compiled from literals in `project_policy.py`, and any
 other pattern exits 2. A schema pattern edit therefore lands in both files, and a test holds the two
 sets equal. The suites test one trailing-newline
-case per pattern, and the validator's suite repeats four of them through the command. A validator in
+case per pattern (the non-blank pattern below excepted: prose may end in a newline, so it has a test of
+its own), and the validator's suite repeats four of them through the command. A validator in
 another language must reach the same answer: an ECMA engine, or a full match.
 
 ## Where a project puts it
@@ -56,7 +57,7 @@ line on standard error, each naming its class:
 | Exit | When |
 | --- | --- |
 | 0 | the file is a valid `schema_version` 1 contract |
-| 1 | **missing** (no file, or a directory); **unreadable** (the file exists but cannot be read); **malformed** (not UTF-8, not JSON, not an object, a repeated key, or `NaN`/`Infinity`); **unknown version** (no `schema_version`, or one this validator does not know); or the contract is broken, each finding classed as one of: missing or invalid risk classification, missing mandatory evidence, medium-or-higher findings tolerated, unknown severity, inconclusive evidence does not block, risk-based approval weakened, low finding without a bug Issue, project MADR not ratified, recovery not prepared, contract invalid |
+| 1 | **missing** (no file, or a directory); **unreadable** (the file exists but cannot be read); **malformed** (not UTF-8, not JSON, not an object, a repeated key, or `NaN`/`Infinity`); **unknown version** (no `schema_version`, or one this validator does not know); or the contract is broken, each finding classed as one of: missing or invalid risk classification, missing mandatory evidence, medium-or-higher findings tolerated, unknown severity, inconclusive evidence does not block, risk-based approval weakened, low finding without a bug Issue, project MADR not ratified, recovery not prepared, coverage below the mhw floor of 85 percent, baseline override invalid (it may only add), contract invalid |
 | 2 | a usage error, or the validator cannot decide: its own schema is unreadable, is not strict JSON (`NaN`, `Infinity` or a repeated key, refused exactly as in the project file), uses a keyword, a keyword value or a type its evaluator does not implement, or a pattern outside its known set. It walks the whole schema before it reads the file, so a defect in a branch the file never reaches still exits 2. It does not answer "valid" when it cannot check |
 
 A repeated key fails because JSON readers disagree on which copy wins, and one file must not mean two
@@ -77,6 +78,17 @@ later and nothing else.
 file invalid, or changes what one means, needs a new `schema_version`; the file then declares which
 version it was written for, and an unknown version fails. Adding an optional field does not.
 
+**One recorded exception, Issue #523 (2026-11-20).** Version 1 was tightened in place twice: the
+coverage threshold now has a floor of 85 (it accepted 5, measured), and the free-text fields must carry
+a letter or digit (a blank `when` on the required high-risk rule passed). Both make some earlier
+version 1 files invalid. They stay version 1 because no project declares this contract (see *Evidence
+level*), so no file in any repository changed meaning. For coverage, every such file was below the
+floor the method's Definition of Done already set. For blank free text no written floor existed; the
+rule follows from the contract's own guard that a high-risk rule must exist, which a blank `when`
+emptied. The
+optional `baseline_override` section is an addition and needs no new version either. The next change
+of either kind, once a project declares the contract, needs `schema_version` 2.
+
 ## The common floor
 
 Some values are constants in the schema. They are ADR-0015's floor, and a project's file cannot set
@@ -89,6 +101,9 @@ them any other way. A project may be stricter where the schema allows it, never 
 - a high-risk PROD deployment needs the owner's approval for the exact revision;
 - the seven minimum security controls are named;
 - the file declares the project MADR accepted;
+- the coverage threshold is at least 85 percent, the method's Definition of Done (Issue #523);
+- every free-text field (a journey or scenario `description`, a rule's `when`, the `issue_label`)
+  carries at least one letter or digit, so a blank value cannot stand in for one (Issue #523);
 - manual recovery carries a recovery-time objective, a runbook with a last-tested date, and an
   operator handle named as available for the deployment and the observation period.
 
@@ -122,9 +137,11 @@ The project's own decision record that sets its quality bar and its low/high dep
 
 ### `coverage`
 
-The quantitative half of high coverage. ADR-0015 sets no universal number; the project's MADR does.
+The quantitative half of high coverage. ADR-0015 sets no universal number; ~~the project's MADR does.~~
+the method's Definition of Done does, at 85 percent, and the project's MADR may only raise it (Issue
+#523).
 
-- `threshold_percent`: a number above 0 and at most 100.
+- `threshold_percent`: a number from 85 to 100. ~~a number above 0 and at most 100.~~
 - `metric`: what the percentage counts, one of `line`, `branch` or `statement`.
 
 ### `mandatory_scenarios`
@@ -194,6 +211,29 @@ The contract only names the mode. ~~What a runbook must contain is #247.~~ What 
 contain, and the record of its test that `delivery_gate.py recovery-plan` reads against
 `last_tested` and the objective, are in [docs/recovery-reference.md](recovery-reference.md) (#247).
 
+### `baseline_override`
+
+Optional (Issue #523). What the project adds on top of mhw's test/DoD and documentation baseline. The
+baseline itself is mhw's: the Definition of Done in the method's `definition-of-done` skill and the
+documentation baseline in its `documentation-standard` skill. This section can only **add**: no key in
+it removes, lowers, waives or marks anything not applicable, and an unknown key fails. The quantitative
+floor is tightened through `coverage.threshold_percent`, not here. Which baseline items do not apply to
+a project's shape (a project with no UI has no sequence diagram of screens, say) is declared, with the
+reason, in its documentation manifest, `docs/documentation-baseline.json`, not in this file.
+
+- `definition_of_done`: optional. An object with:
+  - `additional_criteria`: at least one criterion the project adds to mhw's list, each an object with
+    an `id` (the journey `id` shape) and a `description` (it must carry a letter or digit). A test the
+    project requires on every change, such as an accessibility audit, is one such criterion.
+- `documentation`: optional. An object with:
+  - `additional_docs`: at least one document every change must keep current besides the manifest's,
+    each an object with a `path` (a repository-relative `.md` path, the MADR path's rules) and a
+    `description`. `mhw onboard` reports one that does not exist.
+
+What reads the section: `mhw policy check` validates it, and `mhw onboard` reports an `additional_docs`
+path that is missing. Whether each additional criterion holds on a change is the gate's judgement,
+under its criteria; no check reads it.
+
 ## What this contract does not cover
 
 - **No project runs the check.** `mhw policy check` exists (#245), but a file that breaks the
@@ -217,5 +257,12 @@ contain, and the record of its test that `delivery_gate.py recovery-plan` reads 
   asks for an identified operator, and a team handle does not identify who is available.
 - **Which test layers a project runs** (unit, API, end to end, installed-STG) is not a field. ADR-0015
   asks for every applicable layer; #246's evidence file records them as `test_layers`.
+- **The non-blank rule is not a meaning check.** A `when` of `x` or a description of `n/a` passes. The
+  pattern refuses only text with no letter or digit at all; whether the words say anything is the
+  project MADR's and the reviewer's.
+- **A high-risk rule can still be written so that nothing matches it**, and a runbook's
+  `last_tested` may be years old, and the recovery-time objective has no upper bound. ADR-0015 sets no
+  number for any of the three, so the schema has no floor to hold; inventing one here would be a
+  decision nobody made.
 - **No enforcement anywhere.** By the workstation's evidence words, the contract and its validator are
   *written* and tested. Neither is installed in any project, loaded or enforced.

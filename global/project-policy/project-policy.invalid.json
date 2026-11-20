@@ -6,7 +6,7 @@
     "status": "proposed"
   },
   "coverage": {
-    "threshold_percent": 85,
+    "threshold_percent": 5,
     "metric": "line"
   },
   "mandatory_scenarios": {

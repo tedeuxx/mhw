@@ -178,6 +178,38 @@ release candidate**: cheaper, but a defect is found late, after it is merged wit
 its own entry in `delivery.py`. (3) **Adopt the reference gate for mhw**: rejected; it needs a project
 MADR, a `project-policy.json` and installed-STG evidence that mhw has no environment to produce.
 
+#### Amendment — the contract's coverage floor and an add-only baseline override (2026-11-20, Issue #523)
+
+- **Status of this amendment:** proposed (agent-written, awaiting the owner's ratification), with
+  [ADR-0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md). It is appended; nothing
+  above is changed, and the record's status is unchanged. It tightens the carrier of the concrete lock
+  and unlocks nothing. The ratification rule in *Consequences* covers any change to a ratified lock,
+  a tightening included, so this amendment binds only once the owner ratifies it with ADR-0044.
+
+The owner decided on 2026-11-20 ([Issue #523](https://github.com/tedeuxx/mhw/issues/523)) that the
+test/DoD and documentation override is a new optional section of the existing `project-policy.json`,
+validated by `mhw policy check`, that may only add or tighten, and that this record is amended by
+append. His choice, verbatim: *"Seção no project-policy"* ("a section in project-policy").
+
+- **"High coverage is hybrid" gains a floor.** The lock above leaves each project its quantitative
+  threshold. The project-policy contract now refuses a `coverage.threshold_percent` below 85, the
+  method's Definition of Done. It accepted 5 before (measured on 2026-11-20). A project still sets its
+  own number, at 85 or above.
+- **The contract's free text must say something.** A journey or scenario description, a risk rule's
+  `when` and the bug-Issue label must carry a letter or digit. A blank `when` on the one required
+  high-risk rule made the high-risk approval rule above apply to nothing.
+- **`baseline_override`, optional, add-only.** It lists Definition-of-Done criteria and documents a
+  project adds on top of mhw's baseline. It has no key that lowers, removes or waives anything in the
+  floor above. Its fields are in [the contract](../project-policy-contract.md).
+- **Evidence level: written and tested.** No project declares the contract (the carriers section
+  above), so none of this is installed, loaded or enforced in any project.
+
+Options considered: (1) **a section of the existing file (chosen, the owner's choice)**: one file and
+one validator; trade-off: the contract's version 1 widens, and the coverage floor makes some earlier
+version 1 files invalid, which the contract's *Versioning* section records as a one-time exception.
+(2) **A sibling file**: a second contract and validator to keep in step with this one. (3) **No
+override for now**: leaves the measured weakening in place.
+
 ## Consequences
 
 - **A lock on his own aims makes the firewall a two-sided control: it can refuse the owner.** To stay
@@ -217,3 +249,6 @@ MADR, a `project-policy.json` and installed-STG evidence that mhw has no environ
 - mhw's own PROD test (2026-11-08, ~~proposed~~ accepted 2026-11-18, [ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978107613)): Issue #452, `.github/workflows/tests.yml`
   (`prod-canary-installed-not-enforced`), `.github/scripts/prod_canary.py` and
   `.github/scripts/prod-canary-container.sh`.
+- The coverage floor and the add-only baseline override (2026-11-20, proposed): Issue #523,
+  [ADR-0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md),
+  `global/project-policy/project-policy.schema.json`.

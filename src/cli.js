@@ -7,7 +7,7 @@
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
 // `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
-// and `mhw scan` (#486).
+// and `mhw scan` (#486); new in Node: `mhw docs-baseline check` and `mhw onboard` (#523).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
 // PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
@@ -30,6 +30,7 @@ import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
 import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as scanMain } from './commands/scan.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
+import { checkMain as docsBaselineMain, onboardMain } from './commands/docs-baseline.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -166,6 +167,9 @@ const MOVED = {
     const r = pasteWrapperMain(argv, env);
     return typeof r === 'number' ? r : 0;
   },
+  // #523: the documentation baseline's pull-request check, and the onboarding entry point.
+  'docs-baseline': docsBaselineMain,
+  onboard: onboardMain,
 };
 
 /**

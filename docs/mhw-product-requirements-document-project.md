@@ -454,7 +454,7 @@ barrier of the proposed managed workstation."
   after `git` or `gh` (`git -c`, `git -C`, `gh -R`), `-R` or `--repo` in any position and spelling
   (`gh pr -R`, `--repo=`), a leading environment assignment (`GIT_CONFIG_PARAMETERS=… git log`), and
   tool-wide `Edit`, `Write` or `Read`. The installer refuses such an entry before writing anything
-  (each case is in `global/allow-list.test.sh`, mutation-checked). Other spellings it does not list
+  (each case is in ~~`global/allow-list.test.sh`~~ `test/render/allow-list.test.js` since #490, mutation-checked). Other spellings it does not list
   are not claimed refused.
 - **Kiro** receives the narrow tier only, because it carries no deny floor.
 - **Where it lives:** the user layer, a convenience the owner can tune. The barrier it relies on is

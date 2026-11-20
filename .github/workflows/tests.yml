@@ -35,7 +35,6 @@ jobs:
         run: |
           shellcheck --version
           shellcheck -s sh mhw global/install.sh global/install.test.sh \
-            global/allow-list.sh global/allow-list.test.sh \
             .github/scripts/prod-canary-container.sh
       # A workflow that is not valid YAML never loads: GitHub reports a "workflow file issue" on push
       # and no job runs, so nothing else in this file would notice (PR #141). Ruby and its bundled
@@ -316,10 +315,9 @@ jobs:
           fi
       - name: installer suite
         run: sh global/install.test.sh "$RUNNER_TEMP/install"
-      # Issue #83, ADR-0031: the allow list, narrow without the admin floor and wide with it, in
-      # throwaway HOMEs and a throwaway admin root. The codex execpolicy arm runs only where codex is found.
-      - name: allow-list suite
-        run: sh global/allow-list.test.sh "$RUNNER_TEMP/allow"
+      # Issue #83, ADR-0031: the allow list is Node since #490 (S19 of #470); its suite,
+      # test/render/allow-list*.test.js, runs in the node job (npm test) on all three OSes, the install.sh
+      # arms on macOS and Linux.
       - name: admin-layer installer suite (throwaway --root; never a system path, never root, ADR-0025)
         run: sh global/install-managed.test.sh "$RUNNER_TEMP/managed"
       # Issues #57 and #67: the version-key comparison and the status view, plus one end-to-end run of

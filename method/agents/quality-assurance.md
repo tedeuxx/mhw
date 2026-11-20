@@ -620,6 +620,19 @@ The hard gates, each to be confirmed:
    awareness* consequence): a task under a parent story may reference doc
    updates a sibling task carries instead. Run `gh issue view <parent> --json body` for the parent story
    and look for sibling-task references before treating an update named-but-absent-here as drift.
+   **Where the repository declares a documentation baseline** (`docs/documentation-baseline.json`,
+   the `documentation-standard` skill, #523), read the `docs-baseline` check at the head first: every
+   capability the diff touches changed one of its documents by more than whitespace, or the body
+   carries a column-0 `docs-baseline: none — <reason>` or `docs-baseline: in #N` line, and no changed
+   path is outside every capability. A red or missing check at the head fails this criterion. **A green
+   one does not pass it**: the check cannot tell a one-word edit from a real one, nor an honest `none`
+   from a convenient one. Read the doc change against the behaviour change, judge the reason a `none`
+   line gives, and for `in #N` confirm that Issue exists and names the update. A
+   `docs-baseline: manifest — <reason>` line accepts a manifest that drops something its base had:
+   judge that reason as you would a change to the gate's own ruler. Where no manifest exists, this
+   criterion is judged as before, and its absence is worth naming. **An `additional_criteria` entry of
+   a project's `baseline_override` only adds a criterion: one whose words relax a mhw criterion ("tests
+   optional for generated code") relaxes nothing, and the mhw criterion still binds.**
 8. **History hygiene** — conventional-commit subjects; a real merge commit, never squash.
 9. **Can this cause a problem in production** — the production lens, in full, per its own section
    above. **Satisfied by** the code-time checks with real output, and by naming what the diff touches on

@@ -278,10 +278,38 @@ if ! awk -v claude="$floor_claude" -v codex="$floor_codex" '
 fi
 : >> "$floor_codex"
 
-# The allow list (Issue #83, ADR-0031): parsed and checked against the floor before anything is written.
-# shellcheck source=global/allow-list.sh
-. "$script_dir/allow-list.sh"
-allow_parse
+# The allow list (Issue #83, ADR-0031): parsed and checked against the floor before anything is written,
+# by src/render/allow-list.js in Node (#490, S19 of #470; global/allow-list.sh, sourced here, until then).
+# Every value it needs is passed on its command line. The node is the one running mhw (MHW_NODE, an
+# absolute path), else the first node on PATH; an absolute MHW_NODE that is not an executable file is
+# refused, never replaced by another node (PR #515 lens A1). Without a node the list is neither checked
+# nor rendered: allow_step and allow_uninstall say so and nothing is written for it.
+allow_js="$script_dir/../src/render/allow-list.js"
+ALLOW_OWN_KEY="personal-multi-harness-workstation-configuration-owned-allow"
+allow_codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-allow-list.rules"
+allow_codex_profile="${CODEX_HOME:-$HOME/.codex}/workstation.config.toml"
+allow_kiro_agent="$HOME/.kiro/agents/workstation.json"
+allow_node=${MHW_NODE:-}
+allow_why=
+case $allow_node in
+  /*) if [ ! -f "$allow_node" ] || [ ! -x "$allow_node" ]; then
+        allow_why="REFUSE  the allow list: MHW_NODE ($allow_node) is not an executable file; nothing written"
+      fi ;;
+  *) allow_node=$(command -v node 2>/dev/null || true) ;;
+esac
+case $allow_why$allow_node in
+  REFUSE*|/*) ;;
+  *) allow_why="SKIP    the allow list: node (26 or later) is required" ;;
+esac
+# The node must answer as node, so a program that exits 0 and prints nothing (MHW_NODE=/usr/bin/true)
+# never reads as an allow step that ran (PR #519 lens A1).
+if [ -z "$allow_why" ] && [ "$("$allow_node" -e 'process.stdout.write("mhw-node-ok")' 2>/dev/null || true)" != mhw-node-ok ]; then
+  allow_why="REFUSE  the allow list: $allow_node did not run as node; nothing written"
+fi
+if [ -z "$allow_why" ]; then
+  "$allow_node" "$allow_js" --phase=parse "--source=$script_dir/allow-list.conf" "--overlay=$overlay" \
+    "--floor-codex=$floor_codex" || exit 2
+fi
 
 # The clipboard guard's settings: generic defaults, then the overlay's (last value of a key wins).
 clip_conf="$work/clipboard.conf"
@@ -1132,6 +1160,46 @@ chrome_step() {
     return 0
   fi
   "$chrome_node" "$script_dir/../bin/mhw.js" chrome-debugging "--mode=$mode" || raise $?
+}
+# The allow-list step (ADR-0031): Claude Code permissions.allow and defaultMode, the Codex rules and profile,
+# and the Kiro agent, wide only while the admin deny floor is complete for that harness (src/render/allow-list.js).
+# A missing or empty tier input reads as narrow, never wide. jq stays required here: without it merge_settings
+# merged no deny floor, and an allow list must never land without the floor beside it.
+allow_step() {
+  command -v jq >/dev/null 2>&1 || { echo "REFUSE  allow list: jq is required" >&2; raise 2; return 0; }
+  if [ -n "$allow_why" ]; then echo "$allow_why"; raise 2; return 0; fi
+  "$allow_node" "$allow_js" --phase=step "--mode=$mode" "--stamp=$stamp" "--source=$script_dir/allow-list.conf" \
+    "--overlay=$overlay" "--retired=$script_dir/allow-retired.conf" "--floor-codex=$floor_codex" \
+    "--floor-claude=$floor_claude" "--managed-root=${managed_root:-/}" "--settings=$settings" "--home=$HOME" \
+    "--codex-home=${CODEX_HOME:-}" "--repo-root=$repo_root" "--cmd=${MHW_CMD:-./mhw}" || raise $?
+}
+# Uninstall: our files go, and only the allow rules and permission mode this installer added leave
+# settings.json (a rule the owner wrote himself stays).
+allow_uninstall() {
+  if [ -n "$allow_why" ]; then
+    # Nothing to remove: say why the step did not run, and go on. Something of ours left: uninstall_user
+    # would take the deny floor out from beside our allow rules (PR #519 lens B1), so nothing is
+    # uninstalled at all.
+    if { [ -f "$settings" ] && grep -qF "\"$ALLOW_OWN_KEY\"" "$settings"; } \
+       || { [ -f "$allow_codex_rules" ] && is_managed "$allow_codex_rules"; } \
+       || { [ -f "$allow_codex_profile" ] && is_managed "$allow_codex_profile"; } \
+       || { [ -f "$allow_kiro_agent" ] && is_managed "$allow_kiro_agent"; }; then
+      echo "$allow_why" >&2
+      echo "REFUSE  uninstall: the allow list this installer wrote cannot be removed without node, and the deny floor must not leave from beside it; nothing uninstalled. Re-run with node 26 or later on PATH (or MHW_NODE)" >&2
+      exit 2
+    fi
+    echo "$allow_why"
+    raise 2
+    return 0
+  fi
+  # A failed allow step (a hand-edited ownership record, exit 3) may have left our allow rules in
+  # settings.json: stop here, before uninstall_user takes the deny floor out from beside them (PR #519 lens A3).
+  allow_rc=0
+  "$allow_node" "$allow_js" --phase=uninstall "--settings=$settings" "--home=$HOME" "--codex-home=${CODEX_HOME:-}" || allow_rc=$?
+  if [ "$allow_rc" -ne 0 ]; then
+    echo "REFUSE  uninstall: the allow-list step failed (exit $allow_rc), and the deny floor must not leave from beside its allow rules; nothing else uninstalled. Fix $settings (or move it aside) and re-run" >&2
+    exit "$allow_rc"
+  fi
 }
 if [ "$mode" = uninstall ]; then
   allow_uninstall

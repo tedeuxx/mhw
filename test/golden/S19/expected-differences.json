@@ -1,0 +1,56 @@
+[
+  {
+    "name": "the head program's diagnostic on a directory at a managed target",
+    "stream": "stderr",
+    "pattern": "^head: ",
+    "why": "allow-list.sh read the first five lines of a target with head, which prints its own error when the target is a directory (Apple head: 'head: Error reading <path>'; GNU head words it differently). The Node step reads the file itself and prints no such line. The REFUSE line after it, the exit code 3 and the untouched tree are still compared."
+  },
+  {
+    "name": "the dry-run hunk alignment",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "A dry run of settings.json prints the hunks of a unified diff. allow-list.sh ran the diff on PATH, and two diff programs may line up a repeated line ('    ]', '  },') differently, both correctly: on the CI Linux runners GNU diff did so in two scenarios (owner-settings-wide, retired-allows) where Apple diff, which the goldens were recorded with, did not. The Node step prints one form everywhere, the Apple diff one (src/lib/unified-diff.js). The golden arm compares those hunks exactly; the live arm compares each run of hunk lines as its sorted removed lines and its sorted added lines. Display only: a dry run writes nothing."
+  },
+  {
+    "name": "a settings.json jq reads and strict JSON does not",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Exercised by the declared scenarios jq-only-* (their Node side is held to its own golden, <name>.node.json, beside the shell's transcript) and by allow-list.test.js. jq 1.7.1 reads input strict JSON does not: NaN and Infinity in any case, leading zeros, .5, 1., +1, one byte-order mark, several documents, input cut at a NUL (src/lib/jq-json.js, classify). The shell acted on such a file in every mode; the Node step cannot read it, so it prints 'REFUSE  <settings>: not readable by the allow-list step (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents or the like); left untouched', exits 3 and leaves settings.json byte for byte, writing the Codex and Kiro files as usual. On uninstall it removes nothing and install.sh then stops the uninstall, so the deny floor stays beside the allow rules. In install mode merge_settings rewrites such a file with jq first, so a real install never reaches this. What every jq build refuses (a high surrogate escape with no low one after it, anything not JSON) the Node reader refuses too, and the step stays silent there as the shell did (scenario jq-refuses-lone-high-surrogate). Nesting past 256 depends on the jq build: Apple's refuses it (the recording machine; the shell said nothing), the Ubuntu and Windows builds on the CI runners read it (the shell acted). The Node reader stops at 256 on every build and the step refuses visibly, as above (declared scenarios jq-deep-*, shellActs false); 10,000 levels is that refusal, not a stack overflow (PR #519 QA B1)."
+  },
+  {
+    "name": "jq is no longer needed by the step itself",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. install.sh keeps its own 'REFUSE  allow list: jq is required' line before it starts the Node step, so a machine without jq still gets no allow list (merge_settings, which merges the user deny floor, needs jq too: rendering the allow list without it would put allow rules in settings.json without the floor beside them). Uninstall needs no jq any more: it removes the allow rules it added even where jq is missing."
+  },
+  {
+    "name": "an empty deny floor never reads as a complete admin floor",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario; pinned in allow-list.test.js. With a floor of no cmd entry, allow-list.sh compared 0 with 0 and read the admin floor as complete (wide) whenever the admin file existed, for Claude Code even when that file was not JSON. The Node step reads an empty floor, a missing one and a missing or empty --managed-root as narrow. Narrower only."
+  },
+  {
+    "name": "the Codex admin floor must contain every floor entry",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario; pinned in allow-list.test.js. allow-list.sh counted the admin lines equal to some floor entry (grep -cxF) and compared that count with the number of floor entries, so an admin file repeating one entry and missing another read as complete. The Node step requires that count AND every entry present, so it reads wide only where the shell did. ~~The Claude Code admin floor counts only string deny rules (the shell's jq also counted a matching value inside a deny object or a nested array). Narrower only.~~ (Struck at PR #519 QA B2: that reading widened one input, an admin deny list holding every floor rule as a string plus a nested array of them, which the shell counted one too many and read narrow.) The Claude Code admin floor reads wide only where the shell's own count (jq's index, a nested run of floor rules included) equals the floor's size AND every floor rule is there as a string; the count runs over the floor as jq's unique sorted it, by code point, not in file order (PR #519 lens, round 3: a pair adjacent only in sorted order counted in the shell) (shellCount in src/render/allow-list.js, pinned by 'the Claude Code admin floor reads wide only where the shell read wide'). A deny object, whose values the shell's jq also iterated, reads narrow. Narrower only, measured by that test."
+  },
+  {
+    "name": "an ownership record or permissions section of another shape is refused",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario; pinned in allow-list.test.js. Where the allow-list ownership record's allow, defaultMode or deny is not a list (a hand edit), jq treated a string as text to search and an object as a list of its values, or failed with its own error. The Node step refuses: install prints the existing REFUSE line and exits 3, and uninstall prints 'REFUSE  <settings>: its permissions section or the allow-list ownership record has an unexpected shape; left untouched' and exits 3. allow-list.sh's uninstall printed UNMERGED and left settings.json.new.<pid> behind when its jq failed, and emptied settings.json when permissions was a string or a number. Retired-rule matching and the hit list consider only strings. When the uninstall step refuses (or fails in any other way), install.sh prints 'REFUSE  uninstall: the allow-list step failed (exit <n>), and the deny floor must not leave from beside its allow rules; nothing else uninstalled. Fix <settings> (or move it aside) and re-run' and exits with that code before any later uninstall step, so uninstall_user never takes the deny floor out from beside allow rules still there (PR #519 lens A3)."
+  },
+  {
+    "name": "a backup that cannot be written stops the step, not the whole installer",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. When the settings.json.pmhwc-allow-backup could not be written, allow-list.sh printed one of private_copy's REFUSE lines and, under set -e, ended install.sh at once with exit 1. The Node step prints 'REFUSE  <backup>: the backup could not be created exclusively; no backup written', leaves settings.json untouched and writes no allow file, as before, and exits 1; install.sh then still runs its later steps (the method step and the floor report) and exits 1."
+  },
+  {
+    "name": "node is needed to render the allow list",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario. Without a node (an absolute MHW_NODE that is not an executable file, or no node on PATH), install.sh prints 'REFUSE  the allow list: MHW_NODE (<path>) is not an executable file; nothing written' or 'SKIP    the allow list: node (26 or later) is required', writes no allow file and exits 2 after its other steps. The entries are then not validated either, so an invalid overlay entry no longer stops the other steps from writing. A node that does not answer as node (an MHW_NODE of /usr/bin/true) is refused the same way: 'REFUSE  the allow list: <path> did not run as node; nothing written' (PR #519 lens A1). Uninstall without a usable node: when settings.json still holds the allow-list ownership key, or a Codex or Kiro allow file of ours is still there, install.sh prints that line and 'REFUSE  uninstall: the allow list this installer wrote cannot be removed without node, and the deny floor must not leave from beside it; nothing uninstalled. Re-run with node 26 or later on PATH (or MHW_NODE)', and exits 2 before any step, so the user deny floor never leaves from beside our allow rules (PR #519 lens B1; allow-list.sh needed no node and removed them). With nothing of ours left it prints the SKIP or REFUSE line and goes on. bin/mhw.js always sets MHW_NODE; the ./mhw checkout route takes node from PATH."
+  }
+]
