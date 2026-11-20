@@ -81,9 +81,11 @@ under these safeguards, all carried by `method/commands/backlog-grooming.md`:
 - the dated record `docs/backlog-grooming/<date>.md` keeps the prior body and acceptance criteria of
   every touched Issue verbatim;
 - one owner activation, before any write: confirm, confirm with changes, or discard; his ruling is
-  recorded verbatim in the record and quoted on each affected Issue;
+  recorded verbatim in the record and quoted, after its act is applied, on each affected Issue,
+  linking the record by a commit permalink;
 - a merge adds a `Consolidated from #N` section to the target, and every acceptance-criteria line of
-  the source is checked in the target with an exact `grep -F` before the source closes;
+  the source is checked in the target with an exact `grep -F -- '<line>'` before the source closes (the
+  `--` because a checkbox line starts with `-`, which grep would otherwise read as an option);
 - `content` never enters the sprint; cross-repository twins are flagged and never consolidated;
   items only the owner can do stay outside the sprint;
 - the command creates no milestone and hands off to `/sprint-planning`, whose own confirmation

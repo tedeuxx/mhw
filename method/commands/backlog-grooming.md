@@ -57,7 +57,8 @@ query and the fields above. Never type a milestone or a label you have not seen 
 Bodies and comments are long, so do not read them all in the main session. Split the numbers into
 partitions of a size one dispatch can read whole (about 40k characters of body and comments each).
 Dispatch one read-only reader per partition, isolated: `agents-lead` for `loop` and untyped Issues,
-`product-lead` for `product` ones. Each reads `gh issue view <n> --repo <owner>/<repo> --comments` for
+`product-lead` for `product` and `content` ones (a `content` Issue still gets its one verdict; it is
+only kept out of the sprint). Each reads `gh issue view <n> --repo <owner>/<repo> --comments` for
 its partition and returns, per Issue, a summary of at most five lines and exactly one proposed verdict
 (below), with its evidence.
 
@@ -126,19 +127,25 @@ confirmation. Record his ruling **verbatim** in the record's *Ruling* section, w
 
 All bodies go through `--body-file` (the `shell` skill).
 
-1. **Comment on each affected Issue** quoting his ruling and linking the record.
-2. **Merges.** Add a `## Consolidated from #N` section to the target carrying the source's acceptance
+1. **Merges.** Add a `## Consolidated from #N` section to the target carrying the source's acceptance
    criteria verbatim. **Before closing the source, check every one of its acceptance-criteria lines is
-   in the target**: for each line, `gh issue view <M> --repo <owner>/<repo> --json body --jq .body`
-   and an exact `grep -F` of the line. Any miss stops that merge. Then close the source naming the
-   target.
-3. **Closes**, each with its criterion and its evidence in the closing comment.
-4. **Rewrites** with `gh issue edit <n> --body-file`, the old body already in the record.
-5. **Labels**: the confirmed routing types, and `ready` on the `loop` items he confirmed ready (on
+   in the target**: for each line, read the target with
+   `gh issue view <M> --repo <owner>/<repo> --json body --jq .body` into a scratch file, then run
+   `grep -F -- '<line>' <file>`. The `--` is required: a checkbox line starts with `- [ ]`, and without
+   it grep reads the line as an option and exits 2. Any miss, or any exit other than 0, stops that
+   merge. Then close the source naming the target.
+2. **Closes**, each with its criterion and its evidence in the closing comment.
+3. **Rewrites** with `gh issue edit <n> --body-file`, the old body already in the record.
+4. **Labels**: the confirmed routing types, and `ready` on the `loop` items he confirmed ready (on
    `loop`, `ready` is his decision and the main session applies it).
-6. **Estimates.** Each newly ready `loop` item gets `sp:N`: isolated `agents-lead` and
+5. **Estimates.** Each newly ready `loop` item gets `sp:N`: isolated `agents-lead` and
    `quality-assurance` dispatches, the median applied (`agents-configuration`, *Estimation*;
    `/planning-poker`). Other lanes use their own estimator sets.
+6. **Comment on each Issue whose act was applied**, last, quoting his ruling and linking the record by
+   a commit permalink (`https://github.com/<owner>/<repo>/blob/<commit SHA>/docs/backlog-grooming/<date>.md`,
+   the SHA of a pushed commit carrying the filled *Ruling*), never by branch, which breaks when the
+   branch is deleted. An act that stopped (a merge whose check missed) gets a comment saying it stopped
+   and why, not one saying it was applied.
 
 Open the record's pull request with its *Ruling* filled. It goes through the normal review route.
 

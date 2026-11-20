@@ -95,7 +95,7 @@ PHRASES = {
                          "**\"Premise no longer holds\" needs a measured command and its output.**",
                          "never consolidate across repositories", "`docs/backlog-grooming/<YYYY-MM-DD>.md`",
                          "verbatim", "**No comment, label, edit or close happens before step 6.**",
-                         "## Consolidated from #N", "grep -F", "`quality-assurance` dispatches, the median",
+                         "## Consolidated from #N", "grep -F -- '<line>'", "/blob/<commit SHA>/", "`quality-assurance` dispatches, the median",
                          "`loop-mode-repos`", "**This command creates no milestone and admits nothing to one**",
                          "`/sprint-planning <iteration title>`", "--body-file"],
 }
@@ -261,6 +261,20 @@ class BacklogGrooming(unittest.TestCase):
             self.assertNotIn(write, before, write)
         self.assertIn("gh issue edit", after)
         self.assertIn("--body-file", after)
+
+    def test_the_criteria_grep_ends_its_options(self):
+        # The lens on PR #526: a criterion line starts with "- [ ]", so a grep without "--" reads it as an
+        # option and exits 2 (BSD grep and ugrep, measured). Every grep -F in the command and the ADR ends options.
+        adr = (REPO / "docs" / "adr" / "0043-backlog-grooming-batch-confirmation-and-scrum-for-mhw.md").read_text(
+            encoding="utf-8")
+        for name, text in (("command", self.body), ("ADR-0043", adr)):
+            uses = re.findall(r"grep -F[^`]*", text)
+            self.assertTrue(uses, name)
+            self.assertEqual([u for u in uses if not u.startswith("grep -F -- ")], [], name)
+
+    def test_the_ruling_comment_follows_the_check_that_can_stop_a_merge(self):
+        apply = self.body.split("### 7 · Apply, only after confirmation", 1)[1].split("### 8", 1)[0]
+        self.assertLess(apply.index("grep -F -- "), apply.index("quoting his ruling"))
 
     def test_exactly_three_options(self):
         activation = self.body.split("### 6 · ONE owner activation, before any write", 1)[1].split("### 7", 1)[0]
