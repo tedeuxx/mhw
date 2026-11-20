@@ -87,7 +87,10 @@ command:
 grep -m1 '^loop-mode: ' docs/loop-mode.md
 ```
 
-**Run it in BOTH repositories.** A mode is a workspace property and this record is a repository object,
+**Run it in ~~BOTH repositories~~ every repository the record's `loop-mode-repos:` line names.** *Scoped
+2026-11-20 (#522): read `grep -m1 '^loop-mode-repos: ' docs/loop-mode.md` first; a record naming only
+its own repository is drained alone and never stops on a repository outside that set, and a missing or
+empty line is refused by name.* A mode is a workspace property and this record is a repository object,
 so the two copies can disagree in silence — **stop on a disagreement and say which repository says
 what.** This drain already reads both trees; nothing else in the harness does, which is why the
 comparison is here and not in a hook.
@@ -143,7 +146,7 @@ gh issue list --repo <owner>/<repo> --state open --limit 200 --json number,label
           |.number]|length'
 ```
 
-**Run it in BOTH repositories.** This command takes one repo, and the iteration does not — the drain
+**Run it in ~~BOTH repositories~~ every repository `loop-mode-repos` names (#522).** This command takes one repo, and the iteration does not — the drain
 pool reads both trees, and a session opened in one never counts the other's unassigned items.
 
 **Since #365 this count is a BACKLOG SIZE, not a defect signal, and reading it the old way would be

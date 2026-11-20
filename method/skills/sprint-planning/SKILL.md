@@ -175,7 +175,21 @@ hook selects a `--label` or a `--milestone`**, so no layer can derive an eligibl
 objects in two repositories. By this loop's own test — *would something stop me, or only my memory?* —
 **this rite is not engineered**, and it must not be described as if it were.
 
-## Step 0 — read the LOOP MODE from its record, in BOTH repositories, before assembling anything
+## Step 0 — read the LOOP MODE from its record, ~~in BOTH repositories~~ in every repository its `loop-mode-repos` names, before assembling anything
+
+**Scoped 2026-11-20 (#522).** *"Both repositories"* below means **the repositories named on the
+`loop-mode-repos:` line of the record in the repository where the rite runs**, and no others. Read that
+line first:
+
+```
+grep -m1 '^loop-mode-repos: ' docs/loop-mode.md
+```
+
+A record naming two repositories keeps the two-repository behaviour unchanged; a record naming only
+its own repository is planned alone, so its rite neither reads nor stops on a repository outside its
+scope. **A missing or empty `loop-mode-repos:` line is refused by name**, like a missing mode: the
+scope is read, never guessed. The struck words in this step's heading and in step 1's are struck for
+that reason; the rule they stated stands inside the named set.
 
 **Added 2026-09-11 after `sprint-02`'s planning changed the mode with no step telling it to.** Until then
 this rite named the mode nowhere — `grep -c 'loop-mode' commands/sprint-planning.md` returned **0** — so
@@ -189,10 +203,10 @@ set, exactly like a drained iteration.
 
 ```
 grep -m1 '^loop-mode: ' docs/loop-mode.md
-grep -m1 '^loop-mode: ' ../<sibling-repo>/docs/loop-mode.md
+grep -m1 '^loop-mode: ' ../<sibling-repo>/docs/loop-mode.md   # only for a sibling loop-mode-repos names
 ```
 
-**Run it in BOTH trees and stop on a disagreement**, naming which repository says what. A mode is a
+**Run it in ~~BOTH trees~~ every repository `loop-mode-repos` names and stop on a disagreement**, naming which repository says what. A mode is a
 **workspace** property and the record is a **repository** object, so the copies can disagree; the drain
 already makes this comparison at entry (`commands/autonomy.md`) and **halts** on a mismatch, before the
 pool predicate. A planning that composes an iteration under a mode the sibling does not share has
@@ -224,14 +238,14 @@ this step is an instruction in a rite nothing fires. By this loop's own test —
 or only my memory?* — **this is memory, now written where the act happens.** What it removes is the
 dependency on a fresh context happening to know the obligation, which is the dependency that failed.
 
-## Step 1 — assemble the pool, from BOTH repositories, enumerated and never named
+## Step 1 — assemble the pool, ~~from BOTH repositories~~ from every repository `loop-mode-repos` names, enumerated and never named
 
 **Never type a milestone title into a query** (`/agents-configuration`, rule 1: a milestone name that
 matches nothing returns empty with exit 0, which is indistinguishable from a drained pool). At planning
 the iteration does not exist yet, so the assembly is over **unmilestoned open work** rather than over a
 milestone.
 
-Per repository in the workspace:
+Per repository ~~in the workspace~~ named on the `loop-mode-repos:` line step 0 read (#522):
 
 ```
 gh issue list --repo <owner>/<repo> --state open --limit 200 \
@@ -364,7 +378,8 @@ loosening — **it is the current state, and the only thing standing between thi
 write is its empty `tools:` line.** That line is declared explicitly rather than omitted for exactly
 this reason (#386: an absent `tools:` key inherits everything the parent holds).
 
-**What it is given:** the three classes from step 1, verbatim, both repositories, with labels and
+**What it is given:** the three classes from step 1, verbatim, ~~both repositories~~ every repository
+`loop-mode-repos` names (#522), with labels and
 `sp:N` where present. **What it returns:** a ranked eligible pool and its process findings, in its
 own `SELECTION-RECORD` shape.
 
