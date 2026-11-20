@@ -440,7 +440,7 @@ export function writeMissing(root, files) {
     const target = path.join(root, ...rel.split('/'));
     if (fs.existsSync(target) || isSymlink(target)) continue;
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    const parent = fs.realpathSync(path.dirname(target));
+    const parent = fs.realpathSync.native(path.dirname(target));
     if (parent !== root && !parent.startsWith(root + path.sep)) {
       throw new UsageError('refusing to write ' + rel + ': its directory resolves outside the project');
     }
@@ -516,7 +516,8 @@ export function validate(root, env, platform) {
     try {
       const g = gitIn(root, env, platform);
       const top = git(g, ['rev-parse', '--show-toplevel']).trim();
-      if (top && fs.realpathSync(top) === root) tracked = git(g, ['ls-files', '-z']).split('\0').filter(Boolean);
+      // native: on Windows git prints the long path where a temporary directory may be an 8.3 short one.
+      if (top && fs.realpathSync.native(top) === fs.realpathSync.native(root)) tracked = git(g, ['ls-files', '-z']).split('\0').filter(Boolean);
     } catch (e) {
       if (!(e instanceof GitError)) throw e;
     }
@@ -627,7 +628,7 @@ export function runOnboard(argv, io) {
     const dir = path.resolve(io.cwd, /** @type {string} */ (o['--project'] ?? '.'));
     let root;
     try {
-      root = fs.realpathSync(dir);
+      root = fs.realpathSync.native(dir);
       if (!fs.statSync(root).isDirectory()) throw new Error('not a directory');
     } catch {
       throw new UsageError('not a directory: ' + dir);
