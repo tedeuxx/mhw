@@ -12,10 +12,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import { throwawayHome } from '../helpers/home.js';
+import { mcpHomes } from '../helpers/mcp-home.js';
 import * as M from '../../src/render/mcp.js';
 import * as C from '../../src/commands/mcp-connect.js';
 import { ActiveSet } from '../../src/commands/mcp-active.js';
-import { PROJECT, put, putJson } from '../render/mcp-cases.js';
+import { put, putJson } from '../render/mcp-cases.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const RENDER = path.join(ROOT, 'src', 'render', 'mcp.js');
@@ -28,31 +29,7 @@ after(() => box.cleanup());
 const BASE = box.dir;
 const synth = () => 'synthetic-' + crypto.randomBytes(12).toString('hex');
 
-/** @param {string} name */
-function mkHome(name) {
-  const h = path.join(BASE, name);
-  fs.rmSync(h, { recursive: true, force: true });
-  for (const d of ['.codex', '.claude', '.kiro']) fs.mkdirSync(path.join(h, d), { recursive: true });
-  return h;
-}
-/** @param {string} h */
-const data = (h) => path.join(h, '.local', 'share', PROJECT);
-/** @param {string} h */
-const targets = (h) => ({ codex: path.join(h, '.codex', 'config.toml'), 'claude-code': path.join(h, '.claude.json'), kiro: path.join(h, '.kiro', 'settings', 'mcp.json') });
-/** @param {string} h @param {unknown} doc */
-function writeSource(h, doc) {
-  const p = path.join(data(h), 'local-overlay', 'mcp-servers.json');
-  putJson(p, doc);
-  return p;
-}
-/** @param {string} h @param {Record<string, string>} [extra] */
-function cleanEnv(h, extra = {}) {
-  /** @type {Record<string, string>} */
-  const env = {};
-  const drop = new Set([...M.AGENT_ENV, 'CODEX_HOME', 'XDG_DATA_HOME', 'APPDATA', 'MHW_NODE']);
-  for (const [k, v] of Object.entries(process.env)) if (!drop.has(k) && v !== undefined) env[k] = v;
-  return { ...env, HOME: h, USERPROFILE: h, MHW_NODE: NODE, ...extra };
-}
+const { mkHome, targets, writeSource, cleanEnv } = mcpHomes(BASE, RENDER);
 /** @param {string} p */
 const jload = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 /** A child run while this process keeps serving the HTTP stub. @param {string[]} args @param {Record<string, string>} env */
@@ -276,7 +253,8 @@ group('the connection check, through the CLI', { skip: POSIX_ONLY }, () => {
     assert.equal(spawnSync(NODE, [RENDER], { env: cleanEnv(h), cwd: BASE }).status, 0);
     let p = await runAsync(['--active', '--mode=connect'], cleanEnv(h));
     assert.equal(p.code, 0, p.stdout + p.stderr);
-    assert.equal(p.stdout.split(': s-ok: ok (MCP connect)').length - 1, 3);
+    // Codex, Claude Code and Kiro, and the Claude desktop app where it is published (macOS here).
+    assert.equal(p.stdout.split(': s-ok: ok (MCP connect)').length - 1, process.platform === 'darwin' ? 4 : 3);
     writeSource(h, { version: 1, servers: { 's-ok': { command: '/bin/echo' } } });
     p = await runAsync(['--active', '--mode=connect'], cleanEnv(h));
     assert.equal(p.code, 0);

@@ -12,6 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { throwawayHome, which } from '../helpers/home.js';
+import { mcpHomes } from '../helpers/mcp-home.js';
 import * as M from '../../src/render/mcp.js';
 import { loads } from '../../src/lib/py.js';
 import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
@@ -52,45 +53,7 @@ function sourceDoc(extra = {}) {
   return d;
 }
 
-/** @param {string} name */
-function mkHome(name) {
-  const h = path.join(BASE, name);
-  fs.rmSync(h, { recursive: true, force: true });
-  for (const d of ['.codex', '.claude', '.kiro']) fs.mkdirSync(path.join(h, d), { recursive: true });
-  if (DARWIN) fs.mkdirSync(path.join(h, 'Library', 'Application Support', 'Claude'), { recursive: true });
-  return h;
-}
-/** @param {string} h */
-const data = (h) => path.join(h, '.local', 'share', PROJECT);
-/** @param {string} h */
-function targets(h) {
-  /** @type {Record<string, string>} */
-  const t = { codex: path.join(h, '.codex', 'config.toml'), 'claude-code': path.join(h, '.claude.json'), kiro: path.join(h, '.kiro', 'settings', 'mcp.json') };
-  if (DARWIN) t['claude-desktop'] = path.join(h, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
-  return t;
-}
-/** @param {string} h @param {unknown} doc */
-function writeSource(h, doc) {
-  const p = path.join(data(h), 'local-overlay', 'mcp-servers.json');
-  putJson(p, doc);
-  return p;
-}
-/** @param {string} h @param {Record<string, string>} [extra] */
-function cleanEnv(h, extra = {}) {
-  /** @type {Record<string, string>} */
-  const env = {};
-  const drop = new Set([...M.AGENT_ENV, 'CODEX_HOME', 'XDG_DATA_HOME', 'APPDATA', 'MHW_NODE', 'MHW_MCP_RENDER_NODE']);
-  for (const [k, v] of Object.entries(process.env)) if (!drop.has(k) && v !== undefined) env[k] = v;
-  env.HOME = h;
-  env.USERPROFILE = h;
-  env.MHW_NODE = NODE;
-  return { ...env, ...extra };
-}
-/** @param {string} h @param {string[]} args @param {Record<string, string>} [env] */
-function run(h, args, env) {
-  const p = spawnSync(NODE, [RENDER, ...args], { env: env || cleanEnv(h), encoding: 'utf8', cwd: BASE });
-  return { code: p.status, stdout: p.stdout, stderr: p.stderr, all: p.stdout + p.stderr };
-}
+const { mkHome, data, targets, writeSource, cleanEnv, run } = mcpHomes(BASE, RENDER);
 /** @param {string} p */
 const read = (p) => fs.readFileSync(p, 'utf8');
 /** @param {string} p */
@@ -136,8 +99,7 @@ const plain = (v) => JSON.parse(JSON.stringify(v, (_k, x) => (x instanceof Map ?
 const policy = (h, m, more = [], env = undefined) => run(h, ['--policy', '--mode=' + m, '--stamp=' + STAMP, ...more], env);
 /** @param {string} h @param {string} m @param {string[]} more @param {Record<string, string>} [env] */
 const active = (h, m, more = [], env = undefined) => run(h, ['--active', '--mode=' + m, '--stamp=' + STAMP, ...more], env);
-/** @param {string} h */
-const manifest = (h) => path.join(data(h), 'mcp-managed.json');
+const { manifest } = mcpHomes(BASE, RENDER);
 
 // ------------------------------------------------------------------------------------------ definition
 

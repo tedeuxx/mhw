@@ -10,6 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { throwawayHome, which } from '../helpers/home.js';
+import { mcpHomes } from '../helpers/mcp-home.js';
 import * as M from '../../src/render/mcp.js';
 import * as A from '../../src/commands/mcp-active.js';
 import { loads } from '../../src/lib/py.js';
@@ -17,7 +18,6 @@ import { PROJECT, put, putJson, activeHome, policyCopy } from '../render/mcp-cas
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const RENDER = path.join(ROOT, 'src', 'render', 'mcp.js');
-const NODE = process.execPath;
 const POSIX = process.platform !== 'win32';
 const DARWIN = process.platform === 'darwin';
 const GIT = which('git');
@@ -27,45 +27,7 @@ after(() => box.cleanup());
 const BASE = box.dir;
 const POSIX_ONLY = !POSIX && 'the active set is not applied on Windows';
 
-/** @param {string} name */
-function mkHome(name) {
-  const h = path.join(BASE, name);
-  fs.rmSync(h, { recursive: true, force: true });
-  for (const d of ['.codex', '.claude', '.kiro']) fs.mkdirSync(path.join(h, d), { recursive: true });
-  if (DARWIN) fs.mkdirSync(path.join(h, 'Library', 'Application Support', 'Claude'), { recursive: true });
-  return h;
-}
-/** @param {string} h */
-const data = (h) => path.join(h, '.local', 'share', PROJECT);
-/** @param {string} h */
-function targets(h) {
-  /** @type {Record<string, string>} */
-  const t = { codex: path.join(h, '.codex', 'config.toml'), 'claude-code': path.join(h, '.claude.json'), kiro: path.join(h, '.kiro', 'settings', 'mcp.json') };
-  if (DARWIN) t['claude-desktop'] = path.join(h, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
-  return t;
-}
-/** @param {string} h @param {unknown} doc */
-function writeSource(h, doc) {
-  const p = path.join(data(h), 'local-overlay', 'mcp-servers.json');
-  putJson(p, doc);
-  return p;
-}
-/** @param {string} h @param {Record<string, string>} [extra] */
-function cleanEnv(h, extra = {}) {
-  /** @type {Record<string, string>} */
-  const env = {};
-  const drop = new Set([...M.AGENT_ENV, 'CODEX_HOME', 'XDG_DATA_HOME', 'APPDATA', 'MHW_NODE']);
-  for (const [k, v] of Object.entries(process.env)) if (!drop.has(k) && v !== undefined) env[k] = v;
-  env.HOME = h;
-  env.USERPROFILE = h;
-  env.MHW_NODE = NODE;
-  return { ...env, ...extra };
-}
-/** @param {string} h @param {string[]} args @param {Record<string, string>} [env] */
-function run(h, args, env) {
-  const p = spawnSync(NODE, [RENDER, ...args], { env: env || cleanEnv(h), encoding: 'utf8', cwd: BASE });
-  return { code: p.status, stdout: p.stdout, stderr: p.stderr, all: p.stdout + p.stderr };
-}
+const { mkHome, data, targets, writeSource, cleanEnv, run, manifest } = mcpHomes(BASE, RENDER);
 /** @param {string} h @param {string} m @param {string[]} [more] @param {Record<string, string>} [env] */
 const active = (h, m, more = [], env = undefined) => run(h, ['--active', '--mode=' + m, '--stamp=' + STAMP, ...more], env);
 /** @param {string} h @param {string} m */
@@ -76,8 +38,6 @@ const read = (p) => fs.readFileSync(p, 'utf8');
 const jload = (p) => JSON.parse(read(p));
 /** @param {string} p */
 const tload = (p) => /** @type {any} */ (M.tomlLoads(read(p)));
-/** @param {string} h */
-const manifest = (h) => path.join(data(h), 'mcp-managed.json');
 /** @param {string} p */
 const mode = (p) => fs.statSync(p).mode & 0o777;
 /** @param {string} h */
@@ -325,7 +285,7 @@ test('Windows: the active set is not applied, and says so', () => {
 test('an unexpected manifest record is refused before anything is read', () => {
   const h = mkHome('home-unit-manifest');
   putJson(manifest(h), { version: 1, surfaces: {}, active: { 'claude-code': 'x' } });
-  const { ctx } = ctxOf(h);
+  const { ctx } = ctxOf(h, { platform: 'linux' }); // on Windows the run says SKIP before it reads the manifest
   assert.throws(() => A.activeRun('check', STAMP, null, ctx), (e) => e instanceof M.Refuse && e.code === 3 && /unexpected shape/.test(e.message));
   for (const [rec, ok] of /** @type {Array<[unknown, boolean]>} */ ([[new Map(), true], [[], false], [map([['codex', map([['a', 'x']])]]), true], [map([['kiro', map([['a', []]])]]), true], [map([['claude-code', [map([['entry', new Map()], ['label', 'l']])]]]), true], [map([['claude-code', [3]]]), false]])) {
     assert.equal(A.validRecord(rec), ok, JSON.stringify(plain(rec)));
@@ -464,5 +424,5 @@ test('readJsonObject: absent, unreadable, not an object', () => {
   assert.throws(() => A.readJsonObject(path.join(d, 'bad.json')), /not readable JSON \(JSONDecodeError\)/);
   put(path.join(d, 'list.json'), '[]');
   assert.throws(() => A.readJsonObject(path.join(d, 'list.json')), /not a JSON object/);
-  assert.throws(() => A.readJsonObject(d), /not readable JSON \(IsADirectoryError\)/);
+  if (POSIX) assert.throws(() => A.readJsonObject(d), /not readable JSON \(IsADirectoryError\)/);
 });

@@ -1994,8 +1994,13 @@ const realArg = (p) => {
   }
 };
 if (process.argv[1] && realArg(process.argv[1]) === realArg(fileURLToPath(import.meta.url))) {
+  // Not a top-level await: src/commands/mcp-active.js imports this module back, and a top-level await here
+  // would leave this module unevaluated while main() waits on that import (a deadlock, exit 13).
   Promise.resolve(main(process.argv.slice(2))).then((code) => {
     process.exitCode = code;
+  }, (e) => {
+    fs.writeSync(2, (e instanceof Error && e.stack ? e.stack : String(e)) + '\n');
+    process.exitCode = 1;
   });
 }
 export { RENDERER_REL };

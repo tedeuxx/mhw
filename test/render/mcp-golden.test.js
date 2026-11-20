@@ -17,15 +17,13 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
 import { throwawayHome, which } from '../helpers/home.js';
-import { extractRevision } from '../helpers/parity.js';
+import { goldenName, differences as diffsOf, catalogueTests, baseTree as baseTreeOf, python311 } from '../helpers/mcp-golden.js';
 import { CASES, CANARY, PROJECT } from './mcp-cases.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SLICE = 'S13';
 const POSIX = process.platform !== 'win32';
 const NODE = process.execPath;
-const GIT = which('git');
-const PY = POSIX ? which('python3') : null;
 const PATH_NODE = which('node');
 const STABLE_NODE = PATH_NODE && PATH_NODE !== NODE && fs.realpathSync(PATH_NODE) === fs.realpathSync(NODE) ? PATH_NODE : null;
 const h = throwawayHome('mcp-render-golden');
@@ -33,11 +31,6 @@ after(() => h.cleanup());
 /** @type {Array<{ case: string[], stream: string[], base?: string, head: string, replace: string, why: string }>} */
 const expected = readGolden(SLICE, 'expected-differences.json');
 const STAMP_RE = /release: [^;\n]*; commit: [^;\n")]*/g;
-
-const pyOk = (() => {
-  if (!PY) return false;
-  return spawnSync(PY, ['-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)']).status === 0;
-})();
 
 /** @param {string} text @param {Array<[string, string]>} subs */
 function normalise(text, subs) {
@@ -118,65 +111,10 @@ function play(c, side) {
 
 const HEAD = { argv: [NODE, path.join(ROOT, 'src', 'render', 'mcp.js')], root: ROOT };
 
-/** The expected differences of one case and stream, applied to one side. @param {string} name @param {string} stream @param {string} text @param {'base' | 'head'} sideName */
-function allow(name, stream, text, sideName) {
-  let t = text;
-  for (const e of expected) {
-    const streamHit = e.stream.includes('*') || e.stream.some((s) => stream === s || stream.endsWith(' ' + s));
-    if (!streamHit || !(e.case.includes(name) || e.case.includes('*'))) continue;
-    const pattern = sideName === 'head' ? e.head : e.base;
-    if (pattern !== undefined) t = t.replaceAll(new RegExp(pattern, 'g'), e.replace);
-  }
-  return t;
-}
-
 /** @param {string} name @param {Record<string, any>} base @param {Record<string, any>} head */
-function differences(name, base, head) {
-  /** @type {string[]} */
-  const diffs = [];
-  /** @param {unknown} v */
-  const text = (v) => (typeof v === 'string' ? v : JSON.stringify(v, null, 1));
-  const keys = [...new Set([...Object.keys(base), ...Object.keys(head)])].sort((a, b) => a.localeCompare(b));
-  for (const k of keys) {
-    if (k === 'files') {
-      const files = [...new Set([...Object.keys(base.files || {}), ...Object.keys(head.files || {})])].sort((a, b) => a.localeCompare(b));
-      for (const f of files) {
-        const a = allow(name, 'file ' + f, text(base.files?.[f] ?? '<absent>'), 'base');
-        const b = allow(name, 'file ' + f, text(head.files?.[f] ?? '<absent>'), 'head');
-        if (a !== b) diffs.push(name + ': file ' + f + ' differs\n--- original\n' + a + '\n--- head\n' + b);
-      }
-      continue;
-    }
-    const a = allow(name, k, text(base[k]), 'base');
-    const b = allow(name, k, text(head[k]), 'head');
-    if (a !== b) diffs.push(name + ': ' + k + ' differs\n--- original\n' + a + '\n--- head\n' + b);
-  }
-  return diffs;
-}
+const differences = (name, base, head) => diffsOf(expected, name, base, head);
 
-/** @param {string} name */
-const goldenName = (name) => 'transcripts/' + name + '.json';
-
-test('every case has a golden transcript, every golden a case, and every expected difference names a case', () => {
-  const names = new Set(CASES.map((c) => c.name));
-  assert.equal(names.size, CASES.length, 'case names are unique');
-  const dir = path.join(ROOT, 'test', 'golden', SLICE, 'transcripts');
-  for (const n of names) assert.ok(fs.existsSync(path.join(dir, n + '.json')), 'no golden for ' + n);
-  for (const f of fs.readdirSync(dir)) assert.ok(names.has(f.replace(/\.json$/, '')), 'golden without a case: ' + f);
-  for (const e of expected) {
-    for (const n of e.case) assert.ok(n === '*' || names.has(n), 'unknown case ' + n);
-    assert.ok(e.why && e.why.length > 40, 'an expected difference states why');
-    assert.doesNotThrow(() => new RegExp(e.head));
-  }
-});
-
-test('no golden transcript carries a synthetic value outside the files the fixture put it in', () => {
-  for (const c of CASES) {
-    const g = readGolden(SLICE, goldenName(c.name));
-    const printed = JSON.stringify(Object.entries(g).filter(([k]) => k !== 'files'));
-    assert.ok(!printed.includes(CANARY), c.name);
-  }
-});
+catalogueTests({ root: ROOT, slice: SLICE, cases: CASES, expected, canary: CANARY });
 
 test('golden: src/render/mcp.js matches the transcripts of mcp_render.py', { skip: (!POSIX && 'POSIX only') || (UPDATE && 'MHW_UPDATE_GOLDEN=1') }, () => {
   /** @type {string[]} */
@@ -185,30 +123,14 @@ test('golden: src/render/mcp.js matches the transcripts of mcp_render.py', { ski
   assert.deepEqual(diffs, []);
 });
 
-/** The base revision's tree, or a reason it is not readable here. */
-function baseTree() {
-  if (!POSIX) return 'POSIX only';
-  if (!GIT) return 'needs git on PATH';
-  if (!pyOk) return 'needs python3 3.11+';
-  const base = process.env.MHW_PARITY_BASE || (() => {
-    const p = spawnSync(GIT, ['-C', ROOT, 'merge-base', 'HEAD', 'origin/' + (process.env.GITHUB_BASE_REF || 'rc/next')], { encoding: 'utf8' });
-    return p.status === 0 ? p.stdout.trim() : '';
-  })();
-  if (!base) return 'no base revision (MHW_PARITY_BASE unset, no merge-base with origin/rc/next)';
-  const dest = path.join(fs.mkdtempSync(path.join(h.dir, 'base-')), 'tree');
-  if (!extractRevision(ROOT, base, dest)) return 'base revision ' + base + ' is not readable here';
-  if (!fs.existsSync(path.join(dest, 'global', 'mcp', 'mcp_render.py'))) return 'the base revision no longer holds mcp_render.py (this slice has merged)';
-  return dest;
-}
-
 test('live: mcp_render.py of the base revision, side by side with the head', (t) => {
-  const tree = baseTree();
+  const tree = baseTreeOf({ root: ROOT, dir: h.dir, holds: path.join('global', 'mcp', 'mcp_render.py') });
   if (!path.isAbsolute(tree)) {
     if (process.env.MHW_S13_LIVE_REQUIRED === '1' && !tree.includes('has merged')) assert.fail('the live arm is required here: ' + tree);
     t.skip(tree);
     return;
   }
-  const original = { argv: [/** @type {string} */ (PY), '-B', path.join(tree, 'global', 'mcp', 'mcp_render.py')], root: tree };
+  const original = { argv: [/** @type {string} */ (python311()), '-B', path.join(tree, 'global', 'mcp', 'mcp_render.py')], root: tree };
   /** @type {string[]} */
   const diffs = [];
   for (const c of CASES) {

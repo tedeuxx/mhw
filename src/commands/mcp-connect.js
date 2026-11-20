@@ -359,8 +359,7 @@ export async function probeHttp(url, kind, timeout) {
     if (method === 'POST') {
       method = 'GET';
       body = null;
-      const { 'Content-Type': _type, 'Content-Length': _length, ...rest } = headers;
-      headers = rest;
+      headers = Object.fromEntries(Object.entries(headers).filter(([k]) => k !== 'Content-Type' && k !== 'Content-Length'));
     }
     u = next;
   }
@@ -372,7 +371,10 @@ export async function probeHttp(url, kind, timeout) {
  */
 export async function probe(surface, entry, timeout, ctx) {
   const url = get(entry, 'url');
-  const kind = pyTruthy(get(entry, 'type')) ? get(entry, 'type') : pyTruthy(get(entry, 'transport')) ? get(entry, 'transport') : typeof url === 'string' ? 'http' : 'stdio';
+  // entry.get("type") or entry.get("transport") or ("http" if the URL is a string else "stdio")
+  let kind = typeof url === 'string' ? 'http' : 'stdio';
+  if (pyTruthy(get(entry, 'type'))) kind = get(entry, 'type');
+  else if (pyTruthy(get(entry, 'transport'))) kind = get(entry, 'transport');
   if (typeof url === 'string' && url) {
     const u = surface === 'claude-code' || surface === 'kiro' ? expand(url, ctx.env) : url;
     return probeHttp(u, kind === 'sse' ? 'sse' : 'http', timeout);

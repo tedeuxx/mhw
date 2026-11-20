@@ -25,7 +25,7 @@ const readJ = (_w, file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 const settings = (w, doc) => putJson(t(w).settings, doc);
 const SET = { version: 1, active_set: {}, servers: { 'set-a': { command: '/bin/echo' } } };
 
-const CODEX_LAYOUTS = `model = "m"
+const CODEX_LAYOUTS = String.raw`model = "m"
 
 [mcp_servers."q-x"]   # a quoted name and a comment
 command = "/bin/echo"
@@ -37,7 +37,7 @@ enabled = "yes"
 [mcp_servers.set-a]
 command = "/bin/echo"
 
-[mcp_servers."esc\\u0041pe"]
+[mcp_servers."esc\u0041pe"]
 command = "/bin/echo"
 
 [mcp_servers.sub-z]

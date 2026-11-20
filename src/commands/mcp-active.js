@@ -51,12 +51,63 @@ const CONNECTOR = 'claude.ai '; // the documented serverName of a claude.ai conn
 export const MARK = '# ' + MARKER_ID + ' (mcp active set)';
 export const DISABLE_LINE = 'enabled = false  ' + MARK + '\n';
 export const BACKUP = ACTIVE_BACKUP;
-const HEADER_RE = /^[ \t]*\[[ \t]*mcp_servers[ \t]*\.[ \t]*(?:"([^"\\]*)"|'([^']*)'|([A-Za-z0-9_-]+))[ \t]*\][ \t]*(?:#[^\n]*)?$/;
+const BARE_KEY = /^[A-Za-z0-9_-]$/;
 const TABLE_RE = /^[ \t]*\[/;
 const ENABLED_RE = /^[ \t]*enabled[ \t]*=/;
 
 /** tomllib.TOMLDecodeError of the file as read: the caller refuses it as not valid TOML. */
 export class TomlInvalid extends Error {}
+
+/** str.rstrip("\r\n"). @param {string} s */
+function rstripNewlines(s) {
+  let e = s.length;
+  while (e > 0 && (s[e - 1] === '\n' || s[e - 1] === '\r')) e--;
+  return s.slice(0, e);
+}
+
+/**
+ * The server name of an [mcp_servers.<name>] header line, or null: what the original's pattern
+ * ^[ \t]*\[[ \t]*mcp_servers[ \t]*\.[ \t]*("[^"\\]*"|'[^']*'|[A-Za-z0-9_-]+)[ \t]*\][ \t]*(#.*)?$ matched,
+ * read in one pass (a basic-string name with an escape is not matched, as there).
+ * @param {string} text one line, its newline removed
+ */
+export function headerName(text) {
+  let i = 0;
+  const blanks = () => {
+    while (text[i] === ' ' || text[i] === '\t') i++;
+  };
+  /** @param {string} word */
+  const expect = (word) => {
+    if (!text.startsWith(word, i)) return false;
+    i += word.length;
+    return true;
+  };
+  blanks();
+  if (!expect('[')) return null;
+  blanks();
+  if (!expect('mcp_servers')) return null;
+  blanks();
+  if (!expect('.')) return null;
+  blanks();
+  let name;
+  const quote = text[i];
+  if (quote === '"' || quote === "'") {
+    const close = text.indexOf(quote, i + 1);
+    if (close < 0) return null;
+    name = text.slice(i + 1, close);
+    if (quote === '"' && name.includes('\\')) return null;
+    i = close + 1;
+  } else {
+    const start = i;
+    while (i < text.length && BARE_KEY.test(text[i])) i++;
+    if (i === start) return null;
+    name = text.slice(start, i);
+  }
+  blanks();
+  if (!expect(']')) return null;
+  blanks();
+  return i === text.length || text[i] === '#' ? name : null;
+}
 
 /** sorted() of strings, by code point. @param {Iterable<string>} xs */
 const sorted = (xs) => [...xs].sort(cmpStr);
@@ -160,15 +211,15 @@ export function codexLayout(lines) {
   let current = null;
   let inBlock = false;
   lines.forEach((line, i) => {
-    const text = line.replace(/[\r\n]+$/, '');
+    const text = rstripNewlines(line);
     if (text.startsWith(BLOCK_BEGIN_PREFIX) || text === BLOCK_END) {
       inBlock = text !== BLOCK_END;
       current = null;
       return;
     }
-    const m = HEADER_RE.exec(text);
-    if (m) {
-      current = /** @type {string} */ (m[1] ?? m[2] ?? m[3]);
+    const name = headerName(text);
+    if (name !== null) {
+      current = name;
       if (!tables.has(current)) tables.set(current, { header: i, block: inBlock, enabled: null, mark: null });
     } else if (TABLE_RE.test(text)) current = null;
     else if (current !== null && text.includes(MARK)) tables.get(current).mark = i;
@@ -223,7 +274,7 @@ export function planCodex(text, aset, prior) {
       record.set(n, null);
       after.set(t.header, DISABLE_LINE);
     } else {
-      record.set(n, lines[t.enabled].replace(/[\r\n]+$/, ''));
+      record.set(n, rstripNewlines(lines[t.enabled]));
       replace.set(t.enabled, DISABLE_LINE);
     }
   }
@@ -341,7 +392,7 @@ export function pluginServers(h, ctx) {
   for (const [plugin, root] of pluginRoots(h, ctx)) {
     for (const [rel, inline] of /** @type {Array<[string, boolean]>} */ ([['.mcp.json', false], [path.join('.claude-plugin', 'plugin.json'), true]])) {
       const read = quietJson(path.resolve(ctx.cwd, root, rel));
-      const doc = read && read.size ? read : dict();
+      const doc = read?.size ? read : dict();
       const servers = inline || doc.has('mcpServers') ? doc.get('mcpServers') : doc;
       for (const [name, s] of isD(servers) ? entries(servers) : []) {
         if (isD(s)) found.push(['plugin:' + plugin + ':' + name, s]);
@@ -448,7 +499,7 @@ export function fnmatchcase(name, pat) {
   return pi === p.length;
 }
 
-const SCHEME_CHARS = /^[A-Za-z0-9+.-]$/;
+const SCHEME = /^[A-Za-z][A-Za-z0-9+.-]*$/;
 const WHATWG_C0_OR_SPACE = /^[\x00-\x20]+/;
 
 /**
@@ -460,7 +511,7 @@ const WHATWG_C0_OR_SPACE = /^[\x00-\x20]+/;
 export function urlHostname(input) {
   let url = input.replace(WHATWG_C0_OR_SPACE, '').replaceAll(/[\t\r\n]/g, '');
   const colon = url.indexOf(':');
-  if (colon > 0 && /^[A-Za-z]$/.test(url[0]) && [...url.slice(0, colon)].every((c) => SCHEME_CHARS.test(c))) url = url.slice(colon + 1);
+  if (colon > 0 && SCHEME.test(url.slice(0, colon))) url = url.slice(colon + 1);
   if (!url.startsWith('//')) return null;
   let end = url.length;
   for (const d of '/?#') {
@@ -526,7 +577,10 @@ export function hostOf(url) {
   } catch {
     return null;
   }
-  return h ? h.replace(/\.+$/, '').toLowerCase() : null;
+  if (!h) return null;
+  let e = h.length;
+  while (e > 0 && h[e - 1] === '.') e--;
+  return h.slice(0, e).toLowerCase();
 }
 
 /**
