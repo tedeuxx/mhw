@@ -33,5 +33,7 @@ test/golden/S13/** -text
 # Golden transcripts and the recorded corpus answers of the S15 parity tests (#486): byte for byte on every
 # OS (the answers carry \r\n, a byte-order mark and non-ASCII text on purpose).
 test/golden/S15/** -text
+# Golden answers and declared differences of the S16 parity test (#487): byte for byte on every OS.
+test/golden/S16/** -text
 # Golden transcripts and frozen inputs of the S19 parity test (#490): byte for byte on every OS.
 test/golden/S19/** -text

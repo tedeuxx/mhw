@@ -111,12 +111,13 @@ test('live: the head matches the base revision run on its own throwaway HOMEs', 
   }
 });
 
-test('the expected difference is real: status adds exactly one NODE line', () => {
+test('the expected difference is real: status adds exactly a NODE line and, since S16 (#487), a PASTE line', () => {
   const c = cases.find((x) => x.name === 'windows-status-relative-powershell');
   assert.ok(c);
   const head = transcript(HEAD, c);
   const golden = readGolden(SLICE, goldenName(c.name));
   const added = head.stdout.split('\n').filter((l) => !golden.stdout.split('\n').includes(l));
-  assert.equal(added.length, 1, head.stdout);
+  assert.equal(added.length, 2, head.stdout);
   assert.match(added[0], /^NODE    /);
+  assert.match(added[1], /^PASTE   /);
 });

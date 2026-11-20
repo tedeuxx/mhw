@@ -18,5 +18,39 @@
     "pattern": "^\\.kiro/settings/permissions\\.yaml$|^\\.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned\\.json$",
     "whenBaseHas": "global/kiro/kiro_permissions.py",
     "why": "S11 (#482): the Kiro deny floor is rendered by src/render/kiro-permissions.js, whose provenance text names itself where kiro_permissions.py named global/kiro/kiro_permissions.py: the managed-by header of permissions.yaml and the _ field of kiro-permissions-owned.json (measured by diffing the two installs: exactly these two files differ). The rules in both are the same, and test/golden/S11/ holds them byte for byte against the original. Compared by kind and mode only, and only while the base still ships kiro_permissions.py."
+  },
+  {
+    "case": "windows-status-relative-powershell",
+    "stream": "stdout",
+    "pattern": "^PASTE   (ok    the paste wrapper|FAIL  the paste wrapper|n/a   the paste wrapper) ",
+    "why": "S16 (#487): mhw status prints a PASTE line after the NODE line, saying whether the paste wrapper's pty library loads here (on the Windows launcher path: not installed, not measured, D7). The original printed none. An added line on the status case only."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree-drop",
+    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/paste_wrapper\\.py$",
+    "whenBaseHas": "global/clipboard/paste_wrapper.py",
+    "why": "S16 (#487): the paste wrapper is mhw paste-wrapper in the package now, so install writes no copy of the Python wrapper into the data directory (and retires one an earlier install wrote). Left out of the comparison only while the base still ships paste_wrapper.py."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/paste-filter\\.sh$",
+    "whenBaseHas": "global/clipboard/paste_wrapper.py",
+    "why": "S16 (#487): the snippet's three function lines run \"<node>\" \"<package>/bin/mhw.js\" paste-wrapper run where they ran /usr/bin/python3 -I -B <data>/paste_wrapper.py run; global/install.test.sh asserts the new lines exactly. Compared by kind and mode only while the base still ships paste_wrapper.py."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "stdout",
+    "pattern": "^  - Your settings in Claude Code, Codex and Kiro: [0-9]+ file\\(s\\) to write \\(no password needed\\)$",
+    "whenBaseHas": "global/clipboard/paste_wrapper.py",
+    "why": "S16 (#487): the plan counts one file fewer, the Python wrapper install no longer writes. Only while the base still ships paste_wrapper.py."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.claude/settings\\.json$",
+    "whenBaseHas": "global/clipboard/paste_wrapper_test.py",
+    "why": "S16 (#487): the owner overlay's allow list loses its runner rule for global/clipboard/paste_wrapper_test.py, which this slice deletes, so the rendered settings lose that one allow rule (the allow list renders the repository overlay's runner rules in the wide tier). Compared by kind and mode only while the base still ships the deleted test; global/allow-list.test.sh asserts the rendered rules."
   }
 ]

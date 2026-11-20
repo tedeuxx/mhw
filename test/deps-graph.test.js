@@ -1,8 +1,10 @@
 // Convention 5 of #470: the hook and core path stay dependency-free. Everything statically reachable
 // (import ... from, export ... from, bare import, and import() of a string literal) from the CLI entry
-// imports only node: modules and files of this repository. The pty library (D2) is the one future
-// exception and is not allowed yet. A vendored package (src/vendor/) counts as a package. A renderer
-// may import one; the entry may not reach it.
+// imports only node: modules and files of this repository. The pty library (D2) is the one exception
+// (#487): src/lib/pty.js loads the vendored node-pty at run time with createRequire, never by a static
+// import, so the graph below stays package-free and the paste wrapper's redaction path (clean.js) with
+// it; test/vendor.test.js holds pty.js as the one file that names it. A vendored package (src/vendor/)
+// counts as a package. A renderer may import one; the entry may not reach it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -75,6 +77,9 @@ test('the hook and core path imports only node: modules', () => {
   assert.deepEqual(bad, []);
   assert.ok(seen.includes('src/cli.js'), 'the walk reached the CLI');
   assert.ok(!seen.includes('src/lib/toml.js'), 'the TOML library module is off the hook path');
+  // #487: the paste wrapper and its redaction path are on the walk, and the pty reaches none of it statically.
+  for (const f of ['src/commands/paste-wrapper.js', 'src/lib/clean.js', 'src/lib/pty.js']) assert.ok(seen.includes(f), f);
+  assert.ok(!seen.some((f) => f.startsWith('src/vendor/')), 'a vendored file is statically reachable');
 });
 
 test('the TOML module imports its vendored library, so the walk would see it if it were reachable', () => {

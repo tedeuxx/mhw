@@ -539,6 +539,15 @@ def decide_default_salts(conf, prompt):
 
 
 class PromptHook(unittest.TestCase):
+    def test_redacted_prompt_gets_a_category_notice(self):
+        # Moved unchanged from paste_wrapper_test.py when the wrapper moved to Node (#487, PR #521 QA B2):
+        # it tests this core's prompt_decision, which stays here.
+        _, conf = hook_conf("hook-redacted-notice")
+        out = g.prompt_decision(conf, "see [REDACTED:email] and [REDACTED:credential]", "claude")
+        self.assertEqual(set(out), {"systemMessage"})
+        self.assertIn("credential, email", out["systemMessage"])
+        self.assertIsNone(g.prompt_decision(conf, "see [REDACTED:nothing]", "claude"))
+
     def assert_no_content(self, text, prompt):
         low = text.lower()
         for word in g.tokens(TERM):

@@ -138,6 +138,36 @@ Option 1.
   declares the contract yet; the next such change needs version 2 (the contract's *Versioning*).
 - Bad: only repositories that adopt the workflow are checked. No other repository runs it yet.
 
+## Amendment 2026-11-20: the paste wrapper's code joins paste-cleaning ([#487](https://github.com/tedeuxx/mhw/issues/487))
+
+The paste wrapper moved from `global/clipboard/paste_wrapper.py` to Node, so the capability that owned
+it lost its code. The manifest now adds these to `paste-cleaning`:
+
+- `src/commands/paste-wrapper.js`
+- `src/lib/pty.js`
+- `src/lib/salt.js`
+- `src/vendor/node-pty/**`
+- `test/clipboard/**`
+- `.github/workflows/node-pty-linux.yml`
+
+It also adds `src/lib/salt.js` to `outbound-scan`, because both capabilities read the salt through it.
+Manifest order still decides which capability owns a file, so `outbound-scan`, listed first, owns
+`salt.js`.
+
+No document list changed. The split measured by `mhw onboard` after the change, against the 896 of
+this record's writing:
+
+| Capability | Files |
+| --- | --- |
+| documentation-baseline | 4 |
+| project-policy | 18 |
+| working-method | 60 |
+| delivery-contract | 13 |
+| outbound-scan | 14 |
+| paste-cleaning | 23 |
+| mcp | 14 |
+| workstation (the catch-all) | 775 of 921 |
+
 ## Links
 
 - Issue [#523](https://github.com/tedeuxx/mhw/issues/523); the owner's decision on the override.

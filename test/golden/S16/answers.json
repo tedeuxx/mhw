@@ -1,0 +1,7942 @@
+{
+  "args": [
+    [
+      true,
+      []
+    ],
+    [
+      true,
+      []
+    ],
+    [
+      false,
+      [
+        "credential",
+        "email"
+      ]
+    ],
+    [
+      false,
+      []
+    ],
+    [
+      false,
+      []
+    ],
+    [
+      true,
+      []
+    ],
+    [
+      false,
+      [
+        "credential"
+      ]
+    ]
+  ],
+  "constants": {
+    "EXIT_DRAIN_SECONDS": 0.2,
+    "GRACE_SECONDS": 5,
+    "HOLD_SECONDS": 0.025,
+    "HOLD_SEQUENCE_SECONDS": 1,
+    "KIRO_HOOK_FILE": "personal-multi-harness-workstation-configuration-paste-filter.json",
+    "PASTE_IDLE_SECONDS": 2,
+    "WRAPPER_MARKER": "PMHWC_PASTE_WRAPPER",
+    "WRAPPER_MARKER_VALUE": "1",
+    "notices": {
+      "notice_bracketed_paste_off": "Paste filter (ADR-0033): {program} turned bracketed paste off, so pastes are NOT cleaned until it turns it back on.",
+      "notice_kiro_hook_off": "No Kiro prompt hook from this project is installed, so nothing checks a prompt.",
+      "notice_kiro_hook_on": "The Kiro prompt hook checks each prompt instead, but only in a trusted workspace: in an untrusted one Kiro runs no hooks, so nothing checks.",
+      "notice_no_bracketed_paste": "Paste filter (ADR-0033): {program} has not enabled bracketed paste, so pastes in this session are NOT cleaned.",
+      "notice_paste_error": "[paste filter (ADR-0033): internal error ({error}), the paste was NOT forwarded]",
+      "notice_paste_too_large": "[paste filter (ADR-0033): a paste over {max} bytes was NOT forwarded, it could not be checked]",
+      "notice_session_report_only": "Paste filter (ADR-0033): {count} paste(s) in this session carried report-only categories ({categories}) and were forwarded unchanged.",
+      "notice_session_summary": "Paste filter (ADR-0033): {count} paste(s) cleaned in this session ({categories}); {replaced} paste(s) replaced by a notice.",
+      "notice_wrapper_args_unmarked": "Paste filter (ADR-0033): a command-line argument carries {categories} or could not be checked, so this session is NOT marked and the prompt hook checks every prompt.",
+      "notice_wrapper_no_salt": "Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt, so term matching (employer/client terms, health terms, colleague names) is NOT applied in this session."
+    }
+  },
+  "filter": [
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "typed-bytes",
+      "out": [
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff1b5b411b5b421b4f501b5b49"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-1",
+      "out": [
+        "61",
+        "621b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-2",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-3",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-4",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-5",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-6",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-7",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-8",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-9",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-10",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-11",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-12",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-13",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-14",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-15",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-16",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-17",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-18",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-19",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-20",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-21",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-22",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-23",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-24",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-25",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-26",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-27",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-28",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-29",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-30",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-31",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-32",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-33",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-34",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-35",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-36",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-37",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-38",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-39",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-40",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-41",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-42",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-43",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-44",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-45",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-46",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-47",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-48",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-49",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-50",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-51",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-52",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-53",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-54",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-55",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-56",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-57",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-58",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-59",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-60",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-61",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-62",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-63",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-64",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-65",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-66",
+      "out": [
+        "6162",
+        "1b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-67",
+      "out": [
+        "61621b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e",
+        "6364",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "redacted-split-68",
+      "out": [
+        "61621b5b3230307e636f6e74616374205b52454441435445443a656d61696c5d206e6f771b5b3230317e63",
+        "64",
+        ""
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "no-finding",
+      "out": [
+        "1b5b3230307e202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e0d0a09c3a9fffe1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "lone-escape",
+      "out": [
+        "",
+        "",
+        "1b"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "marker-split-1",
+      "out": [
+        "",
+        "1b",
+        "5b3230307e6d61696c205b52454441435445443a656d61696c5d1b5b3230317e78"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "marker-split-2",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e6d61696c205b52454441435445443a656d61696c5d1b5b3230317e78"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "marker-split-3",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e6d61696c205b52454441435445443a656d61696c5d1b5b3230317e78"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "marker-split-4",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e6d61696c205b52454441435445443a656d61696c5d1b5b3230317e78"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "marker-split-5",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e6d61696c205b52454441435445443a656d61696c5d1b5b3230317e78"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "marker-split-1-and-1",
+      "out": [
+        "",
+        "1b",
+        "",
+        "",
+        "5b3230307e5b52454441435445443a656d61696c5d1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "marker-split-1-and-2",
+      "out": [
+        "",
+        "1b",
+        "",
+        "",
+        "5b3230307e5b52454441435445443a656d61696c5d1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "marker-split-1-and-3",
+      "out": [
+        "",
+        "1b",
+        "",
+        "",
+        "5b3230307e5b52454441435445443a656d61696c5d1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "marker-split-1-and-4",
+      "out": [
+        "",
+        "1b",
+        "",
+        "",
+        "5b3230307e5b52454441435445443a656d61696c5d1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "escape-then-x",
+      "out": [
+        "",
+        "1b",
+        "78"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "escape-then-arrow",
+      "out": [
+        "",
+        "1b",
+        "5b41"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "escape-then-late-marker",
+      "out": [
+        "",
+        "1b",
+        "5b3230307e616263"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "prefix-held-longer",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e5b52454441435445443a656d61696c5d1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "alt-bracket",
+      "out": [
+        "",
+        "1b5b"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "too-large",
+      "out": [
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e78"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-in-end-chunk",
+      "out": [
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e7479706564"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "oversized-single-chunk",
+      "out": [
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e7479706564"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166",
+        "7465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-11",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-12",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-13",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-15",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-32-16",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "6674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-12",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-13",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-15",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-33-16",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166",
+        "7465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-12",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-13",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-34-16",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "6674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-12",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-13",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-35-16",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166",
+        "7465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-12",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-13",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-36-16",
+      "out": [
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "6674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-13",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-37-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166",
+        "7465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-13",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e70707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-38-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "6674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-13",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e7070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-39-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166",
+        "7465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-13",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e707070707070707070707070707070707070707070707070707070707070707070707070707070701b5b3230317e6166746572"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-40-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "6674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-13",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-41-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166",
+        "7465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-13",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-42-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "6674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-13",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-43-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166",
+        "7465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-13",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-14",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-44-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "6674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-13",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-14",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-45-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166",
+        "7465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-13",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-14",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166",
+        "746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-46-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "6674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-13",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-14",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61",
+        "66746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-47-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-1",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61",
+        "66",
+        "74",
+        "65",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-2",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166",
+        "7465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-3",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-4",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-5",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-6",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-7",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-8",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-9",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e616674",
+        "6572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-10",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-11",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-12",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-13",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-14",
+      "out": [
+        "",
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-15",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e",
+        "6166746572"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "limit-sweep-48-16",
+      "out": [
+        "",
+        "",
+        "",
+        "1b5b3230307e5b544f4f204c415247455d1b5b3230317e61667465",
+        "72"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [],
+      "cleaned": 0,
+      "in_paste": false,
+      "name": "cleaner-error",
+      "out": [
+        "1b5b3230307e5b4552522056616c75654572726f725d1b5b3230317e"
+      ],
+      "replaced": 1,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "phone"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "phone-blocked",
+      "out": [
+        "1b5b3230307e74656c205b52454441435445443a70686f6e655d1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "phone-report-only",
+      "out": [
+        "1b5b3230307e74656c202b353520283131292039303030302d30303031206d61696c205b52454441435445443a656d61696c5d1b5b3230317e",
+        "1b5b3230307e74656c202b353520283131292039303030302d303030311b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [
+        "phone"
+      ],
+      "reported_pastes": 2
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "no-end-idle",
+      "out": [
+        "",
+        "1b5b3230307e5b52454441435445443a656d61696c5d1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "employer-client-term",
+        "credential",
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "term-and-credential",
+      "out": [
+        "1b5b3230307e6465706c6f7920666f72205b52454441435445443a656d706c6f7965722d636c69656e742d7465726d5d206b6579205b52454441435445443a63726564656e7469616c5d206d61696c205b52454441435445443a656d61696c5d0d6c696e652074776f1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "invalid-utf8-around-finding",
+      "out": [
+        "1b5b3230307effc328e282205b52454441435445443a656d61696c5d20eda080f09f9880c0af1b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "cleaned": 1,
+      "in_paste": false,
+      "name": "accents-around-finding",
+      "out": [
+        "1b5b3230307e6f6cc3a1205b52454441435445443a656d61696c5d20c3a7c3a36f20f09f98801b5b3230317e"
+      ],
+      "replaced": 0,
+      "reported": [],
+      "reported_pastes": 0
+    }
+  ],
+  "notice": [
+    "[paste filter (ADR-0033): a paste over 1000000 bytes was NOT forwarded, it could not be checked]",
+    "[paste filter (ADR-0033): internal error (ValueError), the paste was NOT forwarded]",
+    "Paste filter (ADR-0033): claude has not enabled bracketed paste, so pastes in this session are NOT cleaned.",
+    "Paste filter (ADR-0033): codex turned bracketed paste off, so pastes are NOT cleaned until it turns it back on.",
+    "Paste filter (ADR-0033): 2 paste(s) cleaned in this session (credential, email); 1 paste(s) replaced by a notice.",
+    "Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt, so term matching (employer/client terms, health terms, colleague names) is NOT applied in this session.",
+    "Paste filter (ADR-0033): a command-line argument carries - or could not be checked, so this session is NOT marked and the prompt hook checks every prompt.",
+    "Paste filter (ADR-0033): 1 paste(s) in this session carried report-only categories (postal-address) and were forwarded unchanged.",
+    "The Kiro prompt hook checks each prompt instead, but only in a trusted workspace: in an untrusted one Kiro runs no hooks, so nothing checks.",
+    "No Kiro prompt hook from this project is installed, so nothing checks a prompt.",
+    "mine x {literal}",
+    "Paste filter (ADR-0033): x has not enabled bracketed paste, so pastes in this session are NOT cleaned.",
+    "Paste filter (ADR-0033): x has not enabled bracketed paste, so pastes in this session are NOT cleaned."
+  ]
+}

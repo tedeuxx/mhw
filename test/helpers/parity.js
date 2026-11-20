@@ -13,7 +13,7 @@ import { throwawayHome, which } from './home.js';
  * @typedef {{ name: string, args: string[], env?: Record<string, string> }} Case
  * @typedef {{ path: string, kind: string, mode: string, data: string }} Entry
  * @typedef {{ name: string, args: string[], code: number | null, stdout: string, stderr: string, tree: Entry[] }} Transcript
- * @typedef {{ case: string, stream: 'stdout' | 'stderr' | 'tree', pattern: string, why: string, whenBaseHas?: string }} ExpectedDifference
+ * @typedef {{ case: string, stream: 'stdout' | 'stderr' | 'tree' | 'tree-drop', pattern: string, why: string, whenBaseHas?: string }} ExpectedDifference
  */
 
 /**
@@ -108,6 +108,10 @@ export function withoutExpected(head, expected) {
   // installer change legitimately alters, and only while the base still holds the old code (whenBaseHas).
   const treeRules = expected.filter((e) => (e.case === '*' || e.case === head.name) && e.stream === 'tree').map((e) => new RegExp(e.pattern));
   if (treeRules.length) out.tree = head.tree.map((e) => (e.kind === 'file' && treeRules.some((r) => r.test(e.path)) ? { ...e, data: '<CONTENT>' } : e));
+  // stream "tree-drop" (#487): a written path the pattern matches is left out of the comparison, for a
+  // file one side writes and the other no longer does. Applied to both sides, so it is never one-sided.
+  const dropRules = expected.filter((e) => (e.case === '*' || e.case === head.name) && e.stream === 'tree-drop').map((e) => new RegExp(e.pattern));
+  if (dropRules.length) out.tree = out.tree.filter((e) => !dropRules.some((r) => r.test(e.path)));
   return out;
 }
 

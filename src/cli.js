@@ -29,6 +29,7 @@ import { main as profileMain } from './commands/profile.js';
 import { main as chromeDebuggingMain } from './render/chrome-debugging.js';
 import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as scanMain } from './commands/scan.js';
+import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
 import { checkMain as docsBaselineMain, onboardMain } from './commands/docs-baseline.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -160,6 +161,12 @@ const MOVED = {
   // #483, S12: `mhw mcp launch`, the MCP launcher the renderer installs a copy of; #484, S13: `mhw mcp render`.
   mcp: mcpMain,
   scan: scanMain, // #486, S15: the outbound scan, on the cleaning core (src/lib/clean.js)
+  // #487, S16: the paste wrapper the shell functions run. A relayed session resolves later and exits
+  // by itself (process.exit); the 0 returned here is replaced then.
+  'paste-wrapper': (argv, env) => {
+    const r = pasteWrapperMain(argv, env);
+    return typeof r === 'number' ? r : 0;
+  },
   // #523: the documentation baseline's pull-request check, and the onboarding entry point.
   'docs-baseline': docsBaselineMain,
   onboard: onboardMain,
@@ -200,7 +207,11 @@ export function main(argv, platform, env, opts = {}) {
   }
   // own keys only, so `mhw constructor` is forwarded like any unknown word
   if (argv.length && Object.hasOwn(MOVED, argv[0])) return MOVED[argv[0]](argv.slice(1), env);
-  if (argv[0] === 'status') printNodeLine(opts.nodeVersion || process.version);
+  if (argv[0] === 'status') {
+    printNodeLine(opts.nodeVersion || process.version);
+    // #487: whether the paste wrapper's pty library loads here; a FAIL names the reason. Never the exit code.
+    fs.writeSync(1, pasteStatusLine(env, platform) + '\n');
+  }
   if (platform !== 'win32') {
     // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.
     const childEnv = Object.assign({}, env, { MHW_NODE: process.execPath });

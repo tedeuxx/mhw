@@ -70,6 +70,7 @@
       "code": [
         "src/commands/scan.js",
         "src/lib/clean*.js",
+        "src/lib/salt.js",
         "test/scan/**",
         "test/clean/**",
         "test/helpers/s15*",
@@ -85,7 +86,13 @@
       "code": [
         "global/clipboard/**",
         "global/clipboard.conf",
-        "global/profile/locales/**"
+        "global/profile/locales/**",
+        "src/commands/paste-wrapper.js",
+        "src/lib/pty.js",
+        "src/lib/salt.js",
+        "src/vendor/node-pty/**",
+        "test/clipboard/**",
+        ".github/workflows/node-pty-linux.yml"
       ],
       "docs": [
         "README.md",
