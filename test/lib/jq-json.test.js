@@ -30,7 +30,7 @@ test('the same inputs through jq itself, where jq is on PATH', (t) => {
   const text = '{"b":1.0,"2":"x","1":"y","n":[' + NUMBERS.map((n) => n[0]).join(',') + '],"s":"\\u007f\u00e9\\u0002","b":{"z":[],"a":{}}}';
   for (const [args, opts] of /** @type {Array<[string[], { indent?: number, sortKeys?: boolean }]>} */ ([[['--indent', '4', '.'], { indent: 4 }], [['-S', '.'], { sortKeys: true }], [['.'], {}]])) {
     /** @type {string} */
-    const out = spawnSync(jq, args, { input: text, encoding: 'utf8' }).stdout;
+    const out = spawnSync(jq, args, { input: text, encoding: 'utf8' }).stdout.replaceAll('\r\n', '\n');
     assert.equal(stringify(parse(text), opts) + '\n', out, args.join(' '));
   }
 });

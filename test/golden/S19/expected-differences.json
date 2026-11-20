@@ -6,6 +6,12 @@
     "why": "allow-list.sh read the first five lines of a target with head, which prints its own error when the target is a directory (Apple head: 'head: Error reading <path>'; GNU head words it differently). The Node step reads the file itself and prints no such line. The REFUSE line after it, the exit code 3 and the untouched tree are still compared."
   },
   {
+    "name": "the dry-run hunk alignment",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "A dry run of settings.json prints the hunks of a unified diff. allow-list.sh ran the diff on PATH, and two diff programs may line up a repeated line ('    ]', '  },') differently, both correctly: on the CI Linux runners GNU diff did so in two scenarios (owner-settings-wide, retired-allows) where Apple diff, which the goldens were recorded with, did not. The Node step prints one form everywhere, the Apple diff one (src/lib/unified-diff.js). The golden arm compares those hunks exactly; the live arm compares each run of hunk lines as its sorted removed lines and its sorted added lines. Display only: a dry run writes nothing."
+  },
+  {
     "name": "jq is no longer needed by the step itself",
     "stream": "stderr",
     "pattern": null,

@@ -1,0 +1,6 @@
+{
+  "code": 0,
+  "signal": null,
+  "stdout": "{\"argv\":[\"<FAKE>\",\"env\",\"-\",\"K_TOKEN\"],\"env\":{\"K_TOKEN\":\"3c82909ea313d409eeb29fbd7fef1200c41290dcada9c8f060c55ae8340de4c1\"}}\n",
+  "stderr": ""
+}

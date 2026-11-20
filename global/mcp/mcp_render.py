@@ -37,8 +37,10 @@ renderer refuses a policy server that names one. JSON surfaces only (Codex is re
 The definition lives only in the untracked local overlay, outside every repository: server names,
 commands, args and non-secret environment values. A credential is never in it. A server that needs one
 names it under "secrets" with its source (macOS Keychain service, or an environment variable), and is
-rendered as global/mcp/mcp-launch.sh, which reads the value when the server starts. So the renderer
-never reads a secret, and no rendered file can hold one it was given.
+rendered as the Node launcher (`mhw mcp launch`, src/commands/mcp-launch.js, #483): the renderer installs
+a copy of it beside its other managed files and renders `<node> <that copy> --secret ... -- <command>`,
+and the launcher reads the value when the server starts. So the renderer never reads a secret, and no
+rendered file can hold one it was given.
 
 Exit codes, as global/install.sh: 0 ok · 1 drift or missing (--check) · 2 usage, invalid definition or a
 missing dependency · 3 something unmanaged, conflicting or unreadable is in the way (left untouched).
@@ -70,7 +72,11 @@ BLOCK_BEGIN_PREFIX = "# >>> %s (mcp servers)" % MARKER_ID
 BLOCK_END = "# <<< %s (mcp servers)" % MARKER_ID
 SURFACES = ("codex", "claude-code", "claude-desktop", "kiro")
 HERE = os.path.dirname(os.path.abspath(__file__))
-LAUNCHER_SRC = os.path.join(HERE, "mcp-launch.sh")
+# The launcher (#483, S12 of #470): src/commands/mcp-launch.js, which replaced global/mcp/mcp-launch.sh.
+LAUNCHER_SRC = os.path.join(os.path.dirname(os.path.dirname(HERE)), "src", "commands", "mcp-launch.js")
+LAUNCHER_SRC_REL = "src/commands/mcp-launch.js"
+LAUNCHER_NAME = "mcp-launch.mjs"   # .mjs: an ES module wherever it is copied, with no package.json beside it
+LEGACY_LAUNCHER = "mcp-launch.sh"  # the shell launcher an earlier release installed; retired on install
 POLICY_SRC = os.path.join(HERE, "policy-servers.json")
 POLICY_BACKUP = ".pmhwc-mcp-policy-backup"
 BACKUP = ".pmhwc-backup"
@@ -162,7 +168,54 @@ def surface_target(surface):
 
 
 def launcher_dest():
-    return os.path.join(data_dir(), "mcp-launch.sh")
+    return os.path.join(data_dir(), LAUNCHER_NAME)
+
+
+def legacy_launcher():
+    return os.path.join(data_dir(), LEGACY_LAUNCHER)
+
+
+def launcher_for(doc, required=True):
+    """(node, the installed launcher copy) when a server of the definition has secrets, else None. A
+    definition with secrets and no node is refused (exit 2) before anything is written; with
+    required=False (the active set, which only compares entries) the bare word node stands in."""
+    if not any(s.get("secrets") for s in doc["servers"].values()):
+        return None
+    if not required:
+        # The active set only compares entries and never starts node: it must not refuse its own control
+        # on a node condition (PR #516 lens O1), so any lookup failure stands in as the bare word node.
+        try:
+            node = node_binary()
+        except Refuse:
+            node = None
+        return (node or "node", launcher_dest())
+    node = node_binary()
+    if node is None:
+        raise Refuse(2, "a server with secrets is started by the Node launcher (mhw mcp launch, #483), and no node "
+                        "was found (MHW_NODE, or node on PATH); install Node 26 or later")
+    return (node, launcher_dest())
+
+
+def node_binary():
+    """The node that runs the launcher, as an absolute path: the node running mhw (bin/mhw.js passes its
+    own path in MHW_NODE), else the first node on PATH; None when there is none. It is rendered as the
+    server command, so a harness whose PATH has no node (a desktop app) still starts it. The same lookup as
+    install.sh's models_step (#481): an absolute MHW_NODE that is not an executable file is refused (exit
+    2), never replaced by another node, so the render names the node it was given."""
+    node = os.environ.get("MHW_NODE", "")
+    if os.path.isabs(node):
+        if os.path.isfile(node) and os.access(node, os.X_OK):
+            # bin/mhw.js passes process.execPath, which is the resolved, versioned path (a Homebrew Cellar
+            # directory that an upgrade removes). node on PATH, when it is the same file, is the stable
+            # name (/opt/homebrew/bin/node), so it is the one rendered (PR #516 lens A1).
+            found = shutil.which("node")
+            if found and os.path.isabs(found) and os.path.realpath(found) == os.path.realpath(node):
+                return found
+            return node
+        raise Refuse(2, "REFUSE  the MCP launcher: MHW_NODE (%s) is not an executable file; nothing written" % node)
+    found = shutil.which("node")
+    # A relative PATH entry gives a relative result; the rendered command must be absolute (QA P8).
+    return os.path.abspath(found) if found else None
 
 
 def manifest_path():
@@ -322,7 +375,7 @@ def validate(doc, platform=sys.platform, covered=None):
             else:
                 errs.append('%s: secret %r: the source must be "keychain:<service>" or "env:<VAR>"' % (where, k))
         if secrets and platform == "win32":
-            errs.append("%s: secrets need the POSIX launcher, which is not available on Windows" % where)
+            errs.append("%s: secrets are not supported on Windows (the launcher is not rendered there)" % where)
         if "active_set" in doc and isinstance(surfaces, list) and any(
                 x not in surfaces and x not in covered.get(name, ()) for x in PARITY):
             errs.append("%s: the active set is on in Claude Code, Codex and Kiro alike (Issue #219, parity), so "
@@ -454,14 +507,16 @@ def committable(path):
 
 
 def effective(server, launcher):
-    """The command, args, env and forwarded variables one surface runs for this server."""
+    """The command, args, env and forwarded variables one surface runs for this server. launcher is
+    (node, the installed launcher copy) for a server with secrets."""
     secrets = server.get("secrets", {})
     command, args = server["command"], list(server.get("args", []))
     if secrets:
-        wrapped = []
+        node, script = launcher
+        wrapped = [script]
         for name in sorted(secrets):
             wrapped += ["--secret", "%s=%s" % (name, secrets[name])]
-        command, args = launcher, wrapped + ["--", server["command"]] + args
+        command, args = node, wrapped + ["--", server["command"]] + args
     env_vars = sorted({src[len("env:"):] for src in secrets.values() if src.startswith("env:")})
     return command, args, dict(server.get("env", {})), env_vars
 
@@ -748,8 +803,8 @@ class Run:
         dest = launcher_dest()
         with open(LAUNCHER_SRC, encoding="utf-8") as fh:
             src = fh.read().split("\n", 1)
-        text = "%s\n# %s; source: global/mcp/mcp-launch.sh; %s; do not edit, re-run the renderer\n%s" % (
-            src[0], MARKER_ID, self.stamp, src[1])
+        text = "%s\n// %s; source: %s; %s; do not edit, re-run the renderer\n%s" % (
+            src[0], MARKER_ID, LAUNCHER_SRC_REL, self.stamp, src[1])
         if os.path.exists(dest):
             with open(dest, encoding="utf-8", errors="replace") as fh:
                 current = fh.read()
@@ -773,6 +828,46 @@ class Run:
             os.chmod(dest, 0o700)  # owner-only: only the owner's own harness processes run it
             self.say("WROTE", dest)
         return True
+
+    def retire_legacy(self, configs):
+        """The shell launcher an earlier release installed (#483), once nothing can still run it. Called after
+        every surface was rendered. Only a file carrying this project's marker; an unmanaged one is left
+        alone. Install removes it only when this run refused nothing and no surface config (configs) still
+        names its path: a refused surface keeps its entries, and a refused server keeps its earlier copy, and
+        either may still start the shell launcher (PR #516 lens B2)."""
+        old = legacy_launcher()
+        try:
+            with open(old, encoding="utf-8", errors="replace") as fh:
+                head = "".join(fh.readlines()[:5])
+        except OSError:
+            return
+        if MARKER_ID not in head:
+            return
+        if self.mode == "check":
+            self.say("STALE", old, "the retired shell launcher; install removes it")
+            self.raise_(1)
+            return
+        named = []
+        for path in configs:
+            try:
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    if old in fh.read():
+                        named.append(path)
+            except OSError:
+                continue
+        if self.status:
+            why = "this run refused something, and what it left as it was may still start it"
+        elif named and self.mode != "dry-run":
+            why = "still named by " + ", ".join(named)
+        else:
+            why = ""
+        if why:
+            self.say("KEPT", old, "the retired shell launcher; " + why)
+        elif self.mode == "dry-run":
+            print("WOULD REMOVE %s (the retired shell launcher)" % old)
+        else:
+            os.remove(old)
+            self.say("REMOVED", old, "the retired shell launcher")
 
     def codex(self, path, want):
         exists = os.path.exists(path)
@@ -896,7 +991,7 @@ def render(mode, source, surfaces, adopt):
     managed = load_manifest()
     stamps = load_stamps()
     run = Run(mode, adopt, stamp)
-    launcher = launcher_dest()
+    launcher = launcher_for(doc)
     # ADR-0038 amendment (Issue #219): a policy server in the local definition is extended to the surfaces the
     # policy does not name. A local copy that differs from the policy's where both apply is refused alone.
     conflicts = policy_conflicts(doc, policy_doc, launcher)
@@ -954,6 +1049,8 @@ def render(mode, source, surfaces, adopt):
         mdoc = load_manifest_doc()
         mdoc.update({"surfaces": new_manifest, "stamps": new_stamps})
         write_manifest(mdoc)
+    if launcher is not None:
+        run.retire_legacy([t[0] for t in (surface_target(x) for x in SURFACES) if t is not None])
     return run.status
 
 

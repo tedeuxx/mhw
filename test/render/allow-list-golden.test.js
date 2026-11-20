@@ -8,8 +8,8 @@
 //           the same inputs. MHW_UPDATE_GOLDEN=1 rewrites the goldens from the shell side, never from Node.
 // POSIX only: install.sh, the only caller, never runs on Windows (install.ps1 renders no allow list). The
 // pure functions are tested on every OS in allow-list.test.js. Normalised before comparing: the scenario's
-// directory (<T>) and CRLF. Intended differences: test/golden/S19/expected-differences.json; none of them
-// is exercised by a scenario here, so nothing is masked.
+// directory (<T>) and CRLF. Intended differences: test/golden/S19/expected-differences.json; one pattern
+// (a head diagnostic on stderr) is applied, and the live arm compares dry-run hunks as sets of lines.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -177,7 +177,7 @@ function runScenario(sc, base) {
   return runs;
 }
 
-/** @type {Array<{ name: string, stream: 'stderr', pattern: string | null, why: string }>} */
+/** @type {Array<{ name: string, stream: string, pattern: string | null, why: string }>} */
 const expected = readGolden(SLICE, 'expected-differences.json');
 
 /**
@@ -188,6 +188,38 @@ const expected = readGolden(SLICE, 'expected-differences.json');
 function intended(runs) {
   const rules = expected.filter((e) => e.pattern).map((e) => new RegExp(/** @type {string} */ (e.pattern)));
   return runs.map((r) => ({ ...r, stderr: r.stderr.split('\n').filter((l) => !rules.some((x) => x.test(l))).join('\n') }));
+}
+
+/**
+ * The live arm's form of a dry run's diff: each run of hunk lines replaced by its removed lines and its
+ * added lines, each sorted, with the context and the hunk headers dropped. Two diff programs can align
+ * repeated lines ("    ]", "  },") differently and both be right: Apple diff (which the goldens were
+ * recorded with, and which the Node step reproduces exactly) and GNU diff (the Linux runners) do on two
+ * scenarios here (expected-differences.json, "the dry-run hunk alignment"). The golden arm compares the
+ * hunks exactly.
+ * @param {Array<{ run: string, code: number | null, stdout: string, stderr: string, tree: unknown }>} runs
+ */
+function hunksAsSets(runs) {
+  return runs.map((r) => {
+    const out = [];
+    /** @type {string[] | null} */
+    let block = null;
+    const flush = () => {
+      if (!block) return;
+      const by = (/** @type {string} */ c) => (/** @type {string[]} */ (block)).filter((l) => l[0] === c).sort((a, b) => (a < b ? -1 : Number(a > b)));
+      out.push('<hunks>', ...by('-'), ...by('+'), '</hunks>');
+      block = null;
+    };
+    for (const line of r.stdout.split('\n')) {
+      if (line.startsWith('@@ ') || (block && /^[ +-]/.test(line))) (block ??= []).push(line);
+      else {
+        flush();
+        out.push(line);
+      }
+    }
+    flush();
+    return { ...r, stdout: out.join('\n') };
+  });
 }
 
 /** The revision the head is compared with (test/parity.test.js's parityBase). */
@@ -218,7 +250,7 @@ test('live: the Node step matches allow-list.sh of the base revision on the same
     const shell = intended(runScenario(sc, path.join(dest, 'tree')));
     if (UPDATE) writeGolden(SLICE, 'transcripts/' + sc.name + '.json', shell);
     try {
-      assert.deepEqual(intended(runScenario(sc, null)), shell, sc.name);
+      assert.deepEqual(hunksAsSets(intended(runScenario(sc, null))), hunksAsSets(shell), sc.name);
     } catch (e) {
       failed.push(e instanceof Error ? e.message : String(e));
     }

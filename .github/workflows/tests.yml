@@ -35,7 +35,6 @@ jobs:
         run: |
           shellcheck --version
           shellcheck -s sh mhw global/install.sh global/install.test.sh \
-            global/mcp/mcp-launch.sh \
             .github/scripts/prod-canary-container.sh
       # A workflow that is not valid YAML never loads: GitHub reports a "workflow file issue" on push
       # and no job runs, so nothing else in this file would notice (PR #141). Ruby and its bundled

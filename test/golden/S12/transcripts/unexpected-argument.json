@@ -1,0 +1,6 @@
+{
+  "code": 2,
+  "signal": null,
+  "stdout": "",
+  "stderr": "mcp-launch: unexpected argument '--bogus' (usage: mcp-launch.sh [--secret NAME=SOURCE]... -- command [args...])\n"
+}
