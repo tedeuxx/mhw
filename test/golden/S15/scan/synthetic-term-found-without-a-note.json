@@ -1,0 +1,13 @@
+{
+  "name": "synthetic-term-found-without-a-note",
+  "runs": [
+    {
+      "args": [
+        "memo.txt"
+      ],
+      "code": 0,
+      "stdout": "memo.txt:2: employer-client-term, 12 chars\nmhw scan: 1 finding(s); 1 of 1 scanned file(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    }
+  ]
+}

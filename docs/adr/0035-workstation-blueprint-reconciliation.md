@@ -419,9 +419,11 @@ it, the close line would read as the only way to end a session.
 
 ## Amendment 2026-10-10: implementing decision 7 (slice F)
 
-**1. Where it lives.** `mhw scan` is dispatched by `main` in `global/workstation.py`. The logic is in
+**1. Where it lives.** ~~`mhw scan` is dispatched by `main` in `global/workstation.py`. The logic is in
 `global/scan.py`, imported on demand as `mhw check` imports `global/prerequisites.py`. It calls the paste
-filter's `find_spans` from `global/clipboard/clipboard_guard.py` as it is. There is no second detector.
+filter's `find_spans` from `global/clipboard/clipboard_guard.py` as it is.~~ *(Struck 2026-11-19, #486:
+`mhw scan` is `src/commands/scan.js` on `src/lib/clean.js`; see the 2026-11-19 amendment below.)* There
+is no second detector.
 
 **2. What it scans.** By default, the files this branch changed since it left its upstream: the merge
 base of `HEAD` and `@{upstream}`, compared with the working tree (*and, appended 2026-10-10, every
@@ -886,6 +888,38 @@ line at top level, never re-serialised.
   `test/render/model-defaults-install.test.js` for the node lookup in `install.sh`;
   `global/install.test.sh` section 17; `global/install.test.ps1` sections 14 and 15. **Not installed**
   on the reference machine.
+
+## Amendment 2026-11-19: mhw scan and the cleaning core are Node ([#486](https://github.com/tedeuxx/mhw/issues/486), S15 of [#470](https://github.com/tedeuxx/mhw/issues/470))
+
+Decision 7's command moved from `global/scan.py` to `src/commands/scan.js`, and the detection and
+redaction engine it calls from `global/clipboard/clipboard_guard.py` to `src/lib/clean.js`; `scan.py` and
+its suite are deleted. It calls `clean.js`'s `findSpans`, proven equal to
+`clipboard_guard.py`'s. `clipboard_guard.py` stays: the prompt hook and the paste wrapper still run it,
+until their slices move. There is still one detector per runtime and one answer.
+
+- **What is the same.** The modes, the report lines, the NOTE lines, the exit codes and the categories,
+  except as declared in `test/golden/S15/expected-differences.json`: git missing from `PATH` exits 2 with a
+  line where Python crashed; a term list or salt file that is not ASCII reads as unreadable, with its
+  NOTE, where Python crashed; the Keychain salt is read by a `python3` child running
+  `clipboard_guard.py`'s own non-interactive `SaltStore`, because Node has no equivalent of its
+  Security.framework lock probe. That child is isolated (`python3 -I`, run from `clipboard_guard.py`'s
+  own directory), so no module of the scanned repository or of `PYTHONPATH` runs; without `python3` a
+  NOTE names the missing interpreter. It ends when the prompt hook moves to Node and carries the probe.
+- **Fail-open, the main risk.** Python's `re` and JavaScript's `RegExp` disagree on `\w`, `\d`, `\s`,
+  `\b`, case-insensitive matching, and on offsets (code points against UTF-16 units). `clean.js` uses
+  none of JavaScript's own: every class, the ignore-case sets and `str.casefold()` are pinned to
+  CPython 3.14.6 in `src/lib/clean-unicode.js`, and NFKD is held equal to CPython's. A corpus of 208
+  cases from both deleted suites plus those edges gives identical category, offset and length in both,
+  and one source mutation per category (and per pinned semantic) turns it red.
+- **Throughput, beside ADR-0011's 3.2 s.** On 1,000,000 bytes of synthetic text, Apple M4, best of
+  three, `findSpans` with a one-term list: Node 25.9.0 0.30 s; CPython 3.14.6 2.62 s; the Command Line
+  Tools 3.9.6 3.65 s (patterns only: 0.03 s, 0.27 s, 0.36 s). Command, recorded in ADR-0011 beside its
+  figure: `node test/helpers/s15-throughput.mjs /opt/homebrew/bin/python3 /usr/bin/python3`.
+- **CI.** `outbound-scan.yml` runs `node bin/mhw.js scan` on Node 26.13.1; it still never blocks on a
+  finding.
+- **Evidence level.** *Written and tested*: `test/clean/` and `test/scan/` against goldens recorded
+  from the Python original (CPython 3.14.6, macOS), on macOS, Linux and Windows CI, with live arms
+  against that CPython in CI. **Not installed** on the reference machine.
 
 ## Links
 

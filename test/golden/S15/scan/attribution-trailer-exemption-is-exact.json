@@ -1,0 +1,11 @@
+{
+  "name": "attribution-trailer-exemption-is-exact",
+  "runs": [
+    {
+      "args": [],
+      "code": 0,
+      "stdout": "NOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\nSKIPPED blob.bin: binary, not scanned\nnew.txt:5: cpf, 14 chars\ntouched.md:3: credential, 20 chars\ntouched.md:3: email, 33 chars\nSKIPPED 6d5bc1e:blob.bin: binary, not scanned\n6d5bc1e:new.txt:5: cpf, 14 chars\n6d5bc1e:touched.md:3: credential, 20 chars\n6d5bc1e:touched.md:3: email, 33 chars\nc85a145:message: email, 21 chars\n35dcfee:message: email, 18 chars\n9eb67cd:message: email, 21 chars\n35d2071:message: email, 21 chars\nb13584e:message: email, 18 chars\n841e56c:message: email, 21 chars\n8e82840:message: email, 21 chars\n4214804:message: email, 33 chars\n233b7f1:message: email, 38 chars\nf306bdf:message: email, 21 chars\ne5e3740:message: credential, 20 chars\n55c5e81:message: email, 33 chars\n3b74229:message: cpf, 14 chars\nb20eaa0:message: email, 21 chars\n3ec8e70:message: email, 21 chars\n5e2a591:message: email, 21 chars\nmhw scan: 22 finding(s); 2 of 3 scanned file(s) and 17 of 20 commit(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    }
+  ]
+}

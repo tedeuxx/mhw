@@ -1,0 +1,11 @@
+{
+  "name": "uncommitted-changes-included",
+  "runs": [
+    {
+      "args": [],
+      "code": 0,
+      "stdout": "NOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\nSKIPPED blob.bin: binary, not scanned\nclean.txt:2: email, 33 chars\nnew.txt:5: cpf, 14 chars\ntouched.md:3: credential, 20 chars\ntouched.md:3: email, 33 chars\nSKIPPED 6d5bc1e:blob.bin: binary, not scanned\n6d5bc1e:new.txt:5: cpf, 14 chars\n6d5bc1e:touched.md:3: credential, 20 chars\n6d5bc1e:touched.md:3: email, 33 chars\nmhw scan: 7 finding(s); 3 of 3 scanned file(s) and 1 of 1 commit(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    }
+  ]
+}

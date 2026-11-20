@@ -1,0 +1,20 @@
+{
+  "name": "max-bytes-from-the-installed-config",
+  "runs": [
+    {
+      "args": [],
+      "code": 0,
+      "stdout": "NOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\nSKIPPED blob.bin: over 20 bytes, not scanned\nSKIPPED new.txt: over 20 bytes, not scanned\nSKIPPED touched.md: over 20 bytes, not scanned\nSKIPPED 6d5bc1e:blob.bin: binary, not scanned\nSKIPPED 6d5bc1e:new.txt: added lines over 20 bytes, not scanned\nSKIPPED 6d5bc1e:touched.md: added lines over 20 bytes, not scanned\nmhw scan: 0 finding(s); 0 of 1 scanned file(s) and 0 of 1 commit(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "clean.txt",
+        "touched.md"
+      ],
+      "code": 0,
+      "stdout": "NOTE    no employer and client term list could be read (absent, empty or unreadable); employer-client-term was NOT checked\nNOTE    no health term list could be read (absent, empty or unreadable); health was checked by its pattern only, NOT against a term list\nNOTE    no colleague-name term list could be read (absent, empty or unreadable); colleague-name was checked by its pattern only, NOT against a term list\nSKIPPED touched.md: over 20 bytes, not scanned\nmhw scan: 0 finding(s); 0 of 1 scanned file(s) had one; informs only, never blocks; the matched text is never shown (ADR-0005)\n",
+      "stderr": ""
+    }
+  ]
+}

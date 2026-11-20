@@ -1,0 +1,37 @@
+{
+  "name": "base-starting-with-a-dash-refused",
+  "runs": [
+    {
+      "args": [
+        "--base=--help"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --base takes a git ref\n"
+    },
+    {
+      "args": [
+        "--base=-x"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --base takes a git ref\n"
+    },
+    {
+      "args": [
+        "--base=--is-ancestor"
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --base takes a git ref\n"
+    },
+    {
+      "args": [
+        "--base="
+      ],
+      "code": 2,
+      "stdout": "",
+      "stderr": "mhw scan: --base takes a git ref\n"
+    }
+  ]
+}

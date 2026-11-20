@@ -1,0 +1,7992 @@
+{
+  "cpython": "3.14.6",
+  "salt": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+  "cases": [
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/aws",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          20
+        ]
+      ],
+      "text_sha256": "c1f978b0dd79ffc0572b25f4c235e164f56c4567419073ade5eb8a61e4417458",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          28,
+          "a6ef68d0fa0eed9c"
+        ],
+        [
+          31,
+          34,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/github",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          40
+        ]
+      ],
+      "text_sha256": "cf07dd9bfd5f847017d1655ee6d8ee26e668f2526e7c2b33ef878a5819a397f8",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          11,
+          "ebfa5fd45fa439ff"
+        ],
+        [
+          12,
+          48,
+          "7ee355e58e1264a3"
+        ],
+        [
+          51,
+          54,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/github-fine-grained",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          71
+        ]
+      ],
+      "text_sha256": "28387cced1701bf0c923defb85848b53108ae3622175d16dc6d61376d20bc585",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          14,
+          "c0b0109d9439de57"
+        ],
+        [
+          15,
+          18,
+          "68d753f055b1a15b"
+        ],
+        [
+          19,
+          53,
+          "bed57f481f947a19"
+        ],
+        [
+          54,
+          79,
+          "b57f7f8359611db1"
+        ],
+        [
+          82,
+          85,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/gitlab",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          30
+        ]
+      ],
+      "text_sha256": "4281fb7a5a0913b3a75a10378023996aff90e33b67d48f265ae7fd52f2a9bfb9",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          13,
+          "27be8f110b545ad8"
+        ],
+        [
+          14,
+          38,
+          "7b34cabd317bc4fd"
+        ],
+        [
+          41,
+          44,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/slack",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          29
+        ]
+      ],
+      "text_sha256": "2b316372c3e938c7857fcb545e4fcf2f52b44f4df6e28733fcc067114c93de6d",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          12,
+          "a991e8e42e0d04f6"
+        ],
+        [
+          13,
+          29,
+          "9f9f5111f7b27a78"
+        ],
+        [
+          30,
+          37,
+          "5f6121bc06e18e20"
+        ],
+        [
+          40,
+          43,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/slack-webhook",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          69
+        ]
+      ],
+      "text_sha256": "a40bde0a9373c308985fd0f01773f59135802fae963f9a8a9840fcd60f4574ca",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          13,
+          "3e1943522517e813"
+        ],
+        [
+          16,
+          21,
+          "a9fa9fda98d7712c"
+        ],
+        [
+          22,
+          27,
+          "877c3aec832cd410"
+        ],
+        [
+          28,
+          31,
+          "71b4f3a3748cd684"
+        ],
+        [
+          32,
+          40,
+          "ef1c4b45f2ed7632"
+        ],
+        [
+          41,
+          46,
+          "4ba221f30883c63c"
+        ],
+        [
+          47,
+          52,
+          "46b9b98f4302cc4f"
+        ],
+        [
+          53,
+          77,
+          "93b0cabf8668e0c5"
+        ],
+        [
+          80,
+          83,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/google",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          39
+        ]
+      ],
+      "text_sha256": "d059cc67cc9c949432797b468480d689f47ab5033b0f5a76a2af8fea809a9c2f",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          46,
+          "f7ddc3833358196d"
+        ],
+        [
+          50,
+          53,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/stripe",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          32
+        ]
+      ],
+      "text_sha256": "2bf9042e1bfb8068e6e272aadb0cba67a36cde69fefb1229f733ed5d8c2c736a",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          10,
+          "32b56ed53348a858"
+        ],
+        [
+          11,
+          15,
+          "247610f4dedd4ab7"
+        ],
+        [
+          16,
+          40,
+          "7b34cabd317bc4fd"
+        ],
+        [
+          43,
+          46,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/anthropic",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          37
+        ]
+      ],
+      "text_sha256": "e69d2e8d1d3ea6eabfdb92c5697837eaec2ced8f4d3e2429a371983a8ed8c2d5",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          10,
+          "32b56ed53348a858"
+        ],
+        [
+          11,
+          14,
+          "67a333356cdc566e"
+        ],
+        [
+          15,
+          45,
+          "ee92b88ea1f88998"
+        ],
+        [
+          48,
+          51,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/openai",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          38
+        ]
+      ],
+      "text_sha256": "14a2c4f8f2721b70c3eb1c11ca97b1c0e64d6fe8734c13f9a4a1a78fe78a287c",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          10,
+          "32b56ed53348a858"
+        ],
+        [
+          11,
+          15,
+          "e73c023a2e8e9034"
+        ],
+        [
+          16,
+          46,
+          "ee92b88ea1f88998"
+        ],
+        [
+          49,
+          52,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/npm",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          40
+        ]
+      ],
+      "text_sha256": "339c80cbecac5b39946161b52cc2d05257da11bf126a45ba34fa123bd9153b79",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          11,
+          "d79677188687e7b3"
+        ],
+        [
+          12,
+          48,
+          "7ee355e58e1264a3"
+        ],
+        [
+          51,
+          54,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/jwt",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          68
+        ]
+      ],
+      "text_sha256": "979376017a04b2a12198c2f8d6eab7e7d9b59a588e7c98e3c0735917ff6ec1c7",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          8,
+          31,
+          "14ad8dc6daa45edc"
+        ],
+        [
+          32,
+          55,
+          "b3ac509e2d408ed8"
+        ],
+        [
+          56,
+          76,
+          "127c4c8c3fdffd0b"
+        ],
+        [
+          79,
+          82,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/private-key",
+      "sanitised": "config: [REDACTED:credential] # end",
+      "spans": [
+        [
+          "credential",
+          8,
+          126
+        ]
+      ],
+      "text_sha256": "7a769214a798b8290b3f711cb425d5bc836a815e7dbb916c0048e7a663129aa5",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          13,
+          18,
+          "e6f07d43b5c21db0"
+        ],
+        [
+          19,
+          22,
+          "f5f69168bba3cfa1"
+        ],
+        [
+          23,
+          30,
+          "715dc8493c36579a"
+        ],
+        [
+          31,
+          34,
+          "2c70e12b7a0646f9"
+        ],
+        [
+          40,
+          104,
+          "2a94c28f8bed8b90"
+        ],
+        [
+          110,
+          113,
+          "361e48d0308f20e3"
+        ],
+        [
+          114,
+          117,
+          "f5f69168bba3cfa1"
+        ],
+        [
+          118,
+          125,
+          "715dc8493c36579a"
+        ],
+        [
+          126,
+          129,
+          "2c70e12b7a0646f9"
+        ],
+        [
+          137,
+          140,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "credential/private-key-unterminated",
+      "sanitised": "config: [REDACTED:credential]",
+      "spans": [
+        [
+          "credential",
+          8,
+          118
+        ]
+      ],
+      "text_sha256": "83a8f64b19a6c24745cf5fd23e3e753f6eedeafcce4c713441a0d6f50b5ee1ff",
+      "tokens": [
+        [
+          0,
+          6,
+          "b79606fb3afea5bd"
+        ],
+        [
+          13,
+          18,
+          "e6f07d43b5c21db0"
+        ],
+        [
+          19,
+          26,
+          "fccc979cdc29e800"
+        ],
+        [
+          27,
+          34,
+          "715dc8493c36579a"
+        ],
+        [
+          35,
+          38,
+          "2c70e12b7a0646f9"
+        ],
+        [
+          44,
+          108,
+          "2a94c28f8bed8b90"
+        ],
+        [
+          109,
+          111,
+          "9390298f3fb0c5b1"
+        ],
+        [
+          112,
+          115,
+          "361e48d0308f20e3"
+        ],
+        [
+          116,
+          120,
+          "38a9c1e721584da2"
+        ],
+        [
+          123,
+          126,
+          "361e48d0308f20e3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "name": "email/plain",
+      "sanitised": "write to [REDACTED:email] today",
+      "spans": [
+        [
+          "email",
+          9,
+          26
+        ]
+      ],
+      "text_sha256": "4c11291c18010627e53426086abae5b06ebc424d0986fe48f6e4fbb829eefb44",
+      "tokens": [
+        [
+          0,
+          5,
+          "10fd874b68dad080"
+        ],
+        [
+          6,
+          8,
+          "663ea1bfffe5038f"
+        ],
+        [
+          9,
+          12,
+          "24d4b96f58da6d4a"
+        ],
+        [
+          13,
+          20,
+          "50d858e0985ecc7f"
+        ],
+        [
+          21,
+          25,
+          "ea363e6abc79738f"
+        ],
+        [
+          26,
+          30,
+          "00d8d3f11739d2f3"
+        ],
+        [
+          31,
+          35,
+          "ea363e6abc79738f"
+        ],
+        [
+          36,
+          41,
+          "e0f4f767ac88a930"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "email/benign-1",
+      "sanitised": "git@github.com:owner/repo.git",
+      "spans": [],
+      "text_sha256": "b1cd17c6cfc6f18ca212b7e8ac47cfe7429102823006de2bc18203527bfb711e",
+      "tokens": [
+        [
+          0,
+          3,
+          "9a881b9b9f238494"
+        ],
+        [
+          4,
+          10,
+          "c0b0109d9439de57"
+        ],
+        [
+          11,
+          14,
+          "71b4f3a3748cd684"
+        ],
+        [
+          15,
+          20,
+          "4c1029697ee35871"
+        ],
+        [
+          21,
+          25,
+          "071ca22277547058"
+        ],
+        [
+          26,
+          29,
+          "9a881b9b9f238494"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "email/benign-2",
+      "sanitised": "user@example.com",
+      "spans": [],
+      "text_sha256": "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514",
+      "tokens": [
+        [
+          0,
+          4,
+          "04f8996da763b7a9"
+        ],
+        [
+          5,
+          12,
+          "50d858e0985ecc7f"
+        ],
+        [
+          13,
+          16,
+          "71b4f3a3748cd684"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "email/benign-3",
+      "sanitised": "x@host.test",
+      "spans": [],
+      "text_sha256": "bfc5eeddf6900839bec6df83dd2a973af6acc80445f8caabbbc081ffc2b279b2",
+      "tokens": [
+        [
+          0,
+          1,
+          "2d711642b726b044"
+        ],
+        [
+          2,
+          6,
+          "4740ae6347b0172c"
+        ],
+        [
+          7,
+          11,
+          "9f86d081884c7d65"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "email/benign-4",
+      "sanitised": "1+me@users.noreply.github.com",
+      "spans": [],
+      "text_sha256": "bb2b167eb432a49e054a0ab732ece7804e15f9707333add20a0241ab3946dda6",
+      "tokens": [
+        [
+          0,
+          1,
+          "6b86b273ff34fce1"
+        ],
+        [
+          2,
+          4,
+          "2744ccd10c7533bd"
+        ],
+        [
+          5,
+          10,
+          "7dfb4cf67742cb06"
+        ],
+        [
+          11,
+          18,
+          "c032f1b2c07148d5"
+        ],
+        [
+          19,
+          25,
+          "c0b0109d9439de57"
+        ],
+        [
+          26,
+          29,
+          "71b4f3a3748cd684"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "email/benign-5",
+      "sanitised": "GIT@zyxw-host.dev",
+      "spans": [],
+      "text_sha256": "6b61e6385b6a3dc34a94499d30db7de257f1f63f091c6aec3aa353c2228efa80",
+      "tokens": [
+        [
+          0,
+          3,
+          "9a881b9b9f238494"
+        ],
+        [
+          4,
+          8,
+          "ea363e6abc79738f"
+        ],
+        [
+          9,
+          13,
+          "4740ae6347b0172c"
+        ],
+        [
+          14,
+          17,
+          "ef260e9aa3c673af"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "email/benign-6",
+      "sanitised": "a@b.EXAMPLE",
+      "spans": [],
+      "text_sha256": "327c6c9b812ce977bb4c55364b9c838c70c5063b359b27009a64576d6c42fb90",
+      "tokens": [
+        [
+          0,
+          1,
+          "ca978112ca1bbdca"
+        ],
+        [
+          2,
+          3,
+          "3e23e8160039594a"
+        ],
+        [
+          4,
+          11,
+          "50d858e0985ecc7f"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "email/benign-7",
+      "sanitised": "a@sub.Localhost",
+      "spans": [],
+      "text_sha256": "1991000de1992501ada78dfb0b1809061f32a2e703aff28ef61ffadacceb3f9d",
+      "tokens": [
+        [
+          0,
+          1,
+          "ca978112ca1bbdca"
+        ],
+        [
+          2,
+          5,
+          "ddc6e2b224d0fd82"
+        ],
+        [
+          6,
+          15,
+          "49960de5880e8c68"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "cpf"
+      ],
+      "name": "cpf/valid",
+      "sanitised": "CPF [REDACTED:cpf]",
+      "spans": [
+        [
+          "cpf",
+          4,
+          14
+        ]
+      ],
+      "text_sha256": "018ba44c356197629cd15195f246920a78c7af717af0f770d36949e7ddd5b6d6",
+      "tokens": [
+        [
+          0,
+          3,
+          "d3affd33c68b895c"
+        ],
+        [
+          4,
+          7,
+          "8920a14a7f6469b9"
+        ],
+        [
+          8,
+          11,
+          "dff17949eb4f9ecd"
+        ],
+        [
+          12,
+          15,
+          "396f804443825586"
+        ],
+        [
+          16,
+          18,
+          "b7a56873cd771f2c"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "cpf/bad-check-digit",
+      "sanitised": "CPF 529.982.247-20",
+      "spans": [],
+      "text_sha256": "c4f5a6678b31f1051147dc3ba441ee075ae44d9e0ac3073e946891046ab3dbfe",
+      "tokens": [
+        [
+          0,
+          3,
+          "d3affd33c68b895c"
+        ],
+        [
+          4,
+          7,
+          "8920a14a7f6469b9"
+        ],
+        [
+          8,
+          11,
+          "dff17949eb4f9ecd"
+        ],
+        [
+          12,
+          15,
+          "396f804443825586"
+        ],
+        [
+          16,
+          18,
+          "f5ca38f748a1d6ea"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "cpf/repeated",
+      "sanitised": "111.111.111-11",
+      "spans": [],
+      "text_sha256": "70601ec4abd36e052ff5a57f85d11849641d1caebe88135025067808c5a5d6d4",
+      "tokens": [
+        [
+          0,
+          3,
+          "f6e0a1e2ac41945a"
+        ],
+        [
+          4,
+          7,
+          "f6e0a1e2ac41945a"
+        ],
+        [
+          8,
+          11,
+          "f6e0a1e2ac41945a"
+        ],
+        [
+          12,
+          14,
+          "4fc82b26aecb47d2"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "cnpj"
+      ],
+      "name": "cnpj/valid",
+      "sanitised": "CNPJ [REDACTED:cnpj]",
+      "spans": [
+        [
+          "cnpj",
+          5,
+          18
+        ]
+      ],
+      "text_sha256": "f051bd066f96c7b84dc8d71e9e6ad8ae3432827e7bacd927aff9dd99c1db2662",
+      "tokens": [
+        [
+          0,
+          4,
+          "598eb236dc5a399d"
+        ],
+        [
+          5,
+          7,
+          "4fc82b26aecb47d2"
+        ],
+        [
+          8,
+          11,
+          "9b871512327c09ce"
+        ],
+        [
+          12,
+          15,
+          "556d7dc3a1153563"
+        ],
+        [
+          16,
+          20,
+          "888b19a43b151683"
+        ],
+        [
+          21,
+          23,
+          "5316ca1c5ddca8e6"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "cnpj/repeated",
+      "sanitised": "11.111.111/1111-11",
+      "spans": [],
+      "text_sha256": "991b15f2ed2a3ad177387d5ae7694537036dc6da35dd3d9223bda82978bb22ed",
+      "tokens": [
+        [
+          0,
+          2,
+          "4fc82b26aecb47d2"
+        ],
+        [
+          3,
+          6,
+          "f6e0a1e2ac41945a"
+        ],
+        [
+          7,
+          10,
+          "f6e0a1e2ac41945a"
+        ],
+        [
+          11,
+          15,
+          "0ffe1abd1a082153"
+        ],
+        [
+          16,
+          18,
+          "4fc82b26aecb47d2"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "payment-card"
+      ],
+      "name": "payment-card/grouped",
+      "sanitised": "card [REDACTED:payment-card]",
+      "spans": [
+        [
+          "payment-card",
+          5,
+          19
+        ]
+      ],
+      "text_sha256": "b0a1c3c252237b624dbae4dc5488f04ccc9e12d38fb5c60522a3b476f077d9fd",
+      "tokens": [
+        [
+          0,
+          4,
+          "8367cd66fdd136bb"
+        ],
+        [
+          5,
+          9,
+          "1f58dbec71994620"
+        ],
+        [
+          10,
+          14,
+          "0ffe1abd1a082153"
+        ],
+        [
+          15,
+          19,
+          "0ffe1abd1a082153"
+        ],
+        [
+          20,
+          24,
+          "0ffe1abd1a082153"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "payment-card"
+      ],
+      "name": "payment-card/spaced",
+      "sanitised": "card [REDACTED:payment-card]",
+      "spans": [
+        [
+          "payment-card",
+          5,
+          19
+        ]
+      ],
+      "text_sha256": "7febb5a11f86529f6e157c732392f76fb9cda06f36771da833aee00d1bf2c055",
+      "tokens": [
+        [
+          0,
+          4,
+          "8367cd66fdd136bb"
+        ],
+        [
+          5,
+          9,
+          "1f58dbec71994620"
+        ],
+        [
+          10,
+          14,
+          "0ffe1abd1a082153"
+        ],
+        [
+          15,
+          19,
+          "0ffe1abd1a082153"
+        ],
+        [
+          20,
+          24,
+          "0ffe1abd1a082153"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "payment-card"
+      ],
+      "name": "payment-card/amex",
+      "sanitised": "amex [REDACTED:payment-card]",
+      "spans": [
+        [
+          "payment-card",
+          5,
+          15
+        ]
+      ],
+      "text_sha256": "20a4b5ca651bb9f978eb47037abd4171aff05354cce5a69bee31c0a50d872357",
+      "tokens": [
+        [
+          0,
+          4,
+          "5344ae4677efc34b"
+        ],
+        [
+          5,
+          20,
+          "3a134ef77d4e2e4c"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "payment-card/wrong-luhn",
+      "sanitised": "card 4111111111111112",
+      "spans": [],
+      "text_sha256": "c91b443a0398b9c9b3c5b7c02bfa172d3c439f4caf0248fa616a7eaf490bf247",
+      "tokens": [
+        [
+          0,
+          4,
+          "8367cd66fdd136bb"
+        ],
+        [
+          5,
+          21,
+          "6c6f361c7dd3673f"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "payment-card/no-prefix",
+      "sanitised": "order 9111111111111110",
+      "spans": [],
+      "text_sha256": "ec3f333e73e07f0f60e1f6d1d180902f1e4bdbbe1db92ce973f315c865b3b9a3",
+      "tokens": [
+        [
+          0,
+          5,
+          "3eeb7e96e59ce40f"
+        ],
+        [
+          6,
+          22,
+          "d8e270d2ca1bf38d"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "clean/engineering-text",
+      "sanitised": "commit 3f1e2d4c5b6a79880f1e2d4c5b6a79880f1e2d4c\nuuid 123e4567-e89b-12d3-a456-426614174000\nssh git@github.com:o/r.git, port 8080, build 20261001, sk-test-shaped words, AKIA lowercase akia",
+      "spans": [],
+      "text_sha256": "e7113c07266000c9fbf58cc6cb80932fd1a29c3eecd67fcdc7e50a33233bba9e",
+      "tokens": [
+        [
+          0,
+          6,
+          "9505cacb7c710ed1"
+        ],
+        [
+          7,
+          47,
+          "d559225f91e5b561"
+        ],
+        [
+          48,
+          52,
+          "75666699b77db631"
+        ],
+        [
+          53,
+          61,
+          "458d140bd54de06e"
+        ],
+        [
+          62,
+          66,
+          "f138851a0167af54"
+        ],
+        [
+          67,
+          71,
+          "f8c54930630e6b36"
+        ],
+        [
+          72,
+          76,
+          "713c5f3bfb02957a"
+        ],
+        [
+          77,
+          89,
+          "7ebfafb6b93fa7dd"
+        ],
+        [
+          90,
+          93,
+          "7f5a55cf3f88be93"
+        ],
+        [
+          94,
+          97,
+          "9a881b9b9f238494"
+        ],
+        [
+          98,
+          104,
+          "c0b0109d9439de57"
+        ],
+        [
+          105,
+          108,
+          "71b4f3a3748cd684"
+        ],
+        [
+          109,
+          110,
+          "65c74c15a686187b"
+        ],
+        [
+          111,
+          112,
+          "454349e422f05297"
+        ],
+        [
+          113,
+          116,
+          "9a881b9b9f238494"
+        ],
+        [
+          118,
+          122,
+          "f8d397a33fcb9725"
+        ],
+        [
+          123,
+          127,
+          "6c237681e7092160"
+        ],
+        [
+          129,
+          134,
+          "44575cf5b28512d7"
+        ],
+        [
+          135,
+          143,
+          "94d34cd7226d01c2"
+        ],
+        [
+          145,
+          147,
+          "32b56ed53348a858"
+        ],
+        [
+          148,
+          152,
+          "9f86d081884c7d65"
+        ],
+        [
+          153,
+          159,
+          "0266a143d4d04392"
+        ],
+        [
+          160,
+          165,
+          "dba36bffa5cab0f9"
+        ],
+        [
+          167,
+          171,
+          "770ad061e30dbc84"
+        ],
+        [
+          172,
+          181,
+          "46ede93b09bfe7da"
+        ],
+        [
+          182,
+          186,
+          "770ad061e30dbc84"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "phone"
+      ],
+      "name": "phone/positive-1",
+      "sanitised": "ligue [REDACTED:phone] hoje",
+      "spans": [
+        [
+          "phone",
+          6,
+          19
+        ]
+      ],
+      "text_sha256": "14ca48a69dd53040eba0e739409d33a751faaec92e826dc29f68aee3cc126122",
+      "tokens": [
+        [
+          0,
+          5,
+          "fd8aed54e030b495"
+        ],
+        [
+          7,
+          9,
+          "02d20bbd7e394ad5"
+        ],
+        [
+          11,
+          13,
+          "4fc82b26aecb47d2"
+        ],
+        [
+          15,
+          20,
+          "ac911e4a8f2b48c0"
+        ],
+        [
+          21,
+          25,
+          "888b19a43b151683"
+        ],
+        [
+          26,
+          30,
+          "48056d9165f39678"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "phone"
+      ],
+      "name": "phone/positive-2",
+      "sanitised": "tel [REDACTED:phone].",
+      "spans": [
+        [
+          "phone",
+          4,
+          16
+        ]
+      ],
+      "text_sha256": "44c4f47d2c565b90bbbd9ff160fab87fe3566b80496fb1a7c0e49698664319bd",
+      "tokens": [
+        [
+          0,
+          3,
+          "f4313db688f3f006"
+        ],
+        [
+          5,
+          7,
+          "02d20bbd7e394ad5"
+        ],
+        [
+          8,
+          10,
+          "6f4b6612125fb3a0"
+        ],
+        [
+          11,
+          15,
+          "a176eeb31e601c38"
+        ],
+        [
+          16,
+          20,
+          "9af15b336e6a9619"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "phone"
+      ],
+      "name": "phone/positive-3",
+      "sanitised": "fixo [REDACTED:phone]",
+      "spans": [
+        [
+          "phone",
+          5,
+          14
+        ]
+      ],
+      "text_sha256": "fa2f377ce2103063e124f17abfeb2f1e9688dba3ba7569c578d32eb1767e0550",
+      "tokens": [
+        [
+          0,
+          4,
+          "4164f7ea376084e9"
+        ],
+        [
+          6,
+          8,
+          "6f4b6612125fb3a0"
+        ],
+        [
+          10,
+          14,
+          "a176eeb31e601c38"
+        ],
+        [
+          15,
+          19,
+          "9af15b336e6a9619"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "phone"
+      ],
+      "name": "phone/positive-4",
+      "sanitised": "cel [REDACTED:phone], ok",
+      "spans": [
+        [
+          "phone",
+          4,
+          15
+        ]
+      ],
+      "text_sha256": "21206ff2c710ba4f28edb020f5bec82d2fc9c7a693ae8c22a9bc865cf7a985f9",
+      "tokens": [
+        [
+          0,
+          3,
+          "e910c860a57e5fdc"
+        ],
+        [
+          5,
+          7,
+          "8c1f1046219ddd21"
+        ],
+        [
+          9,
+          14,
+          "47f1445ad3227255"
+        ],
+        [
+          15,
+          19,
+          "41c991eb6a66242c"
+        ],
+        [
+          21,
+          23,
+          "2689367b205c16ce"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "phone"
+      ],
+      "name": "phone/positive-5",
+      "sanitised": "call [REDACTED:phone] now",
+      "spans": [
+        [
+          "phone",
+          5,
+          17
+        ]
+      ],
+      "text_sha256": "d2a9ec58d3f4084b9c3240112ad42d20cd11b1282fb96991b70c017db3067c85",
+      "tokens": [
+        [
+          0,
+          4,
+          "7edb360f06acaef2"
+        ],
+        [
+          6,
+          7,
+          "6b86b273ff34fce1"
+        ],
+        [
+          9,
+          12,
+          "91a73fd806ab2c00"
+        ],
+        [
+          14,
+          17,
+          "13715f6c8b48ed1b"
+        ],
+        [
+          18,
+          22,
+          "27c75197134a88ef"
+        ],
+        [
+          23,
+          26,
+          "ed5eb9a37e2d8231"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "phone"
+      ],
+      "name": "phone/positive-6",
+      "sanitised": "call [REDACTED:phone]",
+      "spans": [
+        [
+          "phone",
+          5,
+          16
+        ]
+      ],
+      "text_sha256": "d77c13c90ebb36f8ea0bb923fc06d6baa3c02d3d615d0337cc6b683de0dfbc36",
+      "tokens": [
+        [
+          0,
+          4,
+          "7edb360f06acaef2"
+        ],
+        [
+          6,
+          8,
+          "71ee45a3c0db9a98"
+        ],
+        [
+          9,
+          11,
+          "f5ca38f748a1d6ea"
+        ],
+        [
+          12,
+          16,
+          "a69b8b1151fdda8a"
+        ],
+        [
+          17,
+          21,
+          "9af15b336e6a9619"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "postal-address/positive-1",
+      "sanitised": "CEP [REDACTED:postal-address], centro",
+      "spans": [
+        [
+          "postal-address",
+          4,
+          9
+        ]
+      ],
+      "text_sha256": "6ba3f18e5749eeb4f3b18839899c589202d9bffe8ef9492f849a8f99a4f7b14b",
+      "tokens": [
+        [
+          0,
+          3,
+          "6f8611b83656417d"
+        ],
+        [
+          4,
+          9,
+          "e0b96ef61f099f34"
+        ],
+        [
+          10,
+          13,
+          "2ac9a6746aca543a"
+        ],
+        [
+          15,
+          21,
+          "1f580bb27589a391"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "postal-address/positive-2",
+      "sanitised": "[REDACTED:postal-address]",
+      "spans": [
+        [
+          "postal-address",
+          0,
+          13
+        ]
+      ],
+      "text_sha256": "5082e072333fa3a68381eb5e596fc9058541fc47d1e614a645c2685ae79bfef8",
+      "tokens": [
+        [
+          0,
+          3,
+          "6f8611b83656417d"
+        ],
+        [
+          5,
+          13,
+          "3f08d8fadb4b67fb"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "postal-address/positive-3",
+      "sanitised": "[REDACTED:postal-address]",
+      "spans": [
+        [
+          "postal-address",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "4ffe40ad154eb70d0beddf3e6e60c152150978635f27c4302a774d21acddf4a8",
+      "tokens": [
+        [
+          0,
+          3,
+          "6f8611b83656417d"
+        ],
+        [
+          4,
+          12,
+          "3f08d8fadb4b67fb"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "postal-address/positive-4",
+      "sanitised": "[REDACTED:postal-address] fundos",
+      "spans": [
+        [
+          "postal-address",
+          0,
+          29
+        ]
+      ],
+      "text_sha256": "4ad501325e90f53ecfcd164db3803ad58fba8c73178657d5915ff5d7066135cd",
+      "tokens": [
+        [
+          0,
+          3,
+          "3a9ca185890ebf61"
+        ],
+        [
+          4,
+          7,
+          "0a7cb27e52927eac"
+        ],
+        [
+          8,
+          14,
+          "810c4dc129e30e97"
+        ],
+        [
+          15,
+          24,
+          "aa644e7929e69aac"
+        ],
+        [
+          26,
+          29,
+          "a665a45920422f9d"
+        ],
+        [
+          30,
+          36,
+          "35c5f84b7a2527f1"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "postal-address/positive-5",
+      "sanitised": "na [REDACTED:postal-address]",
+      "spans": [
+        [
+          "postal-address",
+          3,
+          26
+        ]
+      ],
+      "text_sha256": "81367d80d42908b03bfd3b8601c1f0c26e6aa9f1b76fb04fbece08a74b8c2a8c",
+      "tokens": [
+        [
+          0,
+          2,
+          "3d9fc4bde7ceef05"
+        ],
+        [
+          3,
+          10,
+          "cb1fe28d499f2578"
+        ],
+        [
+          11,
+          15,
+          "ea363e6abc79738f"
+        ],
+        [
+          16,
+          23,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          24,
+          26,
+          "9390298f3fb0c5b1"
+        ],
+        [
+          27,
+          29,
+          "811786ad1ae74adf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "postal-address/positive-6",
+      "sanitised": "at [REDACTED:postal-address] today",
+      "spans": [
+        [
+          "postal-address",
+          3,
+          22
+        ]
+      ],
+      "text_sha256": "c8231845524f0ee71690c038b4fbc063537e44923d31ced3f49ef3013dbb7c21",
+      "tokens": [
+        [
+          0,
+          2,
+          "b1d6b91b67c2afa5"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          13,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          14,
+          18,
+          "ea363e6abc79738f"
+        ],
+        [
+          19,
+          25,
+          "6008c26f4452392a"
+        ],
+        [
+          26,
+          31,
+          "e0f4f767ac88a930"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/positive-1",
+      "sanitised": "meu salário é [REDACTED:contract-value] por mês",
+      "spans": [
+        [
+          "contract-value",
+          14,
+          12
+        ]
+      ],
+      "text_sha256": "4e03e20aff9ef85dcefab4e14412b149f88d54f97123f2e77513ed02990bdca3",
+      "tokens": [
+        [
+          0,
+          3,
+          "4b152f7c6c1c13de"
+        ],
+        [
+          4,
+          11,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          12,
+          13,
+          "3f79bb7b435b0532"
+        ],
+        [
+          14,
+          15,
+          "454349e422f05297"
+        ],
+        [
+          17,
+          19,
+          "6b51d431df5d7f14"
+        ],
+        [
+          20,
+          23,
+          "0604cd3138feed20"
+        ],
+        [
+          24,
+          26,
+          "f1534392279bddbf"
+        ],
+        [
+          27,
+          30,
+          "3ea6bc47a6277afe"
+        ],
+        [
+          31,
+          34,
+          "f1308241eb024180"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/positive-2",
+      "sanitised": "proposta PJ: [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          13,
+          7
+        ]
+      ],
+      "text_sha256": "b3012d03a2767d99af3a576a108adf271f2c7d552f21a9977d2e7af177526e3a",
+      "tokens": [
+        [
+          0,
+          8,
+          "a2ff0f92d1612959"
+        ],
+        [
+          9,
+          11,
+          "7d373d3809c88b4c"
+        ],
+        [
+          13,
+          14,
+          "454349e422f05297"
+        ],
+        [
+          15,
+          20,
+          "434a7e656c53f103"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/positive-3",
+      "sanitised": "contract rate [REDACTED:contract-value] per hour",
+      "spans": [
+        [
+          "contract-value",
+          14,
+          6
+        ]
+      ],
+      "text_sha256": "22052287a850955875dd2506c9aae85603f16f18084f71937d36ec576ac38e70",
+      "tokens": [
+        [
+          0,
+          8,
+          "cc8321d6375c494d"
+        ],
+        [
+          9,
+          13,
+          "c549779d79e5c8e9"
+        ],
+        [
+          14,
+          16,
+          "79adb2a2fce5c6ba"
+        ],
+        [
+          18,
+          20,
+          "69f59c273b6e669a"
+        ],
+        [
+          21,
+          24,
+          "b427c3dec9045990"
+        ],
+        [
+          25,
+          29,
+          "9ac0add475dd38e6"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/positive-4",
+      "sanitised": "an offer of [REDACTED:contract-value] base",
+      "spans": [
+        [
+          "contract-value",
+          12,
+          8
+        ]
+      ],
+      "text_sha256": "e48dad77cab8634554098a6b5b29a2a9e9db16e77bba4b2f3fce31c5ba953df1",
+      "tokens": [
+        [
+          0,
+          2,
+          "ea325d761f98c6b7"
+        ],
+        [
+          3,
+          8,
+          "988180bf0c9328c9"
+        ],
+        [
+          9,
+          11,
+          "28391d3bc64ec15c"
+        ],
+        [
+          13,
+          16,
+          "2abaca4911e68fa9"
+        ],
+        [
+          17,
+          20,
+          "2ac9a6746aca543a"
+        ],
+        [
+          21,
+          25,
+          "cae662172fd450bb"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/positive-5",
+      "sanitised": "bonus of [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          9,
+          4
+        ]
+      ],
+      "text_sha256": "02414d8bcba699133611d9030af7d862ad00dde529bfba7cedc4904e047158f9",
+      "tokens": [
+        [
+          0,
+          5,
+          "5f220b4a45832c07"
+        ],
+        [
+          6,
+          8,
+          "28391d3bc64ec15c"
+        ],
+        [
+          10,
+          13,
+          "f7bf518e5a25b3a3"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/positive-6",
+      "sanitised": "pretensão salarial: [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          20,
+          9
+        ]
+      ],
+      "text_sha256": "bfdddcaa69d8be2edc505145e010c68d3a7380e62027639cf7991e3945f39707",
+      "tokens": [
+        [
+          0,
+          9,
+          "c4213233ded0b496"
+        ],
+        [
+          10,
+          18,
+          "1170ab3105824280"
+        ],
+        [
+          20,
+          23,
+          "76b10c2850aedde4"
+        ],
+        [
+          24,
+          25,
+          "19581e27de7ced00"
+        ],
+        [
+          26,
+          29,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "health"
+      ],
+      "name": "health/positive-1",
+      "sanitised": "atestado com [REDACTED:health] anexo",
+      "spans": [
+        [
+          "health",
+          13,
+          9
+        ]
+      ],
+      "text_sha256": "b75a8c9055ec3689f920226117740d901d1e9d510bbf0b63367fcfc80d1d4ea0",
+      "tokens": [
+        [
+          0,
+          8,
+          "c250086e2d49ee0b"
+        ],
+        [
+          9,
+          12,
+          "71b4f3a3748cd684"
+        ],
+        [
+          13,
+          16,
+          "5424626b932a2ff9"
+        ],
+        [
+          17,
+          20,
+          "16b59eeb3ff6109b"
+        ],
+        [
+          21,
+          22,
+          "6b86b273ff34fce1"
+        ],
+        [
+          23,
+          28,
+          "be9ae4ef7a2251bd"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "health"
+      ],
+      "name": "health/positive-2",
+      "sanitised": "[REDACTED:health]",
+      "spans": [
+        [
+          "health",
+          0,
+          11
+        ]
+      ],
+      "text_sha256": "b68a0b37faeff0e0b7da039828c36f942798380c7393d49a315914adbf012cb3",
+      "tokens": [
+        [
+          0,
+          3,
+          "5424626b932a2ff9"
+        ],
+        [
+          4,
+          6,
+          "4a44dc15364204a8"
+        ],
+        [
+          8,
+          11,
+          "5cdf83c6d8431d2a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "health"
+      ],
+      "name": "health/positive-3",
+      "sanitised": "[REDACTED:health]",
+      "spans": [
+        [
+          "health",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "d320547f28707a02934db81649f758b1488322611f479c162c2c8a69062420af",
+      "tokens": [
+        [
+          0,
+          3,
+          "603971f61b636833"
+        ],
+        [
+          4,
+          6,
+          "4a44dc15364204a8"
+        ],
+        [
+          7,
+          10,
+          "e039d92cf12f74e8"
+        ],
+        [
+          11,
+          12,
+          "6b86b273ff34fce1"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "health"
+      ],
+      "name": "health/positive-4",
+      "sanitised": "[REDACTED:health]",
+      "spans": [
+        [
+          "health",
+          0,
+          9
+        ]
+      ],
+      "text_sha256": "0841d05b29cb2b8be6dd12f49468744d10e9ecd65787660a1645226a1f69a499",
+      "tokens": [
+        [
+          0,
+          3,
+          "5424626b932a2ff9"
+        ],
+        [
+          4,
+          7,
+          "1632c29ecdece3db"
+        ],
+        [
+          8,
+          9,
+          "6b86b273ff34fce1"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "colleague-name"
+      ],
+      "name": "colleague-name/positive-1",
+      "sanitised": "minha gestora [REDACTED:colleague-name] pediu",
+      "spans": [
+        [
+          "colleague-name",
+          14,
+          12
+        ]
+      ],
+      "text_sha256": "5b0d024c0b7b09c2eb0f48c36356051e222dcc620d3dcd3536538bbabcd69737",
+      "tokens": [
+        [
+          0,
+          5,
+          "c7aa8d3434d03719"
+        ],
+        [
+          6,
+          13,
+          "8d58d0914e18707c"
+        ],
+        [
+          14,
+          18,
+          "d9d43047072aa1e6"
+        ],
+        [
+          19,
+          26,
+          "3582c00e827dfa87"
+        ],
+        [
+          27,
+          32,
+          "1614431e9966b63d"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "colleague-name"
+      ],
+      "name": "colleague-name/positive-2",
+      "sanitised": "My colleague [REDACTED:colleague-name] wrote",
+      "spans": [
+        [
+          "colleague-name",
+          13,
+          13
+        ]
+      ],
+      "text_sha256": "f3d4a6b9d67990d044a82882eec5385ddaf9066486bee63529bce00472981c06",
+      "tokens": [
+        [
+          0,
+          2,
+          "038468518ad8122e"
+        ],
+        [
+          3,
+          12,
+          "7fdbbefdb4a4607c"
+        ],
+        [
+          13,
+          19,
+          "af4dd7a2be93e649"
+        ],
+        [
+          20,
+          26,
+          "a4126b9473f4371c"
+        ],
+        [
+          27,
+          32,
+          "5a3365e9b3ecf3ea"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "colleague-name"
+      ],
+      "name": "colleague-name/positive-3",
+      "sanitised": "meu colega de time [REDACTED:colleague-name] disse",
+      "spans": [
+        [
+          "colleague-name",
+          19,
+          12
+        ]
+      ],
+      "text_sha256": "221de62c50ee09e4596540d11a5092de1a7769fe51045c9be63bb402512e0d2e",
+      "tokens": [
+        [
+          0,
+          3,
+          "4b152f7c6c1c13de"
+        ],
+        [
+          4,
+          10,
+          "2b95df9f30428840"
+        ],
+        [
+          11,
+          13,
+          "959a45d44e6fcf58"
+        ],
+        [
+          14,
+          18,
+          "336074805fc85398"
+        ],
+        [
+          19,
+          22,
+          "aad3309d3ad597fc"
+        ],
+        [
+          23,
+          25,
+          "aa58b21b01d6b8a9"
+        ],
+        [
+          26,
+          31,
+          "e3c8794740b41656"
+        ],
+        [
+          32,
+          37,
+          "26fecb23fc70dc08"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "colleague-name"
+      ],
+      "name": "colleague-name/positive-4",
+      "sanitised": "our tech lead [REDACTED:colleague-name] approved",
+      "spans": [
+        [
+          "colleague-name",
+          14,
+          4
+        ]
+      ],
+      "text_sha256": "53f714ce2ae3e0d2899d4a373828b61affd2baae0c162b9119faf0fd1e2ffc17",
+      "tokens": [
+        [
+          0,
+          3,
+          "a6556e4852e26390"
+        ],
+        [
+          4,
+          8,
+          "fe9bbd400bb6cb31"
+        ],
+        [
+          9,
+          13,
+          "e3456bc1f4d270f4"
+        ],
+        [
+          14,
+          18,
+          "754272f582bef209"
+        ],
+        [
+          19,
+          27,
+          "2687f86ed6784b8a"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-1",
+      "sanitised": "(11) 1234",
+      "spans": [],
+      "text_sha256": "817e7e3a3849a8d4482ef668ca1a4d1f435cff96304f3bfabf2c6c9f291ccd46",
+      "tokens": [
+        [
+          1,
+          3,
+          "4fc82b26aecb47d2"
+        ],
+        [
+          5,
+          9,
+          "03ac674216f3e15c"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-2",
+      "sanitised": "version 1.2.3-4567",
+      "spans": [],
+      "text_sha256": "99167d26b0c603e1abf6c261d57dddd2ba340fc59f5d89766c64e2c54951c868",
+      "tokens": [
+        [
+          0,
+          7,
+          "5ca4f3850ccc331a"
+        ],
+        [
+          8,
+          9,
+          "6b86b273ff34fce1"
+        ],
+        [
+          10,
+          11,
+          "d4735e3a265e16ee"
+        ],
+        [
+          12,
+          13,
+          "4e07408562bedb8b"
+        ],
+        [
+          14,
+          18,
+          "db2e7f1bd5ab9968"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-3",
+      "sanitised": "date 2026-10-01",
+      "spans": [],
+      "text_sha256": "db32b6f824f90530078d34937f6f3c21f603bcb5e9c96e67e0470caab1a14d6c",
+      "tokens": [
+        [
+          0,
+          4,
+          "0e87632cd46bd490"
+        ],
+        [
+          5,
+          9,
+          "158a323a7ba44870"
+        ],
+        [
+          10,
+          12,
+          "4a44dc15364204a8"
+        ],
+        [
+          13,
+          15,
+          "938db8c9f82c8cb5"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-4",
+      "sanitised": "score +12 points",
+      "spans": [],
+      "text_sha256": "331f767a48a5cb671fe668ad7aec61e606d8ea20eee54a6f91c08965af45e963",
+      "tokens": [
+        [
+          0,
+          5,
+          "a575b79868a2336d"
+        ],
+        [
+          7,
+          9,
+          "6b51d431df5d7f14"
+        ],
+        [
+          10,
+          16,
+          "c54a061dfcc125cb"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-5",
+      "sanitised": "@@ -10,7 +10,8 @@",
+      "spans": [],
+      "text_sha256": "5b10d78916626ba1f0cc725a84165b4340c31fc787e43a5db1b353512983cf6b",
+      "tokens": [
+        [
+          4,
+          6,
+          "4a44dc15364204a8"
+        ],
+        [
+          7,
+          8,
+          "7902699be42c8a8e"
+        ],
+        [
+          10,
+          12,
+          "4a44dc15364204a8"
+        ],
+        [
+          13,
+          14,
+          "2c624232cdd22177"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-6",
+      "sanitised": "(01) 2345-6789",
+      "spans": [],
+      "text_sha256": "bb4530bf0870fdec0b6b55be111961398ec32bb9c166bd47bd3460f5927b9d37",
+      "tokens": [
+        [
+          1,
+          3,
+          "938db8c9f82c8cb5"
+        ],
+        [
+          5,
+          9,
+          "38083c7ee9121e17"
+        ],
+        [
+          10,
+          14,
+          "499bc7df9d8873c1"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-7",
+      "sanitised": "+55 12",
+      "spans": [],
+      "text_sha256": "4ab20cbc0865aae35da1d703d268cc6950132566900596ed6987e9bfa5e17990",
+      "tokens": [
+        [
+          1,
+          3,
+          "02d20bbd7e394ad5"
+        ],
+        [
+          4,
+          6,
+          "6b51d431df5d7f14"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-8",
+      "sanitised": "uuid 123e4567-e89b-12d3-a456-426614174000",
+      "spans": [],
+      "text_sha256": "6497bdff59aaf71f906f48fa8e5543af9612137e8ad45a0a8925bbeb2a9caac4",
+      "tokens": [
+        [
+          0,
+          4,
+          "75666699b77db631"
+        ],
+        [
+          5,
+          13,
+          "458d140bd54de06e"
+        ],
+        [
+          14,
+          18,
+          "f138851a0167af54"
+        ],
+        [
+          19,
+          23,
+          "f8c54930630e6b36"
+        ],
+        [
+          24,
+          28,
+          "713c5f3bfb02957a"
+        ],
+        [
+          29,
+          41,
+          "7ebfafb6b93fa7dd"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-9",
+      "sanitised": "call (11)91234-56789",
+      "spans": [],
+      "text_sha256": "344e9b7813c66c04cfce215304fc9f6532320943ef750cb4df672aee0ca36366",
+      "tokens": [
+        [
+          0,
+          4,
+          "7edb360f06acaef2"
+        ],
+        [
+          6,
+          8,
+          "4fc82b26aecb47d2"
+        ],
+        [
+          9,
+          14,
+          "c6226fb275c73f06"
+        ],
+        [
+          15,
+          20,
+          "f76043a74ec33b6a"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-10",
+      "sanitised": "x+1 (555) 010-0199",
+      "spans": [],
+      "text_sha256": "971b6c39dcd9cd2fdfc8aea49ec5fa66c5a891a9b7a15dbf65693034cad6ad34",
+      "tokens": [
+        [
+          0,
+          1,
+          "2d711642b726b044"
+        ],
+        [
+          2,
+          3,
+          "6b86b273ff34fce1"
+        ],
+        [
+          5,
+          8,
+          "91a73fd806ab2c00"
+        ],
+        [
+          10,
+          13,
+          "13715f6c8b48ed1b"
+        ],
+        [
+          14,
+          18,
+          "27c75197134a88ef"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-11",
+      "sanitised": "+1 555",
+      "spans": [],
+      "text_sha256": "db8a7fb0d176af0748f96b8507fa8dac892a5dc3f085f9c135a160f1d2944f32",
+      "tokens": [
+        [
+          1,
+          2,
+          "6b86b273ff34fce1"
+        ],
+        [
+          3,
+          6,
+          "91a73fd806ab2c00"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "phone/negative-12",
+      "sanitised": "+1234567890123456",
+      "spans": [],
+      "text_sha256": "01c2f8628f03add7a77c633482b002f66762348119f29bc4a7a9122a94741dd1",
+      "tokens": [
+        [
+          1,
+          17,
+          "7a51d064a1a216a6"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "postal-address/negative-1",
+      "sanitised": "ticket 12345-6789",
+      "spans": [],
+      "text_sha256": "2399a86991102fe416036202fdd84da123de26d027065b73c6b66d6670e10aa3",
+      "tokens": [
+        [
+          0,
+          6,
+          "14069429150abcbf"
+        ],
+        [
+          7,
+          12,
+          "5994471abb01112a"
+        ],
+        [
+          13,
+          17,
+          "499bc7df9d8873c1"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "postal-address/negative-2",
+      "sanitised": "v2.12345-678.1",
+      "spans": [],
+      "text_sha256": "b1a8b7c17a44f770fd8ae180011b946857e12d2f59b4a6ecfba0548d3516a570",
+      "tokens": [
+        [
+          0,
+          2,
+          "fb04dcb6970e4c3d"
+        ],
+        [
+          3,
+          8,
+          "5994471abb01112a"
+        ],
+        [
+          9,
+          12,
+          "cebe3d9d614ba5c1"
+        ],
+        [
+          13,
+          14,
+          "6b86b273ff34fce1"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "postal-address/negative-3",
+      "sanitised": "ref 12345-678/2026",
+      "spans": [],
+      "text_sha256": "72cdd84785fe97fab690ea45af45ba401f7477b62eaddecce210f719e45fdd43",
+      "tokens": [
+        [
+          0,
+          3,
+          "3ff6c05723bb069d"
+        ],
+        [
+          4,
+          9,
+          "5994471abb01112a"
+        ],
+        [
+          10,
+          13,
+          "cebe3d9d614ba5c1"
+        ],
+        [
+          14,
+          18,
+          "158a323a7ba44870"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "postal-address/negative-4",
+      "sanitised": "Rua sem número",
+      "spans": [],
+      "text_sha256": "55505fb918504b21591cc93ab012a9e65231d0b5be0cdee6cedee40de6290ec6",
+      "tokens": [
+        [
+          0,
+          3,
+          "3a9ca185890ebf61"
+        ],
+        [
+          4,
+          7,
+          "e604f8c97caaadb4"
+        ],
+        [
+          8,
+          14,
+          "993e4ac10a2072b1"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "postal-address/negative-5",
+      "sanitised": "a rua tem 3 casas",
+      "spans": [],
+      "text_sha256": "2c4be52b954152ffa97275f4c03495b3881cb29d8f2311bc7711f9622a55134f",
+      "tokens": [
+        [
+          0,
+          1,
+          "ca978112ca1bbdca"
+        ],
+        [
+          2,
+          5,
+          "3a9ca185890ebf61"
+        ],
+        [
+          6,
+          9,
+          "1f7be6908b217b4a"
+        ],
+        [
+          10,
+          11,
+          "4e07408562bedb8b"
+        ],
+        [
+          12,
+          17,
+          "20a73bde341d54eb"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "postal-address/negative-6",
+      "sanitised": "Quillon Street",
+      "spans": [],
+      "text_sha256": "9c709bf1e5ace4a5d0f9c9bd25c56916127318e167c6be02c52c0c03bcdec3a5",
+      "tokens": [
+        [
+          0,
+          7,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          8,
+          14,
+          "6008c26f4452392a"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "postal-address/negative-7",
+      "sanitised": "build ab12345-678",
+      "spans": [],
+      "text_sha256": "24f895a67354e558e7dfad80c36751be726c30d0daea81bfdc8ed823aa7d4e05",
+      "tokens": [
+        [
+          0,
+          5,
+          "44575cf5b28512d7"
+        ],
+        [
+          6,
+          13,
+          "c88795590094766b"
+        ],
+        [
+          14,
+          17,
+          "cebe3d9d614ba5c1"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "postal-address/negative-8",
+      "sanitised": "Avenida Paulista vale 10",
+      "spans": [],
+      "text_sha256": "1d6dddd2fa0006834710c4d093f190e52a03409091917648ce2ef127f1f17de8",
+      "tokens": [
+        [
+          0,
+          7,
+          "cb1fe28d499f2578"
+        ],
+        [
+          8,
+          16,
+          "ab76b32b4d4f795c"
+        ],
+        [
+          17,
+          21,
+          "8192ccdff1a650ff"
+        ],
+        [
+          22,
+          24,
+          "4a44dc15364204a8"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/negative-1",
+      "sanitised": "R$ 30 a unidade",
+      "spans": [],
+      "text_sha256": "79f34e09733293edfc75376270ee1e834ec6888b1a88b518b433afeff4045aa6",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "624b60c58c9d8bfb"
+        ],
+        [
+          6,
+          7,
+          "ca978112ca1bbdca"
+        ],
+        [
+          8,
+          15,
+          "a9959d28d9598c1b"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/negative-2",
+      "sanitised": "budget USD 50 per month",
+      "spans": [],
+      "text_sha256": "a07b703f07bcb0ad73d283499d27b30189407cbd311f1ad08f381330a9c71493",
+      "tokens": [
+        [
+          0,
+          6,
+          "0af96a8ed622a394"
+        ],
+        [
+          7,
+          10,
+          "d60fbd8718eceb7f"
+        ],
+        [
+          11,
+          13,
+          "1a6562590ef19d10"
+        ],
+        [
+          14,
+          17,
+          "b427c3dec9045990"
+        ],
+        [
+          18,
+          23,
+          "a5c7d1719e284f2c"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/negative-3",
+      "sanitised": "salary=$1",
+      "spans": [],
+      "text_sha256": "ba1170fd6d1978e68a675157032e3182e518212acea68e8bb60111bd5c7c0669",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          8,
+          9,
+          "6b86b273ff34fce1"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/negative-4",
+      "sanitised": "the contract defines 3 fields",
+      "spans": [],
+      "text_sha256": "0a7704257dbe885cda00a839fe4f47a56b99e8ca12758c46c49dc8929d216bb7",
+      "tokens": [
+        [
+          0,
+          3,
+          "b9776d7ddf459c9a"
+        ],
+        [
+          4,
+          12,
+          "cc8321d6375c494d"
+        ],
+        [
+          13,
+          20,
+          "4cfd97d8cd083f51"
+        ],
+        [
+          21,
+          22,
+          "4e07408562bedb8b"
+        ],
+        [
+          23,
+          29,
+          "bfe5d697162d9029"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/negative-5",
+      "sanitised": "costs $1,000",
+      "spans": [],
+      "text_sha256": "8a578beea45361536ed3775696e441d1e6eaab0c94030b2087d3f8ca7a849693",
+      "tokens": [
+        [
+          0,
+          5,
+          "bcde6928e538c63c"
+        ],
+        [
+          7,
+          8,
+          "6b86b273ff34fce1"
+        ],
+        [
+          9,
+          12,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/negative-6",
+      "sanitised": "echo $100",
+      "spans": [],
+      "text_sha256": "dc5e4fe2de73cbeaca78aaf971ed9aeb1a3b5b7fe728be6da635abf4eab9a55a",
+      "tokens": [
+        [
+          0,
+          4,
+          "092c79e8f80e559e"
+        ],
+        [
+          6,
+          9,
+          "ad57366865126e55"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/negative-7",
+      "sanitised": "price R$ 12.500,00 for the laptop",
+      "spans": [],
+      "text_sha256": "b645ed1e1076461e57eba768ed3e2e7d50590f52207d7dbb708d93673f49c7f2",
+      "tokens": [
+        [
+          0,
+          5,
+          "683b531f41ec88a2"
+        ],
+        [
+          6,
+          7,
+          "454349e422f05297"
+        ],
+        [
+          9,
+          11,
+          "6b51d431df5d7f14"
+        ],
+        [
+          12,
+          15,
+          "0604cd3138feed20"
+        ],
+        [
+          16,
+          18,
+          "f1534392279bddbf"
+        ],
+        [
+          19,
+          22,
+          "10c22bcf4c768b51"
+        ],
+        [
+          23,
+          26,
+          "b9776d7ddf459c9a"
+        ],
+        [
+          27,
+          33,
+          "5eec0dc419aa8337"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/negative-1",
+      "sanitised": "acid F32",
+      "spans": [],
+      "text_sha256": "289d2cfa5ccdf7480cc6f1abec6374868ad311b5133100de7b5dcc09639e586f",
+      "tokens": [
+        [
+          0,
+          4,
+          "ae5eebff12dd75af"
+        ],
+        [
+          5,
+          8,
+          "16b59eeb3ff6109b"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/negative-2",
+      "sanitised": "CID F3",
+      "spans": [],
+      "text_sha256": "23105ea16a85fc8b881b85c6673746f13a1a016e5b2a8ec3cffdedeb8981ee64",
+      "tokens": [
+        [
+          0,
+          3,
+          "5424626b932a2ff9"
+        ],
+        [
+          4,
+          6,
+          "625e0f649de27800"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/negative-3",
+      "sanitised": "ICD-10 J4",
+      "spans": [],
+      "text_sha256": "aefa31695bd40171f239a50c596afe24222886fd4c4b0eb7c3347f702e9dbf98",
+      "tokens": [
+        [
+          0,
+          3,
+          "603971f61b636833"
+        ],
+        [
+          4,
+          6,
+          "4a44dc15364204a8"
+        ],
+        [
+          7,
+          9,
+          "2e3b7023266053bd"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/negative-4",
+      "sanitised": "CID alone",
+      "spans": [],
+      "text_sha256": "51322fdbfb36ac1420066d1d89b29f49e79aa3c2c046b6337ae690de81bc2da6",
+      "tokens": [
+        [
+          0,
+          3,
+          "5424626b932a2ff9"
+        ],
+        [
+          4,
+          9,
+          "facf8b54e5c0b8c4"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/negative-5",
+      "sanitised": "ICD-10 codes",
+      "spans": [],
+      "text_sha256": "89218e54349d6b0249c3c5a9bf862b3df5b8eee8a147789257b37ec9c39d5d2e",
+      "tokens": [
+        [
+          0,
+          3,
+          "603971f61b636833"
+        ],
+        [
+          4,
+          6,
+          "4a44dc15364204a8"
+        ],
+        [
+          7,
+          12,
+          "64a7994c6feb92d4"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/negative-6",
+      "sanitised": "CIDR 10.0.0.0/8",
+      "spans": [],
+      "text_sha256": "67e6a520ba6e4bd558e3bd9554e2c75db0f23f87f62443948da55a9e64f390ef",
+      "tokens": [
+        [
+          0,
+          4,
+          "09a70a0fbf9117f0"
+        ],
+        [
+          5,
+          7,
+          "4a44dc15364204a8"
+        ],
+        [
+          8,
+          9,
+          "5feceb66ffc86f38"
+        ],
+        [
+          10,
+          11,
+          "5feceb66ffc86f38"
+        ],
+        [
+          12,
+          13,
+          "5feceb66ffc86f38"
+        ],
+        [
+          14,
+          15,
+          "2c624232cdd22177"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/negative-7",
+      "sanitised": "cid:image001",
+      "spans": [],
+      "text_sha256": "bceb7c3417a1d670f6afe4fc509048263f26da89aa6ae8e1e51d213475ef1a53",
+      "tokens": [
+        [
+          0,
+          3,
+          "5424626b932a2ff9"
+        ],
+        [
+          4,
+          12,
+          "22b10ad6c299e414"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/negative-8",
+      "sanitised": "CID-1 F32x",
+      "spans": [],
+      "text_sha256": "5a80495f20c98457dbdb0efc97033a4e72c5ebbfa4f8ec6fb111d2853425e15e",
+      "tokens": [
+        [
+          0,
+          3,
+          "5424626b932a2ff9"
+        ],
+        [
+          4,
+          5,
+          "6b86b273ff34fce1"
+        ],
+        [
+          6,
+          10,
+          "5be9f4e4625fd104"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/negative-9",
+      "sanitised": "the bug was diagnosed with a profiler",
+      "spans": [],
+      "text_sha256": "b5369c8d0afa2b517e6720c6fe34ca7a958a3e7047fe92fe184846cbb90f5d26",
+      "tokens": [
+        [
+          0,
+          3,
+          "b9776d7ddf459c9a"
+        ],
+        [
+          4,
+          7,
+          "ecb53f367b3541da"
+        ],
+        [
+          8,
+          11,
+          "b63b99f6383ba713"
+        ],
+        [
+          12,
+          21,
+          "d22b75e3a33a790e"
+        ],
+        [
+          22,
+          26,
+          "0695b563acde461f"
+        ],
+        [
+          27,
+          28,
+          "ca978112ca1bbdca"
+        ],
+        [
+          29,
+          37,
+          "74a9d35712f8cefd"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "colleague-name/negative-1",
+      "sanitised": "my manager said hi",
+      "spans": [],
+      "text_sha256": "5e2d3c0cd76aba6caaf34b91e4a5eda6b8b17fa998c3003f7806bfafd7872d92",
+      "tokens": [
+        [
+          0,
+          2,
+          "038468518ad8122e"
+        ],
+        [
+          3,
+          10,
+          "6ee4a469cd4e9105"
+        ],
+        [
+          11,
+          15,
+          "fb46c79b7eb7af17"
+        ],
+        [
+          16,
+          18,
+          "8f434346648f6b96"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "colleague-name/negative-2",
+      "sanitised": "my manager, Zyxa said",
+      "spans": [],
+      "text_sha256": "d999963b5d8bf16841c9ccf815f8ab6c1ed29f8881e93a17796c15a635f9eb35",
+      "tokens": [
+        [
+          0,
+          2,
+          "038468518ad8122e"
+        ],
+        [
+          3,
+          10,
+          "6ee4a469cd4e9105"
+        ],
+        [
+          12,
+          16,
+          "d9d43047072aa1e6"
+        ],
+        [
+          17,
+          21,
+          "fb46c79b7eb7af17"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "colleague-name/negative-3",
+      "sanitised": "o gestor Zyxa",
+      "spans": [],
+      "text_sha256": "fb56f0563b7567384f22f7e522bd22a3c5a1ee7ee40c2a05d54dd3bf74588198",
+      "tokens": [
+        [
+          0,
+          1,
+          "65c74c15a686187b"
+        ],
+        [
+          2,
+          8,
+          "0bd66e5612153f99"
+        ],
+        [
+          9,
+          13,
+          "d9d43047072aa1e6"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "colleague-name/negative-4",
+      "sanitised": "Meu colega disse",
+      "spans": [],
+      "text_sha256": "f7ecc8cdc42932be76a52a05248fdbe4461e5b79302c10ab3f44a6903188651a",
+      "tokens": [
+        [
+          0,
+          3,
+          "4b152f7c6c1c13de"
+        ],
+        [
+          4,
+          10,
+          "2b95df9f30428840"
+        ],
+        [
+          11,
+          16,
+          "26fecb23fc70dc08"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "colleague-name/negative-5",
+      "sanitised": "my colleague's Zyxa",
+      "spans": [],
+      "text_sha256": "5dc7e91794320a8d07b2b92e7200714045943a8ee1d16eb45096db7732f95cc6",
+      "tokens": [
+        [
+          0,
+          2,
+          "038468518ad8122e"
+        ],
+        [
+          3,
+          12,
+          "7fdbbefdb4a4607c"
+        ],
+        [
+          13,
+          14,
+          "043a718774c572bd"
+        ],
+        [
+          15,
+          19,
+          "d9d43047072aa1e6"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "colleague-name/negative-6",
+      "sanitised": "minha gestora pediu",
+      "spans": [],
+      "text_sha256": "921e7b8e7ff338f59cd485a5f7ffcc47ee895534e34687c492ceaae657d5fdd8",
+      "tokens": [
+        [
+          0,
+          5,
+          "c7aa8d3434d03719"
+        ],
+        [
+          6,
+          13,
+          "8d58d0914e18707c"
+        ],
+        [
+          14,
+          19,
+          "1614431e9966b63d"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/cue-next-line",
+      "sanitised": "salário\nR$ 12.500,00",
+      "spans": [],
+      "text_sha256": "3b1fd9a8baeaf72b5a1d843e82fed0d2a99cefc80d5bdb47eff838a23f013e3c",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          8,
+          9,
+          "454349e422f05297"
+        ],
+        [
+          11,
+          13,
+          "6b51d431df5d7f14"
+        ],
+        [
+          14,
+          17,
+          "0604cd3138feed20"
+        ],
+        [
+          18,
+          20,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/cue-beyond-window",
+      "sanitised": "salário xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx R$ 12.500,00",
+      "spans": [],
+      "text_sha256": "52da75b5b573f25c08509979f42d630ce5a5634ea0878ba782a7c3d36d3eb900",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          8,
+          89,
+          "4d1f7bb876c6aae0"
+        ],
+        [
+          90,
+          91,
+          "454349e422f05297"
+        ],
+        [
+          93,
+          95,
+          "6b51d431df5d7f14"
+        ],
+        [
+          96,
+          99,
+          "0604cd3138feed20"
+        ],
+        [
+          100,
+          102,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue-at-window-edge",
+      "sanitised": "salário xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          79,
+          12
+        ]
+      ],
+      "text_sha256": "653662034126d61fc088416593a9ffcc85eb351aa917aab4d6c961e8cae620b0",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          8,
+          78,
+          "c71bd109227e2343"
+        ],
+        [
+          79,
+          80,
+          "454349e422f05297"
+        ],
+        [
+          82,
+          84,
+          "6b51d431df5d7f14"
+        ],
+        [
+          85,
+          88,
+          "0604cd3138feed20"
+        ],
+        [
+          89,
+          91,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue-near",
+      "sanitised": "salário xxxxxxxxxx [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          19,
+          12
+        ]
+      ],
+      "text_sha256": "bd0c73d3120ee465c452d91b826f2435f60b828fc09ac4f77a2d5be959e0fc1d",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          8,
+          18,
+          "fc11d6f28e59d3cc"
+        ],
+        [
+          19,
+          20,
+          "454349e422f05297"
+        ],
+        [
+          22,
+          24,
+          "6b51d431df5d7f14"
+        ],
+        [
+          25,
+          28,
+          "0604cd3138feed20"
+        ],
+        [
+          29,
+          31,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue-after",
+      "sanitised": "[REDACTED:contract-value] de salário",
+      "spans": [
+        [
+          "contract-value",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "261e9d4b85bfff59e8bff10e0342b2dd1911b51844a35576f6937650c6901769",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          9,
+          "0604cd3138feed20"
+        ],
+        [
+          10,
+          12,
+          "f1534392279bddbf"
+        ],
+        [
+          13,
+          15,
+          "959a45d44e6fcf58"
+        ],
+        [
+          16,
+          23,
+          "cec2dbf1d35dfd64"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/window-before-71",
+      "sanitised": "salary xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          79,
+          12
+        ]
+      ],
+      "text_sha256": "67e500202fb28f6db014597fe6b23c029a5f7c9c11366cb39815037dd84c6289",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          78,
+          "87a1e4c1c92b7b7a"
+        ],
+        [
+          79,
+          80,
+          "454349e422f05297"
+        ],
+        [
+          82,
+          84,
+          "6b51d431df5d7f14"
+        ],
+        [
+          85,
+          88,
+          "0604cd3138feed20"
+        ],
+        [
+          89,
+          91,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/window-before-72",
+      "sanitised": "salary xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          80,
+          12
+        ]
+      ],
+      "text_sha256": "3aed7c82a0f35dfd5a08c84a5b3caf65a492c395776105615c252c04ea11f70d",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          79,
+          "5bd2fd7019be4014"
+        ],
+        [
+          80,
+          81,
+          "454349e422f05297"
+        ],
+        [
+          83,
+          85,
+          "6b51d431df5d7f14"
+        ],
+        [
+          86,
+          89,
+          "0604cd3138feed20"
+        ],
+        [
+          90,
+          92,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/window-before-73",
+      "sanitised": "salary xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx R$ 12.500,00",
+      "spans": [],
+      "text_sha256": "4e7f5e9d6888aa91b7f5355660a9f1db4ccedfc928f73feff2ae2578965df640",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          80,
+          "71b07785703e311e"
+        ],
+        [
+          81,
+          82,
+          "454349e422f05297"
+        ],
+        [
+          84,
+          86,
+          "6b51d431df5d7f14"
+        ],
+        [
+          87,
+          90,
+          "0604cd3138feed20"
+        ],
+        [
+          91,
+          93,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/window-after-71",
+      "sanitised": "[REDACTED:contract-value] xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx salary",
+      "spans": [
+        [
+          "contract-value",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "31c120b6d0c8f8479cc25ba99727e36d9fc7ee84c692974a9e3dbc3304e90d02",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          9,
+          "0604cd3138feed20"
+        ],
+        [
+          10,
+          12,
+          "f1534392279bddbf"
+        ],
+        [
+          13,
+          84,
+          "87a1e4c1c92b7b7a"
+        ],
+        [
+          85,
+          91,
+          "6384e43c02b1fbdf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/window-after-72",
+      "sanitised": "[REDACTED:contract-value] xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx salary",
+      "spans": [
+        [
+          "contract-value",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "30022a065e23c5d66c07e694e26adfb2ef900c64f1e56a645b25a817500c0677",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          9,
+          "0604cd3138feed20"
+        ],
+        [
+          10,
+          12,
+          "f1534392279bddbf"
+        ],
+        [
+          13,
+          85,
+          "5bd2fd7019be4014"
+        ],
+        [
+          86,
+          92,
+          "6384e43c02b1fbdf"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/window-after-73",
+      "sanitised": "R$ 12.500,00 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx salary",
+      "spans": [],
+      "text_sha256": "2a5d56c663c386148c3122a1d699ee0b606e1c30939b666450cc988a3f1f111b",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          9,
+          "0604cd3138feed20"
+        ],
+        [
+          10,
+          12,
+          "f1534392279bddbf"
+        ],
+        [
+          13,
+          86,
+          "71b07785703e311e"
+        ],
+        [
+          87,
+          93,
+          "6384e43c02b1fbdf"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/window-after-74",
+      "sanitised": "R$ 12.500,00 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx salary",
+      "spans": [],
+      "text_sha256": "728a51957928c923a1117872cbe3a95cbd3df2b2a13e5cb526d5b8d91698e173",
+      "tokens": [
+        [
+          0,
+          1,
+          "454349e422f05297"
+        ],
+        [
+          3,
+          5,
+          "6b51d431df5d7f14"
+        ],
+        [
+          6,
+          9,
+          "0604cd3138feed20"
+        ],
+        [
+          10,
+          12,
+          "f1534392279bddbf"
+        ],
+        [
+          13,
+          87,
+          "0e72fa9b833e39a1"
+        ],
+        [
+          88,
+          94,
+          "6384e43c02b1fbdf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/lines-around",
+      "sanitised": "x\nproposta [REDACTED:contract-value]\nR$ 12.500,00\nbonus\n[REDACTED:contract-value] bonus\n\nR$ 12.500,00",
+      "spans": [
+        [
+          "contract-value",
+          11,
+          12
+        ],
+        [
+          "contract-value",
+          43,
+          12
+        ]
+      ],
+      "text_sha256": "f509ae0b8eb1eeaa44c249e3ffcb90e585621d54c0a3ee25531e4fe383424979",
+      "tokens": [
+        [
+          0,
+          1,
+          "2d711642b726b044"
+        ],
+        [
+          2,
+          10,
+          "a2ff0f92d1612959"
+        ],
+        [
+          11,
+          12,
+          "454349e422f05297"
+        ],
+        [
+          14,
+          16,
+          "6b51d431df5d7f14"
+        ],
+        [
+          17,
+          20,
+          "0604cd3138feed20"
+        ],
+        [
+          21,
+          23,
+          "f1534392279bddbf"
+        ],
+        [
+          24,
+          25,
+          "454349e422f05297"
+        ],
+        [
+          27,
+          29,
+          "6b51d431df5d7f14"
+        ],
+        [
+          30,
+          33,
+          "0604cd3138feed20"
+        ],
+        [
+          34,
+          36,
+          "f1534392279bddbf"
+        ],
+        [
+          37,
+          42,
+          "5f220b4a45832c07"
+        ],
+        [
+          43,
+          44,
+          "454349e422f05297"
+        ],
+        [
+          46,
+          48,
+          "6b51d431df5d7f14"
+        ],
+        [
+          49,
+          52,
+          "0604cd3138feed20"
+        ],
+        [
+          53,
+          55,
+          "f1534392279bddbf"
+        ],
+        [
+          56,
+          61,
+          "5f220b4a45832c07"
+        ],
+        [
+          63,
+          64,
+          "454349e422f05297"
+        ],
+        [
+          66,
+          68,
+          "6b51d431df5d7f14"
+        ],
+        [
+          69,
+          72,
+          "0604cd3138feed20"
+        ],
+        [
+          73,
+          75,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/newline-first",
+      "sanitised": "\n[REDACTED:contract-value] salário",
+      "spans": [
+        [
+          "contract-value",
+          1,
+          12
+        ]
+      ],
+      "text_sha256": "056e2a50b48ae54e4b601905fe04ef1ce2620c0ea935d2763e3c01e3b2646f9d",
+      "tokens": [
+        [
+          1,
+          2,
+          "454349e422f05297"
+        ],
+        [
+          4,
+          6,
+          "6b51d431df5d7f14"
+        ],
+        [
+          7,
+          10,
+          "0604cd3138feed20"
+        ],
+        [
+          11,
+          13,
+          "f1534392279bddbf"
+        ],
+        [
+          14,
+          21,
+          "cec2dbf1d35dfd64"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue-before-on-the-line-above-with-emoji",
+      "sanitised": "😀 salário 😀\n😀 [REDACTED:contract-value] 😀 pacote",
+      "spans": [
+        [
+          "contract-value",
+          14,
+          12
+        ]
+      ],
+      "text_sha256": "48b21973e12bdce72062af031297fc204167b3be6295b83709eb6bedf3af2ecd",
+      "tokens": [
+        [
+          2,
+          9,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          14,
+          15,
+          "454349e422f05297"
+        ],
+        [
+          17,
+          19,
+          "6b51d431df5d7f14"
+        ],
+        [
+          20,
+          23,
+          "0604cd3138feed20"
+        ],
+        [
+          24,
+          26,
+          "f1534392279bddbf"
+        ],
+        [
+          29,
+          35,
+          "c00fe5041979952b"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue salário",
+      "sanitised": "salário [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          8,
+          8
+        ]
+      ],
+      "text_sha256": "43abe13842f5e2263a6d7042c8c56daf74d19e4e6a6c23f55acd0fe79771592b",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          8,
+          9,
+          "454349e422f05297"
+        ],
+        [
+          11,
+          12,
+          "19581e27de7ced00"
+        ],
+        [
+          13,
+          16,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue salario",
+      "sanitised": "salario [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          8,
+          8
+        ]
+      ],
+      "text_sha256": "2fa641bc624b9324c3238853363e223f737ed2920caf5a26c9177070fd6df457",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          8,
+          9,
+          "454349e422f05297"
+        ],
+        [
+          11,
+          12,
+          "19581e27de7ced00"
+        ],
+        [
+          13,
+          16,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue salários",
+      "sanitised": "salários [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          9,
+          8
+        ]
+      ],
+      "text_sha256": "ea907314871e160fe2a6746634866bd9c14dfbc6d3593d51a3311e43683761ca",
+      "tokens": [
+        [
+          0,
+          8,
+          "8f7fd5d3b3f6340b"
+        ],
+        [
+          9,
+          10,
+          "454349e422f05297"
+        ],
+        [
+          12,
+          13,
+          "19581e27de7ced00"
+        ],
+        [
+          14,
+          17,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue salary",
+      "sanitised": "salary [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          7,
+          8
+        ]
+      ],
+      "text_sha256": "7b2d5e566e20e5b985adb191b384bdac92eb5380d3e152c046252962e88ff523",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          8,
+          "454349e422f05297"
+        ],
+        [
+          10,
+          11,
+          "19581e27de7ced00"
+        ],
+        [
+          12,
+          15,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue salaries",
+      "sanitised": "salaries [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          9,
+          8
+        ]
+      ],
+      "text_sha256": "60cf98060f8a3939eea99735974af45771305bc07bd03808485045920c61dc44",
+      "tokens": [
+        [
+          0,
+          8,
+          "e54207260c3c9f22"
+        ],
+        [
+          9,
+          10,
+          "454349e422f05297"
+        ],
+        [
+          12,
+          13,
+          "19581e27de7ced00"
+        ],
+        [
+          14,
+          17,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue remuneração",
+      "sanitised": "remuneração [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          12,
+          8
+        ]
+      ],
+      "text_sha256": "1c7041604cc65ab646757de0f7e7372f5790ffcd2da2947b47c315a23f8c04ad",
+      "tokens": [
+        [
+          0,
+          11,
+          "ff97c585cd60fd00"
+        ],
+        [
+          12,
+          13,
+          "454349e422f05297"
+        ],
+        [
+          15,
+          16,
+          "19581e27de7ced00"
+        ],
+        [
+          17,
+          20,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue remuneracao",
+      "sanitised": "remuneracao [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          12,
+          8
+        ]
+      ],
+      "text_sha256": "a3eca86114560fae965ee7cafcce95cbf3d9cc73f91c012ec0bfe8bf1a84ac95",
+      "tokens": [
+        [
+          0,
+          11,
+          "ff97c585cd60fd00"
+        ],
+        [
+          12,
+          13,
+          "454349e422f05297"
+        ],
+        [
+          15,
+          16,
+          "19581e27de7ced00"
+        ],
+        [
+          17,
+          20,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue compensation",
+      "sanitised": "compensation [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          13,
+          8
+        ]
+      ],
+      "text_sha256": "ded8278e5b2aa41ae4779012cee144721e5d985a3d1980f2a9ea0227086a2ec0",
+      "tokens": [
+        [
+          0,
+          12,
+          "b66ecab57861b722"
+        ],
+        [
+          13,
+          14,
+          "454349e422f05297"
+        ],
+        [
+          16,
+          17,
+          "19581e27de7ced00"
+        ],
+        [
+          18,
+          21,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue pretensão",
+      "sanitised": "pretensão [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          10,
+          8
+        ]
+      ],
+      "text_sha256": "507dfa8623debad2fb4f23f679eb929ef05f4a068e8c75c9191e872d60e707bb",
+      "tokens": [
+        [
+          0,
+          9,
+          "c4213233ded0b496"
+        ],
+        [
+          10,
+          11,
+          "454349e422f05297"
+        ],
+        [
+          13,
+          14,
+          "19581e27de7ced00"
+        ],
+        [
+          15,
+          18,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue pretensao",
+      "sanitised": "pretensao [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          10,
+          8
+        ]
+      ],
+      "text_sha256": "868dc14cec4af1060f876699d0d20bb513a8c2817d6adfdcede4892f050c1a7e",
+      "tokens": [
+        [
+          0,
+          9,
+          "c4213233ded0b496"
+        ],
+        [
+          10,
+          11,
+          "454349e422f05297"
+        ],
+        [
+          13,
+          14,
+          "19581e27de7ced00"
+        ],
+        [
+          15,
+          18,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue contrato",
+      "sanitised": "contrato [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          9,
+          8
+        ]
+      ],
+      "text_sha256": "7281c9fa3452499059fbac2d9a196c29888a7d9bae11639d36e4ca4873590620",
+      "tokens": [
+        [
+          0,
+          8,
+          "4a4d23ddfbfedeca"
+        ],
+        [
+          9,
+          10,
+          "454349e422f05297"
+        ],
+        [
+          12,
+          13,
+          "19581e27de7ced00"
+        ],
+        [
+          14,
+          17,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue contratos",
+      "sanitised": "contratos [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          10,
+          8
+        ]
+      ],
+      "text_sha256": "dccf2d4e14b1ed0dbb8ecf1c0436d3547bb3885a7cea9003b7bdd4719394dd9d",
+      "tokens": [
+        [
+          0,
+          9,
+          "a0114e00aebbdced"
+        ],
+        [
+          10,
+          11,
+          "454349e422f05297"
+        ],
+        [
+          13,
+          14,
+          "19581e27de7ced00"
+        ],
+        [
+          15,
+          18,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue contract",
+      "sanitised": "contract [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          9,
+          8
+        ]
+      ],
+      "text_sha256": "942babf2b5ea33d58d0438c7f0ec3621b07b142984e4b9cc492f62601fd0cb33",
+      "tokens": [
+        [
+          0,
+          8,
+          "cc8321d6375c494d"
+        ],
+        [
+          9,
+          10,
+          "454349e422f05297"
+        ],
+        [
+          12,
+          13,
+          "19581e27de7ced00"
+        ],
+        [
+          14,
+          17,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue contracts",
+      "sanitised": "contracts [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          10,
+          8
+        ]
+      ],
+      "text_sha256": "43365ccc45335f875c4782be16e8551eedaab25b27bf96ce539c5c3789ea8da3",
+      "tokens": [
+        [
+          0,
+          9,
+          "b094db7ce2f99cbc"
+        ],
+        [
+          10,
+          11,
+          "454349e422f05297"
+        ],
+        [
+          13,
+          14,
+          "19581e27de7ced00"
+        ],
+        [
+          15,
+          18,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue proposta",
+      "sanitised": "proposta [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          9,
+          8
+        ]
+      ],
+      "text_sha256": "4c2ff7028d6e56262f527ddfc0d56e251c938c5a9654cab463113d1e6eddca5d",
+      "tokens": [
+        [
+          0,
+          8,
+          "a2ff0f92d1612959"
+        ],
+        [
+          9,
+          10,
+          "454349e422f05297"
+        ],
+        [
+          12,
+          13,
+          "19581e27de7ced00"
+        ],
+        [
+          14,
+          17,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue offer",
+      "sanitised": "offer [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          6,
+          8
+        ]
+      ],
+      "text_sha256": "365eb0ff56e52bfa27097954e7f0cbb5ede8e9547c35abe3b89358e2ce7b66dd",
+      "tokens": [
+        [
+          0,
+          5,
+          "988180bf0c9328c9"
+        ],
+        [
+          6,
+          7,
+          "454349e422f05297"
+        ],
+        [
+          9,
+          10,
+          "19581e27de7ced00"
+        ],
+        [
+          11,
+          14,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue bônus",
+      "sanitised": "bônus [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          6,
+          8
+        ]
+      ],
+      "text_sha256": "7ffc9221c701f1be9d034c73e6f759f9cb0649e9c5cbe3f6ac93beb5f8763bda",
+      "tokens": [
+        [
+          0,
+          5,
+          "5f220b4a45832c07"
+        ],
+        [
+          6,
+          7,
+          "454349e422f05297"
+        ],
+        [
+          9,
+          10,
+          "19581e27de7ced00"
+        ],
+        [
+          11,
+          14,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue bonus",
+      "sanitised": "bonus [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          6,
+          8
+        ]
+      ],
+      "text_sha256": "29cacd72e83148cd4050be9f449358ccd7f6fdcd6d0b56f75ed6067783bbc679",
+      "tokens": [
+        [
+          0,
+          5,
+          "5f220b4a45832c07"
+        ],
+        [
+          6,
+          7,
+          "454349e422f05297"
+        ],
+        [
+          9,
+          10,
+          "19581e27de7ced00"
+        ],
+        [
+          11,
+          14,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue PLR",
+      "sanitised": "PLR [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          4,
+          8
+        ]
+      ],
+      "text_sha256": "3bc3c225f83b7c035da10ae8c0a843107c68ad0e5cd07126573146e1feb5bd56",
+      "tokens": [
+        [
+          0,
+          3,
+          "f770a7eed76fae6f"
+        ],
+        [
+          4,
+          5,
+          "454349e422f05297"
+        ],
+        [
+          7,
+          8,
+          "19581e27de7ced00"
+        ],
+        [
+          9,
+          12,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue CLT",
+      "sanitised": "CLT [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          4,
+          8
+        ]
+      ],
+      "text_sha256": "09c1093ee5ed19c281a11205c49f32a7e6bfb6fe5936113c2f981279d58d4178",
+      "tokens": [
+        [
+          0,
+          3,
+          "667ae99a22d281e8"
+        ],
+        [
+          4,
+          5,
+          "454349e422f05297"
+        ],
+        [
+          7,
+          8,
+          "19581e27de7ced00"
+        ],
+        [
+          9,
+          12,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue PJ",
+      "sanitised": "PJ [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          3,
+          8
+        ]
+      ],
+      "text_sha256": "e0bc189326e129b11d027d515730acdf51ae3c152665324666721dcaf99e5513",
+      "tokens": [
+        [
+          0,
+          2,
+          "7d373d3809c88b4c"
+        ],
+        [
+          3,
+          4,
+          "454349e422f05297"
+        ],
+        [
+          6,
+          7,
+          "19581e27de7ced00"
+        ],
+        [
+          8,
+          11,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue honorários",
+      "sanitised": "honorários [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          11,
+          8
+        ]
+      ],
+      "text_sha256": "d606b4cd45fc9f31b11f3d0db75dfb39ec61779c5932e03aaed31a2f2af3b83d",
+      "tokens": [
+        [
+          0,
+          10,
+          "a3194dfefa40c6b4"
+        ],
+        [
+          11,
+          12,
+          "454349e422f05297"
+        ],
+        [
+          14,
+          15,
+          "19581e27de7ced00"
+        ],
+        [
+          16,
+          19,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue honorarios",
+      "sanitised": "honorarios [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          11,
+          8
+        ]
+      ],
+      "text_sha256": "2187884c80b4bc85cf096226636e8957ea197396668b1951a9b962f4dbad18e6",
+      "tokens": [
+        [
+          0,
+          10,
+          "a3194dfefa40c6b4"
+        ],
+        [
+          11,
+          12,
+          "454349e422f05297"
+        ],
+        [
+          14,
+          15,
+          "19581e27de7ced00"
+        ],
+        [
+          16,
+          19,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue day rate",
+      "sanitised": "day rate [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          9,
+          8
+        ]
+      ],
+      "text_sha256": "6669b8bcea7a0e60c5c047ce8cca3999305205a2edf747431d5cf40f419a9b64",
+      "tokens": [
+        [
+          0,
+          3,
+          "944c27e5b97ab779"
+        ],
+        [
+          4,
+          8,
+          "c549779d79e5c8e9"
+        ],
+        [
+          9,
+          10,
+          "454349e422f05297"
+        ],
+        [
+          12,
+          13,
+          "19581e27de7ced00"
+        ],
+        [
+          14,
+          17,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue hourly rate",
+      "sanitised": "hourly rate [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          12,
+          8
+        ]
+      ],
+      "text_sha256": "0b36e8e10b8720cea34edca8f810fcdf729fe73f24563fc015830a1b07ec27e4",
+      "tokens": [
+        [
+          0,
+          6,
+          "2b2a51df70a161c5"
+        ],
+        [
+          7,
+          11,
+          "c549779d79e5c8e9"
+        ],
+        [
+          12,
+          13,
+          "454349e422f05297"
+        ],
+        [
+          15,
+          16,
+          "19581e27de7ced00"
+        ],
+        [
+          17,
+          20,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue por hora",
+      "sanitised": "por hora [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          9,
+          8
+        ]
+      ],
+      "text_sha256": "dd0226b05cc03561fea2217ff6d45105247fe3b70156f2d50f44024559b505ab",
+      "tokens": [
+        [
+          0,
+          3,
+          "3ea6bc47a6277afe"
+        ],
+        [
+          4,
+          8,
+          "ddb5eb1d15e021f9"
+        ],
+        [
+          9,
+          10,
+          "454349e422f05297"
+        ],
+        [
+          12,
+          13,
+          "19581e27de7ced00"
+        ],
+        [
+          14,
+          17,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue per hour",
+      "sanitised": "per hour [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          9,
+          8
+        ]
+      ],
+      "text_sha256": "351d8f44f91a3e7667431afa7add7d303f7ce14d164abc517528e0df125d2554",
+      "tokens": [
+        [
+          0,
+          3,
+          "b427c3dec9045990"
+        ],
+        [
+          4,
+          8,
+          "9ac0add475dd38e6"
+        ],
+        [
+          9,
+          10,
+          "454349e422f05297"
+        ],
+        [
+          12,
+          13,
+          "19581e27de7ced00"
+        ],
+        [
+          14,
+          17,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue valor/hora",
+      "sanitised": "valor/hora [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          11,
+          8
+        ]
+      ],
+      "text_sha256": "3ec83bc966e7c8a04259125f9bf4b45d0249f1b1b795413962c01cd5cde67158",
+      "tokens": [
+        [
+          0,
+          5,
+          "6adcc016448d707c"
+        ],
+        [
+          6,
+          10,
+          "ddb5eb1d15e021f9"
+        ],
+        [
+          11,
+          12,
+          "454349e422f05297"
+        ],
+        [
+          14,
+          15,
+          "19581e27de7ced00"
+        ],
+        [
+          16,
+          19,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue pacote",
+      "sanitised": "pacote [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          7,
+          8
+        ]
+      ],
+      "text_sha256": "14530fe82d61b0bb5f6b5fd9d4469416ee5e785896ccf6aef970b388fcc7eac2",
+      "tokens": [
+        [
+          0,
+          6,
+          "c00fe5041979952b"
+        ],
+        [
+          7,
+          8,
+          "454349e422f05297"
+        ],
+        [
+          10,
+          11,
+          "19581e27de7ced00"
+        ],
+        [
+          12,
+          15,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue package",
+      "sanitised": "package [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          8,
+          8
+        ]
+      ],
+      "text_sha256": "93e27ace8b540e984dae87e0b9d1e78a19cc01b1ce02e447fb4bcc39a38c307a",
+      "tokens": [
+        [
+          0,
+          7,
+          "bc4a71180870f794"
+        ],
+        [
+          8,
+          9,
+          "454349e422f05297"
+        ],
+        [
+          11,
+          12,
+          "19581e27de7ced00"
+        ],
+        [
+          13,
+          16,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue stock option",
+      "sanitised": "stock option [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          13,
+          8
+        ]
+      ],
+      "text_sha256": "8e22fd6eadab032402dfc09c5dc18bd8e06f426809c017f23790fa0ed6b61f2f",
+      "tokens": [
+        [
+          0,
+          5,
+          "08c4242b5f585628"
+        ],
+        [
+          6,
+          12,
+          "a11a75e0feeecc1a"
+        ],
+        [
+          13,
+          14,
+          "454349e422f05297"
+        ],
+        [
+          16,
+          17,
+          "19581e27de7ced00"
+        ],
+        [
+          18,
+          21,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue stock options",
+      "sanitised": "stock options [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          14,
+          8
+        ]
+      ],
+      "text_sha256": "cef555a3cd5aa51dac06fc0375552fe3a54efd9ab8c7608fd6d7ab1e20acdea2",
+      "tokens": [
+        [
+          0,
+          5,
+          "08c4242b5f585628"
+        ],
+        [
+          6,
+          13,
+          "a793ab8fcc2afce5"
+        ],
+        [
+          14,
+          15,
+          "454349e422f05297"
+        ],
+        [
+          17,
+          18,
+          "19581e27de7ced00"
+        ],
+        [
+          19,
+          22,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/cue equity",
+      "sanitised": "equity [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          7,
+          8
+        ]
+      ],
+      "text_sha256": "8a07ccb9053d0b4834240a344a3e16bece2eba715ca7a4184186451988b0bafd",
+      "tokens": [
+        [
+          0,
+          6,
+          "30703a5c0fcb28e8"
+        ],
+        [
+          7,
+          8,
+          "454349e422f05297"
+        ],
+        [
+          10,
+          11,
+          "19581e27de7ced00"
+        ],
+        [
+          12,
+          15,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "contract-value/no-cue",
+      "sanitised": "word R$ 9.000",
+      "spans": [],
+      "text_sha256": "57e06ce0aceb1fdc66cf094eb402ccbe30f3673af7e4bba8c3b06a371c1ba062",
+      "tokens": [
+        [
+          0,
+          4,
+          "98c1eb4ee9347674"
+        ],
+        [
+          5,
+          6,
+          "454349e422f05297"
+        ],
+        [
+          8,
+          9,
+          "19581e27de7ced00"
+        ],
+        [
+          10,
+          13,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "phone"
+      ],
+      "name": "phone/two-patterns-one-finding",
+      "sanitised": "[REDACTED:phone]",
+      "spans": [
+        [
+          "phone",
+          0,
+          19
+        ]
+      ],
+      "text_sha256": "5d93999d62df3124d5539553df0dd3f616e2baee42eb53779539f4471c723b9f",
+      "tokens": [
+        [
+          1,
+          3,
+          "02d20bbd7e394ad5"
+        ],
+        [
+          5,
+          7,
+          "4fc82b26aecb47d2"
+        ],
+        [
+          9,
+          14,
+          "ac911e4a8f2b48c0"
+        ],
+        [
+          15,
+          19,
+          "888b19a43b151683"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "contract-value/amount-forms",
+      "sanitised": "salary [REDACTED:contract-value], bonus [REDACTED:contract-value], offer [REDACTED:contract-value], contract [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          7,
+          15
+        ],
+        [
+          "contract-value",
+          30,
+          8
+        ],
+        [
+          "contract-value",
+          46,
+          4
+        ],
+        [
+          "contract-value",
+          61,
+          9
+        ]
+      ],
+      "text_sha256": "ee4f9c45bd922bdb1d278e4b2e7e8240958c7caa107dfe0d7d1c635e099cf255",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          9,
+          "79adb2a2fce5c6ba"
+        ],
+        [
+          11,
+          12,
+          "6b86b273ff34fce1"
+        ],
+        [
+          13,
+          14,
+          "ef2d127de37b942b"
+        ],
+        [
+          15,
+          22,
+          "c8ce96a5ba0d15da"
+        ],
+        [
+          24,
+          29,
+          "5f220b4a45832c07"
+        ],
+        [
+          30,
+          31,
+          "454349e422f05297"
+        ],
+        [
+          33,
+          34,
+          "d4735e3a265e16ee"
+        ],
+        [
+          35,
+          38,
+          "55928210084d5f21"
+        ],
+        [
+          40,
+          45,
+          "988180bf0c9328c9"
+        ],
+        [
+          47,
+          50,
+          "618894378e0dbd72"
+        ],
+        [
+          52,
+          60,
+          "cc8321d6375c494d"
+        ],
+        [
+          62,
+          63,
+          "6b86b273ff34fce1"
+        ],
+        [
+          64,
+          67,
+          "27badc983df1780b"
+        ],
+        [
+          68,
+          70,
+          "1a6562590ef19d10"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "employer-client-term/variant-1",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          22
+        ]
+      ],
+      "text_sha256": "c06af361b9af0feb06232622bd199d650ef35b5529bd12cda623c00af3bb1682",
+      "tokens": [
+        [
+          0,
+          4,
+          "ea363e6abc79738f"
+        ],
+        [
+          5,
+          12,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          13,
+          22,
+          "b3cc0475bb78a502"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "employer-client-term/variant-2",
+      "sanitised": "[REDACTED:employer-client-term]!",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          22
+        ]
+      ],
+      "text_sha256": "11d2eddd44197ff33c8d27ad0e4b9f18f1df856791a7d04f13cc4a2fed9be9e6",
+      "tokens": [
+        [
+          0,
+          4,
+          "ea363e6abc79738f"
+        ],
+        [
+          5,
+          12,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          13,
+          22,
+          "b3cc0475bb78a502"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "employer-client-term/variant-3",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          22
+        ]
+      ],
+      "text_sha256": "5e29444d0655c3fb22c7b1bb7a203ff95900cd4fd335b061bf3cb1c256257704",
+      "tokens": [
+        [
+          0,
+          4,
+          "ea363e6abc79738f"
+        ],
+        [
+          5,
+          12,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          13,
+          22,
+          "b3cc0475bb78a502"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "employer-client-term/variant-4",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          20
+        ]
+      ],
+      "text_sha256": "e4f871406499c37584c3db3ef3072db28ebb80ae9efa7878446b6363cb31b82e",
+      "tokens": [
+        [
+          0,
+          20,
+          "663c57d453cb208b"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "employer-client-term/variant-5",
+      "sanitised": "a\n[REDACTED:employer-client-term]\nb",
+      "spans": [
+        [
+          "employer-client-term",
+          2,
+          23
+        ]
+      ],
+      "text_sha256": "f7b820ef375ba2f31abf9686f93e763a044e5f41e8750f081179b9ccf0ccd5b1",
+      "tokens": [
+        [
+          0,
+          1,
+          "ca978112ca1bbdca"
+        ],
+        [
+          2,
+          6,
+          "ea363e6abc79738f"
+        ],
+        [
+          7,
+          14,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          16,
+          25,
+          "b3cc0475bb78a502"
+        ],
+        [
+          26,
+          27,
+          "3e23e8160039594a"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "employer-client-term/near-miss-1",
+      "sanitised": "Zyxw Quillon",
+      "spans": [],
+      "text_sha256": "b83e41e94b55179e55f3edc98fe1d5554eece365b770f25e6b47a4795c2d8a61",
+      "tokens": [
+        [
+          0,
+          4,
+          "ea363e6abc79738f"
+        ],
+        [
+          5,
+          12,
+          "7cb699c3cd32ef9a"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "employer-client-term/near-miss-2",
+      "sanitised": "Quillon Synthetic",
+      "spans": [],
+      "text_sha256": "94d61ead145a1e222f002d85756ed353b82395307ea3719fb7a8e81404ec2951",
+      "tokens": [
+        [
+          0,
+          7,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          8,
+          17,
+          "b3cc0475bb78a502"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "employer-client-term/near-miss-3",
+      "sanitised": "Zyxw Quillons Synthetic",
+      "spans": [],
+      "text_sha256": "364d5b9cfa69527b4a758f8b6d1af9672856198e57f011290396642bc97c1388",
+      "tokens": [
+        [
+          0,
+          4,
+          "ea363e6abc79738f"
+        ],
+        [
+          5,
+          13,
+          "2fe5ba44b5aa9b5c"
+        ],
+        [
+          14,
+          23,
+          "b3cc0475bb78a502"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "employer-client-term/near-miss-4",
+      "sanitised": "zyxwquillon",
+      "spans": [],
+      "text_sha256": "5e42863e299c5456a0241fee28875cb065df9f1c87eef3d73824ee0664b3134b",
+      "tokens": [
+        [
+          0,
+          11,
+          "5e42863e299c5456"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "employer-client-term/no-salt",
+      "sanitised": "Zyxw Quillon Synthetic",
+      "spans": [],
+      "text_sha256": "4d8abcc6ae3e4eda41af574d6e8eee31b1676de04ad0b96374dcbfe8c0169521",
+      "tokens": [
+        [
+          0,
+          4,
+          "ea363e6abc79738f"
+        ],
+        [
+          5,
+          12,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          13,
+          22,
+          "b3cc0475bb78a502"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "health",
+        "colleague-name"
+      ],
+      "name": "health/term-list",
+      "sanitised": "notes: [REDACTED:health], and [REDACTED:colleague-name]",
+      "spans": [
+        [
+          "health",
+          7,
+          19
+        ],
+        [
+          "colleague-name",
+          32,
+          16
+        ]
+      ],
+      "text_sha256": "af417310652cb9c4638f24765dc98148fe8b145b31e4e1a590af97a9029f6dbf",
+      "tokens": [
+        [
+          0,
+          5,
+          "ab5aa97074c454a0"
+        ],
+        [
+          7,
+          15,
+          "ce99f613226d8a13"
+        ],
+        [
+          16,
+          26,
+          "81950fb2ec40dc5f"
+        ],
+        [
+          28,
+          31,
+          "6201111b83a0cb5b"
+        ],
+        [
+          32,
+          40,
+          "7c4d49b70445082d"
+        ],
+        [
+          41,
+          48,
+          "ad9e1fde8e740ce5"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "health/term-alone-is-not-a-term",
+      "sanitised": "Zyxwitis alone",
+      "spans": [],
+      "text_sha256": "ab40e18beb8335ddd167c78878688eb382ebc7f7eb1337e51bf4fdbeb3855662",
+      "tokens": [
+        [
+          0,
+          8,
+          "ce99f613226d8a13"
+        ],
+        [
+          9,
+          14,
+          "facf8b54e5c0b8c4"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "colleague-name/term-list-is-its-own-category",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          16
+        ]
+      ],
+      "text_sha256": "5eaab495f5c2b42ab62b1893766a54917c2a49e0ebf7b4797c90b0322561436f",
+      "tokens": [
+        [
+          0,
+          8,
+          "7c4d49b70445082d"
+        ],
+        [
+          9,
+          16,
+          "ad9e1fde8e740ce5"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "employer-client-term/six-words-max",
+      "sanitised": "one [REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          4,
+          29
+        ]
+      ],
+      "text_sha256": "10c02045e013e9dca9791bc82fc8255cf6947c91a6caa07d7f5abba927f000ab",
+      "tokens": [
+        [
+          0,
+          3,
+          "7692c3ad3540bb80"
+        ],
+        [
+          4,
+          7,
+          "3fc4ccfe745870e2"
+        ],
+        [
+          8,
+          13,
+          "8b5b9db0c13db242"
+        ],
+        [
+          14,
+          18,
+          "04efaf080f5a3e74"
+        ],
+        [
+          19,
+          23,
+          "222b0bd51fcef7e6"
+        ],
+        [
+          24,
+          27,
+          "44778d82365e4af6"
+        ],
+        [
+          28,
+          33,
+          "3ba8d02b16fd2a01"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential",
+        "email"
+      ],
+      "name": "scan/touched",
+      "sanitised": "line one\nline two\ncontact [REDACTED:email] and id [REDACTED:credential]\n",
+      "spans": [
+        [
+          "credential",
+          67,
+          20
+        ],
+        [
+          "email",
+          26,
+          33
+        ]
+      ],
+      "text_sha256": "b0da270adecab522c8b05f9ece81573ff9e9e014692571d833a870824608ce44",
+      "tokens": [
+        [
+          0,
+          4,
+          "38a9c1e721584da2"
+        ],
+        [
+          5,
+          8,
+          "7692c3ad3540bb80"
+        ],
+        [
+          9,
+          13,
+          "38a9c1e721584da2"
+        ],
+        [
+          14,
+          17,
+          "3fc4ccfe745870e2"
+        ],
+        [
+          18,
+          25,
+          "093e7d5fdbaacfa9"
+        ],
+        [
+          26,
+          35,
+          "b3cc0475bb78a502"
+        ],
+        [
+          36,
+          42,
+          "38a81e87e79631e6"
+        ],
+        [
+          43,
+          50,
+          "f16d05ec6b29248d"
+        ],
+        [
+          51,
+          55,
+          "00d8d3f11739d2f3"
+        ],
+        [
+          56,
+          59,
+          "ef260e9aa3c673af"
+        ],
+        [
+          60,
+          63,
+          "6201111b83a0cb5b"
+        ],
+        [
+          64,
+          66,
+          "a56145270ce6b3be"
+        ],
+        [
+          67,
+          87,
+          "2eb6c6020c2290c8"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "cpf"
+      ],
+      "name": "scan/new",
+      "sanitised": "a\nb\nc\nd\ncpf [REDACTED:cpf]\n",
+      "spans": [
+        [
+          "cpf",
+          12,
+          14
+        ]
+      ],
+      "text_sha256": "4dcfe81da7b41217d8928d4d5603add5877f2325ac8ea6f2b47c50414f6c5f17",
+      "tokens": [
+        [
+          0,
+          1,
+          "ca978112ca1bbdca"
+        ],
+        [
+          2,
+          3,
+          "3e23e8160039594a"
+        ],
+        [
+          4,
+          5,
+          "2e7d2c03a9507ae2"
+        ],
+        [
+          6,
+          7,
+          "18ac3e7343f01689"
+        ],
+        [
+          8,
+          11,
+          "d3affd33c68b895c"
+        ],
+        [
+          12,
+          15,
+          "a665a45920422f9d"
+        ],
+        [
+          16,
+          19,
+          "b3a8e0e1f9ab1bfe"
+        ],
+        [
+          20,
+          23,
+          "35a9e381b1a27567"
+        ],
+        [
+          24,
+          26,
+          "3514acf61732f662"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "phone",
+        "postal-address",
+        "contract-value",
+        "health",
+        "colleague-name"
+      ],
+      "name": "scan/new-categories",
+      "sanitised": "[REDACTED:phone]\nCEP [REDACTED:postal-address]\nsalary [REDACTED:contract-value]\n[REDACTED:health]\nmy colleague [REDACTED:colleague-name]\n",
+      "spans": [
+        [
+          "colleague-name",
+          75,
+          13
+        ],
+        [
+          "contract-value",
+          41,
+          10
+        ],
+        [
+          "health",
+          52,
+          9
+        ],
+        [
+          "phone",
+          0,
+          19
+        ],
+        [
+          "postal-address",
+          24,
+          9
+        ]
+      ],
+      "text_sha256": "0812e1eefad1a7e083bfbb98b3acb10fd803583460453cb23397d47f4f1cdeaa",
+      "tokens": [
+        [
+          1,
+          3,
+          "02d20bbd7e394ad5"
+        ],
+        [
+          5,
+          7,
+          "4fc82b26aecb47d2"
+        ],
+        [
+          9,
+          14,
+          "ac911e4a8f2b48c0"
+        ],
+        [
+          15,
+          19,
+          "888b19a43b151683"
+        ],
+        [
+          20,
+          23,
+          "6f8611b83656417d"
+        ],
+        [
+          24,
+          29,
+          "e0b96ef61f099f34"
+        ],
+        [
+          30,
+          33,
+          "2ac9a6746aca543a"
+        ],
+        [
+          34,
+          40,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          41,
+          43,
+          "79adb2a2fce5c6ba"
+        ],
+        [
+          45,
+          47,
+          "69f59c273b6e669a"
+        ],
+        [
+          48,
+          51,
+          "2ac9a6746aca543a"
+        ],
+        [
+          52,
+          55,
+          "5424626b932a2ff9"
+        ],
+        [
+          56,
+          59,
+          "16b59eeb3ff6109b"
+        ],
+        [
+          60,
+          61,
+          "6b86b273ff34fce1"
+        ],
+        [
+          62,
+          64,
+          "038468518ad8122e"
+        ],
+        [
+          65,
+          74,
+          "7fdbbefdb4a4607c"
+        ],
+        [
+          75,
+          81,
+          "af4dd7a2be93e649"
+        ],
+        [
+          82,
+          88,
+          "a4126b9473f4371c"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "email"
+      ],
+      "name": "scan/attribution-trailer",
+      "sanitised": "Co-Authored-By: Claude <[REDACTED:email]>\n",
+      "spans": [
+        [
+          "email",
+          24,
+          21
+        ]
+      ],
+      "text_sha256": "8f3b822f54c377e9f546b12127990e1bcabde79b86ef19c6a53d10117779e657",
+      "tokens": [
+        [
+          0,
+          2,
+          "c330ec504d82c24f"
+        ],
+        [
+          3,
+          11,
+          "746e50ede463b5d9"
+        ],
+        [
+          12,
+          14,
+          "a7e2d26e8d15814d"
+        ],
+        [
+          16,
+          22,
+          "c857d09db23e6822"
+        ],
+        [
+          24,
+          31,
+          "c032f1b2c07148d5"
+        ],
+        [
+          32,
+          41,
+          "c70eca6b0f88f44d"
+        ],
+        [
+          42,
+          45,
+          "71b4f3a3748cd684"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "scan/term",
+      "sanitised": "one\nmet the [REDACTED:employer-client-term] people\n",
+      "spans": [
+        [
+          "employer-client-term",
+          12,
+          12
+        ]
+      ],
+      "text_sha256": "d7be2ae659d0ecd49b04fd05b725cc4f98d47c8fb1f4c47b5f373a4eb5e2e367",
+      "tokens": [
+        [
+          0,
+          3,
+          "7692c3ad3540bb80"
+        ],
+        [
+          4,
+          7,
+          "6efcbfb1f9f195ce"
+        ],
+        [
+          8,
+          11,
+          "b9776d7ddf459c9a"
+        ],
+        [
+          12,
+          24,
+          "d3dba15374d76f58"
+        ],
+        [
+          25,
+          31,
+          "c9022680f888674e"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "unicode/word-letter-before-key",
+      "sanitised": "éAKIAIOSFODNN7EXAMPLE",
+      "spans": [],
+      "text_sha256": "8d089d1e12043318a300f6df40db2cde0dca1ed2163f823433c5cbf89b9e71bd",
+      "tokens": [
+        [
+          0,
+          21,
+          "7a152371b936c748"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential"
+      ],
+      "name": "unicode/combining-mark-before-key",
+      "sanitised": "́[REDACTED:credential]",
+      "spans": [
+        [
+          "credential",
+          1,
+          20
+        ]
+      ],
+      "text_sha256": "bf5d8c0c6ee1197ad3225eb578efdf45c7628196397660bec0f13262ddd4908d",
+      "tokens": [
+        [
+          1,
+          21,
+          "2eb6c6020c2290c8"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "unicode/greek-letter-after-key",
+      "sanitised": "AKIAIOSFODNN7EXAMPLEα",
+      "spans": [],
+      "text_sha256": "df69a41357bd8cba90ebb365c22573da2bf405bd026b8be149537ebd95acf573",
+      "tokens": [
+        [
+          0,
+          21,
+          "0c1f108c036196dd"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "unicode/superscript-after-key",
+      "sanitised": "AKIAIOSFODNN7EXAMPLE²",
+      "spans": [],
+      "text_sha256": "96c6a5100f2e0bda7857094201affcf38015b7fdb9973cf248384edc699aab95",
+      "tokens": [
+        [
+          0,
+          21,
+          "ff15f710e0233c3a"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "unicode/cjk-after-npm",
+      "sanitised": "npm_abcdefghijkmnpqrstuvwxyz0123456789ab中",
+      "spans": [],
+      "text_sha256": "c56322d9a9c92e0cca983cd1b508fe7e77b480840ae2260581f771049e69c1ae",
+      "tokens": [
+        [
+          0,
+          3,
+          "d79677188687e7b3"
+        ],
+        [
+          4,
+          41,
+          "68355e9261248cdd"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "cpf"
+      ],
+      "name": "unicode/arabic-indic-cpf",
+      "sanitised": "[REDACTED:cpf]",
+      "spans": [
+        [
+          "cpf",
+          0,
+          14
+        ]
+      ],
+      "text_sha256": "6208f3b98e02c0992665dd63bde8ca14122d586f995f7b20fc8d593d2e96204b",
+      "tokens": [
+        [
+          0,
+          3,
+          "fad695e9ca0d7470"
+        ],
+        [
+          4,
+          7,
+          "cff0fa1519850d6a"
+        ],
+        [
+          8,
+          11,
+          "7feec27d3c23efc1"
+        ],
+        [
+          12,
+          14,
+          "b7a56873cd771f2c"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "unicode/devanagari-phone",
+      "sanitised": "+55 (11) ९००००-०००१",
+      "spans": [],
+      "text_sha256": "c3e7122c4ce8ad93d65de8434725552ceaccfe1f919999d7ddf9d185ff84bbc9",
+      "tokens": [
+        [
+          1,
+          3,
+          "02d20bbd7e394ad5"
+        ],
+        [
+          5,
+          7,
+          "4fc82b26aecb47d2"
+        ],
+        [
+          9,
+          14,
+          "d8d2c4ce7ed5d4af"
+        ],
+        [
+          15,
+          19,
+          "17e3a8b2d757969e"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "unicode/fullwidth-card",
+      "sanitised": "card ４１１１１１１１１１１１１１１１",
+      "spans": [],
+      "text_sha256": "c8e9d5dccfda8765aca777878b4b0f30569a36d935331b85733ea05e6cf81480",
+      "tokens": [
+        [
+          0,
+          4,
+          "8367cd66fdd136bb"
+        ],
+        [
+          5,
+          21,
+          "9bbef19476623ca5"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "unicode/fullwidth-cnpj",
+      "sanitised": "１１.２２２.３３３/０００１-８１",
+      "spans": [],
+      "text_sha256": "84f0b314a14533d8a8c6bf90825e8fee2388890593dcebd76ac5620f7544ca11",
+      "tokens": [
+        [
+          0,
+          2,
+          "4fc82b26aecb47d2"
+        ],
+        [
+          3,
+          6,
+          "9b871512327c09ce"
+        ],
+        [
+          7,
+          10,
+          "556d7dc3a1153563"
+        ],
+        [
+          11,
+          15,
+          "888b19a43b151683"
+        ],
+        [
+          16,
+          18,
+          "5316ca1c5ddca8e6"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "unicode/mathematical-digits-amount",
+      "sanitised": "salary [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          7,
+          7
+        ]
+      ],
+      "text_sha256": "130f5b67051c9d633de4529c3a04a245e3c0ddaf5e5b5377f3eb5f41e1f081cb",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          8,
+          "454349e422f05297"
+        ],
+        [
+          10,
+          14,
+          "c4fe6b6dbe94790f"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "unicode/bengali-cep",
+      "sanitised": "[REDACTED:postal-address]",
+      "spans": [
+        [
+          "postal-address",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "ed6a598018e402176b6808c9c0d0bcacb5dad4ef443ca6e6e943e2f989d2a116",
+      "tokens": [
+        [
+          0,
+          3,
+          "6f8611b83656417d"
+        ],
+        [
+          4,
+          12,
+          "26d60ad6a1492b2a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "unicode/nel-in-street",
+      "sanitised": "[REDACTED:postal-address]",
+      "spans": [
+        [
+          "postal-address",
+          0,
+          19
+        ]
+      ],
+      "text_sha256": "99ecd2e3532b580e1fc354e9d53745ad048e6ecab9fad158bb4e6282e93f8fa5",
+      "tokens": [
+        [
+          0,
+          3,
+          "3a9ca185890ebf61"
+        ],
+        [
+          4,
+          7,
+          "0a7cb27e52927eac"
+        ],
+        [
+          8,
+          14,
+          "810c4dc129e30e97"
+        ],
+        [
+          16,
+          19,
+          "a665a45920422f9d"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "unicode/nel-in-cep",
+      "sanitised": "[REDACTED:postal-address]",
+      "spans": [
+        [
+          "postal-address",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "33b03427c04fce6df76cdfb83b47a0385a99883ecc3c16c772f44fe908aeafe6",
+      "tokens": [
+        [
+          0,
+          3,
+          "6f8611b83656417d"
+        ],
+        [
+          4,
+          12,
+          "3f08d8fadb4b67fb"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "unicode/file-separator-before-amount",
+      "sanitised": "salary [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          7,
+          8
+        ]
+      ],
+      "text_sha256": "c63374b6795dc1dddb7c6416cd9c7e474b0943fea5a79465d58d79bee3b3421e",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          8,
+          "454349e422f05297"
+        ],
+        [
+          10,
+          11,
+          "19581e27de7ced00"
+        ],
+        [
+          12,
+          15,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "unicode/bom-before-amount",
+      "sanitised": "salary R$﻿9.000",
+      "spans": [],
+      "text_sha256": "1160c8e6ca844f8d167074ba92336589b2147b60b8ee0d10fea2d937f147f20e",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          8,
+          "454349e422f05297"
+        ],
+        [
+          10,
+          11,
+          "19581e27de7ced00"
+        ],
+        [
+          12,
+          15,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "unicode/nbsp-in-amount",
+      "sanitised": "salário [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          8,
+          8
+        ]
+      ],
+      "text_sha256": "dc6116732c7a1a9f027fdacd34d2f3acbf9a349008c5a626475ca37aa0486ae4",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          8,
+          9,
+          "454349e422f05297"
+        ],
+        [
+          11,
+          12,
+          "19581e27de7ced00"
+        ],
+        [
+          13,
+          16,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "colleague-name"
+      ],
+      "name": "unicode/ideographic-space-colleague",
+      "sanitised": "my　colleague [REDACTED:colleague-name]",
+      "spans": [
+        [
+          "colleague-name",
+          13,
+          13
+        ]
+      ],
+      "text_sha256": "328527b971962e02a6e90672568b75658a8bfbad92adb803c000de06725bd2d2",
+      "tokens": [
+        [
+          0,
+          2,
+          "038468518ad8122e"
+        ],
+        [
+          3,
+          12,
+          "7fdbbefdb4a4607c"
+        ],
+        [
+          13,
+          19,
+          "af4dd7a2be93e649"
+        ],
+        [
+          20,
+          26,
+          "a4126b9473f4371c"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "health"
+      ],
+      "name": "ignore-case/dotted-capital-I-in-CID",
+      "sanitised": "[REDACTED:health]",
+      "spans": [
+        [
+          "health",
+          0,
+          9
+        ]
+      ],
+      "text_sha256": "2e8f3cdd75eaaf03fc7247cfebcca790c804ea35e9e088a8af414fb92d79692d",
+      "tokens": [
+        [
+          0,
+          3,
+          "5424626b932a2ff9"
+        ],
+        [
+          4,
+          7,
+          "16b59eeb3ff6109b"
+        ],
+        [
+          8,
+          9,
+          "6b86b273ff34fce1"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "health"
+      ],
+      "name": "ignore-case/dotless-i-in-icd",
+      "sanitised": "[REDACTED:health]",
+      "spans": [
+        [
+          "health",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "1581072aa02de7a62fa0333a80b7014a5cbc6b55dcd288f03e29062f58359543",
+      "tokens": [
+        [
+          0,
+          3,
+          "b628b51de0d7e12f"
+        ],
+        [
+          4,
+          6,
+          "4a44dc15364204a8"
+        ],
+        [
+          7,
+          10,
+          "e039d92cf12f74e8"
+        ],
+        [
+          11,
+          12,
+          "6b86b273ff34fce1"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "ignore-case/upper-cue",
+      "sanitised": "SALÁRIO [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          8,
+          8
+        ]
+      ],
+      "text_sha256": "7020650033b070209593239b1b545c3505c95a7dc7cb79c74c309a85a11cc4b1",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          8,
+          9,
+          "454349e422f05297"
+        ],
+        [
+          11,
+          12,
+          "19581e27de7ced00"
+        ],
+        [
+          13,
+          16,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "ignore-case/dotted-I-in-cue",
+      "sanitised": "SALÁRİO [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          8,
+          8
+        ]
+      ],
+      "text_sha256": "75777306acd954dcb6c2566a182cf22c451b66f1db7941bb71855754fe5f1e1d",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          8,
+          9,
+          "454349e422f05297"
+        ],
+        [
+          11,
+          12,
+          "19581e27de7ced00"
+        ],
+        [
+          13,
+          16,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "ignore-case/long-s-in-cue",
+      "sanitised": "ſalary [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          7,
+          8
+        ]
+      ],
+      "text_sha256": "06c0b7f17232166568066118f21634f9cd59b6743d9185c9f5fa40bb36e1976f",
+      "tokens": [
+        [
+          0,
+          6,
+          "6384e43c02b1fbdf"
+        ],
+        [
+          7,
+          8,
+          "454349e422f05297"
+        ],
+        [
+          10,
+          11,
+          "19581e27de7ced00"
+        ],
+        [
+          12,
+          15,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "ignore-case/kelvin-in-cue",
+      "sanitised": "stocK options [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          14,
+          8
+        ]
+      ],
+      "text_sha256": "904fbe48a446f215440635c3a475100e9fc70cba008b0fe557d26941522257e6",
+      "tokens": [
+        [
+          0,
+          5,
+          "08c4242b5f585628"
+        ],
+        [
+          6,
+          13,
+          "a793ab8fcc2afce5"
+        ],
+        [
+          14,
+          15,
+          "454349e422f05297"
+        ],
+        [
+          17,
+          18,
+          "19581e27de7ced00"
+        ],
+        [
+          19,
+          22,
+          "2ac9a6746aca543a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "colleague-name"
+      ],
+      "name": "ignore-case/kelvin-in-colleague",
+      "sanitised": "my coworKer [REDACTED:colleague-name]",
+      "spans": [
+        [
+          "colleague-name",
+          12,
+          13
+        ]
+      ],
+      "text_sha256": "a7fa8e1d061a1dc5075358e9aa607ea0d69e8825611f133fbf4d06c7242d47ea",
+      "tokens": [
+        [
+          0,
+          2,
+          "038468518ad8122e"
+        ],
+        [
+          3,
+          11,
+          "06c2de313d1dfede"
+        ],
+        [
+          12,
+          18,
+          "af4dd7a2be93e649"
+        ],
+        [
+          19,
+          25,
+          "a4126b9473f4371c"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "colleague-name"
+      ],
+      "name": "ignore-case/upper-colleague-prefix",
+      "sanitised": "MY COLLEAGUE [REDACTED:colleague-name]",
+      "spans": [
+        [
+          "colleague-name",
+          13,
+          13
+        ]
+      ],
+      "text_sha256": "e400d1dc8e73bd61af39b573e63f30f0228ed7fb118b4b9eb553740ac797a6f3",
+      "tokens": [
+        [
+          0,
+          2,
+          "038468518ad8122e"
+        ],
+        [
+          3,
+          12,
+          "7fdbbefdb4a4607c"
+        ],
+        [
+          13,
+          19,
+          "af4dd7a2be93e649"
+        ],
+        [
+          20,
+          26,
+          "a4126b9473f4371c"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "ignore-case/lower-name-is-not-a-name",
+      "sanitised": "my colleague quillo zyxwer",
+      "spans": [],
+      "text_sha256": "bee63255895f801fe12194fe9e5bc4e02db9be4ee02bb82d7b1e1d6ab1d39ffb",
+      "tokens": [
+        [
+          0,
+          2,
+          "038468518ad8122e"
+        ],
+        [
+          3,
+          12,
+          "7fdbbefdb4a4607c"
+        ],
+        [
+          13,
+          19,
+          "af4dd7a2be93e649"
+        ],
+        [
+          20,
+          26,
+          "a4126b9473f4371c"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "postal-address"
+      ],
+      "name": "ignore-case/cep-lower",
+      "sanitised": "[REDACTED:postal-address]",
+      "spans": [
+        [
+          "postal-address",
+          0,
+          12
+        ]
+      ],
+      "text_sha256": "2bb9671c2186628164583866b45dafcc126edc24ac8f5e1815d6f866d73af026",
+      "tokens": [
+        [
+          0,
+          3,
+          "6f8611b83656417d"
+        ],
+        [
+          4,
+          12,
+          "3f08d8fadb4b67fb"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "ignore-case/email-domain-upper",
+      "sanitised": "a@b.EXAMPLE.COM",
+      "spans": [],
+      "text_sha256": "b9018e4c0db82ffb07001d66536d8c747c3220d925faba129178d17c451dd431",
+      "tokens": [
+        [
+          0,
+          1,
+          "ca978112ca1bbdca"
+        ],
+        [
+          2,
+          3,
+          "3e23e8160039594a"
+        ],
+        [
+          4,
+          11,
+          "50d858e0985ecc7f"
+        ],
+        [
+          12,
+          15,
+          "71b4f3a3748cd684"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "ignore-case/credential-is-case-sensitive",
+      "sanitised": "akiaiosfodnn7example",
+      "spans": [],
+      "text_sha256": "2eb6c6020c2290c8d9020b570bd9d6ef7577109b2d51c2510b61674ca782ee18",
+      "tokens": [
+        [
+          0,
+          20,
+          "2eb6c6020c2290c8"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential",
+        "email",
+        "cpf",
+        "health"
+      ],
+      "name": "offsets/emoji-before-each",
+      "sanitised": "😀 [REDACTED:credential] 😀 [REDACTED:email] 😀 [REDACTED:cpf] 😀 [REDACTED:health]",
+      "spans": [
+        [
+          "health",
+          78,
+          9
+        ],
+        [
+          "credential",
+          2,
+          20
+        ],
+        [
+          "email",
+          25,
+          33
+        ],
+        [
+          "cpf",
+          61,
+          14
+        ]
+      ],
+      "text_sha256": "b6817657358f9cf1ef81b38820c65fc2b94f4d90850a56d7e8eb9ea5f2f376f0",
+      "tokens": [
+        [
+          2,
+          22,
+          "2eb6c6020c2290c8"
+        ],
+        [
+          25,
+          34,
+          "b3cc0475bb78a502"
+        ],
+        [
+          35,
+          41,
+          "38a81e87e79631e6"
+        ],
+        [
+          42,
+          49,
+          "f16d05ec6b29248d"
+        ],
+        [
+          50,
+          54,
+          "00d8d3f11739d2f3"
+        ],
+        [
+          55,
+          58,
+          "ef260e9aa3c673af"
+        ],
+        [
+          61,
+          64,
+          "a665a45920422f9d"
+        ],
+        [
+          65,
+          68,
+          "b3a8e0e1f9ab1bfe"
+        ],
+        [
+          69,
+          72,
+          "35a9e381b1a27567"
+        ],
+        [
+          73,
+          75,
+          "3514acf61732f662"
+        ],
+        [
+          78,
+          81,
+          "5424626b932a2ff9"
+        ],
+        [
+          82,
+          85,
+          "16b59eeb3ff6109b"
+        ],
+        [
+          86,
+          87,
+          "6b86b273ff34fce1"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "contract-value"
+      ],
+      "name": "offsets/emoji-in-contract-window",
+      "sanitised": "salário 😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀 [REDACTED:contract-value]",
+      "spans": [
+        [
+          "contract-value",
+          79,
+          12
+        ]
+      ],
+      "text_sha256": "59e2f3d5a033aad98f74539605dd5f3d35f36917bfc64e6481a4d9b7d8735d59",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          79,
+          80,
+          "454349e422f05297"
+        ],
+        [
+          82,
+          84,
+          "6b51d431df5d7f14"
+        ],
+        [
+          85,
+          88,
+          "0604cd3138feed20"
+        ],
+        [
+          89,
+          91,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "offsets/emoji-beyond-contract-window",
+      "sanitised": "salário 😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀 R$ 12.500,00",
+      "spans": [],
+      "text_sha256": "f9e6641fb7495a1e2e316946ab54469db62cb5e0a9152767898d3e37915d1b7c",
+      "tokens": [
+        [
+          0,
+          7,
+          "cec2dbf1d35dfd64"
+        ],
+        [
+          90,
+          91,
+          "454349e422f05297"
+        ],
+        [
+          93,
+          95,
+          "6b51d431df5d7f14"
+        ],
+        [
+          96,
+          99,
+          "0604cd3138feed20"
+        ],
+        [
+          100,
+          102,
+          "f1534392279bddbf"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "offsets/astral-letters-in-term",
+      "sanitised": "𝐀𝐁 [REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          3,
+          22
+        ]
+      ],
+      "text_sha256": "18572f89230e85259d19973300beaa9703ee35d4b2ca0d10431cdafc187fffdf",
+      "tokens": [
+        [
+          0,
+          2,
+          "fb8e20fc2e4c3f24"
+        ],
+        [
+          3,
+          7,
+          "ea363e6abc79738f"
+        ],
+        [
+          8,
+          15,
+          "7cb699c3cd32ef9a"
+        ],
+        [
+          16,
+          25,
+          "b3cc0475bb78a502"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "term/sharp-s-casefold",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          10
+        ]
+      ],
+      "text_sha256": "0678dd335bd8e0e6172811e9254649c746bec1cce03d67137be65f2d8f36cafc",
+      "tokens": [
+        [
+          0,
+          10,
+          "8276c6c79fc6ce1a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "term/capital-sharp-s",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          9
+        ]
+      ],
+      "text_sha256": "764f6f5b57f33f57d3cd1288b2baa460a213b9d4ecf1d971d6f90ae1d93e2a6d",
+      "tokens": [
+        [
+          0,
+          9,
+          "8276c6c79fc6ce1a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "term/final-sigma",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          5
+        ]
+      ],
+      "text_sha256": "066a41d043115e12d0b2276e34532650acc91aaf8b99ddcbc6649dc5553ce956",
+      "tokens": [
+        [
+          0,
+          5,
+          "5a05c30581f1d0cd"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "term/combining-accent",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          8
+        ]
+      ],
+      "text_sha256": "c49e247e2beea92ddcd1f7ad740fbb4e5995c7e616b896bb6e5524d9af3af16c",
+      "tokens": [
+        [
+          0,
+          8,
+          "7cb699c3cd32ef9a"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "term/ligature",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          5
+        ]
+      ],
+      "text_sha256": "0a029c015ffb31255ec7afce0b89ec44962b2152e372258277e58bf8f29218a4",
+      "tokens": [
+        [
+          0,
+          5,
+          "f37c0c78bcb8ddec"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "term/fullwidth",
+      "sanitised": "[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          0,
+          7
+        ]
+      ],
+      "text_sha256": "1e9e0bcc1526ad1e15ac67954d993dac1f96dff5bc6f7cebace157d246b276d1",
+      "tokens": [
+        [
+          0,
+          7,
+          "921c540ce87a26b9"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "employer-client-term"
+      ],
+      "name": "term/leading-mark-skipped",
+      "sanitised": "́[REDACTED:employer-client-term]",
+      "spans": [
+        [
+          "employer-client-term",
+          1,
+          7
+        ]
+      ],
+      "text_sha256": "b150aff46505cd64185d5c7abb8038810b38863a50840be3d7bf59fcceabebf0",
+      "tokens": [
+        [
+          1,
+          8,
+          "921c540ce87a26b9"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential",
+        "email"
+      ],
+      "name": "overlap/key-inside-email",
+      "sanitised": "[REDACTED:email] [REDACTED:credential]",
+      "spans": [
+        [
+          "credential",
+          38,
+          20
+        ],
+        [
+          "email",
+          0,
+          37
+        ]
+      ],
+      "text_sha256": "61d8df541121591ac6e66a07b03a085ab0ba57d839a5d97eec7e7e4c9f80d66c",
+      "tokens": [
+        [
+          0,
+          20,
+          "2eb6c6020c2290c8"
+        ],
+        [
+          21,
+          28,
+          "f16d05ec6b29248d"
+        ],
+        [
+          29,
+          33,
+          "00d8d3f11739d2f3"
+        ],
+        [
+          34,
+          37,
+          "ef260e9aa3c673af"
+        ],
+        [
+          38,
+          58,
+          "2eb6c6020c2290c8"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "credential",
+        "email"
+      ],
+      "name": "overlap/pem-and-email",
+      "sanitised": "[REDACTED:credential] [REDACTED:email]",
+      "spans": [
+        [
+          "credential",
+          0,
+          126
+        ],
+        [
+          "email",
+          127,
+          33
+        ]
+      ],
+      "text_sha256": "bc04348f7dac1d47e6111d2177c8d18e09ba75b8e10ee3e2dfb0f590ef5e1313",
+      "tokens": [
+        [
+          5,
+          10,
+          "e6f07d43b5c21db0"
+        ],
+        [
+          11,
+          14,
+          "f5f69168bba3cfa1"
+        ],
+        [
+          15,
+          22,
+          "715dc8493c36579a"
+        ],
+        [
+          23,
+          26,
+          "2c70e12b7a0646f9"
+        ],
+        [
+          32,
+          96,
+          "2a94c28f8bed8b90"
+        ],
+        [
+          102,
+          105,
+          "361e48d0308f20e3"
+        ],
+        [
+          106,
+          109,
+          "f5f69168bba3cfa1"
+        ],
+        [
+          110,
+          117,
+          "715dc8493c36579a"
+        ],
+        [
+          118,
+          121,
+          "2c70e12b7a0646f9"
+        ],
+        [
+          127,
+          136,
+          "b3cc0475bb78a502"
+        ],
+        [
+          137,
+          143,
+          "38a81e87e79631e6"
+        ],
+        [
+          144,
+          151,
+          "f16d05ec6b29248d"
+        ],
+        [
+          152,
+          156,
+          "00d8d3f11739d2f3"
+        ],
+        [
+          157,
+          160,
+          "ef260e9aa3c673af"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "email",
+        "cpf"
+      ],
+      "name": "lines/crlf",
+      "sanitised": "one\r\ntwo [REDACTED:email]\r\nthree [REDACTED:cpf]\r\n",
+      "spans": [
+        [
+          "email",
+          9,
+          33
+        ],
+        [
+          "cpf",
+          50,
+          14
+        ]
+      ],
+      "text_sha256": "c70bd7510195943e7645e0ba2cad104ef87b18699375825fb776d1a0530e950a",
+      "tokens": [
+        [
+          0,
+          3,
+          "7692c3ad3540bb80"
+        ],
+        [
+          5,
+          8,
+          "3fc4ccfe745870e2"
+        ],
+        [
+          9,
+          18,
+          "b3cc0475bb78a502"
+        ],
+        [
+          19,
+          25,
+          "38a81e87e79631e6"
+        ],
+        [
+          26,
+          33,
+          "f16d05ec6b29248d"
+        ],
+        [
+          34,
+          38,
+          "00d8d3f11739d2f3"
+        ],
+        [
+          39,
+          42,
+          "ef260e9aa3c673af"
+        ],
+        [
+          44,
+          49,
+          "8b5b9db0c13db242"
+        ],
+        [
+          50,
+          53,
+          "a665a45920422f9d"
+        ],
+        [
+          54,
+          57,
+          "b3a8e0e1f9ab1bfe"
+        ],
+        [
+          58,
+          61,
+          "35a9e381b1a27567"
+        ],
+        [
+          62,
+          64,
+          "3514acf61732f662"
+        ]
+      ]
+    },
+    {
+      "categories": [],
+      "name": "empty",
+      "sanitised": "",
+      "spans": [],
+      "text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tokens": []
+    }
+  ]
+}
