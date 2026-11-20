@@ -82,8 +82,10 @@ version it was written for, and an unknown version fails. Adding an optional fie
 coverage threshold now has a floor of 85 (it accepted 5, measured), and the free-text fields must carry
 a letter or digit (a blank `when` on the required high-risk rule passed). Both make some earlier
 version 1 files invalid. They stay version 1 because no project declares this contract (see *Evidence
-level*), so no file in any repository changed meaning, and because every such file was below the floor
-the method's Definition of Done already set: the change closes a hole, it does not change a decision. The
+level*), so no file in any repository changed meaning. For coverage, every such file was below the
+floor the method's Definition of Done already set. For blank free text no written floor existed; the
+rule follows from the contract's own guard that a high-risk rule must exist, which a blank `when`
+emptied. The
 optional `baseline_override` section is an addition and needs no new version either. The next change
 of either kind, once a project declares the contract, needs `schema_version` 2.
 

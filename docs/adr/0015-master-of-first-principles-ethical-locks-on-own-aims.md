@@ -183,8 +183,8 @@ MADR, a `project-policy.json` and installed-STG evidence that mhw has no environ
 - **Status of this amendment:** proposed (agent-written, awaiting the owner's ratification), with
   [ADR-0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md). It is appended; nothing
   above is changed, and the record's status is unchanged. It tightens the carrier of the concrete lock
-  and unlocks nothing, so it is not a relaxation under the ratification rule in *Consequences*; like
-  any agent-written part, it still waits for the owner's ratification.
+  and unlocks nothing. The ratification rule in *Consequences* covers any change to a ratified lock,
+  a tightening included, so this amendment binds only once the owner ratifies it with ADR-0044.
 
 The owner decided on 2026-11-20 ([Issue #523](https://github.com/tedeuxx/mhw/issues/523)) that the
 test/DoD and documentation override is a new optional section of the existing `project-policy.json`,

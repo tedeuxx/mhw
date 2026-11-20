@@ -35,7 +35,8 @@ pending; a pause for questions publishes nothing.
 3. After CI and the review gate, run `./mhw delivery merge --pr NUMBER` from the
    slice branch checkout. For a PR into `rc/next` it requires every job that the `tests` workflow's
    `delivery-ci` aggregates (read from `.github/workflows/tests.yml`) to be registered on the head by
-   the `tests` workflow, plus `delivery-ci` and Sonar green. `semver-label` is not required there,
+   the `tests` workflow, plus `delivery-ci`, Sonar and `docs-baseline` green (`docs-baseline` since
+   #523, on both bases: a missing run refuses, as a red one does). `semver-label` is not required there,
    because that workflow runs only on PRs into `main`. A pending check, a missing `tests` run (a
    "CLEAN" PR on which no tests ran) and a merge state other than clean (DIRTY, BEHIND, UNKNOWN...)
    are refused. It also reads the review gate from the PR's comments, because the plugin's merge

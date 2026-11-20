@@ -44,7 +44,8 @@ export const RC = {
   statusCheckRollup: [...TESTS_RUN,
     { name: 'delivery-ci', workflowName: 'tests', conclusion: 'SUCCESS' },
     { name: 'semver-label', workflowName: 'semver-label', conclusion: 'SUCCESS' },
-    { name: 'SonarCloud Code Analysis', conclusion: 'SUCCESS' }],
+    { name: 'SonarCloud Code Analysis', conclusion: 'SUCCESS' },
+    { name: 'docs-baseline', workflowName: 'docs-baseline', conclusion: 'SUCCESS' }],
 };
 // A slice: feature branch -> rc/next. semver-label never runs there.
 export const SLICE = { ...RC, baseRefName: 'rc/next', headRefName: 'feat/x', comments: [gate()],

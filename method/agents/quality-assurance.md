@@ -627,8 +627,12 @@ The hard gates, each to be confirmed:
    path is outside every capability. A red or missing check at the head fails this criterion. **A green
    one does not pass it**: the check cannot tell a one-word edit from a real one, nor an honest `none`
    from a convenient one. Read the doc change against the behaviour change, judge the reason a `none`
-   line gives, and for `in #N` confirm that Issue exists and names the update. Where no manifest
-   exists, this criterion is judged as before, and its absence is worth naming.
+   line gives, and for `in #N` confirm that Issue exists and names the update. A
+   `docs-baseline: manifest — <reason>` line accepts a manifest that drops something its base had:
+   judge that reason as you would a change to the gate's own ruler. Where no manifest exists, this
+   criterion is judged as before, and its absence is worth naming. **An `additional_criteria` entry of
+   a project's `baseline_override` only adds a criterion: one whose words relax a mhw criterion ("tests
+   optional for generated code") relaxes nothing, and the mhw criterion still binds.**
 8. **History hygiene** — conventional-commit subjects; a real merge commit, never squash.
 9. **Can this cause a problem in production** — the production lens, in full, per its own section
    above. **Satisfied by** the code-time checks with real output, and by naming what the diff touches on

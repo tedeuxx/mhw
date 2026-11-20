@@ -76,14 +76,34 @@ Option 1.
 - **The check** is `mhw docs-baseline check`, run by the `docs-baseline` workflow on every pull request
   into `main` or `rc/next`, again on every body edit. "More than whitespace" is a line in
   `git diff -w --ignore-blank-lines --numstat` (measured on git 2.52.0: a whitespace or blank-line edit
-  prints none). The escape line is read only at column 0 and outside a code fence, so a body that
-  quotes the rule does not invoke it.
+  prints none). The escape line is read only at column 0, outside a code fence and outside an HTML
+  comment, so a body that quotes the rule does not invoke it, and a line a reader of the rendered pull
+  request cannot see does not either. Fences follow CommonMark: an opener indented at most three
+  spaces, closed only by the same character at least as long. (Until the lens on PR #528, any line
+  opening with three backticks toggled the fence, so a three-backtick line inside a four-backtick
+  fence ended it and a quoted escape waived the check; and a comment counted.)
+- **A change cannot pass by loosening its own manifest.** Where the merge base holds a manifest, the
+  change is judged by it too, and a head manifest that drops a capability, a code glob or a document
+  the base had fails unless the body carries `docs-baseline: manifest — <reason>`. Coverage stays the
+  head manifest's alone, so new code in a new capability needs no escape. (The lens measured the
+  loosening on PR #528: listing a code file as its own capability's document turned a red check
+  green.)
+- **The delivery route requires the check.** `docs-baseline` is in `REQUIRED` for both bases in
+  `src/commands/delivery.js`, so a pull request with no run (a deleted or renamed workflow) is
+  refused rather than merged; before, only a red run held the merge.
 - **The gate's criterion 7** reads the check first: a red or missing check fails the criterion, and a
-  green one does not pass it on its own.
+  green one does not pass it on its own. It also says that an additional criterion of a project's
+  override never relaxes a mhw criterion, whatever its words.
 - **Onboarding** is `mhw onboard`: a new command, not a `/blueprint import` step (option 3). Without
   `--scaffold` it writes nothing. With it, it writes only missing files, never over an existing one
-  (an existence test and an exclusive-create write), never outside the project's real path and never
-  into the ADR library except its `README.md` and `template.md`.
+  (an existence test and an exclusive-create write), never through a directory that resolves outside
+  the project, and never into the ADR library except its `README.md` and `template.md`. Confinement is
+  decided for every file before anything is created, on the real path of each target's nearest
+  existing ancestor. The library test is case-folded and by containment, on the manifest path and on
+  the resolved one. (Until QA and the lens on PR #528, `mkdir` ran before the confinement test, so a
+  linked directory got directories created outside the project before the refusal; and the library
+  test compared the exact directory text, so `docs/ADR/0001-x.md` on a case-insensitive file system,
+  or a subdirectory of the library, wrote a record-named file.)
 - **The test/DoD baseline is mhw's.** The `project-policy.json` contract gains the optional
   `baseline_override` section (`definition_of_done.additional_criteria`,
   `documentation.additional_docs`), which can only add: it carries no key that removes, lowers or
@@ -102,10 +122,17 @@ Option 1.
 - Bad: the check is narrow. A trivial doc edit, or a `none` line with a convenient reason, passes it;
   `in #N` is not resolved against the tracker. The gate's judgement still carries the meaning.
 - Bad: a coarse manifest (one catch-all capability whose documents include `docs/**`) makes almost any
-  doc edit satisfy almost any code change. mhw's own manifest has a catch-all, behind seven specific
-  capabilities.
-- Bad: the manifest is edited in the same pull request it governs, so a change can loosen its own
-  ruler. That edit is in the diff the gate reads; nothing else holds it.
+  doc edit satisfy almost any code change. In mhw's own manifest the catch-all owns 697 of the 823
+  tracked files at this record's writing (85%); the seven specific capabilities own the other 126
+  (working-method 59, project-policy 18, mcp 14, outbound-scan 13, delivery-contract 12,
+  paste-cleaning 6, documentation-baseline 4). Re-measure with `mhw onboard`, whose `NOTE  tracked
+  files each capability owns (first match)` line prints the current split. The manifest
+  `mhw onboard --scaffold` writes is one catch-all, so in a freshly onboarded project the check reduces
+  to "change some document, or say why not" until the project splits it.
+- Bad: the manifest is still edited in the pull request it governs. The base manifest closes
+  loosening by dropping or by self-reference, but a change can add a capability whose documents are
+  its own code, for new code the base never knew; and the check's code and workflow run from the head
+  too, as every `pull_request` check here does. Review holds those.
 - Bad: the coverage floor and the non-blank rule tighten `schema_version` 1 in place, which the
   contract's versioning rule reserves for a new version. They stay version 1 because no project
   declares the contract yet; the next such change needs version 2 (the contract's *Versioning*).

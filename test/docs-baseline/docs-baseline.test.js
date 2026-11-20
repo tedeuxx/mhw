@@ -9,8 +9,10 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import {
   globMatches, badPath, manifestErrors, parseBody, decide, defaultManifest, scaffoldFiles, runCheck, runOnboard,
-  validate, MANIFEST,
+  validate, MANIFEST, inAdrLibrary, loosenings,
 } from '../../src/commands/docs-baseline.js';
+import { checksPass, Pending } from '../../src/commands/delivery.js';
+import { SLICE, RC } from '../helpers/delivery-cases.js';
 import { throwawayHome, which } from '../helpers/home.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -258,7 +260,8 @@ function snapshot(dir) {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (e.name === '.git') continue;
-      if (e.isDirectory()) walk(p);
+      if (e.isSymbolicLink()) out[path.relative(dir, p)] = '-> ' + fs.readlinkSync(p);
+      else if (e.isDirectory()) walk(p);
       else out[path.relative(dir, p)] = fs.readFileSync(p, 'utf8');
     }
   };
@@ -326,6 +329,86 @@ test('onboard --scaffold: a not-applicable item is not scaffolded, and a symlink
   assert.deepEqual(fs.readdirSync(outside), [], 'nothing was written through the link');
 });
 
+// QA B1 on PR #528: mkdir ran before the confinement check, so a baseline directory linked outside the
+// project got directories created through the link before the refusal. One row per baseline directory;
+// each row links the item's top directory outside, and nothing may appear there, nor anything inside.
+test('onboard --scaffold: a baseline directory linked outside the project creates nothing, anywhere', { skip: process.platform === 'win32' }, () => {
+  /** @type {Array<[string, (m: any) => void, string]>} */
+  const rows = [
+    ['adr_library', (m) => { m.baseline.adr_library = 'decisions/adr'; }, 'decisions'],
+    ['prd', (m) => { m.baseline.prd = 'docs/demo-product-requirements-document-project.md'; }, 'docs'],
+    ['readme', (m) => { m.baseline.readme = 'top/README.md'; }, 'top'],
+    ['architecture', (m) => { m.baseline.architecture = 'arch/view/architecture.md'; }, 'arch'],
+    ['sequences', (m) => { m.baseline.sequences = 'seq/flows/sequences.md'; }, 'seq'],
+  ];
+  for (const [item, edit, linked] of rows) {
+    const h = throwawayHome('onboard-link');
+    cleanups.push(h.cleanup);
+    const dir = path.join(h.dir, 'p');
+    const outside = path.join(h.dir, 'outside');
+    fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+    fs.mkdirSync(outside);
+    const m = structuredClone(/** @type {any} */ (MANIFEST_DOC));
+    edit(m);
+    assert.deepEqual(manifestErrors(m), [], item);
+    fs.writeFileSync(path.join(dir, MANIFEST), JSON.stringify(m));
+    if (linked === 'docs') {
+      // docs itself holds the manifest, so link a fresh project's docs instead.
+      fs.rmSync(path.join(dir, 'docs'), { recursive: true });
+      fs.symlinkSync(outside, path.join(dir, 'docs'));
+    } else {
+      fs.symlinkSync(outside, path.join(dir, linked));
+    }
+    const before = snapshot(dir);
+    const res = onboard(dir, ['--scaffold']);
+    assert.equal(res.code, 2, item + ': ' + res.out);
+    assert.match(res.out, /its directory resolves outside the project/, item);
+    assert.deepEqual(fs.readdirSync(outside), [], item + ': nothing created through the link');
+    assert.deepEqual(snapshot(dir), before, item + ': nothing written inside either, before the refusal');
+  }
+});
+
+test('onboard: an architecture or sequences file without a mermaid block is a gap', () => {
+  const h = throwawayHome('onboard');
+  cleanups.push(h.cleanup);
+  const dir = path.join(h.dir, 'p');
+  fs.mkdirSync(dir);
+  onboard(dir, ['--scaffold']);
+  assert.equal(onboard(dir).code, 0);
+  fs.writeFileSync(path.join(dir, 'docs', 'architecture.md'), '# Architecture\n\n```\nblock-beta\n```\n\n`mermaid`\n');
+  const res = onboard(dir);
+  assert.equal(res.code, 1);
+  assert.match(res.out, /GAP {3}architecture diagram: docs\/architecture\.md carries no ```mermaid block/);
+  fs.writeFileSync(path.join(dir, 'docs', 'architecture.md'), '# A\n\n```mermaid\r\nblock-beta\n```\n');
+  assert.equal(onboard(dir).code, 0, 'a CRLF fence line still counts');
+});
+
+test('check: a malformed escape line is fatal even when every capability is satisfied', { skip: !GIT }, () => {
+  const r = baseRepo();
+  r.write('src/core.js', 'export const c = 5;\n');
+  r.write('README.md', '# demo\n\nIt does five things.\n');
+  r.commit('code and doc');
+  assert.equal(check(r, '').code, 0, 'control: satisfied without the line');
+  const res = check(r, 'docs-baseline: maybe later\n');
+  assert.equal(res.code, 1);
+  assert.match(res.out, /FAIL {2}malformed escape line \(it waives nothing\): docs-baseline: maybe later/);
+});
+
+test('check: a ref carrying .. is refused before git runs', { skip: !GIT }, () => {
+  const r = baseRepo();
+  r.commit('nothing');
+  const err = /** @type {string[]} */ ([]);
+  const io = { cwd: r.dir, env: r.env, out: () => {}, err: (/** @type {string} */ s) => { err.push(s); } };
+  for (const ref of ['main..HEAD', 'a..b', 'main...x']) {
+    err.length = 0;
+    assert.equal(runCheck(['check', '--base=' + ref], io), 2, ref);
+    assert.match(err.join(''), /not a ref this check accepts/, ref);
+  }
+  err.length = 0;
+  assert.equal(runCheck(['check', '--base=main', '--head=HEAD..x'], io), 2);
+  assert.match(err.join(''), /not a ref this check accepts/);
+});
+
 test('the scaffold refuses to put anything but the index and the template in the ADR library', () => {
   const m = structuredClone(MANIFEST_DOC);
   m.baseline.readme = 'docs/adr/0001-first.md';
@@ -364,4 +447,125 @@ test('docs-baseline.yml runs the check on every body edit, with the body never i
   const script = yml.slice(yml.indexOf('run: |'));
   assert.doesNotMatch(script, /\$\{\{/, 'no expression inside the script: the body reaches it only through the environment');
   assert.match(yml, /^permissions: \{\}$/m);
+});
+
+// -- PR #528 lens: the ADR library guard, fences and comments, the base manifest, the delivery route --
+
+test('the ADR library guard: case-folded, and a subdirectory is the library too', () => {
+  for (const [file, want] of /** @type {Array<[string, boolean]>} */ ([
+    ['docs/adr/0001-use-x.md', true], ['docs/ADR/0001-use-x.md', true], ['Docs/Adr/0001.md', true],
+    ['docs/adr/sub/0001-x.md', true], ['docs/adr/README.md', false], ['docs/adr/template.md', false],
+    ['docs/ADR/README.md', false], ['docs/adr/sub/README.md', true], ['docs/adrx/0001.md', false], ['docs/architecture.md', false],
+  ])) assert.equal(inAdrLibrary(file, 'docs/adr'), want, file);
+  for (const architecture of ['docs/ADR/0001-use-x.md', 'docs/adr/sub/0001-x.md']) {
+    const m = structuredClone(/** @type {any} */ (MANIFEST_DOC));
+    m.baseline.architecture = architecture;
+    assert.throws(() => scaffoldFiles(m, 'demo', false), /refusing to scaffold a decision record/, architecture);
+  }
+});
+
+test('onboard --scaffold: a record-shaped item exits 2 and writes nothing; a link into the library is refused', () => {
+  /** @type {Array<[string, string | null]>} */
+  const rows = [['docs/ADR/0001-use-x.md', null], ['docs/adr/sub/0001-x.md', null]];
+  if (process.platform !== 'win32') rows.push(['notes/0001-use-x.md', 'notes']);
+  for (const [architecture, link] of rows) {
+    const h = throwawayHome('onboard-adr');
+    cleanups.push(h.cleanup);
+    const dir = path.join(h.dir, 'p');
+    fs.mkdirSync(path.join(dir, 'docs', 'adr'), { recursive: true });
+    const m = structuredClone(/** @type {any} */ (MANIFEST_DOC));
+    m.baseline.architecture = architecture;
+    fs.writeFileSync(path.join(dir, MANIFEST), JSON.stringify(m));
+    if (link) fs.symlinkSync(path.join(dir, 'docs', 'adr'), path.join(dir, link));
+    const before = snapshot(dir);
+    const res = onboard(dir, ['--scaffold']);
+    assert.equal(res.code, 2, architecture + ': ' + res.out);
+    assert.match(res.out, /decision record|resolves into the ADR library/, architecture);
+    assert.deepEqual(fs.readdirSync(path.join(dir, 'docs', 'adr')), [], architecture + ': nothing in the library');
+    assert.deepEqual(snapshot(dir), before, architecture + ': nothing written anywhere');
+  }
+});
+
+test('the body: CommonMark fences and HTML comments hide an escape line', () => {
+  const esc = 'docs-baseline: none — only a quoted example';
+  for (const body of [
+    '````\n```\n' + esc + '\n````\n',            // a three-backtick line does not close a four-backtick fence
+    '~~~\n```\n' + esc + '\n~~~\n',              // nor a backtick line a tilde fence
+    '   ```\n' + esc + '\n```\n',                // an opener indented three spaces
+    '```\n' + esc + '\n',                         // an unclosed fence runs to the end
+    '<!-- ' + esc + ' -->\n',                     // a one-line comment
+    '<!--\n' + esc + '\n-->\n',                   // a block comment
+    'text <!-- never closed\n' + esc + '\n',      // an unclosed comment hides the rest
+  ]) assert.equal(parseBody(body).waiver, null, JSON.stringify(body));
+  for (const body of [
+    '````\n```\n````\n' + esc + '\n',             // after the fence closes, the line counts
+    '```\ncode\n`````  \n' + esc + '\n',          // a longer closing run with trailing blanks closes
+    '<!-- hidden -->\n' + esc + '\n',             // after the comment closes
+    '``` js `x`\n' + esc + '\n',                  // a backtick info string with a backtick opens nothing
+    '    ```\n' + esc + '\n',                     // indented four spaces: not a fence
+  ]) assert.equal(parseBody(body).waiver, esc, JSON.stringify(body));
+  assert.equal(parseBody('docs-baseline: manifest — a capability merged into another\n').manifestWaiver,
+    'docs-baseline: manifest — a capability merged into another');
+  assert.deepEqual(parseBody('docs-baseline: manifest — \n').malformed, ['docs-baseline: manifest — ']);
+});
+
+test('loosenings: a dropped capability, code glob or document is named', () => {
+  const base = /** @type {any} */ (structuredClone(MANIFEST_DOC));
+  assert.deepEqual(loosenings(base, base), []);
+  const head = structuredClone(base);
+  head.capabilities = head.capabilities.filter((/** @type {any} */ c) => c.id !== 'api');
+  head.capabilities[0].code = ['src/**'];
+  head.capabilities[0].docs = ['README.md', 'docs/**'];
+  assert.deepEqual(loosenings(base, head), ['drops the capability api', 'core drops the code glob package.json',
+    'core drops the document docs/demo-product-requirements-document-project.md']);
+});
+
+test('check: a change that loosens its own manifest is judged by the base manifest too', { skip: !GIT }, () => {
+  const r = baseRepo();
+  // The lens's probe: change code alone, and list that code file as its own capability's document.
+  r.write('src/api/a.js', 'export const a = 9;\n');
+  const m = structuredClone(/** @type {any} */ (MANIFEST_DOC));
+  m.capabilities[0].docs.push('src/api/a.js', MANIFEST);
+  r.write(MANIFEST, JSON.stringify(m, null, 2));
+  r.commit('self-loosening');
+  const res = check(r, '');
+  assert.equal(res.code, 1, res.out);
+  assert.match(res.out, /^OK {4}api: \S+ changed \(touched by src\/api\/a\.js\)$/m, 'the head manifest alone would pass');
+  assert.match(res.out, /FAIL {2}\[base manifest\] api: touched by src\/api\/a\.js/);
+  // A manifest that drops a document fails, and only the manifest escape waives that line.
+  const r2 = baseRepo();
+  const m2 = structuredClone(/** @type {any} */ (MANIFEST_DOC));
+  m2.capabilities[0].docs = ['docs/**'];
+  r2.write(MANIFEST, JSON.stringify(m2, null, 2));
+  r2.commit('drop a doc');
+  const dropped = check(r2, '');
+  assert.equal(dropped.code, 1, dropped.out);
+  assert.match(dropped.out, /FAIL {2}the manifest api drops the document docs\/api\.md that the base revision had/);
+  assert.equal(check(r2, 'docs-baseline: none — not this one\n').code, 1, 'the ordinary escape does not waive it');
+  const waived = check(r2, 'docs-baseline: manifest — api documents now live under docs/\n');
+  assert.equal(waived.code, 0, waived.out);
+  assert.match(waived.out, /WAIVED the manifest api drops the document docs\/api\.md; the body declares docs-baseline: manifest/);
+});
+
+test('check: a base revision without a manifest is noted, and the head manifest alone judges', { skip: !GIT }, () => {
+  const r = repo();
+  r.write('README.md', '# demo\n');
+  r.commit('base without a manifest');
+  r.git('checkout', '-q', '-b', 'change');
+  r.write(MANIFEST, JSON.stringify(defaultManifest('demo'), null, 2));
+  r.write('src/core.js', 'x\n');
+  r.write('README.md', '# demo\n\nNow with a core.\n');
+  r.commit('adopt the baseline');
+  const res = check(r, '');
+  assert.match(res.out, /^NOTE {2}the merge base has no manifest at this path/m);
+  assert.equal(res.code, 0, res.out);
+});
+
+test('delivery: docs-baseline is a required check on both bases, so a missing run refuses', () => {
+  for (const pr of [SLICE, RC]) {
+    assert.doesNotThrow(() => checksPass(/** @type {any} */ (pr), []), pr.baseRefName + ': control');
+    const without = { ...pr, statusCheckRollup: pr.statusCheckRollup.filter((c) => c.name !== 'docs-baseline') };
+    assert.throws(() => checksPass(/** @type {any} */ (without), []),
+      (e) => e instanceof Pending && /required CI not successful: docs-baseline/.test(e.message), pr.baseRefName);
+  }
 });

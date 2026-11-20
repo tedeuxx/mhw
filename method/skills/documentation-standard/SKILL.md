@@ -254,14 +254,29 @@ docs-baseline: in #<N>
 ```
 
 `none` says no document needed to change, and why. `in #N` says a sibling task carries the update.
+A line inside a code fence (CommonMark rules: the closing fence is the same character, at least as
+long) or inside an HTML comment declares nothing: a quoted line is not a declaration, and a hidden one
+is not visible to a reader of the pull request.
 **A changed path outside every capability fails, and no escape waives it**: the manifest is amended in
-the same change. The check is mechanical and narrow: a one-word doc edit passes it, and so does a
-dishonest `none`. Whether the right document changed in the right way stays the gate's judgement.
+the same change.
+
+**A change cannot pass by loosening its own manifest.** Where the merge base holds a manifest, the
+change is judged by it too, and a head manifest that drops a capability, a code glob or a document the
+base had fails unless the body carries, under the same rules, `docs-baseline: manifest — <reason>`.
+A new capability for new code needs no escape: coverage is judged by the head manifest alone.
+
+The check is mechanical and narrow: a one-word doc edit passes it, and so does a dishonest `none`.
+Whether the right document changed in the right way stays the gate's judgement. A manifest whose
+catch-all owns most of the tree makes almost any document edit satisfy almost any change; `mhw onboard`
+prints how many tracked files each capability owns, so the proportion is visible.
 
 **Onboarding: `mhw onboard [--project=DIR]`** validates read-only and reports each gap: the manifest,
 the five items, that every tracked file belongs to a capability, and any `additional_docs` a
 `project-policy.json` declares. **`mhw onboard --scaffold`** first writes the missing files of the
-default proposal, never one that exists and never an ADR record. Run it on an existing repository to
+default proposal: never one that exists, never through a directory that resolves outside the project
+(decided for every file before anything is created), and never an ADR record; anything at or under the
+ADR library, compared case-folded on the resolved path, other than its index and template is refused.
+Run it on an existing repository to
 see its gaps; run it with `--scaffold` on a new one. A project adds documents or Definition-of-Done
 criteria on top of this baseline through the optional `baseline_override` section of its
 `project-policy.json`, which may only add (`mhw policy check` refuses anything else).
