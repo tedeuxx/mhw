@@ -15,8 +15,10 @@ const [portFile, logFile] = process.argv.slice(2);
 const server = http.createServer((req, res) => {
   const auth = req.headers.authorization || '';
   const url = req.url || '';
-  fs.appendFileSync(logFile, JSON.stringify({ path: url, auth: auth ? (auth === 'Bearer ' + TOKEN ? 'Bearer <TOKEN>' : 'Bearer <other>') : '' }) + '\n');
   const good = auth === 'Bearer ' + TOKEN;
+  let shown = '';
+  if (auth) shown = good ? 'Bearer <TOKEN>' : 'Bearer <other>';
+  fs.appendFileSync(logFile, JSON.stringify({ path: url, auth: shown }) + '\n');
   let body = '';
   let code = 404;
   if (url === '/api/authentication/validate') {

@@ -72,7 +72,7 @@ function normalise(text, subs) {
   for (const [a, b] of [...subs].sort((x, y) => y[0].length - x[0].length)) if (a) t = t.replaceAll(a, b);
   // The python3 the base's ./mhw runs is on the bare PATH, so the repository declaration finds it; its
   // version is this machine's, not the code's.
-  return t.replaceAll(/^(OK|DRIFT) {3,4}python3 \[required\]: present \(python3 [^)]*\).*$/gm, '<the python3 item: present, this machine\'s version>')
+  return t.replaceAll(/^(OK|DRIFT) +python3 \[required\]: present \(python3 [^)]*\).*$/gm, '<the python3 item: present, this machine\'s version>')
     .replaceAll(/Traceback \(most recent call last\):\n(?:[ \t][^\n]*\n|\^+\n)*[A-Za-z.]+Error[^\n]*\n/g, '<traceback>\n');
 }
 
@@ -85,7 +85,7 @@ function binDir(dir, mode) {
   }
   if (mode === 'full') {
     fs.writeFileSync(path.join(bin, 'gh'), '#!/bin/sh\nexit 99\n');
-    fs.chmodSync(path.join(bin, 'gh'), 0o755);
+    fs.chmodSync(path.join(bin, 'gh'), 0o700);
   }
   return bin;
 }

@@ -83,7 +83,7 @@ export class ContractError extends Error {}
 /** isinstance(v, int): an int, or a bool (Python's bool is an int). @param {unknown} v */
 const isIntLike = (v) => typeof v === 'boolean' || (typeof v === 'number' && Number.isInteger(v)) || typeof v === 'bigint';
 /** The numeric value of an int-like or float, for Python's == and %d. @param {unknown} v */
-const numeric = (v) => (v instanceof PyFloat ? v.v : typeof v === 'boolean' ? Number(v) : Number(v));
+const numeric = (v) => (v instanceof PyFloat ? v.v : Number(v));
 /** @param {unknown} v */
 const isNumberLike = (v) => isIntLike(v) || v instanceof PyFloat;
 
@@ -489,7 +489,13 @@ export function declarationBlocks(text) {
 /** s[:n] in code points. @param {string} s @param {number} n */
 const head = (s, n) => codePoints(s).slice(0, n).join('');
 /** str.strip() of the backtick character. @param {string} s */
-const stripTicks = (s) => s.replace(/^`+/, '').replace(/`+$/, '');
+function stripTicks(s) {
+  let a = 0;
+  let b = s.length;
+  while (a < b && s[a] === '`') a++;
+  while (b > a && s[b - 1] === '`') b--;
+  return s.slice(a, b);
+}
 
 /**
  * Findings, the unsupported format (or null), the loop model and whether an integration branch is declared,
@@ -644,7 +650,7 @@ export function checkProject(root, home) {
   if (!blocks.length) {
     findings.push('no `' + BEGIN + '` block: declare the loop model and the boundary triggers there and reference the method contract instead of restating it');
   } else if (blocks.length > 1) findings.push(blocks.length + ' declaration blocks; there must be exactly one');
-  else if (first === null || first === undefined) findings.push('the declaration block is opened and never closed with `' + END + '`');
+  else if (first === null) findings.push('the declaration block is opened and never closed with `' + END + '`');
   else {
     const d = checkDeclaration(first, contract);
     if (d.unsupported) {

@@ -18,9 +18,11 @@ import { BLOCK, CORRECTED_SECTION, HISTORY, LEGACY_SECTION, RC_BRIEF, brief } fr
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SKILL = path.join(REPO, 'method', 'skills', 'merge-authority', 'SKILL.md');
+/** A file as Python's read_text read it: universal newlines (a Windows checkout has CRLF). @param {string} p */
+const readText = (p) => fs.readFileSync(p, 'utf8').replaceAll('\r\n', '\n');
 /** @param {string} rel */
-const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
-const CONTRACT = ma.parseContract(fs.readFileSync(SKILL, 'utf8'), 'source');
+const read = (rel) => readText(path.join(REPO, rel));
+const CONTRACT = ma.parseContract(readText(SKILL), 'source');
 const TRUNK = CONTRACT.models['trunk-single-env'];
 // Each operational copy, and the verdicts it must still name outside its projection block. quality-gates
 // names only the clearance literal in its prose; the projection block carries the rest.
@@ -191,7 +193,7 @@ describe('one clearance literal (#134)', () => {
 
   test('no method or workspace file names the retired literal in live prose', () => {
     for (const p of SOURCES) {
-      const text = fs.readFileSync(p, 'utf8');
+      const text = readText(p);
       if (!text.includes('APPROVE-AND-MERGE-BOUNDARY')) continue;
       const block = ma.projectionBlock(text);
       const rest = block ? text.replaceAll(block, '') : text;
@@ -242,12 +244,12 @@ describe('one clearance literal (#134)', () => {
   test('no live prose claims the literal records the class', () => {
     const claims = /sets the verdict literal|verdict literal is posted|which literal ends up|its own verdict literal|whether anything shipped/gi;
     for (const p of SOURCES) {
-      assert.deepEqual(ma.flatten(ma.liveProse(fs.readFileSync(p, 'utf8'))).match(claims) || [], [], path.relative(REPO, p));
+      assert.deepEqual(ma.flatten(ma.liveProse(readText(p))).match(claims) || [], [], path.relative(REPO, p));
     }
   });
 
   test('hold-discharge, owner-check and retired-verdicts are validated', () => {
-    const source = fs.readFileSync(SKILL, 'utf8');
+    const source = readText(SKILL);
     for (const key of ['hold-discharge', 'owner-check']) {
       const start = source.indexOf('  "' + key + '"');
       const older = source.slice(0, start) + source.slice(source.indexOf('\n', start) + 1);
@@ -290,7 +292,7 @@ describe('the owner-evidence rule (#133)', () => {
   });
 
   test('a contract installed before the rule still parses and a malformed one does not', () => {
-    const source = fs.readFileSync(SKILL, 'utf8');
+    const source = readText(SKILL);
     const start = source.indexOf('  "owner-evidence"');
     const old = ma.parseContract(source.slice(0, start) + source.slice(source.indexOf('\n', start) + 1), 'older');
     assert.ok(!('owner-evidence' in old));
@@ -373,7 +375,7 @@ describe('a project brief against the installed contract', () => {
   let h;
   /** @type {string} */
   let project;
-  const skillText = fs.readFileSync(SKILL, 'utf8');
+  const skillText = readText(SKILL);
   /** @param {string[]} [harnesses] */
   const install = (harnesses = ['Claude Code', 'Codex', 'Kiro']) => {
     for (const [name, p] of ma.installedSkillPaths(h.home)) {
@@ -483,7 +485,7 @@ describe('a project brief against the installed contract', () => {
   test('installed copies that disagree or do not parse fail closed (exit 2)', () => {
     writeBrief(CORRECTED_SECTION);
     const kiro = ma.installedSkillPaths(h.home)[2][1];
-    const original = fs.readFileSync(kiro, 'utf8');
+    const original = readText(kiro);
     fs.writeFileSync(kiro, original.replace('"version": ' + CONTRACT.version, '"version": 0'));
     red('disagree', 2);
     fs.writeFileSync(kiro, original.replace('```merge-authority-contract', '```json'));

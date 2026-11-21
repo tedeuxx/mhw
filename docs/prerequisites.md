@@ -63,9 +63,9 @@ refused as an invalid declaration.
 - **SonarCloud:** with `SONAR_TOKEN` in the environment, a GET of `/api/authentication/validate`; with
   project keys in the overlay, a GET of `/api/components/show` per key (with the token if present).
 - **HCP Terraform:** with `TFC_API_TOKEN` in the environment, a GET of `/api/v2/account/details`.
-- Every GET runs in a child process, `src/lib/http-get.js`, with the token in its environment
-  (`MHW_HTTP_TOKEN`), never in its argv. It does not use an HTTP proxy from the environment, where
-  Python's `urllib` did (#494).
+- Every GET runs in a worker thread (`src/lib/http-get.js`) that the check waits for, so no process is
+  started and the token never appears in an argv or a child's environment. It does not use an HTTP
+  proxy from the environment, where Python's `urllib` did (#494).
 - With no token in the environment the line reads `not checked (credential not available)` and no call
   is made. A token is read from the environment only, never printed, never written, and never sent
   after a redirect. A service URL override is honoured only for a plain-HTTP `127.0.0.1` address with

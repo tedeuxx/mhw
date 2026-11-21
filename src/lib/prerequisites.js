@@ -13,10 +13,10 @@
 // tools we probe are known to perform (a tfenv shim installs a missing Terraform otherwise, measured).
 // Account probes: `gh auth status` (a network call; its output names the account and is only classified,
 // never printed); `gh repo view OWNER/REPO --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed`,
-// compared with global/github-repo-settings.json; and HTTPS GETs (src/lib/http-get.js, a child process)
-// that send a token only when it is already in the environment (SONAR_TOKEN, TFC_API_TOKEN), plus a
+// compared with global/github-repo-settings.json; and HTTPS GETs (src/lib/http-get.js, a worker thread
+// the check waits for) that send a token only when it is already in the environment (SONAR_TOKEN, TFC_API_TOKEN), plus a
 // SonarCloud project lookup when the overlay names a project key. A credential is never read from anywhere
-// but the environment, never printed, never written and never put in a child's argv.
+// but the environment, never printed, never written, and never handed to another process.
 //
 // Owner-specific values live in the untracked overlay file prerequisites.local.json (gitignored by
 // *.local.json): {"lanes": [...], "github_repos": ["OWNER/REPO"], "sonar_projects": ["KEY"]}. "lanes"
@@ -33,14 +33,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { onPath } from './onpath.js';
 import { runAbsolute } from './run.js';
-import { loads, isDict, pyStr, pyRepr, pyStrip, JsonDecodeError, PyFloat } from './py.js';
+import { getSync } from './http-get.js';
+import { loads, isDict, pyStr, pyRepr, pyStrip, cmpStr, JsonDecodeError, PyFloat } from './py.js';
 import { py, readTextPy, PyError, osErrorClass, digitValue } from './clean.js';
 import { pathlibJoin, systemName } from '../render/chrome-debugging.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const DECLARATION = path.join(ROOT, 'global', 'prerequisites.json');
 export const REPO_STANDARD = path.join(ROOT, 'global', 'github-repo-settings.json');
-const HTTP_GET = path.join(ROOT, 'src', 'lib', 'http-get.js');
 // The merge standard's keys (the REST names it declares) -> the fields `gh repo view --json` reads them by.
 /** @type {Record<string, string>} */
 export const GH_FIELDS = { allow_merge_commit: 'mergeCommitAllowed', allow_squash_merge: 'squashMergeAllowed', allow_rebase_merge: 'rebaseMergeAllowed' };
@@ -68,10 +68,10 @@ export const COMMANDS = Object.freeze({
 // Every probe child runs with these set: no auto-install, no update or telemetry call. tfenv's shim
 // installs a missing Terraform when TFENV_AUTO_INSTALL is unset (measured, tfenv 3.0.0).
 export const PROBE_ENV = Object.freeze({ TFENV_AUTO_INSTALL: 'false', CHECKPOINT_DISABLE: '1', GH_NO_UPDATE_NOTIFIER: '1', HOMEBREW_NO_AUTO_UPDATE: '1' });
-const PRESENCE_KINDS = ['manual', 'account'];
-const AUTH_KINDS = ['none', 'gh-auth-status', 'sonarcloud-token', 'tfc-token'];
-const PREFERRED_KINDS = ['github-repo-settings', 'sonarcloud-project'];
-const REQUIREMENT = ['required', 'optional'];
+const PRESENCE_KINDS = new Set(['manual', 'account']);
+const AUTH_KINDS = new Set(['none', 'gh-auth-status', 'sonarcloud-token', 'tfc-token']);
+const PREFERRED_KINDS = new Set(['github-repo-settings', 'sonarcloud-project']);
+const REQUIREMENT = new Set(['required', 'optional']);
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const SONAR_KEY = /^[A-Za-z0-9_.:-]+$/;
 const ENV_NAME = /^[A-Z][A-Z0-9_]*$/;
@@ -133,11 +133,11 @@ export function validate(doc) {
     for (const key of ['name', 'category', 'manual']) {
       if (typeof item[key] !== 'string' || !item[key]) throw new DeclarationError(where + ': ' + key + ' missing');
     }
-    if (!REQUIREMENT.includes(item.required)) throw new DeclarationError(where + ': required must be required or optional');
+    if (!REQUIREMENT.has(item.required)) throw new DeclarationError(where + ': required must be required or optional');
     const itemLanes = item.lanes || {};
     if (!isDict(itemLanes)) throw new DeclarationError(where + ': lanes must be an object');
     for (const [lane, req] of Object.entries(itemLanes)) {
-      if (!Object.hasOwn(lanes, lane) || !REQUIREMENT.includes(/** @type {string} */ (req))) {
+      if (!Object.hasOwn(lanes, lane) || !REQUIREMENT.has(/** @type {string} */ (req))) {
         throw new DeclarationError(where + ': unknown lane or requirement ' + lane + '=' + pyStr(req));
       }
     }
@@ -149,7 +149,7 @@ export function validate(doc) {
       if (Object.hasOwn(presence, 'args') && !cmds.every((c) => same(COMMANDS[c].path || [], presence.args))) {
         throw new DeclarationError(where + ': presence.args is not the path query of every command');
       }
-    } else if (!PRESENCE_KINDS.includes(presence.kind)) throw new DeclarationError(where + ': presence kind unknown');
+    } else if (!PRESENCE_KINDS.has(presence.kind)) throw new DeclarationError(where + ': presence kind unknown');
     const version = item.version;
     if (version !== undefined && version !== null) {
       if (!isDict(version)) throw new DeclarationError(where + ': version.args is not the version query of every command');
@@ -162,13 +162,13 @@ export function validate(doc) {
     }
     const auth = item.auth;
     if (auth !== undefined && auth !== null) {
-      if (!isDict(auth) || !AUTH_KINDS.includes(auth.kind)) throw new DeclarationError(where + ': auth kind unknown');
+      if (!isDict(auth) || !AUTH_KINDS.has(auth.kind)) throw new DeclarationError(where + ': auth kind unknown');
       if ((auth.kind === 'sonarcloud-token' || auth.kind === 'tfc-token') && !ENV_NAME.test(pyStr(Object.hasOwn(auth, 'env') ? auth.env : ''))) {
         throw new DeclarationError(where + ': auth.env must name an environment variable');
       }
     }
     const preferred = item.preferred;
-    if (preferred !== undefined && preferred !== null && (!isDict(preferred) || !PREFERRED_KINDS.includes(preferred.kind))) {
+    if (preferred !== undefined && preferred !== null && (!isDict(preferred) || !PREFERRED_KINDS.has(preferred.kind))) {
       throw new DeclarationError(where + ': preferred kind unknown');
     }
     const osList = item.os;
@@ -269,39 +269,31 @@ export function probe(exe, args, env) {
 export function baseUrl(env, name, fallback) {
   const value = env[name] || '';
   if (!value) return fallback;
-  // urllib.parse.urlsplit, as far as the check below needs it.
-  const m = /^([A-Za-z][A-Za-z0-9+.-]*):\/\/([^/?#]*)([^?#]*)(\?[^#]*)?(#.*)?$/s.exec(value);
-  if (!m) return fallback;
-  const [, scheme, netloc, rest, query, fragment] = m;
-  const hp = /^127\.0\.0\.1:(\d+)$/.exec(netloc);
-  if (!hp) return fallback;
-  const port = Number(hp[1]);
-  // urlsplit lower-cases the scheme; a port out of range raises (the default is kept); the netloc must
-  // be exactly host:port, so a leading zero, a user or a second host is refused.
-  if (scheme.toLowerCase() !== 'http' || port < 1 || port > 65535 || hp[1] !== String(port)
-      || (rest !== '' && rest !== '/') || query || fragment) {
-    return fallback;
-  }
-  return 'http://' + LOOPBACK_HOST + ':' + port;
+  // urllib.parse.urlsplit, as far as the check needs it: the scheme (lower-cased), the netloc up to the
+  // first / ? or #, and what follows, which may only be an empty path, query and fragment.
+  const sep = value.indexOf('://');
+  if (sep < 1) return fallback;
+  const scheme = value.slice(0, sep).toLowerCase();
+  const after = value.slice(sep + 3);
+  const cut = after.search(/[/?#]/);
+  const netloc = cut === -1 ? after : after.slice(0, cut);
+  const tail = cut === -1 ? '' : after.slice(cut);
+  // The netloc must be exactly host:port: a leading zero, a sign, a user or a second host is refused; a
+  // port out of range made urlsplit raise, and the default is kept.
+  const portText = netloc.startsWith(LOOPBACK_HOST + ':') ? netloc.slice(LOOPBACK_HOST.length + 1) : '';
+  const port = /^\d{1,5}$/.test(portText) ? Number(portText) : 0;
+  if (scheme !== 'http' || port < 1 || port > 65535 || portText !== String(port) || !/^\/?\??#?$/.test(tail)) return fallback;
+  return scheme + '://' + LOOPBACK_HOST + ':' + port;
 }
 
 /**
  * [status, body] for one GET; status 0 when the host could not be reached. Never follows a redirect with
- * the token. The token reaches the child in its environment, never its argv.
- * @param {string} url @param {string | null} token @param {Env} env
+ * the token, and starts no process: the token stays in this process's memory (src/lib/http-get.js).
+ * @param {string} url @param {string | null} token
  * @returns {[number, string]}
  */
-export function httpGet(url, token, env) {
-  /** @type {Env} */
-  const child = { PATH: env.PATH, HOME: env.HOME, SystemRoot: env.SystemRoot };
-  if (token) child.MHW_HTTP_TOKEN = token;
-  const r = runAbsolute(process.execPath, [HTTP_GET, url], { env: child, stdio: ['ignore', 'pipe', 'pipe'], timeout: (TIMEOUT + 5) * 1000 });
-  try {
-    const doc = JSON.parse(r.stdout);
-    return [Number(doc.status) || 0, String(doc.body ?? '')];
-  } catch {
-    return [0, ''];
-  }
+export function httpGet(url, token) {
+  return getSync(url, token);
 }
 
 /**
@@ -387,7 +379,7 @@ export function checkAuth(item, presentPath, env) {
     if (code === 0) return ['ok', 'authenticated'];
     if (out.toLowerCase().includes('not logged in')) return ['no', 'not authenticated'];
     // gh auth status contacts GitHub: offline, it fails like a rejected token. Ask GitHub, no token.
-    const [status] = httpGet(baseUrl(env, 'WORKSTATION_GITHUB_URL', GITHUB_URL) + '/zen', null, env);
+    const [status] = httpGet(baseUrl(env, 'WORKSTATION_GITHUB_URL', GITHUB_URL) + '/zen', null);
     if (status === 0) return ['unreachable', 'authentication not checked (GitHub unreachable)'];
     return ['no', 'not authenticated (gh auth status failed with GitHub reachable)'];
   }
@@ -397,7 +389,7 @@ export function checkAuth(item, presentPath, env) {
   let valid;
   if (kind === 'sonarcloud-token') {
     let body;
-    [status, body] = httpGet(baseUrl(env, 'WORKSTATION_SONAR_URL', SONAR_URL) + '/api/authentication/validate', token, env);
+    [status, body] = httpGet(baseUrl(env, 'WORKSTATION_SONAR_URL', SONAR_URL) + '/api/authentication/validate', token);
     try {
       const doc = status === 200 ? loads(body) : null;
       valid = isDict(doc) && /** @type {any} */ (doc).valid === true;
@@ -405,7 +397,7 @@ export function checkAuth(item, presentPath, env) {
       valid = false;
     }
   } else {
-    [status] = httpGet(baseUrl(env, 'WORKSTATION_TFC_URL', TFC_URL) + '/api/v2/account/details', token, env);
+    [status] = httpGet(baseUrl(env, 'WORKSTATION_TFC_URL', TFC_URL) + '/api/v2/account/details', token);
     valid = status === 200;
   }
   if (status === 0) return ['unreachable', 'authentication not checked (service unreachable)'];
@@ -433,7 +425,7 @@ export function repoStandard(file = REPO_STANDARD) {
       || Object.entries(settings).some(([k, v]) => !Object.hasOwn(GH_FIELDS, k) || typeof v !== 'boolean')) {
     throw new DeclarationError(name + ' holds a setting outside the closed set');
   }
-  return Object.keys(settings).sort().map((k) => [k, GH_FIELDS[k], settings[k]]);
+  return Object.keys(settings).sort(cmpStr).map((k) => [k, GH_FIELDS[k], settings[k]]);
 }
 
 /**
@@ -497,7 +489,7 @@ export function checkPreferred(item, authState, overlay, gh, env) {
   const out = [];
   for (const key of keys) {
     const url = baseUrl(env, 'WORKSTATION_SONAR_URL', SONAR_URL) + '/api/components/show?component=' + encodeURIComponent(key);
-    const [status] = httpGet(url, token, env);
+    const [status] = httpGet(url, token);
     if (status === 200) out.push(['ok', 'project ' + key + ' reachable']);
     else if (status === 0) out.push(['unchecked', 'project ' + key + ' not checked (service unreachable)']);
     else out.push(['drift', 'project ' + key + ' not reachable (HTTP ' + status + ')']);

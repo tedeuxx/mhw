@@ -68,7 +68,7 @@ export const overlayFile = (w, doc) => putJson(path.join(w.dir, 'overlay', 'prer
 export function shim(w, name, text) {
   const p = path.join(w.dir, 'bin', name);
   put(p, text);
-  fs.chmodSync(p, 0o755);
+  fs.chmodSync(p, 0o700);
 }
 /** @param {Where} w @param {string} name @param {string} line @param {number} [code] */
 export const tool = (w, name, line, code = 0) => shim(w, name, "#!/bin/sh\necho '" + line + "'\nexit " + code + '\n');

@@ -10,6 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import * as pq from '../../src/lib/prerequisites.js';
+import { getSync } from '../../src/lib/http-get.js';
 import { throwawayHome, which } from '../helpers/home.js';
 import { item, GH_ITEM, GH_SHIM, LOGIN, TOKEN } from './cases.js';
 
@@ -99,11 +100,10 @@ describe('the declaration', () => {
     assert.ok(!fs.existsSync(path.join(REPO, 'global', 'github-repo-settings.sh')));
   });
 
-  test('a token never reaches a child\'s argv: the GET runs with it in the environment only', () => {
-    const text = fs.readFileSync(path.join(REPO, 'src', 'lib', 'prerequisites.js'), 'utf8');
-    const call = text.slice(text.indexOf('export function httpGet'), text.indexOf('export function originRepo'));
-    assert.match(call, /runAbsolute\(process\.execPath, \[HTTP_GET, url\]/);
-    assert.match(call, /child\.MHW_HTTP_TOKEN = token/);
+  test('a GET starts no process: the token stays in memory, in a worker thread', () => {
+    const text = fs.readFileSync(path.join(REPO, 'src', 'lib', 'http-get.js'), 'utf8');
+    assert.deepEqual([...text.matchAll(/^import .* from '([^']+)';$/gm)].map((m) => m[1]), ['node:worker_threads']);
+    assert.doesNotMatch(text, /process\.(env|argv)/);
   });
 });
 
@@ -130,7 +130,7 @@ function sandbox() {
     /** @param {string} name @param {string} text */
     shim(name, text) {
       fs.writeFileSync(path.join(bin, name), text);
-      fs.chmodSync(path.join(bin, name), 0o755);
+      fs.chmodSync(path.join(bin, name), 0o700);
     },
     /** @param {string} name @param {string} line @param {number} [code] */
     tool(name, line, code = 0) {
@@ -363,8 +363,10 @@ describe('services', { skip: !POSIX && 'needs POSIX' }, () => {
   });
 
   test('a redirect is not followed: its status is the answer and the token goes nowhere else', () => {
-    const r = spawnSync(process.execPath, [path.join(REPO, 'src', 'lib', 'http-get.js'), svc.url + '/redirect'], { env: { PATH: s.bin, MHW_HTTP_TOKEN: TOKEN }, encoding: 'utf8' });
-    assert.deepEqual(JSON.parse(r.stdout), { status: 302, body: '' });
-    assert.deepEqual(svc.seen().map((x) => x.path), ['/redirect']);
+    assert.deepEqual(getSync(svc.url + '/redirect', TOKEN), [302, '']);
+    assert.deepEqual(svc.seen(), [{ path: '/redirect', auth: 'Bearer <TOKEN>' }]);
+    // A 2xx answers its body; an unreachable host answers status 0.
+    assert.deepEqual(getSync(svc.url + '/api/authentication/validate', TOKEN), [200, '{"valid":true}']);
+    assert.deepEqual(getSync('http' + '://127.0.0.1:9/x', null), [0, '']);
   });
 });
