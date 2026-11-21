@@ -252,10 +252,15 @@ Issues/backlog"*. He agreed ("de acordo") to the mechanism below the same day.
 points at, verified with `git ls-remote` on 2026-10-12), joins `actions/create-github-app-token`
 (v3.2.0, likewise pinned). It is the first model-running dependency in this repository's CI. Its blast
 radius is bounded outside the model: the agent's only shell is ~~`.github/scripts/method_issue_sync.py`~~
-`.github/scripts/method-issue-sync.js` (the 2026-11-21 amendment on #500), which writes only to the twin, meaning the App-authored Issue carrying the marker (-skills is public, so
+~~`.github/scripts/method-issue-sync.js` (the 2026-11-21 amendment on #500)~~ the executable
+`.github/scripts/method-issue-sync` *(corrected 2026-11-21, PR #541: the agent runs the executable by
+path, which runs the `.js` module; the `node <script>.js` form was denied by the matcher on Claude Code
+2.1.296 and 2.1.330, measured on macOS by the `agents-lead` lens; see the 2026-11-21 amendment)*, which writes only to the twin, meaning the App-authored Issue carrying the marker (-skills is public, so
 a marked Issue opened by anyone else is ignored and named in a warning, never edited), only from files
 in the run's scratch directory, and refuses credential-shaped text and any 12-character run of a token
-the run holds; it has no file-reading tools, and project settings are not loaded (read from the action's
+the run holds; ~~it has no file-reading tools~~ it has no Read, Glob or Grep tool *(corrected 2026-11-21,
+PR #541: Claude Code's built-in read-only commands, `cat` and `head`, still read the checkout; see the
+"Consequence." paragraph of the 2026-11-21 amendment)*, and project settings are not loaded (read from the action's
 source, `--setting-sources user`; not measured on a runner). The mhw
 Issue's text is declared data, not instructions, in the prompt; that clause is an instruction to a model,
 not a control.
@@ -983,9 +988,12 @@ asserts that string, that no other `Bash(...)` rule exists, that no rule and no 
 that no `NODE_*` variable is set at the workflow, a job or a step. The rule names the executable, so no
 node flag (`-e`, `--require`) can be given. ~~A prefix on the script's path does not match `node -e ...`
 or `node --require ... <script>`, because node's own flags come before the script.~~ *(Struck the same
-day, QA B4 on PR #541: that rule was `Bash(node .github/scripts/method-issue-sync.js:*)`, and through it
-`node <script>.js/../<file>` ran any `.js` already on the runner, the toolcache's `npx-cli.js` among them,
-which Python had refused with ENOTDIR.)* The rule's token boundary rests on the `scm` skill's measurement
+day, QA B4 on PR #541: that rule was `Bash(node .github/scripts/method-issue-sync.js:*)`. Node itself
+follows `node <script>.js/../<file>` as text and runs `<file>`, any `.js` already on the runner included,
+the toolcache's `npx-cli.js` among them, where Python refused the same path with ENOTDIR; that was
+measured by running node directly, outside the matcher. Under the matcher the route was denied on Claude
+Code 2.1.296 and 2.1.330, measured on macOS by the `agents-lead` lens; not measured on the runner. So the
+matcher was the one barrier left, and the executable restores the kernel's.)* The rule's token boundary rests on the `scm` skill's measurement
 (deny rules, Claude Code 2.1.261); this allow rule was *not measured* on the runner. Both jobs check out `.github/scripts` and `src/lib` (the two
 files the script imports, which import only `node:` modules; a test walks that graph) and run the
 script on a pinned node (`actions/setup-node`, the pin and version `tests.yml` uses), so the runner
