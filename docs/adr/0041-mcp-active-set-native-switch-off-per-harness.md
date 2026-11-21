@@ -222,14 +222,18 @@ prompt) and costs up to the timeout per server. Default timeout 30 seconds.
   sends no token.
 - Codex may start a server with a restricted environment; the probe passes its own full environment, so
   `ok` can be optimistic for Codex.
-- A 30x answer to the POST is followed by Python's `urllib`, so the result is that of the redirect target.
+- ~~A 30x answer to the POST is followed by Python's `urllib`, so the result is that of the redirect target.~~
+  *Amended 2026-11-20 (#485):* a 301, 302 or 303 answer is followed as a GET, as `urllib` followed it, so
+  the result is that of the redirect target; a 307 or 308 answer to the POST, a loop, or more than ten
+  redirects is `fail: http <status>`.
 - A member that a `deniedMcpServers` entry blocks in Claude Code is still probed, from its configuration:
   read this check together with the `check`'s `ABSENT` line, which names it.
 
 **Limits:** a server that needs a configured header to answer shows as `needs login` or fails, though the
 agent harness, which sends the header, may connect. `ok` means it answered `initialize` from this
 process, with this environment: the agent harness's own environment (a GUI app's in particular) can
-differ. Not run on Windows, and on Python before 3.11 the Codex surface is skipped. Evidence: written
+differ. Not run on Windows~~, and on Python before 3.11 the Codex surface is skipped~~ (*struck 2026-11-20,
+#485:* Node reads config.toml, so no Codex surface is skipped for that). Evidence: written
 and tested against a synthetic stdio stub and a local HTTP stub, in throwaway homes; not run on the
 reference machine.
 
@@ -276,6 +280,19 @@ accepted. Parts already struck or superseded stay so. Earlier sentences here say
 proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
 Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
+## Amendment 2026-11-20: the active set and the check are Node ([#485](https://github.com/tedeuxx/mhw/issues/485), S14 of #470)
+
+`global/mcp/mcp_active.py` and `global/mcp/mcp_connect.py` are deleted; their Node forms are
+`src/commands/mcp-active.js` and `src/commands/mcp-connect.js`, run by `mhw mcp render --active` exactly as
+before, with no python3. Same lines, exit codes and files: the transcripts recorded from the originals are
+`test/golden/S14`, and every difference is declared in `test/golden/S14/expected-differences.json`. The two
+that change behaviour: a configured URL with no scheme is `fail: unreachable` (the original ended the
+whole check with a traceback there), and an I/O error writing a config or the manifest is a refusal,
+exit 3. The probes no longer use the proxy environment or Python's certificate store: they connect
+directly and verify TLS against Node's. The `--lib` bridge the original used to reach the renderer is
+removed. *Written and tested* in throwaway homes (macOS locally; Linux in CI); not installed on the
+reference machine.
+
 ## Links
 
 - Issue [#219](https://github.com/tedeuxx/mhw/issues/219) (decisions 1 to 5 and the consolidated
@@ -287,6 +304,7 @@ Ratification changes no evidence level stated above: it installs, loads or enfor
   (`deniedMcpServers`), <https://code.claude.com/docs/en/managed-mcp> (matching by URL, command or name),
   <https://developers.openai.com/codex/config-reference> (`mcp_servers.<id>.enabled`),
   <https://kiro.dev/docs/mcp/configuration/> (`disabled`).
-- `global/mcp/mcp_active.py`, `global/mcp/mcp_render.py`, `global/mcp/mcp_render_test.py` (class
-  `ActiveSet`), `global/install.sh` (`mcp_step`), `global/install.test.sh` (section 19c),
+- ~~`global/mcp/mcp_active.py`, `global/mcp/mcp_render.py`, `global/mcp/mcp_render_test.py` (class
+  `ActiveSet`)~~ `src/commands/mcp-active.js` (class `ActiveSet`), `src/commands/mcp-connect.js`,
+  `src/render/mcp.js`, `test/mcp/active.test.js`, `test/mcp/connect.test.js` (since #484 and #485), `global/install.sh` (`mcp_step`), `global/install.test.sh` (section 19c),
   `global/workstation.py` (`mcp_active_lines`).

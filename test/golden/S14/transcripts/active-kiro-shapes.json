@@ -1,0 +1,46 @@
+{
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 1
+  },
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  codex: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.codex/config.toml) (MCP active set)\nDRIFT   kiro: on outside the set: k-false, k-none, k-one (3); install turns them off (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step1 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step1 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  codex: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.codex/config.toml) (MCP active set)\nCHANGED kiro: turned off k-false, k-none, k-one (3); previous file kept as <HOME>/.kiro/settings/mcp.json.pmhwc-mcp-active-backup (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step1 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step2 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step2 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  codex: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.codex/config.toml) (MCP active set)\nOK      kiro: nothing on outside the set (3 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step2 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  codex: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) turned off outside mhw: set-a (1) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nOK      kiro: nothing on outside the set (3 turned off by mhw) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step3 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step4 --active --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step4 --active --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stdout": "CHANGED kiro: turned back on k-false, k-none, k-one (3); previous file kept as <HOME>/.kiro/settings/mcp.json.pmhwc-mcp-active-backup (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nREMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-managed.json (it recorded only what the MCP active set turned off)\n",
+  "step4 --active --mode=uninstall --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step5 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 1
+  },
+  "step5 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "ABSENT  codex: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.codex/config.toml) (MCP active set)\nABSENT  kiro: set member(s) turned off outside mhw: set-a (1) (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nDRIFT   kiro: on outside the set: k-false, k-none, k-one (3); install turns them off (<HOME>/.kiro/settings/mcp.json) (MCP active set)\nABSENT  claude-code: set member(s) not configured: set-a (1); render them with mhw mcp render (<HOME>/.claude.json) (MCP active set)\nOK      claude-code: nothing on outside the set (0 turned off by mhw) (<HOME>/.claude/settings.json) (MCP active set)\n",
+  "step5 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "files": {
+    ".kiro/settings/mcp.json": {
+      "mode": "600",
+      "text": "{\n  \"other\": {\n    \"keep\": [\n      1,\n      2.5,\n      \"x\"\n    ]\n  },\n  \"mcpServers\": {\n    \"set-a\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": true\n    },\n    \"k-false\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": false\n    },\n    \"k-one\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": 1\n    },\n    \"k-none\": {\n      \"command\": \"/bin/echo\"\n    },\n    \"k-owner\": {\n      \"command\": \"/bin/echo\",\n      \"disabled\": true\n    },\n    \"k-str\": \"not a server\",\n    \"node_repl\": {\n      \"command\": \"/bin/echo\"\n    }\n  }\n}\n"
+    },
+    ".kiro/settings/mcp.json.pmhwc-mcp-active-backup": {
+      "mode": "600",
+      "text": "{\"other\":{\"keep\":[1,2.5,\"x\"]},\"mcpServers\":{\"set-a\":{\"command\":\"/bin/echo\",\"disabled\":true},\"k-false\":{\"command\":\"/bin/echo\",\"disabled\":true},\"k-one\":{\"command\":\"/bin/echo\",\"disabled\":true},\"k-none\":{\"command\":\"/bin/echo\",\"disabled\":true},\"k-owner\":{\"command\":\"/bin/echo\",\"disabled\":true},\"k-str\":\"not a server\",\"node_repl\":{\"command\":\"/bin/echo\"}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\":1,\"active_set\":{},\"servers\":{\"set-a\":{\"command\":\"/bin/echo\"}}}"
+    }
+  }
+}

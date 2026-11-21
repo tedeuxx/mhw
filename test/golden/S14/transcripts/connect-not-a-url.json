@@ -1,0 +1,34 @@
+{
+  "step0 install": {
+    "code": 0
+  },
+  "step0 install stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.codex/config.toml (add h-noscheme)\nWROTE   <HOME>/.claude.json (add h-noscheme)\nWROTE   <HOME>/.kiro/settings/mcp.json (add h-noscheme)\n",
+  "step0 install stderr": "",
+  "step1 --active --mode=connect --timeout=2": {
+    "code": 1
+  },
+  "step1 --active --mode=connect --timeout=2 stdout": "",
+  "step1 --active --mode=connect --timeout=2 stderr": "<traceback>\nValueError: unknown url type: '${SYNTH_UNEXPANDED}/mcp'\n",
+  "files": {
+    ".claude.json": {
+      "mode": "600",
+      "text": "{\"mcpServers\":{\"h-noscheme\":{\"type\":\"http\",\"url\":\"no-scheme-here\"}}}"
+    },
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": "# >>> managed-by: personal-multi-harness-workstation-configuration (mcp servers); <STAMP>; generated, do not edit inside this block: re-run mhw mcp render\n[mcp_servers.h-noscheme]\nurl = \"${SYNTH_UNEXPANDED}/mcp\"\n# <<< managed-by: personal-multi-harness-workstation-configuration (mcp servers)\n"
+    },
+    ".kiro/settings/mcp.json": {
+      "mode": "600",
+      "text": "{\"mcpServers\":{\"h-noscheme\":{\"type\":\"http\",\"url\":\"no-scheme-here\"}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\":1,\"active_set\":{},\"servers\":{\"h-noscheme\":{\"command\":\"/bin/echo\"}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": {
+      "mode": "600",
+      "text": "{\n  \"version\": 1,\n  \"surfaces\": {\n    \"claude-code\": [\n      \"h-noscheme\"\n    ],\n    \"kiro\": [\n      \"h-noscheme\"\n    ]\n  },\n  \"stamps\": {\n    \"claude-code\": \"<STAMP>\",\n    \"kiro\": \"<STAMP>\"\n  }\n}\n"
+    }
+  }
+}

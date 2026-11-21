@@ -1,0 +1,23 @@
+{
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "SKIP    codex: not installed (<HOME>/.codex absent) (MCP active set)\nSKIP    kiro: not installed (<HOME>/.kiro absent) (MCP active set)\nSKIP    claude-code: not installed (<HOME>/.claude absent) (MCP active set)\n",
+  "step0 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step1 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step1 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stdout": "SKIP    codex: not installed (<HOME>/.codex absent) (MCP active set)\nSKIP    kiro: not installed (<HOME>/.kiro absent) (MCP active set)\nSKIP    claude-code: not installed (<HOME>/.claude absent) (MCP active set)\n",
+  "step1 --active --mode=install --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "step2 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic": {
+    "code": 0
+  },
+  "step2 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stdout": "SKIP    MCP active set: not declared in <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json (no \"active_set\"), so nothing is turned off (MCP active set)\n",
+  "step2 --active --mode=check --stamp=release: v0.0.0-test; commit: synthetic stderr": "",
+  "files": {
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\":1,\"servers\":{}}"
+    }
+  }
+}

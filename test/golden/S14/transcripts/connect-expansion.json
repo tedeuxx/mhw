@@ -1,0 +1,34 @@
+{
+  "step0 install": {
+    "code": 0
+  },
+  "step0 install stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.codex/config.toml (add s-arg)\nWROTE   <HOME>/.claude.json (add s-arg)\nWROTE   <HOME>/.kiro/settings/mcp.json (add s-arg)\n",
+  "step0 install stderr": "",
+  "step1 --active --mode=connect --timeout=2": {
+    "code": 1
+  },
+  "step1 --active --mode=connect --timeout=2 stdout": "FAIL    codex: s-arg: fail: exited 5 (MCP connect)\nOK      claude-code: s-arg: ok (MCP connect)\nOK      kiro: s-arg: ok (MCP connect)\n",
+  "step1 --active --mode=connect --timeout=2 stderr": "",
+  "files": {
+    ".claude.json": {
+      "mode": "600",
+      "text": "{\"mcpServers\":{\"s-arg\":{\"type\":\"stdio\",\"command\":\"<NODE>\",\"args\":[\"<BASE>/stub.mjs\",\"argcheck\",\"<BASE>/pid-argcheck\",\"${SYNTH_EMPTY:-expanded-value}\"],\"env\":{\"SYNTH_E\":\"${SYNTH_UNSET:-expanded}-${SYNTH_EMPTY}value\",\"SYNTH_LATER\":\"${SYNTH_E}\"}}}}"
+    },
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": "# >>> managed-by: personal-multi-harness-workstation-configuration (mcp servers); <STAMP>; generated, do not edit inside this block: re-run mhw mcp render\n[mcp_servers.s-arg]\ncommand = \"<NODE>\"\nargs = [\"<BASE>/stub.mjs\", \"argcheck\", \"<BASE>/pid-argcheck\", \"${SYNTH_X}\"]\nenv = { SYNTH_E = \"${SYNTH_X}\" }\n# <<< managed-by: personal-multi-harness-workstation-configuration (mcp servers)\n"
+    },
+    ".kiro/settings/mcp.json": {
+      "mode": "600",
+      "text": "{\"mcpServers\":{\"s-arg\":{\"command\":\"<NODE>\",\"args\":[\"<BASE>/stub.mjs\",\"argcheck\",\"<BASE>/pid-argcheck\",\"${SYNTH_EMPTY:-expanded-value}\"],\"env\":{\"SYNTH_E\":\"${SYNTH_UNSET:-expanded}-${SYNTH_EMPTY}value\",\"SYNTH_LATER\":\"${SYNTH_E}\"}}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json": {
+      "mode": "600",
+      "text": "{\"version\":1,\"active_set\":{},\"servers\":{\"s-arg\":{\"command\":\"<NODE>\",\"args\":[\"<BASE>/stub.mjs\",\"argcheck\",\"<BASE>/pid-argcheck\",\"expanded-value\"],\"env\":{\"SYNTH_E\":\"expanded-value\"}}}}"
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": {
+      "mode": "600",
+      "text": "{\n  \"version\": 1,\n  \"surfaces\": {\n    \"claude-code\": [\n      \"s-arg\"\n    ],\n    \"kiro\": [\n      \"s-arg\"\n    ]\n  },\n  \"stamps\": {\n    \"claude-code\": \"<STAMP>\",\n    \"kiro\": \"<STAMP>\"\n  }\n}\n"
+    }
+  }
+}

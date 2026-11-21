@@ -320,6 +320,7 @@ def mcp_active_lines(f):
 
 # The MCP renderer is Node since #484 (S13 of #470): `mhw mcp render`, src/render/mcp.js, spawned by the
 # node lookup chrome_debugging uses (the strangler rule: this file reaches it through the CLI until S22).
+# Its --active --mode=connect is the Node connection check since #485 (S14): src/commands/mcp-connect.js.
 MCP_RENDER = ROOT / "src" / "render" / "mcp.js"
 
 

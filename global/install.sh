@@ -1133,9 +1133,8 @@ mcp_step() {
   # The MCP active set (Issue #219, ADR-0041): once the local MCP definition declares "active_set", every
   # server outside it is turned off through each agent harness's own switch (Codex enabled = false,
   # Claude Code deniedMcpServers, Kiro "disabled"); the Claude desktop app is reported only. Undeclared,
-  # nothing is turned off, and uninstall turns back on what install turned off. Still
-  # global/mcp/mcp_active.py until S14 (#485): the renderer runs it with python3 3.11+, and says SKIP
-  # (exit 2) when there is none.
+  # nothing is turned off, and uninstall turns back on what install turned off. Node since S14 (#485):
+  # src/commands/mcp-active.js, run by the renderer's --active mode; no python3 is needed.
   "$mcp_node" "$script_dir/../src/render/mcp.js" --active "--mode=$mode" "--stamp=$stamp" || raise $?
 }
 # Chrome's remote-debugging toggle (Issue #224, ADR-0038 amendment 2026-10-24): the chrome-devtools server

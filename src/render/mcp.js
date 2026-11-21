@@ -18,9 +18,8 @@
 //                                  by global/install.sh on every mhw install
 //   mhw mcp render --active --mode=install|check|dry-run|uninstall|connect [--stamp=S] [--source=FILE]
 //                  [--timeout=SECONDS, connect only]
-//                                  the MCP active set (Issue #219, ADR-0041) and its connection check. Until
-//                                  S14 (#485) moves them, this forwards to global/mcp/mcp_active.py, which
-//                                  reaches this renderer back through `--lib=<op>` (the strangler rule, #470)
+//                                  the MCP active set (Issue #219, ADR-0041), src/commands/mcp-active.js, and
+//                                  its connection check, src/commands/mcp-connect.js (Node since #485, S14)
 //
 // `node src/render/mcp.js` takes the same arguments (global/install.sh runs it that way).
 //
@@ -288,6 +287,8 @@ function del(d, k) {
 const sorted = (xs) => [...xs].sort(cmpStr);
 /** "%r" % s. @param {unknown} v */
 const r = (v) => pyRepr(v);
+// The Python-semantics helpers src/commands/mcp-active.js and mcp-connect.js share with the render (#485).
+export { entries, keysOf, has, dict, deepCopy as deepCopyTree, truthy };
 
 // ------------------------------------------------------------------------------- Python's files
 
@@ -318,11 +319,11 @@ function readLoose(file) {
   return new TextDecoder('utf-8', { ignoreBOM: true }).decode(raw).replaceAll('\r\n', '\n').replaceAll('\r', '\n');
 }
 /** json.load(open(p)). @param {string} file */
-function readJson(file) {
+export function readJson(file) {
   return loads(readText(file), { ordered: true });
 }
 /** os.path.exists: False on any error. @param {string} p */
-function exists(p) {
+export function exists(p) {
   try {
     fs.statSync(p);
     return true;
@@ -331,7 +332,7 @@ function exists(p) {
   }
 }
 /** os.path.isdir. @param {string} p */
-function isDir(p) {
+export function isDir(p) {
   try {
     return fs.statSync(p).isDirectory();
   } catch {
@@ -361,9 +362,9 @@ function rstripChars(s, chars) {
   return s.slice(0, e);
 }
 /** The message str(e) gives for an error a read or a parse raised. @param {unknown} e */
-const msgOf = (e) => (e instanceof Error ? e.message : String(e));
+export const msgOf = (e) => (e instanceof Error ? e.message : String(e));
 /** type(e).__name__ for the errors a read or a parse raises. @param {unknown} e */
-function clsOf(e) {
+export function clsOf(e) {
   if (e instanceof PyOSError) return /** @type {string} */ (e.cls);
   if (e instanceof JsonDecodeError) return 'JSONDecodeError';
   if (e instanceof TomlError) return 'TOMLDecodeError';
@@ -1793,11 +1794,11 @@ export function scan(surfaces, ctx) {
   return 0;
 }
 
-// ------------------------------------------------------------- the active set, through the CLI (#485)
+// ----------------------------------------------------------------------------------- the active set
 
 /**
- * The facts mcp_active.py's ActiveSet needs, computed here (the strangler rule: it reaches the renderer
- * through the CLI until S14). doc null: no definition, or uninstall.
+ * The facts the active set (src/commands/mcp-active.js) reads: the definition and the policy servers read
+ * and checked here, and the entries each harness renders. doc null: no definition, or uninstall.
  * @param {Map<string, any> | null} doc @param {Ctx} ctx
  */
 export function activeFacts(doc, ctx) {
@@ -1844,127 +1845,51 @@ export function activeFacts(doc, ctx) {
   return facts;
 }
 
-/** The backup suffix of every file the MCP active set writes (mcp_active.py BACKUP). */
+/** The backup suffix of every file the MCP active set writes. */
 export const ACTIVE_BACKUP = '.pmhwc-mcp-active-backup';
 
 /**
- * The only files `--lib=write` may write: the configs mcp_active.py edits (Codex config.toml, Kiro mcp.json,
- * Claude Code settings.json), as this renderer resolves them. The bridge is not a general file writer.
- * @param {Ctx} ctx
+ * --active: the MCP active set and its connection check (src/commands/mcp-active.js and mcp-connect.js,
+ * Node since #485). The arguments are checked here; the last --mode, --stamp, --source and --timeout win.
+ * @param {string[]} argv @param {Ctx} ctx @returns {Promise<number>}
  */
-export function activeTargets(ctx) {
-  const codex = surfaceTarget('codex', ctx);
-  const kiro = surfaceTarget('kiro', ctx);
-  return [/** @type {[string, string]} */ (codex)[0], /** @type {[string, string]} */ (kiro)[0], path.join(home(ctx), '.claude', 'settings.json')]
-    .map((p) => path.resolve(ctx.cwd, p));
-}
-
-/**
- * One bridge request from mcp_active.py: `--lib=<op>`, a JSON request on stdin, one JSON answer on stdout,
- * {"ok": value} or {"refuse": [code, message]}.
- * @param {string} op @param {string} input @param {Ctx} ctx @returns {number}
- */
-export function lib(op, input, ctx) {
-  /** @type {any} */
-  let req;
-  try {
-    req = input.trim() ? loads(input, { ordered: true }) : dict();
-  } catch {
-    ctx.err('mcp render --lib: the request is not JSON\n');
-    return 2;
-  }
-  /** @type {unknown} */
-  let value;
-  try {
-    if (op === 'paths') {
-      value = dict([
-        ['home', home(ctx)], ['manifest', manifestPath(ctx)], ['default_source', defaultSource(ctx)],
-        ['targets', dict(SURFACES.map((s) => [s, surfaceTarget(s, ctx)]))],
-      ]);
-    } else if (op === 'set') {
-      const source = get(req, 'source', null);
-      let doc = null;
-      if (source !== null) {
-        if (committable(source, ctx)) {
-          throw new Refuse(2, source + ' is inside a git work tree and not ignored, so it could be committed. The definition '
-            + 'lives only in the untracked local overlay');
-        }
-        doc = loadSource(source, ctx);
-      }
-      value = activeFacts(doc, ctx);
-    } else if (op === 'manifest') {
-      value = loadManifestDoc(ctx);
-    } else if (op === 'manifest-write') {
-      writeManifest(get(req, 'doc'), ctx);
-      value = null;
-    } else if (op === 'provenance') {
-      value = provenance(ctx);
-    } else if (op === 'write') {
-      const file = get(req, 'path');
-      const text = get(req, 'text');
-      if (!isStr(file) || !isStr(text) || get(req, 'suffix') !== ACTIVE_BACKUP || !activeTargets(ctx).includes(path.resolve(ctx.cwd, file))) {
-        throw new Refuse(2, 'mcp render --lib=write writes only the configs the MCP active set edits ('
-          + activeTargets(ctx).join(', ') + '), each with its ' + ACTIVE_BACKUP + ' backup; refused, nothing written');
-      }
-      atomicWrite(path.resolve(ctx.cwd, file), text, true, ACTIVE_BACKUP, ctx);
-      value = null;
-    } else if (op === 'credential') {
-      value = get(req, 'values', []).map((/** @type {unknown} */ v) => isStr(v) && looksLikeCredentialValue(v));
-    } else {
-      ctx.err('mcp render --lib: unknown op ' + op + '\n');
-      return 2;
-    }
-  } catch (e) {
-    if (!(e instanceof Refuse)) throw e;
-    ctx.out(dumps(dict([['refuse', [e.code, e.message]]]), { sortKeys: false, separators: [', ', ': '] }) + '\n');
-    return 0;
-  }
-  ctx.out(dumps(dict([['ok', value]]), { sortKeys: false, separators: [', ', ': '] }) + '\n');
-  return 0;
-}
-
-/**
- * --active: the MCP active set and its connection check, forwarded to global/mcp/mcp_active.py until S14
- * (#485). The arguments are checked here; python3 runs the original with them.
- * @param {string[]} argv @param {Ctx} ctx
- */
-function activeMain(argv, ctx) {
+async function activeMain(argv, ctx) {
   let mode = 'install';
-  /** @type {string[]} */
-  const pass = [];
-  let timeout = false;
+  /** @type {string | null} */
+  let stamp = null;
+  /** @type {string | null} */
+  let source = null;
+  /** @type {number | null} */
+  let timeout = null;
   for (const a of argv) {
     if (a === '--active') continue;
     if (['--mode=install', '--mode=check', '--mode=dry-run', '--mode=uninstall', '--mode=connect'].includes(a)) mode = a.slice(7);
-    else if (/^--timeout=[1-9]\d{0,3}$/.test(a)) {
-      timeout = true;
-      pass.push(a);
-    } else if ((a.startsWith('--stamp=') && a.length > 8) || (a.startsWith('--source=') && a.length > 9)) pass.push(a);
+    else if (/^--timeout=[1-9]\d{0,3}$/.test(a)) timeout = Number(a.slice(10));
+    else if (a.startsWith('--stamp=') && a.length > 8) stamp = a.slice(8);
+    else if (a.startsWith('--source=') && a.length > 9) source = a.slice(9);
     else {
       ctx.err('usage: mhw mcp render --active --mode=install|check|dry-run|uninstall|connect [--stamp=S] '
         + '[--source=FILE] [--timeout=SECONDS, connect only]\n');
       return 2;
     }
   }
-  if (timeout && mode !== 'connect') {
+  if (timeout !== null && mode !== 'connect') {
     ctx.err('--timeout applies to --mode=connect only\n');
     return 2;
   }
-  const py = pyWhich('python3', ctx);
-  if (!py) {
-    ctx.out('SKIP    MCP active set: python3 is required until #485 moves it to Node (3.11 or later for the Codex surface)\n');
-    return 2;
+  // Loaded here, not at the top: both import this renderer, which stays the entry point.
+  const active = await import('../commands/mcp-active.js');
+  try {
+    if (mode === 'connect') {
+      const { connect, DEFAULT_TIMEOUT } = await import('../commands/mcp-connect.js');
+      return await connect(active.loadSet(mode, source, ctx), timeout || DEFAULT_TIMEOUT, ctx);
+    }
+    return active.activeRun(mode, stamp, source, ctx);
+  } catch (e) {
+    if (!(e instanceof Refuse)) throw e;
+    ctx.err(e.message + '\n');
+    return e.code;
   }
-  const env = { ...ctx.env, MHW_MCP_RENDER_NODE: process.execPath };
-  const p = spawnSync(py, ['-B', path.join(ROOT, 'global', 'mcp', 'mcp_active.py'), '--mode=' + mode, ...pass],
-    { cwd: ctx.cwd, env: /** @type {NodeJS.ProcessEnv} */ (env), stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
-  if (p.stdout) ctx.out(p.stdout.toString('utf8'));
-  if (p.stderr) ctx.err(p.stderr.toString('utf8'));
-  if (p.error) {
-    ctx.err('mhw mcp render --active: python3 could not run (' + p.error.message + ')\n');
-    return 2;
-  }
-  return p.status ?? 1;
 }
 
 /** @param {string[]} argv @param {Ctx} ctx */
@@ -2001,8 +1926,8 @@ export const USAGE = [
 /**
  * @param {string[]} argv
  * @param {{ env?: Record<string, string | undefined>, platform?: string, cwd?: string, out?: (s: string) => void,
- *   err?: (s: string) => void, stdin?: () => string }} [io]
- * @returns {number}
+ *   err?: (s: string) => void }} [io]
+ * @returns {number | Promise<number>} a promise for --active, whose connection check waits on servers
  */
 export function main(argv, io = {}) {
   /** @type {Ctx} */
@@ -2013,15 +1938,6 @@ export function main(argv, io = {}) {
     out: io.out || ((s) => fs.writeSync(1, s)),
     err: io.err || ((s) => fs.writeSync(2, s)),
   };
-  const libArg = argv.find((a) => a.startsWith('--lib='));
-  if (libArg !== undefined) {
-    if (argv.length !== 1) {
-      ctx.err('mcp render --lib takes no other argument\n');
-      return 2;
-    }
-    const input = io.stdin ? io.stdin() : fs.readFileSync(0, 'utf8');
-    return lib(libArg.slice(6), input, ctx);
-  }
   if (argv.includes('--policy') && argv.includes('--active')) {
     ctx.err('--policy and --active are separate runs\n');
     return 2;
@@ -2078,6 +1994,13 @@ const realArg = (p) => {
   }
 };
 if (process.argv[1] && realArg(process.argv[1]) === realArg(fileURLToPath(import.meta.url))) {
-  process.exitCode = main(process.argv.slice(2));
+  // Not a top-level await: src/commands/mcp-active.js imports this module back, and a top-level await here
+  // would leave this module unevaluated while main() waits on that import (a deadlock, exit 13).
+  Promise.resolve(main(process.argv.slice(2))).then((code) => {
+    process.exitCode = code;
+  }, (e) => {
+    fs.writeSync(2, (e instanceof Error && e.stack ? e.stack : String(e)) + '\n');
+    process.exitCode = 1;
+  });
 }
 export { RENDERER_REL };

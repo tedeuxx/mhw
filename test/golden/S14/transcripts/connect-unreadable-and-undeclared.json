@@ -1,0 +1,51 @@
+{
+  "step0 install": {
+    "code": 0
+  },
+  "step0 install stdout": "SOURCE  <STAMP>\nWROTE   <HOME>/.codex/config.toml (add s-ok)\nWROTE   <HOME>/.claude.json (add s-ok)\nWROTE   <HOME>/.kiro/settings/mcp.json (add s-ok)\n",
+  "step0 install stderr": "",
+  "step1 --active --mode=connect --timeout=2": {
+    "code": 0
+  },
+  "step1 --active --mode=connect --timeout=2 stdout": "SKIP    codex: its configuration could not be read (MCP connect)\nOK      claude-code: s-ok: ok (MCP connect)\nSKIP    kiro: its configuration could not be read (MCP connect)\n",
+  "step1 --active --mode=connect --timeout=2 stderr": "",
+  "step2 --active --mode=connect --timeout=2": {
+    "code": 0
+  },
+  "step2 --active --mode=connect --timeout=2 stdout": "SKIP    codex: its configuration could not be read (MCP connect)\nSKIP    claude-code: its configuration could not be read (MCP connect)\nSKIP    kiro: its configuration could not be read (MCP connect)\n",
+  "step2 --active --mode=connect --timeout=2 stderr": "",
+  "step3 --active --mode=connect --timeout=2": {
+    "code": 0
+  },
+  "step3 --active --mode=connect --timeout=2 stdout": "NOTE    codex: no set member is enabled here (MCP connect)\nNOTE    claude-code: no set member is enabled here (MCP connect)\n",
+  "step3 --active --mode=connect --timeout=2 stderr": "",
+  "step4 --active --mode=connect --timeout=2": {
+    "code": 0
+  },
+  "step4 --active --mode=connect --timeout=2 stdout": "SKIP    MCP active set: not declared in <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json (no \"active_set\"), so nothing is turned off (MCP active set)\nSKIP    MCP connect: no active set is declared, so there is nothing to check (MCP connect)\n",
+  "step4 --active --mode=connect --timeout=2 stderr": "",
+  "step5 --active --mode=connect --timeout=2": {
+    "code": 0
+  },
+  "step5 --active --mode=connect --timeout=2 stdout": "SKIP    MCP active set: no local MCP definition at <HOME>/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json, so nothing is turned off (MCP active set)\nSKIP    MCP connect: no active set is declared, so there is nothing to check (MCP connect)\n",
+  "step5 --active --mode=connect --timeout=2 stderr": "",
+  "step6 --active --mode=connect --timeout=2 --source=<BASE>/broken.json": {
+    "code": 2
+  },
+  "step6 --active --mode=connect --timeout=2 --source=<BASE>/broken.json stdout": "",
+  "step6 --active --mode=connect --timeout=2 --source=<BASE>/broken.json stderr": "cannot read the MCP definition <BASE>/broken.json: Expecting property name enclosed in double quotes: line 1 column 3 (char 2)\n",
+  "files": {
+    ".claude.json": {
+      "mode": "600",
+      "text": "{\"mcpServers\":{}}"
+    },
+    ".codex/config.toml": {
+      "mode": "600",
+      "text": ""
+    },
+    ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": {
+      "mode": "600",
+      "text": "{\n  \"version\": 1,\n  \"surfaces\": {\n    \"claude-code\": [\n      \"s-ok\"\n    ],\n    \"kiro\": [\n      \"s-ok\"\n    ]\n  },\n  \"stamps\": {\n    \"claude-code\": \"<STAMP>\",\n    \"kiro\": \"<STAMP>\"\n  }\n}\n"
+    }
+  }
+}
