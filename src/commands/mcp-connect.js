@@ -292,17 +292,33 @@ function awaitResponse(p, deadline) {
  * @param {string} raw
  */
 export function hasUserinfo(raw) {
-  const start = raw.indexOf('//');
-  if (start < 0) return false;
-  const before = raw.slice(0, start);
-  if (before && !/^[A-Za-z][A-Za-z0-9+.-]*:$/.test(before)) return false;
-  let end = raw.length;
-  for (const d of '/?#') {
-    const k = raw.indexOf(d, start + 2);
+  const text = raw.replace(/^[\x00-\x20]+/, '').replaceAll(/[\t\n\r]/g, '');
+  const colon = text.indexOf(':');
+  const scheme = colon > 0 && SCHEME_RE.test(text.slice(0, colon)) ? text.slice(0, colon).toLowerCase() : null;
+  let rest = scheme === null ? text : text.slice(colon + 1);
+  const special = scheme === null || SPECIAL.has(scheme);
+  // A special scheme (http, https...) takes any run of / and \ as the authority's start, so http:U:P@h,
+  // http:/U:P@h and http:\\U:P@h all carry userinfo (QA B1 on PR #530); another scheme needs //.
+  let i = 0;
+  if (special) while (rest[i] === '/' || rest[i] === '\\') i++;
+  else if (rest.startsWith('//')) i = 2;
+  else return false;
+  if (scheme === null && i < 2) return false; // a relative path has no authority; a scheme-relative one does
+  rest = rest.slice(i);
+  let end = rest.length;
+  for (const d of special ? '/?#\\' : '/?#') {
+    const k = rest.indexOf(d);
     if (k >= 0 && k < end) end = k;
   }
-  return raw.slice(start + 2, end).includes('@');
+  return rest.slice(0, end).includes('@');
 }
+const SCHEME_RE = /^[A-Za-z][A-Za-z0-9+.-]*$/;
+
+/** The parsed URL carries no username and no password, so http(s).request derives no Authorization from it. @param {URL} u */
+export function credentialFree(u) {
+  return !u.username && !u.password;
+}
+const SPECIAL = new Set(['http', 'https', 'ws', 'wss', 'ftp', 'file']);
 
 /**
  * One HTTP request, headers only: [status, WWW-Authenticate value, Location value]. Rejects on a network
@@ -353,7 +369,7 @@ export async function probeHttp(url, kind, timeout) {
   const visited = new Map();
   for (;;) {
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'fail: unreachable';
-    if (u.username || u.password) return 'fail: unreachable'; // never an Authorization header
+    if (!credentialFree(u)) return 'fail: unreachable'; // never an Authorization header
     if (body !== null) headers = { ...headers, 'Content-Length': String(Buffer.byteLength(body)) };
     let status;
     let auth;

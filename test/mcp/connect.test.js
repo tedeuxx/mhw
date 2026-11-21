@@ -79,18 +79,21 @@ const stubEntry = (d, m, more = []) => new Map(Object.entries({ command: NODE, a
 /** @type {http.Server} */
 let server;
 let URL_BASE = '';
+/** Where /toform redirects to: set by the row that uses it. */
+let redirectTo = '/ok';
 /** @type {Record<string, unknown>[]} */
 const seen = [];
 before(async () => {
   server = http.createServer((req, res) => {
     seen.push({ method: req.method, url: req.url, ...req.headers });
     /** @type {Record<string, number>} */
-    const codes = { '/ok': 200, '/login': 401, '/bare401': 401, '/missing': 404, '/boom': 500, '/sse': req.method === 'GET' ? 200 : 405, '/redir303': 303, '/redir308': 308, '/far': 301, '/slow': 200, '/noloc': 302, '/toftp': 302, '/touser': 302 };
+    const codes = { '/ok': 200, '/login': 401, '/bare401': 401, '/missing': 404, '/boom': 500, '/sse': req.method === 'GET' ? 200 : 405, '/redir303': 303, '/redir308': 308, '/far': 301, '/slow': 200, '/noloc': 302, '/toftp': 302, '/touser': 302, '/toform': 302 };
     const code = codes[String(req.url).split('?')[0]] || 404;
     if (req.url === '/login') res.setHeader('WWW-Authenticate', 'Bearer resource_metadata="x"');
     if (req.url === '/redir303' || req.url === '/redir308') res.setHeader('Location', '/ok');
     if (String(req.url).startsWith('/far')) res.setHeader('Location', '/far?' + seen.length);
     if (req.url === '/toftp') res.setHeader('Location', 'ftp://127.0.0.1/x');
+    if (req.url === '/toform') res.setHeader('Location', redirectTo);
     if (req.url === '/touser') res.setHeader('Location', URL_BASE.replace('//', '//SYNTHUSER:synthetic-pass@') + '/ok');
     req.resume();
     if (req.url === '/slow') return; // never answers: the per-operation timeout ends it
@@ -219,6 +222,36 @@ group('the behaviour table', { skip: POSIX_ONLY }, () => {
     assert.equal(C.hasUserinfo('/path@x'), false);
     assert.equal(C.hasUserinfo('mailto:a@b'), false);
     assert.equal(C.hasUserinfo('x y://u@h'), false, 'not a scheme: not an authority');
+    assert.equal(C.hasUserinfo('mailto://u@h'), true);
+    assert.equal(C.hasUserinfo('http:\\\\h\\x@y'), false, 'a backslash ends a special authority');
+  });
+
+  test('userinfo without //: http:U:P@h, http:/U:P@h and http:\\\\U:P@h, first or in a redirect (QA B1, PR #530)', async () => {
+    const hostPort = URL_BASE.slice('http://'.length);
+    const forms = ['http:U:P@' + hostPort, 'http:/U:P@' + hostPort, 'http:\\\\U:P@' + hostPort];
+    for (const f of forms) assert.equal(C.hasUserinfo(f + '/ok'), true, f);
+    const before = seen.length;
+    for (const f of forms) {
+      for (const kind of ['http', 'sse']) {
+        assert.equal(await C.probeHttp(f + '/ok', kind, 5), 'fail: unreachable', kind + ' first ' + f.replace('U:P', '<u>'));
+        redirectTo = f + '/ok';
+        assert.equal(await C.probeHttp(URL_BASE + '/toform', kind, 5), 'fail: unreachable', kind + ' redirect ' + f.replace('U:P', '<u>'));
+      }
+    }
+    const sent = seen.slice(before);
+    assert.ok(sent.every((r) => r.url === '/toform'), 'a URL with userinfo was requested: ' + JSON.stringify(sent.map((r) => r.url)));
+    assert.ok(sent.every((r) => !('authorization' in r)), 'an Authorization header reached the stub');
+     // The second layer, on the parsed URL, each half alone.
+    assert.equal(C.credentialFree(new URL('http://h/x')), true);
+    assert.equal(C.credentialFree(new URL('http://U@h/x')), false, 'a username alone');
+    assert.equal(C.credentialFree(new URL('http://:P@h/x')), false, 'a password alone');
+    assert.equal(C.credentialFree(new URL('http:\\\\U:P@h/x')), false, 'the spelling with no //');
+  });
+
+  test('Codex URLs are never ${VAR}-expanded; Claude Code and Kiro URLs are (QA B2, PR #530)', async () => {
+    const ctx = ctxOf(BASE, { SYNTH_PATH: 'ok' });
+    const entry = new Map(Object.entries({ type: 'http', url: URL_BASE + '/${SYNTH_PATH}' }));
+    for (const [surface, want] of [['codex', 'fail: http 404'], ['claude-code', 'ok'], ['kiro', 'ok']]) assert.equal(await C.probe(surface, entry, 5, ctx), want, surface);
   });
 
   test('the proxy environment is not used, on the engine this runs on (declared difference 6)', async () => {
