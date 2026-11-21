@@ -193,7 +193,7 @@ const MOVED = {
  */
 function hookMain(argv, env) {
   if (argv[0] === 'prompt') {
-    runHook(argv.slice(1), env).then((code) => process.exit(code));
+    runHook(argv.slice(1), env).then((code) => process.exit(code), () => process.exit(0)); // runHook reports its own failures
     return 0;
   }
   if (argv[0] === 'check-config') {

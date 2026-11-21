@@ -10,19 +10,18 @@
 const env = process.env;
 const argv = process.argv.slice(2);
 if (argv[0] === 'hook' && argv[1] === 'prompt') {
-  import('../src/commands/hook-entry.js').then(
-    ({ runHook }) => runHook(argv.slice(2), env).then((code) => process.exit(code)),
-    () => {
-      // The entry itself did not load: its notice, here, in the Claude Code and Codex form (on Kiro, stderr).
-      const msg = 'Paste filter (ADR-0033): internal error (Error); this prompt was NOT checked.';
-      if (argv.includes('kiro')) process.stderr.write(msg + '\n');
-      else process.stdout.write('{"systemMessage": "' + msg + '"}\n');
-      process.exitCode = 0;
-    },
-  );
+  let runHook = null;
+  try {
+    ({ runHook } = await import('../src/commands/hook-entry.js'));
+  } catch {
+    // The entry itself did not load: its notice, here, in the Claude Code and Codex form (on Kiro, stderr).
+    const msg = 'Paste filter (ADR-0033): internal error (Error); this prompt was NOT checked.';
+    if (argv.includes('kiro')) process.stderr.write(msg + '\n');
+    else process.stdout.write('{"systemMessage": "' + msg + '"}\n');
+  }
+  if (runHook) process.exit(await runHook(argv.slice(2), env));
 } else {
-  import('../src/cli.js').then(({ main }) => {
-    // WORKSTATION_LAUNCHER_PLATFORM: tests only, so the Windows mapping is exercised on every runner.
-    process.exitCode = main(argv, env.WORKSTATION_LAUNCHER_PLATFORM || process.platform, env);
-  });
+  const { main } = await import('../src/cli.js');
+  // WORKSTATION_LAUNCHER_PLATFORM: tests only, so the Windows mapping is exercised on every runner.
+  process.exitCode = main(argv, env.WORKSTATION_LAUNCHER_PLATFORM || process.platform, env);
 }

@@ -451,8 +451,10 @@ printf 'not a program\n' > "$nb/not-node"
 # --overlay=none: the profile compiler would otherwise run MHW_NODE first and stop the install there.
 HOME="$hx" MHW_NODE="$nb/not-node" sh "$inst" --overlay=none > "$base/node-refused.out" 2>&1; rc=$?
 if [ "$rc" -eq 2 ] && [ ! -e "$(data "$hx")/paste-filter.sh" ] \
-   && grep -qF "REFUSE  $(data "$hx")/paste-filter.sh: MHW_NODE ($nb/not-node) is not an executable file" "$base/node-refused.out"; then
-  ok "an MHW_NODE that is not an executable file is refused, exit 2, and no snippet is written"
+   && grep -qF "REFUSE  paste filter: MHW_NODE ($nb/not-node) is not an executable file; the hook is not registered" "$base/node-refused.out" \
+   && [ "$(pours "$hx/.claude/settings.json")" -eq 0 ] && [ ! -e "$hx/.codex/hooks.json" ]; then
+  # #488: the prompt hook runs on that node too, so it is refused with the snippet, never another node.
+  ok "an MHW_NODE that is not an executable file is refused, exit 2: no snippet and no prompt hook written"
 else
   ko "a non-executable MHW_NODE was not refused (exit $rc)"
 fi

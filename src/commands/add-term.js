@@ -212,7 +212,6 @@ export async function main(argv, env, opts = {}) {
     input.destroy(); // closes the terminal fd
   }
   const r = addEntered(conf, first, second, listName);
-  first = second = '';
   out(r.out);
   return r.code;
 }

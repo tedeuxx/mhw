@@ -62,7 +62,8 @@ function procEnv(d) {
 }
 
 /** @param {string} work @param {string} s */
-const norm = (work, s) => s.replaceAll(work, '<T>');
+// Windows: the Python original never ran there; its paths are compared with / as separator.
+const norm = (work, s) => (POSIX ? s.replaceAll(work, '<T>') : s.replaceAll(work, '<T>').replaceAll('\\', '/'));
 
 /** The Node answers, in the recorder's shape. */
 async function nodeAnswers() {
@@ -120,6 +121,7 @@ async function nodeAnswers() {
     files[key + '_mode'] = '0o' + (fs.statSync(conf[key]).mode & 0o777).toString(8);
   }
   files.dir_mode = '0o' + (fs.statSync(path.dirname(conf.terms_file)).mode & 0o777).toString(8);
+  if (!POSIX) for (const k of Object.keys(files)) if (k.endsWith('_mode')) delete files[k]; // no POSIX modes there
   const constants = {
     WRAPPER_MARKER: hook.WRAPPER_MARKER, WRAPPER_MARKER_VALUE: hook.WRAPPER_MARKER_VALUE, HARNESSES: [...hook.HARNESSES],
     AGENT_MARKERS: [...addTerm.AGENT_MARKERS], KIRO_HOOK_FILE,
@@ -137,6 +139,17 @@ function canon(v) {
 }
 
 const EXPECTED = readGolden('S17', 'expected-differences.json').differences;
+
+/**
+ * The original's answers with its one platform-dependent default made neutral: check-config printed
+ * salt_store=keychain on macOS and salt_store=file elsewhere, for a settings file that names none. The golden is
+ * recorded through this, so the live arm compares the same text on every runner.
+ * @param {any} a
+ */
+function platformNeutral(a) {
+  for (const c of a.check_config) c.stdout = c.stdout.replaceAll('salt_store=keychain\n', 'salt_store=file\n');
+  return a;
+}
 
 /**
  * The Python original's answer with every declared difference applied: what the head must answer.
@@ -198,7 +211,8 @@ function diff(want, got) {
       if (canon(e) !== canon(g)) out.push(section + ' ' + w.name + '\n  expected ' + canon(e) + '\n  node     ' + canon(g));
     }
   }
-  if (canon(want.add_term_files) !== canon(got.add_term_files)) out.push('add_term_files\n  python ' + canon(want.add_term_files) + '\n  node   ' + canon(got.add_term_files));
+  const wantFiles = POSIX ? want.add_term_files : Object.fromEntries(Object.entries(want.add_term_files).filter(([k]) => !k.endsWith('_mode')));
+  if (canon(wantFiles) !== canon(got.add_term_files)) out.push('add_term_files\n  python ' + canon(wantFiles) + '\n  node   ' + canon(got.add_term_files));
   const ec = expectedConstants(want.constants);
   if (canon(ec) !== canon(got.constants)) out.push('constants\n  expected ' + canon(ec) + '\n  node     ' + canon(got.constants));
   return out;
@@ -253,7 +267,7 @@ test('live: the base revision\'s clipboard_guard.py still gives the recorded ans
   fs.mkdirSync(run);
   const r = spawnSync(p.py, ['-I', '-B', RECORDER, b.dir, casesFile, run], { encoding: 'utf8', maxBuffer: 1 << 28 });
   assert.equal(r.status, 0, r.stderr);
-  const original = JSON.parse(r.stdout.replaceAll(run, '<T>'));
+  const original = platformNeutral(JSON.parse(r.stdout.replaceAll(run, '<T>')));
   if (UPDATE) writeGolden('S17', 'answers.json', original);
   const golden = readGolden('S17', 'answers.json');
   assert.equal(canon(golden), canon(original), 'the golden no longer matches the original');
