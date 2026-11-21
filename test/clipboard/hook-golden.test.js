@@ -58,7 +58,7 @@ const hashes = (terms) => terms.flatMap((t) => core.termForms(t).map((f) => core
 function procEnv(d) {
   const home = path.join(d, 'home');
   fs.mkdirSync(home, { recursive: true });
-  return { HOME: home, PATH: '/usr/bin:/bin', LC_ALL: 'C' };
+  return { HOME: home, USERPROFILE: home, PATH: '/usr/bin:/bin', LC_ALL: 'C' }; // USERPROFILE: Windows' home
 }
 
 /** @param {string} work @param {string} s */
