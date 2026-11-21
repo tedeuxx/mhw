@@ -372,6 +372,8 @@ export const CASES = [
   environment('no-reviewers', { name: 'production-owner-approval', protection_rules: [{ type: 'required_reviewers', reviewers: [] }] }),
   environment('reviewers-a-string', { name: 'production-owner-approval', protection_rules: [{ type: 'required_reviewers', reviewers: 'o' }] }),
   environment('reviewers-zero', { name: 'production-owner-approval', protection_rules: [{ type: 'required_reviewers', reviewers: 0 }] }),
+  environment('wait-timer-with-reviewers', { name: 'production-owner-approval', protection_rules: [{ type: 'wait_timer', reviewers: [{ id: 1 }] }] }),
+  environment('reviewers-without-a-type', { name: 'production-owner-approval', protection_rules: [{ reviewers: [{ id: 1 }] }] }),
   environment('rules-not-a-list', { name: 'production-owner-approval', protection_rules: { type: 'required_reviewers', reviewers: ['o'] } }),
   environment('rule-not-an-object', { name: 'production-owner-approval', protection_rules: ['required_reviewers'] }),
   { name: 'environment-file-missing', args: ['environment', '--name=production-owner-approval', '--protection={BASE}/none.json'] },

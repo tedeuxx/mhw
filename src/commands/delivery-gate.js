@@ -64,6 +64,9 @@ const PROD_KEYS = new Set(['layer', 'revision', 'prod_deployed_revision', 'criti
 // ASCII digits, as the original's; anchored at both ends, the original's fullmatch.
 const TESTED = /^(?:[-*] )?Tested: ([0-9]{4}-[0-9]{2}-[0-9]{2}); recovered in ([0-9]{1,6}) minutes?; by (@[A-Za-z0-9-]+)$/;
 
+/** The refusal of an argument holding U+FFFD, which is what a byte that is not UTF-8 decodes to. */
+export const NOT_UTF8 = 'an argument is not valid UTF-8 (or holds U+FFFD), so no gate decides on it';
+
 /** A usage error, or an input the gate cannot decide on: exit 2. */
 export class Usage extends Error {}
 
@@ -764,6 +767,10 @@ export function main(argv, _env = {}, opts = {}) {
   /** @type {[string[], string[]]} */
   let answer;
   try {
+    // An argument that was not valid UTF-8 reaches Node with U+FFFD in place of its bytes, where Python kept
+    // them as surrogates: one value could then name another file or equal another name, and a gate could
+    // pass where the original blocked. No such argument is decided on (#499, QA B3).
+    if (argv.some((a) => a.includes('\uFFFD'))) throw new Usage(NOT_UTF8);
     answer = run(command, args, opts);
   } catch (e) {
     if (!(e instanceof Usage)) throw e;

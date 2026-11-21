@@ -390,6 +390,12 @@ describe('environment', () => {
     assertBlocks(run({ name: 'production-owner-approval', protection_rules: [{ type: 'wait_timer', wait_timer: 5 }] }), 'no required reviewer');
     assertBlocks(run({ name: 'production-owner-approval', protection_rules: [{ type: 'required_reviewers', reviewers: [] }] }), 'no required reviewer');
   });
+  test('reviewers on a rule of another type are not a required reviewer (QA B2)', () => {
+    for (const type of ['wait_timer', 'branch_policy', 'Required_reviewers', null]) {
+      assertBlocks(run({ name: 'production-owner-approval', protection_rules: [{ type, reviewers: [{ id: 1 }] }] }), 'no required reviewer');
+    }
+    assertBlocks(run({ name: 'production-owner-approval', protection_rules: [{ reviewers: [{ id: 1 }] }] }), 'no required reviewer');
+  });
   test('an unreadable protection names the environment gate', () => {
     assert.deepEqual(gate.gateEnvironment('x', path.join(w.tmp, 'none.json')).map((b) => b.split(' ')[0]), ['environment:']);
   });
@@ -571,6 +577,64 @@ describe('the validator\'s answer, held to its three exits (#498, kept by #499)'
     assert.equal(r.code, 1);
     assert.match(r.err, /^BLOCK {2}contract: FAIL {2}\$\.madr: required/m);
     assert.doesNotMatch(fs.readFileSync(path.join(ROOT, 'src', 'commands', 'delivery-gate.js'), 'utf8'), /child_process|process\.env/);
+  });
+});
+
+describe('an argument that is not valid UTF-8 (QA B3)', () => {
+  // Python kept an undecodable argv byte as a surrogate (\udcff); Node decodes it to U+FFFD, so the same
+  // bytes could name another file, or equal another name, and pass where the original blocked. Every
+  // argument of every gate is refused instead (exit 2). Each row is a gate whose clean arguments decide
+  // (exit 0 or 1), with one argument poisoned.
+  const FFFD = '\uFFFD';
+  /** @returns {Array<[string, string[]]>} */
+  const rows = () => {
+    const ev = w.write('ev.json', containerEvidence());
+    const st = w.write('stg.json', installedEvidence());
+    const pr = w.write('prod.json', prodEvidence());
+    const env = w.write('env.json', { name: 'production-owner-approval', protection_rules: [{ type: 'required_reviewers', reviewers: [{ id: 1 }] }] });
+    const p = '--project=' + w.project;
+    return [
+      ['contract', [p, '--repository=tedeuxx/mhw']],
+      ['container', [p, '--evidence=' + ev, '--revision=' + REV, '--checkout-head=' + REV, '--container-image=' + IMAGE, '--no-container-check']],
+      ['installed-stg', [p, '--evidence=' + st, '--revision=' + REV, '--checkout-head=' + REV]],
+      ['classify', [p, '--rules=1']],
+      ['environment', ['--name=production-owner-approval', '--protection=' + env]],
+      ['recovery-plan', [p, '--revision=' + REV, '--prod-revision=' + OTHER]],
+      ['prod-validation', [p, '--evidence=' + pr, '--revision=' + REV, '--checkout-head=' + REV]],
+    ];
+  };
+  test('every argument of every gate is refused when it holds U+FFFD, and the clean call decides', () => {
+    let poisoned = 0;
+    for (const [g, args] of rows()) {
+      assert.equal(cli([g, ...args]).code, 0, g + ': control, the clean call passes');
+      for (let k = 0; k < args.length; k++) {
+        const bad = [...args];
+        bad[k] = bad[k].includes('=') ? bad[k].replace('=', '=' + FFFD) : bad[k] + FFFD;
+        const r = cli([g, ...bad]);
+        assert.deepEqual(r, { code: 2, out: '', err: 'mhw delivery-gate: ' + gate.NOT_UTF8 + '\n' }, g + ' ' + bad[k]);
+        poisoned++;
+      }
+      assert.equal(cli([g + FFFD, ...args]).code, 2, g + ': the gate name');
+    }
+    assert.equal(poisoned, 23, 'every argument of the table was poisoned once');
+  });
+  test('the bytes themselves: 0xff in --name, --container-image and an --evidence path', { skip: !POSIX && 'POSIX shell' }, () => {
+    const env = w.write('env.json', { name: 'production-owner-approval', protection_rules: [{ type: 'required_reviewers', reviewers: [{ id: 1 }] }] });
+    const ev = w.write('ev.json', containerEvidence());
+    const bin = path.join(ROOT, 'bin', 'mhw.js');
+    /** @param {string} script */
+    const sh = (script) => spawnSync('/bin/sh', ['-c', script, process.execPath, bin, env, ev, w.project, REV, IMAGE], { encoding: 'utf8', env: { PATH: process.env.PATH || '' } });
+    const ff = '"$(printf \'\\377\')"';
+    for (const script of [
+      'exec "$0" "$1" delivery-gate environment --name=' + ff + ' "--protection=$2"',
+      'exec "$0" "$1" delivery-gate container "--project=$4" "--evidence=$3" "--revision=$5" "--checkout-head=$5" --container-image=' + ff + ' --no-container-check',
+      'exec "$0" "$1" delivery-gate container "--project=$4" --evidence=' + ff + ' "--revision=$5" "--checkout-head=$5" "--container-image=$6" --no-container-check',
+    ]) {
+      const r = sh(script);
+      assert.equal(r.status, 2, script);
+      assert.ok(r.stderr.includes(gate.NOT_UTF8), script);
+    }
+    assert.equal(sh('exec "$0" "$1" delivery-gate environment --name=production-owner-approval "--protection=$2"').status, 0, 'control');
   });
 });
 
