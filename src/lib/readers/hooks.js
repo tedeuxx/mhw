@@ -29,7 +29,7 @@ const PASTE_NODE = /^\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PA
 /** [node, entry] of our prompt hook command, or null. @param {string} cmd */
 export function pasteParts(cmd) {
   const m = PASTE_NODE.exec(cmd);
-  return m && (m[2].endsWith('/bin/mhw.js') || m[2].endsWith('/hook-entry.js')) ? [m[1], m[2]] : null;
+  return m && /[\\/](?:bin[\\/]mhw|hook-entry)\.js$/.test(m[2]) ? [m[1], m[2]] : null; // either separator: the readers also run on Windows
 }
 
 /** True when one of cmds is our prompt hook whose node and entry are both files. @param {string[]} cmds */
