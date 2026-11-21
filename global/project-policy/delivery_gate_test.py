@@ -498,18 +498,20 @@ class CommandLine(Base):
         self.addCleanup(setattr, delivery_gate, "policy_check", original)
         self.assertEqual(self.main("contract", "--project=%s" % self.project)[0], 2)
 
-    def fake_node(self, body):
-        """A stand-in node (POSIX): a shell script whose answer is body."""
-        exe = self.tmp / "fake-node"
-        exe.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
-        exe.chmod(0o755)
+    def fake_node(self, body, shebang="#!/bin/sh", mode=0o755):
+        """A stand-in node (POSIX) alone on PATH: a script whose answer is body."""
+        bindir = self.tmp / ("bin-%d" % len(list(self.tmp.glob("bin-*"))))
+        bindir.mkdir()
+        exe = bindir / "node"
+        exe.write_text(shebang + "\n" + body + "\n", encoding="utf-8")
+        exe.chmod(mode)
+        self.with_path(str(bindir))
         return str(exe)
 
-    def with_node(self, value):
-        saved = os.environ.get("MHW_NODE")
-        os.environ["MHW_NODE"] = value
-        self.addCleanup(lambda: os.environ.pop("MHW_NODE") if saved is None
-                        else os.environ.__setitem__("MHW_NODE", saved))
+    def with_path(self, value):
+        saved = os.environ.get("PATH", "")
+        os.environ["PATH"] = value
+        self.addCleanup(os.environ.__setitem__, "PATH", saved)
 
     def test_the_validator_is_the_node_command(self):
         # #498: the contract gate reaches `mhw policy check` through the CLI; its answer is the gate's.
@@ -522,21 +524,53 @@ class CommandLine(Base):
 
     @unittest.skipIf(os.name == "nt", "the stand-in node is a POSIX shell script")
     def test_a_validator_without_its_own_answer_cannot_decide(self):
-        # Fail closed: no node, an exit outside 0/1/2, silence, or a 0 without the OK line is exit 2.
+        # Fail closed, one case per exit-2 branch of policy_check: no node; a node that cannot run (a
+        # missing interpreter is an OSError, a run past the timeout a SubprocessError); an exit outside
+        # 0/1/2 or silence; a 0 without the OK line. Each turns a `return 2` -> `return 0` mutant red.
         path = self.project / "project-policy.json"
-        for body in ("exit 3", "echo 'OK  fine' >&2; exit 3", "exit 0", "echo pass; exit 0", "exit 1", "kill -9 $$"):
-            with self.subTest(body=body):
-                self.with_node(self.fake_node(body))
+        for body in ("exit 3", "echo 'OK  fine' >&2; exit 3", "exit 1", "kill -9 $$"):
+            with self.subTest(branch="no answer", body=body):
+                self.fake_node(body)
                 self.assertEqual(delivery_gate.policy_check(path)[0], 2)
-        self.with_node(self.fake_node("echo 'OK  fine'; exit 0"))
+        for body in ("exit 0", "echo pass; exit 0"):
+            with self.subTest(branch="0 without OK", body=body):
+                self.fake_node(body)
+                self.assertEqual(delivery_gate.policy_check(path)[0], 2)
+        with self.subTest(branch="cannot run: a missing interpreter"):
+            self.fake_node("exit 0", shebang="#!" + str(self.tmp / "no-such-interpreter"))
+            code, lines = delivery_gate.policy_check(path)
+            self.assertEqual(code, 2)
+            self.assertIn("could not run", lines[0])
+        with self.subTest(branch="cannot run: past the timeout"):
+            self.addCleanup(setattr, delivery_gate, "POLICY_CHECK_TIMEOUT", delivery_gate.POLICY_CHECK_TIMEOUT)
+            delivery_gate.POLICY_CHECK_TIMEOUT = 1
+            self.fake_node("/bin/sleep 5; echo 'OK  late'; exit 0")
+            code, lines = delivery_gate.policy_check(path)
+            self.assertEqual(code, 2)
+            self.assertIn("could not run", lines[0])
+        with self.subTest(branch="no node: a non-executable file named node"):
+            self.fake_node("echo 'OK  fine'; exit 0", mode=0o644)
+            code, lines = delivery_gate.policy_check(path)
+            self.assertEqual(code, 2)
+            self.assertIn("node was not found", lines[0])
+        with self.subTest(branch="no node: MHW_NODE names a program, PATH none"):
+            # MHW_NODE is not read by the gate: an environment variable cannot swap the validator.
+            ok = self.tmp / "ok-node"
+            ok.write_text("#!/bin/sh\necho 'OK  fine'; exit 0\n", encoding="utf-8")
+            ok.chmod(0o755)
+            saved = os.environ.get("MHW_NODE")
+            os.environ["MHW_NODE"] = str(ok)
+            self.addCleanup(lambda: os.environ.pop("MHW_NODE") if saved is None
+                            else os.environ.__setitem__("MHW_NODE", saved))
+            self.with_path(str(self.tmp / "empty"))
+            code, lines = delivery_gate.policy_check(path)
+            self.assertEqual(code, 2)
+            self.assertIn("node was not found", lines[0])
+        self.fake_node("echo 'OK  fine'; exit 0")
         self.assertEqual(delivery_gate.policy_check(path)[0], 0, "control: the stand-in is run")
-        self.with_node("relative/node")
-        saved = os.environ.get("PATH", "")
-        os.environ["PATH"] = str(self.tmp / "empty")
-        self.addCleanup(os.environ.__setitem__, "PATH", saved)
-        code, lines = delivery_gate.policy_check(path)
-        self.assertEqual(code, 2)
-        self.assertIn("node was not found", lines[0])
+        self.fake_node("echo 'FAIL  x' >&2; exit 1")
+        self.assertEqual(delivery_gate.policy_check(path), (1, ["FAIL  x"]), "control: a FAIL is relayed")
+
 
 
 class Workflows(unittest.TestCase):

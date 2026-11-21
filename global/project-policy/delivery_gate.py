@@ -21,8 +21,9 @@ recovery, `runbook=`, `recovery_time_objective_minutes=` and `operator=` lines f
 `mhw policy check` (lock 3) validates the contract a project declares and reads no evidence. This
 script is what reads evidence: it applies a valid contract to one revision's results. Every command
 re-validates the contract first, with the same validator, so a gate never runs on a broken one: since
-#498 that validator is Node (bin/mhw.js policy check), run here by absolute path, so the gates need node
-26 or later beside python3 until S29 (#499) moves them too. No node, or any answer but its own, is exit 2.
+#498 that validator is Node (bin/mhw.js policy check), run here by absolute path (PATH's node; no
+environment variable names another), so the gates need node 26 or later beside python3 until S29 (#499)
+moves them too. No node, a node that cannot run, a timeout, or any answer but its own, is exit 2.
 
     exit 0  the gate passes; `classify` also prints `class=` and `approval=` lines for $GITHUB_OUTPUT
     exit 1  the gate blocks, one `BLOCK  <gate>: <reason>` line per reason on standard error
@@ -97,11 +98,14 @@ def strict_read(path):
         raise Refusal("unreadable or malformed: %s" % exc)
 
 
+# How long the validator may take. It reads one small file; a run past this is no answer (exit 2).
+POLICY_CHECK_TIMEOUT = 120
+
+
 def node():
-    """The node that runs the validator, by absolute path: MHW_NODE when it is one, else PATH's."""
-    named = os.environ.get("MHW_NODE", "")
-    if named and os.path.isabs(named):
-        return named
+    """The node that runs the validator: the first executable `node` on PATH, by absolute path (in the
+    reference CI/CD, the one actions/setup-node put there). No environment variable names another
+    program: MHW_NODE, which bin/mhw.js sets for its own children, is deliberately not read here."""
     found = shutil.which("node")
     return os.path.abspath(found) if found else None
 
@@ -114,7 +118,7 @@ def policy_check(path):
         return 2, ["ERROR  node was not found, so mhw policy check cannot run (the reference CI/CD sets it up)"]
     try:
         run = subprocess.run([exe, str(MHW_JS), "policy", "check", "--file=" + str(path)], capture_output=True,
-                             timeout=120, check=False)
+                             timeout=POLICY_CHECK_TIMEOUT, check=False)
     except (OSError, subprocess.SubprocessError) as exc:
         return 2, ["ERROR  mhw policy check could not run: %s" % exc]
     out = (run.stdout if run.returncode == 0 else run.stderr).decode("utf-8", "replace")

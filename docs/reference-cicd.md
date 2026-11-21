@@ -31,12 +31,12 @@ as an owner action on #246.
 ## The gates
 
 Each gate is one `delivery_gate.py` command. Every one re-validates the contract first, by running
-`mhw policy check` itself (`node bin/mhw.js policy check`, by absolute path), so no gate runs on a broken
+`mhw policy check` itself (`node bin/mhw.js policy check`, the first `node` on PATH by absolute path; no environment variable names another program), so no gate runs on a broken
 contract. Since [#498](https://github.com/tedeuxx/mhw/issues/498) that validator is Node, so every job
 that runs a gate needs Node 26 or later beside Python: the reusable workflow and the caller template set
 it up with `actions/setup-node`, the containerised job inside the project's image, which must therefore
-be one `actions/setup-node` can run in: a glibc-based Linux image with `tar` and gzip, which it uses to unpack Node (read from the dry run's log in `python:3.12-bookworm`; an image without them is not measured). No node, or any answer from it but
-its own exit 0, 1 or 2, is exit 2. The gates themselves move to Node in S29
+be one `actions/setup-node` can run in: a glibc-based Linux image with `tar` and gzip, which it uses to unpack Node (read from the dry run's log in `python:3.12-bookworm`; an image without them is not measured). No node, a node that cannot run or runs past
+the gate's timeout, or any answer from it but its own exit 0, 1 or 2, is exit 2. The gates themselves move to Node in S29
 ([#499](https://github.com/tedeuxx/mhw/issues/499)). Exit 0 passes, 1 blocks with one
 `BLOCK` line per reason, 2 means it cannot decide, and the workflow treats 2 as a block too.
 
