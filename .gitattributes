@@ -43,6 +43,8 @@ test/golden/S19/** -text
 test/golden/S22/** -text
 # Golden transcripts, the recorded CPython and the declared differences of the S18 parity test (#489): byte for byte on every OS.
 test/golden/S18/** -text
+# Golden transcripts, frozen floor inputs and the declared differences of the S20 parity test (#491): byte for byte on every OS.
+test/golden/S20/** -text
 # Golden transcripts, the recorded CPython and the declared differences of the S28 parity test (#498): byte for byte on every OS.
 test/golden/S28/** -text
 # Golden transcripts, frozen inputs, the prose corpus answers and the declared differences of the S23 parity tests (#494): byte for byte on every OS.

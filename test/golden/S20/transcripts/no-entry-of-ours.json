@@ -1,0 +1,22 @@
+[
+  {
+    "run": "uninstall",
+    "code": 0,
+    "stdout": "OK      <T>/home/.claude/settings.json holds no entry of ours\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"theme\": \"dark\"}\n"
+      }
+    ]
+  }
+]

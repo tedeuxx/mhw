@@ -1,0 +1,28 @@
+[
+  {
+    "run": "uninstall",
+    "code": 0,
+    "stdout": "UNMERGED <T>/home/.claude/settings.json (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as <T>/home/.claude/settings.json.pmhwc-backup)\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json.pmhwc-backup",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\"hooks\": \"x\", \"permissions\": {\"deny\": [\"Bash(sudo:*)\"]}, \"personal-multi-harness-workstation-configuration\": \"x\"}\n"
+      }
+    ]
+  }
+]

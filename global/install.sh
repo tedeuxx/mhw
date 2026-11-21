@@ -36,7 +36,8 @@
 # Exit codes: 0 ok · 1 drift, stamp or missing (--check) · 2 usage, invalid floor entry or missing dependency ·
 # 3 something UNMANAGED or unreadable is in the way. A file is managed when its marker line (below) is in
 # its first five lines; an unmanaged file is never overwritten. ~/.claude/settings.json is never
-# replaced: the paste filter's hook entry and the deny floor's entries are merged into it with jq, every
+# replaced: the paste filter's hook entry and the deny floor's entries are merged into it by
+# src/render/settings-merge.js (Node since #491; jq until then, and its output is kept byte for byte), every
 # other key, hook and permission rule is kept (no existing deny entry is ever removed), and a backup is
 # left beside it.
 # The paste filter is a UserPromptSubmit hook: one entry merged into ~/.claude/settings.json and a
@@ -61,19 +62,9 @@
 set -eu
 
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
-# The prompt hook is `mhw hook prompt` in Node since #488 (S17 of #470); an entry for the Python core an
-# earlier install merged (OLD_PASTE_ID) is found and replaced.
-PASTE_ID='/bin/mhw.js" hook prompt --harness '
-OLD_PASTE_ID="personal-multi-harness-workstation-configuration/clipboard_guard.py"
-# The top-level key that carries the provenance stamp in a JSON file with no comment syntax (Issue #66).
-STAMP_KEY="personal-multi-harness-workstation-configuration"
-# The deny-floor rules THIS installer appended to ~/.claude/settings.json (absent before it merged them),
-# so uninstall removes those and keeps a rule the owner wrote himself, even one equal to a floor rule.
-OWN_KEY="personal-multi-harness-workstation-configuration-owned-deny"
-# Removed hooks (ADR-0028; ADR-0013 2026-10-05): kept only so an entry an earlier version merged is
-# found and deleted.
-RESTART_ID="personal-multi-harness-workstation-configuration/restart_guard.py"
-HOOK_ID="personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"
+# The stamp key, the deny-floor ownership record and the hook ids of settings.json (the prompt hook, Node
+# since #488, the Python core an earlier install merged, and the removed hooks) are
+# src/render/settings-merge.js's (#491).
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_root=$(dirname "$script_dir")
@@ -308,6 +299,24 @@ esac
 if [ -z "$allow_why" ] && [ "$("$allow_node" -e 'process.stdout.write("mhw-node-ok")' 2>/dev/null || true)" != mhw-node-ok ]; then
   allow_why="REFUSE  the allow list: $allow_node did not run as node; nothing written"
 fi
+# The settings merge and the floor report (#491, S20 of #470): src/render/settings-merge.js and
+# src/render/floor-report.js, Node since then (they were jq programs), run by this same node. Without one,
+# settings.json is left as it is and the floor is not reported; the line says which node was refused.
+settings_js="$script_dir/../src/render/settings-merge.js"
+floor_js="$script_dir/../src/render/floor-report.js"
+case $allow_why in
+  '') settings_why= ;;
+  *'is not an executable file'*) settings_why="MHW_NODE ($allow_node) is not an executable file" ;;
+  *'did not run as node'*) settings_why="$allow_node did not run as node" ;;
+  *) settings_why="node (26 or later) is required" ;;
+esac
+# Set when merge_settings refused (exit 2 or 3): the deny floor is then not in settings.json, so allow_step
+# writes no allow list beside it (#491; jq's absence held this until then, and a refused merge did not).
+merge_refused=
+# Set when the Codex deny-floor file or the Kiro floor was refused: that harness's allow files are then not
+# written either, so no harness gets an allow list without its floor (#491, PR #539 lens F3).
+codex_floor_refused=
+kiro_floor_refused=
 if [ -z "$allow_why" ]; then
   "$allow_node" "$allow_js" --phase=parse "--source=$script_dir/allow-list.conf" "--overlay=$overlay" \
     "--floor-codex=$floor_codex" || exit 2
@@ -785,6 +794,7 @@ stamp_of() {
 }
 
 process() {
+  process_refused=   # set when the destination is refused (unmanaged): the caller can tell
   kind=$1
   dest=$2
   keep_backup=${3:-}   # "backup": install keeps the file it replaces as <dest>.pmhwc-backup, 0600
@@ -793,6 +803,7 @@ process() {
 
   if [ -e "$dest" ] && ! is_managed "$dest"; then
     echo "REFUSE  $dest: exists and is NOT managed by this project; move it aside or merge it by hand" >&2
+    process_refused=1
     raise 3
     return 0
   fi
@@ -838,161 +849,35 @@ process() {
 }
 
 # Merge one UserPromptSubmit entry (the paste filter, ADR-0011) and the deny floor into the user's
-# Claude Code settings. When the paste filter cannot run here (paste_ok=0), its entry is removed instead
-# of written. An entry of a removed hook (the restart guard, the HITL picker guard) is always removed.
-# Idempotent, per event: when exactly one hook entry of ours exists, it is the wanted one, and every floor rule is
-# already in permissions.deny, nothing is written. Any other hook entry of ours (stale path, duplicate)
-# is removed; a hook group is dropped only if it held ours and is now empty. The deny floor is a UNION:
-# a missing floor rule is appended, every existing deny entry is kept in its place, none is removed.
+# Claude Code settings: src/render/settings-merge.js (Node since #491, S20 of #470; a jq program until then).
+# When the paste filter cannot run here (paste_ok=0), or the admin layer registers the hooks
+# (--hooks=managed, ADR-0025), its entry is removed instead of written. An entry of a removed hook (the
+# restart guard, the HITL picker guard) is always removed. Idempotent, per event: when exactly one hook
+# entry of ours exists, it is the wanted one, and every floor rule is already in permissions.deny, nothing
+# is written. The deny floor is a UNION: a missing floor rule is appended, every existing deny entry is kept
+# in its place, none is removed. A file jq or strict JSON cannot read is refused and left untouched (exit 3);
+# so is one whose hooks or permissions section has another shape. Any refusal, and any exit but 0 outside
+# --check (where 1 is drift), sets merge_refused, and allow_step then writes no allow list. A backup or
+# write that fails stops the installer (exit 1).
 merge_settings() {
-  if ! command -v jq >/dev/null 2>&1; then
-    echo "REFUSE  $settings: jq is required to merge the hook entry and the deny floor" >&2
+  if [ -n "$settings_why" ]; then
+    echo "REFUSE  $settings: $settings_why to merge the hook entry and the deny floor; left untouched" >&2
+    merge_refused=1
     raise 2
     return 0
   fi
-
-  # The HITL picker guard is removed (ADR-0013, 2026-10-05 amendment): an entry an earlier version
-  # merged is always dropped.
-  want=null
-  if [ "$paste_ok" = 1 ]; then
-    want_paste=$(jq -cn --arg cmd "$(paste_cmd claude)" '{hooks: [{type: "command", command: $cmd, timeout: 30}]}')
-  else
-    want_paste=null
-  fi
-  if [ "$hooks_mode" = managed ]; then
-    # ADR-0025: the admin layer registers the hooks; a user-level copy would run them twice.
-    want_paste=null
-  fi
-  # The restart guard is removed (ADR-0028): an entry an earlier version merged is always dropped.
-  want_restart=null
-  deny=$(jq -cR -s 'split("\n") | map(select(length > 0))
-                    | reduce .[] as $r ([]; if any(.[]; . == $r) then . else . + [$r] end)' "$floor_claude")
-
-  current="$work/settings.current.json"
-  if [ -e "$settings" ]; then
-    if ! jq -e 'type == "object"' "$settings" >/dev/null 2>&1; then
-      echo "REFUSE  $settings: not a readable JSON object; left untouched" >&2
-      raise 3
-      return 0
-    fi
-    cat "$settings" > "$current"
-  else
-    echo '{}' > "$current"
-  fi
-
-  merged="$work/settings.merged.json"
-  stamp_val="$MARKER_ID; source: global/install.sh (only the hook entries and deny-floor rules merged into this file; every other key is yours); $stamp; do not edit, re-run the installer"
-  if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --arg opid "$OLD_PASTE_ID" --argjson w "$want" --argjson p "$want_paste" \
-      --arg rid "$RESTART_ID" --argjson r "$want_restart" --arg sk "$STAMP_KEY" --arg sv "$stamp_val" \
-      --arg ok "$OWN_KEY" --argjson f "$deny" '
-      # One hook entry of ours per event: keep it when it is exactly the wanted one; otherwise drop every
-      # entry of ours (and a group left empty by that) and append the wanted one, unless it is null.
-      def place($ev; $id; $want):
-        def ours: (.command? // "") | tostring | contains($id);
-        ([.hooks[$ev][]?.hooks[]? | select(ours)] | length) as $n
-        | if ($want != null and $n == 1 and ([.hooks[$ev][]? | select(. == $want)] | length) == 1)
-             or ($want == null and $n == 0)
-          then .
-          else
-            .hooks = (.hooks // {})
-            | .hooks[$ev] = (
-                [ (.hooks[$ev] // [])[]
-                  | if any(.hooks[]?; ours)
-                    then (.hooks |= map(select(ours | not))) | select(.hooks | length > 0)
-                    else . end ]
-                + (if $want == null then [] else [$want] end))
-          end;
-      # Ownership (Issue #67): the floor rules missing before this merge are ours. An earlier record is
-      # kept; a file stamped by an install that predates the record counts every floor rule present as
-      # ours, because nothing can tell those apart any more.
-      ((.permissions.deny? // []) | if type == "array" then . else [] end) as $d0
-      | (if (.[$ok] | type) == "array" then .[$ok]
-         elif .[$sk] != null then [$f[] | . as $x | select(any($d0[]; . == $x))]
-         else [] end) as $prev
-      | ($prev + [$f[] | . as $x | select(any($d0[]; . == $x) | not)]) as $own0
-      | ([$f[] | . as $x | select(any($own0[]; . == $x))]) as $own
-      | if (.permissions != null and (.permissions | type) != "object")
-         or (.permissions.deny? != null and (.permissions.deny | type) != "array")
-      then error("permissions has an unexpected shape") else . end
-      | place("PreToolUse"; $id; $w)
-      # The Python hook an earlier install merged (#488): always removed; the Node one is placed after.
-      | (if any(.hooks.UserPromptSubmit[]?.hooks[]?; (.command? // "") | tostring | contains($opid))
-         then .hooks.UserPromptSubmit = [ .hooks.UserPromptSubmit[]
-           | (.hooks |= map(select((.command? // "") | tostring | contains($opid) | not))) | select(.hooks | length > 0) ]
-         else . end)
-      | place("UserPromptSubmit"; $pid; $p)
-      | place("SessionStart"; $rid; $r)
-      | place("PreToolUse"; $rid; $r)
-      | (.permissions.deny // []) as $d
-      | if all($f[]; . as $r | any($d[]; . == $r)) then .
-        else .permissions = ((.permissions // {}) | .deny = ($d + [$f[] | . as $r | select(any($d[]; . == $r) | not)]))
-        end
-      # The provenance stamp (Issue #66): JSON has no comment, so one top-level key of ours carries it.
-      # Claude Code ignores a key it does not know: measured on 2.1.289, a user settings file holding
-      # this key still applied its permissions.deny (see ADR-0029).
-      | .[$sk] = $sv
-      | .[$ok] = $own' "$current" > "$merged" 2>/dev/null; then
-    echo "REFUSE  $settings: its hooks or permissions section has an unexpected shape; left untouched" >&2
-    raise 3
-    return 0
-  fi
-
-  missing=$(jq --argjson f "$deny" '(.permissions.deny // []) as $d | [$f[] | . as $r | select(any($d[]; . == $r) | not)] | length' "$current")
-  jq -S --arg sk "$STAMP_KEY" --arg ok "$OWN_KEY" 'del(.[$sk], .[$ok])' "$current" > "$work/before.json"
-  jq -S --arg sk "$STAMP_KEY" --arg ok "$OWN_KEY" 'del(.[$sk], .[$ok])' "$merged" > "$work/after.json"
-  jq -r --arg sk "$STAMP_KEY" '.[$sk] // "" | tostring' "$current" > "$work/settings.stamp"
-  settings_stamp=$(stamp_of "$work/settings.stamp")
-  settings_restamp=
-  # A removed hook's entry still registered is named on its own line, so --check says what it is.
-  if [ -e "$settings" ] && [ "$mode" = check ] \
-     && jq -e --arg id "$HOOK_ID" '[.hooks.PreToolUse[]?.hooks[]? | select((.command? // "") | tostring | contains($id))] | length > 0' \
-          "$current" >/dev/null 2>&1; then
-    echo "STALE   $settings: the removed HITL picker guard's PreToolUse(AskUserQuestion) entry; install removes it"
-  fi
-  if [ -e "$settings" ] && cmp -s "$work/before.json" "$work/after.json"; then
-    if [ "$settings_stamp" = "$stamp" ]; then
-      echo "OK      $settings (hook entries and all $(printf '%s' "$deny" | jq length) deny-floor rules present; $stamp)"
-      return 0
-    fi
-    settings_restamp=1
-  fi
-
-  case $mode in
-    check)
-      if [ -n "$settings_restamp" ]; then
-        echo "STAMP   $settings: our entries match, but its \"$STAMP_KEY\" key carries ($settings_stamp) and the source is ($stamp)"
-      elif [ -e "$settings" ]; then
-        echo "DRIFT   $settings ($missing deny-floor rule(s) missing; or a hook entry is missing or stale; $settings_stamp)"
-      else
-        echo "MISSING $settings"
-      fi
-      raise 1
-      ;;
-    dry-run)
-      echo "WOULD MERGE $settings: the UserPromptSubmit (paste filter) entry and $missing deny-floor rule(s), removing any entry of a removed hook; every other key and rule is kept."
-      if [ -e "$settings" ] && ! cmp -s "$settings" "$merged"; then
-        echo "  note: the file is re-serialized by jq (4-space indent), so whitespace and escaping may change;"
-        echo "  the semantic diff below (keys sorted) is the whole content change."
-      fi
-      echo "----- semantic diff of $settings"
-      diff -u "$work/before.json" "$work/after.json" | sed '1,2d' || true
-      echo "----- end"
-      ;;
-    install)
-      mkdir -p "$(dirname "$settings")"
-      tmp="$settings.new.$$"
-      if [ -e "$settings" ]; then
-        private_copy "$settings" "$settings.pmhwc-backup"
-        cp -p "$settings" "$tmp"
-      fi
-      cat "$merged" > "$tmp"
-      mv "$tmp" "$settings"
-      if [ -e "$settings.pmhwc-backup" ]; then
-        echo "MERGED  $settings (previous version kept as $settings.pmhwc-backup)"
-      else
-        echo "MERGED  $settings"
-      fi
-      ;;
+  merge_paste=
+  if [ "$paste_ok" = 1 ] && [ "$hooks_mode" != managed ]; then merge_paste="--paste-cmd=$(paste_cmd claude)"; fi
+  merge_rc=0
+  "$allow_node" "$settings_js" --phase=merge "--mode=$mode" "--settings=$settings" "--floor-claude=$floor_claude" \
+    "--stamp=$stamp" ${merge_paste:+"$merge_paste"} || merge_rc=$?
+  # Exit 1 is drift only under --check: elsewhere it is node's own exit code for an uncaught exception,
+  # so it is a refusal like 2 and 3 (PR #539 lens F1), and allow_step writes nothing beside it.
+  case $mode:$merge_rc in
+    *:0) ;;
+    check:1) raise 1 ;;
+    *:4) exit 1 ;;
+    *) merge_refused=1; raise "$merge_rc" ;;
   esac
 }
 
@@ -1021,42 +906,19 @@ uninstall_user() {
   rmdir "$data_dir" 2>/dev/null && echo "REMOVED $data_dir (empty)"
   [ -f "$kiro_hook.pmhwc-backup" ] && echo "NOTE    $kiro_hook.pmhwc-backup kept (a 0600 copy of a hook file install replaced; Kiro does not load it)"
   [ -e "$settings" ] || { echo "ABSENT  $settings"; return 0; }
-  command -v jq >/dev/null 2>&1 || { echo "REFUSE  $settings: jq is required to remove our entries" >&2; raise 2; return 0; }
-  deny=$(jq -cR -s 'split("\n") | map(select(length > 0))' "$floor_claude")
-  if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --arg opid "$OLD_PASTE_ID" --arg rid "$RESTART_ID" --arg sk "$STAMP_KEY" \
-      --arg ok "$OWN_KEY" --argjson f "$deny" '
-      def drop($ev; $id):
-        if (.hooks[$ev]? | type) == "array" then
-          .hooks[$ev] = [ .hooks[$ev][]
-            | if any(.hooks[]?; (.command? // "") | tostring | contains($id))
-              then (.hooks |= map(select((.command? // "") | tostring | contains($id) | not)))
-                   | select(.hooks | length > 0)
-              else . end ]
-          | if (.hooks[$ev] | length) == 0 then del(.hooks[$ev]) else . end
-        else . end;
-      if type != "object" then error("not an object") else . end
-      | (if (.[$ok] | type) == "array" then .[$ok] elif .[$sk] != null then $f else [] end) as $mine
-      | drop("PreToolUse"; $id) | drop("UserPromptSubmit"; $pid) | drop("UserPromptSubmit"; $opid) | drop("SessionStart"; $rid)
-      | drop("PreToolUse"; $rid)
-      | if .hooks == {} then del(.hooks) else . end
-      | if (.permissions.deny? | type) == "array" then
-          .permissions.deny |= map(select(. as $r | $mine | index($r) | not))
-          | if .permissions.deny == [] then del(.permissions.deny) else . end
-          | if .permissions == {} then del(.permissions) else . end
-        else . end
-      | del(.[$sk], .[$ok])' "$settings" > "$work/settings.unmerged.json" 2>/dev/null; then
-    echo "REFUSE  $settings: not a readable JSON object of the expected shape; left untouched" >&2
-    raise 3
+  if [ -n "$settings_why" ]; then
+    echo "REFUSE  $settings: $settings_why to remove our entries; left untouched" >&2
+    raise 2
     return 0
   fi
-  if jq -e --slurpfile a "$work/settings.unmerged.json" '. == $a[0]' "$settings" >/dev/null 2>&1; then
-    echo "OK      $settings holds no entry of ours"
-    return 0
-  fi
-  private_copy "$settings" "$settings.pmhwc-backup"
-  cat "$work/settings.unmerged.json" > "$settings.new.$$"
-  mv "$settings.new.$$" "$settings"
-  echo "UNMERGED $settings (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as $settings.pmhwc-backup)"
+  # The settings half: src/render/settings-merge.js --phase=uninstall (Node since #491).
+  unmerge_rc=0
+  "$allow_node" "$settings_js" --phase=uninstall "--settings=$settings" "--floor-claude=$floor_claude" || unmerge_rc=$?
+  case $unmerge_rc in
+    0) ;;
+    4) exit 1 ;;
+    *) raise "$unmerge_rc" ;;
+  esac
 }
 # The working method (Issue #61, ADR-0032): agents, skills and commands from <repo>/method, rendered into
 # each agent harness's user-level native carrier by its own step, src/render/method.js (Node since #489,
@@ -1123,10 +985,11 @@ models_step() {
 # node that runs mhw (MHW_NODE, set by bin/mhw.js), else node on PATH, by absolute path. The owner's own
 # rules are kept and a 0600 backup is left beside it; uninstall removes only the deny rules it appended, as
 # it appended them, never one of the owner's, unless his rule is byte-identical to the one it appended,
-# which it cannot tell apart. $1: another mode.
+# which it cannot tell apart. Its report mode runs inside src/render/floor-report.js (#491).
 kiro_step() {
   # The node lookup of models_step (PR #515 lens A1): an absolute MHW_NODE that is not an executable file
   # is refused, never replaced by another node.
+  kiro_floor_refused=1   # until the renderer says otherwise
   kiro_node=${MHW_NODE:-}
   case $kiro_node in
     /*) if [ ! -f "$kiro_node" ] || [ ! -x "$kiro_node" ]; then
@@ -1142,8 +1005,12 @@ kiro_step() {
        raise 2
        return 0 ;;
   esac
-  "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "--mode=${1:-$mode}" "--stamp=$stamp" "--floor=$floor" \
-    "--floor-from=$floor_from" ${2:+"$2"} || raise $?
+  kiro_rc=0
+  "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "--mode=$mode" "--stamp=$stamp" "--floor=$floor" \
+    "--floor-from=$floor_from" || kiro_rc=$?
+  raise "$kiro_rc"
+  # The Kiro allow agent is not written beside a floor that was not (#491): any exit but 0, outside --check.
+  case $mode:$kiro_rc in *:0|check:*) kiro_floor_refused= ;; *) ;; esac
 }
 # The retired-server removal (mcp_retire.py, ADR-0035 decision 2, #145) was removed in v7 (Issue #206):
 # an aws-api table still in the Codex configuration is removed by hand.
@@ -1202,15 +1069,27 @@ chrome_step() {
 }
 # The allow-list step (ADR-0031): Claude Code permissions.allow and defaultMode, the Codex rules and profile,
 # and the Kiro agent, wide only while the admin deny floor is complete for that harness (src/render/allow-list.js).
-# A missing or empty tier input reads as narrow, never wide. jq stays required here: without it merge_settings
-# merged no deny floor, and an allow list must never land without the floor beside it.
+# A missing or empty tier input reads as narrow, never wide. An allow list must never land without the floor
+# beside it: the step runs only where merge_settings did not refuse (merge_refused, #491).
 allow_step() {
-  command -v jq >/dev/null 2>&1 || { echo "REFUSE  allow list: jq is required" >&2; raise 2; return 0; }
   if [ -n "$allow_why" ]; then echo "$allow_why"; raise 2; return 0; fi
+  # An allow list never lands without the deny floor beside it: where merge_settings refused, the floor
+  # is not in settings.json, so nothing is written for the allow list either (#491; until then jq's
+  # absence held this, and a merge refused on the file's shape did not). --check only reads.
+  if [ -n "$merge_refused" ] && [ "$mode" != check ]; then
+    echo "REFUSE  the allow list: the deny floor was not merged into $settings (see above), and an allow list never lands without it; nothing written" >&2
+    raise 2
+    return 0
+  fi
+  allow_refused=
+  if [ "$mode" != check ]; then
+    [ -n "$codex_floor_refused" ] && allow_refused=codex
+    [ -n "$kiro_floor_refused" ] && allow_refused=${allow_refused:+$allow_refused,}kiro
+  fi
   "$allow_node" "$allow_js" --phase=step "--mode=$mode" "--stamp=$stamp" "--source=$script_dir/allow-list.conf" \
     "--overlay=$overlay" "--retired=$script_dir/allow-retired.conf" "--floor-codex=$floor_codex" \
     "--floor-claude=$floor_claude" "--managed-root=${managed_root:-/}" "--settings=$settings" "--home=$HOME" \
-    "--codex-home=${CODEX_HOME:-}" "--repo-root=$repo_root" "--cmd=${MHW_CMD:-./mhw}" || raise $?
+    "--codex-home=${CODEX_HOME:-}" "--repo-root=$repo_root" "--cmd=${MHW_CMD:-./mhw}" "--refused-floor=$allow_refused" || raise $?
 }
 # Uninstall: our files go, and only the allow rules and permission mode this installer added leave
 # settings.json (a rule the owner wrote himself stays).
@@ -1281,6 +1160,7 @@ elif [ -d "$restart_state" ]; then
   esac
 fi
 process codexrules "$codex_rules"
+codex_floor_refused=$process_refused   # the Codex allow list is not written beside a refused floor (#491)
 retire "$clip_dest" "the Python prompt hook core, replaced by mhw hook prompt (Node, #488)"
 process clipconf "$clip_conf_dest"
 # The term lists' salt is a 0600 file since #488 (owner ruling, 2026-11-21: no Keychain). A list that
@@ -1358,45 +1238,17 @@ method_step
 
 # Which layer carries the deny floor (ADR-0016, 2026-10-05 amendment). A report, never a status change:
 # the admin copy is the owner's sudo act (install-managed.sh), and its drift is install-managed.sh
-# --check's to report. The user copy is kept as a fallback until the admin copy is verified.
+# --check's to report. The user copy is kept as a fallback until the admin copy is verified. The lines,
+# Kiro's included, are src/render/floor-report.js (Node since #491, S20 of #470; jq counted until then).
 report_floor() {
-  if [ "$(uname -s)" = Darwin ]; then
-    m_claude="$managed_root/Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json"
-  else
-    m_claude="$managed_root/etc/claude-code/managed-settings.d/50-personal-multi-harness-workstation-configuration.json"
+  if [ -n "$settings_why" ]; then
+    echo "FLOOR   not reported: $settings_why"
+    raise 2
+    return 0
   fi
-  m_codex="$managed_root/etc/codex/requirements.toml"
-  # The Kiro admin copy (ADR-0036, 2026-10-11 amendment); install-managed.sh installs it.
-  if [ "$(uname -s)" = Darwin ]; then m_kiro="$managed_root/Library/Application Support/Kiro/managed-settings.json"
-  else m_kiro="$managed_root/etc/kiro/managed-settings.json"; fi
-  command -v jq >/dev/null 2>&1 || { echo "FLOOR   not reported: jq is required"; return 0; }
-  want=$(jq -cR -s 'split("\n") | map(select(length > 0)) | unique' "$floor_claude")
-  n_want=$(printf '%s' "$want" | jq length)
-  n_codex=$(grep -c . "$floor_codex" || true)
-  n_user=0
-  [ -f "$settings" ] && n_user=$(jq --argjson f "$want" '[(.permissions.deny? // [])[] | select(. as $r | $f | index($r))] | unique | length' "$settings" 2>/dev/null || echo 0)
-  n_admin=0
-  [ -f "$m_claude" ] && n_admin=$(jq --argjson f "$want" '[(.permissions.deny? // [])[] | select(. as $r | $f | index($r))] | unique | length' "$m_claude" 2>/dev/null || echo 0)
-  n_codex_admin=0
-  if [ -f "$m_codex" ] && is_managed "$m_codex"; then
-    sed -n 's/^ *{ pattern = \[\(.*\)\], decision = "forbidden".*/\1/p' "$m_codex" \
-      | sed -e 's/{ token = "\([^"]*\)" }/\1/g' -e 's/, / /g' > "$work/codex.admin"
-    n_codex_admin=$(grep -cxF -f "$floor_codex" "$work/codex.admin" || true)
-  fi
-  codex_user=absent
-  [ -f "$codex_rules" ] && is_managed "$codex_rules" && codex_user=present
-  echo "FLOOR   Claude Code: user layer $n_user/$n_want rules; admin layer $n_admin/$n_want rules"
-  echo "FLOOR   Codex: user rules file $codex_user; admin requirements $n_codex_admin/$n_codex prefix rules"
-  kiro_step report "--admin=$m_kiro"
-  if [ "$n_admin" -eq "$n_want" ] && [ "$n_codex_admin" -eq "$n_codex" ]; then
-    echo "FLOOR   carried by: the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
-  elif [ "$n_user" -ne "$n_want" ] || [ "$codex_user" != present ]; then
-    echo "FLOOR   carried by: NO complete layer; run ${MHW_CMD:-./mhw} install"
-  elif [ "$n_admin" -gt 0 ] || [ "$n_codex_admin" -gt 0 ]; then
-    echo "FLOOR   carried by: the user layer; the admin copy is INCOMPLETE (run ${MHW_CMD:-./mhw} install)"
-  else
-    echo "FLOOR   carried by: the user layer only; a session flag can drop it (--setting-sources project, measured); install the admin copy with ${MHW_CMD:-./mhw} install"
-  fi
+  "$allow_node" "$floor_js" "--settings=$settings" "--floor-claude=$floor_claude" "--floor-codex=$floor_codex" \
+    "--floor=$floor" "--floor-from=$floor_from" "--stamp=$stamp" "--codex-rules=$codex_rules" \
+    "--managed-root=$managed_root" "--cmd=${MHW_CMD:-./mhw}" || raise $?
 }
 report_floor
 

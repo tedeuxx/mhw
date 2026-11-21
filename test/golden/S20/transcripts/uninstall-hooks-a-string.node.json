@@ -1,0 +1,22 @@
+[
+  {
+    "run": "uninstall",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <T>/home/.claude/settings.json: not a readable JSON object of the expected shape; left untouched\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"hooks\": \"x\", \"permissions\": {\"deny\": [\"Bash(sudo:*)\"]}, \"personal-multi-harness-workstation-configuration\": \"x\"}\n"
+      }
+    ]
+  }
+]
