@@ -45,7 +45,7 @@ const OWNER = '{\n    "model" : "some-model",\n    "enabledPlugins" : { "a@b" : 
 
 // What jq keeps literally: key order (integer-like keys too), a repeated key, number literals, escapes.
 const LITERALS = '{"env": {"2": "two", "1": "one", "2": "again"}, "ratio": 1.0, "big": 1e2, "small": 0.00000012, "neg": -0.0,'
-  + ' "huge": 123456789012345678901234567890, "text": "caf\\u00e9 \\u007f tab\\t \\/ \\ud83d\\ude00 \\udc00", "raw": "é",'
+  + ' "huge": 123456789012345678901234567890, "text": ' + String.raw`"caf\u00e9 \u007f tab\t \/ \ud83d\ude00 \udc00"` + ', "raw": "é",'
   + ' "permissions": {"deny": ["Bash(rm -rf:*)", 7, null, {"a": 1}], "ask": []}}\n';
 
 /** @type {Scenario[]} */

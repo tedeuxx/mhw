@@ -26,7 +26,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MARKER_ID, isManaged, unstamp } from '../lib/marker.js';
+import { MARKER_ID, isManaged, unstamp, stampOfLine } from '../lib/marker.js';
+import { keyOptions } from '../lib/key-options.js';
 import { privateCopy } from '../lib/private-copy.js';
 import { parse as parseJson, classify, stringify, equal, contains, alt, get, codepointCompare } from '../lib/jq-json.js';
 import { unifiedHunks } from '../lib/unified-diff.js';
@@ -725,20 +726,7 @@ function retireStep(ctx) {
 export function stampOf(file) {
   const t = readOrNull(file, 'latin1');
   const line = t === null ? null : (t.split('\n').find((l) => l.includes(MARKER_ID)) ?? null);
-  if (line === null) return 'none';
-  const rel = lastField(line, '; release: ');
-  const com = lastField(line, '; commit: ');
-  return rel && com ? 'release: ' + rel + '; commit: ' + com : 'none';
-}
-
-/** sed's greedy `.*; key: \([^;"]*\);.*`: the last occurrence followed by a ';'. @param {string} line @param {string} key */
-function lastField(line, key) {
-  for (let at = line.lastIndexOf(key); at >= 0; at = at === 0 ? -1 : line.lastIndexOf(key, at - 1)) {
-    let k = at + key.length;
-    while (k < line.length && line[k] !== ';' && line[k] !== '"') k++;
-    if (line[k] === ';') return line.slice(at + key.length, k);
-  }
-  return '';
+  return line === null ? 'none' : stampOfLine(line);
 }
 
 /** install.sh's same(): byte-equal, or equal once the stamp fields are removed. @param {string} text @param {string} file */
@@ -944,18 +932,8 @@ const USAGE = 'usage: ' + PROG + ' --phase=parse --source=FILE [--overlay=DIR] -
   + '           --home=DIR [--codex-home=DIR] --repo-root=DIR [--cmd=TEXT]\n'
   + '       ' + PROG + ' --phase=uninstall --settings=FILE --home=DIR [--codex-home=DIR]\n';
 
-/** @param {string[]} argv @returns {Record<string, string> | null} */
-function options(argv) {
-  /** @type {Record<string, string>} */
-  const opts = {};
-  for (const a of argv) {
-    const at = a.indexOf('=');
-    const k = at < 0 ? a : a.slice(0, at);
-    if (at < 0 || !OPTIONS.has(k) || Object.hasOwn(opts, k)) return null;
-    opts[k] = a.slice(at + 1);
-  }
-  return opts;
-}
+/** @param {string[]} argv */
+const options = (argv) => keyOptions(argv, OPTIONS);
 
 /**
  * The phase, when the command line is complete for it; '' for a usage error.

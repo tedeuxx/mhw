@@ -24,7 +24,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MARKER_ID, NAME } from '../lib/marker.js';
+import { MARKER_ID, NAME, stampOfLine } from '../lib/marker.js';
+import { keyOptions } from '../lib/key-options.js';
 import { privateCopy } from '../lib/private-copy.js';
 import { classify, stringify, compact, equal, typeOf, JqNumber } from '../lib/jq-json.js';
 import { unifiedHunks } from '../lib/unified-diff.js';
@@ -104,6 +105,34 @@ function withKey(o, k, v) {
   return out;
 }
 
+/**
+ * The groups of one event without the hook entries of ours: a group holding one keeps its other entries,
+ * and goes when none is left; any other group stays as it is. `[.[] | if any(.hooks[]?; ours) then (.hooks
+ * |= map(select(ours | not))) | select(.hooks | length > 0) else . end]`.
+ * @param {JqValue[]} list
+ * @param {string} id
+ */
+function withoutOurs(list, id) {
+  /** @type {JqValue[]} */
+  const groups = [];
+  for (const g of list) {
+    const hs = index(g, 'hooks');
+    if (!iterateOpt(hs).some((h) => ours(h, id))) groups.push(g);
+    else {
+      const kept = iterate(hs).filter((h) => !ours(h, id));
+      if (kept.length) groups.push(withKey(/** @type {JqObject} */ (g), 'hooks', kept));
+    }
+  }
+  return groups;
+}
+
+/** `[.hooks[$ev][]?.hooks[]? | select(ours)] | length`. @param {JqValue} groups @param {string} id */
+function oursCount(groups, id) {
+  let n = 0;
+  for (const g of iterateOpt(groups)) n += iterateOpt(index(g, 'hooks')).filter((h) => ours(h, id)).length;
+  return n;
+}
+
 // ---- The merge program (merge_settings) -----------------------------------------------------------------
 
 /**
@@ -114,21 +143,12 @@ function withKey(o, k, v) {
  */
 function place(doc, ev, id, want) {
   const groupsVal = index(index(doc, 'hooks'), ev);
-  let n = 0;
-  for (const g of iterateOpt(groupsVal)) for (const h of iterateOpt(index(g, 'hooks'))) if (ours(h, id)) n++;
+  const n = oursCount(groupsVal, id);
   const keep = want === null ? n === 0 : n === 1 && iterateOpt(groupsVal).filter((g) => equal(g, want)).length === 1;
   if (keep) return doc;
   const hooks = alt(index(doc, 'hooks'), new Map());
   const out = withKey(doc, 'hooks', hooks);
-  /** @type {JqValue[]} */
-  const groups = [];
-  for (const g of iterate(alt(index(hooks, ev), []))) {
-    const hs = index(g, 'hooks');
-    if (iterateOpt(hs).some((h) => ours(h, id))) {
-      const kept = iterate(hs).filter((h) => !ours(h, id));
-      if (kept.length) groups.push(withKey(/** @type {JqObject} */ (g), 'hooks', kept));
-    } else groups.push(g);
-  }
+  const groups = withoutOurs(iterate(alt(index(hooks, ev), [])), id);
   if (want !== null) groups.push(want);
   if (!(hooks instanceof Map)) throw new JqError('Cannot index ' + typeOf(hooks) + ' with "' + ev + '"');
   out.set('hooks', withKey(hooks, ev, groups));
@@ -194,15 +214,7 @@ function drop(doc, ev, id) {
   if (hooks !== null && !(hooks instanceof Map)) throw new JqEmpty('hooks is not an object');
   const list = index(hooks, ev);
   if (!Array.isArray(list)) return doc;
-  /** @type {JqValue[]} */
-  const groups = [];
-  for (const g of list) {
-    const hs = index(g, 'hooks');
-    if (iterateOpt(hs).some((h) => ours(h, id))) {
-      const kept = iterate(hs).filter((h) => !ours(h, id));
-      if (kept.length) groups.push(withKey(/** @type {JqObject} */ (g), 'hooks', kept));
-    } else groups.push(g);
-  }
+  const groups = withoutOurs(list, id);
   const h2 = withKey(/** @type {JqObject} */ (hooks), ev, groups);
   if (!groups.length) h2.delete(ev);
   return withKey(doc, 'hooks', h2);
@@ -287,20 +299,7 @@ const JQ_ONLY = ': not readable by the settings merge (jq reads it, strict JSON 
 /** install.sh's stamp_of over the stamp key's value: the release and commit of its first managed-by line, or "none". @param {string} text */
 export function stampOf(text) {
   const line = text.split('\n').find((l) => l.includes(MARKER_ID));
-  if (line === undefined) return 'none';
-  const rel = lastField(line, '; release: ');
-  const com = lastField(line, '; commit: ');
-  return rel && com ? 'release: ' + rel + '; commit: ' + com : 'none';
-}
-
-/** sed's greedy `.*; key: \([^;"]*\);.*`: the last occurrence followed by a ';'. @param {string} line @param {string} key */
-function lastField(line, key) {
-  for (let at = line.lastIndexOf(key); at >= 0; at = at === 0 ? -1 : line.lastIndexOf(key, at - 1)) {
-    let k = at + key.length;
-    while (k < line.length && line[k] !== ';' && line[k] !== '"') k++;
-    if (line[k] === ';') return line.slice(at + key.length, k);
-  }
-  return '';
+  return line === undefined ? 'none' : stampOfLine(line);
 }
 
 /** `jq -r '.[$sk] // "" | tostring'`. @param {JqObject} doc */
@@ -355,72 +354,46 @@ function replace(file, text, keepMode) {
   fs.renameSync(tmp, file);
 }
 
-/** The merge, in one mode. @param {Ctx} ctx */
-export function mergeStep(ctx) {
-  const settings = ctx.opts['--settings'];
-  const mode = ctx.opts['--mode'];
-  const stamp = ctx.opts['--stamp'];
-  const floor = dedupe(floorRules(ctx.opts['--floor-claude']));
-  const paste = ctx.opts['--paste-cmd'] ? pasteGroup(ctx.opts['--paste-cmd']) : null;
-  const has = exists(settings);
-  /** @type {JqObject} */
-  let current = new Map();
-  if (has) {
-    const r = readSettings(settings);
-    if (r.kind === 'jq-only') {
-      ctx.err('REFUSE  ' + settings + JQ_ONLY);
-      return raise(ctx, 3);
-    }
-    if (r.kind !== 'object') {
-      ctx.err('REFUSE  ' + settings + ': not a readable JSON object; left untouched\n');
-      return raise(ctx, 3);
-    }
-    current = r.value;
+/**
+ * The settings file to merge into: {} when there is none, null (after the REFUSE line) when it is refused.
+ * @param {Ctx} ctx @param {string} settings @param {boolean} has @returns {JqObject | null}
+ */
+function current(ctx, settings, has) {
+  if (!has) return new Map();
+  const r = readSettings(settings);
+  if (r.kind === 'object') return r.value;
+  ctx.err('REFUSE  ' + settings + (r.kind === 'jq-only' ? JQ_ONLY : ': not a readable JSON object; left untouched\n'));
+  raise(ctx, 3);
+  return null;
+}
+
+/**
+ * --check where something differs: STAMP, DRIFT or MISSING.
+ * @param {Ctx} ctx @param {{ settings: string, has: boolean, restamp: boolean, haveStamp: string, missing: number }} f
+ */
+function checkLine(ctx, f) {
+  if (f.restamp) {
+    ctx.out('STAMP   ' + f.settings + ': our entries match, but its "' + STAMP_KEY + '" key carries (' + f.haveStamp + ') and the source is ('
+      + ctx.opts['--stamp'] + ')\n');
+  } else if (f.has) {
+    ctx.out('DRIFT   ' + f.settings + ' (' + f.missing + ' deny-floor rule(s) missing; or a hook entry is missing or stale; ' + f.haveStamp + ')\n');
+  } else ctx.out('MISSING ' + f.settings + '\n');
+  raise(ctx, 1);
+}
+
+/** --dry-run: what install would merge, and the semantic diff. @param {Ctx} ctx @param {{ settings: string, has: boolean, missing: number, text: string, before: string, after: string }} f */
+function dryRun(ctx, f) {
+  ctx.out('WOULD MERGE ' + f.settings + ': the UserPromptSubmit (paste filter) entry and ' + f.missing
+    + ' deny-floor rule(s), removing any entry of a removed hook; every other key and rule is kept.\n');
+  if (f.has && !fs.readFileSync(f.settings).equals(Buffer.from(f.text, 'utf8'))) {
+    ctx.out('  note: the file is re-serialized (4-space indent, as jq wrote it), so whitespace and escaping may change;\n');
+    ctx.out('  the semantic diff below (keys sorted) is the whole content change.\n');
   }
-  let want;
-  try {
-    want = merged(current, floor, paste, stamp);
-  } catch (e) {
-    if (!(e instanceof JqError)) throw e;
-    ctx.err('REFUSE  ' + settings + ': its hooks or permissions section has an unexpected shape; left untouched\n');
-    return raise(ctx, 3);
-  }
-  const p = current.get('permissions') ?? null;
-  const d = /** @type {JqValue[]} */ (alt(p instanceof Map ? (p.get('deny') ?? null) : null, []));
-  const missing = floor.filter((r) => !d.some((e) => equal(e, r))).length;
-  const before = semantic(current);
-  const after = semantic(want);
-  const haveStamp = stampOf(stampText(current));
-  let restamp = false;
-  if (has && mode === 'check' && pickerGuardLeft(current)) {
-    ctx.out('STALE   ' + settings + ": the removed HITL picker guard's PreToolUse(AskUserQuestion) entry; install removes it\n");
-  }
-  if (has && before === after) {
-    if (haveStamp === stamp) {
-      ctx.out('OK      ' + settings + ' (hook entries and all ' + floor.length + ' deny-floor rules present; ' + stamp + ')\n');
-      return;
-    }
-    restamp = true;
-  }
-  const text = stringify(want, { indent: 4 }) + '\n';
-  if (mode === 'check') {
-    if (restamp) {
-      ctx.out('STAMP   ' + settings + ': our entries match, but its "' + STAMP_KEY + '" key carries (' + haveStamp + ') and the source is (' + stamp + ')\n');
-    } else if (has) {
-      ctx.out('DRIFT   ' + settings + ' (' + missing + ' deny-floor rule(s) missing; or a hook entry is missing or stale; ' + haveStamp + ')\n');
-    } else ctx.out('MISSING ' + settings + '\n');
-    return raise(ctx, 1);
-  }
-  if (mode === 'dry-run') {
-    ctx.out('WOULD MERGE ' + settings + ': the UserPromptSubmit (paste filter) entry and ' + missing
-      + ' deny-floor rule(s), removing any entry of a removed hook; every other key and rule is kept.\n');
-    if (has && !fs.readFileSync(settings).equals(Buffer.from(text, 'utf8'))) {
-      ctx.out('  note: the file is re-serialized (4-space indent, as jq wrote it), so whitespace and escaping may change;\n');
-      ctx.out('  the semantic diff below (keys sorted) is the whole content change.\n');
-    }
-    ctx.out('----- semantic diff of ' + settings + '\n' + unifiedHunks(before, after) + '----- end\n');
-    return;
-  }
+  ctx.out('----- semantic diff of ' + f.settings + '\n' + unifiedHunks(f.before, f.after) + '----- end\n');
+}
+
+/** install: the backup, then the file through a rename. @param {Ctx} ctx @param {string} settings @param {boolean} has @param {string} text */
+function write(ctx, settings, has, text) {
   try {
     fs.mkdirSync(path.dirname(settings), { recursive: true });
     if (has && !backup(ctx, settings)) return raise(ctx, 4);
@@ -430,6 +403,44 @@ export function mergeStep(ctx) {
     return raise(ctx, 4);
   }
   ctx.out('MERGED  ' + settings + (exists(settings + '.pmhwc-backup') ? ' (previous version kept as ' + settings + '.pmhwc-backup)' : '') + '\n');
+}
+
+/** The merge, in one mode. @param {Ctx} ctx */
+export function mergeStep(ctx) {
+  const settings = ctx.opts['--settings'];
+  const mode = ctx.opts['--mode'];
+  const stamp = ctx.opts['--stamp'];
+  const floor = dedupe(floorRules(ctx.opts['--floor-claude']));
+  const paste = ctx.opts['--paste-cmd'] ? pasteGroup(ctx.opts['--paste-cmd']) : null;
+  const has = exists(settings);
+  const cur = current(ctx, settings, has);
+  if (cur === null) return;
+  let want;
+  try {
+    want = merged(cur, floor, paste, stamp);
+  } catch (e) {
+    if (!(e instanceof JqError)) throw e;
+    ctx.err('REFUSE  ' + settings + ': its hooks or permissions section has an unexpected shape; left untouched\n');
+    return raise(ctx, 3);
+  }
+  const p = cur.get('permissions') ?? null;
+  const d = /** @type {JqValue[]} */ (alt(p instanceof Map ? (p.get('deny') ?? null) : null, []));
+  const missing = floor.filter((r) => !d.some((e) => equal(e, r))).length;
+  const before = semantic(cur);
+  const after = semantic(want);
+  const haveStamp = stampOf(stampText(cur));
+  if (has && mode === 'check' && pickerGuardLeft(cur)) {
+    ctx.out('STALE   ' + settings + ": the removed HITL picker guard's PreToolUse(AskUserQuestion) entry; install removes it\n");
+  }
+  const restamp = has && before === after;
+  if (restamp && haveStamp === stamp) {
+    ctx.out('OK      ' + settings + ' (hook entries and all ' + floor.length + ' deny-floor rules present; ' + stamp + ')\n');
+    return;
+  }
+  const text = stringify(want, { indent: 4 }) + '\n';
+  if (mode === 'check') return checkLine(ctx, { settings, has, restamp, haveStamp, missing });
+  if (mode === 'dry-run') return dryRun(ctx, { settings, has, missing, text, before, after });
+  write(ctx, settings, has, text);
 }
 
 /** The settings half of uninstall_user. @param {Ctx} ctx */
@@ -474,22 +485,12 @@ const OPTIONS = new Set(['--phase', '--mode', '--settings', '--floor-claude', '-
 const USAGE = 'usage: ' + PROG + ' --phase=merge --mode=install|check|dry-run --settings=FILE --floor-claude=FILE --stamp=STAMP [--paste-cmd=COMMAND]\n'
   + '       ' + PROG + ' --phase=uninstall --settings=FILE --floor-claude=FILE\n';
 
-/** @param {string[]} argv @returns {Record<string, string> | null} */
-function options(argv) {
-  /** @type {Record<string, string>} */
-  const opts = {};
-  for (const a of argv) {
-    const at = a.indexOf('=');
-    const k = at < 0 ? a : a.slice(0, at);
-    if (at < 0 || !OPTIONS.has(k) || Object.hasOwn(opts, k)) return null;
-    opts[k] = a.slice(at + 1);
-  }
-  return opts;
-}
+/** @param {string[]} argv */
+const options = (argv) => keyOptions(argv, OPTIONS);
 
 /** @param {Record<string, string> | null} o */
 function usable(o) {
-  if (!o || !o['--settings'] || !o['--floor-claude']) return '';
+  if (!o?.['--settings'] || !o['--floor-claude']) return '';
   if (o['--phase'] === 'uninstall') return Object.keys(o).length === 3 ? 'uninstall' : '';
   if (o['--phase'] !== 'merge' || !o['--stamp'] || !['install', 'check', 'dry-run'].includes(o['--mode'])) return '';
   return 'merge';

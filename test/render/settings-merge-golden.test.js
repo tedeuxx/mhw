@@ -20,8 +20,10 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { readGolden, writeGolden, goldenPath, UPDATE } from '../helpers/golden.js';
 import { which } from '../helpers/home.js';
+import { writeAdmin as adminFixture, apply as applyChange, tree, hunksAsSets, baseRevision, assertTranscriptInventory }
+  from '../helpers/install-golden.js';
 import { extractRevision } from '../helpers/parity.js';
-import { SCENARIOS, STAMP, MARKER } from './settings-merge-cases.js';
+import { SCENARIOS, STAMP } from './settings-merge-cases.js';
 
 const SLICE = 'S20';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -71,71 +73,12 @@ function freshDir(label) {
   return dir;
 }
 
-/** The admin fixtures, under both platform paths so a scenario reads the same on macOS and Linux. @param {string} root @param {string} kind */
-function writeAdmin(root, kind) {
-  fs.rmSync(root, { recursive: true, force: true });
-  fs.mkdirSync(root, { recursive: true });
-  if (kind === 'none') return;
-  const claude = fs.readFileSync(path.join(INPUTS, 'floor.claude'), 'utf8').split('\n').filter(Boolean);
-  const codex = fs.readFileSync(path.join(INPUTS, 'floor.codex'), 'utf8').split('\n').filter(Boolean);
-  if (kind === 'full' || kind === 'claude-missing' || kind === 'claude-bad') {
-    const deny = kind === 'claude-missing' ? claude.slice(1) : claude;
-    const text = kind === 'claude-bad' ? '{"permissions": ' : JSON.stringify({ permissions: { deny: [...deny, 'Bash(extra:*)'] } }, null, 2) + '\n';
-    for (const rel of ['Library/Application Support/ClaudeCode/managed-settings.d', 'etc/claude-code/managed-settings.d']) {
-      fs.mkdirSync(path.join(root, rel), { recursive: true });
-      fs.writeFileSync(path.join(root, rel, '50-' + NAME + '.json'), text);
-    }
-  }
-  if (kind === 'full' || kind === 'codex' || kind === 'codex-unmanaged' || kind === 'claude-missing' || kind === 'claude-bad') {
-    const head = kind === 'codex-unmanaged' ? '# hand written\n' : '# ' + MARKER + '; ' + STAMP + '\n';
-    const rules = codex.map((w) => '  { pattern = [' + w.split(' ').map((t) => '{ token = "' + t + '" }').join(', ')
-      + '], decision = "forbidden", justification = "workstation deny floor (ADR-0016)" },\n').join('');
-    fs.mkdirSync(path.join(root, 'etc', 'codex'), { recursive: true });
-    fs.writeFileSync(path.join(root, 'etc', 'codex', 'requirements.toml'), head + '[rules]\nprefix_rules = [\n' + rules + ']\n');
-  }
-}
-
-/** @param {{ T: string, H: string, A: string }} d @param {string} p */
-function at(d, p) {
-  const [k, ...rest] = p.split('/');
-  return path.join(/** @type {Record<string, string>} */ (d)[k], ...rest);
-}
+/** The admin fixtures: Claude Code's for the claude kinds, Codex's for the others and the incomplete ones. @param {string} root @param {string} kind */
+const writeAdmin = (root, kind) => adminFixture(root, kind, { inputs: INPUTS, stamp: STAMP,
+  claude: ['full', 'claude-missing', 'claude-bad'], codex: ['full', 'codex', 'codex-unmanaged', 'claude-missing', 'claude-bad'] });
 
 /** @param {{ T: string, H: string, A: string }} d @param {import('./settings-merge-cases.js').Change} c */
-function apply(d, c) {
-  if ('write' in c) {
-    fs.mkdirSync(path.dirname(at(d, c.write)), { recursive: true });
-    fs.rmSync(at(d, c.write), { force: true });
-    fs.writeFileSync(at(d, c.write), c.text);
-  } else if ('rm' in c) fs.rmSync(at(d, c.rm), { recursive: true, force: true });
-  else if ('symlink' in c) {
-    fs.mkdirSync(path.dirname(at(d, c.symlink)), { recursive: true });
-    fs.symlinkSync(c.to, at(d, c.symlink));
-  } else if ('mkdir' in c) fs.mkdirSync(at(d, c.mkdir), { recursive: true });
-  else if ('chmod' in c) fs.chmodSync(at(d, c.chmod), c.mode);
-  else writeAdmin(d.A, c.admin);
-}
-
-/** Every entry under dir: a link's target, a file's text, a directory; with its mode. @param {string} dir @param {(s: string) => string} norm */
-function tree(dir, norm) {
-  /** @type {Array<{ path: string, kind: string, mode: string, data: string }>} */
-  const out = [];
-  /** @param {string} rel */
-  const walk = (rel) => {
-    for (const name of fs.readdirSync(path.join(dir, rel)).sort((a, b) => (a < b ? -1 : Number(a > b)))) {
-      const r = rel ? rel + '/' + name : name;
-      const st = fs.lstatSync(path.join(dir, r));
-      const mode = (st.mode & 0o777).toString(8);
-      if (st.isSymbolicLink()) out.push({ path: r, kind: 'link', mode: '-', data: norm(fs.readlinkSync(path.join(dir, r))) });
-      else if (st.isDirectory()) {
-        out.push({ path: r, kind: 'dir', mode, data: '' });
-        walk(r);
-      } else out.push({ path: r, kind: 'file', mode, data: norm(fs.readFileSync(path.join(dir, r), 'utf8')) });
-    }
-  };
-  walk('');
-  return out;
-}
+const apply = (d, c) => applyChange(d, c, (kind) => writeAdmin(d.A, kind));
 
 /**
  * Run one scenario through the install.sh of the given tree (the head's runs the Node steps).
@@ -182,35 +125,6 @@ function intended(runs) {
   return runs.map((r) => ({ ...r, stdout: strip(r.stdout, 'stdout'), stderr: strip(r.stderr, 'stderr') }));
 }
 
-/**
- * The live arm's form of a dry run's diff: each run of hunk lines replaced by its removed lines and its added
- * lines, each sorted. Apple diff (the goldens; the Node step reproduces it) and GNU diff (the Linux runners)
- * may align a repeated line differently and both be right (expected-differences.json, as for S19).
- * @param {Array<{ run: string, code: number | null, stdout: string, stderr: string, tree: unknown }>} runs
- */
-function hunksAsSets(runs) {
-  return runs.map((r) => {
-    const out = [];
-    /** @type {string[] | null} */
-    let block = null;
-    const flush = () => {
-      if (!block) return;
-      const by = (/** @type {string} */ c) => (/** @type {string[]} */ (block)).filter((l) => l[0] === c).sort((a, b) => (a < b ? -1 : Number(a > b)));
-      out.push('<hunks>', ...by('-'), ...by('+'), '</hunks>');
-      block = null;
-    };
-    for (const line of r.stdout.split('\n')) {
-      if (line.startsWith('@@ ') || (block && /^[ +-]/.test(line))) (block ??= []).push(line);
-      else {
-        flush();
-        out.push(line);
-      }
-    }
-    flush();
-    return { ...r, stdout: out.join('\n') };
-  });
-}
-
 // CI sets MHW_S20_LIVE_REQUIRED=1 in its S20 step: there, a base that still merges with jq and cannot be
 // run (no base, not readable, no jq) is a failure, not a skip.
 const LIVE_REQUIRED = process.env.MHW_S20_LIVE_REQUIRED === '1';
@@ -219,15 +133,6 @@ const LIVE_REQUIRED = process.env.MHW_S20_LIVE_REQUIRED === '1';
 function skipOrFail(t, why) {
   if (LIVE_REQUIRED) assert.fail('MHW_S20_LIVE_REQUIRED=1: ' + why);
   t.skip(why);
-}
-
-/** The revision the head is compared with (test/parity.test.js's parityBase). */
-function baseRevision() {
-  if (process.env.MHW_PARITY_BASE) return process.env.MHW_PARITY_BASE;
-  const git = which('git');
-  if (!git) return null;
-  const p = spawnSync(git, ['-C', ROOT, 'merge-base', 'HEAD', 'origin/' + (process.env.GITHUB_BASE_REF || 'rc/next')], { encoding: 'utf8' });
-  return p.status === 0 ? p.stdout.trim() : null;
 }
 
 /** The golden a scenario's Node side is held to: the shell's, or its own for a declared one. @param {import('./settings-merge-cases.js').Scenario} sc */
@@ -267,7 +172,7 @@ test('declared: each declared scenario refuses visibly and leaves settings.json 
 
 test('live: the Node steps match the base revision\'s jq programs on the same inputs', (t) => {
   if (!POSIX) return t.skip('POSIX only');
-  const rev = baseRevision();
+  const rev = baseRevision(ROOT);
   const base = path.join(freshDir('base'), 'tree');
   if (!rev) return skipOrFail(t, 'no base revision (MHW_PARITY_BASE unset, no merge-base with origin/rc/next)');
   if (!extractRevision(ROOT, rev, base)) return skipOrFail(t, 'base revision ' + rev + ' is not readable here');
@@ -294,7 +199,5 @@ test('live: the Node steps match the base revision\'s jq programs on the same in
 });
 
 test('every scenario has a golden transcript, and every transcript a scenario', { skip: !POSIX && 'POSIX only' }, () => {
-  const files = fs.readdirSync(goldenPath(SLICE, 'transcripts')).sort((a, b) => (a < b ? -1 : Number(a > b)));
-  const want = SCENARIOS.flatMap((s) => (s.declared ? [s.name + '.json', s.name + '.node.json'] : [s.name + '.json']));
-  assert.deepEqual(files, want.sort((a, b) => (a < b ? -1 : Number(a > b))));
+  assertTranscriptInventory(SLICE, SCENARIOS);
 });
