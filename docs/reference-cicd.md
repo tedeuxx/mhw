@@ -2,7 +2,7 @@
 
 [ADR-0015](adr/0015-master-of-first-principles-ethical-locks-on-own-aims.md)'s first concrete lock says
 what must be true before a deploying project's revision reaches STG and PROD. This reference is how a
-project's own CI/CD can carry it: a reusable workflow that runs the gates, the script that decides
+project's own CI/CD can carry it: a reusable workflow that runs the gates, the command that decides
 each gate, a caller template with the deployment jobs, and a dry run against a synthetic fixture.
 
 | File | What it is |
@@ -135,7 +135,7 @@ was deployed.
   changes the class. The class is printed in the run log.
 - ~~**Recovery is not here.** What happens when a critical PROD validation fails is the recovery
   reference, [#247](https://github.com/tedeuxx/mhw/issues/247).~~ **Recovery is in
-  [docs/recovery-reference.md](recovery-reference.md)** (#247): two more gates in the same script,
+  [docs/recovery-reference.md](recovery-reference.md)** (#247): two more gates in the same command,
   `recovery-plan` before the PROD deployment and `prod-validation` after it, and three jobs in the
   caller template. The gate workflow above runs neither.
 - **Local runs authorise nothing.** `mhw delivery-gate` runs anywhere, but only the containerised run in
@@ -146,10 +146,11 @@ was deployed.
 
 **A caller pinned to an mhw commit before [#499](https://github.com/tedeuxx/mhw/issues/499) keeps
 working unchanged**: its `uses:` and `mhw-revision` name the Python gates of that commit. Moving the pin
-past #499 means every job of the caller that runs a gate itself (the template's `recovery-plan` and
-`validate-prod`) needs `actions/setup-node` with Node 26 before the gate step, which the template
-carries; the reusable workflow sets Node up in each of its own jobs. Python is no longer needed by any
-gate.
+past #499 changes every job of the caller that runs a gate itself (the template's `recovery-plan` and
+`validate-prod`) in two ways, because #499 deletes `delivery_gate.py`: its own gate steps change from `python3 -B mhw/global/project-policy/delivery_gate.py <gate>` to `node mhw/bin/mhw.js delivery-gate <gate>`, with the same arguments, outputs and exit codes, and the job
+sets up Node 26 with `actions/setup-node` before the gate step. The current template carries both; the
+reusable workflow sets Node up in each of its own jobs. A step left on the Python line fails closed
+(exit 2, the file is gone), so the deployment does not start. Python is no longer needed by any gate.
 
 Adoption in any repository is out of scope here and needs that repository's own Issue. It means:
 copying the caller template, writing the test commands that produce the evidence file, creating the

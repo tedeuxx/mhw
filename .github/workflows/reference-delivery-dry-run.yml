@@ -20,6 +20,7 @@ on:
       - "global/project-policy/**"
       - "src/commands/delivery-gate.js"
       - "src/commands/project-policy.js"
+      - "src/lib/**"
       - "bin/mhw.js"
       - "src/cli.js"
       - "docs/reference-cicd.md"

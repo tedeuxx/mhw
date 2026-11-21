@@ -719,7 +719,11 @@ describe('the workflows', () => {
     }
   });
   test('no workflow step runs Python; only the dry run names the fixture\'s own test commands', () => {
-    for (const p of [GATE_WORKFLOW, TEMPLATE]) assert.doesNotMatch(text(p), /python3? |delivery_gate|setup-python/, path.basename(p));
+    // Comments may name the old line (the template's pin-move note does); no YAML line may.
+    /** @param {string} p */
+    const yamlLines = (p) => text(p).split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+    for (const p of [GATE_WORKFLOW, TEMPLATE]) assert.doesNotMatch(yamlLines(p), /python3? |delivery_gate|setup-python/, path.basename(p));
+    assert.match(text(TEMPLATE), /^# .*`node mhw\/bin\/mhw\.js delivery-gate <gate>`, with the same arguments, outputs and exit codes/m);
     const dry = text(DRY_RUN);
     assert.doesNotMatch(dry, /^\s+(?:- )?run:.*python|delivery_gate|setup-python/m);
     assert.deepEqual([...dry.matchAll(/python3 -B (\S+)/g)].map((m) => m[1]).sort(byString), ['container_tests.py', 'container_tests.py', 'stg_stand_in_tests.py']);

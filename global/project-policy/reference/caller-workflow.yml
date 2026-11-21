@@ -5,8 +5,12 @@
 #
 # Since mhw #499 every gate is Node (`node mhw/bin/mhw.js delivery-gate`), and so is the reusable gate
 # workflow: a caller needs Node 26 (actions/setup-node) in each job that runs a gate, and no Python.
-# A caller pinned to an mhw commit before #499 keeps working unchanged; moving <mhw-commit-sha> past it
-# needs the setup-node step in recovery-plan and validate-prod, which this template already carries.
+# A caller pinned to an mhw commit before #499 keeps working unchanged. Moving <mhw-commit-sha> past it
+# needs two changes in recovery-plan and validate-prod, because #499 deletes delivery_gate.py: each gate
+# step changes from `python3 -B mhw/global/project-policy/delivery_gate.py <gate>` to
+# `node mhw/bin/mhw.js delivery-gate <gate>`, with the same arguments, outputs and exit codes, and the job
+# sets up Node 26 (actions/setup-node) before it. This template carries both. A step left on the old line
+# fails closed (exit 2: the file is gone), so the deployment does not start.
 #
 # The project must, in its own repository and by its owner's act: create an environment `staging`,
 # `production` and `production-owner-approval`, the last with the owner as required reviewer; label
