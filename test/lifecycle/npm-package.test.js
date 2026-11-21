@@ -218,7 +218,7 @@ test('package.json: name, bin, ESM, no runtime dependency, one lifecycle script'
   assert.equal(PKG.scripts.postinstall, 'node bin/postinstall.js');
   assert.deepEqual(Object.keys(PKG.scripts).sort(), ['postinstall', 'test', 'typecheck']);
   // #495: the files list names no Python test file, because there is none to keep out.
-  assert.deepEqual(PKG.files.filter((/** @type {string} */ f) => /py/.test(f) && f !== '!**/__pycache__/'), ['!global/project-policy/*.py']);
+  assert.deepEqual(PKG.files.filter((/** @type {string} */ f) => /py/.test(f) && f !== '!**/__pycache__/'), []);
 });
 
 // ------------------------------------------------------------------- the postinstall, without npm

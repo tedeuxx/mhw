@@ -188,6 +188,16 @@ export const CASES = [
         },
         post: onTag,
       }),
+      // QA D3 on PR #542: a tag that exists but is not a numeric release is refused, never checked out.
+      S(['update', 'v9.1', NONE], {
+        pre: (w) => {
+          const origin = path.join(w.dir, 'origin');
+          git(w, origin, 'tag', 'v9.1');
+          git(w, origin, 'tag', 'v9.1.0-rc1');
+        },
+        post: onTag,
+      }),
+      S(['update', 'v9.1.0-rc1', NONE], { post: onTag }),
       S(['update'], { pre: (w) => fs.appendFileSync(path.join(w.tree, 'README.md'), 'local edit\n'), post: onTag })],
   },
 ];

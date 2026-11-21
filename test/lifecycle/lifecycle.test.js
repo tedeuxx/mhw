@@ -158,6 +158,32 @@ test('an admin layer that was planned and not installed is not a success (PR #11
   assert.deepEqual(filesUnder(b.root), []);
 });
 
+test('a failed admin-layer removal still removes the user layer, and the uninstall is incomplete (QA U2 on PR #542)', () => {
+  // workstation.py went on to install.sh --uninstall after install-managed.sh --remove failed; so does Node.
+  const b = box('remove-fails');
+  const dropin = b.root + (process.platform === 'darwin' ? '/Library/Application Support/ClaudeCode' : '/etc/claude-code')
+    + '/managed-settings.d/50-personal-multi-harness-workstation-configuration.json';
+  fs.mkdirSync(path.dirname(dropin), { recursive: true });
+  fs.writeFileSync(dropin, '{"personal-multi-harness-workstation-configuration": "x"}');
+  /** @type {string[][]} */
+  const calls = [];
+  const s = sink();
+  const code = uninstall({ yes: true }, b.env, s.io, {
+    asking: false, access: () => true,
+    run: (exe, args) => {
+      calls.push([exe, ...args]);
+      return args.includes('--remove') ? [5, ['REFUSE  stand-in: the removal failed']] : [0, ['REMOVED stand-in user layer']];
+    },
+  });
+  assert.equal(code, 1, s.text);
+  assert.equal(calls.length, 2, JSON.stringify(calls));
+  assert.ok(calls[0].includes('--remove') && calls[0].some((a) => a.endsWith('install-managed.sh')), JSON.stringify(calls[0]));
+  assert.ok(calls[1].includes('--uninstall') && calls[1].some((a) => a.endsWith('install.sh')), JSON.stringify(calls[1]));
+  assert.ok(s.text.includes('==> Removing your settings\n'), s.text);
+  assert.ok(s.text.includes('Uninstall incomplete:\n  - System-wide protections (exit 5; `'), s.text);
+  assert.ok(!s.text.includes('Uninstall complete.'), s.text);
+});
+
 test('an uninstall that leaves the admin layer is partly removed, and names no npm uninstall (PR #114 lens)', { skip: (!POSIX || !JQ) && 'POSIX sh and jq' }, () => {
   const b = box('partial-un');
   const s = sink();

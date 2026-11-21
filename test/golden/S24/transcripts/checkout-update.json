@@ -29,12 +29,24 @@
   "step4 update v1.0.0 --overlay=none stdout": "",
   "step4 update v1.0.0 --overlay=none stderr": "REFUSE  v1.0.0 predates ./mhw (then ./workstation) and cannot receive --overlay; nothing checked out\n",
   "step4 update v1.0.0 --overlay=none recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
-  "step5 update": {
+  "step5 update v9.1 --overlay=none": {
+    "code": 2
+  },
+  "step5 update v9.1 --overlay=none stdout": "",
+  "step5 update v9.1 --overlay=none stderr": "REFUSE  v9.1 is not a numeric release tag of this repository (vX.Y.Z)\n",
+  "step5 update v9.1 --overlay=none recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step6 update v9.1.0-rc1 --overlay=none": {
+    "code": 2
+  },
+  "step6 update v9.1.0-rc1 --overlay=none stdout": "",
+  "step6 update v9.1.0-rc1 --overlay=none stderr": "REFUSE  v9.1.0-rc1 is not a numeric release tag of this repository (vX.Y.Z)\n",
+  "step6 update v9.1.0-rc1 --overlay=none recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step7 update": {
     "code": 3
   },
-  "step5 update stdout": "",
-  "step5 update stderr": "REFUSE  the working tree has 1 tracked change(s); commit or stash them, then run update\n",
-  "step5 update recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step7 update stdout": "",
+  "step7 update stderr": "REFUSE  the working tree has 1 tracked change(s); commit or stash them, then run update\n",
+  "step7 update recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
   "files": {
     "home/.claude": "dir 755",
     "home/.claude/CLAUDE.md": "file 644",

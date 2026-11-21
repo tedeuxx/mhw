@@ -25,7 +25,6 @@
     "src/",
     "npm-shrinkwrap.json",
     "global/",
-    "!global/project-policy/*.py",
     "!global/project-policy/reference/",
     "!global/**/*.test.sh",
     "!global/**/*.test.ps1",
