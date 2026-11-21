@@ -81,7 +81,7 @@ Not mirrored:
    Expected: the run is green; a twin titled `[mhw#<N>] Canary: method backlog sync` appears in
    tadeumendonca-skills; the mhw Issue gets one comment linking it. The canary also confirms the
    author login the script expects for the App, `app/tedeuxx-mhw-mirror` (`TWIN_AUTHOR` in
-   `.github/scripts/method_issue_sync.py`, a hypothesis until then): if it is wrong, the twin is created
+   `.github/scripts/method-issue-sync.js`, Node since #500, a hypothesis until then): if it is wrong, the twin is created
    but the `verify` step fails red with "no twin", and a second twin appears on the next run.
 
    ```sh
@@ -127,6 +127,10 @@ Not mirrored:
   stderr; the runner log does not show that line). Since #167 the rule is `Edit(//<runner.temp>/method-sync/**)`
   with the Edit tool itself still disallowed; measured locally, it lets Write create a file there and
   denies the sibling `method-sync-input`, a `../` traversal into it and the cwd, without `--add-dir`.
+  Since #500 the rule is `Edit(//<runner.temp>/method-sync/*.md)`, and the job writes
+  `method-sync/package.json` (`{"type":"module"}`) first, so node refuses to run a body file named through
+  the script's path (ADR-0032, the 2026-11-21 amendment). The `*.md` form was measured by the agents-lead
+  lens on Claude Code 2.1.296 and 2.1.330, not on the runner.
 - **Canary 4 2026-10-12: passed.** On v5.5.3 (carrying #167), mhw#162: run 38324740491 created
   tadeumendonca-skills#564, authored by `app/tedeuxx-mhw-mirror` (so `TWIN_AUTHOR` is confirmed),
   `verify` passed (OPEN) and the back-link was posted by `github-actions`; closing mhw#162 started run
@@ -160,7 +164,12 @@ was not checked for this runbook).
 
 - The mhw Issue's text is treated as data, not instructions; the prompt says so, because whoever can
   edit the Issue controls that text. That is an instruction to a model, not a guarantee.
-- The agent has one shell route, `.github/scripts/method_issue_sync.py`, and no file-reading tools. The
+- The agent has one shell route, the executable `.github/scripts/method-issue-sync` (Node since #500: its
+  allow rule is exactly `Bash(.github/scripts/method-issue-sync:*)`, no rule names `node`, and a path
+  through it, `<it>/../<file>`, fails with ENOTDIR in the kernel), and no Read, Glob or Grep tool.
+  Claude Code's built-in read-only commands (`cat`, `head`) still read files in the working directory,
+  the public checkout; the input files, the environment and paths outside it were refused (measured by
+  the agents-lead lens on PR #541, Claude Code 2.1.296 and 2.1.330, macOS). The
   script writes only to the twin (found by the marker), refuses a body file outside the run's scratch
   directory, refuses a body or title shaped like a credential, and mirrors state only in the direction
   the mhw Issue is in. It also refuses a title or body containing any 12-character run of a token the

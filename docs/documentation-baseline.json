@@ -52,8 +52,12 @@
         "test/helpers/method-home.js",
         "test/helpers/s18-cases.js",
         "test/golden/S18/**",
-        ".github/scripts/method_issue_sync*.py",
-        ".github/workflows/method-issue-sync.yml"
+        ".github/scripts/method-issue-sync",
+        ".github/scripts/method-issue-sync.js",
+        ".github/workflows/method-issue-sync.yml",
+        "test/ci/method-issue-sync*.test.js",
+        "test/helpers/s30*.js",
+        "test/golden/S30/**"
       ],
       "docs": [
         "method/**/*.md",

@@ -51,3 +51,5 @@ test/golden/S28/** -text
 test/golden/S23/** -text
 # Golden transcripts, the recorded CPython and the declared differences of the S29 parity test (#499): byte for byte on every OS.
 test/golden/S29/** -text
+# Golden transcripts, the recorded CPython and the declared differences of the S30 parity test (#500): byte for byte on every OS.
+test/golden/S30/** -text

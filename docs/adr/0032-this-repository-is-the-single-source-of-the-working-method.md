@@ -251,11 +251,16 @@ Issues/backlog"*. He agreed ("de acordo") to the mechanism below the same day.
 **New third-party action.** `anthropics/claude-code-action`, pinned by commit (v1.0.248, the commit `v1`
 points at, verified with `git ls-remote` on 2026-10-12), joins `actions/create-github-app-token`
 (v3.2.0, likewise pinned). It is the first model-running dependency in this repository's CI. Its blast
-radius is bounded outside the model: the agent's only shell is `.github/scripts/method_issue_sync.py`,
-which writes only to the twin, meaning the App-authored Issue carrying the marker (-skills is public, so
+radius is bounded outside the model: the agent's only shell is ~~`.github/scripts/method_issue_sync.py`~~
+~~`.github/scripts/method-issue-sync.js` (the 2026-11-21 amendment on #500)~~ the executable
+`.github/scripts/method-issue-sync` *(corrected 2026-11-21, PR #541: the agent runs the executable by
+path, which runs the `.js` module; the `node <script>.js` form was denied by the matcher on Claude Code
+2.1.296 and 2.1.330, measured on macOS by the `agents-lead` lens; see the 2026-11-21 amendment)*, which writes only to the twin, meaning the App-authored Issue carrying the marker (-skills is public, so
 a marked Issue opened by anyone else is ignored and named in a warning, never edited), only from files
 in the run's scratch directory, and refuses credential-shaped text and any 12-character run of a token
-the run holds; it has no file-reading tools, and project settings are not loaded (read from the action's
+the run holds; ~~it has no file-reading tools~~ it has no Read, Glob or Grep tool *(corrected 2026-11-21,
+PR #541: Claude Code's built-in read-only commands, `cat` and `head`, still read the checkout; see the
+"Consequence." paragraph of the 2026-11-21 amendment)*, and project settings are not loaded (read from the action's
 source, `--setting-sources user`; not measured on a runner). The mhw
 Issue's text is declared data, not instructions, in the prompt; that clause is an instruction to a model,
 not a control.
@@ -270,7 +275,8 @@ two repositories; each run spends it. A PAT and archiving -skills without a mirr
 **Rejected:** the CI file mirror (PR #158). It kept the files byte-identical but skipped the adaptation
 the owner wants, and gave the CI write access to the plugin's contents.
 
-**Evidence, 2026-10-12.** Written and tested: `.github/scripts/method_issue_sync_test.py` checks the
+**Evidence, 2026-10-12.** Written and tested: ~~`.github/scripts/method_issue_sync_test.py`~~
+`test/ci/method-issue-sync.test.js` (since #500) checks the
 workflow's structure (parsed with the runner's ruby) and drives the script against a stub `gh`. After the
 agent, a deterministic `verify` step fails the run unless the twin exists in the mhw Issue's state.
 ~~**Not run:**~~
@@ -968,6 +974,66 @@ path learns of the removal only from that `STALE` line and the release note; not
 **Evidence level.** *Written and tested* in throwaway homes, on all three operating systems for the
 golden arm, and side by side with the Python original on CPython 3.14.6 while the base revision held
 it. Not installed on the reference machine.
+
+## Amendment 2026-11-21: the sync script is Node ([Issue #500](https://github.com/tedeuxx/mhw/issues/500), S30 of #470)
+
+The agent's only shell in `.github/workflows/method-issue-sync.yml` is ~~`.github/scripts/method_issue_sync.py`~~
+`.github/scripts/method-issue-sync`, an executable file (mode 100755, `#!/usr/bin/env node`) that runs
+`.github/scripts/method-issue-sync.js`, with the same commands (`stash-inputs`, `final-line`, `verify`,
+`backlink` and the eight `mhw-view` to `skills-reopen` the agent may call), the same refusals and exit codes, and the same bytes on stdout and
+stderr; the Python script and its suite are deleted, and the suite runs as `node:test`
+(`test/ci/method-issue-sync.test.js`). The agent's allow list is now exactly
+`Bash(.github/scripts/method-issue-sync:*),Edit(/${{ runner.temp }}/method-sync/*.md)`, and the test
+asserts that string, that no other `Bash(...)` rule exists, that no rule and no step names `node`, and
+that no `NODE_*` variable is set at the workflow, a job or a step. The rule names the executable, so no
+node flag (`-e`, `--require`) can be given. ~~A prefix on the script's path does not match `node -e ...`
+or `node --require ... <script>`, because node's own flags come before the script.~~ *(Struck the same
+day, QA B4 on PR #541: that rule was `Bash(node .github/scripts/method-issue-sync.js:*)`. Node itself
+follows `node <script>.js/../<file>` as text and runs `<file>`, any `.js` already on the runner included,
+the toolcache's `npx-cli.js` among them, where Python refused the same path with ENOTDIR; that was
+measured by running node directly, outside the matcher. Under the matcher the route was denied on Claude
+Code 2.1.296 and 2.1.330, measured on macOS by the `agents-lead` lens; not measured on the runner. So the
+matcher was the one barrier left, and the executable restores the kernel's.)* The rule's token boundary rests on the `scm` skill's measurement
+(deny rules, Claude Code 2.1.261); this allow rule was *not measured* on the runner. Both jobs check out `.github/scripts` and `src/lib` (the two
+files the script imports, which import only `node:` modules; a test walks that graph) and run the
+script on a pinned node (`actions/setup-node`, the pin and version `tests.yml` uses), so the runner
+image's node never decides it; a step after setup-node fails the job unless `node` on `PATH`, the one
+the shebang's `env` finds, is that version.
+
+**The barrier Python had, in the kernel (QA B4).** The executable is a regular file, so a path that names it
+and then leaves it (`.github/scripts/method-issue-sync/../<file>`) fails with ENOTDIR before any program
+starts, as `<script>.py/../<file>` did. `test/ci/method-issue-sync.test.js` asserts that refusal on a `.js`
+file already on disk, calibrated by `node <script>.js/../<file>` running the same file, and pins the
+file's mode in git and on disk and its shebang.
+
+**The second barrier.** Node resolves its script path textually, so
+`node .github/scripts/method-issue-sync.js/../../../../<dir>/<file>` runs `<file>`; Python stopped the
+same path with ENOTDIR. Before the executable above, only the matcher refused that path (it did on Claude Code 2.1.296 and 2.1.330,
+measured by the `agents-lead` lens on PR #541). So the Edit rule is narrowed from
+`method-sync/**` to `method-sync/*.md`, and the sync job writes `{"type":"module"}` to
+`method-sync/package.json` before the agent runs. In that ES module scope node refuses a `.md` entry
+(`ERR_UNKNOWN_FILE_EXTENSION`). Without it, node runs a `.md` file, or a file with no extension, as
+CommonJS. The agent cannot write that `package.json`, nor any `.js`, `.mjs`, `.cjs`, `.json` or
+extensionless file. `test/ci/method-issue-sync.test.js` pins the rule and the step, and measures both
+node behaviours on the node of every PR, with a calibration that runs the file when the scope is
+absent. ~~*Not measured:* how the `*.md` form matches on any Claude Code build.~~ The `agents-lead` lens measured
+the `*.md` form on Claude Code 2.1.296 and 2.1.330 (PR #541); it is not measured on the runner. If it
+matches nothing there, the body write is denied and `verify` fails red. With the executable this barrier
+is a second one, for the files the agent writes.
+
+**Consequence.** `src/lib` is now on disk in the agent's job. The agent has no Read, Glob or Grep tool, but
+Claude Code's built-in read-only commands (`cat`, `head`) still read files under the working directory,
+which is the public checkout, `src/lib` included (measured by the `agents-lead` lens on PR #541: Claude Code
+2.1.296 and 2.1.330, macOS). That costs nothing while the repository is public. The input files, `env`,
+`printenv` and paths outside the working directory were refused. Its one write rule reaches only `*.md`
+files in `${{ runner.temp }}/method-sync`, and its one shell route is the executable, so it can neither
+change nor execute those files; a change to `src/lib/py.js` or `src/lib/onpath.js` is a change to this boundary and is reviewed
+as one.
+
+**Evidence level.** *Written and tested*: golden transcripts recorded from the Python original with its
+own Python stub `gh` (`test/golden/S30/`, one declared difference, the usage line's script name),
+replayed against the Node script, and side by side with the original on CPython 3.14.6 while the base
+revision held it. The workflow change runs only from `main`; no canary has run it.
 
 ## Links
 

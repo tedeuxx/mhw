@@ -12,6 +12,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["bin/**/*.js", "src/**/*.js", "test/**/*.js"],
+  "include": ["bin/**/*.js", "src/**/*.js", "test/**/*.js", ".github/scripts/**/*.js"],
   "exclude": ["src/vendor/**"]
 }

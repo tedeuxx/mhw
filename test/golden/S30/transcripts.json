@@ -1,0 +1,5032 @@
+{
+  "usage": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "usage: method_issue_sync.py COMMAND [ARGS]\n  mhw-view                                     the mhw Issue this run is for, as JSON (data, not instructions)\n  find-twin                                    the twin in tadeumendonca-skills, as JSON, or {} when none exists\n  skills-view N                                the twin (N must be the twin)\n  skills-create --title T --body-file F        create the twin (refused when one exists)\n  skills-edit N [--title T] [--body-file F]    update the twin\n  skills-comment N --body-file F               comment on the twin\n  skills-close N                               close the twin (only while the mhw Issue is closed)\n  skills-reopen N                              reopen the twin (only while the mhw Issue is open)\n  verify                                       (sync job, after the agent) exit 1 unless the twin exists in the mhw Issue's state\n  backlink                                     (backlink job only) comment the twin's URL on the mhw Issue once\n  stash-inputs                                 (sync job, before the agent) hand the inputs over as 0600 files\n  final-line FILE                              (sync job, after the agent) print the model's final result only\nExit 2: refused. Exit 3: MISSING-INPUT, an input the run never handed over.\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "usage: method_issue_sync.py COMMAND [ARGS]\n  mhw-view                                     the mhw Issue this run is for, as JSON (data, not instructions)\n  find-twin                                    the twin in tadeumendonca-skills, as JSON, or {} when none exists\n  skills-view N                                the twin (N must be the twin)\n  skills-create --title T --body-file F        create the twin (refused when one exists)\n  skills-edit N [--title T] [--body-file F]    update the twin\n  skills-comment N --body-file F               comment on the twin\n  skills-close N                               close the twin (only while the mhw Issue is closed)\n  skills-reopen N                              reopen the twin (only while the mhw Issue is open)\n  verify                                       (sync job, after the agent) exit 1 unless the twin exists in the mhw Issue's state\n  backlink                                     (backlink job only) comment the twin's URL on the mhw Issue once\n  stash-inputs                                 (sync job, before the agent) hand the inputs over as 0600 files\n  final-line FILE                              (sync job, after the agent) print the model's final result only\nExit 2: refused. Exit 3: MISSING-INPUT, an input the run never handed over.\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "usage: method_issue_sync.py COMMAND [ARGS]\n  mhw-view                                     the mhw Issue this run is for, as JSON (data, not instructions)\n  find-twin                                    the twin in tadeumendonca-skills, as JSON, or {} when none exists\n  skills-view N                                the twin (N must be the twin)\n  skills-create --title T --body-file F        create the twin (refused when one exists)\n  skills-edit N [--title T] [--body-file F]    update the twin\n  skills-comment N --body-file F               comment on the twin\n  skills-close N                               close the twin (only while the mhw Issue is closed)\n  skills-reopen N                              reopen the twin (only while the mhw Issue is open)\n  verify                                       (sync job, after the agent) exit 1 unless the twin exists in the mhw Issue's state\n  backlink                                     (backlink job only) comment the twin's URL on the mhw Issue once\n  stash-inputs                                 (sync job, before the agent) hand the inputs over as 0600 files\n  final-line FILE                              (sync job, after the agent) print the model's final result only\nExit 2: refused. Exit 3: MISSING-INPUT, an input the run never handed over.\n"
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "scoped-by-repo-and-token": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "{\n  \"number\": 7,\n  \"title\": \"T\",\n  \"body\": \"B\",\n  \"state\": \"OPEN\",\n  \"url\": \"https://github.com/tedeuxx/mhw/issues/7\",\n  \"labels\": []\n}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "[mhw#7] T",
+          "--body-file",
+          "<D>/sync/b.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 902,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nMirrored from https://github.com/tedeuxx/mhw/issues/7\n## What changes in the plugin\n- skills: x\n"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/b.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      }
+    ]
+  },
+  "mhw-view-only-this-runs-issue": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "{\n  \"number\": 7,\n  \"title\": \"T\",\n  \"body\": \"B\",\n  \"state\": \"OPEN\",\n  \"url\": \"https://github.com/tedeuxx/mhw/issues/7\",\n  \"labels\": []\n}\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  mhw-view takes no arguments: it reads only the Issue this run is for\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "find-twin-by-marker": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{\"number\": 42, \"title\": \"[mhw#7] T\", \"state\": \"OPEN\", \"url\": \"u42\"}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{\"number\": 6, \"title\": \"other twin\", \"state\": \"OPEN\", \"url\": \"u6\"}\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "create-refused-when-twin-exists": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the twin already exists: u42; use skills-edit\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/b.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      }
+    ]
+  },
+  "twin-body-marker-and-link": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the twin body must carry <!-- mhw-issue: tedeuxx/mhw#7 -->\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the twin body must link back to https://github.com/tedeuxx/mhw/issues/7\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the twin body must carry <!-- mhw-issue: tedeuxx/mhw#7 -->\n"
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/a.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "6fd3ad8a52f41aeccb5fe03909f1588f421f85b1ec76765f26260c2ac9b8e225"
+      },
+      {
+        "path": "sync/c.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "376b73a129e34482ff23b1b51ce3bd7a763f458afe0bce32ac25801c703ea7f0"
+      },
+      {
+        "path": "sync/d.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "f4a8aca095d47a1df43f7a6fa8920f428f0cb05c5c79935a769064a48b19e1a1"
+      }
+    ]
+  },
+  "body-file-under-the-sync-dir": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  a body file must be under MHW_SYNC_DIR\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  a body file must be under MHW_SYNC_DIR\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  a body file must be under MHW_SYNC_DIR\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  a body file must be under MHW_SYNC_DIR\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  a body file must be under MHW_SYNC_DIR\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  a body file must be a regular file\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  a body file must be a regular file\n"
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "outside.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "036ed53b93fa63201ccb59d2af7d7b1d06d91b4eaaed34de0b00ccecabf62761"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/link.md",
+        "kind": "link",
+        "mode": "-",
+        "data": "<D>/outside.md"
+      },
+      {
+        "path": "sync/loop.md",
+        "kind": "link",
+        "mode": "-",
+        "data": "<D>/sync/loop.md"
+      }
+    ]
+  },
+  "sync-dir-through-a-link": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{\"number\": 902, \"title\": \"[mhw#7] T\", \"state\": \"OPEN\", \"url\": \"https://github.com/tedeuxx/tadeumendonca-skills/issues/902\"}\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  MHW_SYNC_DIR is not a directory\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "[mhw#7] T",
+          "--body-file",
+          "<D>/real/b.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 902,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nMirrored from https://github.com/tedeuxx/mhw/issues/7\n## What changes in the plugin\n- skills: x\n"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "real",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "real/b.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "via",
+        "kind": "link",
+        "mode": "-",
+        "data": "<D>/real"
+      }
+    ]
+  },
+  "credentials-refused": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body looks like it carries a credential; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body looks like it carries a credential; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body looks like it carries a credential; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body looks like it carries a credential; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body looks like it carries a credential; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title looks like it carries a credential; nothing was sent\n"
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "x",
+          "--body-file",
+          "<D>/sync/u1.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 902,
+          "title": "x",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7\néghs_ffffffffffffffffffffffffffffffffffff\n"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/b.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync/leak0.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "228807d3e1948b8367bf6e95ac7cfccfa267ed61b58dc0e9e805f9e86696dcb9"
+      },
+      {
+        "path": "sync/leak1.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "20125d33e0a68fc14706d67e3eab8d2ec1542d127ab144a94b3564ff7c355634"
+      },
+      {
+        "path": "sync/leak2.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "2028966d65277d1806ccac967468b4b936b1fcfda911085dc429b43842eb2f61"
+      },
+      {
+        "path": "sync/leak3.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "f23e343d2ca0f4398cbfafc10ba07f24aa5ec9b9ecf0a72b042ed6d3462c3c9d"
+      },
+      {
+        "path": "sync/leak4.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "33a8adabd7b14293a7cc997e2a1568994e6685025bad075ac40b7d73d6641394"
+      },
+      {
+        "path": "sync/u1.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "bab7c73759c71d33b59f1e778d61570cc1d18655ddaa7ae4ab39aee15d746310"
+      }
+    ]
+  },
+  "credentials-unicode-boundaries": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the twin already exists: https://github.com/tedeuxx/tadeumendonca-skills/issues/902; use skills-edit\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "x",
+          "--body-file",
+          "<D>/sync/u2.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 902,
+          "title": "x",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7\nAKIAGGGGGGGGGGGGGGGGé\n"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/u2.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "49b78e9df9577f416354891da67d5c20c9df78fdaf13ae240e9c54b002fdd7c1"
+      },
+      {
+        "path": "sync/u3.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "678be3f489c237d25034d41284af6be5c1fb1e17996022a785186b85fc0f3e6c"
+      }
+    ]
+  },
+  "private-key-header-shapes": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body looks like it carries a credential; nothing was sent\n"
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body looks like it carries a credential; nothing was sent\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "x",
+          "--body-file",
+          "<D>/sync/k2.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 902,
+          "title": "x",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7\n-----BEGIN ENCRYPTED PRIVATE KEYS-----\n-----BEGIN PRIVATE KEY----\n"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/k1.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "4c54a506eb7a8227dca5e5f5915c2d53f5929ffadbe6bef52009f1f4ecde8354"
+      },
+      {
+        "path": "sync/k2.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "9973f13908633eb6b16026d64840312552d3b953ba890cd38717b175329f94f5"
+      },
+      {
+        "path": "sync/k3.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "7828b979ca61f7f128358169af3a4d0bb3849dacc17b0244b8898752cc1336f5"
+      }
+    ]
+  },
+  "writes-only-to-the-twin": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the Issue number argument is not the twin of https://github.com/tedeuxx/mhw/issues/7 (the twin is #42)\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the Issue number argument is not the twin of https://github.com/tedeuxx/mhw/issues/7 (the twin is #42)\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the Issue number argument is not the twin of https://github.com/tedeuxx/mhw/issues/7 (the twin is #42)\n"
+      },
+      {
+        "code": 0,
+        "stdout": "ok\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "ok\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "ok\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "edit",
+          "42",
+          "--title",
+          "[mhw#7] T",
+          "--body-file",
+          "<D>/sync/e.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "42",
+          "--json",
+          "number,title,body,state,url",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "comment",
+          "42",
+          "--body-file",
+          "<D>/sync/h.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/b.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync/e.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync/h.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4"
+      }
+    ]
+  },
+  "unknown-commands-and-flags": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the argument at position 1 is not an allowed flag here\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the argument at position 3 is not an allowed flag here\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  expected exactly one Issue number\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  MHW_ISSUE is not an Issue number\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  MHW_ISSUE is not an Issue number\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  skills-edit needs --title or --body-file\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  skills-edit needs the twin's number\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  skills-comment needs --body-file\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  skills-comment needs the twin's number\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  --title has no value\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  --title is given twice\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  skills-create needs --title and --body-file\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  expected exactly one Issue number\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  expected exactly one Issue number\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  find-twin takes no arguments\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  verify takes no arguments\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  backlink takes no arguments\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  stash-inputs takes no arguments\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  final-line takes the execution file's path\n"
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "state-mirrors-the-mhw-issue": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the mhw Issue is OPEN, so its twin stays open\n"
+      },
+      {
+        "code": 0,
+        "stdout": "ok\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the mhw Issue is CLOSED, so its twin stays closed\n"
+      },
+      {
+        "code": 0,
+        "stdout": "ok\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the mhw Issue is unreadable, so its twin stays open\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the mhw Issue is unreadable, so its twin stays closed\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "reopen",
+          "42",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "close",
+          "42",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "backlink-once": {
+    "steps": [
+      {
+        "code": 1,
+        "stdout": "FAIL  no twin for https://github.com/tedeuxx/mhw/issues/7; nothing was linked\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/mhw/issues/7#c\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "the back-link is already on https://github.com/tedeuxx/mhw/issues/7\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "comment",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--body-file",
+          "<D>/sync/backlink-7.md"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [
+        {
+          "body": "<!-- mhw-twin: tedeuxx/tadeumendonca-skills#42 -->\nMirrored to tedeuxx/tadeumendonca-skills as u42 (method backlog sync, #62).\n",
+          "author": {
+            "login": "github-actions"
+          }
+        }
+      ],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/backlink-7.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "201c84f7c9acc3eb98c1bb4f88111c265b973933cd81d55eb94f51098c3789ee"
+      }
+    ]
+  },
+  "twin-must-be-app-authored": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "{}\n",
+        "stderr": "::warning::ignored #43 in tedeuxx/tadeumendonca-skills: carries the marker of https://github.com/tedeuxx/mhw/issues/7 but was not opened by the mirror App\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "::warning::ignored #43 in tedeuxx/tadeumendonca-skills: carries the marker of https://github.com/tedeuxx/mhw/issues/7 but was not opened by the mirror App\nREFUSED  https://github.com/tedeuxx/mhw/issues/7 has no twin in tedeuxx/tadeumendonca-skills yet\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the mhw Issue is OPEN, so its twin stays open\n"
+      },
+      {
+        "code": 0,
+        "stdout": "{\"number\": 42, \"title\": \"[mhw#7] T\", \"state\": \"OPEN\", \"url\": \"u42\"}\n",
+        "stderr": "::warning::ignored #43 in tedeuxx/tadeumendonca-skills: carries the marker of https://github.com/tedeuxx/mhw/issues/7 but was not opened by the mirror App\n"
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/mhw/issues/7#c\n",
+        "stderr": "::warning::ignored #43 in tedeuxx/tadeumendonca-skills: carries the marker of https://github.com/tedeuxx/mhw/issues/7 but was not opened by the mirror App\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "comment",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--body-file",
+          "<D>/sync/backlink-7.md"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [
+        {
+          "body": "<!-- mhw-twin: tedeuxx/tadeumendonca-skills#42 -->\nMirrored to tedeuxx/tadeumendonca-skills as u42 (method backlog sync, #62).\n",
+          "author": {
+            "login": "github-actions"
+          }
+        }
+      ],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 43,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u43",
+          "author": {
+            "login": "outsider"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/b.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync/backlink-7.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "201c84f7c9acc3eb98c1bb4f88111c265b973933cd81d55eb94f51098c3789ee"
+      }
+    ]
+  },
+  "two-app-authored-twins": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  more than one App-authored Issue in tedeuxx/tadeumendonca-skills carries <!-- mhw-issue: tedeuxx/mhw#7 -->: #42, #44\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  more than one App-authored Issue in tedeuxx/tadeumendonca-skills carries <!-- mhw-issue: tedeuxx/mhw#7 -->: #42, #44\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        },
+        {
+          "number": 44,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u44",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/b.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      }
+    ]
+  },
+  "body-size-and-kind": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  a body file must be at most 60000 bytes\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  a body file must be a regular file\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body is empty\n"
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "x",
+          "--body-file",
+          "<D>/sync/fit.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 902,
+          "title": "x",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/big.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "825bdf45609016c5625a7f162d4261acb71dac3bf32113d6ec0f8904d0889b40"
+      },
+      {
+        "path": "sync/blank.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "1aa1270add2943b930741b2e5a7e0abe3af3bea99d2447ead97ba3f71f7ed62a"
+      },
+      {
+        "path": "sync/dir.md",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/fit.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "da992c3348a29fe44e4c1e7a0a6cce6fbdf5e51cd175f08e7f013c203113b4fd"
+      }
+    ]
+  },
+  "body-bom-and-crlf": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/900\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "ok\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "[mhw#7] T",
+          "--body-file",
+          "<D>/sync/bom.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "[mhw#7] T",
+          "--body-file",
+          "<D>/sync/crlf.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "comment",
+          "900",
+          "--body-file",
+          "<D>/sync/bomonly.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 900,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/900",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nMirrored from https://github.com/tedeuxx/mhw/issues/7\n## What changes in the plugin\n- skills: x\n"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/bom.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "80dd42d3a0e05b8bf08a69d9b14779a16125bda5eb68613e766c4c056eaa778d"
+      },
+      {
+        "path": "sync/bomonly.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "f1945cd6c19e56b3c1c78943ef5ec18116907a4ca1efc40a57d48ab1db7adfc5"
+      },
+      {
+        "path": "sync/crlf.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      }
+    ]
+  },
+  "title-is-one-line": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title must be one line of 1 to 256 characters\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title must be one line of 1 to 256 characters\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title must be one line of 1 to 256 characters\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title must be one line of 1 to 256 characters\n"
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+          "--body-file",
+          "<D>/sync/b.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 902,
+          "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nMirrored from https://github.com/tedeuxx/mhw/issues/7\n## What changes in the plugin\n- skills: x\n"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/b.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      }
+    ]
+  },
+  "token-runs-refused": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the title contains part of a token held by this run; nothing was sent\n"
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "other",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "x",
+          "--body-file",
+          "<D>/sync/t-short.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "other",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 902,
+          "title": "x",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7\nsee 7Zq7Zq7Zq7Z\n"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/g-CLAUDE_CODE_OAUTH_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync/g-GH_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync/g-GITHUB_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync/g-MHW_SKILLS_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync/g-MHW_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      },
+      {
+        "path": "sync/t-CLAUDE_CODE_OAUTH_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "9eed183e233809e8503797174a6926e8e1cb5485830b2ca7828f650a44cfca06"
+      },
+      {
+        "path": "sync/t-GH_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "9eed183e233809e8503797174a6926e8e1cb5485830b2ca7828f650a44cfca06"
+      },
+      {
+        "path": "sync/t-GITHUB_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "9eed183e233809e8503797174a6926e8e1cb5485830b2ca7828f650a44cfca06"
+      },
+      {
+        "path": "sync/t-MHW_SKILLS_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "9eed183e233809e8503797174a6926e8e1cb5485830b2ca7828f650a44cfca06"
+      },
+      {
+        "path": "sync/t-MHW_TOKEN.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "9eed183e233809e8503797174a6926e8e1cb5485830b2ca7828f650a44cfca06"
+      },
+      {
+        "path": "sync/t-short.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "3ced8778f9712e07a7422fdc5b0cca9c4e8bcb424102e29812a24a50c601a349"
+      }
+    ]
+  },
+  "refusals-do-not-echo-values": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the argument at position 1 is not an allowed flag here\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the Issue number argument is not a number\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the Issue number argument is not the twin of https://github.com/tedeuxx/mhw/issues/7 (the twin is #42)\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "backlink-counts-only-github-actions": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/mhw/issues/7#c\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "the back-link is already on https://github.com/tedeuxx/mhw/issues/7\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "comment",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--body-file",
+          "<D>/sync/backlink-7.md"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [
+        {
+          "body": "<!-- mhw-twin: tedeuxx/tadeumendonca-skills#1 -->",
+          "author": {
+            "login": "outsider"
+          }
+        },
+        {
+          "body": "<!-- mhw-twin: tedeuxx/tadeumendonca-skills#42 -->\nMirrored to tedeuxx/tadeumendonca-skills as u42 (method backlog sync, #62).\n",
+          "author": {
+            "login": "github-actions"
+          }
+        }
+      ],
+      "skills": [
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/backlink-7.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "201c84f7c9acc3eb98c1bb4f88111c265b973933cd81d55eb94f51098c3789ee"
+      }
+    ]
+  },
+  "backlink-recognises-each-actions-login": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "the back-link is already on https://github.com/tedeuxx/mhw/issues/7\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "the back-link is already on https://github.com/tedeuxx/mhw/issues/7\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "the back-link is already on https://github.com/tedeuxx/mhw/issues/7\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [
+        {
+          "body": "<!-- mhw-twin: x",
+          "author": {
+            "login": "app/github-actions"
+          }
+        },
+        {
+          "body": null,
+          "author": null
+        }
+      ],
+      "skills": [
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "backlink-needs-the-sync-dir": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  MHW_SYNC_DIR is not a directory\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  MHW_SYNC_DIR is not a directory\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "missing-input-exit-3": {
+    "steps": [
+      {
+        "code": 3,
+        "stdout": "",
+        "stderr": "REFUSED  MISSING-INPUT MHW_TOKEN: not in the environment and not in the input directory (the subprocess env scrub drops names that look like secrets; the sync job stashes them with stash-inputs)\n"
+      },
+      {
+        "code": 3,
+        "stdout": "",
+        "stderr": "REFUSED  MISSING-INPUT MHW_SKILLS_TOKEN: not in the environment and not in the input directory (the subprocess env scrub drops names that look like secrets; the sync job stashes them with stash-inputs)\n"
+      },
+      {
+        "code": 3,
+        "stdout": "",
+        "stderr": "REFUSED  MISSING-INPUT MHW_ISSUE: not in the environment and not in the input directory (the subprocess env scrub drops names that look like secrets; the sync job stashes them with stash-inputs)\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the Issue number argument is not a number\n"
+      },
+      {
+        "code": 3,
+        "stdout": "",
+        "stderr": "REFUSED  MISSING-INPUT MHW_SKILLS_TOKEN: not in the environment and not in the input directory (the subprocess env scrub drops names that look like secrets; the sync job stashes them with stash-inputs)\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "stashed-inputs-reach-a-scrubbed-subprocess": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "stashed 4 inputs in the input directory\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{\n  \"number\": 7,\n  \"title\": \"T\",\n  \"body\": \"B\",\n  \"state\": \"OPEN\",\n  \"url\": \"https://github.com/tedeuxx/mhw/issues/7\",\n  \"labels\": []\n}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{\"number\": 902, \"title\": \"[mhw#7] T\", \"state\": \"OPEN\", \"url\": \"https://github.com/tedeuxx/tadeumendonca-skills/issues/902\"}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "PASS  https://github.com/tedeuxx/tadeumendonca-skills/issues/902 mirrors https://github.com/tedeuxx/mhw/issues/7 (OPEN)\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "create",
+          "--title",
+          "[mhw#7] T",
+          "--body-file",
+          "<D>/sync/b.md",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 902,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "url": "https://github.com/tedeuxx/tadeumendonca-skills/issues/902",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nMirrored from https://github.com/tedeuxx/mhw/issues/7\n## What changes in the plugin\n- skills: x\n"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "method-sync-input",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": "method-sync-input/MHW_ISSUE",
+        "kind": "file",
+        "mode": "600",
+        "data": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+      },
+      {
+        "path": "method-sync-input/MHW_SKILLS_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "dc9532cffea0e95e9663a6516bfc9bd7e12ad9ece6d29b39a83cdf67d304832a"
+      },
+      {
+        "path": "method-sync-input/MHW_SYNC_DIR",
+        "kind": "file",
+        "mode": "600",
+        "data": "483b112e3f68e4fc08b6918b8c80eee35ce72a733d8755e8c31367da907ced4e"
+      },
+      {
+        "path": "method-sync-input/MHW_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "962bafec8c6c74db87979c2d3804e0ef1f8de92a296bc9a68feb750342ff7908"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/b.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "c282ef29077af3e37db0e06ef063f61efc35a2d60ceea3344a56dacfa0eca8c5"
+      }
+    ]
+  },
+  "stashed-input-whitespace": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "{\n  \"number\": 7,\n  \"title\": \"T\",\n  \"body\": \"B\",\n  \"state\": \"OPEN\",\n  \"url\": \"https://github.com/tedeuxx/mhw/issues/7\",\n  \"labels\": []\n}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{\n  \"number\": 7,\n  \"title\": \"T\",\n  \"body\": \"B\",\n  \"state\": \"OPEN\",\n  \"url\": \"https://github.com/tedeuxx/mhw/issues/7\",\n  \"labels\": []\n}\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "other",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "in",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "in/MHW_ISSUE",
+        "kind": "file",
+        "mode": "644",
+        "data": "df809a02fbd631863fe0fcdf4161f32f642ab90d4a158ba7c30566c42dd99eb4"
+      },
+      {
+        "path": "in/MHW_SKILLS_TOKEN",
+        "kind": "file",
+        "mode": "644",
+        "data": "1fa76744da6784a3f1d8ad254bf605993419626faf6d33b9eefa65d5f7cf557e"
+      },
+      {
+        "path": "in/MHW_TOKEN",
+        "kind": "file",
+        "mode": "644",
+        "data": "a9123bdbdee75d72bdae39b157f8fc91b1ab3dd0d6789d2b1db3e8b022652c39"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "stashed-tokens-count-for-the-token-run-check": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "stashed 4 inputs in the input directory\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the body contains part of a token held by this run; nothing was sent\n"
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "method-sync-input",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": "method-sync-input/MHW_ISSUE",
+        "kind": "file",
+        "mode": "600",
+        "data": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+      },
+      {
+        "path": "method-sync-input/MHW_SKILLS_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "7543a0f154b345873b18ee8d3ff1dce616bea482d67abe74d5495d6c4e944239"
+      },
+      {
+        "path": "method-sync-input/MHW_SYNC_DIR",
+        "kind": "file",
+        "mode": "600",
+        "data": "483b112e3f68e4fc08b6918b8c80eee35ce72a733d8755e8c31367da907ced4e"
+      },
+      {
+        "path": "method-sync-input/MHW_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "962bafec8c6c74db87979c2d3804e0ef1f8de92a296bc9a68feb750342ff7908"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/run.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "6410f052dee618649d76ace4911a1662eb59606b3572200d11ea31418821b06c"
+      }
+    ]
+  },
+  "stash-refuses-to-replace-or-to-sit-in-the-write-dir": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "stashed 4 inputs in the input directory\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the input directory is not empty; nothing was replaced\n"
+      },
+      {
+        "code": 0,
+        "stdout": "stashed 4 inputs in the input directory\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the input directory must not be inside MHW_SYNC_DIR\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  the input directory must not be inside MHW_SYNC_DIR\n"
+      },
+      {
+        "code": 3,
+        "stdout": "",
+        "stderr": "REFUSED  MISSING-INPUT MHW_SKILLS_TOKEN: stash-inputs reads it from the environment\n"
+      },
+      {
+        "code": 3,
+        "stdout": "",
+        "stderr": "REFUSED  MISSING-INPUT MHW_INPUT_DIR: neither it nor RUNNER_TEMP is set\n"
+      },
+      {
+        "code": 0,
+        "stdout": "stashed 4 inputs in the input directory\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "stashed 4 inputs in the input directory\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "deep",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "deep/er",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "deep/er/inputs",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": "deep/er/inputs/MHW_ISSUE",
+        "kind": "file",
+        "mode": "600",
+        "data": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+      },
+      {
+        "path": "deep/er/inputs/MHW_SKILLS_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "dc9532cffea0e95e9663a6516bfc9bd7e12ad9ece6d29b39a83cdf67d304832a"
+      },
+      {
+        "path": "deep/er/inputs/MHW_SYNC_DIR",
+        "kind": "file",
+        "mode": "600",
+        "data": "483b112e3f68e4fc08b6918b8c80eee35ce72a733d8755e8c31367da907ced4e"
+      },
+      {
+        "path": "deep/er/inputs/MHW_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "962bafec8c6c74db87979c2d3804e0ef1f8de92a296bc9a68feb750342ff7908"
+      },
+      {
+        "path": "loose",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": "loose/MHW_ISSUE",
+        "kind": "file",
+        "mode": "600",
+        "data": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+      },
+      {
+        "path": "loose/MHW_SKILLS_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "dc9532cffea0e95e9663a6516bfc9bd7e12ad9ece6d29b39a83cdf67d304832a"
+      },
+      {
+        "path": "loose/MHW_SYNC_DIR",
+        "kind": "file",
+        "mode": "600",
+        "data": "483b112e3f68e4fc08b6918b8c80eee35ce72a733d8755e8c31367da907ced4e"
+      },
+      {
+        "path": "loose/MHW_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "962bafec8c6c74db87979c2d3804e0ef1f8de92a296bc9a68feb750342ff7908"
+      },
+      {
+        "path": "method-sync-input",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": "method-sync-input/MHW_ISSUE",
+        "kind": "file",
+        "mode": "600",
+        "data": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+      },
+      {
+        "path": "method-sync-input/MHW_SKILLS_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "dc9532cffea0e95e9663a6516bfc9bd7e12ad9ece6d29b39a83cdf67d304832a"
+      },
+      {
+        "path": "method-sync-input/MHW_SYNC_DIR",
+        "kind": "file",
+        "mode": "600",
+        "data": "483b112e3f68e4fc08b6918b8c80eee35ce72a733d8755e8c31367da907ced4e"
+      },
+      {
+        "path": "method-sync-input/MHW_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "962bafec8c6c74db87979c2d3804e0ef1f8de92a296bc9a68feb750342ff7908"
+      },
+      {
+        "path": "rt",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "rt/method-sync-input",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": "rt/method-sync-input/MHW_ISSUE",
+        "kind": "file",
+        "mode": "600",
+        "data": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+      },
+      {
+        "path": "rt/method-sync-input/MHW_SKILLS_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "dc9532cffea0e95e9663a6516bfc9bd7e12ad9ece6d29b39a83cdf67d304832a"
+      },
+      {
+        "path": "rt/method-sync-input/MHW_SYNC_DIR",
+        "kind": "file",
+        "mode": "600",
+        "data": "483b112e3f68e4fc08b6918b8c80eee35ce72a733d8755e8c31367da907ced4e"
+      },
+      {
+        "path": "rt/method-sync-input/MHW_TOKEN",
+        "kind": "file",
+        "mode": "600",
+        "data": "962bafec8c6c74db87979c2d3804e0ef1f8de92a296bc9a68feb750342ff7908"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "final-line-prints-the-result-only": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "subtype: success  turns: 2  is_error: False  permission_denials: 1\nresult: REFUSED  MISSING-INPUT MHW_TOKEN\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "exec.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "1210d94bcd34f7edcc2a5910e9076d0f34ec886c083c4f262bccfc9781e2050b"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "final-line-denials-count": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "subtype: success  turns: 2  is_error: False  permission_denials: 3\nresult: r\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: ?  is_error: ?  permission_denials: 0\nresult: r\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: ?  is_error: ?  permission_denials: ?\nresult: r\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: ?  is_error: ?  permission_denials: 2\nresult: r\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: 3.0  is_error: None  permission_denials: ?\nresult: (none)\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ['a', {'b': 1}]  turns: inf  is_error: x  permission_denials: ?\nresult: {'k': [True, False, None]}\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "bool.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "00867d7a7ccaceab68efa4b203701993022b088833436e2b2a5cef0ad6f62605"
+      },
+      {
+        "path": "count.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "d5d9d2fd16dec5f44f1808b99b029656be55ff56b1d014236e51ad3317c650d3"
+      },
+      {
+        "path": "float.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "7234d30bf6d702532744aa877679664d7008a0a5a5a3352ee2320301224c698f"
+      },
+      {
+        "path": "none.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "a6d45d290bca64bbcf2701a1565e0ffd93fb700856763233d5b8d82d3f58b210"
+      },
+      {
+        "path": "shapes.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "41bbc5a5321774b69b3422b3a3cdb371a2f308a0b09536f78d4aa5b05bb577d6"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "zero.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "e72b04ade95193120c4d2dc5d874cb9995a5821302d9759389cdfa27d2889241"
+      }
+    ]
+  },
+  "final-line-last-result-capped": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: ?  is_error: ?  permission_denials: ?\nresult: yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy [cut at 2000 characters]\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: ?  is_error: ?  permission_denials: ?\nresult: 😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀 [cut at 2000 characters]\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: ?  is_error: ?  permission_denials: ?\nresult: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "cap.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "8a167599ca97fced67ecc65ae805c9fc1e297cb2134608f8d5d226d8d41f19b8"
+      },
+      {
+        "path": "cap2.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "a35f5f228d9f3a6094c32c55e1a706f4350f23b7cb50421057f8d26c75fd8a46"
+      },
+      {
+        "path": "exact.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "e66da5df0c9b78e0797d4feff1c4daf9fc3a1d48bb028afaf676a9ae908b9f0c"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "final-line-never-fails-and-withholds": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "final-line: no readable execution file\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "final-line: the execution file holds no result message\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "final-line: the execution file holds no result message\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "final-line: no readable execution file\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: ?  is_error: ?  permission_denials: ?\nresult: (withheld: the result text carries something shaped like a credential)\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "final-line: no readable execution file\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "final-line: no readable execution file\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "final-line: no readable execution file\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: ?  is_error: ?  permission_denials: ?\nresult: (withheld: the result text carries something shaped like a credential)\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "subtype: ?  turns: nan  is_error: -inf  permission_denials: ?\nresult: r\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "bad.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "1cdb6f90ead42685deb9143a7ad4b18d5ec097bf0e190e00cb918b12f9f0d5a3"
+      },
+      {
+        "path": "bom.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "b1de4b0ef98f67b54de8d4122ff26035073bf1b3bbbda177bde498dc96416a19"
+      },
+      {
+        "path": "dir.json",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "held.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "76612f7a1355bead0e4251b1282babe062bdf3b7d9dec304e7b1326b0a5f8f68"
+      },
+      {
+        "path": "leak.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "636db665f1759eed07093364a235e07a399b068ce74698ada09d3cfc2023999d"
+      },
+      {
+        "path": "nan.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "96f28687b27c173eadedf2b22e6d73efed61edd7f8269e3ffa78820e0a680037"
+      },
+      {
+        "path": "noresult.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "018e6244b159d3edab0b040c67a948928209dd3d79af7af3e03de1c86eef522f"
+      },
+      {
+        "path": "obj.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "5041bf1f713df204784353e82f6a4a535931cb64f1f4b4a5aeaffcb720918b22"
+      },
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "verify": {
+    "steps": [
+      {
+        "code": 1,
+        "stdout": "FAIL  https://github.com/tedeuxx/mhw/issues/7 has no twin in tedeuxx/tadeumendonca-skills\n",
+        "stderr": ""
+      },
+      {
+        "code": 1,
+        "stdout": "FAIL  the twin u42 is CLOSED while https://github.com/tedeuxx/mhw/issues/7 is OPEN\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "PASS  u42 mirrors https://github.com/tedeuxx/mhw/issues/7 (OPEN)\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "PASS  u42 mirrors https://github.com/tedeuxx/mhw/issues/7 (CLOSED)\n",
+        "stderr": ""
+      },
+      {
+        "code": 1,
+        "stdout": "FAIL  the twin u42 is OPEN while https://github.com/tedeuxx/mhw/issues/7 is CLOSED\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "CLOSED",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "token-values-never-printed": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "{\n  \"number\": 7,\n  \"title\": \"T\",\n  \"body\": \"B\",\n  \"state\": \"OPEN\",\n  \"url\": \"https://github.com/tedeuxx/mhw/issues/7\",\n  \"labels\": []\n}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{\"number\": 42, \"title\": \"[mhw#7] T\", \"state\": \"OPEN\", \"url\": \"u42\"}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "ok\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "https://github.com/tedeuxx/mhw/issues/7#c\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "REFUSED  skills-edit needs --title or --body-file\n"
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "42",
+          "--json",
+          "number,title,body,state,url",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "comments"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "comment",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--body-file",
+          "<D>/sync/backlink-7.md"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [
+        {
+          "body": "<!-- mhw-twin: tedeuxx/tadeumendonca-skills#42 -->\nMirrored to tedeuxx/tadeumendonca-skills as u42 (method backlog sync, #62).\n",
+          "author": {
+            "login": "github-actions"
+          }
+        }
+      ],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": "sync/backlink-7.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "201c84f7c9acc3eb98c1bb4f88111c265b973933cd81d55eb94f51098c3789ee"
+      }
+    ]
+  },
+  "non-ascii-issue-data": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "{\"number\": 42, \"title\": \"caf\\u00e9 \\u2014 \\ud83d\\ude00 \\\"q\\\" \\\\ \\t\", \"state\": \"OPEN\", \"url\": \"u42\"}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "{\n  \"number\": 7,\n  \"title\": \"T\",\n  \"body\": \"B\",\n  \"state\": \"OPEN\",\n  \"url\": \"https://github.com/tedeuxx/mhw/issues/7\",\n  \"labels\": []\n}\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 42,
+          "title": "café — 😀 \"q\" \\ \t",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 --> ñ"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  },
+  "gh-on-a-path-of-its-own": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "{\"number\": 42, \"title\": \"[mhw#7] T\", \"state\": \"OPEN\", \"url\": \"u42\"}\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "PASS  u42 mirrors https://github.com/tedeuxx/mhw/issues/7 (OPEN)\n",
+        "stderr": ""
+      }
+    ],
+    "calls": [
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "view",
+          "7",
+          "--repo",
+          "tedeuxx/mhw",
+          "--json",
+          "number,title,body,state,url,labels"
+        ],
+        "token": "MHW_TOKEN",
+        "github_token": false
+      },
+      {
+        "args": [
+          "issue",
+          "list",
+          "--state",
+          "all",
+          "--limit",
+          "2000",
+          "--json",
+          "number,title,state,url,body,author",
+          "--repo",
+          "tedeuxx/tadeumendonca-skills"
+        ],
+        "token": "MHW_SKILLS_TOKEN",
+        "github_token": false
+      }
+    ],
+    "state": {
+      "mhw": {
+        "number": 7,
+        "title": "T",
+        "body": "B",
+        "state": "OPEN",
+        "url": "https://github.com/tedeuxx/mhw/issues/7",
+        "labels": []
+      },
+      "mhw_comments": [],
+      "skills": [
+        {
+          "number": 5,
+          "title": "other",
+          "state": "OPEN",
+          "url": "u5",
+          "body": "unrelated"
+        },
+        {
+          "number": 6,
+          "title": "other twin",
+          "state": "OPEN",
+          "url": "u6",
+          "body": "<!-- mhw-issue: tedeuxx/mhw#70 -->",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          }
+        },
+        {
+          "number": 42,
+          "title": "[mhw#7] T",
+          "state": "OPEN",
+          "url": "u42",
+          "author": {
+            "login": "app/tedeuxx-mhw-mirror"
+          },
+          "body": "<!-- mhw-issue: tedeuxx/mhw#7 -->\nhttps://github.com/tedeuxx/mhw/issues/7"
+        }
+      ]
+    },
+    "tree": [
+      {
+        "path": "sync",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      }
+    ]
+  }
+}

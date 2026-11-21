@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S30 golden transcripts were recorded from (the base revision's .github/scripts/method_issue_sync.py with its suite's Python stub gh, macOS). The live arm compares only on this version, as the S05, S10 and S22 arms do."
+}

@@ -57,7 +57,7 @@ native carrier for (keep as the exception).
 Measured by searching the tree for each script's name, test files and decision records excluded.
 
 - **CI:** `tests.yml` compiles every Python script and runs every test. `outbound-scan.yml` runs
-  `mhw scan`. `method-issue-sync.yml` runs `.github/scripts/method_issue_sync.py`.
+  `mhw scan`. `method-issue-sync.yml` runs ~~`.github/scripts/method_issue_sync.py`~~ `.github/scripts/method-issue-sync.js` (Node since #500).
 - **The installer:** `mhw` and `global/workstation.py` call `install.sh`, `install-managed.sh` and the
   renderers. `install.ps1` is the Windows route. ~~`method_render.py` installs `method/scripts/*` and
   replaces~~ `src/render/method.js` (Node since #489) installs no script and replaces `{{method-scripts}}` in rendered bodies with the installed directory.
@@ -126,7 +126,7 @@ output and the same written file, byte for byte, and the Python file and its sui
 | Script | What it does | Called by | Native multi-harness replacement (evidence) | Lost if removed | Recommendation |
 | --- | --- | --- | --- | --- | --- |
 | `src/commands/delivery.js` (`mhw delivery`; `workspace/delivery.py` until #474) | Checked merge and verify: required runs at the head, a gate verdict and lens CLOSED at that exact head, a real merge commit; refuses a PR into `main` from anything but `rc/next`. | `AGENTS.md`, `workspace/README.md`. | Forge rulesets cover required checks and merge-commit-only (documented). A verdict pinned to the head has no native carrier (assumed). | The only head-scoped verdict check. The owner kept it out of #197's scope. | **keep as the exception** |
-| `.github/scripts/method_issue_sync.py` | The narrow GitHub boundary for the CI agent that mirrors `method` Issues. | `method-issue-sync.yml`. | The action's tool allow list is native; it cannot limit writes to one Issue (assumed). | Confinement of the sync agent to its twin Issue. | **keep as the exception** (CI) |
+| `.github/scripts/method_issue_sync.py` (since #500: `.github/scripts/method-issue-sync.js`) | The narrow GitHub boundary for the CI agent that mirrors `method` Issues. | `method-issue-sync.yml`. | The action's tool allow list is native; it cannot limit writes to one Issue (assumed). | Confinement of the sync agent to its twin Issue. | **keep as the exception** (CI) |
 
 ### Method scripts
 
@@ -216,7 +216,7 @@ carrier. The change to watch for:
 | ~~`scan.py`~~ `mhw scan` | Forge or agent harness outbound scanning that covers personal data and owner-defined terms. |
 | ~~`merge_authority.py`~~ `src/lib/merge-authority.js` | An agent harness that validates a project brief against a declared schema or a skill's contract. |
 | `delivery.js` | A forge rule that requires a verdict pinned to the head before merge. |
-| `method_issue_sync.py` | A CI agent allow list that can limit writes to one Issue. |
+| `method_issue_sync.py` (since #500: `method-issue-sync.js`) | A CI agent allow list that can limit writes to one Issue. |
 | Milestone family | A `gh milestone` subcommand, or a GitHub MCP server the deny floor can see (see hypothesis 1). |
 | `worklog.py`, `rite-cadence.py`, `funnel-review.sh`, `launch-line.py` | No native mechanism is in view; these compute results the model would otherwise generate. |
 
