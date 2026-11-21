@@ -1,30 +1,6 @@
 [
   {
     "case": [
-      "prereq-proxy-from-the-environment"
-    ],
-    "stream": [
-      "stdout"
-    ],
-    "base": "NOAUTH  tfc \\[optional\\]: account, no local client to detect · not authenticated \\(\\$TFC_API_TOKEN rejected\\) -> STEP-tfc",
-    "head": "NOCHECK tfc \\[optional\\]: account, no local client to detect · authentication not checked \\(service unreachable\\) -> STEP-tfc",
-    "replace": "<the tfc line when the proxy refuses a plain-http target>",
-    "why": "QA B2 on PR #538: both sides now honour http_proxy and HTTP_PROXY (urllib's ProxyHandler; the Node GET's worker starts with --use-env-proxy), and with no_proxy naming the host both go direct and agree (step 3, compared). The residual is how a plain-http target reaches the proxy: urllib sent it an absolute-form GET and read the refusing proxy's own 502 as the service's answer (NOAUTH, token rejected); fetch opens a CONNECT tunnel, the refusal fails the request, and the GET reads status 0 (NOCHECK). Only the loopback test override is plain http; the real services are https, which both reach through CONNECT. Neither side reads OK."
-  },
-  {
-    "case": [
-      "prereq-proxy-from-the-environment"
-    ],
-    "stream": [
-      "recorded"
-    ],
-    "base": "\\{\"proxy\":\"GET <SERVICE>/api/v2/account/details\"\\}",
-    "head": "\\{\"proxy\":\"CONNECT <SERVICE-HOST>\"\\}",
-    "replace": "<the request the proxy received>",
-    "why": "The other half of the entry above, in the stand-in proxy's own log: the base sent it an absolute-form GET of the service URL, the head a CONNECT to the service's host and port. Both reached the proxy, which is what parity with urllib's ProxyHandler required; the request form is fetch's."
-  },
-  {
-    "case": [
       "prereq-relative-path-entry"
     ],
     "stream": [

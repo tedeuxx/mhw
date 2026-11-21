@@ -12,11 +12,10 @@
 // Proxies (lens F2 and QA B2 on PR #538): urllib always honoured http_proxy, https_proxy and no_proxy
 // (either case). So does this GET: the worker starts with --use-env-proxy and an environment holding only
 // those variables, from the caller's environment, whatever NODE_USE_ENV_PROXY says (measured on Node
-// 25.9: a worker honours the flag, lower and upper case, and NO_PROXY). Two residuals, declared in
-// test/golden/S23: fetch reaches even a plain-http target through a CONNECT tunnel, where urllib sent the
-// proxy an absolute-form GET, so a proxy that refuses reads status 0 (NOCHECK) where urllib read the
-// proxy's own status; and macOS system proxy settings, which urllib read when no variable was set, are not
-// read. A GET that cannot get through is status 0, so NOCHECK, never OK. node: modules only.
+// 25.9: a worker honours the flag, lower and upper case, and NO_PROXY). On Node 26, the engines.node
+// floor, a plain-http target goes to the proxy in absolute form as urllib sent it (measured in CI on
+// 26.13.1, golden case prereq-proxy-from-the-environment); Node 25.9 opened a CONNECT tunnel instead. The
+// residual: the macOS system proxy settings, which urllib read when no variable was set, are not read. A GET that cannot get through is status 0, so NOCHECK, never OK. node: modules only.
 import { Worker, MessageChannel, receiveMessageOnPort, isMainThread, workerData } from 'node:worker_threads';
 
 export const TIMEOUT_MS = 15000;

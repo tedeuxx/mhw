@@ -411,14 +411,18 @@ describe('services', { skip: !POSIX && 'needs POSIX' }, () => {
     assert.deepEqual(await get(svc.url + '/api/v2/account/details', TOKEN), { status: 200, body: '{}' });
   });
 
-  test('the GET honours the caller\'s proxy variables as urllib did, and no_proxy (QA B2)', () => {
+  // Node 26 (the engines.node floor; CI runs 26.13.1) sends a plain-http target's request to the proxy in
+  // absolute form, as urllib did, so the proxy's own status is the answer. Node 25.9, below the floor,
+  // opened a CONNECT tunnel instead (measured), which this test does not describe.
+  const NODE_MAJOR = Number(process.versions.node.split('.')[0]);
+  test('the GET honours the caller\'s proxy variables as urllib did, and no_proxy (QA B2)', { skip: NODE_MAJOR < 26 && 'needs Node 26, the engines.node floor (found ' + process.versions.node + ')' }, () => {
     const proxy = service(s.h.dir, 'proxy');
     try {
       const url = svc.url + '/api/authentication/validate';
       for (const name of ['http_proxy', 'HTTP_PROXY']) {
-        assert.deepEqual(getSync(url, TOKEN, { [name]: proxy.url }), [0, ''], name);
+        assert.deepEqual(getSync(url, TOKEN, { [name]: proxy.url }), [502, ''], name);
       }
-      assert.deepEqual(proxy.seen().map((r) => r.proxy), ['CONNECT ' + svc.url.slice('http://'.length), 'CONNECT ' + svc.url.slice('http://'.length)]);
+      assert.deepEqual(proxy.seen().map((r) => r.proxy), ['GET ' + url, 'GET ' + url]);
       assert.deepEqual(getSync(url, TOKEN, { http_proxy: proxy.url, no_proxy: '127.0.0.1' }), [200, '{"valid":true}']);
       assert.deepEqual(getSync(url, TOKEN, {}), [200, '{"valid":true}']);
       assert.equal(proxy.seen().length, 2);

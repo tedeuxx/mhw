@@ -326,9 +326,9 @@ export const CASES = [
   },
   {
     // QA B2 on PR #538: urllib's ProxyHandler honoured http_proxy and no_proxy; the Node GET does too
-    // (--use-env-proxy in its worker). The residual, declared: fetch reaches a plain-http target through a
-    // CONNECT tunnel where urllib sent the proxy an absolute-form GET, so a refusing proxy reads 0 (NOCHECK)
-    // where urllib read its 502 (NOAUTH). With no_proxy naming the host both go direct and agree.
+    // (--use-env-proxy in its worker). On Node 26 (the engines.node floor, and CI's) both send the refusing
+    // proxy an absolute-form GET and read its 502, so the transcripts are equal; with no_proxy naming the
+    // host both go direct. Node 25.9, below the floor, opened a CONNECT tunnel instead (not compared).
     name: 'prereq-proxy-from-the-environment',
     mode: 'bare',
     service: true,

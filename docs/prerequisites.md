@@ -71,11 +71,10 @@ refused as an invalid declaration.
   `mhw check` runs before this section, still inherits the caller's environment.
 - Proxies: like Python's `urllib`, the GET honours `http_proxy`, `https_proxy` and `no_proxy` (either
   case) from the caller's environment: its worker runs with `--use-env-proxy` and those variables only.
-  Two residuals, declared in `test/golden/S23`: `fetch` reaches even a plain-http target through a
-  `CONNECT` tunnel, where `urllib` sent the proxy an absolute-form GET, so a proxy that refuses reads
-  `NOCHECK` where `urllib` read the proxy's own status (only the loopback test override is plain http);
-  and the macOS system proxy settings, which `urllib` read when no variable was set, are not read. A GET
-  that cannot get through reads `NOCHECK`, never `OK`.
+  On Node 26, the `engines.node` floor, the result is the same as with `urllib` (golden case
+  `prereq-proxy-from-the-environment`, compared in CI on 26.13.1). The residual: the macOS system proxy
+  settings, which `urllib` read when no variable was set, are not read. A GET that cannot get through
+  reads `NOCHECK`, never `OK`.
 - `PATH` entries that are not absolute (a relative directory, an empty entry, `.`) are not searched, so a
   tool found only through one reads `MISSING`. Python's `shutil.which` searched them (#494).
 - With no token in the environment the line reads `not checked (credential not available)` and no call
