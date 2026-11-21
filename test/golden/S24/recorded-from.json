@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S24 golden transcripts were recorded from (the base revision's global/workstation.py install, update, uninstall and postinstall, reached through the shell ./mhw, macOS). The live arm compares only on this version, as the S10, S13, S14, S22 and S23 arms do: install-managed.sh's own Python steps run on both sides, and a traceback's text can change between CPython releases."
+}

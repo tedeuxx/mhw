@@ -661,7 +661,7 @@ const spawned = (name, exe, pre) => ({ name, run: (args, cwd, env) => {
 } });
 
 const binRunner = spawned('bin/mhw.js', process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'rite-cadence']);
-const shRunner = spawned('./mhw', '/bin/sh', [path.join(ROOT, 'mhw'), 'rite-cadence']);
+const shRunner = spawned('./mhw', path.join(ROOT, 'mhw'), ['rite-cadence']);
 
 /**
  * The runners for a case: the in-process command always; the two entries (bin/mhw.js, ./mhw) on the
@@ -793,14 +793,14 @@ test('-h prints the usage and exits 0; an option before -h still parses', () => 
   }
 });
 
-test('./mhw without node on PATH says so and never falls through to workstation.py', { skip: !POSIX && './mhw is the POSIX entry' }, (t) => {
+test('./mhw without node on PATH fails at its #! line and runs nothing (a Node file since #495)', { skip: !POSIX && './mhw is the POSIX entry' }, (t) => {
   if (fs.existsSync('/usr/bin/node') || fs.existsSync('/bin/node')) {
     t.skip('a node in /usr/bin or /bin is on the reduced PATH');
     return;
   }
-  const p = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), 'rite-cadence', STORE], { cwd: ROOT, env: { PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
-  assert.equal(p.status, 2);
-  assert.equal(p.stderr, 'mhw: node (26 or later) is required for mhw rite-cadence\n');
+  const p = spawnSync(path.join(ROOT, 'mhw'), ['rite-cadence', STORE], { cwd: ROOT, env: { PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
+  assert.notEqual(p.status, 0);
+  assert.equal(p.stdout, '');
 });
 
 test('the Python original and its suite are gone', () => {

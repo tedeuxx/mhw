@@ -1,20 +1,10 @@
-#!/bin/sh
-# mhw, the one entry point of the multi-harness managed workstation (Issue #67), macOS and Linux:
-#   ./mhw install | install --admin | status [--verbose] | check | scan | update [vX.Y.Z] | uninstall
-# An npm install puts the same command on PATH as mhw (Issue #68, ADR-0034). The logic is
-# global/workstation.py; global/install.sh and global/install-managed.sh stay the internals.
-# Windows keeps global/install.ps1. (The deprecated ./workstation alias was removed, Issue #206.)
-dir=$(cd "$(dirname "$0")" && pwd)
-# The commands moved to Node run bin/mhw.js, never workstation.py: mhw delivery merge|verify (#474, S03
-# of #470), mhw milestone read|create|update|close (#475, S04 of #470), mhw worklog and
-# mhw launch-line (#476, S05 of #470), mhw rite-cadence (#477, S06 of #470), mhw funnel-review
-# (#478, S07 of #470), mhw profile (#479, S08 of #470), mhw mcp launch|render (#483, #484), and mhw scan
-# (#486, S15 of #470), mhw status (#493, S22 of #470), mhw check (#494, S23 of #470) and mhw policy check
-# (#498, S28 of #470). New in Node: mhw docs-baseline check and mhw onboard (#523).
-case "${1:-}" in
-  delivery|milestone|worklog|launch-line|rite-cadence|funnel-review|profile|mcp|scan|status|check|docs-baseline|onboard|policy)
-    command -v node >/dev/null 2>&1 || { echo "mhw: node (26 or later) is required for mhw $1" >&2; exit 2; }
-    exec node "$dir/bin/mhw.js" "$@" ;;
-esac
-command -v python3 >/dev/null 2>&1 || { echo "mhw: python3 (3.9 or later) is required" >&2; exit 2; }
-exec python3 -B "$dir/global/workstation.py" "$@"
+#!/usr/bin/env node
+":" //; command -v node >/dev/null 2>&1 || { echo "mhw: node (26 or later) is required" >&2; exit 2; }; dir=$(cd "$(dirname "$0")" && pwd); exec node "$dir/bin/mhw.js" "$@"
+// mhw, the one entry point of the multi-harness managed workstation (Issue #67), in a checkout:
+//   ./mhw install | install --admin | status [--verbose] | check | scan | update [vX.Y.Z] | uninstall
+// A Node file since #495 (S24 of #470), the same command as the npm `mhw` (Issue #68, ADR-0034): it runs
+// bin/mhw.js, so both give the same output. It was a shell script that ran global/workstation.py, now gone.
+// Line 2 is for a caller that still runs this file under /bin/sh: an earlier release's `mhw update` in an
+// npm install runs `/bin/sh <the new package>/mhw install`. To sh it is a no-op and an exec of node on
+// bin/mhw.js; to node it is a string and a comment. Windows keeps global/install.ps1, through bin/mhw.js.
+import './bin/mhw.js';

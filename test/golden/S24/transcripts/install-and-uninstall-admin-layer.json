@@ -1,0 +1,62 @@
+{
+  "step0 install --overlay=none": {
+    "code": 0
+  },
+  "step0 install --overlay=none stdout": "==> mhw will change this workstation from this checkout:\n  - Your settings in Claude Code, Codex and Kiro: 13 file(s) to write (no password needed)\n  - System-wide protections that no session can switch off: install them (needs your administrator password, once)\n\nNothing was changed: no terminal to confirm in.\n\n==> Next steps\n1. Run `./mhw install` in a terminal (or `./mhw install --yes` to skip the question).\n",
+  "step0 install --overlay=none stderr": "",
+  "step1 install --yes --overlay=none": {
+    "code": 0
+  },
+  "step1 install --yes --overlay=none stdout": "==> mhw will change this workstation from this checkout:\n  - Your settings in Claude Code, Codex and Kiro: 13 file(s) to write (no password needed)\n  - System-wide protections that no session can switch off: install them (needs your administrator password, once)\n==> Installing the system-wide protections\n==> Installing your settings\n    CHANGED <HOME>/.claude.json: chrome-devtools absent -> /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' (policy MCP servers, ADR-0038)\n==> Checking\n\nInstallation successful!\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n2. mhw wrote no shell start-up file (your shell (SHELL=/bin/sh) is neither zsh nor bash). To clean pasted text automatically, add this line to yours:\n       [ -r \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n3. In Codex, approve the mhw hooks once: type /hooks in a new session.\n4. Run `./mhw status` to see what is installed.\n",
+  "step1 install --yes --overlay=none stderr": "",
+  "step2 install --yes --overlay=none": {
+    "code": 0
+  },
+  "step2 install --yes --overlay=none stdout": "==> This workstation already matches this checkout\n\n==> Next steps\n1. Run `./mhw status` to see what is installed.\n",
+  "step2 install --yes --overlay=none stderr": "",
+  "step3 install --admin --yes --overlay=none": {
+    "code": 0
+  },
+  "step3 install --admin --yes --overlay=none stdout": "==> This workstation already matches this checkout\n\n==> Next steps\n1. Run `./mhw status` to see what is installed.\n",
+  "step3 install --admin --yes --overlay=none stderr": "",
+  "step4 install --admin --yes --overlay=none": {
+    "code": 0
+  },
+  "step4 install --admin --yes --overlay=none stdout": "==> This workstation already matches this checkout\n\n==> Next steps\n1. Run `./mhw status` to see what is installed.\n",
+  "step4 install --admin --yes --overlay=none stderr": "",
+  "step5 uninstall --overlay=none": {
+    "code": 0
+  },
+  "step5 uninstall --overlay=none stdout": "==> mhw will remove from this workstation:\n  - Your settings in Claude Code, Codex and Kiro that mhw wrote (your own entries stay)\n  - The system-wide protections (needs your administrator password, once)\n\nNothing was changed: no terminal to confirm in.\n\n==> Next steps\n1. Run `./mhw uninstall` in a terminal (or `./mhw uninstall --yes`).\n",
+  "step5 uninstall --overlay=none stderr": "",
+  "step6 uninstall --yes --verbose --overlay=none": {
+    "code": 0
+  },
+  "step6 uninstall --yes --verbose --overlay=none stdout": "==> mhw will remove from this workstation:\n  - Your settings in Claude Code, Codex and Kiro that mhw wrote (your own entries stay)\n  - The system-wide protections (needs your administrator password, once)\n==> Removing the system-wide protections\n    REMOVED the admin-layer hooks; run install.sh as yourself to restore the user-level ones\n==> Removing your settings\n    REMOVED <HOME>/.codex/rules/workstation-allow-list.rules\n    REMOVED <HOME>/.codex/workstation.config.toml\n    REMOVED <HOME>/.kiro/agents/workstation.json\n    UNMERGED <HOME>/.claude/settings.json (the allow rules and permission mode this installer added)\n    CHANGED <HOME>/.claude.json: chrome-devtools /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' -> absent (policy MCP servers, ADR-0038; previous file kept as <HOME>/.claude.json.pmhwc-mcp-policy-backup)\n    REMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/mcp-managed.json (it recorded only the policy MCP servers)\n    SKIP    <HOME>/Library/Application Support/Google/Chrome/Local State: no Chrome Local State (Chrome not installed or never started) (Chrome remote debugging)\n    REMOVED <HOME>/.kiro/settings/permissions.yaml (mhw created it and only its deny-floor rules were in it; kept as <HOME>/.kiro/settings/permissions.yaml.pmhwc-backup)\n    REMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json\n    REMOVED <HOME>/.claude/CLAUDE.md\n    REMOVED <HOME>/.codex/AGENTS.md\n    REMOVED <HOME>/.kiro/steering/workstation-global-brief.md\n    REMOVED <HOME>/.codex/rules/workstation-deny-floor.rules\n    REMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\n    REMOVED <HOME>/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json\n    REMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\n    REMOVED <HOME>/.local/share/personal-multi-harness-workstation-configuration (empty)\n    UNMERGED <HOME>/.claude/settings.json (our hook entries, the deny-floor rules this installer added, and our two keys removed; previous version kept as <HOME>/.claude/settings.json.pmhwc-backup)\n    NOTE    the admin layer is not touched here; ./mhw uninstall prints its sudo line\n\nUninstall complete.\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n",
+  "step6 uninstall --yes --verbose --overlay=none stderr": "",
+  "files": {
+    "home/.claude": "dir 755",
+    "home/.claude/settings.json": "file 644",
+    "home/.claude/settings.json.pmhwc-backup": "file 600",
+    "home/.claude.json": "file 600",
+    "home/.claude.json.pmhwc-mcp-policy-backup": "file 600",
+    "home/.codex": "dir 755",
+    "home/.codex/rules": "dir 755",
+    "home/.kiro": "dir 755",
+    "home/.kiro/agents": "dir 755",
+    "home/.kiro/hooks": "dir 755",
+    "home/.kiro/settings": "dir 700",
+    "home/.kiro/settings/permissions.yaml.pmhwc-backup": "file 600",
+    "home/.kiro/steering": "dir 755",
+    "home/.local": "dir 755",
+    "home/.local/share": "dir 755",
+    "admin/Library": "dir 755",
+    "admin/Library/Application Support": "dir 755",
+    "admin/Library/Application Support/ClaudeCode": "dir 755",
+    "admin/Library/Application Support/ClaudeCode/managed-settings.d": "dir 755",
+    "admin/Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.extra": "file 644",
+    "admin/Library/Application Support/Kiro": "dir 755",
+    "admin/etc": "dir 755",
+    "admin/etc/codex": "dir 755"
+  }
+}

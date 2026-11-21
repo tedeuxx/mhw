@@ -305,14 +305,14 @@ function goldenThrough(entry) {
 }
 
 test('./mhw milestone (a checkout) forwards to bin/mhw.js and runs the same routes', { skip: !POSIX && './mhw is the POSIX entry' }, () => {
-  assert.deepEqual(goldenThrough((step) => ['/bin/sh', [path.join(ROOT, 'mhw'), 'milestone', step.verb, ...step.args]]), []);
-  // Without node on PATH, ./mhw says so and never falls through to workstation.py.
+  assert.deepEqual(goldenThrough((step) => [path.join(ROOT, 'mhw'), ['milestone', step.verb, ...step.args]]), []);
+  // Without node on PATH, ./mhw (a Node file since #495) fails at its #! line and runs nothing.
   const s = setup(CASES[0]);
-  const p = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), 'milestone', 'read', '7', '--repo', 'owner/repo'],
+  const p = spawnSync(path.join(ROOT, 'mhw'), ['milestone', 'read', '7', '--repo', 'owner/repo'],
     { cwd: s.base, env: { ...s.env, PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
   if (!fs.existsSync('/usr/bin/node') && !fs.existsSync('/bin/node')) {
-    assert.equal(p.status, 2);
-    assert.equal(p.stderr, 'mhw: node (26 or later) is required for mhw milestone\n');
+    assert.notEqual(p.status, 0);
+    assert.equal(p.stdout, '');
   }
   assert.ok(!fs.existsSync(s.log), 'no gh ran');
 });

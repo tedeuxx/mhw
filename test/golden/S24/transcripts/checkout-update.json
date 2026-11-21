@@ -1,0 +1,102 @@
+{
+  "step0 update --yes --overlay=none": {
+    "code": 0
+  },
+  "step0 update --yes --overlay=none stdout": "UPDATE  checked out v9.1.0 (detached; was <COMMIT>)\n==> mhw will change this workstation from this checkout:\n  - Your settings in Claude Code, Codex and Kiro: 13 file(s) to write (no password needed)\n  - System-wide protections that no session can switch off: install them (needs your administrator password, once)\n==> Installing the system-wide protections\n==> Installing your settings\n    CHANGED <HOME>/.claude.json: chrome-devtools absent -> /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' (policy MCP servers, ADR-0038)\n==> Checking\n\nInstallation successful!\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n2. mhw wrote no shell start-up file (your shell (SHELL=/bin/sh) is neither zsh nor bash). To clean pasted text automatically, add this line to yours:\n       [ -r \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n3. In Codex, approve the mhw hooks once: type /hooks in a new session.\n4. Run `./mhw status` to see what is installed.\n",
+  "step0 update --yes --overlay=none stderr": "",
+  "step0 update --yes --overlay=none recorded": "tag v9.1.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.1.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step1 update v9.0.0 --yes --overlay=none": {
+    "code": 0
+  },
+  "step1 update v9.0.0 --yes --overlay=none stdout": "UPDATE  checked out v9.0.0 (detached; was <COMMIT>)\n==> mhw will change this workstation from this checkout:\n  - Your settings in Claude Code, Codex and Kiro: 13 file(s) to write (no password needed)\n  - System-wide protections: 9 file(s) to update (needs your administrator password, once)\n==> Installing the system-wide protections\n==> Installing your settings\n==> Checking\n\nInstallation successful!\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n2. mhw wrote no shell start-up file (your shell (SHELL=/bin/sh) is neither zsh nor bash). To clean pasted text automatically, add this line to yours:\n       [ -r \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<HOME>/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n3. In Codex, approve the mhw hooks once: type /hooks in a new session.\n4. Run `./mhw status` to see what is installed.\n",
+  "step1 update v9.0.0 --yes --overlay=none stderr": "",
+  "step1 update v9.0.0 --yes --overlay=none recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step2 update v8.0.0 --overlay=none": {
+    "code": 2
+  },
+  "step2 update v8.0.0 --overlay=none stdout": "",
+  "step2 update v8.0.0 --overlay=none stderr": "REFUSE  v8.0.0 is not a numeric release tag of this repository (vX.Y.Z)\n",
+  "step2 update v8.0.0 --overlay=none recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step3 update main --overlay=none": {
+    "code": 2
+  },
+  "step3 update main --overlay=none stdout": "",
+  "step3 update main --overlay=none stderr": "REFUSE  main is not a numeric release tag of this repository (vX.Y.Z)\n",
+  "step3 update main --overlay=none recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step4 update v1.0.0 --overlay=none": {
+    "code": 2
+  },
+  "step4 update v1.0.0 --overlay=none stdout": "",
+  "step4 update v1.0.0 --overlay=none stderr": "REFUSE  v1.0.0 predates ./mhw (then ./workstation) and cannot receive --overlay; nothing checked out\n",
+  "step4 update v1.0.0 --overlay=none recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step5 update v9.1 --overlay=none": {
+    "code": 2
+  },
+  "step5 update v9.1 --overlay=none stdout": "",
+  "step5 update v9.1 --overlay=none stderr": "REFUSE  v9.1 is not a numeric release tag of this repository (vX.Y.Z)\n",
+  "step5 update v9.1 --overlay=none recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step6 update v9.1.0-rc1 --overlay=none": {
+    "code": 2
+  },
+  "step6 update v9.1.0-rc1 --overlay=none stdout": "",
+  "step6 update v9.1.0-rc1 --overlay=none stderr": "REFUSE  v9.1.0-rc1 is not a numeric release tag of this repository (vX.Y.Z)\n",
+  "step6 update v9.1.0-rc1 --overlay=none recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "step7 update": {
+    "code": 3
+  },
+  "step7 update stdout": "",
+  "step7 update stderr": "REFUSE  the working tree has 1 tracked change(s); commit or stash them, then run update\n",
+  "step7 update recorded": "tag v9.0.0\n<!-- managed-by: personal-multi-harness-workstation-configuration; source: global/AGENTS.md; release: v9.0.0; commit: <COMMIT>; sha256: <SHA256>; do not edit, re-run the installer -->",
+  "files": {
+    "home/.claude": "dir 755",
+    "home/.claude/CLAUDE.md": "file 644",
+    "home/.claude/settings.json": "file 644",
+    "home/.claude/settings.json.pmhwc-backup": "file 600",
+    "home/.claude.json": "file 600",
+    "home/.codex": "dir 755",
+    "home/.codex/AGENTS.md": "file 644",
+    "home/.codex/rules": "dir 755",
+    "home/.codex/rules/workstation-allow-list.rules": "file 644",
+    "home/.codex/rules/workstation-deny-floor.rules": "file 644",
+    "home/.codex/workstation.config.toml": "file 644",
+    "home/.kiro": "dir 755",
+    "home/.kiro/agents": "dir 755",
+    "home/.kiro/agents/workstation.json": "file 644",
+    "home/.kiro/hooks": "dir 755",
+    "home/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json": "file 644",
+    "home/.kiro/settings": "dir 700",
+    "home/.kiro/settings/permissions.yaml": "file 600",
+    "home/.kiro/settings/permissions.yaml.pmhwc-backup": "file 600",
+    "home/.kiro/steering": "dir 755",
+    "home/.kiro/steering/workstation-global-brief.md": "file 644",
+    "home/.local": "dir 755",
+    "home/.local/share": "dir 755",
+    "home/.local/share/personal-multi-harness-workstation-configuration": "dir 755",
+    "home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf": "file 644",
+    "home/.local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json": "file 600",
+    "home/.local/share/personal-multi-harness-workstation-configuration/mcp-managed.json": "file 600",
+    "home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh": "file 644",
+    "admin/Library": "dir 755",
+    "admin/Library/Application Support": "dir 755",
+    "admin/Library/Application Support/ClaudeCode": "dir 755",
+    "admin/Library/Application Support/ClaudeCode/managed-settings.d": "dir 755",
+    "admin/Library/Application Support/ClaudeCode/managed-settings.d/50-personal-multi-harness-workstation-configuration.json": "file 644",
+    "admin/Library/Application Support/Kiro": "dir 755",
+    "admin/Library/Application Support/Kiro/managed-settings.json": "file 644",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration": "dir 755",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin": "dir 755",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/clipboard.conf": "file 644",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook": "dir 755",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/package.json": "file 644",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src": "dir 755",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/commands": "dir 755",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/commands/hook-entry.js": "file 644",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/commands/hook-prompt.js": "file 644",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/lib": "dir 755",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/lib/clean-unicode.js": "file 644",
+    "admin/Library/Application Support/personal-multi-harness-workstation-configuration/bin/hook/src/lib/clean.js": "file 644",
+    "admin/etc": "dir 755",
+    "admin/etc/codex": "dir 755",
+    "admin/etc/codex/requirements.toml": "file 644"
+  }
+}

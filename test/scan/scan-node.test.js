@@ -186,25 +186,21 @@ test('no matched text reaches stdout or stderr, in any mode', { skip: !GIT && 'n
   assert.equal(outs[3].code, 2);
 });
 
-test('./mhw runs the Node command for scan, and says so when node is missing', { skip: !POSIX && './mhw is the POSIX entry' }, () => {
+test('./mhw runs the Node command for scan, and runs nothing when node is missing', { skip: !POSIX && './mhw is the POSIX entry' }, () => {
   const b = box();
   fs.writeFileSync(path.join(b.dir, 'post.txt'), 'x ' + CPF + '\n');
-  const r = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), 'scan', '--file=' + path.join(b.dir, 'post.txt')], { env: b.env, encoding: 'utf8' });
+  const r = spawnSync(path.join(ROOT, 'mhw'), ['scan', '--file=' + path.join(b.dir, 'post.txt')], { env: b.env, encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /post\.txt:1: cpf, 14 chars\n/);
   if (!fs.existsSync('/usr/bin/node') && !fs.existsSync('/bin/node')) {
-    const n = spawnSync('/bin/sh', [path.join(ROOT, 'mhw'), 'scan'], { env: { ...b.env, PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
-    assert.equal(n.status, 2);
-    assert.equal(n.stderr, 'mhw: node (26 or later) is required for mhw scan\n');
+    const n = spawnSync(path.join(ROOT, 'mhw'), ['scan'], { env: { ...b.env, PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
+    assert.notEqual(n.status, 0);
+    assert.equal(n.stdout, '');
   }
 });
 
-test('a direct python3 workstation.py scan names the Node command and runs nothing', { skip: (!POSIX || !which('python3')) && 'POSIX, python3' }, () => {
-  const b = box();
-  fs.writeFileSync(path.join(b.dir, 'post.txt'), 'x ' + CPF + '\n');
-  const r = spawnSync(/** @type {string} */ (which('python3')), ['-B', path.join(ROOT, 'global', 'workstation.py'), 'scan', '--file=' + path.join(b.dir, 'post.txt')],
-    { env: { ...b.env, MHW_NODE: process.execPath }, encoding: 'utf8' });
-  assert.deepEqual([r.status, r.stdout, r.stderr], [2, '', 'mhw: mhw scan is the Node command now; run ./mhw scan or node bin/mhw.js scan\n']);
+test('workstation.py, which once forwarded scan, is gone (#495)', () => {
+  assert.ok(!fs.existsSync(path.join(ROOT, 'global', 'workstation.py')));
 });
 
 test('outbound-scan.yml runs the Node command on Node 26 and never blocks on a finding', () => {

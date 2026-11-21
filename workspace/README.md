@@ -167,7 +167,8 @@ No new branch protections or bypass permissions are created by these scripts. At
 GitHub reported `main` unprotected; the checked merge route is not server-wide enforcement.
 
 The command is Node (`src/commands/delivery.js`, #474; `./mhw delivery` runs `node bin/mhw.js
-delivery`, and an npm-installed `mhw delivery` is the same command). It acts on the checkout that holds
+delivery` (since #495 `./mhw` is itself a Node file that runs `bin/mhw.js`), and an npm-installed
+`mhw delivery` is the same command). It acts on the checkout that holds
 the current directory, so run it from the checkout. It finds `gh` and `git` on PATH and runs each by its
 absolute path, never through a shell. Node 26 or later, authenticated GitHub CLI and Git are required.
 Tests: `npm test` (`test/delivery/`): every case of the deleted `workspace/delivery_test.py` against a
