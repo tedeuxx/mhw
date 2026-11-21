@@ -162,7 +162,9 @@ jobs:
       # mcp_active.py and mcp_connect.py (through its src/render/mcp.js --active) beside the Node active set
       # and connection check on every case, on the same CPython. MHW_S14_LIVE_REQUIRED=1 turns a skip into a
       # failure while the base still holds mcp_active.py. The node:test files are named one by one: a
-      # directory argument does not load them.
+      # directory argument does not load them. The base is found as the test finds it (MHW_PARITY_BASE, else
+      # the merge-base with origin/<base branch>); no base fails. While that base holds mcp_active.py the
+      # live line must be reported and not as SKIP; once it does not, the live arm has retired and passes.
       - name: S14 live parity against the recorded CPython
         if: runner.os != 'Windows'
         shell: bash
@@ -171,8 +173,14 @@ jobs:
           MHW_S14_LIVE_REQUIRED: "1"
         run: |
           python3 --version
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
           out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/mcp/active-golden.test.js) || { echo "$out"; exit 1; }
           echo "$out"
+          if ! git cat-file -e "$base:global/mcp/mcp_active.py" 2>/dev/null; then
+            echo "S14 live arm retired: base $base no longer holds global/mcp/mcp_active.py"
+            exit 0
+          fi
           echo "$out" | grep -E '^ *ok [0-9]+ - live: mcp_active\.py' | grep -vq SKIP
       # ADR-0017, 2026-10-05 amendment (restored by #484 after the agents-lead lens on PR #520): the one test
       # that runs the production MCP launcher against the real /usr/bin/security, on this ephemeral macOS
