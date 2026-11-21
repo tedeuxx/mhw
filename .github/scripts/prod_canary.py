@@ -353,7 +353,7 @@ def check_floor(box, exp):
     # path, from the installed package, with NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH cleared.
     node = box.d.parent / "tools" / "node"
     mhw_js = Path(os.path.realpath(box.d / "prefix" / "lib" / "node_modules" / "mhw")) / "bin" / "mhw.js"
-    want = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "%s" "%s" hook prompt --harness kiro --config "%s"' % (
+    want = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness kiro --config "%s"' % (
         node, mhw_js, data / "clipboard.conf")
     got = [e["action"].get("command") for e in kentries if isinstance(e.get("action"), dict)
            and e["action"].get("type") == "command"]

@@ -209,7 +209,7 @@ done
 # finding, and a planted --require never runs.
 hook_cmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$dropin")
 case $hook_cmd in
-  '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "/'*'" "'"$bin"'/hook/src/commands/hook-entry.js" --harness claude --config "'"$bin"'/clipboard.conf"')
+  '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "/'*'" "'"$bin"'/hook/src/commands/hook-entry.js" --harness claude --config "'"$bin"'/clipboard.conf"')
     ok "the admin hook names node by absolute path and runs the root-owned copy" ;;
   *) ko "the admin hook names node by absolute path and runs the root-owned copy" "$hook_cmd" ;;
 esac

@@ -161,7 +161,7 @@ test('a stalled payload read gives the error notice at the deadline, not the har
   for (const harness of ['claude', 'kiro']) {
     const t0 = Date.now();
     const child = spawn(process.execPath, [MHW, 'hook', 'prompt', '--harness', harness, '--config', b.confPath],
-      { env: { ...b.env, MHW_HOOK_DEADLINE_MS: '300' }, stdio: ['pipe', 'pipe', 'pipe'] });
+      { env: { ...b.env, MHW_HOOK_TEST: '1', MHW_HOOK_DEADLINE_MS: '300' }, stdio: ['pipe', 'pipe', 'pipe'] });
     child.stdin.write('{"prompt": "never closed'); // stdin stays open
     let out = '';
     let err = '';
@@ -178,13 +178,14 @@ test('a stalled payload read gives the error notice at the deadline, not the har
       assert.deepEqual(JSON.parse(out), { systemMessage: 'Paste filter (ADR-0033): internal error (TimeoutError); this prompt was NOT checked.' });
     }
   }
-  assert.equal(hook.deadlineOf({ MHW_HOOK_DEADLINE_MS: '999999999' }), hook.DEADLINE_MS, 'the variable cannot lengthen the wait');
-  assert.equal(hook.deadlineOf({ MHW_HOOK_DEADLINE_MS: 'x' }), hook.DEADLINE_MS);
-  assert.equal(hook.deadlineOf({ MHW_HOOK_DEADLINE_MS: '50' }), 50);
+  assert.equal(hook.deadlineOf({ MHW_HOOK_TEST: '1', MHW_HOOK_DEADLINE_MS: '999999999' }), hook.DEADLINE_MS, 'the variable cannot lengthen the wait');
+  assert.equal(hook.deadlineOf({ MHW_HOOK_TEST: '1', MHW_HOOK_DEADLINE_MS: 'x' }), hook.DEADLINE_MS);
+  assert.equal(hook.deadlineOf({ MHW_HOOK_TEST: '1', MHW_HOOK_DEADLINE_MS: '50' }), 50);
+  assert.equal(hook.deadlineOf({ MHW_HOOK_DEADLINE_MS: '1' }), hook.DEADLINE_MS, 'the session variable alone is ignored');
 });
 
 /** The hook command install.sh renders (paste_cmd), for this node and package. @param {string} harness @param {string} conf */
-const rendered = (harness, conf) => '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "' + process.execPath + '" "' + MHW
+const rendered = (harness, conf) => '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + process.execPath + '" "' + MHW
   + '" hook prompt --harness ' + harness + ' --config "' + conf + '"';
 
 test('the rendered hook command names node by absolute path and clears NODE_OPTIONS: a planted --require never runs', { skip: !POSIX && 'POSIX' }, () => {
@@ -206,9 +207,18 @@ test('the rendered hook command names node by absolute path and clears NODE_OPTI
     assert.ok(!fs.existsSync(marker), harness + ': the planted --require ran');
     assert.match(r.stdout + r.stderr, /email in this prompt/, harness);
   }
+  // NODE_COMPILE_CACHE (PR #536 lens): node writes and reads a compiled cache there when it is set; cleared,
+  // nothing is written. Calibrated: without the clearing, the cache directory fills.
+  const cache = path.join(b.dir, 'compile-cache');
+  const cenv = { ...b.env, NODE_COMPILE_CACHE: cache };
+  spawnSync('/bin/sh', ['-c', '"' + process.execPath + '" "' + MHW + '" hook prompt --harness claude --config "' + b.confPath + '"'], { input: payload('x'), env: cenv });
+  assert.ok(fs.existsSync(cache) && fs.readdirSync(cache).length > 0, 'calibration: node wrote no compile cache without the clearing');
+  fs.rmSync(cache, { recursive: true, force: true });
+  spawnSync('/bin/sh', ['-c', rendered('claude', b.confPath)], { input: payload('x'), env: cenv });
+  assert.ok(!fs.existsSync(cache), 'the rendered command let node use NODE_COMPILE_CACHE');
   // install.sh renders exactly this form.
   const sh = fs.readFileSync(path.join(ROOT, 'global', 'install.sh'), 'utf8');
-  assert.ok(sh.includes("printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH \"%s\" \"%s\" hook prompt --harness %s --config \"%s\"'"),
+  assert.ok(sh.includes("printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"%s\" \"%s\" hook prompt --harness %s --config \"%s\"'"),
     'install.sh no longer renders the hook command this test runs');
 });
 

@@ -314,13 +314,21 @@ holds 232 answers recorded from clipboard_guard.py, and `test/golden/S17/expecte
 declares every difference.
 
 - **The command line.** It is
-  `/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "<node>" "<package>/bin/mhw.js" hook prompt …`.
+  `/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "<node>" "<package>/bin/mhw.js" hook prompt …`.
   Node is named by absolute path, and the variables that could make it load other code first are
   cleared. A test plants `NODE_OPTIONS=--require` and shows that the planted file never runs.
-- **The admin layer runs a root-owned copy.** The copied files are hook-entry.js, hook-prompt.js and the
-  cleaning core, so no process running as the owner can change the code it runs.
-- **The residual: the node binary.** `/usr/bin/python3` was root-owned. A Homebrew or nvm node is not,
-  so a process running as the owner can replace the binary both layers run. `mhw status` prints the
+- **The admin layer runs a root-owned copy of the hook's JavaScript.** The copied files are hook-entry.js,
+  hook-prompt.js and the cleaning core, so no process running as the owner can change those files. ~~so no
+  process running as the owner can change the code it runs.~~ *(Struck the same day, PR #536 lens O1: false.)*
+  The admin layer's hook is not root-owned end to end, because the interpreter and its libraries are code
+  it runs too.
+- **The residual: the node binary and its libraries.** `/usr/bin/python3` was root-owned and protected by
+  SIP. A Homebrew or nvm node is not, and neither are the libraries it loads. On Homebrew these are
+  libnode from the Cellar, and libuv, llhttp, ada-url, simdjson, brotli, c-ares, nghttp2, nghttp3, ngtcp2,
+  sqlite, uvwasi, zstd, openssl@3 and icu4c under `/opt/homebrew/opt`. Measured with `otool -L` on node
+  25.9.0; the set changes with the node build. A process running as the owner can replace any of them,
+  and so change what both layers' hook does. Which node the admin layer may trust is an open owner
+  question (PR #536). `mhw status` prints the
   node's path on its `hook node` line and names it `owner-writable`. A missing node is reported as
   `FAIL`. This is to be carried into the runtime ADR the migration ends with (#470), not hidden here.
 - **Fail-open, pinned out of process.** A hook module that is missing, does not parse or throws gives

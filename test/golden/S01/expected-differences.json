@@ -65,7 +65,7 @@
     "stream": "tree",
     "pattern": "^\\.claude/settings\\.json$|^\\.codex/hooks\\.json$|^\\.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter\\.json$",
     "whenBaseHas": "global/clipboard/clipboard_guard.py",
-    "why": "S17 (#488): the three prompt-hook commands run /usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH \"<node>\" \"<package>/bin/mhw.js\" hook prompt where they ran /usr/bin/python3 -I -B <data>/clipboard_guard.py prompt-hook; global/install.test.sh asserts the new commands exactly. Compared by kind and mode only while the base still ships clipboard_guard.py."
+    "why": "S17 (#488): the three prompt-hook commands run /usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"<node>\" \"<package>/bin/mhw.js\" hook prompt where they ran /usr/bin/python3 -I -B <data>/clipboard_guard.py prompt-hook; global/install.test.sh asserts the new commands exactly. Compared by kind and mode only while the base still ships clipboard_guard.py."
   },
   {
     "case": "install-user-layer",

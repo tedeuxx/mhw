@@ -45,7 +45,7 @@ wrap_node=$(command -v node)
 # The prompt hook command install.sh renders since #488: `mhw hook prompt` on that node, by absolute
 # path, with NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH cleared.
 hook_cmd() { # $1 harness, $2 clipboard.conf
-  printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$2"
+  printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$2"
 }
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
 ours() { # number of entries of the removed HITL picker guard in a settings file (must stay 0)

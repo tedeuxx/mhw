@@ -327,11 +327,12 @@ function readUpTo(stdin, max) {
 
 /**
  * The deadline: DEADLINE_MS, or a shorter one from MHW_HOOK_DEADLINE_MS (tests: a whole number of
- * milliseconds below DEADLINE_MS). It can only shorten the wait, and expiry is always reported visibly.
+ * milliseconds below DEADLINE_MS), read only when MHW_HOOK_TEST=1 is set as well, so a session variable
+ * alone cannot shorten it (PR #536 lens). It can only shorten the wait, and expiry is reported visibly.
  * @param {Record<string, string | undefined>} env
  */
 export function deadlineOf(env) {
-  const v = env.MHW_HOOK_DEADLINE_MS || '';
+  const v = env.MHW_HOOK_TEST === '1' ? env.MHW_HOOK_DEADLINE_MS || '' : '';
   return /^\d{1,6}$/.test(v) && Number(v) > 0 && Number(v) < DEADLINE_MS ? Number(v) : DEADLINE_MS;
 }
 

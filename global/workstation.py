@@ -232,6 +232,7 @@ def render_status(f, verbose=False):
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
     lines.append("  hook node        %s" % f.get("hook_node", "not read"))
+    lines.append("  term lists       %s" % f.get("terms", (True, "not read"))[1])
     lines.append("  method           %s" % method_text(f.get("method")))
     lines.append("  models           %s" % models_text(f))
     lines.extend(mcp_active_lines(f))
@@ -535,8 +536,11 @@ def render_summary(f):
     # The installers' --check drift rides on the protections item (Issue #38), so the summary keeps its
     # ten-line limit and a session never reads clean while part of the firewall stopped applying.
     drift = drift_text(f.get("user_lines", []), f.get("admin_lines", []), f.get("admin_code", 0))
-    lines.append("  protections      brief %s · hooks %s%s · evidence: installed; loaded and enforced "
-                 "need a session canary" % (f["brief"], f["hooks"], " · " + drift if drift else ""))
+    # #488: a term list the salt no longer covers rides on the protections item too, so it is never silent.
+    terms_ok, terms_text = f.get("terms", (True, ""))
+    lines.append("  protections      brief %s · hooks %s%s%s · evidence: installed; loaded and enforced "
+                 "need a session canary" % (f["brief"], f["hooks"], " · " + drift if drift else "",
+                                            "" if terms_ok else " · TERMS " + terms_text))
     lines.append("  permission mode  %s; session flags: %s" % (
         _settings_text(settings, MODE_KEYS, shown), ", ".join("%s %s" % (h, NATIVE_VIEW[h]) for h in shown)))
     lines.append("  runtime          %s" % f["runtime"])
@@ -936,11 +940,11 @@ def runtime():
 GUARD = "hitl-escalation-guard.sh"
 LEFTOVER = "removed picker guard still registered (Claude Code)"
 # The prompt hook (ADR-0033): `mhw hook prompt` in Node since #488. Its command, as both installers render
-# it: /usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "<node>" "<entry>" [hook prompt] --harness H
+# it: /usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "<node>" "<entry>" [hook prompt] --harness H
 # --config "<conf>". It counts only when its entry is registered AND the node and the entry it runs are
 # files. The Python core an earlier install registered is named while still registered.
 PASTE = "--harness "
-PASTE_NODE = re.compile(r'^/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "([^"]+)" "([^"]+)" (?:hook prompt )?--harness ')
+PASTE_NODE = re.compile(r'^/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "([^"]+)" "([^"]+)" (?:hook prompt )?--harness ')
 OLD_PASTE = "clipboard_guard.py"
 OLD_PASTE_LEFTOVER = "removed Python paste filter still registered (%s)"
 
@@ -958,6 +962,56 @@ def _paste_ok(cmds):
         if parts and Path(parts[0]).is_file() and Path(parts[1]).is_file():
             return True
     return False
+
+
+TERM_LIST_KEYS = ("terms_file", "health_terms_file", "colleague_terms_file")
+TERM_LIST_FILES = ("clipboard-terms", "clipboard-terms-health", "clipboard-terms-colleague")
+HASH_LINE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _hash_count(path):
+    try:
+        return sum(1 for line in path.read_text(encoding="ascii").splitlines() if HASH_LINE.match(line.strip()))
+    except (OSError, ValueError):
+        return 0
+
+
+def term_lists_state():
+    """(ok, text) for the paste filter's hashed term lists and their salt file (#488). Since #488 the salt
+    is a 0600 file; a list with hashes and no salt file, or a list moved aside as <list>.old-salt by
+    add-term, means term matching does not cover those terms. The paths come from the installed
+    clipboard.conf (last value wins), else the defaults; nothing here reads the salt itself."""
+    data = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / NAME
+    local = data / "local-overlay"
+    paths = {k: local / n for k, n in zip(TERM_LIST_KEYS, TERM_LIST_FILES)}
+    paths["salt_file"] = local / "clipboard-salt"
+    try:
+        for line in (data / "clipboard.conf").read_text(encoding="utf-8").splitlines():
+            key, sep, value = line.partition("=")
+            if sep and key.strip() in paths and value.strip():
+                paths[key.strip()] = Path(value.strip())
+    except (OSError, ValueError):
+        pass
+    salt = paths["salt_file"]
+    try:
+        salt_ok = bool(re.fullmatch(r"[0-9a-f]{64}", salt.read_text(encoding="ascii").strip()))
+    except (OSError, ValueError):
+        salt_ok = False
+    problems, total = [], 0
+    for key in TERM_LIST_KEYS:
+        n = _hash_count(paths[key])
+        total += n
+        if n and not salt_ok:
+            problems.append("%s holds %d hash(es) and the salt file %s is missing or unreadable: term matching off: "
+                            "re-add with mhw add-term" % (paths[key], n, salt))
+        old = Path(str(paths[key]) + ".old-salt")
+        n_old = _hash_count(old)
+        if n_old:
+            problems.append("%s holds %d hash(es) made with a salt mhw no longer has: those terms are not matched: "
+                            "re-add with mhw add-term" % (old, n_old))
+    if problems:
+        return False, "; ".join(problems)
+    return True, ("%d hash(es), salt file present" % total) if total else "no term list"
 
 
 def hook_node_text():
@@ -987,7 +1041,7 @@ def hook_node_text():
         except OSError:
             owned = []
         if os.getuid() != 0 and (owned or os.access(real, os.W_OK)):
-            out.append("%s (owner-writable: a process running as you can replace it)" % n)
+            out.append("%s (owner-writable: a process running as you can replace it, or the libraries it loads)" % n)
         else:
             out.append("%s (not writable by you)" % n)
     return "; ".join(out)
@@ -1257,7 +1311,7 @@ def gather(project):
             "user_issues": issues(user_lines), "admin_issues": issues(admin_lines),
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
             "workspace": ws, "plugins": enabled_plugins(ws["root"]), "brief": brief, "floor": floor,
-            "hooks": hooks, "hook_node": hook_node_text(), "key": key, "runtime": runtime(), "admin_state": managed_state,
+            "hooks": hooks, "hook_node": hook_node_text(), "terms": term_lists_state(), "key": key, "runtime": runtime(), "admin_state": managed_state,
             "admin_code": admin_code,
             "settings": read_settings(ws["root"]), "permissions": permissions_text(ws["root"]),
             "method": method_state(user_lines, enabled_plugins(ws["root"])),

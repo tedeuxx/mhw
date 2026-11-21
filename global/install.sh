@@ -319,9 +319,9 @@ cat "$clip_conf_src" > "$clip_conf"
 if [ -n "$overlay" ] && [ -f "$overlay/clipboard.conf" ]; then cat "$overlay/clipboard.conf" >> "$clip_conf"; fi
 
 # The paste filter's hook command (ADR-0011; Node since #488): `mhw hook prompt`, run by the same node the
-# paste wrapper uses (wrap_node below), by absolute path, with NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH
-# cleared by /usr/bin/env, so no variable of the session can make node load other code or other Unicode
-# data first (the Node counterpart of python3 -I). A node in a directory the owner can write (Homebrew,
+# paste wrapper uses (wrap_node below), by absolute path, with NODE_OPTIONS, NODE_ICU_DATA, NODE_PATH and
+# NODE_COMPILE_CACHE cleared by /usr/bin/env, so no variable of the session can make node load other code,
+# other Unicode data or a compiled cache from elsewhere first (the Node counterpart of python3 -I). A node in a directory the owner can write (Homebrew,
 # nvm) is not root-owned, as /usr/bin/python3 was: mhw status names that. Paths go inside double quotes,
 # so a path holding a character that is special there, or in JSON, is refused rather than mis-quoted.
 paste_ok=1
@@ -357,7 +357,7 @@ esac
 wrap_mhw="$repo_root/bin/mhw.js"
 case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`]*) paste_ok=0 ;; esac
 paste_cmd() {
-  printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$clip_conf_dest"
+  printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$clip_conf_dest"
 }
 if [ "$paste_ok" = 0 ]; then
   echo "REFUSE  paste filter: the data directory, node or package path holds a quote, backslash, dollar sign or backtick" >&2

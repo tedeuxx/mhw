@@ -33,10 +33,13 @@ set -eu
 NAME="personal-multi-harness-workstation-configuration"
 MARKER_ID="managed-by: $NAME"
 DROPIN="50-$NAME.json"
-# The prompt hook in Node (#488, S17 of #470): a root-owned copy of the files `mhw hook prompt` runs, so no
-# process running as the owner can change the code the admin layer runs. The node binary is the one
-# install.sh found; when it sits in a directory the owner can write (Homebrew, nvm), that binary is the
-# residual, and `mhw status` names it.
+# The prompt hook in Node (#488, S17 of #470): a root-owned copy of the hook's own JavaScript, so no process
+# running as the owner can change THOSE files. It does NOT make the admin layer's hook root-owned end to end:
+# it runs the node install.sh found, and a Homebrew or nvm node is owner-writable code, with the libraries
+# it loads (on Homebrew: libnode from the Cellar, and libuv, llhttp, ada-url, simdjson, brotli, c-ares,
+# nghttp2, nghttp3, ngtcp2, sqlite, uvwasi, zstd, openssl@3 and icu4c under /opt/homebrew/opt, measured with
+# otool -L on node 25.9.0). A process running as the owner can replace any of them and so change what the
+# hook does. `mhw status` names the node owner-writable; the trust root is an open owner question (#536).
 HOOK_FILES="hook/package.json hook/src/commands/hook-entry.js hook/src/commands/hook-prompt.js hook/src/lib/clean.js hook/src/lib/clean-unicode.js hook/src/lib/salt.js"
 FILES="clipboard.conf $HOOK_FILES"
 # Removed by ADR-0028 (restart guard, switches) and by ADR-0013's 2026-10-05 amendment (HITL picker
@@ -180,10 +183,10 @@ render() { # $1 empty stage directory
   # The node install.sh rendered into the user hook (the first quoted word of its command), so both layers
   # run the same node; NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH are cleared as there.
   hook_node=$(jq -r '[.hooks.UserPromptSubmit[]?.hooks[]?.command | select(contains("hook prompt --harness"))][0] // ""' \
-    "$st/home/.claude/settings.json" | sed -n 's/^\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "\([^"]*\)".*/\1/p')
+    "$st/home/.claude/settings.json" | sed -n 's/^\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "\([^"]*\)".*/\1/p')
   case $hook_node in /*) ;; *) echo "REFUSE  install.sh rendered no prompt hook (node not found?); nothing staged" >&2; exit 2 ;; esac
   case $hook_node in *\"*|*\\*|*\$*|*\`*) echo "REFUSE  the node path holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac
-  nodecmd="/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH \"$hook_node\" \"$bin/hook/src/commands/hook-entry.js\""
+  nodecmd="/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"$hook_node\" \"$bin/hook/src/commands/hook-entry.js\""
   paste_claude="$nodecmd --harness claude --config \"$bin/clipboard.conf\""
   paste_codex="$nodecmd --harness codex --config \"$bin/clipboard.conf\""
   # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin

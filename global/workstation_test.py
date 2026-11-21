@@ -100,7 +100,7 @@ def facts(**over):
 class StatusOutput(unittest.TestCase):
     def test_short_view(self):
         out = ws.render_status(facts())
-        self.assertLessEqual(len(out), 16)  # 13 since the models line (ADR-0035), 14 since the MCP active set (#219), 15 since chrome debugging (#224), 16 since the hook node (#488)
+        self.assertLessEqual(len(out), 17)  # 13 since the models line (ADR-0035), 14 since the MCP active set (#219), 15 since chrome debugging (#224), 16 since the hook node and 17 since the term lists (#488)
         self.assertIn("  source           v3.1.0 @ aaaaaaa (this checkout)", out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: not installed", out)
         self.assertIn("  check            matches this checkout", out)
@@ -1088,7 +1088,7 @@ class Hooks(unittest.TestCase):
 
     def node_cmd(self, node, entry, harness):
         """The prompt hook command as install.sh renders it since #488."""
-        return ('/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "%s" "%s" hook prompt --harness %s --config "%s"'
+        return ('/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"'
                 % (node, entry, harness, self.data / "clipboard.conf"))
 
     def test_user_entries_count_only_with_their_node_and_entry(self):
@@ -1120,7 +1120,7 @@ class Hooks(unittest.TestCase):
         self.write(entry, "#\n")
         self.write(settings, json.dumps(self.entry("UserPromptSubmit", self.node_cmd(node, entry, "claude"))))
         if os.getuid() != 0:
-            self.assertEqual(ws.hook_node_text(), "%s (owner-writable: a process running as you can replace it)" % node)
+            self.assertEqual(ws.hook_node_text(), "%s (owner-writable: a process running as you can replace it, or the libraries it loads)" % node)
 
     def test_the_kiro_hook_file_is_present_modified_or_absent(self):
         """Issue #455: the Kiro CLI V3 hook file, as install renders it, then edited, then gone."""
@@ -1179,7 +1179,7 @@ class Hooks(unittest.TestCase):
         bin_dir = Path(root + ("/Library/Application Support/" if sys.platform == "darwin" else "/etc/") + ws.NAME + "/bin")
         doc = self.entry("PreToolUse", "/bin/sh \"%s\"" % (bin_dir / ws.GUARD))
         node, entry = self.data / "node", bin_dir / "hook" / "src" / "commands" / "hook-entry.js"
-        admin_cmd = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "%s" "%s" --harness claude --config "x"' % (node, entry)
+        admin_cmd = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" --harness claude --config "x"' % (node, entry)
         doc["hooks"].update(self.entry("UserPromptSubmit", admin_cmd)["hooks"])
         # The removed picker guard's entry (an admin layer installed before Issue #60) is a leftover.
         doc[ws.NAME] = "stamp"
@@ -1193,6 +1193,53 @@ class Hooks(unittest.TestCase):
         self.write(req, "# %s\n[[hooks.UserPromptSubmit]]\ncommand = %s\n" % (ws.MARKER, codex_cmd))
         self.assertEqual(ws.read_hooks()["admin"], [ws.LEFTOVER, "paste filter (Claude Code)",
                                                     "paste filter (Codex)"])
+
+
+class TermLists(Hooks):
+    """#488: the salt is a 0600 file; a hashed list it does not cover is named by status, never silent."""
+
+    HASH = "ab" * 32
+
+    def lists(self):
+        return self.data / "local-overlay"
+
+    def test_no_list_and_a_covered_list_read_ok(self):
+        self.assertEqual(ws.term_lists_state(), (True, "no term list"))
+        self.write(self.lists() / "clipboard-terms", "# header\n%s\n" % self.HASH)
+        self.write(self.lists() / "clipboard-salt", "cd" * 32 + "\n")
+        self.assertEqual(ws.term_lists_state(), (True, "1 hash(es), salt file present"))
+
+    def test_a_list_without_its_salt_file_is_named_in_both_views(self):
+        self.write(self.lists() / "clipboard-terms-health", "# header\n%s\n%s\n" % (self.HASH, "ef" * 32))
+        ok, text = ws.term_lists_state()
+        self.assertFalse(ok)
+        self.assertIn("clipboard-terms-health holds 2 hash(es) and the salt file", text)
+        self.assertIn("term matching off: re-add with mhw add-term", text)
+        # An unreadable salt is the same as none.
+        self.write(self.lists() / "clipboard-salt", "not a salt\n")
+        self.assertFalse(ws.term_lists_state()[0])
+        f = facts(terms=ws.term_lists_state())
+        self.assertTrue(any(line.startswith("  term lists       ") and "term matching off" in line for line in ws.render_status(f)))
+        summary = "\n".join(ws.render_summary(f))
+        self.assertRegex(summary, r"protections .* · TERMS .*term matching off: re-add with mhw add-term")
+
+    def test_an_old_salt_list_is_named_with_its_count(self):
+        self.write(self.lists() / "clipboard-salt", "cd" * 32 + "\n")
+        self.write(self.lists() / "clipboard-terms.old-salt", "# header\n%s\n" % self.HASH)
+        ok, text = ws.term_lists_state()
+        self.assertFalse(ok)
+        self.assertIn("clipboard-terms.old-salt holds 1 hash(es) made with a salt mhw no longer has", text)
+        self.assertIn("re-add with mhw add-term", text)
+
+    def test_the_installed_conf_names_the_paths(self):
+        other = self.base / "elsewhere"
+        self.write(self.data / "clipboard.conf", "terms_file=%s\nsalt_file=%s\n" % (other / "t", other / "s"))
+        self.write(other / "t", "%s\n" % self.HASH)
+        ok, text = ws.term_lists_state()
+        self.assertFalse(ok)
+        self.assertIn(str(other / "t"), text)
+        self.write(other / "s", "cd" * 32 + "\n")
+        self.assertEqual(ws.term_lists_state(), (True, "1 hash(es), salt file present"))
 
 
 class MethodStatus(unittest.TestCase):
