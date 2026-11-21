@@ -9,10 +9,10 @@ dir=$(cd "$(dirname "$0")" && pwd)
 # of #470), mhw milestone read|create|update|close (#475, S04 of #470), mhw worklog and
 # mhw launch-line (#476, S05 of #470), mhw rite-cadence (#477, S06 of #470), mhw funnel-review
 # (#478, S07 of #470), mhw profile (#479, S08 of #470), mhw mcp launch|render (#483, #484), and mhw scan
-# (#486, S15 of #470), mhw status (#493, S22 of #470) and mhw policy check (#498, S28 of #470). New in
-# Node: mhw docs-baseline check and mhw onboard (#523).
+# (#486, S15 of #470), mhw status (#493, S22 of #470), mhw check (#494, S23 of #470) and mhw policy check
+# (#498, S28 of #470). New in Node: mhw docs-baseline check and mhw onboard (#523).
 case "${1:-}" in
-  delivery|milestone|worklog|launch-line|rite-cadence|funnel-review|profile|mcp|scan|status|docs-baseline|onboard|policy)
+  delivery|milestone|worklog|launch-line|rite-cadence|funnel-review|profile|mcp|scan|status|check|docs-baseline|onboard|policy)
     command -v node >/dev/null 2>&1 || { echo "mhw: node (26 or later) is required for mhw $1" >&2; exit 2; }
     exec node "$dir/bin/mhw.js" "$@" ;;
 esac
