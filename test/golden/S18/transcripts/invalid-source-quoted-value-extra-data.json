@@ -1,0 +1,29 @@
+{
+  "name": "invalid-source-quoted-value-extra-data",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: invalid quoted value for description; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: invalid quoted value for description; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 // through a probe COPY of launch-line.py that declared one launch variable. The Node command reads its
 // allowlist from io.launchEnv in-process (tests only; the command line has no way to set it), so the
 // accepted-variable path is measured without a second copy of the code. The rest of /handoff's checks run
-// against the real CLI in global/method/method_commands_test.py; the bytes are held by s05-golden.test.js.
+// against the real CLI in test/render/method-commands.test.js (method_commands_test.py until #489); the bytes are held by s05-golden.test.js.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';

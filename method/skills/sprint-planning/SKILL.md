@@ -14,9 +14,11 @@ purpose: "give iteration composition an object, so the pool the owner rules on i
 > session checks that replaced the plugin's reporting hooks are in `agents-configuration`, *Session-start
 > and end-of-turn checks*.
 >
-> **The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
+> ~~**The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
 > directory the method installs them to, the same for every agent harness, so the rite runs them from
-> any repository.
+> any repository.~~ *(Struck 2026-11-21, #489: the method installs no script; the rite runs `mhw`
+> commands.)* Where `{{method-scripts}}` appears in this text, it is the directory the method installs
+> the documents a rite reads to, the same for every agent harness.
 >
 > **Not shipped by this method:** `scripts/milestone-create.sh` and `scripts/milestone-update.sh`,
 > the plugin's retired predecessors of the Python routes, named below only as history.

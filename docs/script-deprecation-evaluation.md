@@ -59,8 +59,8 @@ Measured by searching the tree for each script's name, test files and decision r
 - **CI:** `tests.yml` compiles every Python script and runs every test. `outbound-scan.yml` runs
   `mhw scan`. `method-issue-sync.yml` runs `.github/scripts/method_issue_sync.py`.
 - **The installer:** `mhw` and `global/workstation.py` call `install.sh`, `install-managed.sh` and the
-  renderers. `install.ps1` is the Windows route. `method_render.py` installs `method/scripts/*` and
-  replaces `{{method-scripts}}` in rendered bodies with the installed directory.
+  renderers. `install.ps1` is the Windows route. ~~`method_render.py` installs `method/scripts/*` and
+  replaces~~ `src/render/method.js` (Node since #489) installs no script and replaces `{{method-scripts}}` in rendered bodies with the installed directory.
 - **Agent instructions:** the method's skills and commands call the method scripts (named per row).
   `AGENTS.md` and `workspace/README.md` call ~~`workspace/delivery.py`~~ `./mhw delivery` (moved to
   Node, #474).
@@ -88,7 +88,7 @@ Measured by searching the tree for each script's name, test files and decision r
 | `global/profile/profile.py` (since #479: `mhw profile`, `src/commands/profile.js`) | Renders the owner overlay (language, decision tone, limits) into the brief. | `install.sh`, `install.ps1`, CI. | None. The brief is a native carrier; nothing renders a profile into it. | The owner overlay. | **keep** |
 | `global/kiro/kiro_permissions.py` (since #482: `src/render/kiro-permissions.js`, its reader `src/lib/yaml-subset.js`) | Merges the deny floor into Kiro `permissions.yaml` and the Kiro admin file. | `install.sh`, `install.ps1`, `install-managed.sh`. | The target file is native (K documented). Nothing produces it from the floor. | The Kiro floor. | **keep** |
 | `global/models/model_defaults.py` | Pins each agent harness's model and effort, reports old to new, restores on uninstall. | `install.sh`, `install.ps1`. | The keys are native in all three (documented). Nothing sets them from policy. | Uniform session-start defaults and their restore. | **keep** |
-| `global/method/method_render.py` | Renders `method/` into native agents, skills, commands and steering, and installs the method scripts. | `install.sh`, `install.ps1`. | A plugin, marketplace or Powers package is the native distribution (documented). [ADR-0032](adr/0032-this-repository-is-the-single-source-of-the-working-method.md) replaced the plugin with this renderer. | The method's only install route. | **keep** |
+| `global/method/method_render.py` | Renders `method/` into native agents, skills, commands and steering~~, and installs the method scripts~~. Node since #489 (`src/render/method.js`), which installs no script: the rites run `mhw` commands. | `install.sh`, `install.ps1`. | A plugin, marketplace or Powers package is the native distribution (documented). [ADR-0032](adr/0032-this-repository-is-the-single-source-of-the-working-method.md) replaced the plugin with this renderer. | The method's only install route. | **keep** |
 
 ### MCP servers
 
@@ -130,8 +130,9 @@ output and the same written file, byte for byte, and the Python file and its sui
 
 ### Method scripts
 
-All are installed by `method_render.py` and called through `{{method-scripts}}` from the method's
-skills and commands.
+~~All are installed by `method_render.py` and called through `{{method-scripts}}` from the method's
+skills and commands.~~ *(Struck 2026-11-21, #489: each one is an `mhw` command now, #475 to #478, and the
+renderer installs none.)*
 
 *Amended 2026-11-18 ([#475](https://github.com/tedeuxx/mhw/issues/475)): the five milestone files in
 the table below were kept as the exception and then moved, not removed: the four routes are
@@ -251,4 +252,4 @@ Run on `rc/next` at `37937f8b2af5397068ed6d26e0daff78335c1ba5`:
 - `global/deny-floor.conf` lists `gh api -X POST|PUT|PATCH|DELETE` and the `--method` forms.
 - `global/install.sh` registers the paste filter as a Claude Code `UserPromptSubmit` entry and in the
   Codex `hooks.json`.
-- `global/method/method_render.py` replaces `{{method-scripts}}` with the installed scripts directory.
+- ~~`global/method/method_render.py`~~ `src/render/method.js` (#489) replaces `{{method-scripts}}` with the installed scripts directory.

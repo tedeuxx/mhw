@@ -14,7 +14,7 @@ is unchanged.*
 
 **Evidence level:** ~~written and tested in throwaway homes (`global/method/plugin_retire_test.py`, the
 installer test in `global/method/method_render_test.py`, and `global/install.test.ps1` on Windows). Not
-run on the reference machine.~~ the removal of the step is tested in `global/method/method_render_test.py`
+run on the reference machine.~~ the removal of the step is tested in ~~`global/method/method_render_test.py`~~ `test/render/method.test.js` (#489)
 and `global/install.test.ps1`. On the reference machine the plugin is not enabled (the owner's read-only
 check on #206).
 

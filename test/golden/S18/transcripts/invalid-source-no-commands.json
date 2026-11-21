@@ -1,0 +1,29 @@
+{
+  "name": "invalid-source-no-commands",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/ must hold agents, skills and commands; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/ must hold agents, skills and commands; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    }
+  ]
+}

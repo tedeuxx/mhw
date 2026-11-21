@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S18 golden transcripts were recorded from (python3 -B global/method/method_render.py at the base revision, macOS). The goldens are the binding oracle; the live arm compares only against this exact version, because tomllib's acceptance of the rendered Codex TOML and json's error paths can change between CPython releases."
+}

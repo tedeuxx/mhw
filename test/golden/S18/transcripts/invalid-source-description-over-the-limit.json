@@ -1,0 +1,29 @@
+{
+  "name": "invalid-source-description-over-the-limit",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: description is 1025 characters; the limit is 1024; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: description is 1025 characters; the limit is 1024; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    }
+  ]
+}
