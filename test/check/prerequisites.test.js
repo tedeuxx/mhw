@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import * as pq from '../../src/lib/prerequisites.js';
-import { get, getSync, proxyEnv } from '../../src/lib/http-get.js';
+import { get, getSync, getSyncSeen, proxyEnv } from '../../src/lib/http-get.js';
 import { throwawayHome, which } from '../helpers/home.js';
 import { item, GH_ITEM, GH_SHIM, LOGIN, TOKEN } from './cases.js';
 
@@ -109,7 +109,10 @@ describe('the declaration', () => {
   test('a GET starts no process: the token stays in memory, in a worker thread', () => {
     const text = fs.readFileSync(path.join(REPO, 'src', 'lib', 'http-get.js'), 'utf8');
     assert.deepEqual([...text.matchAll(/^import .* from '([^']+)';$/gm)].map((m) => m[1]), ['node:worker_threads']);
-    assert.doesNotMatch(text, /process\.(env|argv)/);
+    // No argv, and no environment value is read: the worker reports only the names it holds (QA H4).
+    assert.doesNotMatch(text, /process\.argv|process\.env[.[]/);
+    assert.deepEqual([...text.matchAll(/process\.env/g)].length, 1);
+    assert.match(text, /Object\.keys\(process\.env\)\.sort\(\)/);
   });
 });
 
@@ -426,10 +429,20 @@ describe('services', { skip: !POSIX && 'needs POSIX' }, () => {
       assert.deepEqual(getSync(url, TOKEN, { http_proxy: proxy.url, no_proxy: '127.0.0.1' }), [200, '{"valid":true}']);
       assert.deepEqual(getSync(url, TOKEN, {}), [200, '{"valid":true}']);
       assert.equal(proxy.seen().length, 2);
-      // The worker's environment holds the proxy variables and nothing else: never a token or a PATH.
-      assert.deepEqual(proxyEnv({ http_proxy: 'p', NO_PROXY: 'n', SONAR_TOKEN: 't', PATH: '/x', HOME: '/h' }), { http_proxy: 'p', NO_PROXY: 'n' });
     } finally {
       proxy.stop();
     }
+  });
+
+  test('the GET worker\'s environment holds the six proxy variables and nothing else: no token, no PATH (QA H4)', () => {
+    const url = svc.url + '/api/authentication/validate';
+    // no_proxy names the stand-in, so the GET goes direct on any Node and the names it saw come back.
+    const caller = { http_proxy: 'http' + '://127.0.0.1:9', https_proxy: 'http' + '://127.0.0.1:9', no_proxy: '127.0.0.1', HTTP_PROXY: 'http' + '://127.0.0.1:9',
+      HTTPS_PROXY: 'http' + '://127.0.0.1:9', NO_PROXY: '127.0.0.1', SONAR_TOKEN: TOKEN, TFC_API_TOKEN: TOKEN, PATH: '/usr/bin:/bin', HOME: s.h.home, LANG: 'C' };
+    const [status, body, seen] = getSyncSeen(url, TOKEN, caller);
+    assert.deepEqual([status, body], [200, '{"valid":true}']);
+    assert.deepEqual(seen, ['HTTPS_PROXY', 'HTTP_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy']);
+    assert.deepEqual(getSyncSeen(url, TOKEN, { SONAR_TOKEN: TOKEN, PATH: '/usr/bin' })[2], []);
+    assert.deepEqual(proxyEnv({ http_proxy: 'p', NO_PROXY: 'n', SONAR_TOKEN: 't', PATH: '/x', HOME: '/h' }), { http_proxy: 'p', NO_PROXY: 'n' });
   });
 });

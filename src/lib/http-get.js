@@ -87,6 +87,17 @@ export function proxyEnv(env) {
  * @returns {[number, string]}
  */
 export function getSync(url, token, env = {}) {
+  const [status, body] = getSyncSeen(url, token, env);
+  return [status, body];
+}
+
+/**
+ * getSync, and the names (never the values) of the variables the worker's environment held: what the
+ * tests read to hold that the worker sees the proxy variables and nothing else (QA H4 on PR #538).
+ * @param {string} url @param {string | null} token @param {Record<string, string | undefined>} [env]
+ * @returns {[number, string, string[]]}
+ */
+export function getSyncSeen(url, token, env = {}) {
   const shared = new Int32Array(new SharedArrayBuffer(4));
   const { port1, port2 } = new MessageChannel();
   const worker = new Worker(new URL(import.meta.url), { workerData: { url, token, shared, port: port2 }, transferList: [port2], stdout: true, stderr: true,
@@ -96,15 +107,16 @@ export function getSync(url, token, env = {}) {
   const msg = receiveMessageOnPort(port1);
   port1.close();
   void worker.terminate();
-  if (waited === 'timed-out' || !msg) return [0, ''];
-  const answer = /** @type {Answer} */ (msg.message);
-  return [Number(answer.status) || 0, String(answer.body ?? '')];
+  if (waited === 'timed-out' || !msg) return [0, '', []];
+  const answer = /** @type {Answer & { env?: string[] }} */ (msg.message);
+  return [Number(answer.status) || 0, String(answer.body ?? ''), answer.env || []];
 }
 
 if (!isMainThread && workerData?.shared instanceof Int32Array) {
   const { url, token, shared, port } = /** @type {{ url: string, token: string | null, shared: Int32Array, port: import('node:worker_threads').MessagePort }} */ (workerData);
   const answer = await get(url, token);
-  port.postMessage(answer);
+  // The names of this worker's environment, sorted; never a value.
+  port.postMessage({ ...answer, env: Object.keys(process.env).sort() });
   Atomics.store(shared, 0, 1);
   Atomics.notify(shared, 0);
 }
