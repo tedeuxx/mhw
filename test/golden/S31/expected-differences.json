@@ -1,0 +1,72 @@
+{
+  "comment": "differences: on the named cases' streams, the base pattern is replaced on the original's side and the head pattern on the Node script's (multiline, every match), in this order, before the transcripts are compared. Nothing else may differ. residuals: behaviours no golden case exercises, because the original stopped with a traceback there or because they are new, named so they are not discovered later (#470, convention 3). Each is pinned by the test named in its pinned field.",
+  "differences": [
+    {
+      "case": ["*"],
+      "stream": ["stdout"],
+      "head": "^PASS  the installed package carries no \\.py, \\.sh or \\.ps1 file\\n",
+      "replace": "",
+      "why": "The check the acceptance criteria of #501 add: the Node canary prints one more PASS line after the stamp check on every run that installed the head. The fixture package carries no such file and no run here names --legacy, so the line is that one PASS; its FAIL and its --legacy forms are pinned in test/ci/prod-canary.test.js."
+    },
+    {
+      "case": ["usage"],
+      "stream": ["stderr"],
+      "base": "prod_canary\\.py",
+      "head": "prod-canary\\.js",
+      "replace": "<prog>",
+      "why": "The usage text names the script, and the script is .github/scripts/prod-canary.js now. The exit code 2, the stream and every error message are compared."
+    },
+    {
+      "case": ["usage"],
+      "stream": ["stderr"],
+      "base": "\\{pack,run\\}|\\(choose from 'pack', 'run'\\)",
+      "head": "\\{pack,run,container\\}|\\(choose from 'pack', 'run', 'container'\\)",
+      "replace": "<the subcommands>",
+      "why": "The Node canary has a third subcommand, container, which replaces .github/scripts/prod-canary-container.sh (the acceptance criterion: the container step no longer needs it), so the usage and the invalid-choice message list three subcommands where the original listed two."
+    },
+    {
+      "case": ["usage"],
+      "stream": ["stderr"],
+      "head": "^( {26}--work WORK \\[--commit COMMIT\\]) \\[--legacy LEGACY\\]$",
+      "replace": "$1",
+      "why": "run takes one more option, --legacy, the list of the files a later slice of #470 still has to retire that the installed package may carry for now; the usage names it at the end of its second line."
+    }
+  ],
+  "residuals": [
+    {
+      "what": "A carrier, settings file or hook answer of a shape the canary does not expect (a settings.json that is not JSON, a JSON value that is not an object) ends the run at exit 1 with one stderr line, `prod-canary: <reason>`; a hook answer that is JSON but not an object is a FAIL with decision None.",
+      "why": "prod_canary.py stopped there with a Python traceback (json.JSONDecodeError, AttributeError, TypeError, KeyError), also exit 1, or for the hook answer an AttributeError traceback. The exit code is the same; the traceback, which named the script's own lines, is one line now. The fixture's packages write only well-formed carriers, so no golden case reaches it.",
+      "pinned": "test/ci/prod-canary.test.js: a carrier that is not JSON is exit 1 with one line, never a stack trace"
+    },
+    {
+      "what": "node, npm, npx, jq and git (the tools directory), the container runtime, and npm and mhw inside each throwaway workstation are looked up on the absolute PATH entries only and run by absolute path; with none, the run says `<name> is not on PATH` (exit 2 for the tools directory) or ends at exit 1 with one line.",
+      "why": "Python's shutil.which and subprocess looked a program up on every PATH entry, a relative one included, so the working directory could decide which program ran. The S01 convention is that a program is found through src/lib/onpath.js (absolute entries only). On the runners, and in the container, PATH holds only absolute entries, so the same programs run on both sides.",
+      "pinned": "test/ci/prod-canary.test.js: programs are looked up on absolute PATH entries only"
+    },
+    {
+      "what": "pack extracts git archive's tar with code of its own that applies Python's tarfile data filter: an absolute or escaping member, a link out of the tree and a special file are each refused with `ERROR git archive: ...`, exit 2; a regular file gets its mode without group and other write, set-id or sticky bits, and owner read and write.",
+      "why": "Node has no tar module. Python 3.12+ refused the same members with a tarfile FilterError traceback (exit 1). git archive of a commit never writes such a member, so no golden case reaches it; the tarballs pack writes are compared file by file (path, mode, sha256) in the pack case.",
+      "pinned": "test/ci/prod-canary.test.js: pack refuses an archive member outside the tree, a link out of it, and a special file"
+    },
+    {
+      "what": "A hook that runs past the 60-second timeout is killed and reported as a FAIL with exit -15 (and a hook killed by any signal with its negative signal number).",
+      "why": "Python's subprocess.run raised TimeoutExpired there, a traceback and exit 1; a process killed by a signal it reported as -signal, which is kept. The timeout itself is not exercised by any test (it would take a minute); the signal mapping is.",
+      "pinned": "test/ci/prod-canary.test.js: a hook killed by a signal is reported with the negative exit code Python gave"
+    },
+    {
+      "what": "Options are taken only as spelled in full (`--opt value` or `--opt=value`); an abbreviation such as `--sou` is an unrecognized argument, and `-h` prints no help: both are usage errors with exit 2.",
+      "why": "argparse accepted a unique abbreviation of a long option and printed help for -h. The canary is run only by tests.yml and by hand, always with the full spellings; a usage error with the same exit code is the safer answer than a guess. The error messages of the golden usage cases are compared.",
+      "pinned": "test/ci/prod-canary.test.js: options are spelled in full: an abbreviation and -h are usage errors, never a guess"
+    },
+    {
+      "what": "container (the form of the deleted prod-canary-container.sh) also refuses, with exit 2 before any runtime starts: an image whose first character is not a lower-case letter or digit, a package directory containing a colon, a commit that is not 40 lower-case hexadecimal characters, an unsafe --legacy entry, and a wrong argument count.",
+      "why": "The shell wrapper checked the digest pin and the mode only, and passed the commit into the container's command line unchecked. The workflow never passes such values, so the extra refusals change nothing there (QA A3 on PR #545); they keep a hand run from turning an argument into a runtime option, a different mount, or text inside the su -c command.",
+      "pinned": "test/ci/prod-canary.test.js: container refuses an image not pinned by digest or starting with an option character, a package directory with a colon, a short commit, an unknown mode, an unsafe --legacy entry and a wrong argument count"
+    },
+    {
+      "what": "container runs the canary that src-HEAD carries (/pkg/src-HEAD/.github/scripts/prod-canary.js, with node), not a second mount of the runner's checkout; the image line it prints no longer names a Python version; and it passes --legacy through to run.",
+      "why": "The shell wrapper mounted .github/scripts read-only at /canary and ran prod_canary.py with the image's python3. The Node canary imports three files of src/lib, which src-HEAD (git archive of the same head) holds, so one read-only mount carries both; in CI the two are the same commit. The image needs no Python any more.",
+      "pinned": "test/ci/prod-canary.test.js: container runs the runtime with the packages read-only and the canary of src-HEAD inside, as the node user"
+    }
+  ]
+}

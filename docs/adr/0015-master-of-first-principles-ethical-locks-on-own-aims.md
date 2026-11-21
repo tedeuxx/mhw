@@ -247,8 +247,10 @@ override for now**: leaves the measured weakening in place.
   [docs/reference-cicd.md](../reference-cicd.md), [docs/recovery-reference.md](../recovery-reference.md)
   and the coverage report [docs/deployment-lock-coverage.md](../deployment-lock-coverage.md).
 - mhw's own PROD test (2026-11-08, ~~proposed~~ accepted 2026-11-18, [ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978107613)): Issue #452, `.github/workflows/tests.yml`
-  (`prod-canary-installed-not-enforced`), `.github/scripts/prod_canary.py` and
-  `.github/scripts/prod-canary-container.sh`.
+  (`prod-canary-installed-not-enforced`), ~~`.github/scripts/prod_canary.py` and
+  `.github/scripts/prod-canary-container.sh`~~ `.github/scripts/prod-canary.js` (Node since #501, S31
+  of #470; it also checks that the installed package carries no `.py`, `.sh` or `.ps1` file but those a
+  later slice still retires).
 - The coverage floor and the add-only baseline override (2026-11-20, ~~proposed~~ accepted 2026-11-20, [ruling](https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698)): Issue #523,
   [ADR-0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md),
   `global/project-policy/project-policy.schema.json`.

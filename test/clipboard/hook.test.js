@@ -15,6 +15,7 @@ import { pasteWrap, pasteCmd } from '../../src/commands/install-user.js';
 import { saltOrCreate, readSalt, orphanedLists, addTermHashes } from '../../src/lib/salt.js';
 import { loadPty } from '../../src/lib/pty.js';
 import { ROOT } from '../helpers/s15.js';
+import { KIRO_NOTICE, kiroHookCommand } from '../../.github/scripts/prod-canary.js';
 import { SALT, TERM, EMAIL, CREDENTIALS } from '../helpers/s17.js';
 
 const POSIX = process.platform !== 'win32';
@@ -233,12 +234,11 @@ test('the rendered command\'s start fallback: a hook that cannot start says NOT 
   // /bin/sh, -c and one script.
   const cmd = rendered('claude', b.confPath);
   assert.ok(cmd.startsWith("/bin/sh -c '") && cmd.endsWith("'") && cmd.slice(12, -1).indexOf("'") < 0, cmd);
-  // The exact forms, which .github/scripts/prod_canary.py spells out for Kiro rather than run the installer's code.
+  // The exact forms, which .github/scripts/prod-canary.js spells out for Kiro rather than run the installer's code.
   assert.equal(wrap('kiro', 'X'), "/bin/sh -c 'X || { [ $? -eq 2 ] && exit 2; printf \"%s\\n\" \"" + notice + "\" >&2; exit 2; }'");
   assert.equal(wrap('claude', 'X'), "/bin/sh -c 'X || { printf \"%s\\n\" \"{\\\"systemMessage\\\": \\\"" + notice + "\\\"}\"; exit 0; }'");
-  const canary = fs.readFileSync(path.join(ROOT, '.github', 'scripts', 'prod_canary.py'), 'utf8');
-  assert.ok(canary.includes(`want = "/bin/sh -c '%s || { [ $? -eq 2 ] && exit 2; printf \\"%%s\\\\n\\" \\"%s\\" >&2; exit 2; }'" % (inner, notice)`)
-    && canary.includes('notice = "' + notice + '"'), 'prod_canary.py no longer spells out the Kiro fallback the installer renders');
+  assert.equal(KIRO_NOTICE, notice, 'prod-canary.js no longer spells out the notice the installer renders');
+  assert.equal(kiroHookCommand('X'), wrap('kiro', 'X'), 'prod-canary.js no longer spells out the Kiro fallback the installer renders');
   // install-managed.sh's shell function renders exactly what the user-layer installer renders.
   assert.ok(WRAP_FN.startsWith("PASTE_START_NOTICE='" + notice + "'") && WRAP_FN.includes('paste_wrap() {'), 'install-managed.sh lost its paste_wrap');
   for (const harness of ['claude', 'codex', 'kiro']) {
