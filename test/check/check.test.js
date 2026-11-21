@@ -132,7 +132,7 @@ describe('the --project section', { skip: process.platform === 'win32' && 'mhw c
 
 describe('where mhw check runs', () => {
   test('./mhw is the Node command (#495), and the Python check is gone', () => {
-    const launcher = fs.readFileSync(path.join(REPO, 'mhw'), 'utf8');
+    const launcher = fs.readFileSync(path.join(REPO, 'mhw'), 'utf8').replaceAll('\r\n', '\n');
     assert.match(launcher, /^#!\/usr\/bin\/env node\n/);
     assert.match(launcher, /^import '\.\/bin\/mhw\.js';$/m);
     for (const gone of ['workstation.py', 'prerequisites.py', 'prerequisites_test.py', 'merge_authority.py', 'merge_authority_test.py']) {

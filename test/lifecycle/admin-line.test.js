@@ -74,7 +74,7 @@ const canonical = (v) => {
 /** The expected differences (case '*', stream 'admin-line render') applied to one side. @param {unknown} doc @param {'base' | 'head'} side */
 const allowed = (doc, side) => allow(expected, 'admin-line', 'admin-line render', JSON.stringify(canonical(doc), null, 1), side);
 
-test('golden: the admin-layer root command line is the one workstation.py ran, quoting included', () => {
+test('golden: the admin-layer root command line is the one workstation.py ran, quoting included', { skip: process.platform === 'win32' && 'the admin layer and its sudo line are macOS and Linux only' }, () => {
   const golden = readGolden(SLICE, 'admin-lines.json');
   assert.equal(allowed(head(), 'head'), allowed(golden, 'base'));
   // The line the owner meets, spelled out: one sudo that asks for the password itself, never -n or -v.

@@ -165,7 +165,7 @@ test('an uninstall that leaves the admin layer is partly removed, and names no n
 
 /** @param {string} section */
 function briefSection(section) {
-  const brief = fs.readFileSync(path.join(ROOT, 'global', 'AGENTS.md'), 'utf8');
+  const brief = fs.readFileSync(path.join(ROOT, 'global', 'AGENTS.md'), 'utf8').replaceAll('\r\n', '\n');
   assert.ok(brief.includes('\n## ' + section + '\n'), section);
   return brief.split('\n## ' + section + '\n')[1].split('\n## ')[0].split(/\s+/).filter(Boolean).join(' ');
 }
