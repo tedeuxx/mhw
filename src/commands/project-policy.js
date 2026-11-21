@@ -682,9 +682,8 @@ function readSchema(schemaPath) {
     raw = fs.readFileSync(schemaPath);
   } catch (e) {
     const code = errCode(e);
-    const errno = ERRNO[code];
-    if (errno === undefined) return { error: strerror(e) };
-    return { error: '[Errno ' + errno + '] ' + strerror(e) + ': ' + pyRepr(schemaPath) };
+    if (!Object.hasOwn(ERRNO, code)) return { error: strerror(e) };
+    return { error: '[Errno ' + ERRNO[code] + '] ' + strerror(e) + ': ' + pyRepr(schemaPath) };
   }
   let text;
   try {
@@ -715,7 +714,8 @@ function at(doc, where) {
   let value = doc;
   for (const m of where.slice(1).matchAll(/\.([A-Za-z0-9_$-]+)|\[(\d+)\]/g)) {
     const [, name, index] = m;
-    if (name !== undefined) {
+    // One of the two groups matched; a name is never empty (one or more characters).
+    if (name) {
       if (!(value instanceof Map) || !value.has(name)) return null;
       value = /** @type {Json} */ (value.get(name));
     } else if (Array.isArray(value) || typeof value === 'string') {

@@ -147,7 +147,7 @@ test('every case has a golden transcript and every expected difference names a c
   for (const e of expected) {
     assert.ok(e.case === '*' || names.has(e.case), 'unknown case ' + e.case);
     assert.ok(e.why && e.why.length > 40, 'an expected difference states why');
-    assert.ok(new RegExp(e.pattern, e.flags || 'g'));
+    assert.doesNotThrow(() => new RegExp(e.pattern, e.flags || 'g'), 'a valid pattern: ' + e.pattern);
   }
   for (const r of declared.residuals) assert.ok(r.what && r.why && r.why.length > 40, 'a residual states why');
   const golden = fs.readdirSync(path.join(ROOT, 'test', 'golden', SLICE, 'transcripts')).sort(byString);
