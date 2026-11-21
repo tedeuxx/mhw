@@ -1,0 +1,10 @@
+[
+  {
+    "case": ["usage"],
+    "stream": ["stderr"],
+    "base": "^usage: method_issue_sync\\.py COMMAND \\[ARGS\\]$",
+    "head": "^usage: method-issue-sync\\.js COMMAND \\[ARGS\\]$",
+    "replace": "usage: <the script> COMMAND [ARGS]",
+    "why": "The usage text names the script, and the script is .github/scripts/method-issue-sync.js now. Every other line of the usage, the exit code 2 and the stream are compared."
+  }
+]

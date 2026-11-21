@@ -251,8 +251,8 @@ Issues/backlog"*. He agreed ("de acordo") to the mechanism below the same day.
 **New third-party action.** `anthropics/claude-code-action`, pinned by commit (v1.0.248, the commit `v1`
 points at, verified with `git ls-remote` on 2026-10-12), joins `actions/create-github-app-token`
 (v3.2.0, likewise pinned). It is the first model-running dependency in this repository's CI. Its blast
-radius is bounded outside the model: the agent's only shell is `.github/scripts/method_issue_sync.py`,
-which writes only to the twin, meaning the App-authored Issue carrying the marker (-skills is public, so
+radius is bounded outside the model: the agent's only shell is ~~`.github/scripts/method_issue_sync.py`~~
+`.github/scripts/method-issue-sync.js` (the 2026-11-21 amendment on #500), which writes only to the twin, meaning the App-authored Issue carrying the marker (-skills is public, so
 a marked Issue opened by anyone else is ignored and named in a warning, never edited), only from files
 in the run's scratch directory, and refuses credential-shaped text and any 12-character run of a token
 the run holds; it has no file-reading tools, and project settings are not loaded (read from the action's
@@ -270,7 +270,8 @@ two repositories; each run spends it. A PAT and archiving -skills without a mirr
 **Rejected:** the CI file mirror (PR #158). It kept the files byte-identical but skipped the adaptation
 the owner wants, and gave the CI write access to the plugin's contents.
 
-**Evidence, 2026-10-12.** Written and tested: `.github/scripts/method_issue_sync_test.py` checks the
+**Evidence, 2026-10-12.** Written and tested: ~~`.github/scripts/method_issue_sync_test.py`~~
+`test/ci/method-issue-sync.test.js` (since #500) checks the
 workflow's structure (parsed with the runner's ruby) and drives the script against a stub `gh`. After the
 agent, a deterministic `verify` step fails the run unless the twin exists in the mhw Issue's state.
 ~~**Not run:**~~
@@ -968,6 +969,33 @@ path learns of the removal only from that `STALE` line and the release note; not
 **Evidence level.** *Written and tested* in throwaway homes, on all three operating systems for the
 golden arm, and side by side with the Python original on CPython 3.14.6 while the base revision held
 it. Not installed on the reference machine.
+
+## Amendment 2026-11-21: the sync script is Node ([Issue #500](https://github.com/tedeuxx/mhw/issues/500), S30 of #470)
+
+The agent's only shell in `.github/workflows/method-issue-sync.yml` is ~~`.github/scripts/method_issue_sync.py`~~
+`.github/scripts/method-issue-sync.js`, with the same commands (`stash-inputs`, `final-line`, `verify`,
+`backlink` and the eight `mhw-view` to `skills-reopen` the agent may call), the same refusals and exit codes, and the same bytes on stdout and
+stderr; the Python script and its suite are deleted, and the suite runs as `node:test`
+(`test/ci/method-issue-sync.test.js`). The agent's allow list is now exactly
+`Bash(node .github/scripts/method-issue-sync.js:*),Edit(/${{ runner.temp }}/method-sync/**)`, and the
+test asserts that string and that no other `Bash(...)` rule, and no rule on `node` itself, is in the
+workflow. A prefix on the script's path does not match `node -e ...` or `node --require ... <script>`,
+because node's own flags come before the script. That reading rests on the matcher's prefix and token
+semantics (the `scm` skill's measurement, on deny rules, Claude Code 2.1.261); this allow rule was *not
+measured* on the runner or on the version the pinned action installs. Both jobs check out `.github/scripts` and `src/lib` (the two
+files the script imports, which import only `node:` modules; a test walks that graph) and run the
+script on a pinned node (`actions/setup-node`, the pin and version `tests.yml` uses), so the runner
+image's node never decides it.
+
+**Consequence.** `src/lib` is now on disk in the agent's job. The agent has no file-reading tool and its
+one write rule reaches only `${{ runner.temp }}/method-sync`, so it can neither read nor change those
+files; a change to `src/lib/py.js` or `src/lib/onpath.js` is a change to this boundary and is reviewed
+as one.
+
+**Evidence level.** *Written and tested*: golden transcripts recorded from the Python original with its
+own Python stub `gh` (`test/golden/S30/`, one declared difference, the usage line's script name),
+replayed against the Node script, and side by side with the original on CPython 3.14.6 while the base
+revision held it. The workflow change runs only from `main`; no canary has run it.
 
 ## Links
 

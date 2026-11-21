@@ -81,7 +81,7 @@ Not mirrored:
    Expected: the run is green; a twin titled `[mhw#<N>] Canary: method backlog sync` appears in
    tadeumendonca-skills; the mhw Issue gets one comment linking it. The canary also confirms the
    author login the script expects for the App, `app/tedeuxx-mhw-mirror` (`TWIN_AUTHOR` in
-   `.github/scripts/method_issue_sync.py`, a hypothesis until then): if it is wrong, the twin is created
+   `.github/scripts/method-issue-sync.js`, Node since #500, a hypothesis until then): if it is wrong, the twin is created
    but the `verify` step fails red with "no twin", and a second twin appears on the next run.
 
    ```sh
@@ -160,7 +160,8 @@ was not checked for this runbook).
 
 - The mhw Issue's text is treated as data, not instructions; the prompt says so, because whoever can
   edit the Issue controls that text. That is an instruction to a model, not a guarantee.
-- The agent has one shell route, `.github/scripts/method_issue_sync.py`, and no file-reading tools. The
+- The agent has one shell route, `node .github/scripts/method-issue-sync.js` (Node since #500: its allow
+  rule is exactly that prefix, and no rule on `node` itself exists), and no file-reading tools. The
   script writes only to the twin (found by the marker), refuses a body file outside the run's scratch
   directory, refuses a body or title shaped like a credential, and mirrors state only in the direction
   the mhw Issue is in. It also refuses a title or body containing any 12-character run of a token the
