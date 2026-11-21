@@ -106,7 +106,16 @@ case $mode in
   *) ;; # uninstall and remove: no node
 esac
 kiro_js() { "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "$@"; }
-case $bin in *\"*|*\\*|*\$*|*\`*) echo "REFUSE  $bin holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac
+case $bin in *\"*|*\\*|*\$*|*\`*|*\'*) echo "REFUSE  $bin holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac
+
+# The prompt hook's start fallback (#488, PR #536 lens B3): see install.sh, where it is explained.
+PASTE_START_NOTICE='Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.'
+paste_wrap() { # $1 harness, $2 the hook command (no single quote in it)
+  case $1 in
+    kiro) printf '%s' "/bin/sh -c '$2 || { [ \$? -eq 2 ] && exit 2; printf \"%s\\n\" \"$PASTE_START_NOTICE\" >&2; exit 2; }'" ;;
+    *) printf '%s' "/bin/sh -c '$2 || { printf \"%s\\n\" \"{\\\"systemMessage\\\": \\\"$PASTE_START_NOTICE\\\"}\"; exit 0; }'" ;;
+  esac
+}
 
 is_root_run() { [ "$(id -u)" = 0 ] || [ -n "$root" ]; }
 
@@ -183,12 +192,13 @@ render() { # $1 empty stage directory
   # The node install.sh rendered into the user hook (the first quoted word of its command), so both layers
   # run the same node; NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH are cleared as there.
   hook_node=$(jq -r '[.hooks.UserPromptSubmit[]?.hooks[]?.command | select(contains("hook prompt --harness"))][0] // ""' \
-    "$st/home/.claude/settings.json" | sed -n 's/^\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "\([^"]*\)".*/\1/p')
+    "$st/home/.claude/settings.json" | sed -n 's/^\/bin\/sh -c .\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "\([^"]*\)".*/\1/p')
   case $hook_node in /*) ;; *) echo "REFUSE  install.sh rendered no prompt hook (node not found?); nothing staged" >&2; exit 2 ;; esac
-  case $hook_node in *\"*|*\\*|*\$*|*\`*) echo "REFUSE  the node path holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac
+  case $hook_node in *\"*|*\\*|*\$*|*\`*|*\'*) echo "REFUSE  the node path holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac
   nodecmd="/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"$hook_node\" \"$bin/hook/src/commands/hook-entry.js\""
-  paste_claude="$nodecmd --harness claude --config \"$bin/clipboard.conf\""
-  paste_codex="$nodecmd --harness codex --config \"$bin/clipboard.conf\""
+  # The same start fallback install.sh renders (paste_wrap, copied verbatim; hook.test.js holds the two equal).
+  paste_claude=$(paste_wrap claude "$nodecmd --harness claude --config \"$bin/clipboard.conf\"")
+  paste_codex=$(paste_wrap codex "$nodecmd --harness codex --config \"$bin/clipboard.conf\"")
   # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin
   # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor
   # plus the allow list's own Edit protections (ADR-0031), which are user-level and named by their owner key.

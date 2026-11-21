@@ -44,8 +44,10 @@ wrap_mhw="$(cd "$(dirname "$0")/.." && pwd)/bin/mhw.js"
 wrap_node=$(command -v node)
 # The prompt hook command install.sh renders since #488: `mhw hook prompt` on that node, by absolute
 # path, with NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH cleared.
+# install.sh's own start fallback (paste_wrap, PR #536 lens B3), read from it, wraps the command.
+eval "$(sed -n "/^PASTE_START_NOTICE='/,/^}/p" "$inst")"
 hook_cmd() { # $1 harness, $2 clipboard.conf
-  printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$2"
+  paste_wrap "$1" "$(printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$2")"
 }
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
 ours() { # number of entries of the removed HITL picker guard in a settings file (must stay 0)

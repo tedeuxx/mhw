@@ -185,8 +185,57 @@ test('a stalled payload read gives the error notice at the deadline, not the har
 });
 
 /** The hook command install.sh renders (paste_cmd), for this node and package. @param {string} harness @param {string} conf */
-const rendered = (harness, conf) => '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + process.execPath + '" "' + MHW
-  + '" hook prompt --harness ' + harness + ' --config "' + conf + '"';
+/** install.sh's own start-fallback function (paste_wrap), read from the source, so the test runs the real thing. */
+const INSTALL_SH = fs.readFileSync(path.join(ROOT, 'global', 'install.sh'), 'utf8');
+const WRAP_FN = INSTALL_SH.slice(INSTALL_SH.indexOf("PASTE_START_NOTICE='"), INSTALL_SH.indexOf('\n}\n', INSTALL_SH.indexOf('paste_wrap() {')) + 3);
+/** The command as install.sh renders it: paste_wrap around the hook command. @param {string} harness @param {string} cmd */
+function wrap(harness, cmd) {
+  const p = spawnSync('/bin/sh', ['-c', WRAP_FN + '\npaste_wrap "$1" "$2"', 'sh', harness, cmd], { encoding: 'utf8' });
+  assert.equal(p.status, 0, p.stderr);
+  return p.stdout;
+}
+/** The hook command install.sh renders, for a node and an entry. @param {string} harness @param {string} conf @param {string} [node] @param {string} [entry] */
+const rendered = (harness, conf, node = process.execPath, entry = MHW) => wrap(harness,
+  '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + entry + '" hook prompt --harness ' + harness + ' --config "' + conf + '"');
+
+// PR #536 lens B3: an entry or node that is missing or does not start still gives the NOT-checked answer in
+// the harness's protocol (Claude Code and Codex: the notice JSON, exit 0; Kiro: exit 2 with the notice on
+// stderr), and a healthy hook's output and exit code pass through unchanged.
+test('the rendered command\'s start fallback: a hook that cannot start says NOT checked; a healthy one is unchanged', { skip: !POSIX && 'POSIX' }, () => {
+  const b = box();
+  withTerm(b);
+  const notice = 'Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.';
+  const broken = path.join(b.dir, 'broken.js');
+  fs.writeFileSync(broken, 'this is not javascript (\n');
+  const starts = [['entry missing', process.execPath, path.join(b.dir, 'gone', 'bin', 'mhw.js')], ['node missing', path.join(b.dir, 'no-node'), MHW],
+    ['entry does not parse', process.execPath, broken]];
+  for (const harness of ['claude', 'codex', 'kiro']) {
+    for (const [label, node, entry] of starts) {
+      const r = spawnSync('/bin/sh', ['-c', rendered(harness, b.confPath, node, entry)], { input: payload('mail ' + EMAIL), env: b.env, encoding: 'utf8' });
+      if (harness === 'kiro') {
+        assert.equal(r.status, 2, label + '/kiro: a start failure blocks');
+        assert.ok(r.stderr.includes(notice), label + '/kiro: ' + r.stderr);
+        assert.equal(r.stdout, '', label + '/kiro writes nothing to stdout');
+      } else {
+        assert.equal(r.status, 0, label + '/' + harness);
+        assert.deepEqual(JSON.parse(r.stdout), { systemMessage: notice }, label + '/' + harness);
+      }
+    }
+    // Healthy: exactly what the hook itself answers, for a block, a clean prompt and a warning.
+    for (const prompt of ['notes for ' + TERM, 'ship it', 'see [REDACTED:email]']) {
+      const direct = hookProcess(['--harness', harness, '--config', b.confPath], payload(prompt), b.env);
+      const viaShell = spawnSync('/bin/sh', ['-c', rendered(harness, b.confPath)], { input: payload(prompt), env: b.env, encoding: 'utf8' });
+      assert.deepEqual([viaShell.status, viaShell.stdout, viaShell.stderr], [direct.status, direct.stdout, direct.stderr], harness + ': ' + prompt);
+    }
+  }
+  // The command splits into the same words with a shell-like splitter (a harness that does not use a shell):
+  // /bin/sh, -c and one script.
+  const cmd = rendered('claude', b.confPath);
+  assert.ok(cmd.startsWith("/bin/sh -c '") && cmd.endsWith("'") && cmd.slice(12, -1).indexOf("'") < 0, cmd);
+  // install-managed.sh carries the same function, verbatim.
+  const managed = fs.readFileSync(path.join(ROOT, 'global', 'install-managed.sh'), 'utf8');
+  assert.ok(managed.includes(WRAP_FN), 'install-managed.sh\'s paste_wrap differs from install.sh\'s');
+});
 
 test('the rendered hook command names node by absolute path and clears NODE_OPTIONS: a planted --require never runs', { skip: !POSIX && 'POSIX' }, () => {
   const b = box();
@@ -202,7 +251,7 @@ test('the rendered hook command names node by absolute path and clears NODE_OPTI
   fs.rmSync(marker);
   for (const harness of ['claude', 'codex', 'kiro']) {
     const cmd = rendered(harness, b.confPath);
-    assert.ok(path.isAbsolute(process.execPath) && cmd.startsWith('/usr/bin/env -u NODE_OPTIONS '));
+    assert.ok(path.isAbsolute(process.execPath) && cmd.startsWith("/bin/sh -c '/usr/bin/env -u NODE_OPTIONS "));
     const r = spawnSync('/bin/sh', ['-c', cmd], { input: payload('mail ' + EMAIL), env, encoding: 'utf8' });
     assert.ok(!fs.existsSync(marker), harness + ': the planted --require ran');
     assert.match(r.stdout + r.stderr, /email in this prompt/, harness);

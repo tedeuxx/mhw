@@ -96,8 +96,8 @@
       "why": "Python's json.loads accepts NaN, Infinity and -Infinity; JSON.parse does not. Such a payload gets the internal-error notice (visible, never a silent pass). No agent harness is known to send one."
     },
     {
-      "what": "The entry file or node missing fails open (PR #536 QA B3).",
-      "why": "When bin/mhw.js, the admin copy of hook-entry.js, or the node binary is missing, the hook exits 1 (a Node stack trace) or 127 (env), the prompt passes, and no notice is printed. The base exited 2 (python3 could not open clipboard_guard.py), which Claude Code, Codex and Kiro treat as a block. mhw status shows the paste filter as not registered and 'hook node FAIL'. A wrapper that maps a start failure to exit 2 is not measured on any harness and is not shipped."
+      "what": "The entry file or node missing: fixed by the start fallback (PR #536 lens B3), not a residual any more.",
+      "why": "Both installers render /bin/sh -c '<hook> || <fallback>': a hook that cannot start (node or the entry gone, or the entry not parsing) prints the NOT-checked notice (systemMessage, exit 0) on Claude Code and Codex, and exits 2 with the notice on stderr on Kiro; a healthy hook passes through unchanged (test/clipboard/hook.test.js). mhw status names the missing node or entry as a FAIL item. The base exited 2 only for a missing script; a missing interpreter exited 127 and a parse error 1, neither a block. Kept here so the history of this entry is not a silent absence."
     },
     {
       "what": "The admin layer runs an owner-writable node (owner ruling, 2026-11-21).",

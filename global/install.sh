@@ -355,12 +355,28 @@ case $wrap_node in
   *) wrap_node=$wrap_path_node ;;
 esac
 wrap_mhw="$repo_root/bin/mhw.js"
-case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`]*) paste_ok=0 ;; esac
+case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`\']*) paste_ok=0 ;; esac   # a single quote too: the hook command is a /bin/sh -c '...' (#488)
+# The start fallback (#488, PR #536 lens B3): when node or the entry is missing or does not start, the
+# hook still says the prompt was NOT checked, in the harness's own protocol. Claude Code and Codex: the
+# notice as {"systemMessage": ...} and exit 0 (the hook itself always exits 0 there). Kiro: exit 2 with the
+# notice on stderr, the only answer Kiro shows; the hook's own exit 2 (a block) passes through. A healthy
+# hook's output and exit code are unchanged. The whole command is an explicit /bin/sh -c '...', so it means
+# the same whether the agent harness runs it through a shell (Claude Code, documented) or splits it into
+# words itself (Codex's hook runner and Kiro were read from their bundles, not measured).
+PASTE_START_NOTICE='Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.'
+paste_wrap() { # $1 harness, $2 the hook command (no single quote in it)
+  case $1 in
+    kiro) printf '%s' "/bin/sh -c '$2 || { [ \$? -eq 2 ] && exit 2; printf \"%s\\n\" \"$PASTE_START_NOTICE\" >&2; exit 2; }'" ;;
+    *) printf '%s' "/bin/sh -c '$2 || { printf \"%s\\n\" \"{\\\"systemMessage\\\": \\\"$PASTE_START_NOTICE\\\"}\"; exit 0; }'" ;;
+  esac
+}
+# A rendered command as a JSON string's body: backslashes first, then double quotes.
+json_body() { sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 paste_cmd() {
-  printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$clip_conf_dest"
+  paste_wrap "$1" "$(printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$clip_conf_dest")"
 }
 if [ "$paste_ok" = 0 ]; then
-  echo "REFUSE  paste filter: the data directory, node or package path holds a quote, backslash, dollar sign or backtick" >&2
+  echo "REFUSE  paste filter: the data directory, node or package path holds a quote (single or double), backslash, dollar sign or backtick" >&2
 else
   case $wrap_node in
     /*) ;;
@@ -706,7 +722,7 @@ render() {
         printf '{\n  "description": "%s; source: global/install.sh (paste filter, ADR-0011); %s; do not edit, re-run the installer",\n' \
           "$MARKER_ID" "$stamp"
         printf '  "hooks": {\n    "UserPromptSubmit": [\n      {\n        "hooks": [\n'
-        printf '          {"type": "command", "command": "%s", "timeout": 30}\n' "$(paste_cmd codex | sed 's/"/\\"/g')"
+        printf '          {"type": "command", "command": "%s", "timeout": 30}\n' "$(paste_cmd codex | json_body)"
         printf '        ]\n      }\n    ]\n  }\n}\n'
       } > "$2"
       ;;
@@ -721,7 +737,7 @@ render() {
           "$MARKER_ID" "$stamp"
         printf '      "name": "paste filter (personal-multi-harness-workstation-configuration)",\n'
         printf '      "trigger": "UserPromptSubmit",\n'
-        printf '      "action": {"type": "command", "command": "%s"},\n' "$(paste_cmd kiro | sed 's/"/\\"/g')"
+        printf '      "action": {"type": "command", "command": "%s"},\n' "$(paste_cmd kiro | json_body)"
         printf '      "timeout": 30\n    }\n  ]\n}\n'
       } > "$2"
       ;;

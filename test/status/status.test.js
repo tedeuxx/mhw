@@ -529,9 +529,11 @@ describe('the hooks reader', () => {
     const node = path.join(data, 'node');
     const mhw = path.join(data, 'pkg', 'bin', 'mhw.js');
     write(path.join(env.HOME, '.claude', 'settings.json'), JSON.stringify(entry('UserPromptSubmit', nodeCmd(node, mhw, 'claude'))));
-    assert.deepEqual(readHooks(env).user, []);
+    // PR #536 lens B3: a registered hook that cannot start is a FAIL item, never just absent.
+    assert.deepEqual(readHooks(env).user, ['paste filter (Claude Code) FAIL: ' + node + ' and ' + mhw + ' not found, the prompt hook cannot start']);
     write(node, '#\n');
-    assert.deepEqual(readHooks(env).user, [], 'the entry it runs is missing');
+    assert.deepEqual(readHooks(env).user, ['paste filter (Claude Code) FAIL: ' + mhw + ' not found, the prompt hook cannot start'], 'the entry it runs is missing');
+    assert.match(hooksText(readHooks(env)), /user: paste filter \(Claude Code\) FAIL: .*mhw\.js not found/);
     write(mhw, '#\n');
     write(path.join(env.HOME, '.codex', 'hooks.json'), JSON.stringify(entry('UserPromptSubmit', nodeCmd(node, mhw, 'codex'))));
     assert.deepEqual(readHooks(env).user, ['paste filter (Claude Code)', 'paste filter (Codex)']);
@@ -539,6 +541,17 @@ describe('the hooks reader', () => {
     if (process.getuid && process.getuid() !== 0) assert.match(hookNodeText(env), /owner-writable: a process running as you can replace it, or the libraries it loads/);
     fs.unlinkSync(node);
     assert.equal(hookNodeText(env), 'FAIL ' + node + ' not found: the prompt hook cannot run');
+  });
+  test('the command wrapped in the start fallback is read as the prompt hook (#488)', () => {
+    const node = path.join(data, 'node');
+    const mhw = path.join(data, 'bin', 'mhw.js');
+    const wrapped = "/bin/sh -c '" + nodeCmd(node, mhw, 'claude') + ' || { printf "%s\\n" "{}"; exit 0; }\'';
+    write(path.join(env.HOME, '.claude', 'settings.json'), JSON.stringify(entry('UserPromptSubmit', wrapped)));
+    write(node, '#\n');
+    write(mhw, '#\n');
+    assert.deepEqual(readHooks(env).user, ['paste filter (Claude Code)']);
+    fs.unlinkSync(mhw);
+    assert.match(String(readHooks(env).user), /FAIL: .*mhw\.js not found/);
   });
   test('the Python hook an earlier install left registered is named (#488)', () => {
     write(path.join(env.HOME, '.claude', 'settings.json'), JSON.stringify(entry('UserPromptSubmit', 'python3 ' + path.join(data, OLD_PASTE) + ' prompt-hook')));
@@ -553,7 +566,7 @@ describe('the hooks reader', () => {
     const cmd = nodeCmd(node, mhw, 'kiro');
     const doc = { version: 'v1', hooks: [{ description: MARKER + '; source: global/install.sh', name: 'paste filter', trigger: 'UserPromptSubmit', action: { type: 'command', command: cmd }, timeout: 30 }] };
     write(kiro, JSON.stringify(doc));
-    assert.deepEqual(readHooks(env).user, ['paste filter (Kiro CLI V3, modified)'], 'its node and entry are missing');
+    assert.deepEqual(readHooks(env).user, ['paste filter (Kiro CLI V3) FAIL: ' + node + ' and ' + mhw + ' not found, the prompt hook cannot start'], 'its node and entry are missing');
     write(node, '#\n');
     write(mhw, '#\n');
     assert.deepEqual(readHooks(env).user, ['paste filter (Kiro CLI V3)']);
@@ -594,7 +607,7 @@ describe('the hooks reader', () => {
     write(path.join(lists(), 'clipboard-terms.old-salt'), '# header\n' + HASH + '\n');
     const [ok, text] = termListsState(env);
     assert.equal(ok, false);
-    assert.match(text, /clipboard-terms\.old-salt holds 1 hash\(es\) made with a salt mhw no longer has: .*re-add with mhw add-term/);
+    assert.match(text, /clipboard-terms\.old-salt holds 1 hash\(es\) made with a salt mhw no longer has: .*re-add with mhw add-term, then delete .*clipboard-terms\.old-salt/);
   });
   test('term lists: the installed clipboard.conf names the paths', () => {
     const other = path.join(dir, 'elsewhere');

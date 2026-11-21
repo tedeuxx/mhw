@@ -338,14 +338,25 @@ declares every difference.
   and the cleaning core) that is missing, does not parse or throws gives the error notice, by its class
   only, and so does a term list or salt file that does not decode (QA B1), a stdin error and a `main()`
   that throws. So does a payload read that stalls past 20 s.
-- **Residual: the entry itself or node missing fails open.** When `bin/mhw.js`, the admin copy of
-  hook-entry.js, or the node binary is gone, the command exits 1 (a Node stack trace) or 127 (`env`),
-  no notice is printed, and the prompt passes on all three agent harnesses. The Python base exited 2
-  there (`python3` could not open the file), which every harness treats as a block. Wrapping the command
-  so that such a start failure exits 2 is possible but was not measured on any harness, so it is not
-  claimed. `mhw status` shows the paste filter as not registered and `hook node FAIL`: detection on
-  demand, not on each prompt. On Claude Code and
-  Codex the notice is visible. On Kiro it goes to stderr at exit 0, as before, and Kiro drops stderr
+- ~~**Residual: the entry itself or node missing fails open.**~~ *(Fixed the same day, PR #536 lens B3; the
+  struck text also misstated the base, see below.)* **The start fallback.** When `bin/mhw.js`, the admin
+  copy of hook-entry.js or the node binary is gone, or the entry does not start, node or `env` exits 1 or
+  127, which no agent harness treats as a block. Both installers therefore render the command as
+  `/bin/sh -c '<the hook> || <fallback>'`.
+  - The fallback on Claude Code and Codex prints the NOT-checked notice as a `systemMessage`
+    (`internal error (HookStartError)`) and exits 0. On Kiro it puts the notice on stderr and exits 2, the
+    one answer Kiro shows. The hook's own exit 2 (a block) passes through unchanged.
+  - A healthy hook's output and exit code are unchanged (tested against the hook run directly).
+  - The explicit `/bin/sh -c` means the same whether the agent harness runs the string through a shell
+    (Claude Code: documented) or splits it into words itself. For Codex (its hook runner calls a shell with
+    `-lc`, read from the binary's strings) and Kiro, this was read, not measured.
+  - What the base did, stated exactly: `python3` exited 2 only when the script was missing (CPython's code
+    for "can't open file"). A missing interpreter exited 127, and a script that did not parse exited 1.
+    Neither of those blocked.
+  - `mhw status` names it too: a registered prompt hook whose node or entry is gone is a
+    `paste filter (<harness>) FAIL: <path> not found, the prompt hook cannot start` item on the hooks
+    line, in both views. `hook node` says `FAIL … not found` only when the node itself is gone.
+  - On Claude Code and Codex the other error notices are visible. On Kiro it goes to stderr at exit 0, as before, and Kiro drops stderr
   there. That Kiro gap is unchanged by this slice.
 
 ## Links

@@ -24,12 +24,31 @@ export const PASTE = '--harness ';
 export const OLD_PASTE = 'clipboard_guard.py';
 /** @param {string} harness */
 export const oldPasteLeftover = (harness) => 'removed Python paste filter still registered (' + harness + ')';
-const PASTE_NODE = /^\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "([^"]+)" "([^"]+)" (?:hook prompt )?--harness /;
+const PASTE_NODE = /^(?:\/bin\/sh -c ')?\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "([^"]+)" "([^"]+)" (?:hook prompt )?--harness /;
 
 /** [node, entry] of our prompt hook command, or null. @param {string} cmd */
 export function pasteParts(cmd) {
   const m = PASTE_NODE.exec(cmd);
   return m && /[\\/](?:bin[\\/]mhw|hook-entry)\.js$/.test(m[2]) ? [m[1], m[2]] : null; // either separator: the readers also run on Windows
+}
+
+/**
+ * The FAIL item for a registered prompt hook whose node or entry is gone (an npm uninstall, an nvm switch, a
+ * moved checkout), or null: the hook cannot start, so the filter must not just vanish from the list (#488,
+ * PR #536 lens B3). The rendered command's start fallback says NOT checked on each prompt; this says it here.
+ * @param {string[]} cmds
+ * @param {string} harness
+ * @returns {string | null}
+ */
+export function pasteFail(cmds, harness) {
+  if (pasteOk(cmds)) return null;
+  for (const c of cmds) {
+    const p = pasteParts(c);
+    if (!p) continue;
+    const gone = p.filter((x) => !isFile(x));
+    if (gone.length) return 'paste filter (' + harness + ') FAIL: ' + gone.join(' and ') + ' not found, the prompt hook cannot start';
+  }
+  return null;
 }
 
 /** True when one of cmds is our prompt hook whose node and entry are both files. @param {string[]} cmds */
@@ -102,6 +121,8 @@ export function kiroHookState(env, data) {
     && pasteOk([str(get(action, 'command'))])
     && str(get(action, 'command')).includes('--harness kiro');
   void data;
+  const fail = isDict(action) ? pasteFail([str(get(action, 'command'))], 'Kiro CLI V3') : null;
+  if (!good && fail) return [fail, state];
   return [good ? 'paste filter (Kiro CLI V3)' : 'paste filter (Kiro CLI V3, modified)', state];
 }
 
@@ -125,11 +146,15 @@ export function readHooks(env) {
   if (commands(doc, 'PreToolUse').some((c) => c.includes(GUARD))) found.push(LEFTOVER);
   if (restartRegistered(doc)) found.push(restartLeftover('Claude Code'));
   if (pasteOk(commands(doc, 'UserPromptSubmit'))) found.push('paste filter (Claude Code)');
+  const failC = pasteFail(commands(doc, 'UserPromptSubmit'), 'Claude Code');
+  if (failC) found.push(failC);
   if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(OLD_PASTE))) found.push(oldPasteLeftover('Claude Code'));
   [doc, state] = readJson(pathlibJoin(codexHome(env), ['hooks.json']));
   unread ||= state === 'not read';
   if (restartRegistered(doc)) found.push(restartLeftover('Codex'));
   if (pasteOk(commands(doc, 'UserPromptSubmit'))) found.push('paste filter (Codex)');
+  const failX = pasteFail(commands(doc, 'UserPromptSubmit'), 'Codex');
+  if (failX) found.push(failX);
   if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(OLD_PASTE))) found.push(oldPasteLeftover('Codex'));
   const [kiro, kstate] = kiroHookState(env, data);
   unread ||= kstate === 'not read';
@@ -143,6 +168,8 @@ export function readHooks(env) {
   if (commands(doc, 'PreToolUse').some((c) => c.includes(GUARD))) found.push(LEFTOVER);
   if (restartRegistered(doc)) found.push(restartLeftover('Claude Code'));
   if (pasteOk(commands(doc, 'UserPromptSubmit'))) found.push('paste filter (Claude Code)');
+  const failAC = pasteFail(commands(doc, 'UserPromptSubmit'), 'Claude Code');
+  if (failAC) found.push(failAC);
   if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(OLD_PASTE))) found.push(oldPasteLeftover('Claude Code'));
   const req = codexRequirements(env);
   let text = '';
@@ -161,6 +188,8 @@ export function readHooks(env) {
     }
   }
   if (text.includes(MARKER) && text.includes('[[hooks.UserPromptSubmit') && pasteOk(codexCmds)) found.push('paste filter (Codex)');
+  const failA = text.includes(MARKER) ? pasteFail(codexCmds, 'Codex') : null;
+  if (failA) found.push(failA);
   if (text.includes(MARKER) && text.includes(OLD_PASTE)) found.push(oldPasteLeftover('Codex'));
   if (text.includes(MARKER) && text.includes(RESTART)) found.push(restartLeftover('Codex'));
   result.admin = unread && !found.length ? 'not read' : [...found, ...(unread ? ['a file not read'] : [])];
@@ -270,7 +299,7 @@ export function termListsState(env) {
     }
     const old = paths[key] + '.old-salt';
     const nOld = hashCount(old);
-    if (nOld) problems.push(old + ' holds ' + nOld + ' hash(es) made with a salt mhw no longer has: those terms are not matched: re-add with mhw add-term');
+    if (nOld) problems.push(old + ' holds ' + nOld + ' hash(es) made with a salt mhw no longer has: those terms are not matched: re-add with mhw add-term, then delete ' + old);
   }
   if (problems.length) return [false, problems.join('; ')];
   return [true, total ? total + ' hash(es), salt file present' : 'no term list'];

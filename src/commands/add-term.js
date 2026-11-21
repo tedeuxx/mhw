@@ -135,7 +135,7 @@ export function addEntered(conf, first, second, listName) {
       const aside = list + '.old-salt';
       fs.renameSync(list, aside);
       note += 'NOTE    ' + n + ' hash(es) in ' + list + ' were made with a salt mhw no longer has (the Keychain, before #488); '
-        + 'they can never match, so the file was moved to ' + aside + '. Re-add each of those terms with mhw add-term.\n';
+        + 'they can never match, so the file was moved to ' + aside + '. Re-add each of those terms with mhw add-term, then delete ' + aside + '.\n';
     }
   }
   const key = /** @type {Record<string, string>} */ (core.TERM_LISTS)[listName];

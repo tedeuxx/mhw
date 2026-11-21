@@ -353,8 +353,13 @@ def check_floor(box, exp):
     # path, from the installed package, with NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH cleared.
     node = box.d.parent / "tools" / "node"
     mhw_js = Path(os.path.realpath(box.d / "prefix" / "lib" / "node_modules" / "mhw")) / "bin" / "mhw.js"
-    want = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness kiro --config "%s"' % (
+    inner = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness kiro --config "%s"' % (
         node, mhw_js, data / "clipboard.conf")
+    # install.sh's start fallback (paste_wrap, PR #536 lens B3), run from its own source: the expected string.
+    sh = (Path(os.path.realpath(box.d / "prefix" / "lib" / "node_modules" / "mhw")) / "global" / "install.sh").read_text(encoding="utf-8")
+    fn = sh[sh.index("PASTE_START_NOTICE='"):sh.index("\n}\n", sh.index("paste_wrap() {")) + 3]
+    want = subprocess.run(["/bin/sh", "-c", fn + '\npaste_wrap "$1" "$2"', "sh", "kiro", inner],
+                          capture_output=True, text=True).stdout
     got = [e["action"].get("command") for e in kentries if isinstance(e.get("action"), dict)
            and e["action"].get("type") == "command"]
     check(got == [want], "Kiro: the hook file runs the installed core in kiro mode", "got %r" % got[:2])
