@@ -1,0 +1,2295 @@
+{
+  "answers": [
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')",
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "declarations": [],
+      "flat": "50f14e8bf3eb30d83f416d9592057baa0a223df4d1dafedbef00c27dbf09c042",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')",
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "live": "52ba76e329f6f7ea0daac36fe2d7fa1977ae344e18fbfcb537c46b978bc758b4"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')",
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "5528ebb40b8db5f07e094c70fa1c7e7aae32c8abac1f69bf7e5debdad69014ec",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')",
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "live": "ba8e926f6f327423da18b6135df9eaac6bece0540c49daf3caec2f9cdbf96714"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "8fde5a4b9da8f705c9707cd540173fb3e303fe49d9c9efae40a794e17812b74c",
+      "legacy": [],
+      "live": "9c75337584c5e70a3d8a795ffd54c3801d7e8f99228d11339fc29cb0dc14477e"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "c2bd369816b0ccc353503cafe910465ba723005862f514134bdffa9ac59a79bb",
+      "legacy": [],
+      "live": "7ae0a782a5953ff2a5ce9d6aa180ca5466f778ff8b993d6c35e4edeafd3da9e2"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "d06f5e5a97268de67523a3d5867aca2d153945a1dbfb761ff1e9e5edf0962d04",
+      "legacy": [],
+      "live": "87d3451fec4cdd0b1ace23c97a0aa3e283c24ddc74eaffb07dd6188cac089b53"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "6603c9ee4d5b0ece17eb48b7a67a04e1b976df3f67f72edfc68b32a561cfc697",
+      "legacy": [],
+      "live": "6603c9ee4d5b0ece17eb48b7a67a04e1b976df3f67f72edfc68b32a561cfc697"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalatesé boundary')"
+      ],
+      "declarations": [],
+      "flat": "8348f0098a6a6ecbe36748498ace9f9b5898c01f3889ac09fb69eb1f3ea22e40",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalatesé boundary')"
+      ],
+      "live": "8348f0098a6a6ecbe36748498ace9f9b5898c01f3889ac09fb69eb1f3ea22e40"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('ESCALATES THE BOUNDARY')"
+      ],
+      "declarations": [],
+      "flat": "ce0e83fbe6847464132f4e3cb5a57d5555642ff2c007cbe6677a4f1f2e58a89d",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('ESCALATES THE BOUNDARY')"
+      ],
+      "live": "ce0e83fbe6847464132f4e3cb5a57d5555642ff2c007cbe6677a4f1f2e58a89d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('eſcalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "035a830d1a4a905a31519afb4410cb6297bc1d8772d72e80c5ce549656bf5c27",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('eſcalates the boundary')"
+      ],
+      "live": "035a830d1a4a905a31519afb4410cb6297bc1d8772d72e80c5ce549656bf5c27"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "8813a047ab9d31b46930a3668a08df42c3011e9730be8bb9833fa6b2657ac4aa",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "f90b44e72c11a3a14cd13710bb362b3b6af414275ff1bcd848e88854444b53a8"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "8813a047ab9d31b46930a3668a08df42c3011e9730be8bb9833fa6b2657ac4aa",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "d4541cba00027906f8eca547cf4e23c31b8d2df9c7874d06853bfcbc501529a0"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "0aebb2cc888f33865a10598bae94e1922cc3a0bd5ca461892de4b7080dd8c8a5",
+      "legacy": [],
+      "live": "0aebb2cc888f33865a10598bae94e1922cc3a0bd5ca461892de4b7080dd8c8a5"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class goes to the owner')"
+      ],
+      "declarations": [],
+      "flat": "b35e6988cf2d5cb29026f469f841f4f3d9137f62c0b5c3f149a0156f0e6263ae",
+      "legacy": [
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class goes to the owner')"
+      ],
+      "live": "b35e6988cf2d5cb29026f469f841f4f3d9137f62c0b5c3f149a0156f0e6263ae"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "e18a4413b5e16abb44c11564bf7b49dbf9441329f03ed12a258b409f3021e228",
+      "legacy": [],
+      "live": "e18a4413b5e16abb44c11564bf7b49dbf9441329f03ed12a258b409f3021e228"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate does not merge the boundary class: that changes the method's executor ('never merge boundary')"
+      ],
+      "declarations": [],
+      "flat": "c00ae898715cf41e97a6e46a3459efec3621fc974abfeabaa05d2ce054abecde",
+      "legacy": [
+        "the gate does not merge the boundary class: that changes the method's executor ('never merge boundary')"
+      ],
+      "live": "d74b998b41b31e009e7a84b018204a43426369afa0ae70aee9f6d024d6ec7de3"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the brief claims it wins over the method, which reaches merge authority ('This File Wins')"
+      ],
+      "declarations": [],
+      "flat": "1326a3f03b80e609a8b4c12919c2714031dfc7725510f10ca87eb7e69f7141cb",
+      "legacy": [
+        "the brief claims it wins over the method, which reaches merge authority ('This File Wins')"
+      ],
+      "live": "1326a3f03b80e609a8b4c12919c2714031dfc7725510f10ca87eb7e69f7141cb"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "dec7ed0ddaae763c08017a29353a3e1eb242efe9023f13ae3dc3f3b25bbd5d6e",
+      "legacy": [],
+      "live": "dec7ed0ddaae763c08017a29353a3e1eb242efe9023f13ae3dc3f3b25bbd5d6e"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "declarations": [],
+      "flat": "ef2ba1e9d489e1ff2f20d54cd8183e1b61b57656e983196c6cd59bfffeddaf2b",
+      "legacy": [
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "live": "ef2ba1e9d489e1ff2f20d54cd8183e1b61b57656e983196c6cd59bfffeddaf2b"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "0fdb5da09266d6f084c27073c97ef7b1b83aa146141b2514c11abfa09091b75d",
+      "legacy": [],
+      "live": "0fdb5da09266d6f084c27073c97ef7b1b83aa146141b2514c11abfa09091b75d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "e052e0f5397298f0353ca82b4e0d4bb1d095e55e37e35d8478da0e66e886d03e",
+      "legacy": [],
+      "live": "e052e0f5397298f0353ca82b4e0d4bb1d095e55e37e35d8478da0e66e886d03e"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "df03b170d67cff256ddf95e968d44b5729b8e336fe550a3401cd1686c0575952",
+      "legacy": [],
+      "live": "df03b170d67cff256ddf95e968d44b5729b8e336fe550a3401cd1686c0575952"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "32e11e2c0ae31964b51a9277687f1439a3ea45f65b3e5e08f37d21cab2116776",
+      "legacy": [],
+      "live": "32e11e2c0ae31964b51a9277687f1439a3ea45f65b3e5e08f37d21cab2116776"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "9dc52d0e82188537b6e878ae93ed1e20bb70ca2d388d22ceb01dc7a58821fb70",
+      "legacy": [],
+      "live": "9dc52d0e82188537b6e878ae93ed1e20bb70ca2d388d22ceb01dc7a58821fb70"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "eda24d00468c68589d7f25c3cd21537606c58e1990d869092944d90c358203ea",
+      "legacy": [],
+      "live": "eda24d00468c68589d7f25c3cd21537606c58e1990d869092944d90c358203ea"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "44cd87f215d121a1d837dfc1391527971b7f881e6a1b2788a8ddd00cd2cd6533",
+      "legacy": [],
+      "live": "f9b8d526e823501fcefb02b6f4a2f6a233f3e9cc255e769e1f6f1631b41e6673"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "27579c2f820af347761f21567b822b9880564916e9c1162a0945c2616e19f9b5",
+      "legacy": [],
+      "live": "27579c2f820af347761f21567b822b9880564916e9c1162a0945c2616e19f9b5"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "50ef8a072b7c3566d7239d1b9f8c5b79f93927b658aecc1c753d3ec50af4d530",
+      "legacy": [],
+      "live": "50ef8a072b7c3566d7239d1b9f8c5b79f93927b658aecc1c753d3ec50af4d530"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "8813a047ab9d31b46930a3668a08df42c3011e9730be8bb9833fa6b2657ac4aa",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "8813a047ab9d31b46930a3668a08df42c3011e9730be8bb9833fa6b2657ac4aa"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "247610f4dedd4ab7247d07dbda19c81ca9817f85820742cad49d407ffae9e4ed",
+      "legacy": [],
+      "live": "247610f4dedd4ab7247d07dbda19c81ca9817f85820742cad49d407ffae9e4ed"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "legacy": [],
+      "live": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "55d4230b6b2d89060dfa137de1f64025a1093ce1c69a4b562eb099bcc030a6dc",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "287efd38491bc3f8dc916ae5b2205e4fe5b7b72b99960c3d337521f1a5e4dbde"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "27022f19c89dabb2b7a39510bed550bf2faa946a6b81086903ab633951862252",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "20cc945943b20d0ccdedde0320b4bcc5be57fd850d8e5dfe250c7ccab156e61d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "16f22f8ced5d881e92503869953c217c1f873c6196505a2fe53addc0e1b572c0",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "dd3a886f3b09e5b70ccab0b4f363210f77fe1607a3ca4ba50176172b491ea990"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "ee606a1389be7b562a293f7b44446981cfca469cb5c0734912eef5bea65f154e",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "511002b707e6d0b3fbba7a8f903d1b9f782e41c2a1cfa13e5c0721e27751d394"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "8813a047ab9d31b46930a3668a08df42c3011e9730be8bb9833fa6b2657ac4aa",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "8813a047ab9d31b46930a3668a08df42c3011e9730be8bb9833fa6b2657ac4aa"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "8813a047ab9d31b46930a3668a08df42c3011e9730be8bb9833fa6b2657ac4aa",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "f4d10883af768d2c3067c8abe92ee2b80e1505c0cf0de6c406f1984667526667"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "0636d1c745f4c306c8ee65294ed947d321919701351c908544ccf8060c2bda14",
+      "legacy": [],
+      "live": "0636d1c745f4c306c8ee65294ed947d321919701351c908544ccf8060c2bda14"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "9d3a1c7ee1cf9934ad276c30a64c752f5043635b0a634aaffd97e96d669667df",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "8a614b6a94db692965b9a50d54ca2efab48db504f72c362cdf7a7464e3dea413"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "6058c264b236f0df3a344ba462b882ec45bbe276213b22a32b65772a2560d7e2",
+      "legacy": [],
+      "live": "b8351f9893dc7a66cc190f6308e55abe18fbc61696c4752a25385a1d95e1a3f0"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "6058c264b236f0df3a344ba462b882ec45bbe276213b22a32b65772a2560d7e2",
+      "legacy": [],
+      "live": "00346cbe9de84d787429397b3663efd29d0dd47c4ddc3d9c7507d8890dbc6c3e"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "\t* loop-model : trunk-single-env ",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "273c969b31068e1b150bbdb395f2f40a8b6735e5f882dd0d596b7f7e879e8088",
+      "legacy": [],
+      "live": "73a5bfc3e2ce3e1eb3a81051011e607788add52d60bf6b42ade65130ba744735"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v١",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "0b51e4b0e46beffe9003ffc57bfdcbc2e43c6191f7e860c2ed230b8b86d5ae8c",
+      "legacy": [],
+      "live": "92e22b7d0929c8d694b12662bf2ab4ced6df41ef8758c2b41f55188822e60e28"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority  v01",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "0a413d41e07c5cdbdbebbbd39029be425aad43e685a9fd8f8e6149a9d23446d9",
+      "legacy": [],
+      "live": "947622246275ca36c77a5313d4986d190a9eade4f82f7959f304789ed46dd5ca"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v9",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": [
+            9,
+            [
+              1
+            ]
+          ]
+        }
+      ],
+      "flat": "1a52ed72406d99daf59402b23830181bfe2d6b19ce76d78577682b4229126cff",
+      "legacy": [],
+      "live": "ee550e89c0ab2d1871b0388704e85ff494e5be5ce8c211d6a89ee15a9457e691"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- Loop-Model: trunk-single-env",
+          "- integration-branch: `rc/next`",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": true,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "a83b53df5d6374e3570c7001c1bbd6412f07dba091a3dab75f570afe0fe91542",
+      "legacy": [],
+      "live": "03ded96a298c35bdf56fcfcaee4a0a0930a9c1c01dff522751d8699cfd808fc4"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- integration-branch: -bad",
+          "- integration-branch: rc/é",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": true,
+          "findings": [
+            "the declaration carries 2 `integration-branch` lines; at most one",
+            "`integration-branch: -bad` is not a branch name",
+            "`integration-branch: rc/é` is not a branch name"
+          ],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "9aabe6c318b27b35d4801b0deb6413534623878a577f1a62a5d00f8bcf1fbfba",
+      "legacy": [],
+      "live": "28adfac0577a99bc1543e72091825ff5309ac180d5c9156cf30fe88b6bdbd6a9"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: Pending-Human review",
+          "- boundary-trigger: go/no-go",
+          "- boundary-trigger: a HOLD",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [
+            "a boundary trigger may classify, not assign authority: 'Pending-Human review' uses 'Pending-Human'",
+            "a boundary trigger may classify, not assign authority: 'go/no-go' uses 'go/no-go'",
+            "a boundary trigger may classify, not assign authority: 'a HOLD' uses 'HOLD'"
+          ],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "db787e50dc5f0204e3a1e0c03ce48bfab8fe1aee7ce98fe63e0cfe6b754b8e58",
+      "legacy": [],
+      "live": "55903e52a38d1df7a060e064ccfc05b8ecf2a2185df81c01a12e686a8c0c8eeb"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: holding",
+          "- boundary-trigger: unratified",
+          "- boundary-trigger: merger",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "3bd29904fd81bd4691826ede30773e90b8febf762564a731fe64cc0f4faaac73",
+      "legacy": [],
+      "live": "13213efefc4f6dfa624e59b6282f3541c842ffd1da666246d3da1c23307b7265"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- EXECUTOR: x",
+          "- class-a: y",
+          "- classes: z",
+          "- who-merges: w",
+          "- approve: v",
+          "- humans: u",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [
+            "executor override: a project may not declare `executor`; the method owns the executor, the verdicts and the holds",
+            "class relationship override: a project may not declare `class-a`; the method owns the executor, the verdicts and the holds",
+            "class relationship override: a project may not declare `classes`; the method owns the executor, the verdicts and the holds",
+            "executor override: a project may not declare `who-merges`; the method owns the executor, the verdicts and the holds",
+            "verdict override: a project may not declare `approve`; the method owns the executor, the verdicts and the holds",
+            "hold override: a project may not declare `humans`; the method owns the executor, the verdicts and the holds"
+          ],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "c37fb9d8d75ec6db372577ac218ad0bd4e7fde9fa2d720415ff1710f25339ae2",
+      "legacy": [],
+      "live": "214bc387643f6c228a2f9df1bfc83f1b65372912f1e20a7df4b56145b6bbef76"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "6058c264b236f0df3a344ba462b882ec45bbe276213b22a32b65772a2560d7e2",
+      "legacy": [],
+      "live": "b8351f9893dc7a66cc190f6308e55abe18fbc61696c4752a25385a1d95e1a3f0"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ],
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        },
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "36e483dbc50deff21b67c2d58ecb4433a957a1b2e0bd5159aff942f36675a2f2",
+      "legacy": [],
+      "live": "8c188423a9e5e99265ff5b1d5374fcd73c2070d2fbcd76d3a8ed7d623f07fbec"
+    },
+    {
+      "blocks": [
+        [
+          "- contract: merge-authority v1",
+          "- loop-model: trunk-single-env",
+          "- boundary-trigger: a merge touching `iac/` (confirm the plan first)",
+          "- boundary-trigger: anything threatening the site's continuity",
+          "- boundary-trigger: any change to how work is decided",
+          "- boundary-trigger: publishing an article (the owner's voice)"
+        ]
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        {
+          "branch": false,
+          "findings": [],
+          "model": "trunk-single-env",
+          "unsupported": null
+        }
+      ],
+      "flat": "6058c264b236f0df3a344ba462b882ec45bbe276213b22a32b65772a2560d7e2",
+      "legacy": [],
+      "live": "53592e4603d74b72d48fe1d92c3dc37186436349fc7ab48ab3570b06c88207c7"
+    },
+    {
+      "blocks": [
+        null
+      ],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [
+        null
+      ],
+      "flat": "6058c264b236f0df3a344ba462b882ec45bbe276213b22a32b65772a2560d7e2",
+      "legacy": [],
+      "live": "b0b74dadf960024a5f31f3d0675feafecd2096ef553aa25224504634d4f0907a"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "legacy": [],
+      "live": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no projection block",
+        "no longer names APPROVE-AND-MERGE",
+        "no longer names APPROVE-PENDING-HUMAN",
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "legacy": [],
+      "live": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "490dcc58b9c79078b9dc9578e452ab63ecf24bc88f8d2d5b172eca2d89a827fe",
+      "legacy": [],
+      "live": "15461995e76de01cab66a1eaf2565e4cd0cf0e1e796c75ee1c77178a8c0bdda0"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "0c9736a4e97de41ef65c52849beac453ef340a29609fffd979f809f3056d763c",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "56616fd422f2685293e31d0b4f258731e09c029e9d3f17306eac81a5cddddb24"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "its live prose names the retired verdict APPROVE-AND-MERGE-BOUNDARY"
+      ],
+      "declarations": [],
+      "flat": "500f8ad702448563f315d8b37984fa9e48331330ba51a9e44c6a52fac64e3b7f",
+      "legacy": [],
+      "live": "ef98cfc6884d097625b14cab0ae26e2d17573ef51871f5ce76959307308629d9"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "declarations": [],
+      "flat": "7095b84355306091102a554b5060ef353a4ff51807ef04c10ff4c9e1dbbe1299",
+      "legacy": [
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "live": "393d058566ad21166b07afbbd50a960ec12251ac785f3b1bb93f5ed29b43b41f"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class is handed up')",
+        "the gate does not merge the boundary class: that changes the method's executor ('never merges the boundary')"
+      ],
+      "declarations": [],
+      "flat": "8cefe89eaf3e9fb4a3a78dec4367487f992e5a3561ef0845d396c0f4b48a1d04",
+      "legacy": [
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class is handed up')",
+        "the gate does not merge the boundary class: that changes the method's executor ('never merges the boundary')"
+      ],
+      "live": "640a8fbd80a944790ff1d87eb7a86b737ee23e7d865d1b14eee392fad8fa6f1d"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "490dcc58b9c79078b9dc9578e452ab63ecf24bc88f8d2d5b172eca2d89a827fe",
+      "legacy": [],
+      "live": "5eeb3d89fd73bb992edc445f616fc0a2c6359324fc449a0024d774d8bcd4c875"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "490dcc58b9c79078b9dc9578e452ab63ecf24bc88f8d2d5b172eca2d89a827fe",
+      "legacy": [],
+      "live": "5eeb3d89fd73bb992edc445f616fc0a2c6359324fc449a0024d774d8bcd4c875"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "490dcc58b9c79078b9dc9578e452ab63ecf24bc88f8d2d5b172eca2d89a827fe",
+      "legacy": [],
+      "live": "6464cab87954cdac21df638a375378fb0800ef115aea0a2f03986cfa42f2e76f"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "490dcc58b9c79078b9dc9578e452ab63ecf24bc88f8d2d5b172eca2d89a827fe",
+      "legacy": [],
+      "live": "6464cab87954cdac21df638a375378fb0800ef115aea0a2f03986cfa42f2e76f"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "490dcc58b9c79078b9dc9578e452ab63ecf24bc88f8d2d5b172eca2d89a827fe",
+      "legacy": [],
+      "live": "6464cab87954cdac21df638a375378fb0800ef115aea0a2f03986cfa42f2e76f"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "490dcc58b9c79078b9dc9578e452ab63ecf24bc88f8d2d5b172eca2d89a827fe",
+      "legacy": [],
+      "live": "6464cab87954cdac21df638a375378fb0800ef115aea0a2f03986cfa42f2e76f"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "490dcc58b9c79078b9dc9578e452ab63ecf24bc88f8d2d5b172eca2d89a827fe",
+      "legacy": [],
+      "live": "6464cab87954cdac21df638a375378fb0800ef115aea0a2f03986cfa42f2e76f"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "426e03f7bae80f14a8abffee8c8a6f75c96163d0d033b71484abeb77e850863c",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "629b8cbd94075552df4f4f8aaf9ce22c75cc3ed608e29f452e508e07f6e923f0"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "54e109dc2eb780a039167acd451c353d92c6ca702b9ace7b31bec9abb7875841",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "997e4ce4b58058d69143d4be200ec944b189323852e55ac88478fb91bceed3c7"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "2bb0c9cf15f175cd9576151419783c6ac52e273d1ea6d79b3559237fa3beb80f",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "a43cd2cfb2c2c7ecb034eeaf113a8185766bdc301d3e44c7728e174dbc699663"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "29fc5750a026ad1aee88cc49db58928cd7c09f69b4304ace67cee5e3a3998edd",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "6dac6d7b5926f7f6a55ea56b012e0cd976ce5d78f1506138e6941f94d67361a1"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "445f0f5dd2ed51c413044657a009499cebb697e2e49e767f16f0a092fb0b3695",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "35f6f52aecd371e003911e40e333e6a7d449013e538d738235d25782dc380d22"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "c474d7959e04afa6b3bf11510cdf6e7278f5a372a8611e0274a4ee5a3c7d6f39",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "00276ccc8303394c5a8d631a098dddf8fea9b912d3c716b9921700a4f6dd3ceb"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "91a6793e784f8479a0f347e41298c2832e4b56fb5b1fb6f816204066d52a1c43",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "9be2510b1b89de70e230b20c0b81fd6ca1ac7c0374eea8b026e1c4422fad165c"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "fc71563ac6c4ab7144a90490839ba77c7dc004ba339f34bc21adb0e4504ededd",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "774f52fe9924996d8898d4447bc1287db15002c50bc63e3ee78b5783c1160ac8"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "036348185e5ae46dc4467d7c337e629111ece6166cf49e7ba722734562ce2a30",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "fa663b754cf5d5800eb872941bb26b11953e4fee5ad7a238f123ec93e1884c41"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "fa780f3477b8356bcbfa30b24c8afac80d7fafbd97f49149484c945f511aee62",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "25db5d1710a7157b23ecaefd4c1fb0ecef4b45f9fc101a751966a21f5e753115"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "04c1085e6a2778a5bed561ec84693816b4a3d023a96be9494ffd5a7758807e4d",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "2439371ca7677dda0f05fa794bc11b3d450f9c437e481c35a0616a686bae0774"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "645cfcaf8f7eb43b07f0d50d4b36d14adde97915303844c84dc94a21eb3bfc81",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "e8b4e694908ebdb151daf18e0adb6fa36193605c055be1f53b9ada197a99dd5f"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "b9686b1e8e14dc9fa9bab3766cf13f09503cb9bb7c40b08c8c5848005c954ead",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "2ce9a98b685a46184ea3c0282d9262c3248e929016226c53292786107d6c768f"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "36ebe86eaf175c6b7a76ee450389768c5b68604a085944659ddc42b4ea42a13c",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "0d40ac9a595a1cb004d948bb24d672035c3a08c22abe2996a4f1b4acfe9de111"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "b3ccc490b4d0bf4f2419ba8fb48e4acbccab958233a9c600121328331baf1e91",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "f2c93842ac402676dcbf8e1de2ce777a5344266abcc868bf5f6e58ade6e5e71c"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "5482444f8b98c739adab0fd8ab53f389522b87801d28f8d1f263ed04b14f78a8",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "c8487fac33dcd059a33cb6dcc8b902aa53458ca5a9f10ac2dbdc6c286b307b28"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "c8bf0b9197cf16e45ec05d5dbe0582097db4c4df6549cfc09c69a906663f4440",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "9087980889cd30c95f30e9c6ce22a0c5e5dfcd82d52beae2d4ecc9c46f4cfffd"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "de707c810f99c23775c12e8d2ef3eac1a98f48fa6b5ded544291a33a94b622c1",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "0eb881d8737d62aa806499ad1e8c885da9835de03d3c2f5d6eb419ea4c7d3343"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "5814195c4124ddfebee5c15b5033b031cc36a4fa1f7d2cdc44a7eb72f6ae427a",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "0b345ad3f45d337275146fd1c6ac61845a70bbc77a4b156b50e405eceff17fbc"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "5aa2554ec4bb09005ea892a4e04e95d24135dd6d05a8ab211c52555435d13416",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "c3dc392073986e7c206151859f173ac69177878ed7229d26eaaabedab1edd362"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "5fb08dd996963a58ee7e04c53955a48ed15b344afaaefe70c2ceb98ed8fec48f",
+      "legacy": [],
+      "live": "960b4de2eaf5ea4d6bade65fa60549ffe8180eec2ca0562087134e544d559151"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "4b7073bd39c101a777ba1f4d7a888d70532eaf6d7b77bf1e6cfb80f55c2f0a50",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "0f125d49a27755d0379684ce90613807e732960da45cbbc5f56d7a6e24238353"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "its live prose names the retired verdict APPROVE-AND-MERGE-BOUNDARY"
+      ],
+      "declarations": [],
+      "flat": "640e5f93350e435db21dfefa23395ff257a48a3492a94661f4396836556f3d3f",
+      "legacy": [],
+      "live": "872e0474a337f5616eac8bac2c5ebaf3232eebad11e831e95ce1e6ecb82fb787"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "declarations": [],
+      "flat": "caf8f1045d6f7f4c3bee19f9cc62cbd59a07120c74574a4101925bdd5dd3f1f3",
+      "legacy": [
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "live": "ddfda00112b3fc8dd2189de7e8f481239d7fa68e2536a4b6b67ee6b2bc8cf1bc"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class is handed up')",
+        "the gate does not merge the boundary class: that changes the method's executor ('never merges the boundary')"
+      ],
+      "declarations": [],
+      "flat": "d47f95f41c14b5f031c8d97aebd3e677b064462387a5386ec3f5fb5972cb6a1f",
+      "legacy": [
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class is handed up')",
+        "the gate does not merge the boundary class: that changes the method's executor ('never merges the boundary')"
+      ],
+      "live": "53d577ab0c8dcb98c68291af30438b65bb932edc46a140d999d47c5097816537"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "5fb08dd996963a58ee7e04c53955a48ed15b344afaaefe70c2ceb98ed8fec48f",
+      "legacy": [],
+      "live": "c21a9e3a74cfb2e698d5212e2a13b0ba3f06538fb381a027ba17e54603fce706"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "5fb08dd996963a58ee7e04c53955a48ed15b344afaaefe70c2ceb98ed8fec48f",
+      "legacy": [],
+      "live": "c21a9e3a74cfb2e698d5212e2a13b0ba3f06538fb381a027ba17e54603fce706"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "5fb08dd996963a58ee7e04c53955a48ed15b344afaaefe70c2ceb98ed8fec48f",
+      "legacy": [],
+      "live": "743942ba0732a1ce9e2fcdbc6853fc6206f03d488350472cf9d783f2dd4ef9ab"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "5fb08dd996963a58ee7e04c53955a48ed15b344afaaefe70c2ceb98ed8fec48f",
+      "legacy": [],
+      "live": "743942ba0732a1ce9e2fcdbc6853fc6206f03d488350472cf9d783f2dd4ef9ab"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "5fb08dd996963a58ee7e04c53955a48ed15b344afaaefe70c2ceb98ed8fec48f",
+      "legacy": [],
+      "live": "743942ba0732a1ce9e2fcdbc6853fc6206f03d488350472cf9d783f2dd4ef9ab"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "5fb08dd996963a58ee7e04c53955a48ed15b344afaaefe70c2ceb98ed8fec48f",
+      "legacy": [],
+      "live": "743942ba0732a1ce9e2fcdbc6853fc6206f03d488350472cf9d783f2dd4ef9ab"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "5fb08dd996963a58ee7e04c53955a48ed15b344afaaefe70c2ceb98ed8fec48f",
+      "legacy": [],
+      "live": "743942ba0732a1ce9e2fcdbc6853fc6206f03d488350472cf9d783f2dd4ef9ab"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "505f60ddb582a697dd3c0b87ff8893652c8a5ea0cfeb4dff0937918a30fd008d",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "d0a0af09133107f7d9811acb85eb74b17a51b6251522c050a7e5c008009af71d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "674ff1a3958ec96db3a3c648a936203e187a47a4ae2c4dda044a38d5c61a6994",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "05a028c99f5cfa16b2dd78539d278dabf6a5b747d28368abf67457721bebe174"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "15e5df6114d853b74e5d162798bec24eaaf9bd612b2fb21a630e5d24413ee534",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "0e7e0e9936264ab30f1b0987f0d6a7e6c6bd164d32f293b9fffc0cbdc7f2b340"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "7d4231b85444c113381ff13b77fe05f2f2d68acd984654ee46e757c2b03d0c27",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "c2c80385117e51d8b11c70344aa34b059aa66d5cc6bd9053e3d312b625594833"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "4370deb3ca417c263d3d311e0940ac7557ff124a55cc66d38bd6d054995c8da9",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "28cfb7846ce25f5b00f63cf96a72974583555606e0756f35b13753d205c3b4e2"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "6f977ec5dcba0c21e62d3fab8812dde56a09e8955678cb669ee669647e7c7ae0",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "3dcb2f0a23fb717dcd413342078f6166f62f942fea40309e92651b0dc91139a9"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "ba740ba7514d25d16b3a9741586f587cf9f054c06ab246813df46fe5cd8f9779",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "8693db95651d813f77037e87812f2ffedda2fef367a07ad5eb75fd79f95c9c1d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "4db1284498ea3287e55c467d7f37d3e836db41a5a17f5bf11754870a7ec0a497",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "c73d2d5a3cc3e2fdc922f57c37f6d7d6a69576d58f4626ef2c2109ac540b7f19"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "ae18f6d7ae50037e4f2c7a105d1c347fe96a8910a3279ebd6bdd72e507b933b9",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "abcd30dfc51480a2090ff32c4857df9772053a57b94425da5c6d6aebb78bf085"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "88fa181d621d28e9a1c85b289187fcc8b86c350ee6c5f9300e836317a88e56be",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "69a4ace7437201895f3dc0db89b8621d242e385f0cd5b115075faf023e01c64c"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "9bfbc28b5bf90d008e5b77832a9b2ef32ac2d3235840ad3437b88d19a2cf0aff",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "d96af5d6ccbeb9a5f5902fbf7e0e2c0e427b6f7ca63f25f3d1dcfadebbf9823a"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "22c30f544c1e575cccb90f97cccb4bb092f55a01ac0c663c98b29b8a81454ce0",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "222c5b8caded5942e5f6383b6b4d2af37ad59b3b62df9c822dcff52250152da6"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "55a26948e50c100977a5ac14279d132cfc007aa4109600b0141b69fd122199de",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "eb95de3baec42b73b1a8d82eff763ff7d8165a4482d6a0b4592cd78638b11d42"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "70be7bcbd0bad8f3e040ecd8805690fa52ace83769423110bb90158e85d37652",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "4e5f20778ca6d4b6fda0fcbc72d23b8438a6af2587905994cffe63b22f72bb45"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "e7cd8edc85df98e26715a3fcc6018d574e3adcefcb22c8585347f7e324af4dc6",
+      "legacy": [],
+      "live": "6a66b5cdb9ade219d54340767ba96672eb7fde508a48d92d715274fb18421fd6"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "8b252acf1c42aaacf832ada7c11eb4e57e8781a7b7bc3848148007a5429464f7",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "09e85e6c494eb3cabdcefcb0297724fd17990563ca306bf0404e2c13497b514c"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "its live prose names the retired verdict APPROVE-AND-MERGE-BOUNDARY"
+      ],
+      "declarations": [],
+      "flat": "e84716a13b78b4bea64386c3927a345b3744b8b9c85872c484cec9bdd2ad2361",
+      "legacy": [],
+      "live": "ce0d1cae520ff21eaf5092acf55749af2060eb9af29ea4b812cc41e617afff6a"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "declarations": [],
+      "flat": "7312176edc158ae01ea168bf976465902a8504b86d3aa8315ec5d006314b1c8f",
+      "legacy": [
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "live": "b0ec20d5a238eaf2e93831c0131627078d798df72f0923897e5072b891c73ff0"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class is handed up')",
+        "the gate does not merge the boundary class: that changes the method's executor ('never merges the boundary')"
+      ],
+      "declarations": [],
+      "flat": "bb6aaa7d715a21e06b28821de2338aa5d170f7d5983239b97389e5dce7fdded1",
+      "legacy": [
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class is handed up')",
+        "the gate does not merge the boundary class: that changes the method's executor ('never merges the boundary')"
+      ],
+      "live": "bf5da46c08778efe3e4e353a321328f9630bd51c836d47508e18263da56a2ce9"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "e7cd8edc85df98e26715a3fcc6018d574e3adcefcb22c8585347f7e324af4dc6",
+      "legacy": [],
+      "live": "250ef6649239d55baca4637517787d7b3a5ed2a2a5c277215010c76bd6a04709"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "e7cd8edc85df98e26715a3fcc6018d574e3adcefcb22c8585347f7e324af4dc6",
+      "legacy": [],
+      "live": "250ef6649239d55baca4637517787d7b3a5ed2a2a5c277215010c76bd6a04709"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "e7cd8edc85df98e26715a3fcc6018d574e3adcefcb22c8585347f7e324af4dc6",
+      "legacy": [],
+      "live": "4ca7460948d4906b5656463e5e67237d190d7b1ac4733ec790d3c4a50853b9ae"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "e7cd8edc85df98e26715a3fcc6018d574e3adcefcb22c8585347f7e324af4dc6",
+      "legacy": [],
+      "live": "4ca7460948d4906b5656463e5e67237d190d7b1ac4733ec790d3c4a50853b9ae"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "e7cd8edc85df98e26715a3fcc6018d574e3adcefcb22c8585347f7e324af4dc6",
+      "legacy": [],
+      "live": "4ca7460948d4906b5656463e5e67237d190d7b1ac4733ec790d3c4a50853b9ae"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "e7cd8edc85df98e26715a3fcc6018d574e3adcefcb22c8585347f7e324af4dc6",
+      "legacy": [],
+      "live": "4ca7460948d4906b5656463e5e67237d190d7b1ac4733ec790d3c4a50853b9ae"
+    },
+    {
+      "blocks": [],
+      "copy": [],
+      "declarations": [],
+      "flat": "0be0107b259a8a098af73c134d9abb826d9be03486952caad2cd9696f10afd63",
+      "legacy": [],
+      "live": "c62c17d167856e84b896f49b1278b790f660af1117f012634e5c80408e1064cf"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "4947674a76c43520c38cc4de40b0ebe2febb75ae06f1e689ad0b508fc050e0ed",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "4f1a25f2379d7c5684ce6af0e841ec5ed22ea55dd754df0c1128a97d741ce3d6"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "68340f6f9c7d54013709bf2ef4b084d15d0ef1a6d8e07662f1bc716c86a7f798",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "4459541adc53b5b16cc35a3277ab7e4a0a5fe81732b360deef7225aaf25580ba"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "c0ae90835a7b533774e1afeeabc9eb787f5d44620767fefa977c1502fbacd0ca",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "1083dbe12537085d33953d6505ddc2bad29a0e550ecb50b6bd391d2794d55ce7"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "ac3bcccc80f12800423ba842c6a99e824fc21ea37c2916fb9f62b91c9d00c2dc",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "d097c33dc635a947941336583b02be034a86b4519667f839b6fb5735de641b5f"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "eedd0833a5db07c2c054cee1deda001396b5eca06fef466b492ea52c02929153",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "6c53b7509c22b24736cb39fbae6ad93d6dd81af964c09d9fb541ccd3b06c278f"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "70e26a570c5dc540309b1400baed55cbf0b7895317d1e56500b957029c0b8779",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "9ab32cc6ab0069828edc8214b204b9075c13283266da8718107e0804cf4c6a89"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "61e9d3639b052987b73abc5547fb8a1fcb07be1bb530a8b2001329b3705e9378",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "79169984e81e6ea51061389cae6e3f391bb8ff05424a31a210bfc51593803a19"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "7abdcccda0b8b440498ae6baf305bc1d3f5eca8f61de4709c65699495d89a8ba",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "d00ce02fba52153c253b453a9fd7c41cf7c39b9c3885807c6e8aafcee037f859"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "5133c336e43abd6819f96d2d2ad01c5a4d8b58cbc6f6d41bcab33f2e56dc038e",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "e576b7170ce1bd6612441822697a8eca289defae1efd26e993bf78410052ea1f"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "e0806912a6472cb49d49d90a37b4c1d2d53627be47003d61c46aaa07e003f0f5",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "0e76e8e20e829d0e8b897e465d4279cc21d43dcbfa567db0bf8043f37c06a3a4"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "9c3e6ebd3b3ab44aa1af0dc1e4f798a87c079149ed121bf2aaab97da52ec0215",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "395da26e6fd7d3b60b8cfc671c5176b9a985d925c7d571be9e4e2ee270fd6679"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "da56ca6ba2f6fad406ee032b8a410b596f0fd6ee89ce0d69a208b5dfcbd7f5ae",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "a0eec862bfc096201d467b7bb7db688d24a125bab418f5f5b3a00990a94789c2"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "0c89c9ab641c731bec9823e4e8bd0dad1661043a51d988ad5b21587d3bcb37e7",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "301d243cf95ddf329dd3f71c154cd4787668080fcb881b7635ed927634786e76"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "ce427dde9eaa90b1291bbf6ce89302fd20ad718eec2a2ae6b65ed43857ec57c8",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "80e02797eb703d89552288321f6f45e4f0a1ac91c866b7551fdfc0b9fb1b9e8b"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "f5cf2b6b345e3f45b9b928d5ba31cfef4f96fb7ee741319d4574e613b3b7ea3f",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "7640541ba69c645749b19bf7614170bbdd77b57b0051cda4b12f4cf0da3587b7"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "45315e059a9ad03bb676a3c1662e6d99898c966e856393d720963acfa867fc3c",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "1af5fc989a609a3917a2f8950c6fe166aabeee822a1b21be47fa000b75522e6c"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "49c3aca806032e61ac5dba9a73b473cfa525b45e9e400bc59cc685ff5852cc4c",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "8bce047d07bc1d1b9cc6a3fb9c413e5488d0ea4c1078841db5a6a729f6350a32"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "514c589201bface308e1665bcb4109d312d1e8f548007a5d2adf69afdc91f838",
+      "legacy": [],
+      "live": "d939ef8c491638c59d064263939d85c8512f78306c7d119ea01df0c1d01c3be4"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "96ba65041f588158b924c8d9f91e3a71a544bd30d048fa84706fe807fb7e265b",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "6678aed4674cca8d5687a04ba6953dec4cddcb7a25260444c402c456e78dc600"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "its live prose names the retired verdict APPROVE-AND-MERGE-BOUNDARY"
+      ],
+      "declarations": [],
+      "flat": "d564074d4347d8203fb1daad5e3c194cebcf5e1e1ca6a7fc1c38b1621c5f8960",
+      "legacy": [],
+      "live": "50508937dd3035b534911fb2ac697f907c1978b78d586f0566097f81a9588f32"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "declarations": [],
+      "flat": "cc8a6e711e3bb1ba43cb542f2879b29637c80a7a385385e8c286ac58070a658d",
+      "legacy": [
+        "the brief claims it wins over the method, which reaches merge authority ('this file wins')"
+      ],
+      "live": "167bda5748db5f02ccf314eac1b7f2ada24286dfb1c37c224db40903db77bb36"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class is handed up')",
+        "the gate does not merge the boundary class: that changes the method's executor ('never merges the boundary')"
+      ],
+      "declarations": [],
+      "flat": "1a9d1f6d6f391318ddaedee2a6b0692e65eb59b35f5c9a6e4bb620d018279e8a",
+      "legacy": [
+        "the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class is handed up')",
+        "the gate does not merge the boundary class: that changes the method's executor ('never merges the boundary')"
+      ],
+      "live": "87bfaebda15a576d64bbf9c5c0a7d8fd0d28e57444270cf7ce4f54088f8aa049"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "514c589201bface308e1665bcb4109d312d1e8f548007a5d2adf69afdc91f838",
+      "legacy": [],
+      "live": "6d505917065cc035f727370191ea759c0595493c51ac15186af6b4ad355b0894"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "514c589201bface308e1665bcb4109d312d1e8f548007a5d2adf69afdc91f838",
+      "legacy": [],
+      "live": "6d505917065cc035f727370191ea759c0595493c51ac15186af6b4ad355b0894"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "514c589201bface308e1665bcb4109d312d1e8f548007a5d2adf69afdc91f838",
+      "legacy": [],
+      "live": "6658e783cf20ba04e5aba43aa299fb0f4354b323e655c2fcfbef9be057cdc24d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "514c589201bface308e1665bcb4109d312d1e8f548007a5d2adf69afdc91f838",
+      "legacy": [],
+      "live": "6658e783cf20ba04e5aba43aa299fb0f4354b323e655c2fcfbef9be057cdc24d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "514c589201bface308e1665bcb4109d312d1e8f548007a5d2adf69afdc91f838",
+      "legacy": [],
+      "live": "6658e783cf20ba04e5aba43aa299fb0f4354b323e655c2fcfbef9be057cdc24d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "514c589201bface308e1665bcb4109d312d1e8f548007a5d2adf69afdc91f838",
+      "legacy": [],
+      "live": "6658e783cf20ba04e5aba43aa299fb0f4354b323e655c2fcfbef9be057cdc24d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES"
+      ],
+      "declarations": [],
+      "flat": "514c589201bface308e1665bcb4109d312d1e8f548007a5d2adf69afdc91f838",
+      "legacy": [],
+      "live": "6658e783cf20ba04e5aba43aa299fb0f4354b323e655c2fcfbef9be057cdc24d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "09679b90b201e507d5d4c86dc8a4785bb8950de66c89b15339c448c5518e0f10",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "cf1c2aef2887860ba2d6bb9dac2c0689fc371e0fd46eec6a7ea1f71ae44f6e11"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "8e44e672a3241f01d31d977c70ec62c4439ec94cebb77139460e9ca33d88ba64",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "c29810332deebc6021f2beee7ef13007b8b5c3e4b7cdec74e61c0749dcc3471d"
+    },
+    {
+      "blocks": [],
+      "copy": [
+        "no longer names APPROVE-EXECUTOR-BLOCKED",
+        "no longer names REQUEST-CHANGES",
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "declarations": [],
+      "flat": "944cda947dbc59699ab46a892e4c3ee1f10ffba516d1c3e435b2c57f92bd436a",
+      "legacy": [
+        "the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')"
+      ],
+      "live": "5ef7de60f02b38dd59859fca703aaa1cb6fa201fafe642a04924e9eb67649b71"
+    }
+  ],
+  "projection": "caa3194434926381ee6a6add966dabf898338390874dd4ad633d621b19a744d7"
+}

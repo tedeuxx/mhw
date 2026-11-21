@@ -1,0 +1,86 @@
+[
+  {
+    "case": [
+      "prereq-proxy-from-the-environment"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "NOAUTH  tfc \\[optional\\]: account, no local client to detect · not authenticated \\(\\$TFC_API_TOKEN rejected\\) -> STEP-tfc",
+    "head": "NOCHECK tfc \\[optional\\]: account, no local client to detect · authentication not checked \\(service unreachable\\) -> STEP-tfc",
+    "replace": "<the tfc line when the proxy refuses a plain-http target>",
+    "why": "QA B2 on PR #538: both sides now honour http_proxy and HTTP_PROXY (urllib's ProxyHandler; the Node GET's worker starts with --use-env-proxy), and with no_proxy naming the host both go direct and agree (step 3, compared). The residual is how a plain-http target reaches the proxy: urllib sent it an absolute-form GET and read the refusing proxy's own 502 as the service's answer (NOAUTH, token rejected); fetch opens a CONNECT tunnel, the refusal fails the request, and the GET reads status 0 (NOCHECK). Only the loopback test override is plain http; the real services are https, which both reach through CONNECT. Neither side reads OK."
+  },
+  {
+    "case": [
+      "prereq-proxy-from-the-environment"
+    ],
+    "stream": [
+      "recorded"
+    ],
+    "base": "\\{\"proxy\":\"GET <SERVICE>/api/v2/account/details\"\\}",
+    "head": "\\{\"proxy\":\"CONNECT <SERVICE-HOST>\"\\}",
+    "replace": "<the request the proxy received>",
+    "why": "The other half of the entry above, in the stand-in proxy's own log: the base sent it an absolute-form GET of the service URL, the head a CONNECT to the service's host and port. Both reached the proxy, which is what parity with urllib's ProxyHandler required; the request form is fetch's."
+  },
+  {
+    "case": [
+      "prereq-relative-path-entry"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "OK      beta \\[optional\\]: present \\(jq\\)\\nOK      gamma \\[required\\]: present \\(jq 1\\.7\\.1\\)\\nPREREQ  0 required",
+    "head": "ABSENT  beta \\[optional\\]: missing \\(jq not found\\) -> STEP-beta\\nMISSING gamma \\[required\\]: missing \\(jq not found\\) -> STEP-gamma\\nPREREQ  1 required",
+    "replace": "<a tool found only through a relative PATH entry>",
+    "why": "QA B2 on PR #538: shutil.which searched a relative PATH entry (here rel, from the current directory) and found rel/jq; src/lib/onpath.js searches absolute entries only, as every moved Node command does, so a current directory cannot decide which program runs. A tool found only through a relative or empty entry therefore reads missing: a false red (exit 1), never a false OK. docs/prerequisites.md says so."
+  },
+  {
+    "case": [
+      "prereq-relative-path-entry"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": "\"code\": 0",
+    "head": "\"code\": 1",
+    "replace": "\"code\": <0 with the relative entry searched, 1 without>",
+    "why": "The exit code of the entry above: the required gamma item is found through the relative entry on the base (exit 0) and missing on the head (exit 1)."
+  },
+  {
+    "case": [
+      "prereq-tokens-not-inherited"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "present \\(git 9\\.9\\.9\\)",
+    "head": "present \\(git 2\\.3\\.4\\)",
+    "replace": "present (git <the version a probe child reports>)",
+    "why": "A narrowing (lens F1 on PR #538): prerequisites.py ran every probe child (git, gh, terraform, each --version) with the caller's whole environment, so SONAR_TOKEN and TFC_API_TOKEN reached them. The Node check removes every variable a declaration item names as its auth.env before it starts a probe; the token is read only by this process, for its own GET. The case's git shim reports 9.9.9 when it can see a token and 2.3.4 when it cannot, so the base shows the token passed on and the head shows it withheld. test/check/prerequisites.test.js holds the same property with logging shims."
+  },
+  {
+    "case": [
+      "project-not-utf8"
+    ],
+    "stream": [
+      "stderr"
+    ],
+    "base": "^<traceback>\\n$",
+    "head": "^$",
+    "replace": "<a project AGENTS.md that is not UTF-8: reported, not a traceback>",
+    "why": "merge_authority.check_project read the project's AGENTS.md with read_text(encoding='utf-8') and caught only OSError, so a brief that is not UTF-8 raised UnicodeDecodeError (a ValueError) out of mhw check: a Python traceback on stderr and exit 1, with no PROJECT line. The Node check catches the decode error and reports it as a finding on stdout (next entry). The exit code is 1 on both sides and is compared."
+  },
+  {
+    "case": [
+      "project-not-utf8"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "(?<=nothing was applied\\n)$",
+    "head": "PROJECT merge authority: FAIL the AGENTS\\.md at <TMP>/work/p is not readable UTF-8; the project brief must declare its merge-authority block\\n$",
+    "replace": "<the PROJECT line for an AGENTS.md that is not UTF-8>",
+    "why": "The other half of the entry above: where workstation.py stopped with a traceback, the Node check prints one PROJECT FAIL line naming the brief as not readable UTF-8, after the prerequisites section, in the place every other project finding is printed. It is a finding (exit 1), not a fail-closed exit 2, because the installed contract was read and only the project's own file is at fault, as a missing AGENTS.md already was."
+  }
+]

@@ -1,0 +1,57 @@
+{
+  "step0 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step0 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step0 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step1 check --prerequisites --overlay=none <P:p>": {
+    "code": 2
+  },
+  "step1 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: CANNOT VALIDATE (fail closed): the installed copies of the contract disagree (Claude Code and Kiro); run `mhw install --method` (./mhw install --method in a checkout), then check again\n",
+  "step1 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step2 check --prerequisites --overlay=none <P:p>": {
+    "code": 2
+  },
+  "step2 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: CANNOT VALIDATE (fail closed): Kiro copy <HOME>/.kiro/skills/merge-authority/SKILL.md: expected one ```merge-authority-contract block, found 0; run `mhw install --method` (./mhw install --method in a checkout), then check again\n",
+  "step2 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step3 check --prerequisites --overlay=none <P:p>": {
+    "code": 2
+  },
+  "step3 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: CANNOT VALIDATE (fail closed): Kiro copy <HOME>/.kiro/skills/merge-authority/SKILL.md cannot be read (UnicodeDecodeError); run `mhw install --method` (./mhw install --method in a checkout), then check again\n",
+  "step3 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step4 check --prerequisites --overlay=none <P:p>": {
+    "code": 2
+  },
+  "step4 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: CANNOT VALIDATE (fail closed): Kiro copy <HOME>/.kiro/skills/merge-authority/SKILL.md: version and a non-empty list of integer declaration-versions are required; run `mhw install --method` (./mhw install --method in a checkout), then check again\n",
+  "step4 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step5 check --prerequisites --overlay=none <P:p>": {
+    "code": 2
+  },
+  "step5 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: CANNOT VALIDATE (fail closed): Kiro copy <HOME>/.kiro/skills/merge-authority/SKILL.md: the contract is not valid JSON (Expecting property name enclosed in double quotes: line 2 column 33 (char 34)); run `mhw install --method` (./mhw install --method in a checkout), then check again\n",
+  "step5 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step6 check --prerequisites --overlay=none <P:p>": {
+    "code": 2
+  },
+  "step6 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: CANNOT VALIDATE (fail closed): Kiro copy <HOME>/.kiro/skills/merge-authority/SKILL.md: model trunk-single-env maps safe to an unknown verdict APPROVE-SOMETHING; run `mhw install --method` (./mhw install --method in a checkout), then check again\n",
+  "step6 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step7 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step7 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step7 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step8 check --prerequisites --overlay=none <P:p>": {
+    "code": 2
+  },
+  "step8 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: CANNOT VALIDATE (fail closed): the project declares format v2 and the installed contract (v3) understands only v1; run `mhw install --method` (./mhw install --method in a checkout), then check again\n",
+  "step8 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step9 check --prerequisites --overlay=none <P:p>": {
+    "code": 2
+  },
+  "step9 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: CANNOT VALIDATE (fail closed): no installed copy of the method's merge-authority contract (the method is not installed, or it predates #195); run `mhw install --method` (./mhw install --method in a checkout), then check again\n",
+  "step9 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step10 check --prerequisites --overlay=none <P:p>": {
+    "code": 2
+  },
+  "step10 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: CANNOT VALIDATE (fail closed): the project declares format v2 and the installed contract (v3) understands only v1; run `mhw install --method` (./mhw install --method in a checkout), then check again\n",
+  "step10 check --prerequisites --overlay=none <P:p> stderr": ""
+}

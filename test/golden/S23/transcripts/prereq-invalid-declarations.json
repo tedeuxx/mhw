@@ -1,0 +1,122 @@
+{
+  "step0 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step0 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: version.args is not the version query of every command\n",
+  "step0 check --prerequisites <OVERLAY> stderr": "",
+  "step1 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step1 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: presence.args is not the path query of every command\n",
+  "step1 check --prerequisites <OVERLAY> stderr": "",
+  "step2 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step2 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: presence.commands outside the closed probe set\n",
+  "step2 check --prerequisites <OVERLAY> stderr": "",
+  "step3 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step3 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: presence.commands outside the closed probe set\n",
+  "step3 check --prerequisites <OVERLAY> stderr": "",
+  "step4 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step4 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: presence.args is not the path query of every command\n",
+  "step4 check --prerequisites <OVERLAY> stderr": "",
+  "step5 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step5 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: version.args is not the version query of every command\n",
+  "step5 check --prerequisites <OVERLAY> stderr": "",
+  "step6 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step6 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: presence.args is not the path query of every command\n",
+  "step6 check --prerequisites <OVERLAY> stderr": "",
+  "step7 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step7 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: version.args is not the version query of every command\n",
+  "step7 check --prerequisites <OVERLAY> stderr": "",
+  "step8 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step8 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: version.args is not the version query of every command\n",
+  "step8 check --prerequisites <OVERLAY> stderr": "",
+  "step9 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step9 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: auth kind unknown\n",
+  "step9 check --prerequisites <OVERLAY> stderr": "",
+  "step10 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step10 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: auth.env must name an environment variable\n",
+  "step10 check --prerequisites <OVERLAY> stderr": "",
+  "step11 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step11 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: preferred kind unknown\n",
+  "step11 check --prerequisites <OVERLAY> stderr": "",
+  "step12 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step12 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: unknown lane or requirement nowhere=required\n",
+  "step12 check --prerequisites <OVERLAY> stderr": "",
+  "step13 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step13 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: required must be required or optional\n",
+  "step13 check --prerequisites <OVERLAY> stderr": "",
+  "step14 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step14 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: manual missing\n",
+  "step14 check --prerequisites <OVERLAY> stderr": "",
+  "step15 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step15 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: item without a unique id: x\n",
+  "step15 check --prerequisites <OVERLAY> stderr": "",
+  "step16 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step16 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: version.minimum is not a version\n",
+  "step16 check --prerequisites <OVERLAY> stderr": "",
+  "step17 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step17 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: os must be a list of platform.system() names\n",
+  "step17 check --prerequisites <OVERLAY> stderr": "",
+  "step18 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step18 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: x: presence missing\n",
+  "step18 check --prerequisites <OVERLAY> stderr": "",
+  "step19 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step19 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: no items list\n",
+  "step19 check --prerequisites <OVERLAY> stderr": "",
+  "step20 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step20 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: <TMP>/decl.json not read (JSONDecodeError)\n",
+  "step20 check --prerequisites <OVERLAY> stderr": "",
+  "step21 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step21 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: <TMP>/decl.json not read (UnicodeDecodeError)\n",
+  "step21 check --prerequisites <OVERLAY> stderr": "",
+  "step22 check --prerequisites <OVERLAY>": {
+    "code": 2
+  },
+  "step22 check --prerequisites <OVERLAY> stdout": "PREREQ  declaration invalid, nothing checked: <TMP>/decl.json not read (FileNotFoundError)\n",
+  "step22 check --prerequisites <OVERLAY> stderr": "",
+  "step23 check --prerequisites <OVERLAY>": {
+    "code": 1
+  },
+  "step23 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nMISSING x [required]: missing (git not found) -> STEP-x\nMISSING y [required]: missing (xcode-select not found) -> STEP-y\nMISSING z [required]: missing (terraform not found) -> STEP-z\nPREREQ  3 required item(s) missing; check-only, nothing was applied\n",
+  "step23 check --prerequisites <OVERLAY> stderr": ""
+}

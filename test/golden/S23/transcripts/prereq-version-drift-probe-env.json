@@ -1,0 +1,18 @@
+{
+  "step0 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step0 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nDRIFT   alpha [required]: present (terraform 1.5.0) · drift: version 1.5.0 below minimum 1.9 -> STEP-alpha\nDRIFT   beta [required]: present (terraform 1.5.0) · drift: version 1.5.0 below preferred 1.5.1 -> STEP-beta\nOK      gamma [required]: present (terraform 1.5.0)\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step0 check --prerequisites <OVERLAY> stderr": "",
+  "step0 check --prerequisites <OVERLAY> recorded": "installed marker: false",
+  "step1 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step1 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nOK      alpha [required]: present (terraform version unknown)\nOK      beta [required]: present (terraform version unknown)\nOK      gamma [required]: present (terraform version unknown)\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step1 check --prerequisites <OVERLAY> stderr": "",
+  "step2 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step2 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nOK      alpha [required]: present (terraform version unknown)\nOK      beta [required]: present (terraform version unknown)\nOK      gamma [required]: present (terraform version unknown)\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step2 check --prerequisites <OVERLAY> stderr": ""
+}

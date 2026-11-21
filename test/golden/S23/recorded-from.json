@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S23 golden transcripts were recorded from (the base revision's global/workstation.py check, prerequisites.py and merge_authority.py, macOS). The live arm compares only on this version, as the S10, S13, S14 and S22 arms do: the installers' own Python steps run on both sides, and a traceback's or a JSON decode error's text can change between CPython releases."
+}
