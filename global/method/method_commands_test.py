@@ -248,18 +248,22 @@ class NeedMe(unittest.TestCase):
         self.assertIn("exactly three authored, mutually exclusive options", flat)
 
     def test_an_empty_list_is_not_an_empty_queue(self):
-        # gh issue list with an absent label prints [] and exits 0 (measured, global/owner_actions.py), so the
-        # command must confirm the label before reading [] as zero, as owner_actions.py does.
+        # gh issue list with an absent label prints [] and exits 0 (measured, the owner-action reader of mhw
+        # status), so the command must confirm the label before reading [] as zero, as that reader does.
         flat = re.sub(r"\s+", " ", self.body)
         self.assertIn("gh label list --repo tedeuxx/mhw --limit 1000 --json name", flat)
         self.assertIn("An empty list is not yet an empty queue", flat)
         self.assertIn("If `owner-action` is not among the names, or either call fails, say the queue was **not read**", flat)
         self.assertIn("mhw status --summary", flat)
-        import owner_actions  # noqa: E402 - the repository the status line reads must be the one named here
+        # The repository and label the status line reads must be the ones named here. Since #493 (S22 of #470)
+        # that reader is Node: src/lib/readers/owner-actions.js, read for its two constants.
+        reader = (REPO / "src" / "lib" / "readers" / "owner-actions.js").read_text(encoding="utf-8")
+        repo = re.search(r"^export const REPO = '([^']+)';$", reader, re.M).group(1)
+        label = re.search(r"^export const LABEL = '([^']+)';$", reader, re.M).group(1)
         queue = flat.split("**The owner-action queue**", 1)[1].split("Then filter", 1)[0]
-        self.assertEqual(set(re.findall(r"--repo (\S+)", queue)), {owner_actions.REPO})
+        self.assertEqual(set(re.findall(r"--repo (\S+)", queue)), {repo})
         self.assertEqual(len(re.findall(r"--repo ", queue)), 2)
-        self.assertIn("--label %s " % owner_actions.LABEL, flat)
+        self.assertIn("--label %s " % label, flat)
 
     def test_writes_only_the_record(self):
         never = self.body.split("## What this command never does", 1)[1]

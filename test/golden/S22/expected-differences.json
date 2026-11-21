@@ -1,0 +1,227 @@
+[
+  {
+    "case": [
+      "unreadable-files"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "Claude Code: default(?= · Codex: default)",
+    "head": "Claude Code: not read \\(<HOME>/\\.claude/settings\\.json is not readable UTF-8 JSON\\)(?= · Codex: default)",
+    "replace": "Claude Code: <the model, effort or mode of a settings.json that is not readable>",
+    "why": "A file that is there and cannot be read is said as not read, with the path and why, never as absent, 0 or a default (the PR #535 lens; the owner's rule for this view: never a false 0 or a stronger claim than it has). In this case the user's ~/.claude/settings.json is not JSON and the admin drop-in is not JSON. workstation.py, which did not stop on these, printed `Claude Code: default` on the models, `model, effort` and `permission mode` lines: a default claimed for a file nobody read. The Node view prints `Claude Code: not read (<path> is not readable UTF-8 JSON)`. Codex and Kiro, whose files are absent here, still read `default`, and are compared."
+  },
+  {
+    "case": [
+      "unreadable-files"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "plugin: none( enabled in Claude Code)?(?=\\n)",
+    "head": "plugin: not read \\(<HOME>/\\.claude/settings\\.json is not readable UTF-8 JSON\\)(?=\\n)",
+    "replace": "plugin: <the plugins of a settings.json that is not readable>",
+    "why": "A file that is there and cannot be read is said as not read, with the path and why, never as absent, 0 or a default (the PR #535 lens; the owner's rule for this view: never a false 0 or a stronger claim than it has). In this case the user's ~/.claude/settings.json is not JSON and the admin drop-in is not JSON. workstation.py, which did not stop on these, printed `plugin: none enabled in Claude Code` (and `plugin: none` in the summary) for the settings file the enabled plugins are read from. The Node view says it is not read, and why."
+  },
+  {
+    "case": [
+      "unreadable-files"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "Claude Code: default \\(none set\\), 0 allow rules",
+    "head": "Claude Code: mode not read \\(<ADMIN>/[^()]*50-personal-multi-harness-workstation-configuration\\.json is not readable UTF-8 JSON\\), allow rules not read \\(<HOME>/\\.claude/settings\\.json is not readable UTF-8 JSON\\)",
+    "replace": "Claude Code: <a mode and an allow list from files that are not readable>",
+    "why": "A file that is there and cannot be read is said as not read, with the path and why, never as absent, 0 or a default (the PR #535 lens; the owner's rule for this view: never a false 0 or a stronger claim than it has). In this case the user's ~/.claude/settings.json is not JSON and the admin drop-in is not JSON. workstation.py, which did not stop on these, printed `Claude Code: default (none set), 0 allow rules` on the permissions line. The mode is read in precedence order, admin first: an admin drop-in that is not readable may set the mode in effect, so the mode is not read (naming that file); the allow rules come from the user settings.json, which is not readable. The Codex and Kiro halves of the line (their files absent: `no workstation profile, 0 allow rules`, `0 trusted commands`) are compared as they are."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "The same rule on the inputs on which workstation.py stopped with a UnicodeDecodeError (PR #535 lens, finding 1), pinned in test/status/status.test.js: a Codex rules/workstation-allow-list.rules that is not UTF-8 reads `allow rules not read (<path> is not readable UTF-8)`, not `0 allow rules`; a workstation.config.toml that is not UTF-8 reads `workstation profile not read (...)`, not `no workstation profile`; a Kiro agents/workstation.json that is not readable reads `trusted commands not read (...)`; a Codex config.toml or Kiro cli.json that is not readable reads `not read (...)` on the models and permission-mode lines, in the overrides line when it is a workspace file, and on the method line as `whether the plugin is also enabled in Codex is not read (...)`; and a requirements.toml under the admin root that is not UTF-8 counts as present, so the admin --check runs and names it, where Node had read it as absent (`managed: absent`). A directory where a file belongs reads the same way (Python read it as absent)."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "An admin drop-in that is JSON but not an object (a list, a string, a number, null) is `present, not read`, never installed (PR #535 lens, finding 2): Claude Code applies no settings from it. workstation.py called such a drop-in `installed (legacy, pre-#66; reinstall to update)` when it did not name the project, and stopped with a TypeError when it was a list naming it; the Node view had then read `managed: installed`. The admin --check still runs and names its drift. Pinned in test/status/status.test.js."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "./mhw status runs the Node command now: the mhw shell script sends status to node bin/mhw.js, as it already did for scan, so `./mhw status` prints the NODE and PASTE lines first, which only `node bin/mhw.js status` (and the npm command) printed before, and it needs node (26 or later) on PATH instead of python3. Every case runs through bin/mhw.js, where both sides print those two lines, so no transcript shows it. A direct `python3 global/workstation.py status` now says it is the Node command and exits 2, as `workstation.py scan` has since #486."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "The installers' --check runs under /bin/sh by absolute path; workstation.py ran `sh` looked up on PATH (subprocess with a bare name). The S01 convention is that an interpreter goes by absolute path, never looked up on PATH. git, gh and each agent harness CLI are still the first on PATH, as they were, found through src/lib/onpath.js (absolute PATH entries only: a relative entry, which Python's lookup used, is skipped) and run by absolute path, never through a shell."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "Inputs on which workstation.py stopped with a Python traceback and printed no status at all, where the Node view prints its lines: a drop-in whose stamp key is not a string (TypeError: no stamp); a Kiro hook file that is JSON but not an object (AttributeError: read as modified); a hooks value that is truthy but not an object (AttributeError: no hook counted); a .workstation-version that is not UTF-8 (UnicodeDecodeError: its bad bytes read as U+FFFD); a settings file nested past Python's recursion limit (RecursionError: not read); no git on PATH with no --project (FileNotFoundError: not in a git repository); an agent harness whose --version prints bytes that are not UTF-8 (UnicodeDecodeError: its first line with U+FFFD). The files that are there and cannot be read (a Codex config.toml, rules file or profile, a requirements.toml, a drop-in that is not an object) are the two entries above. Pinned in test/status/status.test.js where a case can build the input; status never crashes on what it reads."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "The forms that said Node could not be found or failed are gone, because the reader is no longer a separate node process: `chrome debugging not read (node 26 or later is required to read it)`, `not read (mhw chrome-debugging could not run)` and `not read (mhw chrome-debugging --mode=status exited N)` (workstation.py spawned `mhw chrome-debugging --mode=status`; the Node view calls its statusText in process, the same function and the same lines), and `mcp connect      not run (node 26 or later is required)` (the connection check is spawned with the node running status). The `not read (...)` forms the reader itself prints (no profile path for the system, Local State not readable JSON) are unchanged and are in the goldens or in test/render/chrome-debugging.test.js."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "Two path details: --overlay=~user/x is not expanded (only ~ and ~/ are, from HOME; Python's expanduser also looked other users up), so it is refused as not a directory unless such a relative path exists; and --project=DIR resolves a link followed by .. lexically first (path.resolve, then the links of what exists), where pathlib resolved each link before its .. . Neither changes what an ordinary path names. On Windows `mhw status` is unchanged: it stays install.ps1 -Check after the NODE and PASTE lines (src/cli.js, test/cli.test.js)."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "  hook node        [^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): mhw status prints a hook node line in the full view: the node the prompt hook runs, whether a process running as the owner can replace it or its libraries, FAIL when it is missing (D6 of #470; the owner accepted an owner-writable node until S32, PR #536). workstation.py printed none: an added line, removed from the head before the comparison."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "  term lists       [^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): mhw status prints a term lists line in the full view: a hashed list the 0600 salt file does not cover, or a list moved aside as .old-salt, is named (PR #536 lens O2). workstation.py printed none, because the salt was in the Keychain: an added line."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "drift: [0-9]+ target\\(s\\)",
+    "head": "drift: [0-9]+ target\\(s\\)",
+    "replace": "drift: <N> target(s)",
+    "why": "S17 (#488): install writes one target fewer (the Python prompt-hook core is no longer copied into the data directory), and the admin layer copies the Node hook files in its place, so the installers' --check counts differ by those files. The categories named after the count are compared."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "[^\\n]*clipboard_guard\\.py[^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): lines of the installers' --check that name the Python core (MISSING, OK or DRIFT for <data>/clipboard_guard.py or the admin bin copy) are gone from the head, which installs mhw hook prompt instead."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "[^\\n]*bin/hook/(?:package\\.json|src/[^\\n ]*)[^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): lines of install-managed.sh --check that name the admin layer's Node hook files (bin/hook/package.json and bin/hook/src/...) are new: the admin layer copies a root-owned copy of the hook's JavaScript in place of clipboard_guard.py."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "[0-9]+ target\\(s\\) differ",
+    "head": "[0-9]+ target\\(s\\) differ",
+    "replace": "<N> target(s) differ",
+    "why": "S17 (#488): the installers' --check counts change by the files S17 adds and removes (the Python core out, the admin layer's Node hook files in); the categories named are compared."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "\\(admin layer: [0-9]+\\)",
+    "head": "\\(admin layer: [0-9]+\\)",
+    "replace": "(admin layer: <N>)",
+    "why": "S17 (#488): the admin layer's target count changes by the Node hook files that replace clipboard_guard.py."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "differs from this checkout: [0-9]+ target\\(s\\)",
+    "head": "differs from this checkout: [0-9]+ target\\(s\\)",
+    "replace": "differs from this checkout: <N> target(s)",
+    "why": "S17 (#488): the admin layer's target count changes by the Node hook files that replace clipboard_guard.py."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "stamp: [0-9]+ target\\(s\\)",
+    "head": "stamp: [0-9]+ target\\(s\\)",
+    "replace": "stamp: <N> target(s)",
+    "why": "S17 (#488): the stamped target count changes by the one file install no longer writes (the Python core)."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "  admin layer      (?:MISSING|DRIFT) [^\\n]*\\n",
+    "head": "  admin layer      (?:MISSING|DRIFT) [^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): the admin layer's MISSING and DRIFT lists name the Node hook files (package.json, hook-entry.js, hook-prompt.js, clean.js, clean-unicode.js) where they named clipboard_guard.py; install-managed.test.sh asserts the installed set. Left out on both sides."
+  },
+  {
+    "case": [
+      "stale-admin-layer",
+      "stale-hooks-and-legacy-dropin"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "hitl\\.conf, clipboard_guard\\.py, breaking-glass",
+    "replace": "hitl.conf, breaking-glass",
+    "why": "S17 (#488): install-managed.sh lists clipboard_guard.py among the removed hooks' files (LEGACY), so --check names an earlier release's copy as STALE beside the other leftovers."
+  },
+  {
+    "case": [
+      "stale-admin-layer",
+      "stale-hooks-and-legacy-dropin"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "removed Python paste filter still registered \\((Claude Code|Codex)\\)",
+    "replace": "paste filter ($1)",
+    "why": "S17 (#488): an earlier release's Python hook entry still registered is named as a leftover to remove, not as the paste filter: the Python core no longer runs. workstation.py counted it as the paste filter when clipboard_guard.py was present."
+  }
+]

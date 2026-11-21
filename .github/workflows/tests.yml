@@ -250,6 +250,29 @@ jobs:
           for name in "live: add-term reads the term twice with nothing echoed" "live: Ctrl+C and Ctrl+D cancel add-term cleanly"; do
             echo "$out" | grep -F "ok " | grep -F "$name" | grep -vq SKIP || { echo "SKIPPED or missing: $name"; exit 1; }
           done
+      # #493 (S22 of #470): the live arm of test/status/status-golden.test.js runs the base revision's
+      # status view (global/workstation.py and owner_actions.py) beside src/commands/status.js on every case,
+      # in throwaway HOMEs and admin roots with a stand-in gh, on the same CPython. MHW_S22_LIVE_REQUIRED=1
+      # turns a skip into a failure while the base still holds owner_actions.py; once it does not (this slice
+      # has merged), the step says the arm retired and passes, as the S14 step does (#534). A missing base
+      # fails. The golden arm runs in npm test, on macOS, where its transcripts were recorded.
+      - name: S22 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S22_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/status/status-golden.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          if ! git cat-file -e "$base:global/owner_actions.py" 2>/dev/null; then
+            echo "S22 live arm retired: base $base no longer holds global/owner_actions.py"
+            exit 0
+          fi
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: the status view" | grep -vq SKIP
 
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
@@ -360,8 +383,9 @@ jobs:
       # arms on macOS and Linux.
       - name: admin-layer installer suite (throwaway --root; never a system path, never root, ADR-0025)
         run: sh global/install-managed.test.sh "$RUNNER_TEMP/managed"
-      # Issues #57 and #67: the version-key comparison and the status view, plus one end-to-end run of
-      # ./mhw install and status in a throwaway HOME and admin root (TMPDIR under RUNNER_TEMP).
+      # Issues #57 and #67: ./mhw install, check, update and uninstall in a throwaway HOME and admin root
+      # (TMPDIR under RUNNER_TEMP). The status view and the version key are Node since #493 (S22 of #470):
+      # test/status/*.test.js, in the node job (npm test) and its S22 live step.
       - name: ./mhw suite
         env:
           TMPDIR: ${{ runner.temp }}
@@ -402,7 +426,7 @@ jobs:
       # ask template, filled, passes mhw launch-line for each target. Text checks plus one script run.
       # /need-me (owner, 2026-10-26): its headings and phrases reach every carrier; its source text (front matter included, markup stripped)
       # carries no four-option ceiling and names exactly three options; it confirms the owner-action label
-      # before reading an empty list as zero, against owner_actions.py's repository and label; and its
+      # before reading an empty list as zero, against the status reader's repository and label (owner-actions.js); and its
       # source names no Issue-creating or label-adding command. These are text checks, not behaviour.
       # /backlog-grooming (#522): its headings and phrases reach every carrier; its source names no milestone
       # write, no Issue creation and no merge; no tracker write precedes its one activation, which offers

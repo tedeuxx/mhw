@@ -350,7 +350,7 @@ class PackAndInstall(Base):
         for needed in ("mhw", ".bumpversion.toml", ".workstation-archive", "bin/mhw.js", "bin/postinstall.js",
                        "src/cli.js", "src/lib/toml.js", "npm-shrinkwrap.json",
                        "src/vendor/smol-toml/dist/index.js", "src/vendor/smol-toml/LICENSE",
-                       "global/workstation.py", "global/owner_actions.py", "global/install.sh",
+                       "global/workstation.py", "src/commands/status.js", "global/install.sh",
                        "global/install-managed.sh", "global/install.ps1", "global/AGENTS.md",
                        "global/deny-floor.conf", "overlay/profile.json", "package.json"):
             self.assertIn(needed, names)

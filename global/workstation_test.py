@@ -29,351 +29,18 @@ os.environ.pop("PMHWC_PASTE_WRAPPER", None)
 os.environ["SHELL"] = "/bin/sh"
 
 STAMP = "release: v3.1.0; commit: " + "a" * 40
+# Fixture names the status view used to export; the status view is Node since #493 (S22 of #470), so
+# the install cases that still build these files name them here.
+KEY_FILE = ".workstation-version"
+PASTE = "clipboard_guard.py"
+GUARD = "hitl-escalation-guard.sh"
 # The installer's own FLOOR line for a user-only floor, word for word (global/install.sh).
 USER_FLOOR = ("the user layer only; a session flag can drop it (--setting-sources project, measured); install the "
               "admin copy with ./mhw install --admin")
 
 
-class VersionKey(unittest.TestCase):
-    def verdict(self, required, release):
-        return ws.key_verdict(required, release)[0]
-
-    def test_range_bounds(self):
-        cases = [
-            (">=3.1 <4", "v3.1.0", "match"),
-            (">=3.1 <4", "v3.9.12", "match"),
-            (">=3.1 <4", "v3.0.9", "mismatch"),
-            (">=3.1 <4", "v4.0.0", "mismatch"),
-            (">=3.1,<4", "v3.2.0", "match"),
-            (">3.1 <=3.2", "v3.1.0", "mismatch"),
-            (">3.1 <=3.2", "v3.2.0", "match"),
-            (">3.1 <=3.2", "v3.2.1", "mismatch"),
-            ("=3.1.2", "v3.1.2", "match"),
-            ("=3.1.2", "v3.1.3", "mismatch"),
-            (">=v3", "v3.0.0", "match"),
-        ]
-        for required, release, want in cases:
-            with self.subTest(required=required, release=release):
-                self.assertEqual(self.verdict(required, release), want)
-
-    def test_installed_release_forms(self):
-        self.assertEqual(self.verdict(">=3.1 <4", "unreleased, after v3.1.0"), "match")
-        self.assertEqual(self.verdict(">=3.1 <4", "unreleased, after v3.0.0"), "mismatch")
-        for release in ("none", "", "unreleased, no tag reachable", "mixed",
-                        "unknown, not a git checkout (.bumpversion.toml says 3.1.0)", "v3.1", "3.1.0",
-                        "v3.1.0-rc1", "not v3.1.0"):
-            with self.subTest(release=release):
-                self.assertEqual(self.verdict(">=0", release), "mismatch")
-
-    def test_invalid_ranges(self):
-        for required in ("", "~3.1", ">=a", "3.1", ">= 3.1", ">=3.1.2.4"):
-            with self.subTest(required=required):
-                self.assertEqual(self.verdict(required, "v3.1.0"), "invalid")
-
-    def test_key_file_first_meaningful_line(self):
-        self.assertEqual(ws.read_key("# comment\n\n  >=3.1 <4  # why\n<9\n"), ">=3.1 <4")
-        self.assertEqual(ws.read_key("# only a comment\n"), "")
-
-    def test_mismatch_line_is_the_briefs_line(self):
-        brief = (ws.HERE / "AGENTS.md").read_text(encoding="utf-8")
-        template = re.search(r"^`(Workstation version key: required <range>.*)`$", brief, re.M).group(1)
-        want = template.replace("<range>", ">=3.1 <4").replace("<release>", "v3.0.0")
-        self.assertEqual(ws.key_verdict(">=3.1 <4", "v3.0.0"), ("mismatch", want))
-        self.assertEqual(ws.key_verdict(">=3.1 <4", "v3.1.0"), ("match", ""))
-
-
-def facts(**over):
-    f = {"source": STAMP, "user_stamps": {"Claude Code": STAMP, "Codex": STAMP}, "admin": False,
-         "admin_stamp": "none", "user_issues": 0, "admin_issues": 0,
-         "user_lines": ["OK      /h/.claude/CLAUDE.md (x)"], "admin_lines": [],
-         "harnesses": {"Claude Code": "2.1.0", "Codex": None, "Kiro": None},
-         "workspace": {"name": "proj", "root": Path("/proj"), "carriers": [".workstation-version"]},
-         "plugins": [], "brief": "installed in 2/3 agent harnesses (an instruction)",
-         "floor": USER_FLOOR, "admin_state": "absent", "hooks": "user layer (paste filter)",
-         "key": {"required": ">=3.1 <4", "state": "match", "line": ""},
-         "runtime": "host (Linux x86_64; no container marker found)",
-         "chrome_debugging": "off (devtools.remote_debugging.user-enabled absent; no DevToolsActivePort)"}
-    f.update(over)
-    return f
-
-
-class StatusOutput(unittest.TestCase):
-    def test_short_view(self):
-        out = ws.render_status(facts())
-        self.assertLessEqual(len(out), 17)  # 13 since the models line (ADR-0035), 14 since the MCP active set (#219), 15 since chrome debugging (#224), 16 since the hook node and 17 since the term lists (#488)
-        self.assertIn("  source           v3.1.0 @ aaaaaaa (this checkout)", out)
-        self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: not installed", out)
-        self.assertIn("  check            matches this checkout", out)
-        self.assertIn("  agent harnesses  Claude Code", out)
-        self.assertIn("  version key      >=3.1 <4: match", out)
-        self.assertTrue(any(line.startswith("  layers           managed: absent · user: installed · "
-                                            "workspace: proj (.workstation-version) · plugin: none")
-                            for line in out))
-        self.assertFalse(any(line.startswith("  |") for line in out))
-
-    def test_mismatch_prints_the_line(self):
-        line = ws.mismatch_line(">=3.1 <4", "v3.0.0")
-        out = ws.render_status(facts(key={"required": ">=3.1 <4", "state": "mismatch", "line": line}))
-        self.assertIn("  version key      >=3.1 <4: mismatch", out)
-        self.assertIn("                   " + line, out)
-
-    def test_differences_admin_and_absent_key(self):
-        out = ws.render_status(facts(admin=True, admin_stamp=STAMP, user_issues=1, admin_issues=2, key=None))
-        self.assertIn("  check            3 target(s) differ (admin layer: 2); run ./mhw install",
-                      out)
-        self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: v3.1.0 @ aaaaaaa", out)
-        self.assertTrue(any("managed: installed" in line for line in out))
-        self.assertIn("  version key      none (.workstation-version absent in the workspace)", out)
-
-    def test_two_user_stamps_are_both_shown(self):
-        other = "release: unreleased, after v3.0.0; commit: " + "b" * 40 + "-dirty"
-        out = ws.render_status(facts(user_stamps={"Claude Code": STAMP, "Codex": other}))
-        self.assertIn("  installed        user: unreleased, after v3.0.0 @ bbbbbbb-dirty / v3.1.0 @ aaaaaaa"
-                      " · admin: not installed", out)
-
-    def test_verbose_adds_detail(self):
-        out = ws.render_status(facts(plugins=["p@m"]), verbose=True)
-        self.assertIn("  agent harness    Codex: not on PATH", out)
-        self.assertIn("  plugin           p@m", out)
-        self.assertIn("  | OK      /h/.claude/CLAUDE.md (x)", out)
-
-    def test_permissions_line(self):
-        out = ws.render_status(facts(permissions="Claude Code: acceptEdits (user), 37 allow rules"))
-        self.assertIn("  permissions      Claude Code: acceptEdits (user), 37 allow rules", out)
-        self.assertFalse(any(line.startswith("  permissions") for line in ws.render_status(facts())))
-
-    def test_issue_count(self):
-        lines = ["OK      a", "STAMP   b", "DRIFT   c", "MISSING d", "STALE   e", "SKIP    f", "FLOOR   g",
-                 "NOTE    h", "SOURCE  i"]
-        self.assertEqual(ws.issues(lines), 4)
-
-
-def chrome_local_state(home=None):
-    """Chrome's Local State under home (default $HOME) on this system, or None (Issue #224; the paths of
-    src/render/chrome-debugging.js, which test/render/chrome-debugging.test.js holds)."""
-    parts = {"Darwin": ("Library", "Application Support", "Google", "Chrome"),
-             "Linux": (".config", "google-chrome")}.get(platform.system())
-    return Path(home or Path.home()).joinpath(*parts, "Local State") if parts else None
-
-
-class ChromeDebugging(unittest.TestCase):
-    """Issue #224: status carries the chrome debugging line, read since #480 by spawning
-    `mhw chrome-debugging --mode=status` (tested in test/render/chrome-debugging.test.js, with a fixture
-    Local State)."""
-
-    def test_status_carries_the_line(self):
-        out = ws.render_status(facts())
-        self.assertIn("  chrome debugging off (devtools.remote_debugging.user-enabled absent; "
-                      "no DevToolsActivePort)", out)
-        self.assertFalse(any(line.startswith("  chrome debugging")
-                             for line in ws.render_status(facts(chrome_debugging=None))))
-
-    def test_gather_reads_the_key_through_the_node_command(self):
-        with tempfile.TemporaryDirectory(prefix="chrome-debugging-") as d:
-            ls = chrome_local_state(d)
-            if ls is None:
-                self.skipTest("no default Chrome profile path on this system")
-            ls.parent.mkdir(parents=True)
-            ls.write_text('{"devtools":{"remote_debugging":{"user-enabled":true}}}')
-            self.assertTrue(ws.chrome_debugging(d).startswith("on (devtools.remote_debugging.user-enabled = true;"))
-            ls.write_text("[")
-            self.assertTrue(ws.chrome_debugging(d).startswith("not read (devtools.remote_debugging"))
-
-    def test_no_node_is_not_read(self):
-        with mock.patch.object(ws, "node_binary", return_value=None):
-            self.assertEqual(ws.chrome_debugging(), "not read (node 26 or later is required to read it)")
-
-    def test_a_failing_node_is_not_read(self):
-        with tempfile.TemporaryDirectory(prefix="fake-node-") as d:
-            fake = Path(d, "node")
-            fake.write_text("#!/bin/sh\necho partial\nexit 3\n")
-            fake.chmod(0o700)
-            with mock.patch.object(ws, "node_binary", return_value=str(fake)):
-                self.assertEqual(ws.chrome_debugging(d), "not read (mhw chrome-debugging --mode=status exited 3)")
-            with mock.patch.object(ws, "node_binary", return_value=str(Path(d, "absent"))):
-                self.assertEqual(ws.chrome_debugging(d), "not read (mhw chrome-debugging could not run)")
-
-    def test_node_binary_prefers_an_absolute_mhw_node(self):
-        with tempfile.TemporaryDirectory(prefix="mhw-node-") as d:
-            fake = Path(d, "node")
-            fake.write_text("#!/bin/sh\n")
-            fake.chmod(0o700)
-            with mock.patch.dict(os.environ, {"MHW_NODE": str(fake)}):
-                self.assertEqual(ws.node_binary(), str(fake))
-            with mock.patch.dict(os.environ, {"MHW_NODE": "node", "PATH": d}):
-                self.assertEqual(ws.node_binary(), str(fake))
-            with mock.patch.dict(os.environ, {"MHW_NODE": "", "PATH": ""}):
-                self.assertIsNone(ws.node_binary())
-
-
-class RuntimeSummary(unittest.TestCase):
-    """The session-start runtime summary (Issue #80): few lines, every item the brief names."""
-
-    def row(self, out, label):
-        hits = [line for line in out if line.startswith("  %-16s " % label)]
-        self.assertEqual(len(hits), 1, (label, out))
-        return hits[0][19:]
-
-    def test_user_drift_is_named_by_category_with_the_next_step(self):
-        """Issue #38: one DRIFT line in the user --check reaches the protections line, category only."""
-        brief = str(ws.brief_paths()["Claude Code"])
-        lines = ["SOURCE  release: v3.1.0; commit: aaaaaaa", "OK      /h/.codex/AGENTS.md (x)",
-                 "DRIFT   %s (release: v3.0.0; commit: bbbbbbb)" % brief,
-                 "FLOOR   carried by: the user layer only"]
-        out = ws.render_summary(facts(user_lines=lines, user_issues=1))
-        self.assertLessEqual(len(out), 10)
-        row = self.row(out, "protections")
-        self.assertIn("drift: 1 target(s) in brief — next: %s install" % ws.CMD, row)
-        self.assertNotIn(brief, row)
-        self.assertNotIn("bbbbbbb", row)
-
-    def test_clean_check_shows_no_drift_text(self):
-        clean = ["OK      %s (x)" % ws.brief_paths()["Claude Code"],
-                 "SKIP    something", "FLOOR   carried by: the admin layer"]
-        out = ws.render_summary(facts(user_lines=clean))
-        self.assertNotIn("drift", self.row(out, "protections"))
-        self.assertNotIn("stamp:", self.row(out, "protections"))
-        self.assertNotIn("next:", self.row(out, "protections"))
-
-    # Issue #453: a STAMP line (content matches, another source's stamp) is its own clause, never silence
-    # and never content drift; and the summary names the source --check compared with.
-    OTHER = "release: v3.0.0; commit: " + "b" * 40
-    STAMP_LINE = ("STAMP   /h/.codex/AGENTS.md: content matches, but it carries (%s) and the source is (%s)"
-                  % (OTHER, STAMP))
-
-    def test_stamp_only_user_check_is_not_clean(self):
-        """Criterion 1: a STAMP-only user --check yields a non-empty clause (it used to return '')."""
-        text = ws.drift_text([self.STAMP_LINE], [])
-        self.assertEqual(text, "stamp: 1 target(s) from v3.0.0 @ bbbbbbb, content matches — next: %s install"
-                         % ws.CMD)
-        row = self.row(ws.render_summary(facts(user_lines=["OK      /h/x (y)", self.STAMP_LINE])),
-                       "protections")
-        self.assertIn(" · stamp: 1 target(s) from v3.0.0 @ bbbbbbb", row)
-        self.assertNotIn("/h/.codex", row)
-
-    def test_summary_names_the_compared_source(self):
-        """Criterion 2: the workstation item names the source, 'package <stamp>' or 'checkout <stamp>'."""
-        out = ws.render_summary(facts(user_stamps={"Codex": self.OTHER}))
-        self.assertEqual(self.row(out, "workstation"), "v3.0.0 @ bbbbbbb · source: checkout v3.1.0 @ aaaaaaa · "
-                                                       "version key: >=3.1 <4 match")
-        self.assertEqual(ws.source_text(STAMP), "%s v3.1.0 @ aaaaaaa" % ws.SOURCE_NAME.split()[-1])
-        self.assertIn(ws.source_text(STAMP).split()[0], ("package", "checkout"))
-        self.assertLessEqual(len(out), 10)
-
-    def test_stamp_is_worded_apart_from_content_drift(self):
-        """Criterion 3: STAMP never counts as content drift; both clauses stand side by side."""
-        stamp_only = ws.drift_text([self.STAMP_LINE], [])
-        self.assertNotIn("drift:", stamp_only)
-        drift = "DRIFT   %s (%s)" % (ws.brief_paths()["Claude Code"], self.OTHER)
-        both = ws.drift_text([drift, self.STAMP_LINE, self.STAMP_LINE.replace("codex", "kiro")], [])
-        self.assertEqual(both, "drift: 1 target(s) in brief; stamp: 2 target(s) from v3.0.0 @ bbbbbbb, "
-                               "content matches — next: %s install" % ws.CMD)
-        self.assertNotEqual(stamp_only, ws.drift_text([drift], []))
-
-    def test_admin_stamp_is_a_stamp_not_admin_drift(self):
-        """The intake's hypothesis, measured: an admin STAMP-only --check exits 1 and used to read as
-        'drift: 1 target(s) in admin layer'; with exit 0 it read clean."""
-        admin = [self.STAMP_LINE.replace("/h/.codex/AGENTS.md", "/Library/x/managed-settings.d/50-x.json")]
-        for code in (0, 1):
-            self.assertEqual(ws.drift_text([], admin, code),
-                             "stamp: 1 target(s) from admin v3.0.0 @ bbbbbbb, content matches — next: %s "
-                             "install" % ws.CMD)
-        self.assertEqual(ws.stamp_origin("STAMP   /h/x: other"), "another source")
-        # The MCP renderer words the same fact as "recorded under (...)".
-        self.assertEqual(ws.stamp_origin("STAMP   /h/.claude.json: policy MCP server(s) match, but recorded "
-                                         "under (%s) and the source is (%s)" % (self.OTHER, STAMP)),
-                         "v3.0.0 @ bbbbbbb")
-
-    def test_categories_and_admin_layer(self):
-        user = ["MISSING /h/.zshrc: no paste-wrapper start-up block; install adds it",
-                "DRIFT   /h/.claude/settings.json (2 deny-floor rule(s) missing; or a hook entry is missing)",
-                "STALE   /h/.local/share/x/restart-state: the removed restart guard's baselines",
-                "REFUSE  /h/.codex/hooks.json: exists and is NOT managed by this project",
-                "MISSING /h/.claude/skills/shell/SKILL.md", "DRIFT   /h/somewhere/else.txt"]
-        admin = ["DRIFT   /Library/Application Support/ClaudeCode/managed-settings.d/50-x.json (stamp)"]
-        row = self.row(ws.render_summary(facts(user_lines=user, admin_lines=admin, admin_code=1)),
-                       "protections")
-        self.assertIn("drift: 7 target(s) in paste wrapper, deny floor, removed controls, hooks, "
-                      "method, other, admin deny floor — next: %s install" % ws.CMD, row)
-        # An admin --check that fails with no target line still counts, so it cannot read clean.
-        self.assertEqual(ws.drift_text([], ["NOTE    could not read"], 3),
-                         "drift: 1 target(s) in admin layer — next: %s install" % ws.CMD)
-        self.assertEqual(ws.drift_text([], [], 0), "")
-
-    def test_every_item_in_ten_lines(self):
-        out = ws.render_summary(facts())
-        self.assertLessEqual(len(out), 10)
-        self.assertEqual(self.row(out, "agent harness"), "Claude Code 2.1.0")
-        self.assertEqual(self.row(out, "model, effort"), "Claude Code: default; the session's own values: "
-                                                         "Claude Code /status")
-        self.assertEqual(self.row(out, "workstation"), "v3.1.0 @ aaaaaaa · source: checkout v3.1.0 @ aaaaaaa · "
-                                                       "version key: >=3.1 <4 match")
-        self.assertEqual(self.row(out, "layers"), "managed: absent · user: installed · workspace: proj · "
-                                                  "plugin: none")
-        self.assertEqual(self.row(out, "overrides"), "no workspace setting overrides a user default")
-        self.assertEqual(self.row(out, "cannot override"), "nothing (no admin layer) · deny floor NOT locked: "
-                                                           + USER_FLOOR)
-        self.assertIn("brief installed in 2/3 agent harnesses (an instruction)", self.row(out, "protections"))
-        self.assertIn("evidence: installed; loaded and enforced need a session canary",
-                      self.row(out, "protections"))
-        self.assertEqual(self.row(out, "permission mode"), "Claude Code: default; session flags: "
-                                                           "Claude Code /status")
-        self.assertEqual(self.row(out, "runtime"), "host (Linux x86_64; no container marker found)")
-
-    def test_workspace_overrides_user_and_hooks_off_is_named(self):
-        settings = [("Claude Code", "user", "permissions.defaultMode", "default"),
-                    ("Claude Code", "workspace", "permissions.defaultMode", "acceptEdits"),
-                    ("Claude Code", "user", "model", "opus"),
-                    ("Claude Code", "user", "disableAllHooks", "true"),
-                    ("Codex", "user", "approval_policy", "on-request"),
-                    ("Codex", "workspace", "sandbox_mode", "workspace-write"),
-                    ("Codex", "user", "model_reasoning_effort", "high")]
-        out = ws.render_summary(facts(settings=settings, admin=True,
-                                      harnesses={"Claude Code": "2.1.0", "Codex": "0.1", "Kiro": None}))
-        self.assertEqual(self.row(out, "overrides"),
-                         "HOOKS OFF: disableAllHooks in Claude Code user; Claude Code permissions.defaultMode "
-                         "= acceptEdits; Codex sandbox_mode = workspace-write")
-        self.assertEqual(self.row(out, "permission mode"),
-                         "Claude Code: permissions.defaultMode acceptEdits (workspace) · Codex: approval_policy "
-                         "on-request (user), sandbox_mode workspace-write (workspace); session flags: "
-                         "Claude Code /status, Codex /status")
-        self.assertEqual(self.row(out, "model, effort"),
-                         "Claude Code: model opus (user) · Codex: model_reasoning_effort high (user); "
-                         "the session's own values: Claude Code /status, Codex /status")
-        self.assertEqual(self.row(out, "cannot override"),
-                         "managed layer (admin-owned) · deny floor NOT locked: " + USER_FLOOR)
-
-    def test_floor_is_locked_only_in_the_admin_layer(self):
-        admin_floor = "the admin layer; the user copy stays as a fallback until it is retired (ADR-0016)"
-        out = ws.render_summary(facts(admin=True, admin_state="installed", floor=admin_floor))
-        self.assertEqual(self.row(out, "cannot override"), "managed layer (admin-owned) · deny floor: " + admin_floor)
-        none = "NO complete layer; run ./mhw install, then ./mhw install --admin"
-        out = ws.render_summary(facts(floor=none))
-        self.assertEqual(self.row(out, "cannot override"), "nothing (no admin layer) · deny floor NOT locked: " + none)
-
-    def test_legacy_dropin_is_never_absent(self):
-        for state, want in (("legacy", "installed (legacy, pre-#66; reinstall to update)"),
-                            ("unreadable", "present, not read"), ("absent", "absent")):
-            with self.subTest(state=state):
-                out = ws.render_summary(facts(admin_state=state))
-                self.assertTrue(self.row(out, "layers").startswith("managed: %s · " % want))
-                status = ws.render_status(facts(admin_state=state))
-                self.assertTrue(any(line.startswith("  layers           managed: %s · " % want) for line in status))
-        status = ws.render_status(facts(admin_state="legacy"))
-        self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: installed (legacy, pre-#66; reinstall "
-                      "to update)", status)
-        self.assertTrue(self.row(ws.render_summary(facts(admin_state="legacy")), "cannot override")
-                        .startswith("managed layer (admin-owned) · deny floor NOT locked: "))
-
-    def test_mismatch_and_no_harness(self):
-        line = ws.mismatch_line(">=3.1 <4", "v3.0.0")
-        out = ws.render_summary(facts(key={"required": ">=3.1 <4", "state": "mismatch", "line": line},
-                                      harnesses={"Claude Code": None, "Codex": None, "Kiro": None}))
-        self.assertEqual(out[-1], "  " + line)
-        self.assertLessEqual(len(out), 11)
-        self.assertEqual(self.row(out, "agent harness"), "none detected on PATH")
-        self.assertIn("Kiro: default", self.row(out, "model, effort"))
-        self.assertIn("Kiro /context show, /tools", self.row(out, "model, effort"))
+class BriefText(unittest.TestCase):
+    """The user-level brief's sections the session-start rules live in (Issue #80)."""
 
     def test_brief_names_the_summary_command(self):
         brief = (ws.HERE / "AGENTS.md").read_text(encoding="utf-8")
@@ -421,185 +88,8 @@ class RuntimeSummary(unittest.TestCase):
                 self.assertIn(needle, section)
 
 
-class Settings(unittest.TestCase):
-    def test_reads_user_and_workspace_layers(self):
-        with tempfile.TemporaryDirectory(prefix="workstation-settings-") as d:
-            base = Path(d)
-            saved = {k: os.environ.get(k) for k in ("HOME", "CODEX_HOME")}
-            os.environ["HOME"] = str(base / "home")
-            os.environ.pop("CODEX_HOME", None)
-            try:
-                (base / "home" / ".claude").mkdir(parents=True)
-                (base / "home" / ".codex").mkdir()
-                (base / "proj" / ".claude").mkdir(parents=True)
-                (base / "home" / ".claude" / "settings.json").write_text(json.dumps(
-                    {"model": "opus", "permissions": {"defaultMode": "plan", "deny": ["x"]}}), encoding="utf-8")
-                (base / "proj" / ".claude" / "settings.json").write_text(json.dumps(
-                    {"disableAllHooks": True}), encoding="utf-8")
-                (base / "home" / ".codex" / "config.toml").write_text(
-                    'model = "gpt-x"  # note\napproval_policy = \'never\'\n[profiles.a]\nsandbox_mode = "x"\n',
-                    encoding="utf-8")
-                got = ws.read_settings(base / "proj")
-            finally:
-                for k, v in saved.items():
-                    if v is None:
-                        os.environ.pop(k, None)
-                    else:
-                        os.environ[k] = v
-        self.assertEqual(got, [("Claude Code", "user", "model", "opus"),
-                               ("Claude Code", "user", "permissions.defaultMode", "plan"),
-                               ("Claude Code", "workspace", "disableAllHooks", "true"),
-                               ("Codex", "user", "approval_policy", "never"),
-                               ("Codex", "user", "model", "gpt-x")])
-
-    def test_reads_the_kiro_default_model(self):
-        with tempfile.TemporaryDirectory(prefix="workstation-settings-") as d:
-            base = Path(d)
-            saved = os.environ.get("HOME")
-            os.environ["HOME"] = str(base / "home")
-            try:
-                (base / "home" / ".kiro" / "settings").mkdir(parents=True)
-                (base / "home" / ".kiro" / "settings" / "cli.json").write_text(json.dumps(
-                    {"chat.defaultModel": "claude-sonnet-4.5", "chat.enableThinking": True}), encoding="utf-8")
-                got = ws.read_settings(None)
-            finally:
-                os.environ["HOME"] = saved
-        self.assertIn(("Kiro", "user", "chat.defaultModel", "claude-sonnet-4.5"), got)
-
-
-class ModelsLine(unittest.TestCase):
-    """ADR-0035: status shows each harness's session-start model and effort against the policy."""
-
-    def mcp(self, lines):
-        out = ws.render_status(facts(user_lines=lines))
-        start = [i for i, line in enumerate(out) if line.startswith("  mcp active set   ")]
-        self.assertEqual(len(start), 1, out)
-        rest = [line for line in out[start[0] + 1:] if line.startswith(ws.MCP_INDENT + " ") is False
-                and line.startswith(ws.MCP_INDENT)]
-        return out[start[0]][19:], [line[19:] for line in rest]
-
-    def test_mcp_active_set_names_what_is_on_outside_and_what_is_missing(self):
-        """Issue #219: status names every server on outside the set and every set member missing, by name
-        and count, from the check's own lines; the file path and the tag are not repeated."""
-        tag = " (MCP active set)"
-        self.assertEqual(self.mcp([])[0], "not read (the check printed no MCP active-set line)")
-        skip = "SKIP    MCP active set: not declared in /d/mcp-servers.json (no \"active_set\"), so nothing is turned off"
-        self.assertEqual(self.mcp([skip + tag])[0],
-                         "not declared in /d/mcp-servers.json (no \"active_set\"), so nothing is turned off")
-        ok = ["OK      codex: nothing on outside the set (2 turned off by mhw) (/h/.codex/config.toml)" + tag]
-        self.assertEqual(self.mcp(ok), ("declared; nothing on outside the set and no set member missing", []))
-        lines = ok + [
-            "DRIFT   kiro: on outside the set: synth-b (1); install turns them off (/h/.kiro/settings/mcp.json)" + tag,
-            "ABSENT  claude-code: set member(s) not configured: synth-a (1); render them with "
-            "mhw mcp render (/h/.claude.json)" + tag,
-            "REPORT  claude-desktop: on outside the set, no native switch for one server (remove it by hand): "
-            "synth-c (1) (/h/Library/Application Support/Claude/claude_desktop_config.json)" + tag,
-            "NOTE    claude-code: 1 claude.ai connector(s) declared on (/h/.claude/settings.json)" + tag]
-        head, rest = self.mcp(lines)
-        self.assertEqual(head, "3 finding(s); %s turns off what is on outside the set in 1 agent harness(es)" % ws.FIX)
-        self.assertEqual(self.mcp(lines[2:4])[0], "2 finding(s)", "nothing for install to fix: no fix is named")
-        self.assertEqual(rest, ["kiro: on outside the set: synth-b (1); install turns them off",
-                                "claude-code: set member(s) not configured: synth-a (1); render them with "
-                                "mhw mcp render",
-                                "claude-desktop: on outside the set, no native switch for one server (remove it by "
-                                "hand): synth-c (1)"])
-        self.assertEqual(ws.issues(lines), 1, "only DRIFT is a target install fixes; ABSENT and REPORT are not")
-
-    def test_mcp_connect_lines_show_name_and_result_only(self):
-        """#219 bullet 3: status --mcp-connect prints the check's lines under one heading, without its tag."""
-        tag = " (MCP connect)"
-        lines = ["OK      codex: s-a: ok" + tag, "FAIL    kiro: s-b: fail: timeout" + tag, "an untagged line"]
-        self.assertEqual(ws.mcp_connect_lines(lines, 1), ["  mcp connect      codex: s-a: ok",
-                                                         ws.MCP_INDENT + "kiro: s-b: fail: timeout"])
-        self.assertTrue(ws.mcp_connect_lines([], 2)[0].startswith("  mcp connect      no result (exit 2)"))
-        for bad in ("--mcp-connect=0", "--mcp-connect=x", "--mcp-connect=99999"):
-            self.assertEqual(ws.main(["status", bad]), 2, bad)
-
-    def test_mcp_connect_status_exit_follows_the_check_and_the_default_timeout_is_30(self):
-        """#225 QA M17: status --mcp-connect returns 1 when the check reports a FAIL, 0 when all are OK."""
-        from unittest import mock
-        tag = " (MCP connect)"
-        calls = []
-
-        def fake_run(code, lines):
-            def run(args, capture=True):
-                calls.append(args)
-                return code, lines
-            return run
-
-        with mock.patch("builtins.print"), mock.patch.object(ws, "node_binary", lambda: "/synthetic/node"):
-            with mock.patch.object(ws, "run", fake_run(1, ["FAIL    codex: s-b: fail: timeout" + tag])):
-                self.assertEqual(ws.mcp_connect_status(5), 1)
-            with mock.patch.object(ws, "run", fake_run(0, ["OK      codex: s-a: ok" + tag])):
-                self.assertEqual(ws.mcp_connect_status(5), 0)
-            self.assertIn("--timeout=5", calls[-1])
-            # #484: the check is the Node renderer's (src/render/mcp.js), spawned by the node lookup.
-            self.assertEqual(calls[-1][:2], ["/synthetic/node", str(ws.ROOT / "src" / "render" / "mcp.js")])
-            with mock.patch.object(ws, "node_binary", lambda: None), \
-                    mock.patch.object(ws, "run", fake_run(0, [])):
-                self.assertEqual(ws.mcp_connect_status(5), 1, "no node: not run, and said")
-            seen = []
-            with mock.patch.object(ws, "gather", lambda project: facts()), \
-                    mock.patch.object(ws, "mcp_connect_status", lambda t: seen.append(t) or 1):
-                self.assertEqual(ws.main(["status", "--mcp-connect"]), 1)
-                self.assertEqual(ws.main(["status", "--mcp-connect=7"]), 1)
-                self.assertEqual(ws.main(["status"]), 0, "never in the default status")
-        self.assertEqual(seen, [30, 7])
-
-    def test_mcp_active_set_never_reads_clean_when_a_harness_was_not_read(self):
-        """#222 lens: Codex is skipped without Python 3.11+ (macOS ships 3.9), so its servers are unknown and the
-        line says so; an agent harness that is not installed is not a gap."""
-        tag = " (MCP active set)"
-        skip = "SKIP    codex: needs Python 3.11+ (tomllib) to edit config.toml (/h/.codex/config.toml)" + tag
-        absent = "SKIP    kiro: not installed (/h/.kiro absent)" + tag
-        ok = "OK      claude-code: nothing on outside the set (0 turned off by mhw) (/h/.claude/settings.json)" + tag
-        head, rest = self.mcp([skip, absent, ok])
-        self.assertEqual(head, "declared; not read for codex")
-        self.assertEqual(rest, ["codex: not read: needs Python 3.11+ (tomllib) to edit config.toml"])
-        self.assertEqual(self.mcp([absent, ok])[0], "declared; nothing on outside the set and no set member missing")
-        drift = "DRIFT   kiro: on outside the set: synth-b (1); install turns them off (/h/k.json)" + tag
-        head, _ = self.mcp([skip, drift])
-        self.assertTrue(head.startswith("not read for codex; 1 finding(s); "), head)
-
-    SETTINGS = [("Claude Code", "user", "model", "claude-opus-5-5[1m]"),
-                ("Claude Code", "user", "effortLevel", "medium"),
-                ("Codex", "user", "model", "gpt-5.6-sol"), ("Codex", "user", "model_reasoning_effort", "high"),
-                ("Kiro", "user", "chat.defaultModel", "claude-sonnet-4.5")]
-
-    def models(self, lines):
-        out = ws.render_status(facts(settings=self.SETTINGS, user_lines=lines))
-        hits = [line for line in out if line.startswith("  models           ")]
-        self.assertEqual(len(hits), 1, out)
-        return hits[0][19:]
-
-    def test_values_and_policy_state(self):
-        values = ("Claude Code: model claude-opus-5-5[1m] (user), effortLevel medium (user) · Codex: model "
-                  "gpt-5.6-sol (user), model_reasoning_effort high (user) · Kiro: chat.defaultModel "
-                  "claude-sonnet-4.5 (user)")
-        self.assertEqual(self.models([]), values + "; policy: none (no model-defaults.json in the overlay)")
-        ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
-        self.assertEqual(self.models(ok), values + "; policy: matches")
-        differ = ok + ["DRIFT   /h/.codex/config.toml: install would change model_reasoning_effort \"high\" -> "
-                       "\"medium\" (model defaults codex)",
-                       "MISSING /h/.kiro/settings/cli.json: install would change (model defaults kiro-cli)"]
-        line = self.models(differ)
-        self.assertEqual(line, values + "; policy: 2 harness(es) differ; mhw install sets them")
-        # Issue #145: a value of the owner's is a pending write, never counted as held back from install.
-        self.assertNotIn("of yours", line)
-        self.assertNotIn("leaves alone", line)
-
-    def test_workspace_override_is_never_reported_as_matching(self):
-        """PR #119 lens: a workspace key beats the user layer, the only layer mhw writes. The line shows
-        the value in effect and names the override instead of claiming "policy: matches"."""
-        ok = ["OK      /h/.claude/settings.json: x (model defaults claude-code)"]
-        settings = self.SETTINGS + [("Claude Code", "workspace", "model", "claude-haiku-x")]
-        out = ws.render_status(facts(settings=settings, user_lines=ok))
-        line = [l for l in out if l.startswith("  models           ")][0]
-        self.assertIn("Claude Code: model claude-haiku-x (workspace)", line)
-        self.assertNotIn("policy: matches", line)
-        self.assertIn("policy: user layer matches; overridden by the workspace: Claude Code model", line)
-        # Without the workspace key the same lines do match.
-        self.assertTrue(self.models(ok).endswith("; policy: matches"))
+class InstallLines(unittest.TestCase):
+    """Issue #145: what install says about the settings it writes."""
 
     def test_an_owner_value_is_a_pending_write_and_no_owner_step(self):
         """Issue #145: install overwrites an owner's model value, so --check counts it as a pending write,
@@ -625,161 +115,12 @@ class ModelsLine(unittest.TestCase):
                          ["    CHANGED /h/.zshrc: paste-wrapper start-up block absent -> present (new file)"])
 
 
-class RootBrief(unittest.TestCase):
-    """ADR-0037: AGENTS.md is the root brief. Status names a file that makes Claude Code ignore it and an
-    AGENTS.md Codex would truncate (project_doc_max_bytes, 32768 by default). An instruction check."""
-
-    SHADOW = "%s: AGENTS.md is the root brief; this file makes Claude Code ignore AGENTS.md"
-
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="root-brief-")
-        self.addCleanup(self.temp.cleanup)
-        self.top = Path(self.temp.name).resolve() / "parent" / "repo"
-        self.top.mkdir(parents=True)
-
-    def local(self):
-        # Findings in the workspace itself; an ancestor of the temporary directory is not this test's.
-        return [f for f in ws.root_brief_findings(self.top) if "(ancestor)" not in f]
-
-    def agents(self, size):
-        (self.top / "AGENTS.md").write_bytes(b"x" * size)
-
-    def test_clean_workspace_has_no_finding(self):
-        self.agents(100)
-        self.assertEqual(self.local(), [])
-
-    def test_each_shadowing_file_is_named(self):
-        self.agents(100)
-        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"):
-            with self.subTest(name=name):
-                path = self.top / name
-                path.parent.mkdir(exist_ok=True)
-                path.write_text("@AGENTS.md\n")
-                self.assertEqual(self.local(), [self.SHADOW % name])
-                path.unlink()
-        # A directory named like the file is not a brief.
-        (self.top / "CLAUDE.md").mkdir()
-        self.assertEqual(self.local(), [])
-
-    def test_each_ancestor_shadow_is_named(self):
-        # Lens on PR #154, probes B, C and L: each name shadows AGENTS.md from an ancestor directory too.
-        self.agents(100)
-        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"):
-            with self.subTest(name=name):
-                path = self.top.parent / name
-                path.parent.mkdir(exist_ok=True)
-                path.write_text("x\n")
-                self.assertIn("%s (ancestor): this file makes Claude Code ignore AGENTS.md" % path,
-                              ws.root_brief_findings(self.top))
-                path.unlink()
-
-    def test_user_level_brief_is_not_an_ancestor_shadow(self):
-        # Measured: ~/.claude/CLAUDE.md does not shadow a project AGENTS.md, though home is an ancestor.
-        self.agents(100)
-        home = self.top.parent
-        (home / ".claude").mkdir()
-        (home / ".claude" / "CLAUDE.md").write_text("x\n")
-        old = os.environ.get("HOME")
-        os.environ["HOME"] = str(home)
-        try:
-            self.assertEqual([f for f in ws.root_brief_findings(self.top) if str(home) + os.sep in f], [])
-        finally:
-            if old is None:
-                os.environ.pop("HOME")
-            else:
-                os.environ["HOME"] = old
-
-
-    def test_codex_limit_is_exclusive(self):
-        self.agents(32768)
-        self.assertEqual(self.local(), [])
-        self.agents(32769)
-        self.assertEqual(self.local(), ["AGENTS.md is 32769 bytes, over 32768: Codex truncates it"])
-
-    def test_no_agents_md_is_not_a_size_finding(self):
-        self.assertEqual(self.local(), [])
-
-    def test_workspace_carries_the_findings(self):
-        self.agents(100)
-        (self.top / "CLAUDE.md").write_text("x\n")
-        got = ws.workspace(str(self.top))
-        self.assertIn(self.SHADOW % "CLAUDE.md", got["brief"])
-
-    def test_status_and_summary_report_them(self):
-        found = [self.SHADOW % "CLAUDE.md", "AGENTS.md is 40000 bytes, over 32768: Codex truncates it"]
-        space = {"name": "proj", "root": Path("/proj"), "carriers": ["AGENTS.md", "CLAUDE.md"], "brief": found}
-        out = ws.render_status(facts(workspace=space))
-        self.assertEqual([line[19:] for line in out if line.startswith("  root brief       ")], found)
-        summary = ws.render_summary(facts(workspace=space))
-        self.assertLessEqual(len(summary), 10)
-        layers = [line for line in summary if line.startswith("  layers ")][0]
-        self.assertIn("workspace: proj (root brief: 2 finding(s); %s status)" % ws.CMD, layers)
-        clean = dict(space, brief=[])
-        self.assertFalse(any(line.startswith("  root brief") for line in ws.render_status(facts(workspace=clean))))
-        self.assertNotIn("root brief", " ".join(ws.render_summary(facts(workspace=clean))))
-
-
-@unittest.skipUnless(shutil.which("git"), "needs git")
-class RootBriefWorktrees(unittest.TestCase):
-    """Lens on PR #154, probes w, f and e (Claude Code 2.1.296): a LINKED worktree does not load its main
-    checkout's instruction files, wherever it sits; a separate repository nested under a checkout does."""
-
-    def git(self, cwd, *args):
-        subprocess.run(["git", "-c", "user.email=t@example.invalid", "-c", "user.name=t", "-C", str(cwd)]
-                       + list(args), check=True, capture_output=True)
-
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="root-brief-wt-")
-        self.addCleanup(self.temp.cleanup)
-        self.outer = Path(self.temp.name).resolve() / "outer"
-        (self.outer / ".claude").mkdir(parents=True)
-        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md", "AGENTS.md"):
-            (self.outer / name).write_text("x\n")
-        self.git(self.outer, "init", "-q")
-        self.git(self.outer, "add", "-A")
-        self.git(self.outer, "commit", "-q", "-m", "init")
-
-    def outer_hits(self, top):
-        return [f for f in ws.root_brief_findings(top) if f.startswith(str(self.outer) + os.sep)
-                and "(ancestor" in f]
-
-    def worktree(self, rel):
-        top = self.outer / rel
-        top.parent.mkdir(parents=True, exist_ok=True)
-        self.git(self.outer, "worktree", "add", "-q", "--detach", str(top))
-        for name in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"):
-            (top / name).unlink()
-        return top
-
-    def test_w_linked_worktree_under_dot_claude_skips_the_main_checkout(self):
-        top = self.worktree(".claude/worktrees/w")
-        self.assertEqual(ws.main_checkout_of(top), self.outer)
-        self.assertEqual(self.outer_hits(top), [])
-
-    def test_f_linked_worktree_elsewhere_skips_the_main_checkout(self):
-        self.assertEqual(self.outer_hits(self.worktree("sub/f")), [])
-
-    def test_e_separate_repository_nested_inherits(self):
-        top = self.outer / ".claude" / "worktrees" / "e"
-        top.mkdir(parents=True)
-        (top / "AGENTS.md").write_text("x\n")
-        self.git(top, "init", "-q")
-        self.assertIsNone(ws.main_checkout_of(top))
-        self.assertEqual(sorted(self.outer_hits(top)),
-                         sorted("%s (ancestor): this file makes Claude Code ignore AGENTS.md" % (self.outer / n)
-                                for n in ("CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md")))
-
-    def test_ancestor_above_the_main_checkout_is_named_as_not_measured(self):
-        above = self.outer.parent / "CLAUDE.md"
-        above.write_text("x\n")
-        top = self.worktree("sub/f")
-        self.assertIn("%s (ancestor above the main checkout, not measured): this file makes Claude Code "
-                      "ignore AGENTS.md" % above, ws.root_brief_findings(top))
-
-
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
 class EndToEnd(unittest.TestCase):
-    """The real installers in a throwaway HOME and admin root: status must read their output right."""
+    """The real installers in a throwaway HOME and admin root: install, then check. The status view of the
+    same installs is Node since #493 (S22 of #470): test/status/status-golden.test.js (cases user-only,
+    user-only-projects, drift) holds what this test used to assert about it, with a stand-in gh and stub
+    agent harness CLIs instead of the ones on this machine's PATH."""
 
     def run_ws(self, *args):
         p = subprocess.run([str(ws.ROOT / "mhw")] + list(args), env=self.env, cwd=self.base,
@@ -790,118 +131,29 @@ class EndToEnd(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="workstation-e2e-")
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name)
-        for d in ("home", "root", "tmp", "proj"):
+        for d in ("home", "root", "tmp"):
             (self.base / d).mkdir()
-        (self.base / "proj" / ws.KEY_FILE).write_text("# test\n>=999 <1000\n", encoding="utf-8")
+        empty = self.base / "prereq.json"
+        empty.write_text('{"lanes": {}, "items": []}', encoding="utf-8")
         self.env = {"PATH": os.environ["PATH"], "HOME": str(self.base / "home"),
-                    "TMPDIR": str(self.base / "tmp"), "WORKSTATION_MANAGED_ROOT": str(self.base / "root")}
+                    "TMPDIR": str(self.base / "tmp"), "WORKSTATION_MANAGED_ROOT": str(self.base / "root"),
+                    "WORKSTATION_PREREQUISITES": str(empty)}
 
-    def test_install_then_status(self):
+    def test_install_then_check(self):
         code, out = self.run_ws("install", "--yes", "--no-admin", "--overlay=none")
         self.assertEqual(code, 0, out)
         self.assertIn("\nInstallation successful!\n", out)
         self.assertNotIn("System-wide", out)
-        project = "--project=" + str(self.base / "proj")
-        code, out = self.run_ws("status", "--overlay=none", project)
-        self.assertEqual(code, 0)
-        source = re.search(r"^  source           (.*) \(this checkout\)$", out, re.M).group(1)
-        self.assertIn("  installed        user: %s · admin: not installed\n" % source, out)
-        self.assertIn("  check            matches this checkout\n", out)
-        self.assertIn("managed: absent · user: installed", out)
-        self.assertIn("brief: installed in 3/3 agent harnesses", out)
         # --overlay=none reached the installer: the brief names no overlay as its source.
         marker = (self.base / "home" / ".claude" / "CLAUDE.md").read_text(encoding="utf-8").splitlines()[0]
         self.assertIn("source: global/AGENTS.md;", marker)
-        self.assertIn("  version key      >=999 <1000: mismatch\n", out)
-        self.assertIn("Workstation version key: required >=999 <1000, installed ", out)
-        self.assertIn("hooks registered: admin: none · user: "
-                      "paste filter (Claude Code), paste filter (Codex), paste filter (Kiro CLI V3)\n", out)
-        # The allow list (Issue #83): no admin floor, so the narrow tier, sized from the source itself.
-        conf = (ws.HERE / "allow-list.conf").read_text(encoding="utf-8").splitlines()
-        narrow = sum(1 for line in conf if line.startswith("narrow "))
-        self.assertIn("  permissions      Claude Code: default (none set), %d allow rules · Codex: profile "
-                      "workstation (on-request, read-only; with --profile workstation), %d allow rules · Kiro: agent "
-                      "workstation, %d trusted commands\n" % (narrow, narrow, narrow), out)
-        # The summary is fed by the same gathered facts: same stamp, key and hooks as the status view.
-        code, out = self.run_ws("status", "--summary", "--overlay=none", project)
-        self.assertEqual(code, 0)
-        self.assertLessEqual(len(out.splitlines()), 11, out)
-        # The real gh (if any) in a throwaway HOME with no token: the owner-action count is not read, never 0.
-        short = source.split(" (")[0]
-        self.assertIn("  workstation      %s · source: %s %s · version key: >=999 <1000 mismatch · owner "
-                      "actions: not read (" % (short, ws.SOURCE_NAME.split()[-1], short), out)
-        self.assertIn("· hooks admin: none · user: paste filter (Claude Code)", out)
-        self.assertRegex(out, r"(?m)^  Workstation version key: required >=999 <1000, installed ")
-        # No admin layer: the floor is never listed as locked, and the installer's words arrive whole.
-        _, verbose = self.run_ws("status", "--verbose", "--overlay=none", project)
-        carried = re.search(r"(?m)^  \| FLOOR   carried by: (.*)$", verbose).group(1)
-        self.assertIn("  cannot override  nothing (no admin layer) · deny floor NOT locked: %s\n" % carried, out)
-        # The hooks moved out of the user layer with no admin layer: status must not claim them. Kiro's
-        # stays at user level (it has no admin layer for hooks, Issue #455), so it is the only one named.
-        subprocess.run(["sh", str(ws.INSTALL), "--overlay=none", "--hooks=managed"], env=self.env,
-                       capture_output=True, check=False)
-        code, out = self.run_ws("status", "--overlay=none", project)
-        self.assertIn("hooks registered: admin: none · user: paste filter (Kiro CLI V3)\n", out)
-        code, out = self.run_ws("install", "--yes", "--no-admin", "--overlay=none")
-        # A hand edit to one installed file is a difference status must count.
+        code, out = self.run_ws("check", "--overlay=none")
+        self.assertEqual(code, 0, out)
+        # A hand edit to one installed file is a difference check must fail on.
         brief = self.base / "home" / ".claude" / "CLAUDE.md"
         brief.write_text(brief.read_text(encoding="utf-8") + "edited\n", encoding="utf-8")
-        code, out = self.run_ws("status", "--overlay=none", project)
-        self.assertIn("  check            1 target(s) differ; run ./mhw install\n", out)
-        code, _ = self.run_ws("check", "--overlay=none")
-        self.assertNotEqual(code, 0)
-
-
-@unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
-class GatherLegacyDropin(unittest.TestCase):
-    """Through gather(), with a workspace version key AND a pre-#66 admin drop-in: the managed layer
-    must read legacy, never absent (the key's own verdict once overwrote the managed state)."""
-
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="workstation-gather-")
-        self.addCleanup(self.temp.cleanup)
-        b = Path(self.temp.name)
-        for d in ("home", "root", "tmp", "proj"):
-            (b / d).mkdir()
-        keys = ("HOME", "TMPDIR", "WORKSTATION_MANAGED_ROOT", "XDG_DATA_HOME", "CODEX_HOME", ws.OVERLAY_ENV)
-        saved = {k: os.environ.get(k) for k in keys}
-
-        def restore():
-            for k, v in saved.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
-        self.addCleanup(restore)
-        os.environ.update({"HOME": str(b / "home"), "TMPDIR": str(b / "tmp"),
-                           "WORKSTATION_MANAGED_ROOT": str(b / "root"), ws.OVERLAY_ENV: "none"})
-        os.environ.pop("XDG_DATA_HOME", None)
-        os.environ.pop("CODEX_HOME", None)
-        self.proj = b / "proj"
-        (self.proj / ws.KEY_FILE).write_text(">=3.1 <4\n", encoding="utf-8")
-
-    def test_key_present_and_legacy_dropin(self):
-        subprocess.run(["sh", str(ws.INSTALL), "--hooks=user"], capture_output=True, check=True)
-        # The pre-#66 drop-in shape (install-managed.sh at 3742ffa): hooks and deny, no stamp key.
-        legacy = {"hooks": {"PreToolUse": [{"matcher": "AskUserQuestion", "hooks": [
-                      {"type": "command", "command": "/bin/sh /x/" + ws.GUARD, "timeout": 5}]}]},
-                  "permissions": {"deny": ["Bash(sudo:*)"]}}
-        ws.admin_dropin().parent.mkdir(parents=True)
-        ws.admin_dropin().write_text(json.dumps(legacy), encoding="utf-8")
-        # PR #227 B2 (M2): gather() carries the Chrome key, read from a fixture Local State in this HOME.
-        ls = chrome_local_state()
-        if ls is not None:
-            ls.parent.mkdir(parents=True)
-            ls.write_text('{"devtools":{"remote_debugging":{"user-enabled":true}}}', encoding="utf-8")
-        f = ws.gather(str(self.proj))
-        if ls is not None:
-            self.assertTrue(f["chrome_debugging"].startswith("on (devtools.remote_debugging.user-enabled = true;"),
-                            f["chrome_debugging"])
-        self.assertIn(f["key"]["state"], ("match", "mismatch"))
-        self.assertEqual(f["admin_state"], "legacy")
-        layers = [line for line in ws.render_summary(f) if line.startswith("  layers ")][0]
-        self.assertIn("managed: installed (legacy, pre-#66; reinstall to update) · ", layers)
-        self.assertTrue(any("managed: installed (legacy" in line for line in ws.render_status(f)))
+        code, out = self.run_ws("check", "--overlay=none")
+        self.assertNotEqual(code, 0, out)
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq") and os.access("/usr/bin/python3", os.X_OK),
@@ -931,7 +183,7 @@ class StaleAdminLayer(unittest.TestCase):
         bin_dir.mkdir(parents=True)
         (admin / "breaking-glass").mkdir()
         for name in ("restart_guard.py", "breaking_glass.py", "hitl-escalation-guard.sh", "hitl.conf",
-                     ws.OLD_PASTE, "clipboard.conf"):
+                     PASTE, "clipboard.conf"):
             (bin_dir / name).write_text("# v2.1.0\n", encoding="utf-8")
 
         def hook(cmd):
@@ -941,8 +193,8 @@ class StaleAdminLayer(unittest.TestCase):
         dropin.parent.mkdir(parents=True)
         dropin.write_text(json.dumps({"hooks": {
             "SessionStart": hook(restart),
-            "PreToolUse": hook(restart) + hook('/bin/sh "%s"' % (bin_dir / ws.GUARD)),
-            "UserPromptSubmit": hook('/usr/bin/python3 -I -B "%s" prompt-hook' % (bin_dir / ws.OLD_PASTE))}}),
+            "PreToolUse": hook(restart) + hook('/bin/sh "%s"' % (bin_dir / GUARD)),
+            "UserPromptSubmit": hook('/usr/bin/python3 -I -B "%s" prompt-hook' % (bin_dir / PASTE))}}),
             encoding="utf-8")
         req = Path(root + "/etc/codex/requirements.toml")
         req.parent.mkdir(parents=True)
@@ -961,7 +213,7 @@ class StaleAdminLayer(unittest.TestCase):
                       "clipboard_guard.py, breaking-glass\n", out)
         self.assertIn(prefix + "removed controls still installed: restart guard, picker guard, session intake "
                       "(the picker guard's intake exception), timed breaking-glass\n", out)
-        self.assertRegex(out, r"(?m)^%sDRIFT .*clipboard\.conf" % re.escape(prefix))
+        self.assertRegex(out, r"(?m)^%sDRIFT .*clipboard\.conf" % re.escape(prefix))  # #488: the Python core is STALE now
         self.assertIn(prefix + ws.ADMIN_NEXT + "\n", out)
 
     def test_install_without_a_terminal_informs_then_yes_clears_it(self):
@@ -975,14 +227,8 @@ class StaleAdminLayer(unittest.TestCase):
         code, out = self.run_ws("check")
         self.assertNotEqual(code, 0, out)
         self.assert_named(out, "ADMIN   ")
-        code, out = self.run_ws("status", "--project=" + str(self.base / "proj"))
-        self.assertEqual(code, 0, out)
-        self.assertNotIn("matches this checkout", out)
-        self.assertRegex(out, r"(?m)^  check            \d+ target\(s\) differ \(admin layer: \d+\); run "
-                              r"\./mhw install$")
-        self.assert_named(out, "  admin layer      ")
-        self.assertIn("removed restart guard still registered (Claude Code)", out)
-        self.assertIn("removed restart guard still registered (Codex)", out)
+        # What status says about this admin layer is the S22 golden stale-admin-layer (#493), with a
+        # stand-in gh; this test no longer runs status on this machine's PATH.
 
         # One install: the admin layer first (root override, so no sudo), then the user layer.
         code, out = self.run_ws("install", "--yes")
@@ -996,9 +242,6 @@ class StaleAdminLayer(unittest.TestCase):
         code, out = self.run_ws("check")
         self.assertEqual(code, 0, out)
         self.assertNotIn("STALE", out)
-        code, out = self.run_ws("status", "--project=" + str(self.base / "proj"))
-        self.assertIn("  check            matches this checkout\n", out)
-        self.assertNotIn("restart guard", out)
 
 
 class Overlay(unittest.TestCase):
@@ -1022,7 +265,7 @@ class Overlay(unittest.TestCase):
         real = ws.run
         ws.run = lambda *a, **k: calls.append(a) or (0, [])
         try:
-            for cmd in ("install", "check", "status", "uninstall", "update"):
+            for cmd in ("install", "check", "uninstall", "update"):  # status: test/status/status.test.js (#493)
                 with self.subTest(cmd=cmd):
                     self.assertEqual(ws.main([cmd, "--overlay=/nonexistent/overlay/dir"]), 2)
         finally:
@@ -1051,228 +294,6 @@ class Overlay(unittest.TestCase):
                 os.environ[ws.OVERLAY_ENV] = saved
         self.assertTrue(calls)
         self.assertFalse([a for argv in calls for a in argv if "overlay" in a])
-
-
-class Hooks(unittest.TestCase):
-    """read_hooks() reports only what the installed files register, per layer."""
-
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="workstation-hooks-")
-        self.addCleanup(self.temp.cleanup)
-        b = self.base = Path(self.temp.name)
-        saved = {k: os.environ.get(k) for k in ("HOME", "WORKSTATION_MANAGED_ROOT", "XDG_DATA_HOME", "CODEX_HOME")}
-
-        def restore():
-            for k, v in saved.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
-        self.addCleanup(restore)
-        os.environ["HOME"] = str(b / "home")
-        os.environ["WORKSTATION_MANAGED_ROOT"] = str(b / "root")
-        os.environ.pop("XDG_DATA_HOME", None)
-        os.environ.pop("CODEX_HOME", None)
-        self.data = b / "home" / ".local" / "share" / ws.NAME
-
-    def write(self, path, text):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
-
-    def entry(self, event, command):
-        return {"hooks": {event: [{"hooks": [{"type": "command", "command": command}]}]}}
-
-    def test_nothing_installed(self):
-        self.assertEqual(ws.read_hooks(), {"user": [], "admin": []})
-        self.assertEqual(ws.hooks_text(ws.read_hooks()), "admin: none · user: none")
-
-    def node_cmd(self, node, entry, harness):
-        """The prompt hook command as install.sh renders it since #488."""
-        return ('/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"'
-                % (node, entry, harness, self.data / "clipboard.conf"))
-
-    def test_user_entries_count_only_with_their_node_and_entry(self):
-        settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
-        node, entry = self.data / "node", self.data / "pkg" / "bin" / "mhw.js"
-        self.write(settings, json.dumps(self.entry("UserPromptSubmit", self.node_cmd(node, entry, "claude"))))
-        self.assertEqual(ws.read_hooks()["user"], [])
-        self.write(node, "#\n")
-        self.assertEqual(ws.read_hooks()["user"], [], "the entry it runs is missing")
-        self.write(entry, "#\n")
-        self.write(Path(os.environ["HOME"]) / ".codex" / "hooks.json",
-                   json.dumps(self.entry("UserPromptSubmit", self.node_cmd(node, entry, "codex"))))
-        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Claude Code)", "paste filter (Codex)"])
-        self.assertIn(str(node), ws.hook_node_text())
-        node.unlink()
-        self.assertTrue(ws.hook_node_text().startswith("FAIL %s not found" % node), ws.hook_node_text())
-
-    def test_the_python_hook_left_registered_is_named(self):
-        settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
-        self.write(settings, json.dumps(self.entry("UserPromptSubmit", "python3 %s prompt-hook" % (self.data / ws.OLD_PASTE))))
-        self.write(self.data / ws.OLD_PASTE, "#\n")
-        self.assertEqual(ws.read_hooks()["user"], [ws.OLD_PASTE_LEFTOVER % "Claude Code"])
-        self.assertEqual(ws.hook_node_text(), "no prompt hook registered")
-
-    def test_hook_node_names_an_owner_writable_node(self):
-        settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
-        node, entry = self.data / "node", self.data / "bin" / "mhw.js"
-        self.write(node, "#\n")
-        self.write(entry, "#\n")
-        self.write(settings, json.dumps(self.entry("UserPromptSubmit", self.node_cmd(node, entry, "claude"))))
-        if os.getuid() != 0:
-            self.assertEqual(ws.hook_node_text(), "%s (owner-writable: a process running as you can replace it, or the libraries it loads)" % node)
-
-    def test_the_kiro_hook_file_is_present_modified_or_absent(self):
-        """Issue #455: the Kiro CLI V3 hook file, as install renders it, then edited, then gone."""
-        kiro = Path(os.environ["HOME"]) / ".kiro" / "hooks" / ws.KIRO_HOOK
-        node, entry = self.data / "node", self.data / "bin" / "mhw.js"
-        cmd = self.node_cmd(node, entry, "kiro")
-        doc = {"version": "v1", "hooks": [{"description": ws.MARKER + "; source: global/install.sh",
-                                           "name": "paste filter", "trigger": "UserPromptSubmit",
-                                           "action": {"type": "command", "command": cmd}, "timeout": 30}]}
-        self.assertEqual(ws.read_hooks()["user"], [])
-        self.write(kiro, json.dumps(doc))
-        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3, modified)"], "its node and entry are missing")
-        self.write(node, "#\n")
-        self.write(entry, "#\n")
-        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3)"])
-        doc["hooks"][0]["action"]["command"] = cmd.replace("--harness kiro", "--harness codex")
-        self.write(kiro, json.dumps(doc))
-        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3, modified)"])
-        self.write(kiro, "{not json")
-        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3, modified: not JSON)", "a file not read"])
-        kiro.unlink()
-        self.assertEqual(ws.read_hooks()["user"], [])
-        self.assertEqual(ws.KIRO_HOOK, os.path.basename(os.path.join("h", "personal-multi-harness-workstation-configuration-paste-filter.json")))
-
-    def test_a_removed_picker_guard_entry_is_named(self):
-        # Issue #60: the picker guard is removed. An entry an earlier install left behind is named as a
-        # leftover, with or without its script, so status never reads it as a protection or hides it.
-        settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
-        doc = self.entry("PreToolUse", "\"%s\"" % (self.data / ws.GUARD))
-        self.write(settings, json.dumps(doc))
-        self.assertEqual(ws.read_hooks()["user"], [ws.LEFTOVER])
-        self.assertIn("removed", ws.LEFTOVER)
-
-    def test_unreadable_is_not_read(self):
-        self.write(Path(os.environ["HOME"]) / ".claude" / "settings.json", "not json")
-        self.assertEqual(ws.read_hooks()["user"], "not read")
-        self.assertEqual(ws.hooks_text(ws.read_hooks()), "admin: none · user: not read")
-
-    def test_admin_state_reads_the_dropin(self):
-        self.assertEqual(ws.admin_state(), "absent")
-        # The pre-#66 drop-in shape, from install-managed.sh at 3742ffa: hooks and deny, no stamp key.
-        legacy = {"hooks": {"PreToolUse": [{"matcher": "AskUserQuestion", "hooks": [
-                      {"type": "command", "command": "/bin/sh \"/x/%s/bin/%s\"" % (ws.NAME, ws.GUARD), "timeout": 5}]}]},
-                  "permissions": {"deny": ["Bash(sudo:*)"]}}
-        self.write(ws.admin_dropin(), json.dumps(legacy))
-        self.assertEqual(ws.admin_state(), "legacy")
-        self.assertFalse(ws.admin_installed())
-        self.write(ws.admin_dropin(), "{not json")
-        self.assertEqual(ws.admin_state(), "unreadable")
-        legacy[ws.NAME] = "stamp"
-        self.write(ws.admin_dropin(), json.dumps(legacy))
-        self.assertEqual(ws.admin_state(), "installed")
-
-    def test_admin_layer(self):
-        root = os.environ["WORKSTATION_MANAGED_ROOT"]
-        bin_dir = Path(root + ("/Library/Application Support/" if sys.platform == "darwin" else "/etc/") + ws.NAME + "/bin")
-        doc = self.entry("PreToolUse", "/bin/sh \"%s\"" % (bin_dir / ws.GUARD))
-        node, entry = self.data / "node", bin_dir / "hook" / "src" / "commands" / "hook-entry.js"
-        admin_cmd = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" --harness claude --config "x"' % (node, entry)
-        doc["hooks"].update(self.entry("UserPromptSubmit", admin_cmd)["hooks"])
-        # The removed picker guard's entry (an admin layer installed before Issue #60) is a leftover.
-        doc[ws.NAME] = "stamp"
-        self.write(ws.admin_dropin(), json.dumps(doc))
-        req = Path(os.environ["WORKSTATION_MANAGED_ROOT"] + "/etc/codex/requirements.toml")
-        codex_cmd = json.dumps(admin_cmd.replace("--harness claude", "--harness codex"))
-        self.write(req, "[[hooks.UserPromptSubmit]]\ncommand = %s\n" % codex_cmd)
-        self.write(node, "#\n")
-        self.write(entry, "#\n")
-        self.assertEqual(ws.read_hooks()["admin"], [ws.LEFTOVER, "paste filter (Claude Code)"])
-        self.write(req, "# %s\n[[hooks.UserPromptSubmit]]\ncommand = %s\n" % (ws.MARKER, codex_cmd))
-        self.assertEqual(ws.read_hooks()["admin"], [ws.LEFTOVER, "paste filter (Claude Code)",
-                                                    "paste filter (Codex)"])
-
-
-class TermLists(Hooks):
-    """#488: the salt is a 0600 file; a hashed list it does not cover is named by status, never silent."""
-
-    HASH = "ab" * 32
-
-    def lists(self):
-        return self.data / "local-overlay"
-
-    def test_no_list_and_a_covered_list_read_ok(self):
-        self.assertEqual(ws.term_lists_state(), (True, "no term list"))
-        self.write(self.lists() / "clipboard-terms", "# header\n%s\n" % self.HASH)
-        self.write(self.lists() / "clipboard-salt", "cd" * 32 + "\n")
-        self.assertEqual(ws.term_lists_state(), (True, "1 hash(es), salt file present"))
-
-    def test_a_list_without_its_salt_file_is_named_in_both_views(self):
-        self.write(self.lists() / "clipboard-terms-health", "# header\n%s\n%s\n" % (self.HASH, "ef" * 32))
-        ok, text = ws.term_lists_state()
-        self.assertFalse(ok)
-        self.assertIn("clipboard-terms-health holds 2 hash(es) and the salt file", text)
-        self.assertIn("term matching off: re-add with mhw add-term", text)
-        # An unreadable salt is the same as none.
-        self.write(self.lists() / "clipboard-salt", "not a salt\n")
-        self.assertFalse(ws.term_lists_state()[0])
-        f = facts(terms=ws.term_lists_state())
-        self.assertTrue(any(line.startswith("  term lists       ") and "term matching off" in line for line in ws.render_status(f)))
-        summary = "\n".join(ws.render_summary(f))
-        self.assertRegex(summary, r"protections .* · TERMS .*term matching off: re-add with mhw add-term")
-
-    def test_an_old_salt_list_is_named_with_its_count(self):
-        self.write(self.lists() / "clipboard-salt", "cd" * 32 + "\n")
-        self.write(self.lists() / "clipboard-terms.old-salt", "# header\n%s\n" % self.HASH)
-        ok, text = ws.term_lists_state()
-        self.assertFalse(ok)
-        self.assertIn("clipboard-terms.old-salt holds 1 hash(es) made with a salt mhw no longer has", text)
-        self.assertIn("re-add with mhw add-term", text)
-
-    def test_the_installed_conf_names_the_paths(self):
-        other = self.base / "elsewhere"
-        self.write(self.data / "clipboard.conf", "terms_file=%s\nsalt_file=%s\n" % (other / "t", other / "s"))
-        self.write(other / "t", "%s\n" % self.HASH)
-        ok, text = ws.term_lists_state()
-        self.assertFalse(ok)
-        self.assertIn(str(other / "t"), text)
-        self.write(other / "s", "cd" * 32 + "\n")
-        self.assertEqual(ws.term_lists_state(), (True, "1 hash(es), salt file present"))
-
-
-class MethodStatus(unittest.TestCase):
-    """Issue #61: the working method is opt-in, and status names a duplicate with the plugin."""
-
-    def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.saved = os.environ.get("CODEX_HOME")
-        os.environ["CODEX_HOME"] = str(self.tmp)
-
-    def tearDown(self):
-        if self.saved is None:
-            os.environ.pop("CODEX_HOME", None)
-        else:
-            os.environ["CODEX_HOME"] = self.saved
-        shutil.rmtree(self.tmp)
-
-    def test_not_installed_by_default(self):
-        m = ws.method_state(["METHOD  not installed (opt-in: ...)"], ["tadeumendonca-skills@tadeumendonca"])
-        self.assertEqual(m, {"installed": False, "duplicate": []})
-        self.assertIn("opt-in: ./mhw install --method", ws.method_text(m))
-
-    def test_duplicate_named_per_agent_harness(self):
-        (self.tmp / "config.toml").write_text('[plugins."tadeumendonca-skills@tadeumendonca"]\nenabled = true\n')
-        m = ws.method_state(["METHOD  installed: 8 agents"], ["tadeumendonca-skills@tadeumendonca"])
-        self.assertEqual(m["duplicate"], ["Claude Code", "Codex"])
-        self.assertIn("DUPLICATE", ws.method_text(m))
-
-    def test_codex_plugin_disabled_is_no_duplicate(self):
-        (self.tmp / "config.toml").write_text('[plugins."tadeumendonca-skills@tadeumendonca"]\nenabled = false\n')
-        m = ws.method_state(["METHOD  installed: 8 agents"], [])
-        self.assertEqual(m["duplicate"], [])
-        self.assertNotIn("DUPLICATE", ws.method_text(m))
 
 
 class LatestRelease(unittest.TestCase):
@@ -1584,189 +605,6 @@ class OwnerSteps(unittest.TestCase):
             ws.subprocess.run = saved_run
             if saved_root is not None:
                 os.environ["WORKSTATION_MANAGED_ROOT"] = saved_root
-
-
-import owner_actions as oa  # noqa: E402
-
-# A stand-in gh (ADR-0035, decision 9). It logs its arguments and answers per STUB_* variables; never the
-# real gh, never the network. `exec sleep` so a timeout kills the process holding the pipes.
-STUB_GH = """#!/bin/sh
-printf '%s\\n' "$*" >> "$STUB_LOG"
-case "$1" in
-  issue) [ -n "$STUB_SLEEP" ] && exec sleep "$STUB_SLEEP"
-         [ -n "$STUB_ERR" ] && printf '%s\\n' "$STUB_ERR" >&2
-         [ -n "$STUB_DEPTH" ] && { head -c "$STUB_DEPTH" /dev/zero | tr '\\0' '['; exit 0; }
-         printf '%s' "$STUB_ISSUES"; exit "${STUB_CODE:-0}" ;;
-  label) printf '%s' "${STUB_LABELS:-[]}"; exit "${STUB_LABEL_CODE:-0}" ;;
-esac
-exit 99
-"""
-
-
-@unittest.skipUnless(os.name == "posix", "the stand-in gh is a POSIX sh script")
-class OwnerActions(unittest.TestCase):
-    """The open owner-action count: read with gh, read-only; 'not read (<reason>)' and never a false 0."""
-
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="workstation-owner-")
-        self.addCleanup(self.temp.cleanup)
-        b = Path(self.temp.name)
-        self.bin, self.log, self.home = b / "bin", b / "gh.log", b / "home"
-        self.bin.mkdir()
-        self.home.mkdir()
-        self.gh = self.bin / "gh"
-        self.gh.write_text(STUB_GH, encoding="utf-8")
-        self.gh.chmod(0o755)
-        keys = ("STUB_LOG", "STUB_SLEEP", "STUB_ERR", "STUB_ISSUES", "STUB_CODE", "STUB_LABELS",
-                "STUB_LABEL_CODE", "STUB_DEPTH")
-        saved = {k: os.environ.get(k) for k in keys}
-
-        def restore():
-            for k, v in saved.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
-        self.addCleanup(restore)
-        for k in keys:
-            os.environ.pop(k, None)
-        os.environ["STUB_LOG"] = str(self.log)
-
-    def read(self, timeout=oa.TIMEOUT, **stub):
-        os.environ.update(stub)
-        return oa.read(gh=str(self.gh), timeout=timeout)
-
-    def calls(self):
-        return self.log.read_text(encoding="utf-8").splitlines() if self.log.exists() else []
-
-    def test_count_above_zero_reads_open_issues_with_the_label_only(self):
-        result = self.read(STUB_ISSUES='[{"number":1},{"number":7},{"number":9}]')
-        self.assertEqual(result, (3, ""))
-        self.assertEqual(oa.text(result), "3 open")
-        # One call, read-only, the label and state and a limit above gh's default page of 30.
-        self.assertEqual(self.calls(), ["issue list --repo tedeuxx/mhw --label owner-action --state open "
-                                        "--limit 1000 --json number"])
-
-    def test_zero_only_after_the_label_is_confirmed(self):
-        result = self.read(STUB_ISSUES="[]", STUB_LABELS='[{"name":"loop"},{"name":"owner-action"}]')
-        self.assertEqual(result, (0, ""))
-        self.assertEqual(oa.text(result), "0 open")
-        self.assertEqual(self.calls()[1], "label list --repo tedeuxx/mhw --limit 1000 --json name")
-
-    def test_absent_label_is_not_a_zero(self):
-        # gh lists nothing, exit 0, for a label that does not exist (measured): that must not read as 0.
-        result = self.read(STUB_ISSUES="[]", STUB_LABELS='[{"name":"owner-actions"},{"name":"loop"}]')
-        self.assertEqual(oa.text(result), "not read (label owner-action absent in tedeuxx/mhw)")
-
-    def test_gh_missing(self):
-        saved = os.environ["PATH"]
-        os.environ["PATH"] = str(self.home)  # a directory with no gh in it
-        try:
-            result = oa.read()
-        finally:
-            os.environ["PATH"] = saved
-        self.assertEqual(oa.text(result), "not read (gh not found)")
-        self.assertEqual(self.calls(), [])
-
-    def test_gh_errors_are_classified_never_printed(self):
-        cases = [
-            ({"STUB_CODE": "4", "STUB_ERR": "To get started with GitHub CLI, please run: gh auth login"},
-             "gh not authenticated"),
-            ({"STUB_CODE": "1", "STUB_ERR": "HTTP 401: Bad credentials (https://api.github.com/graphql)"},
-             "gh not authenticated"),
-            ({"STUB_CODE": "1", "STUB_ERR": "error connecting to api.github.com"},
-             "offline, GitHub unreachable"),
-            ({"STUB_CODE": "1", "STUB_ERR": "secret-ish detail"}, "gh exited 1"),
-            ({"STUB_ISSUES": "not json"}, "gh output not understood"),
-            ({"STUB_ISSUES": '{"number": 1}'}, "gh output not understood"),
-            ({"STUB_ISSUES": "[]", "STUB_LABEL_CODE": "1"}, "gh exited 1"),
-        ]
-        for stub, reason in cases:
-            with self.subTest(reason=reason, stub=stub):
-                for k in ("STUB_CODE", "STUB_ERR", "STUB_ISSUES", "STUB_LABEL_CODE"):
-                    os.environ.pop(k, None)
-                stub.setdefault("STUB_ISSUES", "")
-                result = self.read(**stub)
-                self.assertIsNone(result[0])
-                self.assertEqual(oa.text(result), "not read (%s)" % reason)
-                self.assertNotIn("secret-ish", oa.text(result))
-
-    # Output that raised inside read() before the fix (QA verdict B1 on PR #121). Non-UTF-8 bytes reach
-    # the stub through os.environ as surrogate escapes. The stub prints the nesting itself (an env var
-    # that large exceeds Linux's per-string exec limit); a million '[' raise RecursionError in json on
-    # every supported Python (100000 gave a ValueError on 3.14, so the depth is not arbitrary).
-    UNREADABLE = [
-        ("non-UTF-8 stdout", {"STUB_ISSUES": "\udcff\udcfe[]"}, "gh output not understood"),
-        ("non-UTF-8 stderr, non-zero exit", {"STUB_CODE": "1", "STUB_ERR": "\udcff\udcfe secret-ish"},
-         "gh exited 1"),
-        ("deeply nested JSON", {"STUB_DEPTH": "1000000"}, "gh output not understood"),
-    ]
-
-    def test_unreadable_gh_output_never_raises(self):
-        for name, stub, reason in self.UNREADABLE:
-            with self.subTest(name):
-                for k in ("STUB_CODE", "STUB_ERR", "STUB_ISSUES", "STUB_DEPTH"):
-                    os.environ.pop(k, None)
-                stub = dict(stub)
-                stub.setdefault("STUB_ISSUES", "")
-                result = self.read(**stub)
-                self.assertIsNone(result[0])
-                self.assertEqual(oa.text(result), "not read (%s)" % reason)
-                self.assertNotIn("secret-ish", oa.text(result))
-
-    def test_status_summary_exits_0_on_unreadable_gh_output(self):
-        for name, stub, reason in self.UNREADABLE:
-            with self.subTest(name):
-                env = {"PATH": "%s:%s" % (self.bin, os.environ["PATH"]), "HOME": str(self.home),
-                       "TMPDIR": self.temp.name, "WORKSTATION_MANAGED_ROOT": str(Path(self.temp.name) / "root"),
-                       "STUB_LOG": str(self.log), "STUB_ISSUES": ""}
-                env.update(stub)
-                p = subprocess.run([str(ws.ROOT / "mhw"), "status", "--summary", "--overlay=none"], env=env,
-                                   cwd=self.temp.name, capture_output=True, text=True, errors="replace")
-                self.assertEqual(p.returncode, 0, p.stderr)
-                self.assertIn(" · owner actions: not read (%s)\n" % reason, p.stdout)
-                self.assertNotIn("Traceback", p.stderr)
-
-    def test_timeout_is_bounded(self):
-        result = self.read(timeout=0.5, STUB_SLEEP="5")
-        self.assertEqual(oa.text(result), "not read (gh timed out after 0.5s)")
-
-    def test_unrunnable_gh(self):
-        self.gh.chmod(0o644)
-        self.assertEqual(oa.text(self.read(STUB_ISSUES="[]")), "not read (gh could not run)")
-
-    def test_at_the_limit_says_or_more(self):
-        self.assertEqual(oa.text((oa.LIMIT, "")), "1000 or more open")
-
-    def test_both_views_show_it_and_a_not_read_never_shows_a_zero(self):
-        for value in ("3 open", "not read (gh not found)"):
-            status = ws.render_status(facts(owner_actions=value))
-            self.assertIn("  owner actions    %s · label owner-action in tedeuxx/mhw" % value, status)
-            summary = ws.render_summary(facts(owner_actions=value))
-            self.assertLessEqual(len(summary), 10)
-            self.assertTrue(any(line.startswith("  workstation      ") and line.endswith(
-                " · owner actions: " + value) for line in summary), summary)
-        for out in (ws.render_status(facts(owner_actions="not read (gh not found)")),
-                    ws.render_summary(facts(owner_actions="not read (gh not found)"))):
-            self.assertFalse([line for line in out if re.search(r"owner actions.*\b0 open", line)], out)
-
-    def test_status_end_to_end_through_the_stub_on_path(self):
-        env = {"PATH": "%s:%s" % (self.bin, os.environ["PATH"]), "HOME": str(self.home),
-               "TMPDIR": self.temp.name, "WORKSTATION_MANAGED_ROOT": str(Path(self.temp.name) / "root"),
-               "STUB_LOG": str(self.log), "STUB_ISSUES": '[{"number":4},{"number":5}]'}
-        for args, needle in ((["status"], "\n  owner actions    2 open · label owner-action in "
-                                          "tedeuxx/mhw\n"),
-                             (["status", "--summary"], " · owner actions: 2 open\n")):
-            p = subprocess.run([str(ws.ROOT / "mhw")] + args + ["--overlay=none"], env=env, cwd=self.temp.name,
-                               capture_output=True, text=True)
-            self.assertEqual(p.returncode, 0, p.stderr)
-            self.assertIn(needle, p.stdout)
-        # gh failing never fails status.
-        env["STUB_CODE"], env["STUB_ISSUES"] = "4", ""
-        p = subprocess.run([str(ws.ROOT / "mhw"), "status", "--overlay=none"], env=env, cwd=self.temp.name,
-                           capture_output=True, text=True)
-        self.assertEqual(p.returncode, 0, p.stderr)
-        self.assertIn("\n  owner actions    not read (gh not authenticated) · label", p.stdout)
 
 
 if __name__ == "__main__":
