@@ -367,6 +367,31 @@ jobs:
           fi
           echo "$out" | grep -E "^ *ok [0-9]+ - live: the Python original and the Node command" | grep -vq SKIP
 
+      # #491 (S20 of #470): the live arm of test/render/settings-merge-golden.test.js runs the base revision's
+      # merge_settings, uninstall_user and report_floor (jq programs) beside the head's, which run
+      # src/render/settings-merge.js and src/render/floor-report.js, on every case, in throwaway HOMEs and admin
+      # roots. MHW_S20_LIVE_REQUIRED=1 is the requirement: while the base's install.sh still merges with jq
+      # the live line must be reported and not as SKIP; once it does not (this slice has merged), the step
+      # says the arm retired and passes, as the S14 step does (#534). A missing base fails. The golden arm
+      # runs in npm test on macOS and Linux.
+      - name: S20 live parity against the jq programs
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S20_LIVE_REQUIRED: "1"
+        run: |
+          jq --version
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/render/settings-merge-golden.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          if ! git show "$base:global/install.sh" 2>/dev/null | grep -qF 'jq is required to merge the hook entry and the deny floor'; then
+            echo "S20 live arm retired: base $base no longer merges settings.json with jq"
+            exit 0
+          fi
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: the Node steps match" | grep -vq SKIP
+
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
   # HOME. Fails on any `npm ls -g --all` problem (an UNMET DEPENDENCY among them), on an installed
@@ -473,7 +498,9 @@ jobs:
         run: sh global/install.test.sh "$RUNNER_TEMP/install"
       # Issue #83, ADR-0031: the allow list is Node since #490 (S19 of #470); its suite,
       # test/render/allow-list*.test.js, runs in the node job (npm test) on all three OSes, the install.sh
-      # arms on macOS and Linux.
+      # arms on macOS and Linux. The settings merge and the FLOOR report are Node since #491 (S20 of #470):
+      # test/render/settings-merge*.test.js carries the installer suite's merge cases as node:test, in the
+      # node job; this suite still runs them through install.sh as before.
       - name: admin-layer installer suite (throwaway --root; never a system path, never root, ADR-0025)
         run: sh global/install-managed.test.sh "$RUNNER_TEMP/managed"
       # Issues #57 and #67: ./mhw install, update and uninstall are Node since #495 (S24 of #470): their suites,

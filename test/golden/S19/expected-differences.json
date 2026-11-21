@@ -21,7 +21,7 @@
     "name": "jq is no longer needed by the step itself",
     "stream": "stderr",
     "pattern": null,
-    "why": "Not exercised by a scenario. install.sh keeps its own 'REFUSE  allow list: jq is required' line before it starts the Node step, so a machine without jq still gets no allow list (merge_settings, which merges the user deny floor, needs jq too: rendering the allow list without it would put allow rules in settings.json without the floor beside them). Uninstall needs no jq any more: it removes the allow rules it added even where jq is missing."
+    "why": "Not exercised by a scenario. install.sh keeps its own 'REFUSE  allow list: jq is required' line before it starts the Node step, so a machine without jq still gets no allow list (merge_settings, which merges the user deny floor, needs jq too: rendering the allow list without it would put allow rules in settings.json without the floor beside them). Uninstall needs no jq any more: it removes the allow rules it added even where jq is missing. (Amended at #491, S20: merge_settings is Node too, so that jq line is gone; install.sh now runs the allow step only where merge_settings did not refuse, which also covers a merge refused on the file's shape, and jq is not needed at all.)"
   },
   {
     "name": "an empty deny floor never reads as a complete admin floor",

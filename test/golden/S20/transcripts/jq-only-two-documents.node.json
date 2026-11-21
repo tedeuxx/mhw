@@ -1,0 +1,102 @@
+[
+  {
+    "run": "merge check",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <T>/home/.claude/settings.json: not readable by the settings merge (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents, nesting past 256 levels or the like); left untouched\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"permissions\": {\"deny\": [\"Bash(sudo:*)\"]}} {\"theme\": \"dark\"}\n"
+      }
+    ]
+  },
+  {
+    "run": "merge dry-run",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <T>/home/.claude/settings.json: not readable by the settings merge (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents, nesting past 256 levels or the like); left untouched\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"permissions\": {\"deny\": [\"Bash(sudo:*)\"]}} {\"theme\": \"dark\"}\n"
+      }
+    ]
+  },
+  {
+    "run": "merge install",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <T>/home/.claude/settings.json: not readable by the settings merge (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents, nesting past 256 levels or the like); left untouched\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"permissions\": {\"deny\": [\"Bash(sudo:*)\"]}} {\"theme\": \"dark\"}\n"
+      }
+    ]
+  },
+  {
+    "run": "uninstall",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <T>/home/.claude/settings.json: not readable by the settings merge (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents, nesting past 256 levels or the like); left untouched\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"permissions\": {\"deny\": [\"Bash(sudo:*)\"]}} {\"theme\": \"dark\"}\n"
+      }
+    ]
+  },
+  {
+    "run": "report",
+    "code": 0,
+    "stdout": "FLOOR   Claude Code: user layer 0/185 rules (not read: not strict JSON); admin layer 0/185 rules\nFLOOR   Codex: user rules file absent; admin requirements 0/161 prefix rules\nFLOOR   Kiro: user permissions.yaml absent (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json absent (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   carried by: NO complete layer; run ./mhw install\n",
+    "stderr": "",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"permissions\": {\"deny\": [\"Bash(sudo:*)\"]}} {\"theme\": \"dark\"}\n"
+      }
+    ]
+  }
+]

@@ -334,6 +334,22 @@ export function stringify(v, opts = {}) {
   return go(v, '');
 }
 
+/**
+ * jq's compact form, as `tostring` and `jq -c` print a value: no whitespace, keys in their own order
+ * (#491, S20 of #470; measured on jq-1.7.1: [1.50,{"k":"v\u007f"}] stays exactly that).
+ * @param {JqValue} v
+ * @returns {string}
+ */
+export function compact(v) {
+  if (v === null) return 'null';
+  if (v === true) return 'true';
+  if (v === false) return 'false';
+  if (typeof v === 'string') return quote(v);
+  if (v instanceof JqNumber) return formatNumber(v.raw);
+  if (Array.isArray(v)) return '[' + v.map((e) => compact(e)).join(',') + ']';
+  return '{' + [...v.keys()].map((k) => quote(k) + ':' + compact(v.get(k))).join(',') + '}';
+}
+
 /** jq's type name. @param {JqValue | undefined} v */
 export function typeOf(v) {
   if (v === null || v === undefined) return 'null';
