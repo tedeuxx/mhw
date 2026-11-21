@@ -1,0 +1,12 @@
+{
+  "name": "usage-a-positional",
+  "args": [
+    "check",
+    "project-policy.json"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "mhw policy check: unknown argument project-policy.json (--project=DIR or --file=PATH)\n"
+  }
+}

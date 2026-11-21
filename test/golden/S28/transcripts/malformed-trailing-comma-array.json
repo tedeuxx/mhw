@@ -1,0 +1,12 @@
+{
+  "name": "malformed-trailing-comma-array",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Illegal trailing comma before end of array)\n"
+  }
+}

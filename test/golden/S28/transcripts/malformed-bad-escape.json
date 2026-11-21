@@ -1,0 +1,12 @@
+{
+  "name": "malformed-bad-escape",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Invalid \\escape)\n"
+  }
+}

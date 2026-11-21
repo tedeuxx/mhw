@@ -1,0 +1,12 @@
+{
+  "name": "malformed-single-quotes",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Expecting property name enclosed in double quotes)\n"
+  }
+}

@@ -25,7 +25,11 @@
       "id": "project-policy",
       "code": [
         "global/project-policy/**",
-        ".github/workflows/reference-delivery-*.yml"
+        ".github/workflows/reference-delivery-*.yml",
+        "src/commands/project-policy.js",
+        "test/project-policy/**",
+        "test/helpers/s28-cases.js",
+        "test/golden/S28/**"
       ],
       "docs": [
         "docs/project-policy-contract.md",

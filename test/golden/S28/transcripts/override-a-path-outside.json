@@ -1,0 +1,12 @@
+{
+  "name": "override-a-path-outside",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.baseline_override.documentation.additional_docs[0].path: pattern (baseline override invalid (it may only add))\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

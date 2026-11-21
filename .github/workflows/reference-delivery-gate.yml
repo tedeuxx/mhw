@@ -13,6 +13,8 @@
 # The caller's deployment jobs `needs:` this one; see global/project-policy/reference/caller-workflow.yml.
 #
 # Every gate is global/project-policy/delivery_gate.py from mhw at `mhw-revision`, and every gate
+# re-validates the contract with `mhw policy check` (Node since #498), so every job sets up Node 26; the
+# containerised job does so inside the project's image, which must be glibc-based. Every gate
 # fails closed: exit 1 blocks, exit 2 (cannot decide) blocks too. Inputs reach scripts through env,
 # never by expression interpolation into a run block.
 name: reference delivery gate
@@ -106,10 +108,15 @@ jobs:
           ref: ${{ inputs.mhw-revision }}
           path: mhw
           persist-credentials: false
+      # Node for the validator (#498): mhw policy check is Node, and delivery_gate.py reaches it through the
+      # CLI until S29 (#499). actions/setup-node v7.1.0, the pin tests.yml uses; 26, the engines.node floor.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
       - name: the validator, a required step (mhw policy check)
         env:
           PROJECT_DIR: ${{ inputs.project-dir }}
-        run: python3 -B mhw/global/project-policy/project_policy.py check --project="project/$PROJECT_DIR"
+        run: node mhw/bin/mhw.js policy check --project="project/$PROJECT_DIR"
       - name: the contract gate (bound to this repository; the MADR exists and is accepted)
         env:
           PROJECT_DIR: ${{ inputs.project-dir }}
@@ -134,6 +141,11 @@ jobs:
           ref: ${{ inputs.mhw-revision }}
           path: mhw
           persist-credentials: false
+      # Node for the validator (#498): mhw policy check is Node, and delivery_gate.py reaches it through the
+      # CLI until S29 (#499). actions/setup-node v7.1.0, the pin tests.yml uses; 26, the engines.node floor.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
       - name: the project's tests, in the container, on the exact revision
         working-directory: project/${{ inputs.project-dir }}
         env:
@@ -183,6 +195,11 @@ jobs:
           ref: ${{ inputs.mhw-revision }}
           path: mhw
           persist-credentials: false
+      # Node for the validator (#498): mhw policy check is Node, and delivery_gate.py reaches it through the
+      # CLI until S29 (#499). actions/setup-node v7.1.0, the pin tests.yml uses; 26, the engines.node floor.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
       - name: the project's tests against the installed STG
         working-directory: project/${{ inputs.project-dir }}
         env:
@@ -232,6 +249,11 @@ jobs:
           ref: ${{ inputs.mhw-revision }}
           path: mhw
           persist-credentials: false
+      # Node for the validator (#498): mhw policy check is Node, and delivery_gate.py reaches it through the
+      # CLI until S29 (#499). actions/setup-node v7.1.0, the pin tests.yml uses; 26, the engines.node floor.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
       - name: classify the change (a high rule wins; no rule blocks)
         id: classify
         env:

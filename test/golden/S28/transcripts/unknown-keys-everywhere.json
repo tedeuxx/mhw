@@ -1,0 +1,12 @@
+{
+  "name": "unknown-keys-everywhere",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.coverage.x: additionalProperties (missing mandatory evidence)\nFAIL  $.madr.x: additionalProperties (project MADR not ratified)\nFAIL  $.mandatory_scenarios.risk_scenarios[0].x: additionalProperties (missing mandatory evidence)\nFAIL  $.recovery.runbook.x: additionalProperties (recovery not prepared)\nFAIL  $.severity.x: additionalProperties (unknown severity)\nFAIL  $.skip_gates: additionalProperties (contract invalid)\nFAIL  $.zz: additionalProperties (contract invalid)\nFAIL  $.é: additionalProperties (contract invalid)\nFAIL  $.￿: additionalProperties (contract invalid)\nFAIL  $.😀: additionalProperties (contract invalid)\nFAIL  10 finding(s); the contract is not valid\n"
+  }
+}

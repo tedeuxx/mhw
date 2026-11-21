@@ -1,0 +1,12 @@
+{
+  "name": "version-written-1.0",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.schema_version: type (unknown version)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

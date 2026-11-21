@@ -1,0 +1,12 @@
+{
+  "name": "version-an-object",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  unknown version: schema_version {\"b\": 1, \"a\": [true, null], \"\\u00e9\": \"\\n\"}; this validator knows 1\n"
+  }
+}

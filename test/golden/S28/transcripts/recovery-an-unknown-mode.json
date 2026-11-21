@@ -1,0 +1,12 @@
+{
+  "name": "recovery-an-unknown-mode",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.recovery.mode: enum (recovery not prepared)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

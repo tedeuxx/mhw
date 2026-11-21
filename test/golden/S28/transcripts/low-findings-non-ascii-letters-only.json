@@ -1,0 +1,12 @@
+{
+  "name": "low-findings-non-ascii-letters-only",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "OK  <BASE>/project-policy.json is a valid project-policy contract, schema_version 1\n",
+    "stderr": ""
+  }
+}

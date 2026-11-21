@@ -1,0 +1,12 @@
+{
+  "name": "everything-wrong",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.approval.high_risk: required (risk-based approval weakened)\nFAIL  $.approval.low_risk: enum (risk-based approval weakened)\nFAIL  $.coverage: type (missing mandatory evidence)\nFAIL  $.low_findings: type (low finding without a bug Issue)\nFAIL  $.madr: type (project MADR not ratified)\nFAIL  $.mandatory_scenarios: type (missing mandatory evidence)\nFAIL  $.project: type (contract invalid)\nFAIL  $.recovery.operator: required (recovery not prepared)\nFAIL  $.recovery.recovery_time_objective_minutes: required (recovery not prepared)\nFAIL  $.recovery.runbook: required (recovery not prepared)\nFAIL  $.recovery.x: additionalProperties (recovery not prepared)\nFAIL  $.risk_classification.rules: required (missing or invalid risk classification)\nFAIL  $.risk_classification.unclassified: required (missing or invalid risk classification)\nFAIL  $.severity: type (unknown severity)\nFAIL  14 finding(s); the contract is not valid\n"
+  }
+}

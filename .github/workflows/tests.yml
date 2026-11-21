@@ -62,8 +62,6 @@ jobs:
           for f in sys.argv[1:]:
               with open(f, encoding="utf-8") as fh:
                   compile(fh.read(), f, "exec")' \
-            global/project-policy/project_policy.py global/project-policy/project_policy_test.py \
-            global/project-policy/project_policy_check_test.py \
             global/project-policy/delivery_gate.py global/project-policy/delivery_gate_test.py \
             global/project-policy/recovery_test.py \
             global/project-policy/reference/fixture/container_tests.py global/project-policy/reference/fixture/stg_stand_in_tests.py \
@@ -294,6 +292,29 @@ jobs:
             exit 0
           fi
           [ "$(echo "$out" | grep -E "^ *ok [0-9]+ - live: " | grep -vc SKIP)" = 2 ]
+      # #498 (S28 of #470): the live arm of test/project-policy/project-policy-golden.test.js runs the base
+      # revision's `./mhw policy` (global/workstation.py and project_policy.py) beside the Node command on every
+      # case, in throwaway directories, on the same CPython (its json messages are in the transcripts).
+      # MHW_S28_LIVE_REQUIRED=1 turns a skip into a failure while the base still holds project_policy.py; once
+      # it does not (this slice has merged), the step says the arm retired and passes, as the S14 step does
+      # (#534). A missing base fails. The golden arm runs in npm test on every OS.
+      - name: S28 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S28_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/project-policy/project-policy-golden.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          if ! git cat-file -e "$base:global/project-policy/project_policy.py" 2>/dev/null; then
+            echo "S28 live arm retired: base $base no longer holds global/project-policy/project_policy.py"
+            exit 0
+          fi
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: the Python original and the Node command" | grep -vq SKIP
       # #500 (S30 of #470): the live arm of test/ci/method-issue-sync-golden.test.js runs the base revision's
       # method_issue_sync.py with its own suite's Python stub gh beside .github/scripts/method-issue-sync.js
       # with the JavaScript stub, on every case, on the same CPython. MHW_S30_LIVE_REQUIRED=1 turns a skip
@@ -372,15 +393,15 @@ jobs:
         run: |
           node --version
           node bin/mhw.js profile check --source overlay/profile.json --output overlay
-      # Issues #244 to #247, ADR-0015 locks 2 to 5: the project-policy contract's schema, examples
-      # and field docs, the fail-closed validator behind `mhw policy check`, the reference CI/CD's
-      # evidence gates (the dry run of the workflow itself is reference-delivery-dry-run.yml) and the
-      # recovery reference's gates and template jobs.
-      - name: project-policy contract, validator, evidence-gate and recovery suites
+      # Issues #244 to #247, ADR-0015 locks 2 to 5: the reference CI/CD's evidence gates (the dry run of
+      # the workflow itself is reference-delivery-dry-run.yml) and the recovery reference's gates and
+      # template jobs. The contract's schema, examples and field docs and the fail-closed validator behind
+      # `mhw policy check` are Node since #498 (S28 of #470): test/project-policy/, in npm test on all three
+      # OSes. The gates re-validate through that command, so they run here after setup-node, with its node.
+      - name: evidence-gate and recovery suites (the validator they call is Node)
         shell: bash
         run: |
-          python -B global/project-policy/project_policy_test.py
-          python -B global/project-policy/project_policy_check_test.py
+          node --version
           python -B global/project-policy/delivery_gate_test.py
           python -B global/project-policy/recovery_test.py
 

@@ -1,0 +1,12 @@
+{
+  "name": "override-waive",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.baseline_override.waive: additionalProperties (baseline override invalid (it may only add))\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

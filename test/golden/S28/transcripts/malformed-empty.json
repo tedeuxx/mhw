@@ -1,0 +1,12 @@
+{
+  "name": "malformed-empty",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Expecting value)\n"
+  }
+}
