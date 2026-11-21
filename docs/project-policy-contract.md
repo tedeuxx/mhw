@@ -10,9 +10,10 @@ values, ratified in its own MADR.
 | `global/project-policy/project-policy.schema.json` | The contract, a JSON Schema (draft 2020-12), `schema_version` 1 |
 | `global/project-policy/project-policy.example.json` | A valid example for a synthetic project |
 | `global/project-policy/project-policy.invalid.json` | An invalid example that weakens several parts of the floor, its coverage threshold (5) among them |
-| `global/project-policy/project_policy_test.py` | The suite: the valid example passes, removing each required field fails, each floor is held |
-| `global/project-policy/project_policy.py` | The fail-closed validator behind `mhw policy check` ([#245](https://github.com/tedeuxx/mhw/issues/245)) |
-| `global/project-policy/project_policy_check_test.py` | The validator's suite: one test per failure class |
+| `test/project-policy/contract.test.js` | The suite: the valid example passes, removing each required field fails, each floor is held |
+| `src/commands/project-policy.js` | The fail-closed validator behind `mhw policy check` ([#245](https://github.com/tedeuxx/mhw/issues/245)); Node since [#498](https://github.com/tedeuxx/mhw/issues/498), which deleted `project_policy.py` |
+| `test/project-policy/check.test.js` | The validator's suite: one test per failure class |
+| `test/project-policy/project-policy-golden.test.js` | Parity with the deleted Python validator, on the cases recorded in `test/golden/S28/` |
 
 ## Evidence level, said first
 
@@ -24,16 +25,16 @@ values, ratified in its own MADR.
 CI/CD runs the validator, so it is not installed, loaded or enforced anywhere. No project's CI/CD
 carries ADR-0015's evidence either, and the lock's deployment half stays written policy only.
 
-The validator and both suites use one small JSON Schema evaluator, in `project_policy.py`. It refuses
+The validator and both suites use one small JSON Schema evaluator, in `src/commands/project-policy.js`. It refuses
 any schema keyword it does not implement, so the schema cannot carry a rule the validator skips.
 
 **Patterns need full-match semantics, and the validator uses them.** JSON Schema patterns
 are ECMA-262 regular expressions, where a final `$` does not match before a trailing newline. Python's
 `re.search` with the same `$` does, so `"@handle\n"` or a MADR path ending in a newline would pass.
 Every pattern here is anchored with `^` and `$`; the evaluator refuses one that is not (the validator
-then exits 2) and matches with `re.fullmatch`, never `re.search`. It also compiles no pattern from a
-file: the six patterns the schema uses are compiled from literals in `project_policy.py`, and any
-other pattern exits 2. A schema pattern edit therefore lands in both files, and a test holds the two
+then exits 2) and matches with ECMA-262 semantics, a full match (the Python original used
+`re.fullmatch`, never `re.search`). It also compiles no pattern from a file: the six patterns the schema
+uses are written as literals in `src/commands/project-policy.js`, and any other pattern exits 2. A schema pattern edit therefore lands in both files, and a test holds the two
 sets equal. The suites test one trailing-newline
 case per pattern (the non-blank pattern below excepted: prose may end in a newline, so it has a test of
 its own), and the validator's suite repeats four of them through the command. A validator in
@@ -68,9 +69,11 @@ Beyond the schema, it checks one thing the pattern cannot: `recovery.runbook.las
 real calendar date (not `2026-02-30`) and not later than tomorrow on the validator's clock (one day of
 slack for time zones). A runbook cannot have been tested in the future.
 
-On macOS and Linux it is `mhw policy check`. On Windows, where `mhw` does not dispatch it, run
-`python global/project-policy/project_policy.py check` with the same options. It needs Python 3.9 or
-later and nothing else.
+It is `mhw policy check` on macOS, Linux and Windows (`node bin/mhw.js policy check` in a checkout). It
+needs Node 26 or later and nothing else. Since [#498](https://github.com/tedeuxx/mhw/issues/498) it is
+Node; the Python original it replaced answered the same: `test/project-policy/project-policy-golden.test.js`
+holds it to that original's recorded transcripts, its JSON error messages included, and
+`test/golden/S28/expected-differences.json` names what is not compared.
 
 ## Versioning
 

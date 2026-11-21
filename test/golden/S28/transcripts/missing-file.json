@@ -1,0 +1,12 @@
+{
+  "name": "missing-file",
+  "args": [
+    "check",
+    "--file={BASE}/absent.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  missing: no file at <BASE>/absent.json\n"
+  }
+}

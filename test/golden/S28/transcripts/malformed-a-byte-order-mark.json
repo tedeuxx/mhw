@@ -1,0 +1,12 @@
+{
+  "name": "malformed-a-byte-order-mark",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Unexpected UTF-8 BOM (decode using utf-8-sig))\n"
+  }
+}

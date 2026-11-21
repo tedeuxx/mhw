@@ -1,0 +1,12 @@
+{
+  "name": "madr-absolute",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.madr.path: pattern (project MADR not ratified)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

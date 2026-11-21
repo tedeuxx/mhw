@@ -13,6 +13,7 @@ import contextlib
 import copy
 import io
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -115,10 +116,17 @@ class Contract(Base):
         self.assertBlocks(delivery_gate.gate_contract(str(self.project)), "is missing, unreadable or outside")
 
     def broken_schema(self, text):
-        schema = self.tmp / "schema.json"
+        # The validator is the Node command (#498), which reads only its own tree's schema; so the gate is
+        # pointed at a copy of that tree whose schema is broken, never at a schema named from outside.
+        tree = self.tmp / "mhw"
+        for part in ("bin", "src"):
+            shutil.copytree(ROOT / part, tree / part)
+        shutil.copy(ROOT / "package.json", tree / "package.json")
+        schema = tree / "global" / "project-policy" / "project-policy.schema.json"
+        schema.parent.mkdir(parents=True)
         schema.write_text(text, encoding="utf-8")
-        self.addCleanup(setattr, delivery_gate, "SCHEMA", delivery_gate.SCHEMA)
-        delivery_gate.SCHEMA = schema
+        self.addCleanup(setattr, delivery_gate, "MHW_JS", delivery_gate.MHW_JS)
+        delivery_gate.MHW_JS = tree / "bin" / "mhw.js"
 
     def test_schema_with_an_unknown_keyword_cannot_decide(self):
         # validate_schema walks the whole schema before the file is read.
@@ -143,9 +151,9 @@ class Contract(Base):
         path = self.project / "project-policy.json"
         path.write_text(path.read_text(encoding="utf-8").replace(
             '"schema_version": 1,', '"schema_version": 1,\n  "schema_version": 1,', 1), encoding="utf-8")
-        original = delivery_gate.project_policy.check
-        delivery_gate.project_policy.check = lambda *a, **k: (0, ["OK"])
-        self.addCleanup(setattr, delivery_gate.project_policy, "check", original)
+        original = delivery_gate.policy_check
+        delivery_gate.policy_check = lambda *a, **k: (0, ["OK"])
+        self.addCleanup(setattr, delivery_gate, "policy_check", original)
         self.assertBlocks(delivery_gate.load_contract(str(self.project))[1], "malformed")
 
     def test_madr_linked_outside_the_project_blocks(self):
@@ -485,10 +493,50 @@ class CommandLine(Base):
         self.assertEqual(self.main("nothing")[0], 2)
 
     def test_validator_that_cannot_decide_is_exit_2(self):
-        original = delivery_gate.project_policy.check
-        delivery_gate.project_policy.check = lambda *a, **k: (2, ["ERROR  schema"])
-        self.addCleanup(setattr, delivery_gate.project_policy, "check", original)
+        original = delivery_gate.policy_check
+        delivery_gate.policy_check = lambda *a, **k: (2, ["ERROR  schema"])
+        self.addCleanup(setattr, delivery_gate, "policy_check", original)
         self.assertEqual(self.main("contract", "--project=%s" % self.project)[0], 2)
+
+    def fake_node(self, body):
+        """A stand-in node (POSIX): a shell script whose answer is body."""
+        exe = self.tmp / "fake-node"
+        exe.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
+        exe.chmod(0o755)
+        return str(exe)
+
+    def with_node(self, value):
+        saved = os.environ.get("MHW_NODE")
+        os.environ["MHW_NODE"] = value
+        self.addCleanup(lambda: os.environ.pop("MHW_NODE") if saved is None
+                        else os.environ.__setitem__("MHW_NODE", saved))
+
+    def test_the_validator_is_the_node_command(self):
+        # #498: the contract gate reaches `mhw policy check` through the CLI; its answer is the gate's.
+        self.assertEqual(delivery_gate.load_contract(str(self.project))[1], [])
+        broken = self.project / "project-policy.json"
+        broken.write_text(broken.read_text(encoding="utf-8").replace('"accepted"', '"proposed"', 1),
+                          encoding="utf-8")
+        blocks = delivery_gate.load_contract(str(self.project))[1]
+        self.assertIn("contract: FAIL  $.madr.status: const (project MADR not ratified)", blocks)
+
+    @unittest.skipIf(os.name == "nt", "the stand-in node is a POSIX shell script")
+    def test_a_validator_without_its_own_answer_cannot_decide(self):
+        # Fail closed: no node, an exit outside 0/1/2, silence, or a 0 without the OK line is exit 2.
+        path = self.project / "project-policy.json"
+        for body in ("exit 3", "echo 'OK  fine' >&2; exit 3", "exit 0", "echo pass; exit 0", "exit 1", "kill -9 $$"):
+            with self.subTest(body=body):
+                self.with_node(self.fake_node(body))
+                self.assertEqual(delivery_gate.policy_check(path)[0], 2)
+        self.with_node(self.fake_node("echo 'OK  fine'; exit 0"))
+        self.assertEqual(delivery_gate.policy_check(path)[0], 0, "control: the stand-in is run")
+        self.with_node("relative/node")
+        saved = os.environ.get("PATH", "")
+        os.environ["PATH"] = str(self.tmp / "empty")
+        self.addCleanup(os.environ.__setitem__, "PATH", saved)
+        code, lines = delivery_gate.policy_check(path)
+        self.assertEqual(code, 2)
+        self.assertIn("node was not found", lines[0])
 
 
 class Workflows(unittest.TestCase):
@@ -578,7 +626,7 @@ class Workflows(unittest.TestCase):
 
     def test_the_gate_calls_the_validator_and_every_gate(self):
         body = text(WORKFLOWS[0])
-        self.assertIn("project_policy.py check", body)
+        self.assertIn("node mhw/bin/mhw.js policy check --project=", body)
         for gate in ("contract", "container", "installed-stg", "classify", "environment"):
             self.assertIn("delivery_gate.py %s " % gate, body)
 

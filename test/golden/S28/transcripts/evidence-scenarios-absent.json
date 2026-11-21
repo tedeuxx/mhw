@@ -1,0 +1,12 @@
+{
+  "name": "evidence-scenarios-absent",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.mandatory_scenarios: required (missing mandatory evidence)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

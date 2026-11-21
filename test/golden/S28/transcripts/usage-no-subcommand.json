@@ -1,0 +1,9 @@
+{
+  "name": "usage-no-subcommand",
+  "args": [],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "mhw: policy takes one subcommand, check [--project=DIR | --file=PATH]\n"
+  }
+}

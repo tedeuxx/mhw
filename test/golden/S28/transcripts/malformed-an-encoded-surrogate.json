@@ -1,0 +1,12 @@
+{
+  "name": "malformed-an-encoded-surrogate",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not UTF-8\n"
+  }
+}

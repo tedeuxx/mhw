@@ -8,7 +8,7 @@
 // `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
 // `mhw scan` (#486) and `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux); new in Node:
-// `mhw docs-baseline check` and `mhw onboard` (#523).
+// `mhw docs-baseline check` and `mhw onboard` (#523), and `mhw policy check` (#498, S28; on Windows too).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
 // PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
@@ -33,6 +33,7 @@ import { main as scanMain } from './commands/scan.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
 import { checkMain as docsBaselineMain, onboardMain } from './commands/docs-baseline.js';
 import { main as statusMain } from './commands/status.js';
+import { main as policyMain } from './commands/project-policy.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -172,6 +173,7 @@ const MOVED = {
   // #523: the documentation baseline's pull-request check, and the onboarding entry point.
   'docs-baseline': docsBaselineMain,
   onboard: onboardMain,
+  policy: policyMain, // #498, S28: mhw policy check, the project-policy validator (ADR-0015 lock 3)
 };
 
 /**

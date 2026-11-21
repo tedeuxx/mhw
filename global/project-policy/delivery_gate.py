@@ -20,7 +20,9 @@ recovery, `runbook=`, `recovery_time_objective_minutes=` and `operator=` lines f
 
 `mhw policy check` (lock 3) validates the contract a project declares and reads no evidence. This
 script is what reads evidence: it applies a valid contract to one revision's results. Every command
-re-validates the contract first, with the same validator, so a gate never runs on a broken one.
+re-validates the contract first, with the same validator, so a gate never runs on a broken one: since
+#498 that validator is Node (bin/mhw.js policy check), run here by absolute path, so the gates need node
+26 or later beside python3 until S29 (#499) moves them too. No node, or any answer but its own, is exit 2.
 
     exit 0  the gate passes; `classify` also prints `class=` and `approval=` lines for $GITHUB_OUTPUT
     exit 1  the gate blocks, one `BLOCK  <gate>: <reason>` line per reason on standard error
@@ -36,18 +38,21 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
+import subprocess
 import sys
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
-import project_policy  # noqa: E402
+# Lock 3, `mhw policy check`, is Node since #498 (S28 of #470): src/commands/project-policy.js. Until this
+# script moves too (S29, #499), it reaches the validator through the command line, never a copy of it.
+MHW_JS = HERE.parent.parent / "bin" / "mhw.js"
+FILE_NAME = "project-policy.json"
 
 SHA = re.compile(r"[0-9a-f]{40}")
 IMAGE = re.compile(r"[^@\s]+@sha256:[0-9a-f]{64}")
 BUG_ISSUE = re.compile(r"#[0-9]+|https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/issues/[0-9]+")
-SEVERITIES = project_policy.SEVERITIES
+SEVERITIES = ("low", "medium", "high", "critical")
 DOCKERENV = Path("/.dockerenv")
-SCHEMA = project_policy.SCHEMA
 
 CONTAINER_KEYS = {"layer", "revision", "container_image", "test_layers", "coverage",
                   "critical_user_journeys", "risk_scenarios", "security_controls", "findings"}
@@ -62,19 +67,77 @@ class Usage(Exception):
 
 # -- the contract ---------------------------------------------------------------------------------
 
+class Refusal(Exception):
+    """The file cannot be read as JSON at all."""
+
+
+def _no_duplicates(pairs):
+    keys = [k for k, _ in pairs]
+    dup = sorted({k for k in keys if keys.count(k) > 1})
+    if dup:
+        # Python keeps the last value of a repeated key; a reader in another language may keep the
+        # first. One file must not mean two things, so a repeated key is refused.
+        raise Refusal("repeated key %s" % ", ".join(json.dumps(k) for k in dup))
+    return dict(pairs)
+
+
+def _no_constant(name):
+    # NaN compares false with every bound, so a NaN threshold would pass every range check.
+    raise Refusal("%s is not JSON" % name)
+
+
+def strict_read(path):
+    """The parsed file with the validator's strictness (no repeated key, no NaN), or Refusal."""
+    try:
+        text = Path(path).read_bytes().decode("utf-8")
+        return json.loads(text, object_pairs_hook=_no_duplicates, parse_constant=_no_constant)
+    except Refusal as exc:
+        raise Refusal("malformed: %s" % exc)
+    except (OSError, ValueError, RecursionError) as exc:
+        raise Refusal("unreadable or malformed: %s" % exc)
+
+
+def node():
+    """The node that runs the validator, by absolute path: MHW_NODE when it is one, else PATH's."""
+    named = os.environ.get("MHW_NODE", "")
+    if named and os.path.isabs(named):
+        return named
+    found = shutil.which("node")
+    return os.path.abspath(found) if found else None
+
+
+def policy_check(path):
+    """(code, lines) of `mhw policy check --file=PATH`, lock 3's whole route: the strict parse and the
+    walk of its own schema, then the file. Anything but its own 0, 1 or 2 is 2: it cannot decide."""
+    exe = node()
+    if exe is None:
+        return 2, ["ERROR  node was not found, so mhw policy check cannot run (the reference CI/CD sets it up)"]
+    try:
+        run = subprocess.run([exe, str(MHW_JS), "policy", "check", "--file=" + str(path)], capture_output=True,
+                             timeout=120, check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return 2, ["ERROR  mhw policy check could not run: %s" % exc]
+    out = (run.stdout if run.returncode == 0 else run.stderr).decode("utf-8", "replace")
+    lines = out.splitlines()
+    if run.returncode not in (0, 1, 2) or not lines:
+        return 2, ["ERROR  mhw policy check gave no answer (exit %s)" % run.returncode] + lines
+    if run.returncode == 0 and not lines[0].startswith("OK  "):
+        return 2, ["ERROR  mhw policy check exited 0 without its OK line"] + lines
+    return run.returncode, lines
+
+
 def load_contract(project):
     """(contract, blocks). The contract is valid only when blocks is empty."""
-    path = Path(project) / project_policy.FILE_NAME
-    # check() is lock 3's whole route: the strict parse and the walk of its own schema, then the file.
-    code, lines = project_policy.check(str(path), schema_path=SCHEMA)
+    path = Path(project) / FILE_NAME
+    code, lines = policy_check(path)
     if code == 2:
         raise Usage("the validator cannot decide on %s: %s" % (path, "; ".join(lines)))
     if code != 0:
         return None, ["contract: %s" % line for line in lines]
-    # The gates read the contract through the same strict parse check() used, never a looser second one.
+    # The gates read the contract with the validator's strictness, never a looser second parse.
     try:
-        return project_policy.read(str(path)), []
-    except project_policy.Refusal as exc:
+        return strict_read(str(path)), []
+    except Refusal as exc:
         return None, ["contract: FAIL  %s" % exc]
 
 
@@ -152,9 +215,8 @@ def read_evidence(path):
     except OSError as exc:
         return None, ["evidence: %s is missing or unreadable (%s)" % (path, exc.strerror or exc)]
     try:
-        doc = json.loads(raw.decode("utf-8"), object_pairs_hook=project_policy._no_duplicates,
-                         parse_constant=project_policy._no_constant)
-    except (ValueError, project_policy.Refusal, RecursionError) as exc:
+        doc = json.loads(raw.decode("utf-8"), object_pairs_hook=_no_duplicates, parse_constant=_no_constant)
+    except (ValueError, Refusal, RecursionError) as exc:
         return None, ["evidence: %s is malformed (%s)" % (path, exc)]
     if not isinstance(doc, dict):
         return None, ["evidence: %s is not a JSON object" % path]

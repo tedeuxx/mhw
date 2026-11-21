@@ -1,0 +1,12 @@
+{
+  "name": "version-a-big-integer",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  unknown version: schema_version 123456789012345678901234567890; this validator knows 1\n"
+  }
+}

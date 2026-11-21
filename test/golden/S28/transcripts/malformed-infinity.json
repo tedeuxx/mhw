@@ -1,0 +1,12 @@
+{
+  "name": "malformed-infinity",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: Infinity is not JSON\n"
+  }
+}
