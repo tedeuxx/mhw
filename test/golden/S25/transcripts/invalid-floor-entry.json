@@ -1,0 +1,16 @@
+[
+  {
+    "run": "--overlay=T/bad-overlay",
+    "code": 2,
+    "stdout": "",
+    "stderr": "invalid deny-floor entry (a cmd word may not hold *): cmd git push --force*\ninvalid deny-floor entry (a glob holds * only at the end of its last word): glob terraform *\ninvalid deny-floor entry (a file entry takes one path): file ~/a ~/b\n",
+    "tree": []
+  },
+  {
+    "run": "--overlay=T/bad-overlay --uninstall",
+    "code": 2,
+    "stdout": "",
+    "stderr": "invalid deny-floor entry (a cmd word may not hold *): cmd git push --force*\ninvalid deny-floor entry (a glob holds * only at the end of its last word): glob terraform *\ninvalid deny-floor entry (a file entry takes one path): file ~/a ~/b\n",
+    "tree": []
+  }
+]

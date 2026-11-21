@@ -1,0 +1,530 @@
+[
+  {
+    "run": "install",
+    "code": 3,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.claude/CLAUDE.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/AGENTS.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.kiro/steering/workstation-global-brief.md (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/rules/workstation-deny-floor.rules (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.codex/hooks.json (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json (release: <RELEASE>; commit: <COMMIT>\nWROTE   <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh (release: <RELEASE>; commit: <COMMIT>\nCHANGED <T>/home/.zshrc: paste-wrapper start-up block absent -> present (new file); new shells clean pastes\nMERGED  <T>/home/.kiro/settings/permissions.yaml (new file; 260 deny-floor patterns)\nCHANGED <T>/home/.claude.json: chrome-devtools absent -> /bin/sh -c 'exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux' (policy MCP servers, ADR-0038)\nSKIP    MCP active set: no local MCP definition at <T>/home/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json, so nothing is turned off (MCP active set)\nSKIP    <CHROME_LOCAL_STATE>: no Chrome Local State (Chrome not installed or never started) (Chrome remote debugging)\nREFUSE  <T>/home/.claude/settings.json: not readable as its format; model defaults left untouched\nCHANGED <T>/home/.codex/config.toml: model (absent) -> \"gpt-5.6-sol\"; model_reasoning_effort (absent) -> \"medium\" (model defaults codex; new file)\nCHANGED <T>/home/.kiro/settings/cli.json: chat.defaultModel (absent) -> \"claude-sonnet-4.5\" (model defaults kiro-cli; new file)\nWROTE   <T>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: <RELEASE>; commit: <COMMIT>\nMETHOD  not installed (opt-in: ./mhw install --method, or install.sh --method; off by default until the plugin cutover, #63 #64)\nFLOOR   Claude Code: user layer 0/260 rules (not read: not strict JSON); admin layer 0/260 rules\nFLOOR   Codex: user rules file present; admin requirements 0/188 prefix rules\nFLOOR   Kiro: user permissions.yaml 260/260 floor patterns (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json absent (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   carried by: NO complete layer; run ./mhw install\nRESTART REQUIRED: open fresh Claude Code, Codex and Kiro sessions before further work; Codex hook trust remains an owner action in /hooks.\n",
+    "stderr": "REFUSE  <T>/home/.claude/settings.json: not readable by the settings merge (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents, nesting past 256 levels or the like); left untouched\nREFUSE  the allow list: the deny floor was not merged into <T>/home/.claude/settings.json (see above), and an allow list never lands without it; nothing written\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/CLAUDE.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ed0fe568a6378186454f5d3df1a8d6d586fa8c92227b5438df11cfe98edc2f61"
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":1}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}\n"
+      },
+      {
+        "path": ".claude.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"mcpServers\": {\n    \"chrome-devtools\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/sh\",\n      \"args\": [\n        \"-c\",\n        \"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"\n      ]\n    }\n  }\n}\n"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/AGENTS.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ed0fe568a6378186454f5d3df1a8d6d586fa8c92227b5438df11cfe98edc2f61"
+      },
+      {
+        "path": ".codex/config.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "model_reasoning_effort = \"medium\"\nmodel = \"gpt-5.6-sol\"\n"
+      },
+      {
+        "path": ".codex/hooks.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste filter, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"hooks\": {\n    \"UserPromptSubmit\": [\n      {\n        \"hooks\": [\n          {\"type\": \"command\", \"command\": \"/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \\\"<NODE>\\\" \\\"<T>/tree/bin/mhw.js\\\" hook prompt --harness codex --config \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\\\" || { printf \\\"%s\\\\n\\\" \\\"{\\\\\\\"systemMessage\\\\\\\": \\\\\\\"Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.\\\\\\\"}\\\"; exit 0; }'\", \"timeout\": 30}\n        ]\n      }\n    ]\n  }\n}\n"
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules/workstation-deny-floor.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:e58480a79a24dfc81f368f800d86266d789322d4d4e31334f287411a4182870b"
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"version\": \"v1\",\n  \"hooks\": [\n    {\n      \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste filter, ADR-0033); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n      \"name\": \"paste filter (personal-multi-harness-workstation-configuration)\",\n      \"trigger\": \"UserPromptSubmit\",\n      \"action\": {\"type\": \"command\", \"command\": \"/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \\\"<NODE>\\\" \\\"<T>/tree/bin/mhw.js\\\" hook prompt --harness kiro --config \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\\\" || { [ $? -eq 2 ] && exit 2; printf \\\"%s\\\\n\\\" \\\"Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.\\\" >&2; exit 2; }'\"},\n      \"timeout\": 30\n    }\n  ]\n}\n"
+      },
+      {
+        "path": ".kiro/settings",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": ".kiro/settings/cli.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}\n"
+      },
+      {
+        "path": ".kiro/settings/permissions.yaml",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:4d4f400cc34e6877d38c97e88dc643946f22bcd86c274d6d5ae41075981e73f1"
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering/workstation-global-brief.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:42e345d1c1e4ac1b3c28ec77cca6f47cb4070fc5a8d6bfe566c07bb3121924c5"
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:5b88ddadde5b2de7c988e49d7b397288622a6c452d3f038e1992d099a26ad483"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:a3f64c693cd4317d641c4c50376d0c05ce5ca1dbaa710f63e8ed1daf97614c31"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"version\": 1,\n  \"surfaces\": {},\n  \"stamps\": {},\n  \"policy\": {\n    \"claude-code\": [\n      \"chrome-devtools\"\n    ]\n  },\n  \"policy_stamps\": {\n    \"claude-code\": \"release: <RELEASE>; commit: <COMMIT>\"\n  }\n}\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<T>/home/.codex/config.toml\": {\n      \"harness\": \"codex\",\n      \"keys\": {\n        \"model\": \"gpt-5.6-sol\",\n        \"model_reasoning_effort\": \"medium\"\n      }\n    },\n    \"<T>/home/.kiro/settings/cli.json\": {\n      \"harness\": \"kiro-cli\",\n      \"keys\": {\n        \"chat.defaultModel\": \"claude-sonnet-4.5\"\n      }\n    }\n  }\n}\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/paste-filter.sh",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste wrapper, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n# managed block in your shell start-up file (~/.zshrc, or ~/.bashrc and on macOS ~/.bash_profile;\n# Issue #145), which reads:\n#   [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n# CLI sees them and marks the session (PMHWC_PASTE_WRAPPER=1), so the prompt hook lets its prompts\n# through. \"command claude\" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\nclaude() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- claude \"$@\"; }\ncodex() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- codex \"$@\"; }\nkiro-cli() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- kiro-cli \"$@\"; }\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/shell-rc-created.list",
+        "kind": "file",
+        "mode": "644",
+        "data": "<T>/home/.zshrc\n"
+      },
+      {
+        "path": ".zshrc",
+        "kind": "file",
+        "mode": "644",
+        "data": "# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+      }
+    ]
+  },
+  {
+    "run": "--check",
+    "code": 3,
+    "stdout": "SOURCE  release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.claude/CLAUDE.md (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.codex/AGENTS.md (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.kiro/steering/workstation-global-brief.md (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.codex/rules/workstation-deny-floor.rules (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.codex/hooks.json (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh (release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.zshrc activates the paste wrapper (managed block)\nOK      <T>/home/.kiro/settings/permissions.yaml (all 260 deny-floor patterns present; release: <RELEASE>; commit: <COMMIT>\nOK      <T>/home/.claude.json: 1 policy MCP server(s) (ADR-0038)\nSKIP    MCP active set: no local MCP definition at <T>/home/.local/share/personal-multi-harness-workstation-configuration/local-overlay/mcp-servers.json, so nothing is turned off (MCP active set)\nSKIP    <CHROME_LOCAL_STATE>: no Chrome Local State (Chrome not installed or never started) (Chrome remote debugging)\nREFUSE  <T>/home/.claude/settings.json: not readable as its format; model defaults left untouched\nOK      <T>/home/.codex/config.toml: model = \"gpt-5.6-sol\", model_reasoning_effort = \"medium\" (model defaults codex)\nOK      <T>/home/.kiro/settings/cli.json: chat.defaultModel = \"claude-sonnet-4.5\" (model defaults kiro-cli)\nOK      <T>/home/.local/share/personal-multi-harness-workstation-configuration/model-defaults.json (release: <RELEASE>; commit: <COMMIT>\nRISK    admin deny floor incomplete (Claude Code: narrow, Codex: narrow tier): an allow list without the admin barrier is limited to reading; ./mhw install (it asks for your administrator password once) widens it\nMISSING <T>/home/.codex/rules/workstation-allow-list.rules\nMISSING <T>/home/.codex/workstation.config.toml\nMISSING <T>/home/.kiro/agents/workstation.json\nALLOW   Claude Code: narrow tier · Codex: narrow tier, profile workstation · Kiro: narrow tier, agent workstation (Kiro CLI 2.x reads no deny floor; the floor is in permissions.yaml, IDE and CLI V3, ADR-0036)\nMETHOD  not installed (opt-in: ./mhw install --method, or install.sh --method; off by default until the plugin cutover, #63 #64)\nFLOOR   Claude Code: user layer 0/260 rules (not read: not strict JSON); admin layer 0/260 rules\nFLOOR   Codex: user rules file present; admin requirements 0/188 prefix rules\nFLOOR   Kiro: user permissions.yaml 260/260 floor patterns (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json absent (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   carried by: NO complete layer; run ./mhw install\n",
+    "stderr": "REFUSE  <T>/home/.claude/settings.json: not readable by the settings merge (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents, nesting past 256 levels or the like); left untouched\nREFUSE  <T>/home/.claude/settings.json: not readable by the allow-list step (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents or the like); left untouched\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/CLAUDE.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ed0fe568a6378186454f5d3df1a8d6d586fa8c92227b5438df11cfe98edc2f61"
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":1}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}\n"
+      },
+      {
+        "path": ".claude.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"mcpServers\": {\n    \"chrome-devtools\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/sh\",\n      \"args\": [\n        \"-c\",\n        \"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"\n      ]\n    }\n  }\n}\n"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/AGENTS.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ed0fe568a6378186454f5d3df1a8d6d586fa8c92227b5438df11cfe98edc2f61"
+      },
+      {
+        "path": ".codex/config.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "model_reasoning_effort = \"medium\"\nmodel = \"gpt-5.6-sol\"\n"
+      },
+      {
+        "path": ".codex/hooks.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste filter, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"hooks\": {\n    \"UserPromptSubmit\": [\n      {\n        \"hooks\": [\n          {\"type\": \"command\", \"command\": \"/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \\\"<NODE>\\\" \\\"<T>/tree/bin/mhw.js\\\" hook prompt --harness codex --config \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\\\" || { printf \\\"%s\\\\n\\\" \\\"{\\\\\\\"systemMessage\\\\\\\": \\\\\\\"Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.\\\\\\\"}\\\"; exit 0; }'\", \"timeout\": 30}\n        ]\n      }\n    ]\n  }\n}\n"
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules/workstation-deny-floor.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:e58480a79a24dfc81f368f800d86266d789322d4d4e31334f287411a4182870b"
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"version\": \"v1\",\n  \"hooks\": [\n    {\n      \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste filter, ADR-0033); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n      \"name\": \"paste filter (personal-multi-harness-workstation-configuration)\",\n      \"trigger\": \"UserPromptSubmit\",\n      \"action\": {\"type\": \"command\", \"command\": \"/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \\\"<NODE>\\\" \\\"<T>/tree/bin/mhw.js\\\" hook prompt --harness kiro --config \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\\\" || { [ $? -eq 2 ] && exit 2; printf \\\"%s\\\\n\\\" \\\"Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.\\\" >&2; exit 2; }'\"},\n      \"timeout\": 30\n    }\n  ]\n}\n"
+      },
+      {
+        "path": ".kiro/settings",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": ".kiro/settings/cli.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}\n"
+      },
+      {
+        "path": ".kiro/settings/permissions.yaml",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:4d4f400cc34e6877d38c97e88dc643946f22bcd86c274d6d5ae41075981e73f1"
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering/workstation-global-brief.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:42e345d1c1e4ac1b3c28ec77cca6f47cb4070fc5a8d6bfe566c07bb3121924c5"
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:5b88ddadde5b2de7c988e49d7b397288622a6c452d3f038e1992d099a26ad483"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:a3f64c693cd4317d641c4c50376d0c05ce5ca1dbaa710f63e8ed1daf97614c31"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"version\": 1,\n  \"surfaces\": {},\n  \"stamps\": {},\n  \"policy\": {\n    \"claude-code\": [\n      \"chrome-devtools\"\n    ]\n  },\n  \"policy_stamps\": {\n    \"claude-code\": \"release: <RELEASE>; commit: <COMMIT>\"\n  }\n}\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<T>/home/.codex/config.toml\": {\n      \"harness\": \"codex\",\n      \"keys\": {\n        \"model\": \"gpt-5.6-sol\",\n        \"model_reasoning_effort\": \"medium\"\n      }\n    },\n    \"<T>/home/.kiro/settings/cli.json\": {\n      \"harness\": \"kiro-cli\",\n      \"keys\": {\n        \"chat.defaultModel\": \"claude-sonnet-4.5\"\n      }\n    }\n  }\n}\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/paste-filter.sh",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste wrapper, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n# managed block in your shell start-up file (~/.zshrc, or ~/.bashrc and on macOS ~/.bash_profile;\n# Issue #145), which reads:\n#   [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n# CLI sees them and marks the session (PMHWC_PASTE_WRAPPER=1), so the prompt hook lets its prompts\n# through. \"command claude\" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\nclaude() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- claude \"$@\"; }\ncodex() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- codex \"$@\"; }\nkiro-cli() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- kiro-cli \"$@\"; }\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/shell-rc-created.list",
+        "kind": "file",
+        "mode": "644",
+        "data": "<T>/home/.zshrc\n"
+      },
+      {
+        "path": ".zshrc",
+        "kind": "file",
+        "mode": "644",
+        "data": "# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+      }
+    ]
+  },
+  {
+    "run": "--uninstall",
+    "code": 3,
+    "stdout": "",
+    "stderr": "REFUSE  <T>/home/.claude/settings.json: not readable by the allow-list step (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents or the like); left untouched\nREFUSE  uninstall: the allow-list step failed (exit 3), and the deny floor must not leave from beside its allow rules; nothing else uninstalled. Fix <T>/home/.claude/settings.json (or move it aside) and re-run\n",
+    "tree": [
+      {
+        "path": ".claude",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".claude/CLAUDE.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ed0fe568a6378186454f5d3df1a8d6d586fa8c92227b5438df11cfe98edc2f61"
+      },
+      {
+        "path": ".claude/settings.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":{\"a\":1}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}\n"
+      },
+      {
+        "path": ".claude.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"mcpServers\": {\n    \"chrome-devtools\": {\n      \"type\": \"stdio\",\n      \"command\": \"/bin/sh\",\n      \"args\": [\n        \"-c\",\n        \"exec npx --ignore-scripts -y chrome-devtools-mcp@1.8.0 --autoConnect --channel stable --no-usage-statistics --no-performance-crux\"\n      ]\n    }\n  }\n}\n"
+      },
+      {
+        "path": ".codex",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/AGENTS.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:ed0fe568a6378186454f5d3df1a8d6d586fa8c92227b5438df11cfe98edc2f61"
+      },
+      {
+        "path": ".codex/config.toml",
+        "kind": "file",
+        "mode": "644",
+        "data": "model_reasoning_effort = \"medium\"\nmodel = \"gpt-5.6-sol\"\n"
+      },
+      {
+        "path": ".codex/hooks.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste filter, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"hooks\": {\n    \"UserPromptSubmit\": [\n      {\n        \"hooks\": [\n          {\"type\": \"command\", \"command\": \"/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \\\"<NODE>\\\" \\\"<T>/tree/bin/mhw.js\\\" hook prompt --harness codex --config \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\\\" || { printf \\\"%s\\\\n\\\" \\\"{\\\\\\\"systemMessage\\\\\\\": \\\\\\\"Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.\\\\\\\"}\\\"; exit 0; }'\", \"timeout\": 30}\n        ]\n      }\n    ]\n  }\n}\n"
+      },
+      {
+        "path": ".codex/rules",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".codex/rules/workstation-deny-floor.rules",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:e58480a79a24dfc81f368f800d86266d789322d4d4e31334f287411a4182870b"
+      },
+      {
+        "path": ".kiro",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"version\": \"v1\",\n  \"hooks\": [\n    {\n      \"description\": \"managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste filter, ADR-0033); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n      \"name\": \"paste filter (personal-multi-harness-workstation-configuration)\",\n      \"trigger\": \"UserPromptSubmit\",\n      \"action\": {\"type\": \"command\", \"command\": \"/bin/sh -c '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \\\"<NODE>\\\" \\\"<T>/tree/bin/mhw.js\\\" hook prompt --harness kiro --config \\\"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\\\" || { [ $? -eq 2 ] && exit 2; printf \\\"%s\\\\n\\\" \\\"Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.\\\" >&2; exit 2; }'\"},\n      \"timeout\": 30\n    }\n  ]\n}\n"
+      },
+      {
+        "path": ".kiro/settings",
+        "kind": "dir",
+        "mode": "700",
+        "data": ""
+      },
+      {
+        "path": ".kiro/settings/cli.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"chat.defaultModel\": \"claude-sonnet-4.5\"\n}\n"
+      },
+      {
+        "path": ".kiro/settings/permissions.yaml",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:4d4f400cc34e6877d38c97e88dc643946f22bcd86c274d6d5ae41075981e73f1"
+      },
+      {
+        "path": ".kiro/steering",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".kiro/steering/workstation-global-brief.md",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:42e345d1c1e4ac1b3c28ec77cca6f47cb4070fc5a8d6bfe566c07bb3121924c5"
+      },
+      {
+        "path": ".local",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration",
+        "kind": "dir",
+        "mode": "755",
+        "data": ""
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/clipboard.conf",
+        "kind": "file",
+        "mode": "644",
+        "data": "sha256:5b88ddadde5b2de7c988e49d7b397288622a6c452d3f038e1992d099a26ad483"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/kiro-permissions-owned.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "sha256:a3f64c693cd4317d641c4c50376d0c05ce5ca1dbaa710f63e8ed1daf97614c31"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/mcp-managed.json",
+        "kind": "file",
+        "mode": "600",
+        "data": "{\n  \"version\": 1,\n  \"surfaces\": {},\n  \"stamps\": {},\n  \"policy\": {\n    \"claude-code\": [\n      \"chrome-devtools\"\n    ]\n  },\n  \"policy_stamps\": {\n    \"claude-code\": \"release: <RELEASE>; commit: <COMMIT>\"\n  }\n}\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/model-defaults.json",
+        "kind": "file",
+        "mode": "644",
+        "data": "{\n  \"managed-by\": \"managed-by: personal-multi-harness-workstation-configuration; source: overlay/model-defaults.json; release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\",\n  \"note\": \"The session-start model and effort keys this project set, per file, and under \\\"replaced\\\" the value each one replaced; uninstall restores those and removes the rest.\",\n  \"set\": {\n    \"<T>/home/.codex/config.toml\": {\n      \"harness\": \"codex\",\n      \"keys\": {\n        \"model\": \"gpt-5.6-sol\",\n        \"model_reasoning_effort\": \"medium\"\n      }\n    },\n    \"<T>/home/.kiro/settings/cli.json\": {\n      \"harness\": \"kiro-cli\",\n      \"keys\": {\n        \"chat.defaultModel\": \"claude-sonnet-4.5\"\n      }\n    }\n  }\n}\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/paste-filter.sh",
+        "kind": "file",
+        "mode": "644",
+        "data": "# managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh (paste wrapper, ADR-0011); release: <RELEASE>; commit: <COMMIT>; do not edit, re-run the installer\n# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n# managed block in your shell start-up file (~/.zshrc, or ~/.bashrc and on macOS ~/.bash_profile;\n# Issue #145), which reads:\n#   [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n# CLI sees them and marks the session (PMHWC_PASTE_WRAPPER=1), so the prompt hook lets its prompts\n# through. \"command claude\" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\nclaude() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- claude \"$@\"; }\ncodex() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- codex \"$@\"; }\nkiro-cli() { \"<NODE>\" \"<T>/tree/bin/mhw.js\" paste-wrapper run --config \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" -- kiro-cli \"$@\"; }\n"
+      },
+      {
+        "path": ".local/share/personal-multi-harness-workstation-configuration/shell-rc-created.list",
+        "kind": "file",
+        "mode": "644",
+        "data": "<T>/home/.zshrc\n"
+      },
+      {
+        "path": ".zshrc",
+        "kind": "file",
+        "mode": "644",
+        "data": "# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+      }
+    ]
+  }
+]

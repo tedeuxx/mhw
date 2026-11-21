@@ -48,6 +48,10 @@
     {
       "what": "A crash on a lone-surrogate record path prints a NOTE line first.",
       "why": "A record path outside HOME holding a lone surrogate makes both versions exit 1, but the port prints its NOTE line for that path before it throws, while CPython raised before printing it. The exit code is the same; stdout has one more line."
+    },
+    {
+      "what": "a Claude Code settings.json that jq 1.7.1 refuses is refused, not read",
+      "why": "#503 (S25 of #470), carried from #502 (3b): the settings merge and the allow-list step refuse a Claude Code settings.json that jq 1.7.1 refuses (not JSON it reads, a lone high surrogate escape, nesting past 256 levels), and the Python original of this step read it with json.loads and rewrote it (a 300-deep document), or crashed writing it back (a lone surrogate, UnicodeEncodeError). It is now refused like any file it cannot read: 'REFUSE  <file>: not readable as its format; model defaults left untouched', exit 3, the file and the record left as they were. A file jq reads and strict JSON does not (NaN, a byte-order mark) is read and rewritten as before, so every golden case is unchanged. Pinned by 'a Claude Code settings.json jq refuses is refused here too' in test/render/model-defaults.test.js; the installer's end-to-end golden is test/golden/S25 (settings-nested-300-deep)."
     }
   ]
 }

@@ -1,0 +1,30 @@
+[
+  {
+    "run": "--bogus",
+    "code": 2,
+    "stdout": "",
+    "stderr": "unknown argument: --bogus\n",
+    "tree": []
+  },
+  {
+    "run": "--shell-rc=",
+    "code": 2,
+    "stdout": "",
+    "stderr": "unknown argument: --shell-rc=\n",
+    "tree": []
+  },
+  {
+    "run": "--overlay=T/missing",
+    "code": 2,
+    "stdout": "",
+    "stderr": "overlay directory not found: <T>/missing\n",
+    "tree": []
+  },
+  {
+    "run": "--dry-run --hooks=other",
+    "code": 2,
+    "stdout": "",
+    "stderr": "unknown argument: --hooks=other\n",
+    "tree": []
+  }
+]
