@@ -50,7 +50,7 @@
 # The always-on clipboard watcher is WITHDRAWN (ADR-0011): no LaunchAgent is written any more, and a
 # managed plist left by an earlier version is removed on install. launchctl is never run: the installer
 # prints the bootout command for the owner. The term list is never written by this installer (only
-# `clipboard_guard.py add-term` does).
+# `mhw add-term` does).
 # The paste wrapper (ADR-0011, automatic cleaning at the paste boundary) is `mhw paste-wrapper`, Node since
 # #487 (S16 of #470), run from this package by the node that runs mhw; a managed shell snippet defines
 # claude, codex and kiro-cli functions that run the CLIs through it. The Python copy an earlier install
@@ -61,7 +61,10 @@
 set -eu
 
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
-PASTE_ID="personal-multi-harness-workstation-configuration/clipboard_guard.py"
+# The prompt hook is `mhw hook prompt` in Node since #488 (S17 of #470); an entry for the Python core an
+# earlier install merged (OLD_PASTE_ID) is found and replaced.
+PASTE_ID='/bin/mhw.js" hook prompt --harness '
+OLD_PASTE_ID="personal-multi-harness-workstation-configuration/clipboard_guard.py"
 # The top-level key that carries the provenance stamp in a JSON file with no comment syntax (Issue #66).
 STAMP_KEY="personal-multi-harness-workstation-configuration"
 # The deny-floor rules THIS installer appended to ~/.claude/settings.json (absent before it merged them),
@@ -76,7 +79,6 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_root=$(dirname "$script_dir")
 src="$script_dir/AGENTS.md"
 floor_src="$script_dir/deny-floor.conf"
-clip_src="$script_dir/clipboard/clipboard_guard.py"
 clip_conf_src="$script_dir/clipboard.conf"
 CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-guard"
 
@@ -112,7 +114,7 @@ case $shell_rc in
   *) echo "--shell-rc needs an absolute path, got: $shell_rc" >&2; exit 2 ;;
 esac
 
-for f in "$src" "$floor_src" "$clip_src" "$clip_conf_src"; do
+for f in "$src" "$floor_src" "$clip_conf_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -145,7 +147,7 @@ restart_dest="$data_dir/restart_guard.py"        # removed (ADR-0028); retired b
 glass_dest="$data_dir/breaking_glass.py"         # removed (ADR-0028); retired below
 glasscmd_dest="$HOME/.claude/commands/breaking-glass.md"   # removed (ADR-0028); retired below
 settings="$HOME/.claude/settings.json"
-clip_dest="$data_dir/clipboard_guard.py"
+clip_dest="$data_dir/clipboard_guard.py"        # the Python hook core, removed (#488); retired below
 clip_conf_dest="$data_dir/clipboard.conf"
 wrap_dest="$data_dir/paste_wrapper.py"            # the Python wrapper, removed (#487); retired below
 snippet_dest="$data_dir/paste-filter.sh"
@@ -153,7 +155,7 @@ clip_plist="$HOME/Library/LaunchAgents/$CLIP_LABEL.plist"
 codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-deny-floor.rules"
 codex_hooks="${CODEX_HOME:-$HOME/.codex}/hooks.json"
 # Kiro CLI V3's user-level hook file (Issue #455): the engine loads every *.json in ~/.kiro/hooks (read
-# from the bundle, kas 2.35.2; not measured). The name is clipboard_guard.KIRO_HOOK_FILE.
+# from the bundle, kas 2.35.2; not measured). The name is KIRO_HOOK_FILE in src/commands/paste-wrapper.js.
 kiro_hook="$HOME/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json"
 
 sha256_of() {
@@ -316,9 +318,12 @@ clip_conf="$work/clipboard.conf"
 cat "$clip_conf_src" > "$clip_conf"
 if [ -n "$overlay" ] && [ -f "$overlay/clipboard.conf" ]; then cat "$overlay/clipboard.conf" >> "$clip_conf"; fi
 
-# The paste filter's hook command (ADR-0011): the installed core, on the stock python3, isolated (-I)
-# and writing no bytecode (-B). Paths go inside double quotes, so a path holding a character that is
-# special there, or in JSON, is refused rather than mis-quoted.
+# The paste filter's hook command (ADR-0011; Node since #488): `mhw hook prompt`, run by the same node the
+# paste wrapper uses (wrap_node below), by absolute path, with NODE_OPTIONS, NODE_ICU_DATA, NODE_PATH and
+# NODE_COMPILE_CACHE cleared by /usr/bin/env, so no variable of the session can make node load other code,
+# other Unicode data or a compiled cache from elsewhere first (the Node counterpart of python3 -I). A node in a directory the owner can write (Homebrew,
+# nvm) is not root-owned, as /usr/bin/python3 was: mhw status names that. Paths go inside double quotes,
+# so a path holding a character that is special there, or in JSON, is refused rather than mis-quoted.
 paste_ok=1
 # The paste wrapper's command (#487): the node that runs mhw (MHW_NODE, set by bin/mhw.js; an absolute
 # path), else the first node on PATH, and this package's bin/mhw.js, both by absolute path. The rule of
@@ -350,20 +355,44 @@ case $wrap_node in
   *) wrap_node=$wrap_path_node ;;
 esac
 wrap_mhw="$repo_root/bin/mhw.js"
-case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`]*) paste_ok=0 ;; esac
+case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`\']*) paste_ok=0 ;; esac   # a single quote too: the hook command is a /bin/sh -c '...' (#488)
+# The start fallback (#488, PR #536 lens B3): when node or the entry is missing or does not start, the
+# hook still says the prompt was NOT checked, in the harness's own protocol. Claude Code and Codex: the
+# notice as {"systemMessage": ...} and exit 0 (the hook itself always exits 0 there). Kiro: exit 2 with the
+# notice on stderr, the only answer Kiro shows; the hook's own exit 2 (a block) passes through. A healthy
+# hook's output and exit code are unchanged. The whole command is an explicit /bin/sh -c '...', so it means
+# the same whether the agent harness runs it through a shell (Claude Code, documented) or splits it into
+# words itself (Codex's hook runner and Kiro were read from their bundles, not measured).
+PASTE_START_NOTICE='Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.'
+paste_wrap() { # $1 harness, $2 the hook command (no single quote in it)
+  case $1 in
+    kiro) printf '%s' "/bin/sh -c '$2 || { [ \$? -eq 2 ] && exit 2; printf \"%s\\n\" \"$PASTE_START_NOTICE\" >&2; exit 2; }'" ;;
+    *) printf '%s' "/bin/sh -c '$2 || { printf \"%s\\n\" \"{\\\"systemMessage\\\": \\\"$PASTE_START_NOTICE\\\"}\"; exit 0; }'" ;;
+  esac
+}
+# A rendered command as a JSON string's body: backslashes first, then double quotes.
+json_body() { sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 paste_cmd() {
-  printf '/usr/bin/python3 -I -B "%s" prompt-hook --harness %s --config "%s"' "$clip_dest" "$1" "$clip_conf_dest"
+  paste_wrap "$1" "$(printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$clip_conf_dest")"
 }
 if [ "$paste_ok" = 0 ]; then
-  echo "REFUSE  paste filter: the data directory, node or package path holds a quote, backslash, dollar sign or backtick" >&2
-elif [ ! -e /usr/bin/python3 ]; then
+  echo "REFUSE  paste filter: the data directory, node or package path holds a quote (single or double), backslash, dollar sign or backtick" >&2
+else
+  case $wrap_node in
+    /*) ;;
+    *)
+      paste_ok=0
+      if [ "$wrap_refused" = 1 ]; then
+        echo "REFUSE  paste filter: MHW_NODE (${MHW_NODE:-}) is not an executable file; the hook is not registered" >&2
+      else
+        echo "REFUSE  paste filter: node (26 or later) not found; the hook is not registered" >&2
+      fi
+      ;;
+  esac
+fi
+if [ "$paste_ok" = 1 ] && [ ! -x /usr/bin/env ]; then
   paste_ok=0
-  echo "REFUSE  paste filter: /usr/bin/python3 not found; the hook is not registered" >&2
-elif [ "$(uname -s)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then
-  # /usr/bin/python3 is a Command Line Tools shim: without them it opens an install prompt instead of
-  # running, which would be an OS dialog on every prompt submission.
-  paste_ok=0
-  echo "REFUSE  paste filter: the Command Line Tools (which provide /usr/bin/python3) are not installed" >&2
+  echo "REFUSE  paste filter: /usr/bin/env not found; the hook is not registered" >&2
 fi
 
 status=0
@@ -659,14 +688,6 @@ render() {
         awk '{ printf "prefix_rule(pattern=["; for (i = 1; i <= NF; i++) printf "%s\"%s\"", (i > 1 ? ", " : ""), $i; print "], decision=\"forbidden\")" }' "$floor_codex"
       } > "$2"
       ;;
-    clipscript)
-      {
-        sed -n 1p "$clip_src"
-        printf '# %s; source: global/clipboard/clipboard_guard.py; %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$stamp"
-        sed 1d "$clip_src"
-      } > "$2"
-      ;;
     clipconf)
       {
         printf '# %s; source: global/clipboard.conf + overlay; %s; do not edit, re-run the installer\n' \
@@ -701,7 +722,7 @@ render() {
         printf '{\n  "description": "%s; source: global/install.sh (paste filter, ADR-0011); %s; do not edit, re-run the installer",\n' \
           "$MARKER_ID" "$stamp"
         printf '  "hooks": {\n    "UserPromptSubmit": [\n      {\n        "hooks": [\n'
-        printf '          {"type": "command", "command": "%s", "timeout": 30}\n' "$(paste_cmd codex | sed 's/"/\\"/g')"
+        printf '          {"type": "command", "command": "%s", "timeout": 30}\n' "$(paste_cmd codex | json_body)"
         printf '        ]\n      }\n    ]\n  }\n}\n'
       } > "$2"
       ;;
@@ -716,7 +737,7 @@ render() {
           "$MARKER_ID" "$stamp"
         printf '      "name": "paste filter (personal-multi-harness-workstation-configuration)",\n'
         printf '      "trigger": "UserPromptSubmit",\n'
-        printf '      "action": {"type": "command", "command": "%s"},\n' "$(paste_cmd kiro | sed 's/"/\\"/g')"
+        printf '      "action": {"type": "command", "command": "%s"},\n' "$(paste_cmd kiro | json_body)"
         printf '      "timeout": 30\n    }\n  ]\n}\n'
       } > "$2"
       ;;
@@ -861,7 +882,7 @@ merge_settings() {
 
   merged="$work/settings.merged.json"
   stamp_val="$MARKER_ID; source: global/install.sh (only the hook entries and deny-floor rules merged into this file; every other key is yours); $stamp; do not edit, re-run the installer"
-  if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --argjson w "$want" --argjson p "$want_paste" \
+  if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --arg opid "$OLD_PASTE_ID" --argjson w "$want" --argjson p "$want_paste" \
       --arg rid "$RESTART_ID" --argjson r "$want_restart" --arg sk "$STAMP_KEY" --arg sv "$stamp_val" \
       --arg ok "$OWN_KEY" --argjson f "$deny" '
       # One hook entry of ours per event: keep it when it is exactly the wanted one; otherwise drop every
@@ -894,6 +915,11 @@ merge_settings() {
          or (.permissions.deny? != null and (.permissions.deny | type) != "array")
       then error("permissions has an unexpected shape") else . end
       | place("PreToolUse"; $id; $w)
+      # The Python hook an earlier install merged (#488): always removed; the Node one is placed after.
+      | (if any(.hooks.UserPromptSubmit[]?.hooks[]?; (.command? // "") | tostring | contains($opid))
+         then .hooks.UserPromptSubmit = [ .hooks.UserPromptSubmit[]
+           | (.hooks |= map(select((.command? // "") | tostring | contains($opid) | not))) | select(.hooks | length > 0) ]
+         else . end)
       | place("UserPromptSubmit"; $pid; $p)
       | place("SessionStart"; $rid; $r)
       | place("PreToolUse"; $rid; $r)
@@ -997,7 +1023,7 @@ uninstall_user() {
   [ -e "$settings" ] || { echo "ABSENT  $settings"; return 0; }
   command -v jq >/dev/null 2>&1 || { echo "REFUSE  $settings: jq is required to remove our entries" >&2; raise 2; return 0; }
   deny=$(jq -cR -s 'split("\n") | map(select(length > 0))' "$floor_claude")
-  if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --arg rid "$RESTART_ID" --arg sk "$STAMP_KEY" \
+  if ! jq --indent 4 --arg id "$HOOK_ID" --arg pid "$PASTE_ID" --arg opid "$OLD_PASTE_ID" --arg rid "$RESTART_ID" --arg sk "$STAMP_KEY" \
       --arg ok "$OWN_KEY" --argjson f "$deny" '
       def drop($ev; $id):
         if (.hooks[$ev]? | type) == "array" then
@@ -1010,7 +1036,7 @@ uninstall_user() {
         else . end;
       if type != "object" then error("not an object") else . end
       | (if (.[$ok] | type) == "array" then .[$ok] elif .[$sk] != null then $f else [] end) as $mine
-      | drop("PreToolUse"; $id) | drop("UserPromptSubmit"; $pid) | drop("SessionStart"; $rid)
+      | drop("PreToolUse"; $id) | drop("UserPromptSubmit"; $pid) | drop("UserPromptSubmit"; $opid) | drop("SessionStart"; $rid)
       | drop("PreToolUse"; $rid)
       | if .hooks == {} then del(.hooks) else . end
       | if (.permissions.deny? | type) == "array" then
@@ -1255,8 +1281,21 @@ elif [ -d "$restart_state" ]; then
   esac
 fi
 process codexrules "$codex_rules"
-process clipscript "$clip_dest"
+retire "$clip_dest" "the Python prompt hook core, replaced by mhw hook prompt (Node, #488)"
 process clipconf "$clip_conf_dest"
+# The term lists' salt is a 0600 file since #488 (owner ruling, 2026-11-21: no Keychain). A list that
+# holds hashes while no salt file exists was hashed with the macOS Keychain salt of an earlier install.
+# It is NOT migrated: reading the Keychain without risking an unlock dialog is what Node cannot do (on a
+# locked keychain the read blocked until killed, CI run 44858243105). The owner re-adds the terms; the
+# hook and mhw scan say term matching is off until then, and add-term moves the old list aside.
+salt_lo="$data_dir/local-overlay"
+if [ "$mode" != uninstall ] && [ ! -f "$salt_lo/clipboard-salt" ]; then
+  for salt_list in clipboard-terms clipboard-terms-health clipboard-terms-colleague; do
+    if [ -f "$salt_lo/$salt_list" ] && grep -Eq '^[0-9a-f]{64}$' "$salt_lo/$salt_list"; then
+      echo "SKIP    $salt_lo/$salt_list: its hashes were made with the macOS Keychain salt, which mhw no longer reads (#488); nothing was migrated. Re-add each term with mhw add-term; until then term matching is off and every prompt says so"
+    fi
+  done
+fi
 if [ "$paste_ok" = 1 ]; then
   if [ "$hooks_mode" = user ]; then
     process codexhooks "$codex_hooks"

@@ -156,6 +156,19 @@ const cli = {
 /** @param {string} name */
 const goldenName = (name) => 'scan/' + name + '.json';
 
+// #488 (S17): the salt became a file, so the original's salt NOTE changed wording. The S15 transcripts
+// stay as the original wrote them; the declared replacements of test/golden/S17/expected-differences.json
+// (section "scan") are applied to them here.
+const S17_SCAN = readGolden('S17', 'expected-differences.json').differences.filter((/** @type {any} */ d) => d.section === 'scan');
+/** @param {Run[]} runs @returns {Run[]} */
+function s17Expected(runs) {
+  return runs.map((r) => {
+    let stdout = r.stdout;
+    for (const d of S17_SCAN) stdout = stdout.replaceAll(d.replace.base, d.replace.head);
+    return { ...r, stdout };
+  });
+}
+
 /** @param {import('./cases.js').Case} c */
 const skipped = (c) => (c.posix && !POSIX ? 'POSIX only (symlinks, a tab in a file name, file modes)' : null);
 
@@ -174,7 +187,7 @@ test('golden: the Node command, in process and through bin/mhw.js, matches the o
       t.diagnostic(c.name + ' skipped: ' + why);
       continue;
     }
-    const golden = /** @type {Run[]} */ (readGolden(SLICE, goldenName(c.name)).runs);
+    const golden = /** @type {Run[]} */ (s17Expected(readGolden(SLICE, goldenName(c.name)).runs));
     const runs = play(c, [inProcess, cli]);
     for (const [i, side] of runs.entries()) {
       if (JSON.stringify(side) !== JSON.stringify(golden)) diffs.push(c.name + ' (' + [inProcess, cli][i].name + ')\n' + JSON.stringify(golden, null, 1) + '\n--- node\n' + JSON.stringify(side, null, 1));

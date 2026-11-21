@@ -52,5 +52,33 @@
     "pattern": "^\\.claude/settings\\.json$",
     "whenBaseHas": "global/clipboard/paste_wrapper_test.py",
     "why": "S16 (#487): the owner overlay's allow list loses its runner rule for global/clipboard/paste_wrapper_test.py, which this slice deletes, so the rendered settings lose that one allow rule (the allow list renders the repository overlay's runner rules in the wide tier). Compared by kind and mode only while the base still ships the deleted test; global/allow-list.test.sh asserts the rendered rules."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree-drop",
+    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/clipboard_guard\\.py$",
+    "whenBaseHas": "global/clipboard/clipboard_guard.py",
+    "why": "S17 (#488): the prompt hook is mhw hook prompt in the package now, so install writes no copy of the Python core into the data directory (and retires one an earlier install wrote). Left out of the comparison only while the base still ships clipboard_guard.py."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.claude/settings\\.json$|^\\.codex/hooks\\.json$|^\\.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter\\.json$",
+    "whenBaseHas": "global/clipboard/clipboard_guard.py",
+    "why": "S17 (#488): the three prompt-hook commands run /usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"<node>\" \"<package>/bin/mhw.js\" hook prompt where they ran /usr/bin/python3 -I -B <data>/clipboard_guard.py prompt-hook; global/install.test.sh asserts the new commands exactly. Compared by kind and mode only while the base still ships clipboard_guard.py."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "tree",
+    "pattern": "^\\.local/share/personal-multi-harness-workstation-configuration/clipboard\\.conf$",
+    "whenBaseHas": "global/clipboard/clipboard_guard.py",
+    "why": "S17 (#488): the salt is a file since the owner's ruling of 2026-11-21, so global/clipboard.conf's comments no longer describe a Keychain store and name mhw add-term, and the owner overlay's no-salt notice names the salt file. No setting changes. Compared by kind and mode only while the base still ships clipboard_guard.py."
+  },
+  {
+    "case": "install-user-layer",
+    "stream": "stdout",
+    "pattern": "^  - Your settings in Claude Code, Codex and Kiro: [0-9]+ file\\(s\\) to write \\(no password needed\\)$",
+    "whenBaseHas": "global/clipboard/clipboard_guard.py",
+    "why": "S17 (#488): the plan counts one file fewer, the Python prompt-hook core install no longer writes. Only while the base still ships clipboard_guard.py."
   }
 ]

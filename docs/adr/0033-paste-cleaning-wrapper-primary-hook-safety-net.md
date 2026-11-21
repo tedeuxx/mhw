@@ -274,6 +274,91 @@ macOS through the vendored pty); not installed on the reference machine.
 - **`mhw status` checks the installed functions.** It prints `PASTE FAIL` when the node or the `mhw.js`
   they name is gone.
 
+## Amendment 2026-11-21: the prompt hook moves to Node, and the salt leaves the Keychain (#488)
+
+*S17 of #470 (#488). It records two changes: a change in protection, decided by the owner, and a
+runtime change.*
+
+**The salt is a file now, not a Keychain item.** The owner ruled on #488 (2026-11-21,
+[comment](https://github.com/tedeuxx/mhw/issues/488#issuecomment-7062064253) and the follow-up after it):
+«voce nao precisa nada disso num cofre acredito. é over engineering». In English: the salt does not
+need a vault. A second ruling, «Embaralha, chave em arquivo», keeps the terms as salted hashes and moves
+only the key to a file. ADR-0008 is unchanged: no term is stored in plain text.
+
+- **Where the salt lives.** `<data dir>/local-overlay/clipboard-salt`, a `0600` file in a `0700`
+  directory, on every operating system. `mhw add-term` creates it atomically on first use: a new file is
+  opened exclusively at `0600` and renamed into place. The settings `salt_store=keychain`,
+  `keychain_service` and `keychain_path` are no longer read.
+- **What was removed.** The Keychain store went, and with it the Security.framework lock probe and every
+  `/usr/bin/security` call made for the salt. No Python runs on the hook path, the scan path or the
+  paste-wrapper path. The reason was measured first, on a throwaway keychain on the GitHub macOS runner
+  (run 44858243105). `security show-keychain-info` and the `-w` read both blocked on a locked keychain
+  until they were killed. The attribute read answered the same whether the keychain was locked or not.
+  So no `/usr/bin/security` route could read the salt without risking an unlock dialog, and Node cannot
+  make the in-process call the Python probe made.
+- **The trade-off.** Any process running as the owner, agents included, can read the salt file. With it,
+  that process can test guesses against the hashed lists; the lists themselves stay unreadable as text.
+  This is not entirely new. ADR-0011's evidence table already recorded that any same-user process could
+  read the Keychain salt without a prompt while the keychain was unlocked. What changes is that no
+  locked keychain stands in the way any more.
+- **Migration: none, on purpose.** Reading the old Keychain salt at install is the read that blocks on
+  a locked keychain, so install does not read it. When a term list holds hashes and no salt file exists,
+  install prints a `SKIP` line that names the list and tells the owner to re-add his terms. Until he
+  does, the hook and `mhw scan` say term matching is off. When `mhw add-term` then creates the new
+  salt, it moves each orphaned list aside to `<list>.old-salt` and names it, so no dead hash is mistaken
+  for coverage.
+
+**The prompt hook is `mhw hook prompt --harness claude|codex|kiro` (D6 of #470).** Its decision, its
+redacted copy and its exit contract on each agent harness are unchanged. `test/golden/S17/answers.json`
+holds 232 answers recorded from clipboard_guard.py, and `test/golden/S17/expected-differences.json`
+declares every difference.
+
+- **The command line.** It is
+  `/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "<node>" "<package>/bin/mhw.js" hook prompt …`.
+  Node is named by absolute path, and the variables that could make it load other code first are
+  cleared. A test plants `NODE_OPTIONS=--require` and shows that the planted file never runs.
+- **The admin layer runs a root-owned copy of the hook's JavaScript.** The copied files are hook-entry.js,
+  hook-prompt.js and the cleaning core, so no process running as the owner can change those files. ~~so no
+  process running as the owner can change the code it runs.~~ *(Struck the same day, PR #536 lens O1: false.)*
+  The admin layer's hook is not root-owned end to end, because the interpreter and its libraries are code
+  it runs too.
+- **The residual: the node binary and its libraries.** `/usr/bin/python3` was root-owned and protected by
+  SIP. A Homebrew or nvm node is not, and neither are the libraries it loads. On Homebrew these are
+  libnode from the Cellar, and libuv, llhttp, ada-url, simdjson, brotli, c-ares, nghttp2, nghttp3, ngtcp2,
+  sqlite, uvwasi, zstd, openssl@3 and icu4c under `/opt/homebrew/opt`. Measured with `otool -L` on node
+  25.9.0; the set changes with the node build. A process running as the owner can replace any of them,
+  and so change what both layers' hook does. ~~Which node the admin layer may trust is an open owner
+  question (PR #536).~~ *Owner ruling, 2026-11-21 ([PR #536](https://github.com/tedeuxx/mhw/pull/536#issuecomment-7063304413)):* «Aceitar agora, travar no fim»
+  (accept it now, lock it at the end). **Dated residual, accepted 2026-11-21:** the admin layer runs an
+  owner-writable node and libraries until S32 (#502), whose runtime ADR must require a root-owned,
+  self-contained node for the admin layer. `mhw status` prints the node's path on its `hook node` line
+  and names it `owner-writable`. A missing node is reported as `FAIL`.
+- **Fail-open, pinned out of process.** ~~A hook module that is missing, does not parse or throws gives
+  the error notice~~ *(narrowed the same day, PR #536 QA B3)*: a module BELOW the entry (hook-prompt.js
+  and the cleaning core) that is missing, does not parse or throws gives the error notice, by its class
+  only, and so does a term list or salt file that does not decode (QA B1), a stdin error and a `main()`
+  that throws. So does a payload read that stalls past 20 s.
+- ~~**Residual: the entry itself or node missing fails open.**~~ *(Fixed the same day, PR #536 lens B3; the
+  struck text also misstated the base, see below.)* **The start fallback.** When `bin/mhw.js`, the admin
+  copy of hook-entry.js or the node binary is gone, or the entry does not start, node or `env` exits 1 or
+  127, which no agent harness treats as a block. Both installers therefore render the command as
+  `/bin/sh -c '<the hook> || <fallback>'`.
+  - The fallback on Claude Code and Codex prints the NOT-checked notice as a `systemMessage`
+    (`internal error (HookStartError)`) and exits 0. On Kiro it puts the notice on stderr and exits 2, the
+    one answer Kiro shows. The hook's own exit 2 (a block) passes through unchanged.
+  - A healthy hook's output and exit code are unchanged (tested against the hook run directly).
+  - The explicit `/bin/sh -c` means the same whether the agent harness runs the string through a shell
+    (Claude Code: documented) or splits it into words itself. For Codex (its hook runner calls a shell with
+    `-lc`, read from the binary's strings) and Kiro, this was read, not measured.
+  - What the base did, stated exactly: `python3` exited 2 only when the script was missing (CPython's code
+    for "can't open file"). A missing interpreter exited 127, and a script that did not parse exited 1.
+    Neither of those blocked.
+  - `mhw status` names it too: a registered prompt hook whose node or entry is gone is a
+    `paste filter (<harness>) FAIL: <path> not found, the prompt hook cannot start` item on the hooks
+    line, in both views. `hook node` says `FAIL … not found` only when the node itself is gone.
+  - On Claude Code and Codex the other error notices are visible. On Kiro it goes to stderr at exit 0, as before, and Kiro drops stderr
+  there. That Kiro gap is unchanged by this slice.
+
 ## Links
 
 - ADR-0011 (superseded; the history). ADR-0005 (no log). ADR-0008 (no persistence). ADR-0025 (admin
