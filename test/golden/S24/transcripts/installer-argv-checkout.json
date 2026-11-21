@@ -1,0 +1,44 @@
+{
+  "step0 install --yes <OVERLAY>": {
+    "code": 0
+  },
+  "step0 install --yes <OVERLAY> stdout": "==> mhw will change this workstation from this checkout:\n  - Your settings in Claude Code, Codex and Kiro: 1 file(s) to write (no password needed)\n  - System-wide protections that no session can switch off: install them (needs your administrator password, once)\n==> Installing the system-wide protections\n==> Installing your settings\n==> Checking\n\nInstallation successful!\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n2. Run `./mhw status` to see what is installed.\n",
+  "step0 install --yes <OVERLAY> stderr": "",
+  "step0 install --yes <OVERLAY> recorded": "install.sh [--check] [--hooks=user] [--managed-root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\ninstall-managed.sh [--root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\ninstall-managed.sh [--apply=<TMP>/stage] [--sha256=abc123] [--root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\ninstall.sh [--hooks=managed] [--managed-root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\ninstall.sh [--check] [--hooks=managed] [--managed-root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\ninstall-managed.sh [--check] [--root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\n",
+  "step1 install --yes <OVERLAY>": {
+    "code": 0
+  },
+  "step1 install --yes <OVERLAY> stdout": "==> This workstation already matches this checkout\n\n==> Next steps\n1. Run `./mhw status` to see what is installed.\n",
+  "step1 install --yes <OVERLAY> stderr": "",
+  "step1 install --yes <OVERLAY> recorded": "install.sh [--check] [--hooks=managed] [--managed-root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\ninstall-managed.sh [--check] [--root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\n",
+  "step2 uninstall --yes <OVERLAY>": {
+    "code": 0
+  },
+  "step2 uninstall --yes <OVERLAY> stdout": "==> mhw will remove from this workstation:\n  - Your settings in Claude Code, Codex and Kiro that mhw wrote (your own entries stay)\n  - The system-wide protections (needs your administrator password, once)\n==> Removing the system-wide protections\n==> Removing your settings\n\nUninstall complete.\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n",
+  "step2 uninstall --yes <OVERLAY> stderr": "",
+  "step2 uninstall --yes <OVERLAY> recorded": "install-managed.sh [--remove] [--root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\ninstall.sh [--uninstall] [--managed-root=<ADMIN>] | overlay=<TMP>/overlay node=<NODE> cmd=./mhw root=<ADMIN>\n",
+  "step3 install --admin --yes --overlay=none": {
+    "code": 0
+  },
+  "step3 install --admin --yes --overlay=none stdout": "==> mhw will change this workstation from this checkout:\n  - System-wide protections that no session can switch off: install them (needs your administrator password, once)\n==> Installing the system-wide protections\n==> Checking\n\nInstallation successful!\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n2. Run `./mhw status` to see what is installed.\n",
+  "step3 install --admin --yes --overlay=none stderr": "",
+  "step3 install --admin --yes --overlay=none recorded": "install-managed.sh [--root=<ADMIN>] | overlay=none node=<NODE> cmd=./mhw root=<ADMIN>\ninstall-managed.sh [--apply=<TMP>/stage] [--sha256=abc123] [--root=<ADMIN>] | overlay=none node=<NODE> cmd=./mhw root=<ADMIN>\ninstall.sh [--check] [--hooks=managed] [--managed-root=<ADMIN>] | overlay=none node=<NODE> cmd=./mhw root=<ADMIN>\ninstall-managed.sh [--check] [--root=<ADMIN>] | overlay=none node=<NODE> cmd=./mhw root=<ADMIN>\n",
+  "step4 install --no-admin --method --yes --verbose": {
+    "code": 0
+  },
+  "step4 install --no-admin --method --yes --verbose stdout": "==> mhw will change this workstation from this checkout:\n  - Your settings in Claude Code, Codex and Kiro: 1 file(s) to write (no password needed)\n==> Installing your settings\n    WROTE   stub user layer\n==> Checking\n\nInstallation successful!\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n2. Run `./mhw status` to see what is installed.\n",
+  "step4 install --no-admin --method --yes --verbose stderr": "",
+  "step4 install --no-admin --method --yes --verbose recorded": "install.sh [--check] [--hooks=managed] [--managed-root=<ADMIN>] | overlay=<unset> node=<NODE> cmd=./mhw root=<ADMIN>\ninstall.sh [--hooks=managed] [--method] [--managed-root=<ADMIN>] | overlay=<unset> node=<NODE> cmd=./mhw root=<ADMIN>\ninstall.sh [--check] [--hooks=managed] [--managed-root=<ADMIN>] | overlay=<unset> node=<NODE> cmd=./mhw root=<ADMIN>\n",
+  "step5 uninstall --yes": {
+    "code": 0
+  },
+  "step5 uninstall --yes stdout": "==> mhw will remove from this workstation:\n  - Your settings in Claude Code, Codex and Kiro that mhw wrote (your own entries stay)\n  - The system-wide protections (needs your administrator password, once)\n==> Removing the system-wide protections\n==> Removing your settings\n\nUninstall complete.\n\n==> Next steps\n1. Open new Claude Code, Codex and Kiro sessions: a session already running keeps its old settings.\n",
+  "step5 uninstall --yes stderr": "",
+  "step5 uninstall --yes recorded": "install-managed.sh [--remove] [--root=<ADMIN>] | overlay=<unset> node=<NODE> cmd=./mhw root=<ADMIN>\ninstall.sh [--uninstall] [--managed-root=<ADMIN>] | overlay=<unset> node=<NODE> cmd=./mhw root=<ADMIN>\n",
+  "files": {
+    "admin/Library": "dir 755",
+    "admin/Library/Application Support": "dir 755",
+    "admin/Library/Application Support/ClaudeCode": "dir 755",
+    "admin/Library/Application Support/ClaudeCode/managed-settings.d": "dir 755"
+  }
+}

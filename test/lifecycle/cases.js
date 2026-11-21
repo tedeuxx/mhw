@@ -6,13 +6,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { readLog } from './stub-installers.js';
 
 export const NAME = 'personal-multi-harness-workstation-configuration';
 
 /**
  * @typedef {{ home: string, root: string, dir: string, tree: string, git: string }} Where
  * @typedef {{ args: string[], env?: Record<string, string>, pre?: (w: Where) => void, post?: (w: Where) => string }} Step
- * @typedef {{ name: string, layout: 'checkout' | 'package' | 'git', env?: Record<string, string>,
+ * @typedef {{ name: string, layout: 'checkout' | 'package' | 'git', env?: Record<string, string>, stub?: boolean,
  *   setup?: (w: Where) => void, steps: Step[] }} Case
  */
 
@@ -31,6 +32,10 @@ const dropin = (w) => w.root + (darwin ? '/Library/Application Support/ClaudeCod
 const brief = (w) => path.join(w.home, '.claude', 'CLAUDE.md');
 
 const NONE = '--overlay=none';
+// A step argument the harness replaces with --overlay=<the case's own empty overlay directory>.
+const OVERLAY = '<OVERLAY>';
+/** The installers' log since the last step (stub cases). @param {Where} w */
+const argv = (w) => readLog(w.dir);
 /** @param {string[]} args @param {Partial<Step>} [more] @returns {Step} */
 const S = (args, more = {}) => ({ args, ...more });
 
@@ -147,6 +152,27 @@ export const CASES = [
     env: { MHW_NPM: '<NPM>' },
     steps: [S(['update', '--yes'], { post: npmArgs }), S(['update', 'v9.1.0', '--yes', '--verbose'], { post: npmArgs }), S(['update', 'main'], { post: npmArgs }),
       S(['update', 'v4.2'], { post: npmArgs }), S(['update', '--yes'], { env: { NPM_EXIT: '7' }, post: npmArgs })],
+  },
+  {
+    // The exact argv and environment install, uninstall and --admin hand the installers (stand-ins that
+    // record them), in order: a wrong overlay, a dropped MHW_NODE or a reversed uninstall order is red here
+    // even after the live arm has retired.
+    name: 'installer-argv-checkout',
+    layout: 'checkout',
+    stub: true,
+    steps: [S(['install', '--yes', OVERLAY], { post: argv }), S(['install', '--yes', OVERLAY], { post: argv }),
+      S(['uninstall', '--yes', OVERLAY], { post: argv }), S(['install', '--admin', '--yes', NONE], { post: argv }),
+      S(['install', '--no-admin', '--method', '--yes', '--verbose'], { post: argv }), S(['uninstall', '--yes'], { post: argv })],
+  },
+  {
+    // npm mode: update runs npm (a stand-in), then the package's own install; the install's argv and env
+    // are recorded, so the npm-mode entry (bin/mhw.js install, where workstation.py ran /bin/sh mhw install)
+    // is pinned by what it hands the installers.
+    name: 'installer-argv-package',
+    layout: 'package',
+    stub: true,
+    env: { MHW_NPM: '<NPM>' },
+    steps: [S(['update', '--yes', OVERLAY], { post: argv }), S(['update', 'v9.1.0', '--yes'], { post: argv }), S(['uninstall', '--yes'], { post: argv })],
   },
   {
     name: 'checkout-update',

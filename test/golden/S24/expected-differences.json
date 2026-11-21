@@ -34,5 +34,69 @@
     "head": "\\n {4}\"/bin/sh\",\\n(?= {4}\"<INSTALL_MANAGED>\"(,\\n {4}\"--root=[^\"]*\")?\\n {3}\\])",
     "replace": "\n    \"<the sh that renders the admin stage>\",\n",
     "why": "A hardening (test/lifecycle/admin-line.test.js only): workstation.py ran the owner-side render of install-managed.sh, and every install.sh step, as [\"sh\", script], so the first sh on PATH ran them; the Node commands run /bin/sh by absolute path, as mhw check already does (src/commands/check.js), so no PATH entry decides which shell runs the installers. The root command line itself (the sudo call and its arguments) is unchanged and compared."
+  },
+  {
+    "case": [
+      "install-user-layer"
+    ],
+    "stream": [
+      "residual"
+    ],
+    "head": "^$",
+    "replace": "",
+    "observed": false,
+    "pinned_by": {
+      "file": "test/lifecycle/lifecycle.test.js",
+      "test": "live: in a real terminal, RETURN installs and another key aborts (Issue #113)"
+    },
+    "why": "A residual, not seen in any transcript (no case has a terminal): the RETURN prompt sets `stty -icanon -echo -isig` for its one key, so Ctrl+C is 'any other key': it aborts with exit 1 and the terminal modes are restored. workstation.py kept signals on (tty.setcbreak), so Ctrl+C raised KeyboardInterrupt, a traceback. The pty arm sends \\x03 and expects exit 1 with nothing written."
+  },
+  {
+    "case": [
+      "checkout-update"
+    ],
+    "stream": [
+      "residual"
+    ],
+    "head": "^$",
+    "replace": "",
+    "observed": false,
+    "pinned_by": {
+      "file": "test/lifecycle/lifecycle.test.js",
+      "test": "update without git on PATH refuses with a line, before anything runs"
+    },
+    "why": "A residual, not seen in any transcript (every case has git on PATH): `mhw update` in a checkout with no git on PATH prints `REFUSE  git was not found on PATH; update needs it` and exits 2. workstation.py ran [\"git\", ...] and stopped with FileNotFoundError, a traceback. git is looked up through src/lib/onpath.js, absolute PATH entries only."
+  },
+  {
+    "case": [
+      "checkout-update"
+    ],
+    "stream": [
+      "residual"
+    ],
+    "head": "^$",
+    "replace": "",
+    "observed": false,
+    "pinned_by": {
+      "file": "test/lifecycle/lifecycle-golden.test.js",
+      "test": "golden: the Node lifecycle commands match the transcripts of workstation.py"
+    },
+    "why": "A residual the transcript cannot tell apart: after a checkout, workstation.py installed with the release's global/workstation.py, or ran install.sh when there was none. A release with src/commands/install.js (this one and later) has no workstation.py, so the Node command runs its bin/mhw.js install with the node running mhw; a Python release still runs its workstation.py with python3 from PATH, an older one install.sh. The checkout-update case's head side takes the Node branch (its clone has no workstation.py) and prints the same conversation the original did."
+  },
+  {
+    "case": [
+      "installer-argv-package"
+    ],
+    "stream": [
+      "residual"
+    ],
+    "head": "^$",
+    "replace": "",
+    "observed": false,
+    "pinned_by": {
+      "file": "test/lifecycle/lifecycle-golden.test.js",
+      "test": "golden: the Node lifecycle commands match the transcripts of workstation.py"
+    },
+    "why": "A residual in the entry point, not in what it does: in an npm install, after npm succeeds, workstation.py ran [\"/bin/sh\", \"<package>/mhw\", \"install\", ...flags]; the Node command runs [process.execPath, \"<package>/bin/mhw.js\", \"install\", ...flags]. The installer-argv-package case pins what that install hands install.sh and install-managed.sh (argv, overlay, MHW_NODE, MHW_CMD=mhw), the same on both sides. The new ./mhw keeps a sh line so an earlier release's /bin/sh <package>/mhw still works (test/lifecycle/npm-package.test.js)."
   }
 ]

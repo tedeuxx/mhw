@@ -25,13 +25,14 @@ import { throwawayHome, which } from '../helpers/home.js';
 import { copyWorkingTree, snapshotTree } from '../helpers/parity.js';
 import { goldenName, differences as diffsOf, baseTree } from '../helpers/mcp-golden.js';
 import { CASES, git } from './cases.js';
+import { stubInstallers, stubEnv } from './stub-installers.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SLICE = 'S24';
 const POSIX = process.platform !== 'win32';
 const DARWIN = process.platform === 'darwin';
 const NODE = process.execPath;
-/** @type {Array<{ case: string[], stream: string[], base?: string, head: string, replace: string, why: string }>} */
+/** @type {Array<{ case: string[], stream: string[], base?: string, head: string, replace: string, why: string, observed?: boolean, pinned_by?: any }>} */
 const expected = readGolden(SLICE, 'expected-differences.json');
 const RECORDED = readGolden(SLICE, 'recorded-from.json');
 const COMMIT = 'c'.repeat(40);
@@ -115,6 +116,8 @@ function play(c, from) {
     // A checkout to mhw (package.json and .git), no repository to git.
     if (c.layout === 'checkout') fs.mkdirSync(path.join(tree, '.git'));
   }
+  if (c.stub) stubInstallers(tree);
+  fs.mkdirSync(path.join(base, 'overlay'));
   const bin = binDir(base);
   c.setup?.(w);
   /** @type {Array<[string, string]>} */
@@ -128,8 +131,10 @@ function play(c, from) {
       NPM_LOG: path.join(base, 'npm-args'), GIT_CONFIG_NOSYSTEM: '1',
       // git never looks for a repository above the case's directory, so no step can reach another checkout.
       GIT_CEILING_DIRECTORIES: base };
+    if (c.stub) Object.assign(env, stubEnv(base));
     for (const [k, v] of Object.entries({ ...(c.env || {}), ...(step.env || {}) })) env[k] = v.replaceAll('<NPM>', path.join(base, 'npm-stand-in'));
-    const p = spawnSync(NODE, [path.join(tree, 'bin', 'mhw.js'), ...step.args], { env, cwd: base, encoding: 'utf8', timeout: 600000 });
+    const args = step.args.map((a) => (a === '<OVERLAY>' ? '--overlay=' + path.join(base, 'overlay') : a));
+    const p = spawnSync(NODE, [path.join(tree, 'bin', 'mhw.js'), ...args], { env, cwd: base, encoding: 'utf8', timeout: 600000 });
     const label = 'step' + i + ' ' + step.args.join(' ');
     out[label] = { code: p.status };
     out[label + ' stdout'] = normalise(p.stdout, subs);
@@ -146,6 +151,8 @@ function play(c, from) {
     }
   }
   out.files = files;
+  // Each case copies the tree (a git case three times): free it now, not at the end of the file.
+  fs.rmSync(base, { recursive: true, force: true });
   return out;
 }
 
@@ -185,7 +192,15 @@ test('every case has a golden transcript, every golden a case, and every expecte
     for (const n of e.case) assert.ok(n === '*' || names.has(n), 'unknown case ' + n);
     assert.ok(e.why && e.why.length > 40, 'an expected difference states why');
     assert.doesNotThrow(() => new RegExp(e.head));
+    // A residual (observed: false) is a difference no transcript shows; it names the test that pins it.
+    if (e.observed === false) {
+      assert.deepEqual(e.stream, ['residual'], 'a residual matches no stream');
+      const file = path.join(ROOT, e.pinned_by.file);
+      assert.ok(fs.existsSync(file), 'no such test file ' + e.pinned_by.file);
+      assert.ok(fs.readFileSync(file, 'utf8').includes("test('" + e.pinned_by.test + "'"), 'no test named ' + e.pinned_by.test + ' in ' + e.pinned_by.file);
+    }
   }
+  assert.equal(expected.filter((e) => e.observed === false).length, 4, 'the four residuals of PR #542');
 });
 
 test('golden: the Node lifecycle commands match the transcripts of workstation.py', { skip: (!DARWIN && 'the transcripts were recorded on macOS; the live arm runs on Linux') || missing() || (UPDATE && 'MHW_UPDATE_GOLDEN=1') }, () => {

@@ -13,7 +13,7 @@ import { loadPty } from '../../src/lib/pty.js';
 import { issues, ownerSteps, show, adminAccess, asRoot, SUDO, confirm } from '../../src/lib/lifecycle.js';
 import { install } from '../../src/commands/install.js';
 import { uninstall } from '../../src/commands/uninstall.js';
-import { latestRelease, updateLines, npmBinary } from '../../src/commands/update.js';
+import { latestRelease, updateLines, npmBinary, update } from '../../src/commands/update.js';
 import { main, parse } from '../../src/commands/lifecycle.js';
 import { adminPresent } from '../../src/lib/readers/admin.js';
 
@@ -112,6 +112,16 @@ test('npm is found beside the running node by absolute path, never on PATH', { s
   assert.equal(npmBinary({}, node), path.join(b.dir, 'n', 'npm'));
   assert.equal(npmBinary({ MHW_NPM: '/abs/npm' }, node), '/abs/npm');
   assert.equal(npmBinary({ MHW_NPM: 'rel/npm' }, 'node'), null);
+});
+
+test('update without git on PATH refuses with a line, before anything runs', { skip: !POSIX && 'POSIX' }, () => {
+  const b = box('nogit');
+  const root = path.join(b.dir, 'checkout');
+  fs.mkdirSync(path.join(root, '.git'), { recursive: true });
+  const s = sink();
+  assert.equal(update(undefined, {}, { PATH: path.join(b.dir, 'empty') }, s.io, { root }), 2);
+  assert.equal(s.err, 'REFUSE  git was not found on PATH; update needs it\n');
+  assert.equal(s.text, '');
 });
 
 test('main refuses a bad --overlay before running anything, for install, update and uninstall', () => {
