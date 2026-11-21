@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S28 golden transcripts were recorded from (./mhw policy at the base revision, that is python3 -B global/workstation.py and global/project-policy/project_policy.py, macOS). The live arm compares only on this version: the malformed-JSON reasons are CPython json's own messages, and its stack-based recursion limit and integer-digit limit can change between releases."
+}

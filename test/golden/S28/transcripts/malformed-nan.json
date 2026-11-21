@@ -1,0 +1,12 @@
+{
+  "name": "malformed-nan",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: NaN is not JSON\n"
+  }
+}

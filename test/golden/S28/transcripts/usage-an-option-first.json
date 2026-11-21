@@ -1,0 +1,11 @@
+{
+  "name": "usage-an-option-first",
+  "args": [
+    "--project=."
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "mhw: policy takes one subcommand, check [--project=DIR | --file=PATH]\n"
+  }
+}

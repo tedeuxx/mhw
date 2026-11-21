@@ -1,0 +1,12 @@
+{
+  "name": "severity-an-extra-key-starting-tolerated",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.severity.toleratedLater: additionalProperties (medium-or-higher findings tolerated)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "patterns-trailing-newline",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.madr.path: pattern (project MADR not ratified)\nFAIL  $.mandatory_scenarios.critical_user_journeys[0].id: pattern (missing mandatory evidence)\nFAIL  $.project: pattern (contract invalid)\nFAIL  $.recovery.operator: pattern (recovery not prepared)\nFAIL  $.recovery.runbook.last_tested: pattern (recovery not prepared)\nFAIL  5 finding(s); the contract is not valid\n"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "valid-coverage-written-8.5e1",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "OK  <BASE>/project-policy.json is a valid project-policy contract, schema_version 1\n",
+    "stderr": ""
+  }
+}

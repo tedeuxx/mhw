@@ -1,0 +1,12 @@
+{
+  "name": "low-findings-blank-label",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.low_findings.issue_label: pattern (low finding without a bug Issue)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

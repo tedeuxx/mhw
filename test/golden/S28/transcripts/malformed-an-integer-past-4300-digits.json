@@ -1,0 +1,12 @@
+{
+  "name": "malformed-an-integer-past-4300-digits",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (ValueError)\n"
+  }
+}

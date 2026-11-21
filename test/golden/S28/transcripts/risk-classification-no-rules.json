@@ -1,0 +1,12 @@
+{
+  "name": "risk-classification-no-rules",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.risk_classification.rules: contains (missing or invalid risk classification)\nFAIL  $.risk_classification.rules: minItems (missing or invalid risk classification)\nFAIL  2 finding(s); the contract is not valid\n"
+  }
+}

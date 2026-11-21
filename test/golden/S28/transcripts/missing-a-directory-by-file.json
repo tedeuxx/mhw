@@ -1,0 +1,12 @@
+{
+  "name": "missing-a-directory-by-file",
+  "args": [
+    "check",
+    "--file={BASE}/dir"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  missing: <BASE>/dir is a directory, not a file\n"
+  }
+}

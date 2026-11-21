@@ -1,0 +1,12 @@
+{
+  "name": "version-a-list",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  unknown version: schema_version [1, \"\\u00e9\"]; this validator knows 1\n"
+  }
+}

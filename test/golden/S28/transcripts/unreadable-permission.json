@@ -1,0 +1,12 @@
+{
+  "name": "unreadable-permission",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  unreadable: Permission denied\n"
+  }
+}

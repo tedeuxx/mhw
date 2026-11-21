@@ -1,0 +1,12 @@
+{
+  "name": "inconclusive-null",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.severity.inconclusive: type (inconclusive evidence does not block)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

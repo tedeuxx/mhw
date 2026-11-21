@@ -1,0 +1,12 @@
+{
+  "name": "malformed-leading-zero",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Expecting ',' delimiter)\n"
+  }
+}

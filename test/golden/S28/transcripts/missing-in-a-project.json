@@ -1,0 +1,12 @@
+{
+  "name": "missing-in-a-project",
+  "args": [
+    "check",
+    "--project={BASE}/proj"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  missing: no file at <BASE>/proj/project-policy.json\n"
+  }
+}
