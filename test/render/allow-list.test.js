@@ -833,18 +833,14 @@ test('install.sh: where merge_settings refuses the file, no allow rule lands in 
     const r = install(h, ['--overlay=none', '--managed-root=' + path.join(d, 'root')]);
     assert.doesNotMatch(r.out, /RangeError|^MERGED  .*settings\.json \(allow list/m, name);
     const after = fs.readFileSync(h + '/.claude/settings.json', 'utf8');
-    if (name === 'a lone high surrogate') {
-      // Every jq build refuses it: merge_settings left it untouched, and so did the allow step.
-      assert.match(r.out, /^ALLOW   /m, name + ': the rest of the step still runs');
-      assert.match(r.out, /settings\.json: .*left untouched/, name);
-      assert.equal(after, text, name);
-    } else {
-      // Apple's jq refuses it (merge_settings leaves it untouched). On the Ubuntu runner an earlier
-      // install.sh step ends the run before the allow step (CI of PR #519; not this step's code). Either
-      // way nothing of the allow list lands in it, and where the allow step runs it refuses visibly.
-      if (/^ALLOW   /m.test(r.out)) assert.match(r.out, /^REFUSE  .*settings\.json: not readable by the allow-list step/m, name);
-      assert.ok(!after.includes('"' + OWN_KEY + '"') && !after.includes('Edit(~/.kiro/agents/**)'), name + ': ' + r.out.slice(-2000));
-    }
+    // Since #491 (S20) merge_settings is Node: it refuses all three visibly on every build (jq refused the
+    // surrogate everywhere, and the nesting on Apple's build only), and a refused merge means no allow step
+    // at all, the Codex and Kiro files included, so no allow list lands where the floor did not.
+    assert.match(r.out, /settings\.json: .*left untouched/, name);
+    assert.match(r.out, /^REFUSE  the allow list: the deny floor was not merged into /m, name);
+    assert.doesNotMatch(r.out, /^ALLOW   /m, name);
+    assert.equal(after, text, name);
+    assert.ok(!after.includes('"' + OWN_KEY + '"') && !after.includes('Edit(~/.kiro/agents/**)'), name + ': ' + r.out.slice(-2000));
   }
 });
 

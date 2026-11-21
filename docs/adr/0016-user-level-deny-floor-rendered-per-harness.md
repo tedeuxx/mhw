@@ -99,8 +99,9 @@ invalid one stops the run with exit 2, so an entry the parser would drop never b
 
 ### Rendering and installing
 
-- **Claude Code:** `install.sh` merges the floor into `~/.claude/settings.json` in the same `jq` pass
-  as ADR-0013's hook entry. It is a **union**: a missing floor rule is appended, and every existing deny
+- **Claude Code:** `install.sh` merges the floor into `~/.claude/settings.json` ~~in the same `jq` pass
+  as ADR-0013's hook entry~~ in one pass with the paste filter's hook entry (Node since #491; see the
+  2026-11-21 amendment). It is a **union**: a missing floor rule is appended, and every existing deny
   entry is kept in place. Nothing is ever removed. There is one backup (`settings.json.pmhwc-backup`).
   `--dry-run` prints the semantic diff. `--check` reports how many floor rules are missing. A
   `permissions` or `permissions.deny` of the wrong type is refused (exit 3), and the file is left
@@ -610,6 +611,23 @@ proposed, or that a part awaits ratification, are dated readings that this amend
 Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
 
 Ratifying [ADR-0040](0040-presence-conditioned-secret-renewal-through-the-browser.md) and the 2026-10-24 amendment does not discharge the real-page canary rerun that ADR-0040 says is owed before the first real secret ([Issue #220](https://github.com/tedeuxx/mhw/issues/220)).
+
+## Amendment 2026-11-21: the settings merge and the floor report are Node (#491)
+
+The merge into `~/.claude/settings.json`, its uninstall half and the `FLOOR` report were jq programs in
+`install.sh`. They are now `src/render/settings-merge.js` and `src/render/floor-report.js` (S20 of #470),
+read and written the way jq 1.7.1 did (`src/lib/jq-json.js`). In every recorded scenario the file they write
+is byte for byte the jq program's: the union, the kept order, the ownership record and the stamp key are
+unchanged (`test/golden/S20`). Three behaviours are narrower than before, and none removes a floor rule:
+
+- a file jq reads and strict JSON does not, and nesting past 256 levels, is refused (exit 3) instead of
+  rewritten;
+- uninstall refuses a `hooks` or `permissions` of another shape instead of emptying the file;
+- where the merge refuses, `install.sh` writes no allow list either (ADR-0031), so allow rules never land
+  in a file the floor did not reach.
+
+jq is no longer needed for the user layer. `install-managed.sh` still needs it for the admin layer until
+#496. Evidence level: *written and tested*; not installed on the reference machine. Version cut: **patch**.
 
 ## Links
 

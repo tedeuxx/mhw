@@ -1,0 +1,161 @@
+claude --dangerously-skip-permissions
+claude --allow-dangerously-skip-permissions
+claude --permission-mode bypassPermissions
+codex --dangerously-bypass-approvals-and-sandbox
+codex exec --dangerously-bypass-approvals-and-sandbox
+codex --dangerously-bypass-hook-trust
+codex exec --dangerously-bypass-hook-trust
+codex --sandbox danger-full-access
+codex -s danger-full-access
+codex exec --sandbox danger-full-access
+codex exec -s danger-full-access
+sudo
+gh auth token
+security find-generic-password
+security find-internet-password
+security dump-keychain
+aws configure export-credentials
+aws configure get aws_secret_access_key
+aws secretsmanager get-secret-value
+aws ssm get-parameter --with-decryption
+aws ssm get-parameters --with-decryption
+aws ssm get-parameters-by-path --with-decryption
+aws ssm get-parameter-history --with-decryption
+aws sso login
+gh secret set
+gh secret delete
+gh secret remove
+aws secretsmanager create-secret
+aws secretsmanager put-secret-value
+aws secretsmanager update-secret
+aws secretsmanager delete-secret
+aws secretsmanager restore-secret
+aws ssm put-parameter
+aws iam create-access-key
+security add-generic-password
+security add-internet-password
+security delete-generic-password
+security delete-internet-password
+git push --force
+git push --force-with-lease
+git push --force-if-includes
+git push -f
+git push --mirror
+git reset --hard
+git filter-branch
+git filter-repo
+git reflog expire
+git reflog delete
+git gc --prune=now
+git commit --no-verify
+git commit -n
+git commit -a --no-verify
+git commit -a -n
+git commit --all --no-verify
+git commit --amend --no-verify
+git commit --amend -n
+git push --no-verify
+git push origin --no-verify
+git push -u --no-verify
+git push --set-upstream --no-verify
+gh pr merge --squash
+gh pr merge -s
+rm -rf
+rm -fr
+rm -Rf
+rm -fR
+rm -r -f
+rm -f -r
+rm -R -f
+rm -f -R
+rm --recursive --force
+rm --force --recursive
+git clean -f
+git clean -fd
+git clean -df
+git clean -fx
+git clean -xf
+git clean -fdx
+git clean -fxd
+git clean -dfx
+git clean -dxf
+git clean -xdf
+git clean -xfd
+git clean --force
+git clean -d -f
+git clean -x -f
+git worktree remove --force
+git worktree remove -f
+terraform init
+terraform plan
+terraform apply
+terraform destroy
+terraform console
+terraform env
+terraform force-unlock
+terraform get
+terraform graph
+terraform import
+terraform login
+terraform logout
+terraform metadata
+terraform modules
+terraform output
+terraform providers
+terraform refresh
+terraform show
+terraform state
+terraform taint
+terraform test
+terraform untaint
+terraform workspace
+tofu init
+tofu plan
+tofu apply
+tofu destroy
+tofu console
+tofu env
+tofu force-unlock
+tofu get
+tofu graph
+tofu import
+tofu login
+tofu logout
+tofu metadata
+tofu modules
+tofu output
+tofu providers
+tofu refresh
+tofu show
+tofu state
+tofu taint
+tofu test
+tofu untaint
+tofu workspace
+gh workflow run
+gh api -X POST
+gh api -X PUT
+gh api -X PATCH
+gh api -X DELETE
+gh api --method POST
+gh api --method PUT
+gh api --method PATCH
+gh api --method DELETE
+gh repo delete
+gh repo archive
+gh repo rename
+gh repo edit --visibility
+gh release create
+gh release delete
+gh release edit
+gh release upload
+gh gist create
+npm publish
+npm unpublish
+pnpm publish
+yarn publish
+yarn npm publish
+cargo publish
+twine upload
+gem push
+docker push

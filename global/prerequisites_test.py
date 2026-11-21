@@ -254,8 +254,10 @@ class Presence(Base):
         self.env.pop("WORKSTATION_PREREQUISITES", None)
         code, out = self.check()
         self.assertEqual(code, 1, out)
-        for required in ("claude", "codex", "github", "git", "jq", "python3"):
+        for required in ("claude", "codex", "github", "git", "python3"):
             self.assertRegex(out, r"(?m)^MISSING %s \[required\]: missing " % required)
+        # jq is optional since #491: mhw install, check and uninstall no longer run it.
+        self.assertRegex(out, r"(?m)^ABSENT  jq \[optional\]: missing ")
         self.assertRegex(out, r"(?m)^ABSENT  terraform \[optional; required for site\]")
 
 
