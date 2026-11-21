@@ -529,9 +529,11 @@ describe('the executable the agent runs', { skip: !POSIX && 'POSIX executables' 
     assert.equal(/** @type {NodeJS.ErrnoException} */ (direct.error)?.code, 'ENOTDIR');
     assert.ok(!String(direct.stdout || '').includes('RAN-T'));
     const sh = spawnSync('/bin/sh', ['-c', '"$0"', through(LAUNCHER)], { cwd: ROOT, encoding: 'utf8' });
-    assert.notEqual(sh.status, 0);
+    // The kernel's answer is ENOTDIR (above); a shell words it its own way (zsh and bash: not a directory,
+    // dash on ubuntu: not found) and exits 126 or 127. Either way nothing ran.
+    assert.ok(sh.status === 126 || sh.status === 127, 'exit ' + sh.status);
     assert.ok(!sh.stdout.includes('RAN-T'));
-    assert.match(sh.stderr, /not a directory/i);
+    assert.match(sh.stderr, /not a directory|not found/i);
   });
 
   test('the executable answers as the module does', () => {
