@@ -17,6 +17,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import * as gate from '../../src/commands/delivery-gate.js';
+import { pyStrip } from '../../src/lib/py.js';
+import { splitLines, utf8ErrorText } from '../../src/lib/py-text.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const HERE = path.join(ROOT, 'global', 'project-policy');
@@ -333,7 +335,7 @@ describe('the evidence file', () => {
   });
   test('the UTF-8 errors are CPython\'s', () => {
     /** @param {string} hex */
-    const e = (hex) => gate.utf8Error(Buffer.from(hex, 'hex'));
+    const e = (hex) => utf8ErrorText(Buffer.from(hex, 'hex'));
     assert.equal(e('7b7d'), null);
     assert.equal(e('e282ac'), null);
     assert.equal(e('f09f9880'), null);
@@ -613,12 +615,12 @@ describe('the command line', () => {
     assert.match(r.err, /BLOCK {2}prod-validation/);
     assert.equal(cli(args).code, 2);
   });
-  test('Python\'s strip and splitlines', () => {
-    assert.equal(gate.pyStrip('\u001c\u0085 x 　'), 'x');
-    assert.equal(gate.pyStrip('﻿x'), '﻿x');
-    assert.deepEqual(gate.pySplitlines('a\r\nb\rc\nd e\u000bf\u001cg\n'), ['a', 'b', 'c', 'd', 'e', 'f', 'g']);
-    assert.deepEqual(gate.pySplitlines(''), []);
-    assert.deepEqual(gate.pySplitlines('a\n\nb'), ['a', '', 'b']);
+  test('Python\'s strip and splitlines, as the gate reads a MADR and a runbook', () => {
+    assert.equal(pyStrip('\u001c\u0085 x 　'), 'x');
+    assert.equal(pyStrip('﻿x'), '﻿x');
+    assert.deepEqual(splitLines('a\r\nb\rc\nd e\u000bf\u001cg\n'), ['a', 'b', 'c', 'd', 'e', 'f', 'g']);
+    assert.deepEqual(splitLines(''), []);
+    assert.deepEqual(splitLines('a\n\nb'), ['a', '', 'b']);
   });
 });
 

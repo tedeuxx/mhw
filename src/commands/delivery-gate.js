@@ -33,14 +33,16 @@
 //
 // Parity with the original (test/project-policy/delivery-gate-golden.test.js, test/golden/S29/): JSON
 // is read with the validator's strict parser (a repeated key and NaN refused, CPython's messages), a
-// string is stripped and split into lines as Python does, and every message is the original's except the
-// declared differences. node: modules only.
+// string is stripped and split into lines as Python does (src/lib/py.js, src/lib/py-text.js), and every
+// message is the original's except the declared differences. node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
 import {
   check as policyCheckFile, strictLoads, pyDumps, pyFloatRepr, codepointCompare, pathlibJoin, decodeUtf8,
   strerror, Refusal, JSONDecodeError, PyRecursionError, PyValueError, FILE_NAME, SCHEMA,
 } from './project-policy.js';
+import { pyStrip, isPyWs } from '../lib/py.js';
+import { splitLines, utf8ErrorText } from '../lib/py-text.js';
 
 /** @typedef {import('./project-policy.js').Json} Json */
 /** @typedef {Map<string, Json>} Obj */
@@ -74,45 +76,11 @@ export class Usage extends Error {}
 
 // -- Python's strings -------------------------------------------------------------------------------
 
-// str.isspace(): what Python's strip() removes and its \s matches (str patterns).
-const PY_SPACE = new Set([...'\t\n\v\f\r\u001c\u001d\u001e\u001f \u0085       '
-  + '          　']);
-// str.splitlines(): every line boundary it splits on (\r\n is one).
-const PY_LINE_BREAK = new Set([...'\n\r\v\f\u001c\u001d\u001e\u0085  ']);
-
-/** Python's str.strip(chars), chars default whitespace. @param {string} s @param {Set<string>} [set] */
-export function pyStrip(s, set = PY_SPACE) {
-  let a = 0;
-  let b = s.length;
-  while (a < b && set.has(s[a])) a++;
-  while (b > a && set.has(s[b - 1])) b--;
-  return s.slice(a, b);
-}
-
 /** Python's str.lstrip(char): the leading run of one character removed. @param {string} s @param {string} ch */
 function lstrip(s, ch) {
   let a = 0;
   while (a < s.length && s[a] === ch) a++;
   return s.slice(a);
-}
-
-/** Python's str.splitlines(). @param {string} s */
-export function pySplitlines(s) {
-  /** @type {string[]} */
-  const out = [];
-  let start = 0;
-  let k = 0;
-  while (k < s.length) {
-    if (PY_LINE_BREAK.has(s[k])) {
-      out.push(s.slice(start, k));
-      k += s[k] === '\r' && s[k + 1] === '\n' ? 2 : 1;
-      start = k;
-    } else {
-      k++;
-    }
-  }
-  if (start < s.length) out.push(s.slice(start));
-  return out;
 }
 
 /** re.sub(r"~~.*?~~", "", line) for a line with no \n. @param {string} line */
@@ -164,59 +132,6 @@ function at(doc, ...keys) {
   return v;
 }
 
-// -- CPython's UTF-8 decode error, for an evidence file that is not UTF-8 ----------------------------
-
-/**
- * str() of the UnicodeDecodeError bytes.decode("utf-8") raises on raw, or null when raw decodes.
- * @param {Buffer} raw
- */
-export function utf8Error(raw) {
-  const n = raw.length;
-  /** @param {number} b */
-  const cont = (b) => b >= 0x80 && b <= 0xbf;
-  let i = 0;
-  while (i < n) {
-    const b = raw[i];
-    if (b < 0x80) {
-      i++;
-      continue;
-    }
-    /** @type {number} */
-    let need;
-    let lo = 0x80;
-    let hi = 0xbf;
-    if (b >= 0xc2 && b <= 0xdf) need = 1;
-    else if (b >= 0xe0 && b <= 0xef) {
-      need = 2;
-      if (b === 0xe0) lo = 0xa0;
-      if (b === 0xed) hi = 0x9f;
-    } else if (b >= 0xf0 && b <= 0xf4) {
-      need = 3;
-      if (b === 0xf0) lo = 0x90;
-      if (b === 0xf4) hi = 0x8f;
-    } else {
-      return describe(raw, i, i + 1, 'invalid start byte');
-    }
-    for (let k = 1; k <= need; k++) {
-      if (i + k >= n) return describe(raw, i, n, 'unexpected end of data');
-      const c = raw[i + k];
-      const ok = k === 1 ? c >= lo && c <= hi : cont(c);
-      if (!ok) return describe(raw, i, i + k, 'invalid continuation byte');
-    }
-    i += need + 1;
-  }
-  return null;
-}
-
-/** @param {Buffer} raw @param {number} start @param {number} end @param {string} reason */
-function describe(raw, start, end, reason) {
-  if (end - start === 1) {
-    return "'utf-8' codec can't decode byte 0x" + raw[start].toString(16).padStart(2, '0') + ' in position '
-      + start + ': ' + reason;
-  }
-  return "'utf-8' codec can't decode bytes in position " + start + '-' + (end - 1) + ': ' + reason;
-}
-
 // -- the contract ---------------------------------------------------------------------------------
 
 /**
@@ -254,7 +169,7 @@ function strictRead(p) {
   } catch (e) {
     throw new Refusal('unreadable or malformed: ' + strerror(e));
   }
-  const bad = utf8Error(raw);
+  const bad = utf8ErrorText(raw);
   if (bad !== null) throw new Refusal('unreadable or malformed: ' + bad);
   try {
     return strictLoads(decodeUtf8(raw));
@@ -291,12 +206,12 @@ export function loadContract(project, opts = {}) {
  * @param {string} text
  */
 export function madrStatusAccepted(text) {
-  for (const line of pySplitlines(text)) {
+  for (const line of splitLines(text)) {
     const plain = pyStrip(lstrip(pyStrip(unstrike(line).replaceAll('*', '')), '-'));
     // re.match(r"(?i)status\s*:\s*(.*)"): "status" in any case (with u, ſ is an s, as in Python's re).
     if (!/^status/iu.test(plain)) continue;
     let k = 'status'.length;
-    while (k < plain.length && PY_SPACE.has(plain[k])) k++;
+    while (k < plain.length && isPyWs(plain[k])) k++;
     if (plain[k] !== ':') continue;
     let value = pyStrip(plain.slice(k + 1)).toLowerCase();
     if (value.endsWith('.')) value = value.slice(0, -1);
@@ -406,7 +321,7 @@ export function readEvidence(p) {
   } catch (e) {
     return [null, ['evidence: ' + p + ' is missing or unreadable (' + strerror(e) + ')']];
   }
-  const bad = utf8Error(raw);
+  const bad = utf8ErrorText(raw);
   if (bad !== null) return [null, ['evidence: ' + p + ' is malformed (' + bad + ')']];
   let doc;
   try {
@@ -654,7 +569,7 @@ export function gateEnvironment(name, protection) {
 export function runbookRecords(text) {
   /** @type {Array<[string, number]>} */
   const records = [];
-  for (const line of pySplitlines(text)) {
+  for (const line of splitLines(text)) {
     const m = TESTED.exec(line);
     if (m) records.push([m[1], Number(m[2])]);
   }
