@@ -1,7 +1,7 @@
 # ADR-0042: node-pty 1.1.0, vendored with its macOS prebuilds, is the paste wrapper's pty
 
-- **Status:** proposed (2026-11-20). The owner ratifies; until then the slice that carries it (#487)
-  states the choice and its gaps.
+- **Status:** ~~proposed~~ accepted (2026-11-20; https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611). ~~(2026-11-20). The owner ratifies; until then the slice
+  that carries it (#487) states the choice and its gaps.~~
 - **Date:** 2026-11-20
 - **Deciders:** the owner (D2 of the Node runtime requirements: *"bibliotecas podem ser utilizadas sem
   problemas"*); written by the implementing agent
@@ -81,7 +81,7 @@ prints `PASTE   FAIL` with the same reason.
   CLI's pty starts with node-pty's default modes instead of the terminal's own.
 - Neutral: Windows is *not measured* (D7); no shell functions are installed there.
 
-## Amendment 2026-11-20: Linux binaries built by our CI (owner decision, PR #521, proposed)
+## Amendment 2026-11-20: Linux binaries built by our CI (owner decision, PR #521, ~~proposed~~ accepted (2026-11-20; https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611))
 
 The agents-lead lens escalated E1: on Linux the wrapper refused, so the primary cleaner was gone there.
 The owner decided in [his comment on PR #521](https://github.com/tedeuxx/mhw/pull/521#issuecomment-7049084616):

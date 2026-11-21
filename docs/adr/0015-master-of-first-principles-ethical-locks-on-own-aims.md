@@ -180,7 +180,7 @@ MADR, a `project-policy.json` and installed-STG evidence that mhw has no environ
 
 #### Amendment — the contract's coverage floor and an add-only baseline override (2026-11-20, Issue #523)
 
-- **Status of this amendment:** proposed (agent-written, awaiting the owner's ratification), with
+- **Status of this amendment:** ~~proposed~~ accepted (2026-11-20; https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698) ~~(agent-written, awaiting the owner's ratification)~~, with
   [ADR-0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md). It is appended; nothing
   above is changed, and the record's status is unchanged. It tightens the carrier of the concrete lock
   and unlocks nothing. The ratification rule in *Consequences* covers any change to a ratified lock,
@@ -249,6 +249,6 @@ override for now**: leaves the measured weakening in place.
 - mhw's own PROD test (2026-11-08, ~~proposed~~ accepted 2026-11-18, [ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978107613)): Issue #452, `.github/workflows/tests.yml`
   (`prod-canary-installed-not-enforced`), `.github/scripts/prod_canary.py` and
   `.github/scripts/prod-canary-container.sh`.
-- The coverage floor and the add-only baseline override (2026-11-20, proposed): Issue #523,
+- The coverage floor and the add-only baseline override (2026-11-20, ~~proposed~~ accepted 2026-11-20, [ruling](https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698)): Issue #523,
   [ADR-0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md),
   `global/project-policy/project-policy.schema.json`.

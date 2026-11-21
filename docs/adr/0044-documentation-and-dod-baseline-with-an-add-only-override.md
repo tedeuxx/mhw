@@ -1,6 +1,6 @@
 # ADR-0044: A declared documentation baseline kept current by every merge request, and an add-only test/DoD override
 
-- **Status:** proposed (agent-written, awaiting the owner's ratification). The owner decided where the
+- **Status:** ~~proposed~~ accepted (2026-11-20; https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698). ~~(agent-written, awaiting the owner's ratification).~~ The owner decided where the
   override lives on 2026-11-20 ([his answer on Issue #523](https://github.com/tedeuxx/mhw/issues/523));
   the rest of this record is the implementing agent's design.
 - **Date:** 2026-11-20
