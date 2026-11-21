@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as ma from '../../src/lib/merge-authority.js';
+import { splitFrontMatter } from '../../src/render/method.js';
 import { MERGE_LITERALS, RETIRED_LITERALS } from '../../src/commands/delivery.js';
 import { throwawayHome } from '../helpers/home.js';
 import { BLOCK, CORRECTED_SECTION, HISTORY, LEGACY_SECTION, RC_BRIEF, brief } from './briefs.js';
@@ -45,31 +46,12 @@ function markdown(dir) {
 const SOURCES = [...markdown(path.join(REPO, 'method')), path.join(REPO, 'workspace', 'README.md')];
 
 /**
- * A method source's front matter, as global/method/method_render.py's split_front_matter read it: each
- * `key: value` (a quoted value is JSON) and each `key:` followed by `  - item` lines.
+ * A method source's front matter, read by the renderer's own parser (src/render/method.js, Node since
+ * #489), as the rendered agent metadata is.
  * @param {string} text
  * @returns {Record<string, string | string[]>}
  */
-function frontMatter(text) {
-  const lines = text.split('\n');
-  assert.equal(lines[0], '---');
-  const end = lines.indexOf('---', 1);
-  /** @type {Record<string, string | string[]>} */
-  const fields = {};
-  let current = '';
-  for (const line of lines.slice(1, end)) {
-    const m = /^([a-z][a-z-]*):\s*(.*)$/.exec(line);
-    if (m) {
-      current = m[1];
-      const v = m[2].trim();
-      fields[current] = v === '' || v === '[]' ? [] : v.startsWith('"') ? JSON.parse(v) : v;
-      continue;
-    }
-    const li = /^\s+-\s+(\S+)$/.exec(line);
-    if (li) /** @type {string[]} */ (fields[current]).push(li[1]);
-  }
-  return fields;
-}
+const frontMatter = (text) => Object.fromEntries(splitFrontMatter(text, 'qa').fields);
 
 describe('the method copies match the contract', () => {
   test('the contract maps both models', () => {

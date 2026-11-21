@@ -93,12 +93,12 @@ function binDir(dir, mode) {
 /** Sleep without the event loop (the cases run with spawnSync). @param {number} ms */
 const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
-/** The stand-in service of a case: its URL and a stop function. @param {string} dir */
-function startService(dir) {
-  const portFile = path.join(dir, 'service.port');
-  const log = path.join(dir, 'service.log');
+/** A stand-in of a case (the service, or with mode 'proxy' a refusing proxy): its URL and a stop function. @param {string} dir @param {string} [mode] */
+function startService(dir, mode = 'service') {
+  const portFile = path.join(dir, mode + '.port');
+  const log = path.join(dir, mode + '.log');
   fs.writeFileSync(log, '');
-  const child = spawn(NODE, [path.join(ROOT, 'test', 'check', 'fake-service.js'), portFile, log], { stdio: 'ignore' });
+  const child = spawn(NODE, [path.join(ROOT, 'test', 'check', 'fake-service.js'), portFile, log, mode], { stdio: 'ignore' });
   for (let i = 0; i < 200 && !fs.existsSync(portFile); i++) sleep(25);
   const port = fs.readFileSync(portFile, 'utf8');
   return { url: 'http://127.0.0.1:' + port, stop: () => child.kill('SIGTERM') };
@@ -121,13 +121,15 @@ function play(c, tree, o = {}) {
   const bin = binDir(base, c.mode);
   c.setup?.(w);
   const service = c.service ? startService(base) : null;
+  const proxy = c.proxy ? startService(base, 'proxy') : null;
   const git = path.join(tree, '.git');
   if (c.package) fs.rmSync(git, { recursive: true, force: true });
   /** @type {Array<[string, string]>} */
   const subs = [[tree, '<ROOT>'], [home, '<HOME>'], [root, '<ADMIN>'], [base, '<TMP>'], [NODE, '<NODE>'], [bin, '<BIN>']];
-  if (service) subs.push([service.url, '<SERVICE>']);
+  if (service) subs.push([service.url, '<SERVICE>'], [service.url.slice('http://'.length), '<SERVICE-HOST>']);
+  if (proxy) subs.push([proxy.url, '<PROXY>']);
   /** @param {string} v */
-  const fill = (v) => v.replaceAll('<SERVICE>', service ? service.url : '').replaceAll('<BASE>', base)
+  const fill = (v) => v.replaceAll('<SERVICE>', service ? service.url : '').replaceAll('<PROXY>', proxy ? proxy.url : '').replaceAll('<BASE>', base)
     .replaceAll('<FROZEN>', goldenPath(SLICE, 'inputs/prerequisites-base.json'));
   /** @type {Record<string, unknown>} */
   const out = {};
@@ -136,7 +138,7 @@ function play(c, tree, o = {}) {
       archive(tree, step.archive || 'v3.1.0');
       step.pre?.(w);
       /** @type {Record<string, string>} */
-      const env = { PATH: c.mode === 'full' ? bin + ':/usr/bin:/bin' : bin, HOME: home, TMPDIR: tmp, WORKSTATION_MANAGED_ROOT: root, LANG: 'C.UTF-8', SHELL: '/bin/sh',
+      const env = { PATH: (c.pathPrefix || '') + (c.mode === 'full' ? bin + ':/usr/bin:/bin' : bin), HOME: home, TMPDIR: tmp, WORKSTATION_MANAGED_ROOT: root, LANG: 'C.UTF-8', SHELL: '/bin/sh',
         STUB_LOG: path.join(base, 'gh.log'), STUB_REPO: path.join(base, 'repo.json'), FAKE_LOGIN: LOGIN, WORKSTATION_OVERLAY: path.join(base, 'overlay'),
         WORKSTATION_PREREQUISITES: path.join(base, 'decl.json') };
       for (const [k, v] of Object.entries({ ...(c.env || {}), ...(step.env || {}) })) env[k] = fill(v);
@@ -158,6 +160,7 @@ function play(c, tree, o = {}) {
     }
   } finally {
     service?.stop();
+    proxy?.stop();
     archive(tree, 'v3.1.0');
     if (c.package) fs.mkdirSync(git, { recursive: true });
   }

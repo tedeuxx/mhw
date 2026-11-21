@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import * as pq from '../../src/lib/prerequisites.js';
-import { getSync } from '../../src/lib/http-get.js';
+import { get, getSync, proxyEnv } from '../../src/lib/http-get.js';
 import { throwawayHome, which } from '../helpers/home.js';
 import { item, GH_ITEM, GH_SHIM, LOGIN, TOKEN } from './cases.js';
 
@@ -162,12 +162,12 @@ function sandbox() {
   return s;
 }
 
-/** The stand-in service, its own process: its URL, its request log and a stop function. @param {string} dir */
-function service(dir) {
-  const portFile = path.join(dir, 'service.port');
-  const log = path.join(dir, 'service.log');
+/** The stand-in service (or, with mode 'proxy', a refusing proxy), its own process: its URL, its request log and a stop function. @param {string} dir @param {string} [mode] */
+function service(dir, mode = 'service') {
+  const portFile = path.join(dir, mode + '.port');
+  const log = path.join(dir, mode + '.log');
   fs.writeFileSync(log, '');
-  const child = spawn(process.execPath, [path.join(REPO, 'test', 'check', 'fake-service.js'), portFile, log], { stdio: 'ignore' });
+  const child = spawn(process.execPath, [path.join(REPO, 'test', 'check', 'fake-service.js'), portFile, log, mode], { stdio: 'ignore' });
   const wait = new Int32Array(new SharedArrayBuffer(4));
   for (let i = 0; i < 200 && !fs.existsSync(portFile); i++) Atomics.wait(wait, 0, 0, 25);
   return {
@@ -403,5 +403,29 @@ describe('services', { skip: !POSIX && 'needs POSIX' }, () => {
     // A 2xx answers its body; an unreachable host answers status 0.
     assert.deepEqual(getSync(svc.url + '/api/authentication/validate', TOKEN), [200, '{"valid":true}']);
     assert.deepEqual(getSync('http' + '://127.0.0.1:9/x', null), [0, '']);
+  });
+
+  test('a 3xx is not read as success: get() answers its status with an empty body, though the redirect carries one (QA A4)', async () => {
+    assert.deepEqual(await get(svc.url + '/redirect', null), { status: 302, body: '' });
+    assert.deepEqual(await get(svc.url + '/api/v2/account/details', null), { status: 401, body: '' });
+    assert.deepEqual(await get(svc.url + '/api/v2/account/details', TOKEN), { status: 200, body: '{}' });
+  });
+
+  test('the GET honours the caller\'s proxy variables as urllib did, and no_proxy (QA B2)', () => {
+    const proxy = service(s.h.dir, 'proxy');
+    try {
+      const url = svc.url + '/api/authentication/validate';
+      for (const name of ['http_proxy', 'HTTP_PROXY']) {
+        assert.deepEqual(getSync(url, TOKEN, { [name]: proxy.url }), [0, ''], name);
+      }
+      assert.deepEqual(proxy.seen().map((r) => r.proxy), ['CONNECT ' + svc.url.slice('http://'.length), 'CONNECT ' + svc.url.slice('http://'.length)]);
+      assert.deepEqual(getSync(url, TOKEN, { http_proxy: proxy.url, no_proxy: '127.0.0.1' }), [200, '{"valid":true}']);
+      assert.deepEqual(getSync(url, TOKEN, {}), [200, '{"valid":true}']);
+      assert.equal(proxy.seen().length, 2);
+      // The worker's environment holds the proxy variables and nothing else: never a token or a PATH.
+      assert.deepEqual(proxyEnv({ http_proxy: 'p', NO_PROXY: 'n', SONAR_TOKEN: 't', PATH: '/x', HOME: '/h' }), { http_proxy: 'p', NO_PROXY: 'n' });
+    } finally {
+      proxy.stop();
+    }
   });
 });

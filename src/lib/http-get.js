@@ -9,11 +9,14 @@
 // Status 0: the host could not be reached, or the request did not finish within the timeout. A non-2xx
 // status is returned with an empty body, as urllib's HTTPError gave it. The body is the first 65536
 // bytes, decoded as UTF-8 with replacement.
-// Proxies (lens F2 on PR #538): urllib always honoured the *_proxy variables. Node's fetch uses no proxy
-// unless NODE_USE_ENV_PROXY=1 (or --use-env-proxy) is set; then it honours HTTP_PROXY, HTTPS_PROXY and
-// NO_PROXY, from a worker too (measured on Node 25.9). That is left as Node has it, on purpose: a machine
-// whose egress needs a proxy opts in once and the check works there, which is closer to urllib than
-// forcing a direct connection. An unreachable proxy reads as status 0, so NOCHECK, never OK. node: modules only.
+// Proxies (lens F2 and QA B2 on PR #538): urllib always honoured http_proxy, https_proxy and no_proxy
+// (either case). So does this GET: the worker starts with --use-env-proxy and an environment holding only
+// those variables, from the caller's environment, whatever NODE_USE_ENV_PROXY says (measured on Node
+// 25.9: a worker honours the flag, lower and upper case, and NO_PROXY). Two residuals, declared in
+// test/golden/S23: fetch reaches even a plain-http target through a CONNECT tunnel, where urllib sent the
+// proxy an absolute-form GET, so a proxy that refuses reads status 0 (NOCHECK) where urllib read the
+// proxy's own status; and macOS system proxy settings, which urllib read when no variable was set, are not
+// read. A GET that cannot get through is status 0, so NOCHECK, never OK. node: modules only.
 import { Worker, MessageChannel, receiveMessageOnPort, isMainThread, workerData } from 'node:worker_threads';
 
 export const TIMEOUT_MS = 15000;
@@ -62,15 +65,33 @@ export async function get(url, token) {
   }
 }
 
+/** The proxy variables urllib's getproxies() read, in either case. */
+export const PROXY_VARS = Object.freeze(['http_proxy', 'https_proxy', 'no_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY']);
+
 /**
- * [status, body] of one GET, waited for synchronously.
- * @param {string} url @param {string | null} token
+ * The worker's environment: the caller's proxy variables and nothing else (no token, no PATH).
+ * @param {Record<string, string | undefined>} env
+ */
+export function proxyEnv(env) {
+  /** @type {Record<string, string>} */
+  const out = {};
+  for (const name of PROXY_VARS) {
+    const v = env[name];
+    if (v) out[name] = v;
+  }
+  return out;
+}
+
+/**
+ * [status, body] of one GET, waited for synchronously, through the caller's proxy variables as urllib did.
+ * @param {string} url @param {string | null} token @param {Record<string, string | undefined>} [env] where the proxy variables are read
  * @returns {[number, string]}
  */
-export function getSync(url, token) {
+export function getSync(url, token, env = {}) {
   const shared = new Int32Array(new SharedArrayBuffer(4));
   const { port1, port2 } = new MessageChannel();
-  const worker = new Worker(new URL(import.meta.url), { workerData: { url, token, shared, port: port2 }, transferList: [port2], stdout: true, stderr: true });
+  const worker = new Worker(new URL(import.meta.url), { workerData: { url, token, shared, port: port2 }, transferList: [port2], stdout: true, stderr: true,
+    env: proxyEnv(env), execArgv: ['--use-env-proxy'] });
   worker.unref();
   const waited = Atomics.wait(shared, 0, 0, TIMEOUT_MS + 5000);
   const msg = receiveMessageOnPort(port1);

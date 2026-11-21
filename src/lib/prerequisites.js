@@ -312,11 +312,11 @@ export function baseUrl(env, name, fallback) {
 /**
  * [status, body] for one GET; status 0 when the host could not be reached. Never follows a redirect with
  * the token, and starts no process: the token stays in this process's memory (src/lib/http-get.js).
- * @param {string} url @param {string | null} token
+ * @param {string} url @param {string | null} token @param {Env} env its proxy variables are honoured, as urllib did
  * @returns {[number, string]}
  */
-export function httpGet(url, token) {
-  return getSync(url, token);
+export function httpGet(url, token, env) {
+  return getSync(url, token, env);
 }
 
 /**
@@ -403,7 +403,7 @@ export function checkAuth(item, presentPath, env, probeEnv = env) {
     if (code === 0) return ['ok', 'authenticated'];
     if (out.toLowerCase().includes('not logged in')) return ['no', 'not authenticated'];
     // gh auth status contacts GitHub: offline, it fails like a rejected token. Ask GitHub, no token.
-    const [status] = httpGet(baseUrl(env, 'WORKSTATION_GITHUB_URL', GITHUB_URL) + '/zen', null);
+    const [status] = httpGet(baseUrl(env, 'WORKSTATION_GITHUB_URL', GITHUB_URL) + '/zen', null, env);
     if (status === 0) return ['unreachable', 'authentication not checked (GitHub unreachable)'];
     return ['no', 'not authenticated (gh auth status failed with GitHub reachable)'];
   }
@@ -413,7 +413,7 @@ export function checkAuth(item, presentPath, env, probeEnv = env) {
   let valid;
   if (kind === 'sonarcloud-token') {
     let body;
-    [status, body] = httpGet(baseUrl(env, 'WORKSTATION_SONAR_URL', SONAR_URL) + '/api/authentication/validate', token);
+    [status, body] = httpGet(baseUrl(env, 'WORKSTATION_SONAR_URL', SONAR_URL) + '/api/authentication/validate', token, env);
     try {
       const doc = status === 200 ? loads(body) : null;
       valid = isDict(doc) && /** @type {any} */ (doc).valid === true;
@@ -421,7 +421,7 @@ export function checkAuth(item, presentPath, env, probeEnv = env) {
       valid = false;
     }
   } else {
-    [status] = httpGet(baseUrl(env, 'WORKSTATION_TFC_URL', TFC_URL) + '/api/v2/account/details', token);
+    [status] = httpGet(baseUrl(env, 'WORKSTATION_TFC_URL', TFC_URL) + '/api/v2/account/details', token, env);
     valid = status === 200;
   }
   if (status === 0) return ['unreachable', 'authentication not checked (service unreachable)'];
@@ -514,7 +514,7 @@ export function checkPreferred(item, authState, overlay, gh, env, probeEnv = env
   const out = [];
   for (const key of keys) {
     const url = baseUrl(env, 'WORKSTATION_SONAR_URL', SONAR_URL) + '/api/components/show?component=' + encodeURIComponent(key);
-    const [status] = httpGet(url, token);
+    const [status] = httpGet(url, token, env);
     if (status === 200) out.push(['ok', 'project ' + key + ' reachable']);
     else if (status === 0) out.push(['unchecked', 'project ' + key + ' not checked (service unreachable)']);
     else out.push(['drift', 'project ' + key + ' not reachable (HTTP ' + status + ')']);

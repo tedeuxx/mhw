@@ -69,10 +69,13 @@ refused as an invalid declaration.
   declared item names as its `auth.env` is removed from a probe's environment first. The Python
   checker passed them on (#494, a declared narrowing). The installers' `--check`, which the full
   `mhw check` runs before this section, still inherits the caller's environment.
-- Proxies: Python's `urllib` always honoured the `*_proxy` variables. Node's `fetch` uses none unless
-  `NODE_USE_ENV_PROXY=1` (or `--use-env-proxy`) is set, and then honours `HTTP_PROXY`, `HTTPS_PROXY` and
-  `NO_PROXY` (measured on Node 25.9). That is kept as Node has it: set `NODE_USE_ENV_PROXY=1` where egress
-  needs a proxy. A GET that cannot get through reads `NOCHECK`, never `OK`.
+- Proxies: like Python's `urllib`, the GET honours `http_proxy`, `https_proxy` and `no_proxy` (either
+  case) from the caller's environment: its worker runs with `--use-env-proxy` and those variables only.
+  Two residuals, declared in `test/golden/S23`: `fetch` reaches even a plain-http target through a
+  `CONNECT` tunnel, where `urllib` sent the proxy an absolute-form GET, so a proxy that refuses reads
+  `NOCHECK` where `urllib` read the proxy's own status (only the loopback test override is plain http);
+  and the macOS system proxy settings, which `urllib` read when no variable was set, are not read. A GET
+  that cannot get through reads `NOCHECK`, never `OK`.
 - `PATH` entries that are not absolute (a relative directory, an empty entry, `.`) are not searched, so a
   tool found only through one reads `MISSING`. Python's `shutil.which` searched them (#494).
 - With no token in the environment the line reads `not checked (credential not available)` and no call

@@ -16,7 +16,7 @@ export const TOKEN = 'fake-token-for-tests-0000';
  * @typedef {{ home: string, root: string, dir: string, tree: string }} Where
  * @typedef {{ args: string[], setup?: boolean, env?: Record<string, string>, archive?: string, cwd?: string,
  *   pre?: (w: Where) => void, post?: (w: Where) => string }} Step
- * @typedef {{ name: string, mode: 'bare' | 'full', package?: boolean, service?: boolean, stubs?: Record<string, string>,
+ * @typedef {{ name: string, mode: 'bare' | 'full', package?: boolean, service?: boolean, proxy?: boolean, pathPrefix?: string, stubs?: Record<string, string>,
  *   env?: Record<string, string>, setup?: (w: Where) => void, steps: Step[] }} Case
  */
 
@@ -325,6 +325,35 @@ export const CASES = [
     steps: [P()],
   },
   {
+    // QA B2 on PR #538: urllib's ProxyHandler honoured http_proxy and no_proxy; the Node GET does too
+    // (--use-env-proxy in its worker). The residual, declared: fetch reaches a plain-http target through a
+    // CONNECT tunnel where urllib sent the proxy an absolute-form GET, so a refusing proxy reads 0 (NOCHECK)
+    // where urllib read its 502 (NOAUTH). With no_proxy naming the host both go direct and agree.
+    name: 'prereq-proxy-from-the-environment',
+    mode: 'bare',
+    service: true,
+    proxy: true,
+    env: { WORKSTATION_TFC_URL: '<SERVICE>', TFC_API_TOKEN: TOKEN },
+    setup: (w) => declare(w, [SERVICE_ITEMS[1]]),
+    steps: [P({ post: serviceLog }),
+      P({ env: { http_proxy: '<PROXY>' }, post: (w) => serviceLog(w) + proxyLog(w) }),
+      P({ env: { HTTP_PROXY: '<PROXY>' }, post: (w) => serviceLog(w) + proxyLog(w) }),
+      P({ env: { http_proxy: '<PROXY>', no_proxy: '127.0.0.1' }, post: (w) => serviceLog(w) + proxyLog(w) })],
+  },
+  {
+    // QA B2 on PR #538: shutil.which searched a relative PATH entry (from the current directory); onPath
+    // searches absolute entries only, so a tool found only through one reads missing (declared).
+    name: 'prereq-relative-path-entry',
+    mode: 'bare',
+    pathPrefix: 'rel:/nonexistent:',
+    setup: (w) => {
+      put(path.join(w.dir, 'rel', 'jq'), "#!/bin/sh\necho 'jq-1.7.1'\n");
+      fs.chmodSync(path.join(w.dir, 'rel', 'jq'), 0o700);
+      declare(w, [item('beta', { required: 'optional', cmd: 'jq' }), item('gamma', { cmd: 'jq', version: { args: ['--version'] } })]);
+    },
+    steps: [P()],
+  },
+  {
     name: 'full-install-then-check',
     mode: 'full',
     env: EMPTY_DECL,
@@ -482,6 +511,14 @@ export function ghLog(w) {
   const t = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
   fs.rmSync(f, { force: true });
   return 'gh calls:\n' + t;
+}
+
+/** The stand-in proxy's request log, then emptied. @param {Where} w */
+export function proxyLog(w) {
+  const f = path.join(w.dir, 'proxy.log');
+  const t = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
+  fs.writeFileSync(f, '');
+  return 'proxy requests:\n' + t;
 }
 
 /** The stand-in service's request log, then emptied. @param {Where} w */
