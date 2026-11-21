@@ -1,0 +1,12 @@
+{
+  "name": "low-findings-one-for-true",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.low_findings.bug_issue_required: type (low finding without a bug Issue)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

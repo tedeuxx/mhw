@@ -1,0 +1,13 @@
+{
+  "name": "valid-the-last-project-wins",
+  "args": [
+    "check",
+    "--project=a",
+    "--project=b"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "OK  b/project-policy.json is a valid project-policy contract, schema_version 1\n",
+    "stderr": ""
+  }
+}

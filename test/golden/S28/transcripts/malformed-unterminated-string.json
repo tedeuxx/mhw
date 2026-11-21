@@ -1,0 +1,12 @@
+{
+  "name": "malformed-unterminated-string",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Unterminated string starting at)\n"
+  }
+}

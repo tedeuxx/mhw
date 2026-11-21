@@ -1,0 +1,12 @@
+{
+  "name": "missing-a-directory-named-like-the-file",
+  "args": [
+    "check",
+    "--project={BASE}"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  missing: <BASE>/project-policy.json is a directory, not a file\n"
+  }
+}

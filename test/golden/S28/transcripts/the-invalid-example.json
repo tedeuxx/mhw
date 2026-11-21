@@ -1,0 +1,12 @@
+{
+  "name": "the-invalid-example",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.approval.high_risk: const (risk-based approval weakened)\nFAIL  $.coverage.threshold_percent: minimum (coverage below the mhw floor of 85 percent)\nFAIL  $.low_findings.bug_issue_required: const (low finding without a bug Issue)\nFAIL  $.madr.status: const (project MADR not ratified)\nFAIL  $.mandatory_scenarios.security_controls: contains (missing mandatory evidence)\nFAIL  $.recovery.operator: required (recovery not prepared)\nFAIL  $.recovery.runbook: required (recovery not prepared)\nFAIL  $.risk_classification.rules: contains (missing or invalid risk classification)\nFAIL  $.severity.tolerated: maxItems (medium-or-higher findings tolerated)\nFAIL  $.severity.tolerated[1]: const (medium-or-higher findings tolerated)\nFAIL  10 finding(s); the contract is not valid\n"
+  }
+}

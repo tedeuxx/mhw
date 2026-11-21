@@ -1,0 +1,12 @@
+{
+  "name": "unreadable-through-a-file",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json/x"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  unreadable: Not a directory\n"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "comment": "differences: a stream pattern is replaced (with <DECLARED>, or the entry's replace) on both sides of the named case's stream (\"*\" is every case) before the transcripts are compared. Nothing else may differ, and on the recorded cases nothing does: the list is empty. residuals: behaviours no golden case exercises, or that the goldens cannot carry, named so they are not discovered later (#470, convention 3).",
+  "differences": [],
+  "residuals": [
+    {
+      "what": "The command keeps its name, mhw policy check; the Issue's title said mhw check --project-policy.",
+      "why": "Every document, the README row, the reference workflow and every adopter's instructions name mhw policy check (#245), and mhw check is already the installation check. The slice moves the implementation and keeps the public command, so a project's CI/CD needs no change of words; it does not add a second spelling."
+    },
+    {
+      "what": "Windows now runs mhw policy check; before, mhw refused it there and the documented route was python global/project-policy/project_policy.py check.",
+      "why": "bin/mhw.js answers a moved command on every OS before it maps anything onto install.ps1, so the validator now runs on Windows through mhw, and the Python route is gone with the file. The golden arm runs every case marked for Windows on the Windows runner; the transcripts were recorded on macOS, so a Windows-only answer of the original was never recorded."
+    },
+    {
+      "what": "A direct python3 global/workstation.py policy now refuses with exit 2 and names the Node command.",
+      "why": "./mhw and bin/mhw.js send policy to Node and never reach workstation.py, so only a direct call arrives there; it names the command, as scan and status do since S15 and S22, and passes no argument on. test/project-policy/check.test.js holds it."
+    },
+    {
+      "what": "delivery_gate.py reaches the validator through the command line, and so needs node 26 or later until S29 (#499).",
+      "why": "The gates imported project_policy.check before; they now run node bin/mhw.js policy check --file=<the contract> by absolute path (the first executable node on PATH; no environment variable, MHW_NODE included, can name another program) and take its exit and lines. No node, a node that cannot run or runs past the timeout, an exit other than 0, 1 or 2, no output, or a 0 without the OK line is exit 2, never a pass (delivery_gate_test.py holds each). The gates' own second read of a valid contract keeps the same strictness (a repeated key, NaN) in delivery_gate.py; its wording for a file the validator passed and that read refuses is new, and only a race between the two reads reaches it. The reference workflow and the caller template set up Node 26 in every job that runs a gate, the containerised job inside the project's image, which therefore needs glibc, tar and gzip."
+    },
+    {
+      "what": "On Windows, output lines end in \\n, and only a plain or drive-rooted --project is joined as pathlib joins it.",
+      "why": "Python's print wrote \\r\\n to a Windows pipe; Node writes \\n, as the S18 port does. The --project join reproduces pathlib for separators, '.' parts, a trailing separator, a drive and a UNC share; a drive-relative path (C:dir) and other PureWindowsPath forms are not tested."
+    },
+    {
+      "what": "Nesting deeper than CPython's stack is refused at fixed depths, not at CPython's stack-based ones.",
+      "why": "CPython 3.14.6 on macOS decoded a JSON array or object nested 100000 deep and overflowed at 1000000 (malformed: not JSON (RecursionError)); it compared two equal nested lists at depth 10000 and overflowed at 50000 (exit 2, cannot evaluate). The port refuses decoding past depth 100000 and comparison at depth 10000, the measured safe bounds. Between them the reason, and for two deep equal lists in security_controls the exit (1 there, 2 here), can differ; neither side exits 0, since no value nested more than six deep can be valid. The 1000001-deep golden case agrees."
+    },
+    {
+      "what": "A finding whose path holds a lone surrogate is printed with a replacement character, where Python stopped with a traceback.",
+      "why": "A key written as an escaped lone surrogate (\\ud800) reaches a FAIL line; CPython cannot encode it to UTF-8 and exits 1 with a UnicodeEncodeError, Node writes U+FFFD and exits 1. Same exit, different text; no golden case holds such a key. Likewise an unknown schema_version nested deeper than CPython's stack made its json.dumps raise (traceback, exit 1) where the port prints the line (exit 1)."
+    },
+    {
+      "what": "Messages that only a replaced schema can reach are close to, not always equal to, CPython's.",
+      "why": "The command always reads the shipped schema; check(path, schemaPath) takes another only in the suites. For such a schema the strict-JSON reasons, the repeated-key, NaN, unknown-keyword, type, pattern and shape reasons and the walk's locations are CPython's (check.test.js holds them), but an undecodable schema reports \"'utf-8' codec can't decode the schema: invalid UTF-8\" without CPython's byte position, a read error past ENOENT, EACCES, EISDIR, ENOTDIR, ELOOP, ENAMETOOLONG, EPERM, EIO or EINVAL reports libuv's text, and a RecursionError's text has no stack size. Each is still exit 2."
+    },
+    {
+      "what": "The classification of a finding under an extra severity key that holds a non-ASCII digit in brackets differs.",
+      "why": "Only the reason in parentheses changes, never the exit: the original's path reader (_at) matched [\\d+] with Python's Unicode \\d, the port with ASCII digits, so a key such as tolerated[\\u0663] is read as an index by one and skipped by the other."
+    }
+  ]
+}

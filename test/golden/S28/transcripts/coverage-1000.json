@@ -1,0 +1,12 @@
+{
+  "name": "coverage-1000",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.coverage.threshold_percent: maximum (missing mandatory evidence)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

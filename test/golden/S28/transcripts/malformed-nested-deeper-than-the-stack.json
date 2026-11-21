@@ -1,0 +1,12 @@
+{
+  "name": "malformed-nested-deeper-than-the-stack",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (RecursionError)\n"
+  }
+}

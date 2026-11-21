@@ -1,0 +1,12 @@
+{
+  "name": "malformed-repeated-key-at-the-top",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: repeated key \"schema_version\"\n"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "usage-an-unknown-option",
+  "args": [
+    "check",
+    "--projects=a"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "mhw policy check: unknown argument --projects=a (--project=DIR or --file=PATH)\n"
+  }
+}

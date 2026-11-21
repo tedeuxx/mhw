@@ -1,0 +1,12 @@
+{
+  "name": "evidence-a-repeated-and-unknown-control",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.mandatory_scenarios.security_controls: uniqueItems (missing mandatory evidence)\nFAIL  $.mandatory_scenarios.security_controls[9]: enum (missing mandatory evidence)\nFAIL  2 finding(s); the contract is not valid\n"
+  }
+}

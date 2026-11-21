@@ -1,0 +1,12 @@
+{
+  "name": "recovery-february-30",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.recovery.runbook.last_tested: date (recovery not prepared)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}
