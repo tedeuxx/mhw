@@ -1,0 +1,321 @@
+{
+  "pack": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-HEAD.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-fx-old.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-good.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "ERROR refusing ref 'main~1': HEAD, an existing tag or a full commit SHA only\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "ERROR refusing ref 'no-such-tag': HEAD, an existing tag or a full commit SHA only\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "ERROR <D>/pkg/src-HEAD exists; pack into a fresh directory\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "<D>/pkg2/mhw-rel_x.tgz\n",
+        "stderr": ""
+      }
+    ],
+    "tarballs": {
+      "pkg/mhw-HEAD.tgz": [
+        {
+          "path": "package/.workstation-archive",
+          "mode": "644:file",
+          "sha256": "c488329cf0f8a47493bc0bb357cf18b59e1ffbb7e8b334334197c979943e0479"
+        },
+        {
+          "path": "package/bin/mhw.js",
+          "mode": "644:file",
+          "sha256": "adb5451b72d60ac8584f47e1359bf6369959af91d7379e2db4b80231f71f735a"
+        },
+        {
+          "path": "package/global/deny-floor.conf",
+          "mode": "644:file",
+          "sha256": "8c3f5daac067a3dd00524d96e422ce4175803cffeda1459b0db0af98016457ff"
+        },
+        {
+          "path": "package/overlay/deny-floor.conf",
+          "mode": "644:file",
+          "sha256": "5fe3452af2c1038fc432f969f3dfa7b7ffb6dd996e0c80523a3f2b8875ed8146"
+        },
+        {
+          "path": "package/package.json",
+          "mode": "644:file",
+          "sha256": "0a8f76af4459b3007bdc2227701641e5b37ef0f6dd6a276133d21f7e984423ce"
+        },
+        {
+          "path": "package/variant.json",
+          "mode": "644:file",
+          "sha256": "113940ad0ea72dd06387a858622f2f4dbb149a3df97f4ae0d4ab665d32657651"
+        }
+      ],
+      "pkg/mhw-fx-old.tgz": [
+        {
+          "path": "package/.workstation-archive",
+          "mode": "644:file",
+          "sha256": "aeb781d011e019a82864fcd9401a2bc9b98407d5c8569d2beb6650d5d6b51d13"
+        },
+        {
+          "path": "package/bin/mhw.js",
+          "mode": "644:file",
+          "sha256": "adb5451b72d60ac8584f47e1359bf6369959af91d7379e2db4b80231f71f735a"
+        },
+        {
+          "path": "package/global/deny-floor.conf",
+          "mode": "644:file",
+          "sha256": "4206faba825ee915646d490f8fc40820df3533f4038fc83d11de4479d6aed708"
+        },
+        {
+          "path": "package/overlay/deny-floor.conf",
+          "mode": "644:file",
+          "sha256": "5fe3452af2c1038fc432f969f3dfa7b7ffb6dd996e0c80523a3f2b8875ed8146"
+        },
+        {
+          "path": "package/package.json",
+          "mode": "644:file",
+          "sha256": "0a8f76af4459b3007bdc2227701641e5b37ef0f6dd6a276133d21f7e984423ce"
+        },
+        {
+          "path": "package/variant.json",
+          "mode": "644:file",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ],
+      "pkg/mhw-good.tgz": [
+        {
+          "path": "package/.workstation-archive",
+          "mode": "644:file",
+          "sha256": "af0046553a391fca515834a526fe41937d867e3a6f737131d69e71cd1d79d518"
+        },
+        {
+          "path": "package/bin/mhw.js",
+          "mode": "644:file",
+          "sha256": "adb5451b72d60ac8584f47e1359bf6369959af91d7379e2db4b80231f71f735a"
+        },
+        {
+          "path": "package/global/deny-floor.conf",
+          "mode": "644:file",
+          "sha256": "8c3f5daac067a3dd00524d96e422ce4175803cffeda1459b0db0af98016457ff"
+        },
+        {
+          "path": "package/overlay/deny-floor.conf",
+          "mode": "644:file",
+          "sha256": "5fe3452af2c1038fc432f969f3dfa7b7ffb6dd996e0c80523a3f2b8875ed8146"
+        },
+        {
+          "path": "package/package.json",
+          "mode": "644:file",
+          "sha256": "0a8f76af4459b3007bdc2227701641e5b37ef0f6dd6a276133d21f7e984423ce"
+        },
+        {
+          "path": "package/variant.json",
+          "mode": "644:file",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ],
+      "pkg2/mhw-rel_x.tgz": [
+        {
+          "path": "package/.workstation-archive",
+          "mode": "644:file",
+          "sha256": "aeb781d011e019a82864fcd9401a2bc9b98407d5c8569d2beb6650d5d6b51d13"
+        },
+        {
+          "path": "package/bin/mhw.js",
+          "mode": "644:file",
+          "sha256": "adb5451b72d60ac8584f47e1359bf6369959af91d7379e2db4b80231f71f735a"
+        },
+        {
+          "path": "package/global/deny-floor.conf",
+          "mode": "644:file",
+          "sha256": "4206faba825ee915646d490f8fc40820df3533f4038fc83d11de4479d6aed708"
+        },
+        {
+          "path": "package/overlay/deny-floor.conf",
+          "mode": "644:file",
+          "sha256": "5fe3452af2c1038fc432f969f3dfa7b7ffb6dd996e0c80523a3f2b8875ed8146"
+        },
+        {
+          "path": "package/package.json",
+          "mode": "644:file",
+          "sha256": "0a8f76af4459b3007bdc2227701641e5b37ef0f6dd6a276133d21f7e984423ce"
+        },
+        {
+          "path": "package/variant.json",
+          "mode": "644:file",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    }
+  },
+  "run-good": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-good.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-old.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "==> PROD install canary, fresh install (evidence level: installed, never enforced)\nPASS  npm install -g the head\nPASS  mhw install --yes (the head)\nPASS  the installed package is the head <sha12:fx-good>\nPASS  Claude Code user settings.json carries every floor rule (7)\nPASS  Claude Code: the rules mhw records as its floor are exactly the floor\nPASS  Claude Code: the owner's own deny rule is kept\nPASS  Codex user rules file equals the floor's 4 cmd entries\nPASS  Kiro user permissions.yaml equals the floor (5 shell, 1 fs_read, 1 fs_write)\nPASS  Kiro: the owner's own deny rule is kept\nPASS  Claude Code admin drop-in (throwaway root) equals the floor\nPASS  Codex admin requirements.toml (throwaway root) equals the floor\nPASS  Kiro admin managed-settings.json (throwaway root) equals the floor\nPASS  Kiro: the user-level hook file is rendered in the V3 shape\nPASS  Kiro: the hook file runs the installed core in kiro mode\nPASS  claude: exactly one installed prompt hook\nPASS  claude: the paste-wrapper marker is unset for the hook\nPASS  claude: the installed hook blocks a synthetic credential-shaped prompt\nPASS  claude: the installed hook passes a clean prompt\nPASS  claude: calibration, with the wrapper marker set the hook stays silent\nPASS  codex: exactly one installed prompt hook\nPASS  codex: the paste-wrapper marker is unset for the hook\nPASS  codex: the installed hook blocks a synthetic credential-shaped prompt\nPASS  codex: the installed hook passes a clean prompt\nPASS  codex: calibration, with the wrapper marker set the hook stays silent\nPASS  kiro: exactly one installed prompt hook\nPASS  kiro (marker unset): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro (marker set): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro: the installed hook passes a clean prompt\nPASS  mhw status exits 0\n      source fixture package\n      evidence installed\nPASS  mhw check: the installed-state and admin sections report no problem\nPASS  mhw check exits 0 but for the required CLIs absent by construction here (claude, codex)\nPASS  mhw uninstall --yes exits 0\nPASS  uninstall restores every file the owner had (5; JSON as a document, the rest byte for byte)\nPASS  uninstall leaves no file of mhw in HOME (backups and empty documents aside)\nPASS  uninstall removes the admin layer from the throwaway root\nPASS  no floor rule is left in Claude Code settings\nPASS  npm uninstall -g mhw exits 0\n==> fresh: 0 failure(s)\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "==> PROD install canary, upgrade install (evidence level: installed, never enforced)\nPASS  npm install -g the latest published tag\nPASS  mhw install --yes (the latest published tag)\nPASS  npm install -g the head\nPASS  mhw install --yes (the head)\nPASS  the installed package is the head <sha12:fx-good>\nPASS  Claude Code user settings.json carries every floor rule (7)\nPASS  Claude Code: the rules mhw records as its floor are exactly the floor\nPASS  Claude Code: the owner's own deny rule is kept\nPASS  Codex user rules file equals the floor's 4 cmd entries\nPASS  Kiro user permissions.yaml equals the floor (5 shell, 1 fs_read, 1 fs_write)\nPASS  Kiro: the owner's own deny rule is kept\nPASS  Claude Code admin drop-in (throwaway root) equals the floor\nPASS  Codex admin requirements.toml (throwaway root) equals the floor\nPASS  Kiro admin managed-settings.json (throwaway root) equals the floor\nPASS  Kiro: the user-level hook file is rendered in the V3 shape\nPASS  Kiro: the hook file runs the installed core in kiro mode\nPASS  claude: exactly one installed prompt hook\nPASS  claude: the paste-wrapper marker is unset for the hook\nPASS  claude: the installed hook blocks a synthetic credential-shaped prompt\nPASS  claude: the installed hook passes a clean prompt\nPASS  claude: calibration, with the wrapper marker set the hook stays silent\nPASS  codex: exactly one installed prompt hook\nPASS  codex: the paste-wrapper marker is unset for the hook\nPASS  codex: the installed hook blocks a synthetic credential-shaped prompt\nPASS  codex: the installed hook passes a clean prompt\nPASS  codex: calibration, with the wrapper marker set the hook stays silent\nPASS  kiro: exactly one installed prompt hook\nPASS  kiro (marker unset): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro (marker set): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro: the installed hook passes a clean prompt\nPASS  mhw status exits 0\n      source fixture package\n      evidence installed\nPASS  mhw check: the installed-state and admin sections report no problem\nPASS  mhw check exits 0 but for the required CLIs absent by construction here (claude, codex)\nPASS  mhw uninstall --yes exits 0\nPASS  uninstall restores every file the owner had (5; JSON as a document, the rest byte for byte)\nPASS  uninstall leaves no file of mhw in HOME (backups and empty documents aside)\nPASS  uninstall removes the admin layer from the throwaway root\nPASS  no floor rule is left in Claude Code settings\nPASS  npm uninstall -g mhw exits 0\n==> upgrade: 0 failure(s)\n",
+        "stderr": ""
+      },
+      {
+        "code": 1,
+        "stdout": "==> PROD install canary, fresh install (evidence level: installed, never enforced)\nPASS  npm install -g the head\nPASS  mhw install --yes (the head)\nFAIL  the installed package is the head <sha12:fx-old>\n      commit: <sha:fx-good>\nPASS  Claude Code user settings.json carries every floor rule (7)\nPASS  Claude Code: the rules mhw records as its floor are exactly the floor\nPASS  Claude Code: the owner's own deny rule is kept\nPASS  Codex user rules file equals the floor's 4 cmd entries\nPASS  Kiro user permissions.yaml equals the floor (5 shell, 1 fs_read, 1 fs_write)\nPASS  Kiro: the owner's own deny rule is kept\nPASS  Claude Code admin drop-in (throwaway root) equals the floor\nPASS  Codex admin requirements.toml (throwaway root) equals the floor\nPASS  Kiro admin managed-settings.json (throwaway root) equals the floor\nPASS  Kiro: the user-level hook file is rendered in the V3 shape\nPASS  Kiro: the hook file runs the installed core in kiro mode\nPASS  claude: exactly one installed prompt hook\nPASS  claude: the paste-wrapper marker is unset for the hook\nPASS  claude: the installed hook blocks a synthetic credential-shaped prompt\nPASS  claude: the installed hook passes a clean prompt\nPASS  claude: calibration, with the wrapper marker set the hook stays silent\nPASS  codex: exactly one installed prompt hook\nPASS  codex: the paste-wrapper marker is unset for the hook\nPASS  codex: the installed hook blocks a synthetic credential-shaped prompt\nPASS  codex: the installed hook passes a clean prompt\nPASS  codex: calibration, with the wrapper marker set the hook stays silent\nPASS  kiro: exactly one installed prompt hook\nPASS  kiro (marker unset): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro (marker set): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro: the installed hook passes a clean prompt\nPASS  mhw status exits 0\n      source fixture package\n      evidence installed\nPASS  mhw check: the installed-state and admin sections report no problem\nPASS  mhw check exits 0 but for the required CLIs absent by construction here (claude, codex)\nPASS  mhw uninstall --yes exits 0\nPASS  uninstall restores every file the owner had (5; JSON as a document, the rest byte for byte)\nPASS  uninstall leaves no file of mhw in HOME (backups and empty documents aside)\nPASS  uninstall removes the admin layer from the throwaway root\nPASS  no floor rule is left in Claude Code settings\nPASS  npm uninstall -g mhw exits 0\n==> fresh: 1 failure(s): the installed package is the head <sha12:fx-old>\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "==> PROD install canary, fresh install (evidence level: installed, never enforced)\nPASS  npm install -g the head\nPASS  mhw install --yes (the head)\nPASS  Claude Code user settings.json carries every floor rule (7)\nPASS  Claude Code: the rules mhw records as its floor are exactly the floor\nPASS  Claude Code: the owner's own deny rule is kept\nPASS  Codex user rules file equals the floor's 4 cmd entries\nPASS  Kiro user permissions.yaml equals the floor (5 shell, 1 fs_read, 1 fs_write)\nPASS  Kiro: the owner's own deny rule is kept\nPASS  Claude Code admin drop-in (throwaway root) equals the floor\nPASS  Codex admin requirements.toml (throwaway root) equals the floor\nPASS  Kiro admin managed-settings.json (throwaway root) equals the floor\nPASS  Kiro: the user-level hook file is rendered in the V3 shape\nPASS  Kiro: the hook file runs the installed core in kiro mode\nPASS  claude: exactly one installed prompt hook\nPASS  claude: the paste-wrapper marker is unset for the hook\nPASS  claude: the installed hook blocks a synthetic credential-shaped prompt\nPASS  claude: the installed hook passes a clean prompt\nPASS  claude: calibration, with the wrapper marker set the hook stays silent\nPASS  codex: exactly one installed prompt hook\nPASS  codex: the paste-wrapper marker is unset for the hook\nPASS  codex: the installed hook blocks a synthetic credential-shaped prompt\nPASS  codex: the installed hook passes a clean prompt\nPASS  codex: calibration, with the wrapper marker set the hook stays silent\nPASS  kiro: exactly one installed prompt hook\nPASS  kiro (marker unset): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro (marker set): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro: the installed hook passes a clean prompt\nPASS  mhw status exits 0\n      source fixture package\n      evidence installed\nPASS  mhw check: the installed-state and admin sections report no problem\nPASS  mhw check exits 0 but for the required CLIs absent by construction here (claude, codex)\nPASS  mhw uninstall --yes exits 0\nPASS  uninstall restores every file the owner had (5; JSON as a document, the rest byte for byte)\nPASS  uninstall leaves no file of mhw in HOME (backups and empty documents aside)\nPASS  uninstall removes the admin layer from the throwaway root\nPASS  no floor rule is left in Claude Code settings\nPASS  npm uninstall -g mhw exits 0\n==> fresh: 0 failure(s)\n",
+        "stderr": ""
+      }
+    ],
+    "tarballs": {}
+  },
+  "run-broken": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-broken.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 1,
+        "stdout": "==> PROD install canary, fresh install (evidence level: installed, never enforced)\nPASS  npm install -g the head\nPASS  mhw install --yes (the head)\nFAIL  Claude Code user settings.json carries every floor rule (7)\n      missing: ['Bash(terraform apply:*)']\nFAIL  Claude Code: the rules mhw records as its floor are exactly the floor\n      missing ['Bash(terraform apply:*)']; extra []\nPASS  Claude Code: the owner's own deny rule is kept\nFAIL  Codex user rules file equals the floor's 4 cmd entries\n      got 3 rules; first missing: [['terraform', 'apply']]\nFAIL  Kiro user permissions.yaml equals the floor (5 shell, 1 fs_read, 1 fs_write)\n      missing {'shell': ['terraform apply *'], 'fs_read': [], 'fs_write': []}\nPASS  Kiro: the owner's own deny rule is kept\nFAIL  Claude Code admin drop-in (throwaway root) equals the floor\n      missing ['Bash(terraform apply:*)']; extra []\nFAIL  Codex admin requirements.toml (throwaway root) equals the floor\n      got 3 prefix rules\nFAIL  Kiro admin managed-settings.json (throwaway root) equals the floor\nPASS  Kiro: the user-level hook file is rendered in the V3 shape\nFAIL  Kiro: the hook file runs the installed core in kiro mode\n      got ['/bin/sh -c \\'/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"<D>/fresh/tools/node\" \"<D>/fresh/fresh/prefix/lib/node_modules/mhw/bin/mhw.js\" hook prompt --harness kiro --config \"<D>/fresh/fresh/home/.local/share/personal-multi-harness-workstation-configuration/clipboard.conf\" || { [ $? -eq 2 ] && exit 2; printf \"%s\\\\n\" \"Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.\" >&2; exit 2; }\\' ']\nPASS  claude: exactly one installed prompt hook\nPASS  claude: the paste-wrapper marker is unset for the hook\nFAIL  claude: the installed hook blocks a synthetic credential-shaped prompt\n      exit 0, decision None, stderr \nPASS  claude: the installed hook passes a clean prompt\nPASS  claude: calibration, with the wrapper marker set the hook stays silent\nPASS  codex: exactly one installed prompt hook\nPASS  codex: the paste-wrapper marker is unset for the hook\nPASS  codex: the installed hook blocks a synthetic credential-shaped prompt\nPASS  codex: the installed hook passes a clean prompt\nPASS  codex: calibration, with the wrapper marker set the hook stays silent\nFAIL  kiro: exactly one installed prompt hook\n      found 0\nPASS  mhw status exits 0\n      source fixture package\n      evidence installed\nFAIL  mhw check: the installed-state and admin sections report no problem\n      DRIFT codex floor\nFAIL  mhw check exits 0 but for the required CLIs absent by construction here (claude, gnu-tool)\n      exit 1; required missing: ['claude', 'gnu-tool']\n\nPASS  mhw uninstall --yes exits 0\nPASS  uninstall restores every file the owner had (5; JSON as a document, the rest byte for byte)\nFAIL  uninstall leaves no file of mhw in HOME (backups and empty documents aside)\n      left: ['.mhw-leftover']\nFAIL  uninstall removes the admin layer from the throwaway root\n      left: ['etc/leftover.json']\nPASS  no floor rule is left in Claude Code settings\nPASS  npm uninstall -g mhw exits 0\n==> fresh: 14 failure(s): Claude Code user settings.json carries every floor rule (7); Claude Code: the rules mhw records as its floor are exactly the floor; Codex user rules file equals the floor's 4 cmd entries; Kiro user permissions.yaml equals the floor (5 shell, 1 fs_read, 1 fs_write); Claude Code admin drop-in (throwaway root) equals the floor; Codex admin requirements.toml (throwaway root) equals the floor; Kiro admin managed-settings.json (throwaway root) equals the floor; Kiro: the hook file runs the installed core in kiro mode; claude: the installed hook blocks a synthetic credential-shaped prompt; kiro: exactly one installed prompt hook; mhw check: the installed-state and admin sections report no problem; mhw check exits 0 but for the required CLIs absent by construction here (claude, gnu-tool); uninstall leaves no file of mhw in HOME (backups and empty documents aside); uninstall removes the admin layer from the throwaway root\n",
+        "stderr": ""
+      }
+    ],
+    "tarballs": {}
+  },
+  "run-floor-mismatch": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-good.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-old.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 1,
+        "stdout": "==> PROD install canary, fresh install (evidence level: installed, never enforced)\nPASS  npm install -g the head\nPASS  mhw install --yes (the head)\nFAIL  Claude Code user settings.json carries every floor rule (7)\n      missing: ['Bash(git reset --hard:*)']\nFAIL  Claude Code: the rules mhw records as its floor are exactly the floor\n      missing ['Bash(git reset --hard:*)']; extra []\nPASS  Claude Code: the owner's own deny rule is kept\nFAIL  Codex user rules file equals the floor's 4 cmd entries\n      got 3 rules; first missing: [['git', 'reset', '--hard']]\nFAIL  Kiro user permissions.yaml equals the floor (5 shell, 1 fs_read, 1 fs_write)\n      missing {'shell': ['git reset --hard *'], 'fs_read': [], 'fs_write': []}\nPASS  Kiro: the owner's own deny rule is kept\nFAIL  Claude Code admin drop-in (throwaway root) equals the floor\n      missing ['Bash(git reset --hard:*)']; extra []\nFAIL  Codex admin requirements.toml (throwaway root) equals the floor\n      got 3 prefix rules\nFAIL  Kiro admin managed-settings.json (throwaway root) equals the floor\nPASS  Kiro: the user-level hook file is rendered in the V3 shape\nPASS  Kiro: the hook file runs the installed core in kiro mode\nPASS  claude: exactly one installed prompt hook\nPASS  claude: the paste-wrapper marker is unset for the hook\nPASS  claude: the installed hook blocks a synthetic credential-shaped prompt\nPASS  claude: the installed hook passes a clean prompt\nPASS  claude: calibration, with the wrapper marker set the hook stays silent\nPASS  codex: exactly one installed prompt hook\nPASS  codex: the paste-wrapper marker is unset for the hook\nPASS  codex: the installed hook blocks a synthetic credential-shaped prompt\nPASS  codex: the installed hook passes a clean prompt\nPASS  codex: calibration, with the wrapper marker set the hook stays silent\nPASS  kiro: exactly one installed prompt hook\nPASS  kiro (marker unset): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro (marker set): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout\nPASS  kiro: the installed hook passes a clean prompt\nPASS  mhw status exits 0\n      source fixture package\n      evidence installed\nPASS  mhw check: the installed-state and admin sections report no problem\nPASS  mhw check exits 0 but for the required CLIs absent by construction here (claude, codex)\nPASS  mhw uninstall --yes exits 0\nPASS  uninstall restores every file the owner had (5; JSON as a document, the rest byte for byte)\nPASS  uninstall leaves no file of mhw in HOME (backups and empty documents aside)\nPASS  uninstall removes the admin layer from the throwaway root\nPASS  no floor rule is left in Claude Code settings\nPASS  npm uninstall -g mhw exits 0\n==> fresh: 7 failure(s): Claude Code user settings.json carries every floor rule (7); Claude Code: the rules mhw records as its floor are exactly the floor; Codex user rules file equals the floor's 4 cmd entries; Kiro user permissions.yaml equals the floor (5 shell, 1 fs_read, 1 fs_write); Claude Code admin drop-in (throwaway root) equals the floor; Codex admin requirements.toml (throwaway root) equals the floor; Kiro admin managed-settings.json (throwaway root) equals the floor\n",
+        "stderr": ""
+      }
+    ],
+    "tarballs": {}
+  },
+  "run-install-fails": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-HEAD.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 1,
+        "stdout": "==> PROD install canary, fresh install (evidence level: installed, never enforced)\nPASS  npm install -g the head\nFAIL  mhw install --yes (the head)\n      exit 1\ninstall: a synthetic failure\n\n",
+        "stderr": ""
+      },
+      {
+        "code": 1,
+        "stdout": "==> PROD install canary, upgrade install (evidence level: installed, never enforced)\nFAIL  npm install -g the latest published tag\n      npm warn tar TAR_BAD_ARCHIVE: Unrecognized archive format\nnpm error code TAR_BAD_ARCHIVE\nnpm error TAR_BAD_ARCHIVE: Unrecognized archive format\nnpm error A complete log of this run can be found in: <NPMLOG>\n\n",
+        "stderr": ""
+      }
+    ],
+    "tarballs": {}
+  },
+  "run-refusals": {
+    "steps": [
+      {
+        "code": 0,
+        "stdout": "<D>/pkg/mhw-good.tgz\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "ERROR <D>/busy is not empty; give a fresh work directory\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "ERROR unreadable deny-floor entry in global/deny-floor.conf: cmd rm $(boom)\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "ERROR unreadable deny-floor entry in global/deny-floor.conf: cmd\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "ERROR global/deny-floor.conf resolves outside the source tree\n",
+        "stderr": ""
+      },
+      {
+        "code": 2,
+        "stdout": "ERROR no deny-floor entry under <D>/empty\n",
+        "stderr": ""
+      }
+    ],
+    "tarballs": {}
+  },
+  "usage": {
+    "steps": [
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "usage: prod_canary.py [-h] {pack,run} ...\nprod_canary.py: error: the following arguments are required: cmd\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "usage: prod_canary.py [-h] {pack,run} ...\nprod_canary.py: error: argument cmd: invalid choice: 'deploy' (choose from 'pack', 'run')\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "usage: prod_canary.py pack [-h] --ref REF --out OUT [--name NAME]\nprod_canary.py pack: error: the following arguments are required: --ref\n"
+      },
+      {
+        "code": 2,
+        "stdout": "",
+        "stderr": "usage: prod_canary.py run [-h] --source SOURCE --tgz TGZ [--from-tgz FROM_TGZ]\n                          --work WORK [--commit COMMIT]\nprod_canary.py run: error: the following arguments are required: --tgz\n"
+      }
+    ],
+    "tarballs": {}
+  }
+}

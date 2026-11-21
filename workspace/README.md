@@ -109,7 +109,9 @@ each slice and the release candidate, must also pass the `tests` job
 requires (the owner chose every PR over the release candidate only, 2026-11-07). It installs the npm
 package packed from the exact head as GitHub serves a tag, fresh and as an upgrade from the latest
 published tag, in a clean digest-pinned container on Linux and in a throwaway HOME on macOS, and runs
-the canary in `.github/scripts/prod_canary.py`: the deny floor in the three user carriers and the admin
+the canary in `.github/scripts/prod-canary.js` (Node since #501): the installed package carries no
+`.py`, `.sh` or `.ps1` file but the ones a later slice of #470 still retires (the job's `CANARY_LEGACY`,
+each of which must still be carried); the deny floor in the three user carriers and the admin
 layer (in a throwaway root) equals `global/deny-floor.conf` plus the overlay's; the installed prompt
 hook blocks a synthetic credential and passes a clean prompt with the paste-wrapper marker unset;
 `mhw status` exits 0 and `mhw check` exits 0 but for the required agent harness CLIs and `gh`, which a
@@ -121,8 +123,9 @@ real `/Library` or `/etc` admin layer, the Keychain, the shell start-up in a rea
 fresh-session canary in each agent harness. It is the regression evidence for the owner's install
 (ADR-0015, 2026-11-08 amendment, ~~proposed~~ accepted 2026-11-18,
 [ruling](https://github.com/tedeuxx/mhw/issues/24#issuecomment-6978107613)), not the full ADR-0015 lock: there is no STG and no security
-evidence. Run it locally the same way: `python3 -B .github/scripts/prod_canary.py pack`, then `run`
-against a throwaway work directory, or `.github/scripts/prod-canary-container.sh` with podman or docker.
+evidence. Run it locally the same way: `node .github/scripts/prod-canary.js pack`, then `run`
+against a throwaway work directory, or `node .github/scripts/prod-canary.js container` with podman or
+docker (`CONTAINER_RUNTIME`).
 
 ## Releasing the candidate (the owner's go)
 

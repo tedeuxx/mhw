@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S31 golden transcripts were recorded from (the base revision's .github/scripts/prod_canary.py on the fixture repository of test/helpers/s31.js, macOS, npm 11.13.0 of Node 26.13.1). The live arm compares only on this version, as the S29 and S30 arms do."
+}
