@@ -72,6 +72,11 @@
         "src/commands/delivery.js",
         "test/delivery/**",
         "test/helpers/delivery-*.js",
+        ".github/scripts/prod-canary.js",
+        "test/ci/prod-canary*.test.js",
+        "test/helpers/s31*.js",
+        "test/helpers/s31-fixture/**",
+        "test/golden/S31/**",
         ".kiro/**",
         ".workstation-version"
       ],

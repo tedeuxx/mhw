@@ -1,0 +1,15 @@
+{
+  "name": "mhw",
+  "version": "0.0.1",
+  "description": "S31 fixture (#501): a fake mhw the prod canary installs and checks. Synthetic; not mhw.",
+  "bin": {
+    "mhw": "bin/mhw.js"
+  },
+  "files": [
+    "bin/",
+    "global/",
+    "overlay/",
+    "variant.json",
+    ".workstation-archive"
+  ]
+}
