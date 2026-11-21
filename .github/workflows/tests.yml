@@ -69,8 +69,7 @@ jobs:
             global/workstation.py global/workstation_test.py \
             .github/scripts/prod_canary.py \
             test/helpers/s15-record.py test/helpers/s17-record.py test/helpers/s23-prose.py \
-            global/npm_package_test.py \
-            .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py
+            global/npm_package_test.py
       - name: node syntax check of the npm launcher and postinstall (Issue #68)
         run: |
           node --version
@@ -339,6 +338,29 @@ jobs:
             exit 0
           fi
           echo "$out" | grep -E "^ *ok [0-9]+ - live: the Python original and the Node command" | grep -vq SKIP
+      # #500 (S30 of #470): the live arm of test/ci/method-issue-sync-golden.test.js runs the base revision's
+      # method_issue_sync.py with its own suite's Python stub gh beside .github/scripts/method-issue-sync.js
+      # with the JavaScript stub, on every case, on the same CPython. MHW_S30_LIVE_REQUIRED=1 turns a skip
+      # into a failure while the base still holds method_issue_sync.py; once it does not (this slice has
+      # merged), the step says the arm retired and passes, as the S14 step does (#534). A missing base fails.
+      # The golden arm runs in npm test on macOS and Linux (the stub gh is a POSIX executable).
+      - name: S30 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S30_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/ci/method-issue-sync-golden.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          if ! git cat-file -e "$base:.github/scripts/method_issue_sync.py" 2>/dev/null; then
+            echo "S30 live arm retired: base $base no longer holds .github/scripts/method_issue_sync.py"
+            exit 0
+          fi
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: the original" | grep -vq SKIP
 
       # #491 (S20 of #470): the live arm of test/render/settings-merge-golden.test.js runs the base revision's
       # merge_settings, uninstall_user and report_floor (jq programs) beside the head's, which run
@@ -556,8 +578,10 @@ jobs:
       # Issue #89: the prerequisites section of mhw check is Node since #494 (S23 of #470); its suite,
       # test/check/prerequisites.test.js (fake tool shims, a stub gh, a loopback stand-in for SonarCloud and
       # HCP Terraform; no network, no account), runs in the node job (npm test).
-      # Issue #62, ADR-0032 2026-10-12 amendment: the method backlog sync. The workflow's structure (parsed
-      # with the runner's ruby) and the agent's only route to GitHub, against a stub gh on PATH; no network.
+      # Issue #62, ADR-0032 2026-10-12 amendment: the method backlog sync. Its suite is node:test since #500
+      # (S30 of #470): test/ci/method-issue-sync.test.js (the workflow's structure, parsed with the runner's
+      # ruby, and the agent's only route to GitHub, .github/scripts/method-issue-sync.js, against a stub gh
+      # on PATH; no network) and its goldens, in the node job (npm test) and its S30 live step.
       # #170: the scripts the moved rites run, with their own suites (moved from the plugin with them).
       # #128: the rite-cadence dater of session check 3, in throwaway git repositories.
       # #475: the milestone routes are Node now; their suite runs in the node job (npm test).
@@ -565,10 +589,6 @@ jobs:
       # #477: so is rite-cadence (mhw rite-cadence, test/method/rite-cadence.test.js).
       # #478: and mhw funnel-review (test/method/funnel-review.test.js and the S07 goldens). With both moved,
       # the method scripts step had nothing left to run and was removed.
-      - name: method issue sync suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: python3 -B .github/scripts/method_issue_sync_test.py
       # ADR-0011, the paste filter: its prompt hook is Node since #488 (S17 of #470), src/commands/hook-prompt.js;
       # its suites, test/clipboard/hook.test.js and hook-golden.test.js, run in the node job on all three
       # OSes, and their live arms in that job's S17 step. The salt is a file since #488 (owner ruling,
@@ -585,7 +605,7 @@ jobs:
 
   # Issue #62: method-issue-sync.yml's subprocess isolation recipe (bubblewrap, socat, the AppArmor
   # user-namespace sysctl, and an unprivileged-namespace smoke test), run on ubuntu-latest so a PR measures
-  # it without a trip to main. method_issue_sync_test.py keeps this script identical to the workflow's.
+  # it without a trip to main. test/ci/method-issue-sync.test.js keeps this script identical to the workflow's.
   isolation-smoke:
     runs-on: ubuntu-latest
     permissions: {}
