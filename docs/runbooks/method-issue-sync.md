@@ -129,7 +129,8 @@ Not mirrored:
   denies the sibling `method-sync-input`, a `../` traversal into it and the cwd, without `--add-dir`.
   Since #500 the rule is `Edit(//<runner.temp>/method-sync/*.md)`, and the job writes
   `method-sync/package.json` (`{"type":"module"}`) first, so node refuses to run a body file named through
-  the script's path (ADR-0032, the 2026-11-21 amendment). The `*.md` form is not measured on any build.
+  the script's path (ADR-0032, the 2026-11-21 amendment). The `*.md` form was measured by the agents-lead
+  lens on Claude Code 2.1.296 and 2.1.330, not on the runner.
 - **Canary 4 2026-10-12: passed.** On v5.5.3 (carrying #167), mhw#162: run 38324740491 created
   tadeumendonca-skills#564, authored by `app/tedeuxx-mhw-mirror` (so `TWIN_AUTHOR` is confirmed),
   `verify` passed (OPEN) and the back-link was posted by `github-actions`; closing mhw#162 started run
@@ -163,8 +164,9 @@ was not checked for this runbook).
 
 - The mhw Issue's text is treated as data, not instructions; the prompt says so, because whoever can
   edit the Issue controls that text. That is an instruction to a model, not a guarantee.
-- The agent has one shell route, `node .github/scripts/method-issue-sync.js` (Node since #500: its allow
-  rule is exactly that prefix, and no rule on `node` itself exists), and no file-reading tools. The
+- The agent has one shell route, the executable `.github/scripts/method-issue-sync` (Node since #500: its
+  allow rule is exactly `Bash(.github/scripts/method-issue-sync:*)`, no rule names `node`, and a path
+  through it, `<it>/../<file>`, fails with ENOTDIR in the kernel), and no file-reading tools. The
   script writes only to the twin (found by the marker), refuses a body file outside the run's scratch
   directory, refuses a body or title shaped like a credential, and mirrors state only in the direction
   the mhw Issue is in. It also refuses a title or body containing any 12-character run of a token the

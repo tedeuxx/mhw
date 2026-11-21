@@ -22,7 +22,9 @@ import { GOOD_BODY } from '../helpers/s30-cases.js';
 const WORKFLOW = path.join(ROOT, '.github', 'workflows', 'method-issue-sync.yml');
 const TESTS_WORKFLOW = path.join(ROOT, '.github', 'workflows', 'tests.yml');
 const ISOLATION_INSTALL = 'sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends bubblewrap socat';
-const RUN = 'node .github/scripts/method-issue-sync.js';
+// The agent's shell is an executable file run by path (QA B4 on PR #541), never `node <script>`.
+const RUN = '.github/scripts/method-issue-sync';
+const LAUNCHER = path.join(ROOT, '.github', 'scripts', 'method-issue-sync');
 const PIN_CHECKOUT = 'actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803';
 const PIN_APP_TOKEN = 'actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1';
 const PIN_CLAUDE = 'anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc';
@@ -33,7 +35,7 @@ const SECRETS = ['MHW_MIRROR_APP_ID', 'MHW_MIRROR_APP_PRIVATE_KEY', 'CLAUDE_CODE
 // an Edit rule, which Claude Code matches Write against (measured locally, 2.1.296). The Edit rule reaches
 // *.md files directly in the body directory and nothing else: the second barrier (PR #541 lens), with the
 // workflow's package.json, against `node <script>/../../../../<dir>/<file>`.
-const ALLOWED_TOOLS = 'Bash(node .github/scripts/method-issue-sync.js:*),Edit(/${{ runner.temp }}/method-sync/*.md)';
+const ALLOWED_TOOLS = 'Bash(.github/scripts/method-issue-sync:*),Edit(/${{ runner.temp }}/method-sync/*.md)';
 // The core of the rule Claude Code 2.1.296 (the version the pinned action installs) uses to drop
 // secret-shaped env names from subprocesses under CLAUDE_CODE_SUBPROCESS_ENV_SCRUB, copied from its
 // bundle (read, not measured). A name the agent's script needs must not match it.
@@ -270,9 +272,10 @@ describe('the workflow', { skip: NO_RUBY }, () => {
   test('no other node or Bash rule exists anywhere in the workflow', () => {
     load();
     const rules = [...text.matchAll(/Bash\([^)]*\)/g)].map((m) => m[0]);
-    assert.deepEqual(rules, ['Bash(node .github/scripts/method-issue-sync.js:*)']);
-    // A rule on node itself, in either spelling Claude Code reads, would let the agent run any code.
-    assert.doesNotMatch(text, /Bash\(node(:\*| \*|\*)\)/);
+    assert.deepEqual(rules, ['Bash(.github/scripts/method-issue-sync:*)']);
+    // No rule names node at all: `node <script>.js/../<file>` runs <file>, and node takes flags.
+    assert.doesNotMatch(text, /Bash\(node/);
+    assert.doesNotMatch(text, /(^|\s)node \.github\/scripts\//m, 'no step runs the script through node');
     assert.doesNotMatch(text, /Bash\(\*?\)/);
   });
 
@@ -284,8 +287,8 @@ describe('the workflow', { skip: NO_RUBY }, () => {
     for (const r of runs) {
       const lines = r.split('\n').filter((l) => l.includes('.github/scripts/'));
       for (const line of lines) {
-        const m = /(?:^|\s)node \.github\/scripts\/method-issue-sync\.js ([a-z-]+)/.exec(line);
-        assert.ok(m, 'a script line runs the Node script: ' + line);
+        const m = /(?:^|\s)\.github\/scripts\/method-issue-sync ([a-z-]+)/.exec(line);
+        assert.ok(m, 'a script line runs the executable: ' + line);
         assert.ok(COMMAND_NAMES.includes(m[1]), m[1]);
       }
     }
@@ -312,6 +315,11 @@ describe('the workflow', { skip: NO_RUBY }, () => {
       assert.equal(steps[node].with['node-version'], '26.13.1');
       const first = steps.findIndex((/** @type {Obj} */ s) => String(s.run || '').includes(RUN));
       assert.ok(node < first, 'node is set up before the script first runs');
+      // The shebang's `env node` must find that node: the next step fails the job otherwise.
+      const check = steps[node + 1];
+      assert.equal(check.name, "The node the shebang finds is setup-node's");
+      assert.deepEqual(check.run.split('\n').map((/** @type {string} */ l) => l.trim()).filter(Boolean), ['command -v node', '[ "$(node --version)" = v26.13.1 ]']);
+      assert.ok(!('if' in check) && !('continue-on-error' in check));
     }
     const tests = fs.readFileSync(TESTS_WORKFLOW, 'utf8');
     assert.ok(tests.includes('node-version: 26.13.1'), 'the same node as the node job');
@@ -477,6 +485,62 @@ test('the script imports only node: modules and src/lib files the sparse checkou
     assert.doesNotMatch(src, /\bimport\(/, file + ' has a dynamic import');
   }
   assert.ok(seen.size >= 3);
+});
+
+// QA B4 on PR #541: the barrier Python had, in the kernel. The agent's rule names an executable regular file,
+// so any path that names it and then leaves it fails with ENOTDIR before a program starts, while
+// `node <script>.js/../<file>` runs <file> (the calibration, on files already on the runner, such as a
+// toolcache .js, which no write rule can keep out).
+describe('the executable the agent runs', { skip: !POSIX && 'POSIX executables' }, () => {
+  /** @type {string} */
+  let dir;
+  beforeEach(() => {
+    dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 's30-kernel-')));
+    fs.writeFileSync(path.join(dir, 't.js'), 'console.log("RAN-T")\n');
+  });
+  afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+  /** @param {string} base */
+  const through = (base) => base + '/..'.repeat(base.split('/').filter(Boolean).length) + dir + '/t.js';
+
+  test('it is a regular file, 0755 on disk and 100755 in git, with the env node shebang, and it runs main', () => {
+    const st = fs.lstatSync(LAUNCHER);
+    assert.ok(st.isFile() && !st.isSymbolicLink());
+    assert.equal(st.mode & 0o777, 0o755);
+    const git = which('git');
+    if (git) {
+      const p = spawnSync(git, ['-C', ROOT, 'ls-files', '-s', '--', '.github/scripts/method-issue-sync'], { encoding: 'utf8' });
+      assert.match(p.stdout, /^100755 /, 'the index carries the executable bit');
+    }
+    const src = fs.readFileSync(LAUNCHER, 'utf8');
+    assert.ok(src.startsWith('#!/usr/bin/env node\n'));
+    assert.match(src, /^import \{ main \} from '\.\/method-issue-sync\.js';$/m);
+    const p = spawnSync(LAUNCHER, [], { cwd: ROOT, encoding: 'utf8' });
+    assert.equal(p.status, 2);
+    assert.ok(p.stderr.startsWith('usage: method-issue-sync.js COMMAND [ARGS]\n'));
+  });
+
+  test('calibration: node <script>.js/../<file> runs a .js file already on disk', () => {
+    const p = spawnSync(process.execPath, [through(SCRIPT)], { cwd: ROOT, encoding: 'utf8' });
+    assert.equal(p.stdout, 'RAN-T\n', 'the old form must run it, or the refusal below proves nothing');
+  });
+
+  test('<executable>/../<file> fails with ENOTDIR and runs nothing, directly and through a shell', () => {
+    const direct = spawnSync(through(LAUNCHER), [], { cwd: ROOT, encoding: 'utf8' });
+    assert.equal(/** @type {NodeJS.ErrnoException} */ (direct.error)?.code, 'ENOTDIR');
+    assert.ok(!String(direct.stdout || '').includes('RAN-T'));
+    const sh = spawnSync('/bin/sh', ['-c', '"$0"', through(LAUNCHER)], { cwd: ROOT, encoding: 'utf8' });
+    assert.notEqual(sh.status, 0);
+    assert.ok(!sh.stdout.includes('RAN-T'));
+    assert.match(sh.stderr, /not a directory/i);
+  });
+
+  test('the executable answers as the module does', () => {
+    for (const args of [['final-line', path.join(dir, 'absent.json')], ['verify', 'x'], ['nope']]) {
+      const a = spawnSync(LAUNCHER, args, { cwd: ROOT, encoding: 'utf8', env: { PATH: process.env.PATH || '', MHW_ISSUE: '7' } });
+      const b = spawnSync(process.execPath, [SCRIPT, ...args], { cwd: ROOT, encoding: 'utf8', env: { PATH: process.env.PATH || '', MHW_ISSUE: '7' } });
+      assert.deepEqual([a.status, a.stdout, a.stderr], [b.status, b.stdout, b.stderr], args.join(' '));
+    }
+  });
 });
 
 // Measured on the node that runs this suite (the workflow's node is the same version, 26.13.1): what the

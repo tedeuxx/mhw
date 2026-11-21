@@ -48,6 +48,7 @@
         "test/helpers/method-home.js",
         "test/helpers/s18-cases.js",
         "test/golden/S18/**",
+        ".github/scripts/method-issue-sync",
         ".github/scripts/method-issue-sync.js",
         ".github/workflows/method-issue-sync.yml",
         "test/ci/method-issue-sync*.test.js",
