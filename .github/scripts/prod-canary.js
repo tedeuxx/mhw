@@ -220,7 +220,7 @@ function paxRecords(data) {
     const sp = data.indexOf(0x20, i);
     if (sp < 0) break;
     const len = Number.parseInt(data.subarray(i, sp).toString('utf8'), 10);
-    if (!(len > 0)) break;
+    if (!Number.isFinite(len) || len <= 0) break;
     const line = data.subarray(sp + 1, i + len - 1).toString('utf8');
     const eq = line.indexOf('=');
     if (eq > 0) rec[line.slice(0, eq)] = line.slice(eq + 1);
@@ -273,30 +273,37 @@ export function readTar(buf) {
  * @param {string} dest an existing, empty, resolved directory
  */
 export function extractData(members, dest) {
+  /** @param {string} p */
+  const inside = (p) => p === dest || p.startsWith(dest + path.sep);
   for (const m of members) {
-    const name = m.name.replace(/^\/+/, '');
-    const target = path.resolve(dest, name);
-    if (target !== dest && !target.startsWith(dest + path.sep)) die('git archive: ' + pyRepr(m.name) + ' would be extracted outside the destination');
-    if (m.type === 'dir') {
-      fs.mkdirSync(target, { recursive: true });
-      continue;
-    }
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    if (m.type === 'symlink') {
-      const to = path.resolve(path.dirname(target), m.linkname);
-      if (path.isAbsolute(m.linkname) || (to !== dest && !to.startsWith(dest + path.sep))) {
+    const target = path.resolve(dest, m.name.replace(/^\/+/, ''));
+    if (!inside(target)) die('git archive: ' + pyRepr(m.name) + ' would be extracted outside the destination');
+    if (m.type === 'dir') fs.mkdirSync(target, { recursive: true });
+    else if (m.type === 'symlink') {
+      if (path.isAbsolute(m.linkname) || !inside(path.resolve(path.dirname(target), m.linkname))) {
         die('git archive: ' + pyRepr(m.name) + ' is a link out of the destination');
       }
+      fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.symlinkSync(m.linkname, target);
-      continue;
-    }
-    if (m.type !== 'file') die('git archive: ' + pyRepr(m.name) + ' is not a regular file, a directory or a symbolic link');
-    let mode = m.mode & 0o755;
-    if (!(mode & 0o100)) mode &= ~0o111;
-    mode |= 0o600;
-    fs.writeFileSync(target, m.data);
-    fs.chmodSync(target, mode);
+    } else if (m.type === 'file') {
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, m.data);
+      fs.chmodSync(target, dataMode(m.mode));
+    } else die('git archive: ' + pyRepr(m.name) + ' is not a regular file, a directory or a symbolic link');
   }
+}
+
+/** The data filter's mode for a regular file. @param {number} raw */
+function dataMode(raw) {
+  let mode = raw & 0o755;
+  if (!(mode & 0o100)) mode &= ~0o111;
+  return mode | 0o600;
+}
+
+/** set.add into the set stored under key, creating it. @param {Record<string, Set<string>>} sets @param {string} key @param {string} value */
+function addTo(sets, key, value) {
+  if (!sets[key]) sets[key] = new Set();
+  sets[key].add(value);
 }
 
 // --- pack ------------------------------------------------------------------------------------------------
@@ -333,7 +340,7 @@ function cmdPack(a) {
   const p = runText(npm, ['pack', '--pack-destination', outDir, '--cache', path.join(outDir, 'npm-cache')], { cwd: src });
   if (p.returncode) die('npm pack: ' + p.stdout + p.stderr);
   const lines = splitLines(pyStrip(p.stdout));
-  const tgz = path.join(outDir, lines[lines.length - 1]);
+  const tgz = path.join(outDir, String(lines.at(-1)));
   const named = path.join(outDir, 'mhw-' + name + '.tgz');
   fs.renameSync(tgz, named);
   out(named);
@@ -471,7 +478,7 @@ function kiroYaml(p) {
       continue;
     }
     if (s.startsWith('- "') && s.endsWith('"') && s.length >= 4 && inMatch && cap && effect === 'deny') {
-      (res[cap] ??= new Set()).add(String(JSON.parse(s.slice(2))));
+      addTo(res, cap, String(JSON.parse(s.slice(2))));
     }
   }
   return res;
@@ -484,7 +491,7 @@ function kiroManaged(p) {
   for (const r of /** @type {unknown[]} */ (get(readJson(p), 'rules', []))) {
     if (get(r, 'effect', null) === 'deny') {
       const cap = String(/** @type {Record<string, unknown>} */ (r).capability);
-      for (const x of strings(get(r, 'match', []))) (res[cap] ??= new Set()).add(x);
+      for (const x of strings(get(r, 'match', []))) addTo(res, cap, x);
     }
   }
   return res;
@@ -657,23 +664,24 @@ function checkPackage(box, legacy) {
  * @param {string} inner
  */
 export function kiroHookCommand(inner) {
-  return "/bin/sh -c '" + inner + ' || { [ $? -eq 2 ] && exit 2; printf "%s\\n" "' + KIRO_NOTICE + "\" >&2; exit 2; }'";
+  return "/bin/sh -c '" + inner + ' || { [ $? -eq 2 ] && exit 2; printf "' + String.raw`%s\n` + '" "' + KIRO_NOTICE + "\" >&2; exit 2; }'";
 }
 
-/**
- * @param {Box} box
- * @param {Expected} exp
- * @returns {Record<string, string[]>}
- */
-function checkFloor(box, exp) {
+/** "missing [...]; extra [...]" between two sets, ten of each at most. @param {Set<string>} want @param {Set<string>} got */
+const missingExtra = (want, got) => 'missing ' + pyRepr(sorted(minus(want, got)).slice(0, 10)) + '; extra ' + pyRepr(sorted(minus(got, want)).slice(0, 10));
+
+/** @param {unknown} doc a settings document @returns {Set<string>} its permissions.deny */
+const denyOf = (doc) => new Set(strings(get(get(doc, 'permissions', {}), 'deny', [])));
+
+/** 1, user level: the three carriers in HOME. @param {Box} box @param {Expected} exp */
+function checkUserCarriers(box, exp) {
   const { claude, codex, kiro } = exp;
   const s = readJson(path.join(box.home, CLAUDE_SETTINGS));
-  const deny = new Set(strings(get(get(s, 'permissions', {}), 'deny', [])));
+  const deny = denyOf(s);
   const owned = new Set(strings(get(s, NAME + '-owned-deny', [])));
   check([...claude].every((x) => deny.has(x)), 'Claude Code user settings.json carries every floor rule (' + claude.size + ')',
     'missing: ' + pyRepr(sorted(minus(claude, deny)).slice(0, 10)));
-  check(sameSet(owned, claude), 'Claude Code: the rules mhw records as its floor are exactly the floor',
-    'missing ' + pyRepr(sorted(minus(claude, owned)).slice(0, 10)) + '; extra ' + pyRepr(sorted(minus(owned, claude)).slice(0, 10)));
+  check(sameSet(owned, claude), 'Claude Code: the rules mhw records as its floor are exactly the floor', missingExtra(claude, owned));
   check(deny.has(OWNER_DENY), "Claude Code: the owner's own deny rule is kept");
   const rules = path.join(box.home, '.codex', 'rules', 'workstation-deny-floor.rules');
   const got = isFile(rules) ? codexRules(rules) : [];
@@ -681,20 +689,31 @@ function checkFloor(box, exp) {
   check(JSON.stringify(got) === JSON.stringify(codex), "Codex user rules file equals the floor's " + codex.length + ' cmd entries',
     'got ' + got.length + ' rules; first missing: ' + pyRepr(codex.filter((c) => !has(got, c)).slice(0, 5)));
   const k = kiroYaml(path.join(box.home, '.kiro', 'settings', 'permissions.yaml'));
-  const caps = /** @type {Array<'shell' | 'fs_read' | 'fs_write'>} */ (Object.keys(kiro));
+  const caps = capsOf(kiro);
   const kmine = Object.fromEntries(caps.map((c) => [c, minus(k[c] ?? new Set(), new Set([OWNER_KIRO]))]));
   check(caps.every((c) => sameSet(kmine[c], kiro[c])), 'Kiro user permissions.yaml equals the floor (' + kiro.shell.size + ' shell, '
     + kiro.fs_read.size + ' fs_read, ' + kiro.fs_write.size + ' fs_write)',
     'missing ' + pyRepr(Object.fromEntries(caps.map((c) => [c, sorted(minus(kiro[c], kmine[c])).slice(0, 5)]))));
   check((k.shell ?? new Set()).has(OWNER_KIRO), "Kiro: the owner's own deny rule is kept");
-  // The admin layer, rendered into the throwaway root (never /Library or /etc here).
+}
+
+/** @param {Expected['kiro']} kiro */
+const capsOf = (kiro) => /** @type {Array<'shell' | 'fs_read' | 'fs_write'>} */ (Object.keys(kiro));
+
+/**
+ * 1, admin level: the three documents under the throwaway root (never /Library or /etc here), and the
+ * Claude Code and Codex prompt hook commands they name.
+ * @param {Box} box @param {Expected} exp
+ * @returns {Record<string, string[]>}
+ */
+function checkAdmin(box, exp) {
+  const { claude, codex, kiro } = exp;
   /** @type {Record<string, string[]>} */
   const hooks = {};
   const drop = one(rglob(box.root, 'managed-settings.d/50-' + NAME + '.json'), 'Claude Code admin drop-in');
   if (drop) {
-    const md = new Set(strings(get(get(readJson(drop), 'permissions', {}), 'deny', [])));
-    check(sameSet(md, claude), 'Claude Code admin drop-in (throwaway root) equals the floor',
-      'missing ' + pyRepr(sorted(minus(claude, md)).slice(0, 10)) + '; extra ' + pyRepr(sorted(minus(md, claude)).slice(0, 10)));
+    const md = denyOf(readJson(drop));
+    check(sameSet(md, claude), 'Claude Code admin drop-in (throwaway root) equals the floor', missingExtra(claude, md));
   }
   const req = one(rglob(box.root, 'codex/requirements.toml'), 'Codex admin requirements.toml');
   if (req) {
@@ -708,17 +727,31 @@ function checkFloor(box, exp) {
     'Kiro admin managed-settings.json');
   if (km) {
     const g = kiroManaged(km);
-    check(caps.every((c) => sameSet(g[c] ?? new Set(), kiro[c])), 'Kiro admin managed-settings.json (throwaway root) equals the floor');
+    check(capsOf(kiro).every((c) => sameSet(g[c] ?? new Set(), kiro[c])), 'Kiro admin managed-settings.json (throwaway root) equals the floor');
   }
-  if (drop) {
-    hooks.claude = [];
-    for (const e of /** @type {unknown[]} */ (get(get(readJson(drop), 'hooks', {}), 'UserPromptSubmit', []))) {
-      for (const h of /** @type {unknown[]} */ (get(e, 'hooks', []))) {
-        if (get(h, 'type', null) === 'command') hooks.claude.push(String(/** @type {Record<string, unknown>} */ (h).command));
-      }
+  if (drop) hooks.claude = claudeHooks(readJson(drop));
+  return hooks;
+}
+
+/** The command hooks of a Claude Code settings document's UserPromptSubmit. @param {unknown} doc */
+function claudeHooks(doc) {
+  /** @type {string[]} */
+  const out = [];
+  for (const e of /** @type {unknown[]} */ (get(get(doc, 'hooks', {}), 'UserPromptSubmit', []))) {
+    for (const h of /** @type {unknown[]} */ (get(e, 'hooks', []))) {
+      if (get(h, 'type', null) === 'command') out.push(String(/** @type {Record<string, unknown>} */ (h).command));
     }
   }
-  // Kiro CLI V3's hook file (Issue #455): user level, the V3 shape read from the kas 2.35.2 bundle.
+  return out;
+}
+
+/**
+ * Kiro CLI V3's hook file (Issue #455): user level, the V3 shape read from the kas 2.35.2 bundle. Returns
+ * the one command to run, which is the expected string, never one read from the file.
+ * @param {Box} box
+ * @returns {string[]}
+ */
+function checkKiroHookFile(box) {
   const kh = path.join(box.home, '.kiro', 'hooks', NAME + '-paste-filter.json');
   const kdoc = isFile(kh) ? readJson(kh) : {};
   const kentries = /** @type {unknown[]} */ (Array.isArray(get(kdoc, 'hooks', null)) ? get(kdoc, 'hooks', []) : []);
@@ -737,11 +770,79 @@ function checkFloor(box, exp) {
   const inner = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + node + '" "' + mhwJs
     + '" hook prompt --harness kiro --config "' + path.join(data, 'clipboard.conf') + '"';
   const want = kiroHookCommand(inner);
-  const commands = kentries.filter((e) => isDict(get(e, 'action', null))
-    && get(get(e, 'action', null), 'type', null) === 'command').map((e) => get(get(e, 'action', null), 'command', null));
-  check(commands.length === 1 && commands[0] === want, 'Kiro: the hook file runs the installed core in kiro mode', 'got ' + pyRepr(commands.slice(0, 2)));
-  hooks.kiro = commands.length === 1 && commands[0] === want ? [want] : [];
+  /** @param {unknown} e */
+  const action = (e) => get(e, 'action', null);
+  const commands = kentries.filter((e) => isDict(action(e)) && get(action(e), 'type', null) === 'command')
+    .map((e) => get(action(e), 'command', null));
+  const ok = commands.length === 1 && commands[0] === want;
+  check(ok, 'Kiro: the hook file runs the installed core in kiro mode', 'got ' + pyRepr(commands.slice(0, 2)));
+  return ok ? [want] : [];
+}
+
+/**
+ * @param {Box} box
+ * @param {Expected} exp
+ * @returns {Record<string, string[]>}
+ */
+function checkFloor(box, exp) {
+  checkUserCarriers(box, exp);
+  const hooks = checkAdmin(box, exp);
+  hooks.kiro = checkKiroHookFile(box);
   return hooks;
+}
+
+/**
+ * @typedef {{ fire: (cmd: string, prompt: string, environ: Record<string, string>) => Ran, env: Record<string, string>,
+ *   dirty: string, clean: string, fakeKey: string }} HookRig
+ */
+
+/** The decision of a Claude Code or Codex hook answer, or null. @param {string} stdout */
+function decisionOf(stdout) {
+  /** @type {unknown} */
+  let parsed = {};
+  try {
+    parsed = pyStrip(stdout) ? JSON.parse(stdout) : {};
+  } catch {
+    parsed = {};
+  }
+  return isDict(parsed) ? parsed.decision ?? null : null;
+}
+
+/** 2, Claude Code or Codex: block the dirty prompt, pass the clean one, stay silent under the marker. @param {string} harness @param {string[]} cmds @param {HookRig} rig */
+function checkJsonHook(harness, cmds, rig) {
+  if (!check(cmds.length === 1, harness + ': exactly one installed prompt hook', 'found ' + cmds.length)) return;
+  check(!(MARKER in rig.env), harness + ': the paste-wrapper marker is unset for the hook');
+  let p = rig.fire(cmds[0], rig.dirty, rig.env);
+  const decision = decisionOf(p.stdout);
+  check(p.returncode === 0 && decision === 'block' && !p.stdout.includes(rig.fakeKey),
+    harness + ': the installed hook blocks a synthetic credential-shaped prompt',
+    'exit ' + p.returncode + ', decision ' + pyRepr(decision) + ', stderr ' + tail(p.stderr, 500));
+  p = rig.fire(cmds[0], rig.clean, rig.env);
+  check(p.returncode === 0 && p.stdout === '', harness + ': the installed hook passes a clean prompt',
+    'exit ' + p.returncode + ', stdout ' + pyRepr(head(p.stdout, 300)));
+  // Calibration: the same dirty prompt in a session the paste wrapper started passes silently, so the
+  // block above came from the hook judging the prompt, not from something unrelated to the marker.
+  p = rig.fire(cmds[0], rig.dirty, { ...rig.env, [MARKER]: '1' });
+  check(p.returncode === 0 && p.stdout === '', harness + ': calibration, with the wrapper marker set the hook stays silent');
+}
+
+/**
+ * 2, Kiro's protocol (read from the bundle): exit 2 blocks with stderr as the reason; on exit 0 stdout is
+ * appended to the model's prompt. On V3 the wrapper cleans pastes but never checks typed text, so the
+ * marker must NOT silence it.
+ * @param {string[]} cmds @param {HookRig} rig
+ */
+function checkKiroHook(cmds, rig) {
+  if (!check(cmds.length === 1, 'kiro: exactly one installed prompt hook', 'found ' + cmds.length)) return;
+  for (const [label, environ] of /** @type {Array<[string, Record<string, string>]>} */ ([['marker unset', rig.env], ['marker set', { ...rig.env, [MARKER]: '1' }]])) {
+    const p = rig.fire(cmds[0], rig.dirty, environ);
+    check(p.returncode === 2 && p.stdout === '' && p.stderr.includes('[REDACTED:credential]') && !p.stderr.includes(rig.fakeKey),
+      'kiro (' + label + '): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout',
+      'exit ' + p.returncode + ', stdout ' + pyRepr(head(p.stdout, 200)));
+  }
+  const p = rig.fire(cmds[0], rig.clean, rig.env);
+  check(p.returncode === 0 && p.stdout === '', 'kiro: the installed hook passes a clean prompt',
+    'exit ' + p.returncode + ', stdout ' + pyRepr(head(p.stdout, 300)));
 }
 
 /**
@@ -752,53 +853,17 @@ function checkHook(box, hooks) {
   // Built at run time from pieces, so no credential-shaped literal sits in this file: the AWS access
   // key id shape (AKIA + 16 of [0-9A-Z]), synthetic, belonging to no account.
   const fakeKey = 'AK' + 'IA' + 'QZ7X'.repeat(4);
-  const dirty = 'deploy it with key ' + fakeKey + ' please';
-  const clean = 'summarise the README in two lines';
-  const env = Object.fromEntries(Object.entries(box.env).filter(([k]) => k !== MARKER));
   const cwd = path.join(box.d, 'proj');
-  /** @param {string} cmd @param {string} prompt @param {Record<string, string>} environ */
-  const fire = (cmd, prompt, environ) => runText('/bin/sh', ['-c', cmd], {
-    input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt }), env: environ, cwd, timeout: 60_000,
-  });
-  for (const harness of ['claude', 'codex']) {
-    const cmds = hooks[harness] || [];
-    if (!check(cmds.length === 1, harness + ': exactly one installed prompt hook', 'found ' + cmds.length)) continue;
-    check(!(MARKER in env), harness + ': the paste-wrapper marker is unset for the hook');
-    let p = fire(cmds[0], dirty, env);
-    /** @type {unknown} */
-    let parsed = {};
-    try {
-      parsed = pyStrip(p.stdout) ? JSON.parse(p.stdout) : {};
-    } catch {
-      parsed = {};
-    }
-    const decision = isDict(parsed) ? parsed.decision ?? null : null;
-    check(p.returncode === 0 && decision === 'block' && !p.stdout.includes(fakeKey),
-      harness + ': the installed hook blocks a synthetic credential-shaped prompt',
-      'exit ' + p.returncode + ', decision ' + pyRepr(decision) + ', stderr ' + tail(p.stderr, 500));
-    p = fire(cmds[0], clean, env);
-    check(p.returncode === 0 && p.stdout === '', harness + ': the installed hook passes a clean prompt',
-      'exit ' + p.returncode + ', stdout ' + pyRepr(head(p.stdout, 300)));
-    // Calibration: the same dirty prompt in a session the paste wrapper started passes silently, so the
-    // block above came from the hook judging the prompt, not from something unrelated to the marker.
-    p = fire(cmds[0], dirty, { ...env, [MARKER]: '1' });
-    check(p.returncode === 0 && p.stdout === '', harness + ': calibration, with the wrapper marker set the hook stays silent');
-  }
-  // Kiro's protocol (read from the bundle): exit 2 blocks with stderr as the reason; on exit 0 stdout is
-  // appended to the model's prompt. On V3 the wrapper cleans pastes but never checks typed text, so the
-  // marker must NOT silence it.
-  const cmds = hooks.kiro || [];
-  if (check(cmds.length === 1, 'kiro: exactly one installed prompt hook', 'found ' + cmds.length)) {
-    for (const [label, environ] of /** @type {Array<[string, Record<string, string>]>} */ ([['marker unset', env], ['marker set', { ...env, [MARKER]: '1' }]])) {
-      const p = fire(cmds[0], dirty, environ);
-      check(p.returncode === 2 && p.stdout === '' && p.stderr.includes('[REDACTED:credential]') && !p.stderr.includes(fakeKey),
-        'kiro (' + label + '): the installed hook blocks with exit 2, a redacted copy on stderr, nothing on stdout',
-        'exit ' + p.returncode + ', stdout ' + pyRepr(head(p.stdout, 200)));
-    }
-    const p = fire(cmds[0], clean, env);
-    check(p.returncode === 0 && p.stdout === '', 'kiro: the installed hook passes a clean prompt',
-      'exit ' + p.returncode + ', stdout ' + pyRepr(head(p.stdout, 300)));
-  }
+  /** @type {HookRig} */
+  const rig = {
+    fakeKey, dirty: 'deploy it with key ' + fakeKey + ' please', clean: 'summarise the README in two lines',
+    env: Object.fromEntries(Object.entries(box.env).filter(([k]) => k !== MARKER)),
+    fire: (cmd, prompt, environ) => runText('/bin/sh', ['-c', cmd], {
+      input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt }), env: environ, cwd, timeout: 60_000,
+    }),
+  };
+  for (const harness of ['claude', 'codex']) checkJsonHook(harness, hooks[harness] || [], rig);
+  checkKiroHook(hooks.kiro || [], rig);
 }
 
 const PROBLEM = /^(REFUSE|STALE|DRIFT|MISSING|FAIL)\s/;
@@ -931,12 +996,12 @@ function cmdRun(a) {
  * unprivileged node user. Its positional parameters are the commit, the mode, the --from-tgz words and
  * the --legacy list, each validated before they get here.
  */
-const CONTAINER_SH = `
+const CONTAINER_SH = String.raw`
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq >/dev/null
     apt-get install -y -qq --no-install-recommends jq >/dev/null
     echo "image: $(. /etc/os-release && echo "$PRETTY_NAME"); node $(node --version); npm $(npm --version); $(git --version); jq $(jq --version)"
-    exec su node -s /bin/sh -c "node /pkg/src-HEAD/.github/scripts/prod-canary.js run --source /pkg/src-HEAD \\
+    exec su node -s /bin/sh -c "node /pkg/src-HEAD/.github/scripts/prod-canary.js run --source /pkg/src-HEAD \
       --tgz /pkg/mhw-HEAD.tgz $3 --work /tmp/prod-canary-$2 --commit $1 --legacy '$4'"
   `;
 
@@ -1011,7 +1076,8 @@ function parseOptions(cmd, argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const eq = a.indexOf('=');
-    const key = a.startsWith('--') ? a.slice(2, eq > 0 ? eq : undefined) : null;
+    const end = eq > 0 ? eq : a.length;
+    const key = a.startsWith('--') ? a.slice(2, end) : null;
     if (key === null || !spec.options.includes(key)) {
       unknown.push(a);
       continue;
@@ -1034,7 +1100,7 @@ export function main(argv) {
   try {
     const [cmd, ...rest] = argv;
     if (cmd === 'container') return cmdContainer(rest);
-    if (cmd === undefined) return usageError(TOP, PROG, 'the following arguments are required: cmd');
+    if (!argv.length) return usageError(TOP, PROG, 'the following arguments are required: cmd');
     if (!Object.hasOwn(SPECS, cmd)) {
       return usageError(TOP, PROG, 'argument cmd: invalid choice: ' + pyRepr(cmd) + " (choose from 'pack', 'run', 'container')");
     }

@@ -157,7 +157,7 @@ export function tarballListing(file, subs) {
       const body = Buffer.from(text, 'utf8').equals(e.data) ? Buffer.from(normalise(text, subs), 'utf8') : e.data;
       return { path: e.name, mode: e.mode.toString(8) + ':' + e.type, sha256: crypto.createHash('sha256').update(body).digest('hex') };
     })
-    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+    .sort((a, b) => Number(a.path > b.path) - Number(a.path < b.path));
 }
 
 /**

@@ -136,7 +136,7 @@ function install() {
   const inner = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "' + firstNode()
     + '" "' + path.join(PKG, 'bin', 'mhw.js') + '" hook prompt --harness kiro --config "' + path.join(data, 'clipboard.conf') + '"';
   const notice = 'Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.';
-  let command = "/bin/sh -c '" + inner + ' || { [ $? -eq 2 ] && exit 2; printf "%s\\n" "' + notice + "\" >&2; exit 2; }'";
+  let command = "/bin/sh -c '" + inner + ' || { [ $? -eq 2 ] && exit 2; printf "' + String.raw`%s\n` + '" "' + notice + "\" >&2; exit 2; }'";
   if (VARIANT.broken) command += ' ';
   const kh = path.join(HOME, '.kiro', 'hooks', NAME + '-paste-filter.json');
   mkdirFor(kh);
