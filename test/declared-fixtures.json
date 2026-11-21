@@ -1,0 +1,20 @@
+{
+  "comment": "Files in another runtime that mhw keeps on purpose: test fixtures, never mhw's own code (D5 of docs/mhw-product-requirements-document-node-runtime.md, #470). Each entry is a tracked path and why it stays. test/project-policy/delivery-gate.test.js fails when a listed path does not exist (a stale exemption) and when a .py file under global/project-policy/ is not listed. The CI check over the whole tree is S32's (#502).",
+  "fixtures": [
+    {
+      "path": "global/project-policy/reference/fixture/fixture_app.py",
+      "slice": "S29 (#499)",
+      "why": "The reference CI/CD's synthetic project: the application its dry run gates. A project's code is in whatever language that project uses; the gates are Node and never import it."
+    },
+    {
+      "path": "global/project-policy/reference/fixture/container_tests.py",
+      "slice": "S29 (#499)",
+      "why": "The synthetic project's containerised test command, run inside its own python image by reference-delivery-dry-run.yml; it writes the evidence file the Node container gate reads."
+    },
+    {
+      "path": "global/project-policy/reference/fixture/stg_stand_in_tests.py",
+      "slice": "S29 (#499)",
+      "why": "The synthetic project's installed-STG stand-in, run on the runner by reference-delivery-dry-run.yml; it writes the evidence file the Node installed-stg gate reads."
+    }
+  ]
+}

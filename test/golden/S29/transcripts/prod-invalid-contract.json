@@ -1,0 +1,15 @@
+{
+  "name": "prod-invalid-contract",
+  "args": [
+    "prod-validation",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: FAIL  $.severity.inconclusive: const (inconclusive evidence does not block)\nBLOCK  contract: FAIL  1 finding(s); the contract is not valid\n"
+  }
+}

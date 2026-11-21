@@ -1,0 +1,17 @@
+{
+  "name": "container-evidence-past-u10ffff",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--container-image=python@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  evidence: <BASE>/ev.json is malformed ('utf-8' codec can't decode byte 0xf4 in position 2: invalid continuation byte)\n"
+  }
+}

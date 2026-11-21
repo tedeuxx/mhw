@@ -1,0 +1,17 @@
+{
+  "name": "container-checkout-at-another-revision",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "--container-image=python@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  container: the checkout is at bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, not the revision aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+  }
+}

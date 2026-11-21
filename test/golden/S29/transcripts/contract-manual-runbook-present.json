@@ -1,0 +1,12 @@
+{
+  "name": "contract-manual-runbook-present",
+  "args": [
+    "contract",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "OK  contract: valid, bound to this repository, MADR accepted\n",
+    "stderr": ""
+  }
+}

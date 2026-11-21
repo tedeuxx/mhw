@@ -1,0 +1,13 @@
+{
+  "name": "environment-file-missing",
+  "args": [
+    "environment",
+    "--name=production-owner-approval",
+    "--protection={BASE}/none.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  environment: <BASE>/none.json is missing or unreadable (No such file or directory)\n"
+  }
+}

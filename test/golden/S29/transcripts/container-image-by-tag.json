@@ -1,0 +1,17 @@
+{
+  "name": "container-image-by-tag",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--container-image=python:3.12",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  container: image python:3.12 is not pinned by digest (name@sha256:<64 hex>)\n"
+  }
+}

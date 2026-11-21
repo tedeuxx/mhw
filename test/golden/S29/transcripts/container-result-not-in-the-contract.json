@@ -1,0 +1,17 @@
+{
+  "name": "container-result-not-in-the-contract",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--container-image=python@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  container: critical_user_journeys another is not in the contract\nBLOCK  container: critical_user_journeys invented is not in the contract\n"
+  }
+}

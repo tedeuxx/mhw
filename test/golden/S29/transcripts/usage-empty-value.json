@@ -1,0 +1,12 @@
+{
+  "name": "usage-empty-value",
+  "args": [
+    "contract",
+    "--project="
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: unknown, empty or repeated argument --project=\n"
+  }
+}

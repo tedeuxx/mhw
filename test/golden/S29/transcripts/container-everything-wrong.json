@@ -1,0 +1,17 @@
+{
+  "name": "container-everything-wrong",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "--container-image=python:latest",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  container: image python:latest is not pinned by digest (name@sha256:<64 hex>)\nBLOCK  container: the evidence names image \"x\", not python:latest\nBLOCK  container: the checkout is at bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, not the revision aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nBLOCK  container: the evidence names revision \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", not aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nBLOCK  container: evidence carries unknown key(s) extra\nBLOCK  container: evidence layer is \"stg\", not container\nBLOCK  container: test_layers missing or empty (every applicable layer reports)\nBLOCK  container: critical_user_journeys missing (an object of id -> result)\nBLOCK  container: risk_scenarios missing (an object of id -> result)\nBLOCK  container: findings missing (a list, empty when there are none)\nBLOCK  container: coverage missing (an object with metric and percent only)\nBLOCK  container: security_controls missing (an object of id -> result)\n"
+  }
+}

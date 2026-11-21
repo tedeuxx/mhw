@@ -1,0 +1,14 @@
+{
+  "name": "plan-first-deployment",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--prod-revision=none"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "mode=automatic-rollback\nrollback_target=none\n",
+    "stderr": ""
+  }
+}

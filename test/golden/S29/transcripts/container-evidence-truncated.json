@@ -1,0 +1,17 @@
+{
+  "name": "container-evidence-truncated",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--container-image=python@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  evidence: <BASE>/ev.json is malformed (Expecting ':' delimiter: line 2 column 13 (char 35))\n"
+  }
+}

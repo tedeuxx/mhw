@@ -62,8 +62,6 @@ jobs:
           for f in sys.argv[1:]:
               with open(f, encoding="utf-8") as fh:
                   compile(fh.read(), f, "exec")' \
-            global/project-policy/delivery_gate.py global/project-policy/delivery_gate_test.py \
-            global/project-policy/recovery_test.py \
             global/project-policy/reference/fixture/container_tests.py global/project-policy/reference/fixture/stg_stand_in_tests.py \
             global/project-policy/reference/fixture/fixture_app.py \
             global/workstation.py global/workstation_test.py \
@@ -362,6 +360,31 @@ jobs:
           fi
           echo "$out" | grep -E "^ *ok [0-9]+ - live: the original" | grep -vq SKIP
 
+      # #499 (S29 of #470): the live arm of test/project-policy/delivery-gate-golden.test.js runs the base
+      # revision's global/project-policy/delivery_gate.py (which runs the base's `node bin/mhw.js policy
+      # check` with PATH's node) beside `mhw delivery-gate` on every case, in throwaway directories, on the
+      # same CPython (its json and UTF-8 messages are in the transcripts). MHW_S29_LIVE_REQUIRED=1 turns a
+      # skip into a failure while the base still holds delivery_gate.py; once it does not (this slice has
+      # merged), the step says the arm retired and passes, as the S14 step does (#534). A missing base
+      # fails. The golden arm runs in npm test on every OS.
+      - name: S29 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S29_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/project-policy/delivery-gate-golden.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          if ! git cat-file -e "$base:global/project-policy/delivery_gate.py" 2>/dev/null; then
+            echo "S29 live arm retired: base $base no longer holds global/project-policy/delivery_gate.py"
+            exit 0
+          fi
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: the Python original and the Node command" | grep -vq SKIP
+
       # #491 (S20 of #470): the live arm of test/render/settings-merge-golden.test.js runs the base revision's
       # merge_settings, uninstall_user and report_floor (jq programs) beside the head's, which run
       # src/render/settings-merge.js and src/render/floor-report.js, on every case, in throwaway HOMEs and admin
@@ -464,17 +487,10 @@ jobs:
         run: |
           node --version
           node bin/mhw.js profile check --source overlay/profile.json --output overlay
-      # Issues #244 to #247, ADR-0015 locks 2 to 5: the reference CI/CD's evidence gates (the dry run of
-      # the workflow itself is reference-delivery-dry-run.yml) and the recovery reference's gates and
-      # template jobs. The contract's schema, examples and field docs and the fail-closed validator behind
-      # `mhw policy check` are Node since #498 (S28 of #470): test/project-policy/, in npm test on all three
-      # OSes. The gates re-validate through that command, so they run here after setup-node, with its node.
-      - name: evidence-gate and recovery suites (the validator they call is Node)
-        shell: bash
-        run: |
-          node --version
-          python -B global/project-policy/delivery_gate_test.py
-          python -B global/project-policy/recovery_test.py
+      # Issues #244 to #247, ADR-0015 locks 2 to 5: the contract, its validator (`mhw policy check`, #498),
+      # the reference CI/CD's evidence gates and the recovery reference's gates and template jobs
+      # (`mhw delivery-gate`, #499) are all Node: test/project-policy/, in npm test on all three OSes. The
+      # dry run of the workflow itself is reference-delivery-dry-run.yml.
 
   suites:
     strategy:

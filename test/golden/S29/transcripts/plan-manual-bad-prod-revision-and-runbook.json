@@ -1,0 +1,14 @@
+{
+  "name": "plan-manual-bad-prod-revision-and-runbook",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--prod-revision=x"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  recovery-plan: PROD reports it runs \"x\", not a full commit SHA or none (an unreadable PROD revision blocks: there would be nothing known to return to)\nBLOCK  recovery-plan: the runbook docs/recovery-runbook.md is missing, unreadable or outside the project\n"
+  }
+}

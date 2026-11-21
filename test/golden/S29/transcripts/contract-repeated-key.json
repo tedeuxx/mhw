@@ -1,0 +1,12 @@
+{
+  "name": "contract-repeated-key",
+  "args": [
+    "contract",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: FAIL  malformed: repeated key \"schema_version\"\n"
+  }
+}

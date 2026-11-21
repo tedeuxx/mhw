@@ -1,0 +1,14 @@
+{
+  "name": "plan-manual-annotated-line",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--prod-revision=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  recovery-plan: the runbook docs/recovery-runbook.md has no test record dated 2026-01-15, the contract's last_tested (an untested runbook blocks)\n"
+  }
+}

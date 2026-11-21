@@ -1,0 +1,43 @@
+{
+  "comment": "differences: a stream pattern is replaced (with <DECLARED>, or the entry's replace) on both sides of the named case's stream (\"*\" is every case) before the transcripts are compared. Nothing else may differ, and on the recorded cases nothing else does. residuals: behaviours no golden case exercises, or that the goldens cannot carry, named so they are not discovered later (#470, convention 3).",
+  "differences": [
+    {
+      "case": "*",
+      "stream": "stderr",
+      "pattern": "^(?:delivery_gate|mhw delivery-gate): ",
+      "flags": "gm",
+      "replace": "<COMMAND>: ",
+      "why": "A usage line named the deleted script, delivery_gate:; it now names the command that answers it, mhw delivery-gate:. The text after the prefix and the exit code are unchanged."
+    }
+  ],
+  "residuals": [
+    {
+      "what": "The gates are reached as node mhw/bin/mhw.js delivery-gate <gate>, not python3 -B mhw/global/project-policy/delivery_gate.py <gate>.",
+      "why": "The reusable workflow and the caller template call the command; every gate keeps its name, its arguments, its output lines and its three exits. A caller pinned to an mhw commit before #499 keeps the Python gates of that commit and keeps working. Moving the pin past it changes each caller job that runs a gate itself (the template's recovery-plan and validate-prod) in two ways, because #499 deletes delivery_gate.py: its own gate steps change from `python3 -B mhw/global/project-policy/delivery_gate.py <gate>` to `node mhw/bin/mhw.js delivery-gate <gate>`, with the same arguments, outputs and exit codes, and the job needs Node 26 (actions/setup-node; the template has set it up since #498), and no Python. A step left on the Python line fails closed (exit 2, the file is gone). The shell launcher ./mhw does not route delivery-gate (S24, #495, replaces it); bin/mhw.js and the npm mhw do."
+    },
+    {
+      "what": "An argument that is not valid UTF-8, or that holds U+FFFD, is refused with exit 2 before any gate runs; Python decided on it (QA B3 on #544).",
+      "why": "Python kept an undecodable argv byte as a surrogate (\\udcff), so --name, --container-image, --evidence, --protection or --project compared, or named a file, by those bytes. Node decodes the same bytes to U+FFFD, which could equal another value or open another path: measured on environment --name, container --container-image and an --evidence path, the base exited 1 where the head, before this refusal, exited 0. The port is stricter instead: main() refuses any argument holding U+FFFD (exit 2, mhw delivery-gate: an argument is not valid UTF-8 (or holds U+FFFD), so no gate decides on it). It never passes where the original blocked; it can stop, with exit 2, a call the original answered (an argument written with a literal U+FFFD, or invalid bytes the original then blocked on). No golden case holds such an argument; delivery-gate.test.js poisons every argument of every gate once (23 rows, and the gate name) and passes raw 0xff bytes through /bin/sh."
+    },
+    {
+      "what": "The validator runs in the gate's own process; the #498 branches that ran a child node (no node on PATH, a node that cannot run, a run past the timeout, MHW_NODE never read) no longer exist.",
+      "why": "delivery_gate.py could reach the Node validator only through a child process, so it held that process to its answer. The gate is now Node and calls check() of src/commands/project-policy.js directly: the node that validates is the node that runs the gate (in the reference CI/CD, the one actions/setup-node put first on PATH), and the gate starts no program at all, so nothing on PATH and no environment variable can stand in for it (a test runs it with an empty PATH and MHW_NODE naming a program that would answer OK, and the source names neither child_process nor process.env). The fail-closed shape is kept for the answer itself: a validator that throws, answers an exit other than 0, 1 or 2, answers no line, or answers 0 without its OK line is exit 2, one mutant-checked test per branch (delivery-gate.test.js)."
+    },
+    {
+      "what": "The gates' own second read of a contract the validator passed reports an OS error by its strerror only.",
+      "why": "Only a file that changes between the validator's read and the gate's re-read reaches it. Python wrote str() of the OSError there ([Errno 2] No such file or directory: 'path'); the port writes the strerror. A repeated key, NaN, a JSON error and a UTF-8 error read there carry CPython's own text, as before, and each is still exit 1."
+    },
+    {
+      "what": "On Windows, output lines end in \\n, a directory given as an evidence file reads as Is a directory, and the containment check compares paths exactly.",
+      "why": "Python's print wrote \\r\\n to a Windows pipe and Node writes \\n, as the S18 and S28 ports do. CPython on Windows reports a directory opened as a file as Permission denied; Node reports EISDIR. Python's ntpath.commonpath compared the project and the resolved file case-insensitively; the port compares the real paths exactly, which refuses at most a link whose target differs from the project only in case (blocks, never passes). No Windows answer of the original was recorded."
+    },
+    {
+      "what": "Nesting deeper than CPython's stack and a key holding a lone surrogate are not in the goldens.",
+      "why": "The evidence reader is S28's strict parser, which refuses decoding past depth 100000 where CPython 3.14.6 overflowed somewhere between 100000 and 1000000 (both exit 1; the reason's text may differ). A name holding an escaped lone surrogate (\\ud800) in a BLOCK line made Python's print raise UnicodeEncodeError (a traceback, exit 1); Node writes U+FFFD and exits 1. Same exit, different text."
+    },
+    {
+      "what": "The reference fixture stays a Python project: its three .py files are declared fixtures, not ported.",
+      "why": "The fixture is the synthetic project the dry run gates, and a project's own code and tests are in whatever language it uses; the gates read the evidence file its tests write and never import it. test/declared-fixtures.json lists the three files with why, and delivery-gate.test.js fails on a listed file that does not exist and on a .py under global/project-policy/ that is not listed. The dry run's two python3 commands are the fixture's test-command inputs, run in its python image and on the runner, never a gate."
+    }
+  ]
+}

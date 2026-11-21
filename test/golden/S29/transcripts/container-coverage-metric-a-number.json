@@ -1,0 +1,17 @@
+{
+  "name": "container-coverage-metric-a-number",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--container-image=python@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  container: coverage is 1, the contract counts line\n"
+  }
+}

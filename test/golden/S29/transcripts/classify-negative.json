@@ -1,0 +1,13 @@
+{
+  "name": "classify-negative",
+  "args": [
+    "classify",
+    "--project={BASE}/project",
+    "--rules=-1"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  classify: \"-1\" is not a rule index of the contract (0 to 1)\n"
+  }
+}

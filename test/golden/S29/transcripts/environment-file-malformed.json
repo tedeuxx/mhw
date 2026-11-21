@@ -1,0 +1,13 @@
+{
+  "name": "environment-file-malformed",
+  "args": [
+    "environment",
+    "--name=production-owner-approval",
+    "--protection={BASE}/env.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  environment: <BASE>/env.json is malformed (Expecting value: line 1 column 10 (char 9))\n"
+  }
+}

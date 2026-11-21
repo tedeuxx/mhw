@@ -1,0 +1,12 @@
+{
+  "name": "usage-container-without-evidence",
+  "args": [
+    "container",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: container needs --evidence\n"
+  }
+}

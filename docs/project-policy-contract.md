@@ -211,7 +211,7 @@ What happens when a critical production validation fails.
   and the observation period, as `@handle`. Never contact details.
 
 The contract only names the mode. ~~What a runbook must contain is #247.~~ What a runbook must
-contain, and the record of its test that `delivery_gate.py recovery-plan` reads against
+contain, and the record of its test that `mhw delivery-gate recovery-plan` reads against
 `last_tested` and the objective, are in [docs/recovery-reference.md](recovery-reference.md) (#247).
 
 ### `baseline_override`
@@ -244,7 +244,7 @@ under its criteria; no check reads it.
   required step; adopting that in any repository needs that repository's own Issue.
 - **The validator reads no evidence and no findings.** It checks the contract a project declares,
   not a deployment. Applying the contract to a revision's actual findings and test results, and
-  binding them to the exact revision, is #246's `delivery_gate.py` (see
+  binding them to the exact revision, is #246's `mhw delivery-gate` (see
   [docs/reference-cicd.md](reference-cicd.md)).
 - **The schema checks shape, not truth.** Neither it nor the validator can tell whether the MADR at
   `madr.path` exists or is really accepted, whether the runbook was really tested on `last_tested`,

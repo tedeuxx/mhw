@@ -1,0 +1,14 @@
+{
+  "name": "plan-manual-runbook-linked-outside",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--prod-revision=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  recovery-plan: the runbook docs/recovery-runbook.md is missing, unreadable or outside the project\n"
+  }
+}

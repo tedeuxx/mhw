@@ -1,0 +1,14 @@
+{
+  "name": "plan-manual-first-deployment",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--prod-revision=none"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "mode=manual\nrollback_target=none\nrunbook=docs/recovery-runbook.md\nrecovery_time_objective_minutes=30\noperator=@operator-one\n",
+    "stderr": ""
+  }
+}

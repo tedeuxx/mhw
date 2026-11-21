@@ -1,0 +1,13 @@
+{
+  "name": "plan-usage-no-revision",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--prod-revision=none"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: recovery-plan needs --revision\n"
+  }
+}

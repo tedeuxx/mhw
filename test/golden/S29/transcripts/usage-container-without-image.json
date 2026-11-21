@@ -1,0 +1,15 @@
+{
+  "name": "usage-container-without-image",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: container needs --container-image\n"
+  }
+}
