@@ -1,0 +1,70 @@
+[
+  {
+    "run": "check",
+    "code": 3,
+    "stdout": "REFUSE  <T>/home/.zshrc is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:\n        [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "link",
+          "mode": "-",
+          "data": "missing-dotfiles/zshrc"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "dry-run",
+    "code": 3,
+    "stdout": "REFUSE  <T>/home/.zshrc is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:\n        [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "link",
+          "mode": "-",
+          "data": "missing-dotfiles/zshrc"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "install",
+    "code": 3,
+    "stdout": "REFUSE  <T>/home/.zshrc is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:\n        [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "link",
+          "mode": "-",
+          "data": "missing-dotfiles/zshrc"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "uninstall",
+    "code": 0,
+    "stdout": "",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "link",
+          "mode": "-",
+          "data": "missing-dotfiles/zshrc"
+        }
+      ],
+      "out": []
+    }
+  }
+]

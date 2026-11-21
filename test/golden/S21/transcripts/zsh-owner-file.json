@@ -1,0 +1,105 @@
+[
+  {
+    "run": "dry-run",
+    "code": 0,
+    "stdout": "WOULD CHANGE <T>/home/.zshrc: paste-wrapper start-up block absent -> present (backup <T>/home/.zshrc.pmhwc-backup):\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "file",
+          "mode": "644",
+          "data": "export MINE=1\nalias ll=\"ls -l\"\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "check",
+    "code": 1,
+    "stdout": "MISSING <T>/home/.zshrc: no paste-wrapper start-up block; install adds it\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "file",
+          "mode": "644",
+          "data": "export MINE=1\nalias ll=\"ls -l\"\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "install",
+    "code": 0,
+    "stdout": "CHANGED <T>/home/.zshrc: paste-wrapper start-up block absent -> present (previous file kept as <T>/home/.zshrc.pmhwc-backup); new shells clean pastes\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "file",
+          "mode": "644",
+          "data": "export MINE=1\nalias ll=\"ls -l\"\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        },
+        {
+          "path": ".zshrc.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export MINE=1\nalias ll=\"ls -l\"\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "check",
+    "code": 0,
+    "stdout": "OK      <T>/home/.zshrc activates the paste wrapper (managed block)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "file",
+          "mode": "644",
+          "data": "export MINE=1\nalias ll=\"ls -l\"\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        },
+        {
+          "path": ".zshrc.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export MINE=1\nalias ll=\"ls -l\"\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "uninstall",
+    "code": 0,
+    "stdout": "CHANGED <T>/home/.zshrc: paste-wrapper start-up block present -> absent (previous file kept as <T>/home/.zshrc.pmhwc-backup)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "file",
+          "mode": "644",
+          "data": "export MINE=1\nalias ll=\"ls -l\"\n"
+        },
+        {
+          "path": ".zshrc.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export MINE=1\nalias ll=\"ls -l\"\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        }
+      ],
+      "out": []
+    }
+  }
+]

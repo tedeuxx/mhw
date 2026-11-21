@@ -1,0 +1,48 @@
+[
+  {
+    "run": "install --shell-rc",
+    "code": 0,
+    "stdout": "NOTE    <T>/home/zshrc-throwaway: an unmarked two-line paste-filter source opens a compound command's body (after then, else, do, {, && or ||); left in place, since removing it could leave an empty body bash refuses. It sources the snippet a second time: remove it by hand\nCHANGED <T>/home/zshrc-throwaway: paste-wrapper start-up block absent -> present (previous file kept as <T>/home/zshrc-throwaway.pmhwc-backup); new shells clean pastes\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "f() {\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nx &&\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\ny ||\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nwhile :; do\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nelse\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nthen\t \n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        },
+        {
+          "path": "zshrc-throwaway.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "f() {\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nx &&\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\ny ||\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nwhile :; do\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nelse\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nthen\t \n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "uninstall --shell-rc",
+    "code": 0,
+    "stdout": "NOTE    <T>/home/zshrc-throwaway: an unmarked two-line paste-filter source inside a compound command's body is left in place; the snippet it sources is removed, so remove that line by hand\nCHANGED <T>/home/zshrc-throwaway: paste-wrapper start-up block present -> absent (previous file kept as <T>/home/zshrc-throwaway.pmhwc-backup)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "f() {\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nx &&\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\ny ||\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nwhile :; do\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nelse\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nthen\t \n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n"
+        },
+        {
+          "path": "zshrc-throwaway.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "f() {\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nx &&\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\ny ||\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nwhile :; do\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nelse\n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\nthen\t \n# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)\n. \"$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        }
+      ],
+      "out": []
+    }
+  }
+]

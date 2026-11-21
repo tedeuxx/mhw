@@ -1,0 +1,53 @@
+[
+  {
+    "run": "check --shell-rc",
+    "code": 3,
+    "stdout": "REFUSE  <T>/home/rc-is-a-dir is not a regular file; nothing written. Add this line yourself:\n        [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "rc-is-a-dir",
+          "kind": "dir",
+          "mode": "755",
+          "data": ""
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "install --shell-rc",
+    "code": 3,
+    "stdout": "REFUSE  <T>/home/rc-is-a-dir is not a regular file; nothing written. Add this line yourself:\n        [ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "rc-is-a-dir",
+          "kind": "dir",
+          "mode": "755",
+          "data": ""
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "uninstall --shell-rc",
+    "code": 0,
+    "stdout": "",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "rc-is-a-dir",
+          "kind": "dir",
+          "mode": "755",
+          "data": ""
+        }
+      ],
+      "out": []
+    }
+  }
+]
