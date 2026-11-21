@@ -78,6 +78,13 @@ test('exit codes 0, 1, 2 and 3 keep their meanings', { skip }, () => {
     { code: 2, why: 'usage', setup: () => {}, args: ['--bogus'] },
     { code: 2, why: 'an invalid floor entry', setup: (/** @type {string} */ h) => fs.writeFileSync(path.join(h, 'ov', 'deny-floor.conf'), 'cmd a*\n'), args: ['--overlay=OV'] },
     { code: 2, why: 'a missing dependency (no node)', setup: () => {}, args: [], env: { MHW_NODE: '/nonexistent/node' } },
+    // QA R3 on PR #546: a retired file of ours still on disk is drift under --check (STALE), never a clean 0.
+    { code: 1, why: 'a stale retired file under --check, on an otherwise clean install', setup: (/** @type {string} */ h) => {
+      assert.equal(inst(h, ['--overlay=none']).status, 0);
+      assert.equal(inst(h, ['--check', '--overlay=none']).status, 0, 'calibration: the install alone checks clean');
+      const d = path.join(h, '.local', 'share', 'personal-multi-harness-workstation-configuration');
+      fs.writeFileSync(path.join(d, 'hitl.conf'), '# ' + MARKER + '; source: x\n');
+    }, args: ['--check'] },
     { code: 3, why: 'something unmanaged in the way', setup: (/** @type {string} */ h) => fs.writeFileSync(path.join(h, '.claude', 'CLAUDE.md'), 'mine\n'), args: [] },
     { code: 3, why: 'something unreadable in the way', setup: (/** @type {string} */ h) => fs.writeFileSync(path.join(h, '.claude', 'settings.json'), '{ "x": \n'), args: [] },
   ];
@@ -108,6 +115,15 @@ test('the deny floor parser renders and refuses as install.sh\'s awk did', () =>
   const ok = parseFloor('# c\n\ncmd git push --force\r\nglob terraform -chdir=*\nfile ~/.ssh/id_*\n');
   assert.deepEqual(ok, { claude: ['Bash(git push --force:*)', 'Bash(terraform -chdir=*)', 'Read(~/.ssh/id_*)', 'Edit(~/.ssh/id_*)'], codex: ['git push --force'], errors: [] });
   assert.deepEqual(parseFloor('# only\n').errors, ['the deny floor has no entry']);
+  // QA F8 on PR #546: the kind list is exactly cmd, file and glob; every other first word is refused.
+  for (const kind of ['deny', 'allow', 'path', 'read', 'edit', 'Cmd', 'CMD', 'File', 'GLOB', 'cmd:', 'cmds', 'globs', '-', '#cmd']) {
+    const r = parseFloor(kind + ' x\n');
+    if (kind.startsWith('#')) assert.deepEqual(r.errors, ['the deny floor has no entry'], kind);
+    else assert.deepEqual(r.errors, ['invalid deny-floor entry (kind must be cmd, file or glob): ' + kind + ' x'], kind);
+  }
+  for (const kind of ['cmd', 'glob', 'file']) {
+    assert.deepEqual(parseFloor(kind + (kind === 'glob' ? ' a b*' : ' x') + '\n').errors, [], kind + ' is a kind');
+  }
   assert.deepEqual(parseFloor('path x\ncmd\nfile a b\nglob t\ncmd a"b\ncmd a*\nglob a *b\nglob a b**\nglob a b:*\n').errors, [
     'invalid deny-floor entry (kind must be cmd, file or glob): path x', 'invalid deny-floor entry (no words): cmd',
     'invalid deny-floor entry (a file entry takes one path): file a b', 'invalid deny-floor entry (a glob entry takes a program and at least one word): glob t',

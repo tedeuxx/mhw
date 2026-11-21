@@ -4,7 +4,7 @@
 //
 //   mhw mcp render --active --mode=install|check|dry-run|uninstall [--stamp=S] [--source=FILE]
 //
-// src/render/mcp.js checks the arguments and calls run() here; global/install.sh runs it on every mhw
+// src/render/mcp.js checks the arguments and calls run() here; mhw install-user (global/install.sh until #503) runs it on every mhw
 // install, check and uninstall. Per agent harness:
 //
 //   Codex        enabled = false on the server's [mcp_servers.<name>] table in config.toml

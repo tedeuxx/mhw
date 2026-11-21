@@ -34,10 +34,10 @@ Windows installs no hook and no admin file.
    line, `sudo /bin/sh "<checkout>/global/install-managed.sh" --remove`. Run it in your own terminal.
 2. This also removes the **admin copy of the deny floor**, which lives in the same documents, plus
    Kiro's `managed-settings.json`, which carries only the floor. The
-   user-level copy stays when `install.sh` installed it; check with `sh global/install.sh --check
+   user-level copy stays when the user-layer installer installed it; check with `./mhw install-user --check
    --hooks=managed` (its `FLOOR` lines name the layer that carries it).
-3. Do **not** run plain `sh global/install.sh` or `./mhw install` afterwards: with no admin
-   layer, both register the hooks again at user level. Keep `sh global/install.sh --hooks=managed`
+3. Do **not** run plain `./mhw install-user` or `./mhw install` afterwards: with no admin
+   layer, both register the hooks again at user level. Keep `./mhw install-user --hooks=managed`
    for as long as every hook should stay off.
 4. Open fresh sessions (ADR-0022).
 
@@ -77,10 +77,10 @@ install may deny acting tools once the admin files change. That is expected; end
 1. `sh global/install-managed.sh`, then run the printed `sudo … --apply=… --sha256=…` line yourself.
    It rewrites the admin documents without the restart guard and deletes `restart_guard.py`,
    `breaking_glass.py` and the `breaking-glass/` switch directory from the admin layer.
-2. `sh global/install.sh --hooks=managed` as yourself. It deletes the user-level `restart_guard.py`,
+2. `./mhw install-user --hooks=managed` as yourself. It deletes the user-level `restart_guard.py`,
    `breaking_glass.py`, `~/.claude/commands/breaking-glass.md` and the guard's `restart-state/`
    baselines, and drops any restart-guard hook entry left in the user settings.
-3. `sh global/install-managed.sh --check` and `sh global/install.sh --check --hooks=managed` both
+3. `sh global/install-managed.sh --check` and `./mhw install-user --check --hooks=managed` both
    exit 0.
 4. Open fresh Claude Code and Codex sessions. Codex may ask you to trust the paste hook again in
    `/hooks` if it ran from the user level before; whether a rewritten `hooks.json` triggers that is not
@@ -107,9 +107,9 @@ keeps blocking wrapped sessions too (the stricter behaviour, measured). In a fre
 merged, released commit, in your own terminal:
 
 1. `sh global/install-managed.sh`, then run the printed `sudo … --apply=… --sha256=…` line yourself.
-2. `sh global/install.sh --hooks=managed` as yourself. Optionally add `--shell-rc="$HOME/.zshrc"` to
+2. `./mhw install-user --hooks=managed` as yourself. Optionally add `--shell-rc="$HOME/.zshrc"` to
    append the wrapper's start-up line, or add the printed line yourself.
-3. `sh global/install-managed.sh --check` and `sh global/install.sh --check --hooks=managed` both exit 0.
+3. `sh global/install-managed.sh --check` and `./mhw install-user --check --hooks=managed` both exit 0.
 4. Open fresh Claude Code and Codex sessions, then two canaries with a synthetic credential:
    outside the wrapper (`command claude`) the prompt is **blocked**; inside the wrapper a **pasted**
    credential arrives as `[REDACTED:credential]` and nothing blocks.
