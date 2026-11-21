@@ -402,39 +402,8 @@ export function encodeEscaped(text) {
   return Buffer.concat(out);
 }
 
-/**
- * Python's str.format for the notice templates: {name} and the {{ }} escapes. Anything else (a format
- * spec, a conversion, a positional field, a name not given) throws, as the Python call raised.
- * @param {string} template
- * @param {Record<string, string | number>} values
- */
-export function pyFormat(template, values) {
-  let out = '';
-  let i = 0;
-  while (i < template.length) {
-    const c = template[i];
-    if (c === '{' && template[i + 1] === '{') {
-      out += '{';
-      i += 2;
-    } else if (c === '}' && template[i + 1] === '}') {
-      out += '}';
-      i += 2;
-    } else if (c === '{') {
-      const end = template.indexOf('}', i);
-      if (end < 0) throw new Error('ValueError');
-      const name = template.slice(i + 1, end);
-      if (!/^[A-Za-z_]\w*$/.test(name) || !Object.hasOwn(values, name)) throw new Error('KeyError');
-      out += String(values[name]);
-      i = end + 1;
-    } else if (c === '}') {
-      throw new Error('ValueError');
-    } else {
-      out += c;
-      i += 1;
-    }
-  }
-  return out;
-}
+// Python str.format for the notice templates moved to src/lib/clean.js (#488): the prompt hook uses it too.
+export { pyFormat } from '../lib/clean.js';
 
 /**
  * clipboard_guard._format: the configured template, or the default when it has a bad placeholder.
@@ -444,9 +413,9 @@ export function pyFormat(template, values) {
  */
 export function format(conf, key, values = {}) {
   try {
-    return pyFormat(conf[key], values);
+    return core.pyFormat(conf[key], values);
   } catch {
-    return pyFormat(core.DEFAULTS[key], values); // an overlay template with a bad placeholder
+    return core.pyFormat(core.DEFAULTS[key], values); // an overlay template with a bad placeholder
   }
 }
 

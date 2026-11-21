@@ -7,13 +7,13 @@
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
 // `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
-// and `mhw scan` (#486); new in Node: `mhw docs-baseline check` and `mhw onboard` (#523).
+// `mhw scan` (#486), and `mhw hook prompt`, `mhw hook check-config` and `mhw add-term` (#488); new in Node: `mhw docs-baseline check` and `mhw onboard` (#523).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
 // PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
-// does so for python3, which it runs isolated (-I) for the Keychain salt read (#486). node: modules only
-// (convention 5 of #470: this file is
-// on the hook path once `mhw hook prompt` moves here; test/deps-graph.test.js holds that).
+// does so for python3, which it runs isolated (-I) for the Keychain lock probe (#486, #488). node: modules
+// only (convention 5 of #470; test/deps-graph.test.js holds that). `mhw hook prompt` normally never reaches
+// this file: bin/mhw.js sends it to src/commands/hook-entry.js first (#488).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +31,9 @@ import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as scanMain } from './commands/scan.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
 import { checkMain as docsBaselineMain, onboardMain } from './commands/docs-baseline.js';
+import { runHook } from './commands/hook-entry.js';
+import { checkConfig } from './commands/hook-prompt.js';
+import { main as addTermMain } from './commands/add-term.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -167,10 +170,42 @@ const MOVED = {
     const r = pasteWrapperMain(argv, env);
     return typeof r === 'number' ? r : 0;
   },
+  // #488, S17: the prompt hook (bin/mhw.js answers it before loading this file; this route is the same
+  // entry, for a caller that reaches main()), the settings check, and add-term. Both async commands exit
+  // by themselves once answered (process.exit); the 0 returned here is replaced then.
+  hook: hookMain,
+  'add-term': (argv, env) => {
+    addTermMain(argv, env).then((code) => process.exit(code), (e) => {
+      fs.writeSync(2, 'mhw add-term: ' + (e instanceof Error ? e.name : 'Error') + '\n');
+      process.exit(1);
+    });
+    return 0;
+  },
   // #523: the documentation baseline's pull-request check, and the onboarding entry point.
   'docs-baseline': docsBaselineMain,
   onboard: onboardMain,
 };
+
+/**
+ * `mhw hook prompt --harness H [--config FILE]` and `mhw hook check-config [--config FILE]` (#488).
+ * @param {string[]} argv
+ * @param {Record<string, string | undefined>} env
+ */
+function hookMain(argv, env) {
+  if (argv[0] === 'prompt') {
+    runHook(argv.slice(1), env).then((code) => process.exit(code));
+    return 0;
+  }
+  if (argv[0] === 'check-config') {
+    const r = checkConfig(argv.slice(1), env);
+    if (r.stdout) fs.writeSync(1, r.stdout);
+    if (r.stderr) fs.writeSync(2, r.stderr);
+    return r.code;
+  }
+  console.error('usage: mhw hook prompt --harness claude|codex|kiro [--config FILE]   the UserPromptSubmit hook (payload on stdin)\n'
+    + '       mhw hook check-config [--config FILE]                          the effective non-secret settings');
+  return 2;
+}
 
 /**
  * `mhw mcp launch ...` (#483) and `mhw mcp render ...` (#484); anything else is a usage error.

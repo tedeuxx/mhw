@@ -726,14 +726,16 @@ export function pyInt(s) {
  * back to its default. Throws PyError with the class Python raised (an unreadable or undecodable file,
  * a keychain_path that is not absolute).
  * @param {string | null | undefined} file
- * @param {{ env?: Record<string, string | undefined>, platform?: string }} [opts]
+ * @param {{ env?: Record<string, string | undefined>, platform?: string, defaults?: Readonly<Record<string, string>> }} [opts]
+ *   defaults: the keys this reader knows and their values (the prompt hook adds its notices, #488)
  * @returns {Record<string, string>}
  */
 export function loadConfig(file, opts = {}) {
   const env = opts.env || process.env;
   const platform = opts.platform || process.platform;
+  const defaults = opts.defaults || DEFAULTS;
   /** @type {Record<string, string>} */
-  const conf = { ...DEFAULTS };
+  const conf = { ...defaults };
   if (file && fs.existsSync(file)) {
     let text;
     try {
@@ -748,7 +750,7 @@ export function loadConfig(file, opts = {}) {
       const eq = line.indexOf('=');
       const key = strip(line.slice(0, eq));
       const value = line.slice(eq + 1);
-      if (Object.hasOwn(DEFAULTS, key)) conf[key] = key.startsWith('notice_') ? value : strip(value);
+      if (Object.hasOwn(defaults, key)) conf[key] = key.startsWith('notice_') ? value : strip(value);
     }
   }
   for (const key of ['max_bytes', 'show_cleaned_chars']) {
@@ -823,4 +825,38 @@ export function blockingSet(conf) {
 export function reportOnlySet(conf) {
   const block = blockingSet(conf);
   return new Set(conf.report_categories.split(',').map(strip).filter((c) => c && !block.has(c)));
+}
+
+/**
+ * Python's str.format for the notice templates: {name} and the {{ }} escapes. Anything else (a format
+ * spec, a conversion, a positional field, a name not given) throws, as the Python call raised.
+ * @param {string} template
+ * @param {Record<string, string | number>} values
+ */
+export function pyFormat(template, values) {
+  let out = '';
+  let i = 0;
+  while (i < template.length) {
+    const c = template[i];
+    if (c === '{' && template[i + 1] === '{') {
+      out += '{';
+      i += 2;
+    } else if (c === '}' && template[i + 1] === '}') {
+      out += '}';
+      i += 2;
+    } else if (c === '{') {
+      const end = template.indexOf('}', i);
+      if (end < 0) throw new Error('ValueError');
+      const name = template.slice(i + 1, end);
+      if (!/^[A-Za-z_]\w*$/.test(name) || !Object.hasOwn(values, name)) throw new Error('KeyError');
+      out += String(values[name]);
+      i = end + 1;
+    } else if (c === '}') {
+      throw new Error('ValueError');
+    } else {
+      out += c;
+      i += 1;
+    }
+  }
+  return out;
 }
