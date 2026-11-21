@@ -64,6 +64,12 @@ export async function get(url, token) {
   }
 }
 
+/** An explicit comparator: by UTF-16 code unit, as the default sort. @param {string} a @param {string} b */
+function byCodeUnit(a, b) {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
+}
+
 /** The proxy variables urllib's getproxies() read, in either case. */
 export const PROXY_VARS = Object.freeze(['http_proxy', 'https_proxy', 'no_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY']);
 
@@ -115,8 +121,8 @@ export function getSyncSeen(url, token, env = {}) {
 if (!isMainThread && workerData?.shared instanceof Int32Array) {
   const { url, token, shared, port } = /** @type {{ url: string, token: string | null, shared: Int32Array, port: import('node:worker_threads').MessagePort }} */ (workerData);
   const answer = await get(url, token);
-  // The names of this worker's environment, sorted; never a value.
-  port.postMessage({ ...answer, env: Object.keys(process.env).sort() });
+  // The names of this worker's environment, sorted by UTF-16 code unit; never a value.
+  port.postMessage({ ...answer, env: Object.keys(process.env).sort(byCodeUnit) });
   Atomics.store(shared, 0, 1);
   Atomics.notify(shared, 0);
 }

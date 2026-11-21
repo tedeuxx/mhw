@@ -112,7 +112,7 @@ describe('the declaration', () => {
     // No argv, and no environment value is read: the worker reports only the names it holds (QA H4).
     assert.doesNotMatch(text, /process\.argv|process\.env[.[]/);
     assert.deepEqual([...text.matchAll(/process\.env/g)].length, 1);
-    assert.match(text, /Object\.keys\(process\.env\)\.sort\(\)/);
+    assert.match(text, /Object\.keys\(process\.env\)\.sort\(byCodeUnit\)/);
   });
 });
 
