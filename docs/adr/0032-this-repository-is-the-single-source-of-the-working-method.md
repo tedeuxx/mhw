@@ -977,7 +977,7 @@ The agent's only shell in `.github/workflows/method-issue-sync.yml` is ~~`.githu
 `backlink` and the eight `mhw-view` to `skills-reopen` the agent may call), the same refusals and exit codes, and the same bytes on stdout and
 stderr; the Python script and its suite are deleted, and the suite runs as `node:test`
 (`test/ci/method-issue-sync.test.js`). The agent's allow list is now exactly
-`Bash(node .github/scripts/method-issue-sync.js:*),Edit(/${{ runner.temp }}/method-sync/**)`, and the
+`Bash(node .github/scripts/method-issue-sync.js:*),Edit(/${{ runner.temp }}/method-sync/*.md)`, and the
 test asserts that string and that no other `Bash(...)` rule, and no rule on `node` itself, is in the
 workflow. A prefix on the script's path does not match `node -e ...` or `node --require ... <script>`,
 because node's own flags come before the script. That reading rests on the matcher's prefix and token
@@ -987,8 +987,21 @@ files the script imports, which import only `node:` modules; a test walks that g
 script on a pinned node (`actions/setup-node`, the pin and version `tests.yml` uses), so the runner
 image's node never decides it.
 
+**The second barrier.** Node resolves its script path textually, so
+`node .github/scripts/method-issue-sync.js/../../../../<dir>/<file>` runs `<file>`; Python stopped the
+same path with ENOTDIR. Only the matcher refuses that path (it did on Claude Code 2.1.296 and 2.1.330,
+measured by the `agents-lead` lens on PR #541). So the Edit rule is narrowed from
+`method-sync/**` to `method-sync/*.md`, and the sync job writes `{"type":"module"}` to
+`method-sync/package.json` before the agent runs. In that ES module scope node refuses a `.md` entry
+(`ERR_UNKNOWN_FILE_EXTENSION`). Without it, node runs a `.md` file, or a file with no extension, as
+CommonJS. The agent cannot write that `package.json`, nor any `.js`, `.mjs`, `.cjs`, `.json` or
+extensionless file. `test/ci/method-issue-sync.test.js` pins the rule and the step, and measures both
+node behaviours on the node of every PR, with a calibration that runs the file when the scope is
+absent. *Not measured:* how the `*.md` form matches on any Claude Code build. If it matches nothing,
+the body write is denied and `verify` fails red.
+
 **Consequence.** `src/lib` is now on disk in the agent's job. The agent has no file-reading tool and its
-one write rule reaches only `${{ runner.temp }}/method-sync`, so it can neither read nor change those
+one write rule reaches only `*.md` files in `${{ runner.temp }}/method-sync`, so it can neither read nor change those
 files; a change to `src/lib/py.js` or `src/lib/onpath.js` is a change to this boundary and is reviewed
 as one.
 

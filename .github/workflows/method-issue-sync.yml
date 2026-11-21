@@ -135,10 +135,19 @@ jobs:
           owner: tedeuxx
           repositories: tadeumendonca-skills
           permission-issues: write
+      # The second barrier (#500, PR #541 lens): node resolves its script path textually, so
+      # `node .github/scripts/method-issue-sync.js/../../../../<dir>/<file>` runs <file>, which only the
+      # Bash rule's matcher refuses (Python stopped such a path with ENOTDIR). So the agent may write only
+      # *.md files here (the Edit rule below), and this package.json, which the agent cannot write, puts
+      # them in an ES module scope where node refuses a .md entry (ERR_UNKNOWN_FILE_EXTENSION, measured
+      # on node 25.9.0 locally and asserted on the node of every PR by test/ci/method-issue-sync.test.js).
+      # Without it, node runs a .md or extensionless file as CommonJS.
       - name: Scratch directory for the agent's body files
         env:
           SYNC_DIR: ${{ runner.temp }}/method-sync
-        run: mkdir -p "$SYNC_DIR"
+        run: |
+          mkdir -p "$SYNC_DIR"
+          printf '%s\n' '{"type":"module"}' > "$SYNC_DIR/package.json"
       # CLAUDE_CODE_SUBPROCESS_ENV_SCRUB below needs bubblewrap, which ubuntu-latest does not ship: the
       # first canary (2026-10-12, run 38269161317) failed setting up Claude Code with "bubblewrap is required
       # for subprocess env scrubbing and isolation". The recipe is the pinned action's own "Install
@@ -202,11 +211,14 @@ jobs:
           # denied). Measured locally on 2.1.296, headless, scrub=1, cwd a checkout, the directory outside it:
           # Edit(//<dir>/**) lets Write create a file in <dir> and denies the sibling method-sync-input, a
           # ../ traversal into it and the cwd, with the Edit tool itself still disallowed and no --add-dir.
-          # Not measured on the runner.
+          # Not measured on the runner. Since #500 the rule is *.md only (the second barrier above), so no
+          # .js, .mjs, .cjs, .json, package.json or extensionless file can be written; the *.md form was not
+          # measured on any Claude Code build, and if it matches nothing the body write is denied and
+          # verify fails red.
           claude_args: >-
             --max-turns 30
             --setting-sources user
-            --allowedTools "Bash(node .github/scripts/method-issue-sync.js:*),Edit(/${{ runner.temp }}/method-sync/**)"
+            --allowedTools "Bash(node .github/scripts/method-issue-sync.js:*),Edit(/${{ runner.temp }}/method-sync/*.md)"
             --disallowedTools "Read,Glob,Grep,Edit,MultiEdit,NotebookEdit,WebFetch,WebSearch,Task"
           prompt: |
             You keep the method backlog of tedeuxx/mhw in sync with tedeuxx/tadeumendonca-skills (mhw Issue #62).
@@ -226,7 +238,8 @@ jobs:
               skills-create --title T --body-file F      create the twin
               skills-edit N --title T --body-file F      update the twin
               skills-close N | skills-reopen N           mirror the mhw Issue's state
-            Write each body with the Write tool to a NEW file under ${{ runner.temp }}/method-sync/ (you cannot
+            Write each body with the Write tool to a NEW file whose name ends in .md, directly under
+            ${{ runner.temp }}/method-sync/ (you cannot
             read files back, so never reuse a file name), then pass that path to --body-file. Quote titles in
             single quotes. If a command answers REFUSED, do not work around it: stop and report its message.
 

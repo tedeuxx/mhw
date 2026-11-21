@@ -30,8 +30,10 @@ const PIN_NODE = 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1';
 const SECRETS = ['MHW_MIRROR_APP_ID', 'MHW_MIRROR_APP_PRIVATE_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'];
 // The agent's whole allow list, as one exact string: the one Bash rule is a prefix on the script's path
 // (node's own flags would come before it, so `node -e ...` matches nothing), and the Write tool's rule is
-// an Edit rule, which Claude Code matches Write against (measured locally, 2.1.296).
-const ALLOWED_TOOLS = 'Bash(node .github/scripts/method-issue-sync.js:*),Edit(/${{ runner.temp }}/method-sync/**)';
+// an Edit rule, which Claude Code matches Write against (measured locally, 2.1.296). The Edit rule reaches
+// *.md files directly in the body directory and nothing else: the second barrier (PR #541 lens), with the
+// workflow's package.json, against `node <script>/../../../../<dir>/<file>`.
+const ALLOWED_TOOLS = 'Bash(node .github/scripts/method-issue-sync.js:*),Edit(/${{ runner.temp }}/method-sync/*.md)';
 // The core of the rule Claude Code 2.1.296 (the version the pinned action installs) uses to drop
 // secret-shaped env names from subprocesses under CLAUDE_CODE_SUBPROCESS_ENV_SCRUB, copied from its
 // bundle (read, not measured). A name the agent's script needs must not match it.
@@ -278,6 +280,25 @@ describe('the workflow', { skip: NO_RUBY }, () => {
     assert.ok(tests.includes('node-version: 26.13.1'), 'the same node as the node job');
   });
 
+  test('the second barrier: the agent writes only *.md, in a module scope the workflow sets before it runs', () => {
+    load();
+    const steps = jobs.sync.steps;
+    const args = claudeStep().with.claude_args;
+    const edits = /** @type {string} */ (flagValue(args, '--allowedTools')).split(',').filter((t) => t.startsWith('Edit('));
+    // One Edit rule, a single path component ending in .md: no **, no other extension, no subdirectory.
+    assert.deepEqual(edits, ['Edit(/${{ runner.temp }}/method-sync/*.md)']);
+    const claude = steps.findIndex((/** @type {Obj} */ s) => String(s.uses || '').startsWith('anthropics/'));
+    const scratch = steps.findIndex((/** @type {Obj} */ s) => s.name === "Scratch directory for the agent's body files");
+    assert.ok(scratch >= 0 && scratch < claude, 'the scope is set before the agent runs');
+    const step = steps[scratch];
+    assert.equal(step.env.SYNC_DIR, '${{ runner.temp }}/method-sync');
+    const lines = step.run.split('\n').map((/** @type {string} */ l) => l.trim()).filter(Boolean);
+    assert.deepEqual(lines, ['mkdir -p "$SYNC_DIR"', "printf '%s\\n' '{\"type\":\"module\"}' > \"$SYNC_DIR/package.json\""]);
+    assert.ok(!('if' in step) && !('continue-on-error' in step));
+    // package.json is not *.md, so the agent cannot replace it; and the prompt asks for .md names.
+    assert.ok(claudeStep().with.prompt.includes('a NEW file whose name ends in .md'));
+  });
+
   test('the sync job verifies after the agent', () => {
     load();
     const steps = jobs.sync.steps;
@@ -317,7 +338,7 @@ describe('the workflow', { skip: NO_RUBY }, () => {
     assert.equal(env.MHW_SYNC_DIR, claudeEnv.MHW_SYNC_DIR);
     // The Write tool's directory must not contain the input directory.
     const rule = /** @type {string} */ (flagValue(steps[claude].with.claude_args, '--allowedTools')).split(',').find((t) => t.startsWith('Edit('));
-    const writeDir = /** @type {string} */ (rule).slice('Edit(/'.length, -'/**)'.length);
+    const writeDir = /** @type {string} */ (rule).slice('Edit(/'.length, -'/*.md)'.length);
     assert.equal(writeDir, env.MHW_SYNC_DIR);
     assert.ok(!(env.MHW_INPUT_DIR + '/').startsWith(writeDir + '/'));
   });
@@ -419,6 +440,44 @@ test('the script imports only node: modules and src/lib files the sparse checkou
     assert.doesNotMatch(src, /\bimport\(/, file + ' has a dynamic import');
   }
   assert.ok(seen.size >= 3);
+});
+
+// Measured on the node that runs this suite (the workflow's node is the same version, 26.13.1): what the
+// second barrier rests on. Node resolves its entry path textually, so a path that names the script and then
+// leaves it reaches another file; only an ES module scope makes it refuse a .md entry.
+describe('the second barrier, on this node', { skip: !POSIX && 'POSIX paths' }, () => {
+  /** @param {string} dir @param {string} file */
+  const viaScript = (dir, file) => {
+    const ups = SCRIPT.split('/').filter(Boolean).length;
+    return SCRIPT + '/..'.repeat(ups) + dir + '/' + file;
+  };
+  /** @param {string} dir @param {string} file */
+  const runVia = (dir, file) => spawnSync(process.execPath, [viaScript(dir, file)], { cwd: ROOT, encoding: 'utf8' });
+  /** @type {string} */
+  let dir;
+  beforeEach(() => {
+    dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 's30-barrier-')));
+    for (const f of ['evil.md', 'evil']) fs.writeFileSync(path.join(dir, f), 'console.log("RAN-" + process.argv[1].length)\n');
+  });
+  afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  test('calibration: without the module scope, node runs a .md and an extensionless file named through the script path', () => {
+    for (const f of ['evil.md', 'evil']) {
+      const p = runVia(dir, f);
+      assert.equal(p.status, 0, p.stderr);
+      assert.match(p.stdout, /^RAN-/, f + ' did not run, so the probe below proves nothing');
+    }
+  });
+
+  test('with the workflow\'s package.json, node refuses a .md entry; an extensionless one is what the *.md rule keeps out', () => {
+    fs.writeFileSync(path.join(dir, 'package.json'), '{"type":"module"}\n');
+    const p = runVia(dir, 'evil.md');
+    assert.notEqual(p.status, 0);
+    assert.ok(!p.stdout.includes('RAN-'));
+    assert.match(p.stderr, /ERR_UNKNOWN_FILE_EXTENSION/);
+    // An extensionless file still runs in that scope: this is why the Edit rule names *.md, not the directory.
+    assert.match(runVia(dir, 'evil').stdout, /^RAN-/);
+  });
 });
 
 describe('the script', { skip: !POSIX && 'the stub gh is a POSIX executable; the sync runs on ubuntu-latest' }, () => {

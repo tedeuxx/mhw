@@ -127,6 +127,9 @@ Not mirrored:
   stderr; the runner log does not show that line). Since #167 the rule is `Edit(//<runner.temp>/method-sync/**)`
   with the Edit tool itself still disallowed; measured locally, it lets Write create a file there and
   denies the sibling `method-sync-input`, a `../` traversal into it and the cwd, without `--add-dir`.
+  Since #500 the rule is `Edit(//<runner.temp>/method-sync/*.md)`, and the job writes
+  `method-sync/package.json` (`{"type":"module"}`) first, so node refuses to run a body file named through
+  the script's path (ADR-0032, the 2026-11-21 amendment). The `*.md` form is not measured on any build.
 - **Canary 4 2026-10-12: passed.** On v5.5.3 (carrying #167), mhw#162: run 38324740491 created
   tadeumendonca-skills#564, authored by `app/tedeuxx-mhw-mirror` (so `TWIN_AUTHOR` is confirmed),
   `verify` passed (OPEN) and the back-link was posted by `github-actions`; closing mhw#162 started run
