@@ -1,0 +1,12 @@
+{
+  "name": "version-absent",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  unknown version: no schema_version\n"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "malformed-bad-unicode-escape",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Invalid \\uXXXX escape)\n"
+  }
+}

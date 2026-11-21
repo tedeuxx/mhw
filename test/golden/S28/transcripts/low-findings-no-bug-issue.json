@@ -1,0 +1,12 @@
+{
+  "name": "low-findings-no-bug-issue",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.low_findings.bug_issue_required: const (low finding without a bug Issue)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

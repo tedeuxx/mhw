@@ -1,0 +1,12 @@
+{
+  "name": "coverage-84.99",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.coverage.threshold_percent: minimum (coverage below the mhw floor of 85 percent)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

@@ -112,6 +112,11 @@ jobs:
           ref: <mhw-commit-sha>
           path: mhw
           persist-credentials: false
+      # Node 26 for mhw policy check, which delivery_gate.py runs to re-validate the contract (mhw #498).
+      # actions/setup-node v7.1.0, the pin mhw's own workflows use.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
       - id: prod
         # The commit PROD runs now: a full SHA, or `none` before the first PROD deployment. Anything
         # else (an error, an empty line, a release name) blocks the deployment.
@@ -157,6 +162,11 @@ jobs:
           ref: <mhw-commit-sha>
           path: mhw
           persist-credentials: false
+      # Node 26 for mhw policy check, which delivery_gate.py runs to re-validate the contract (mhw #498).
+      # actions/setup-node v7.1.0, the pin mhw's own workflows use.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 26.13.1
       - env:
           DELIVERY_EVIDENCE: ${{ runner.temp }}/prod-evidence.json
         run: |

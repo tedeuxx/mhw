@@ -1,0 +1,12 @@
+{
+  "name": "patterns-astral-description-length",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.mandatory_scenarios.risk_scenarios[0].description: pattern (missing mandatory evidence)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

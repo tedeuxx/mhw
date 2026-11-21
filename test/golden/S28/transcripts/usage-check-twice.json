@@ -1,0 +1,12 @@
+{
+  "name": "usage-check-twice",
+  "args": [
+    "check",
+    "check"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "mhw policy check: unknown argument check (--project=DIR or --file=PATH)\n"
+  }
+}

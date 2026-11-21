@@ -1,0 +1,12 @@
+{
+  "name": "valid-relative-file",
+  "args": [
+    "check",
+    "--file=project-policy.json"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "OK  project-policy.json is a valid project-policy contract, schema_version 1\n",
+    "stderr": ""
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "malformed-repeated-keys-nested",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: repeated key \"high_risk\", \"low_risk\"\n"
+  }
+}

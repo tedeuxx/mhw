@@ -1,0 +1,12 @@
+{
+  "name": "version-minus-zero-integer",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  unknown version: schema_version 0; this validator knows 1\n"
+  }
+}

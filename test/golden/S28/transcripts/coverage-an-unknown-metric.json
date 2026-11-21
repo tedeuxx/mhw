@@ -1,0 +1,12 @@
+{
+  "name": "coverage-an-unknown-metric",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.coverage.metric: enum (missing mandatory evidence)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

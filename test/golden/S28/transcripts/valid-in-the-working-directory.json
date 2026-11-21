@@ -1,0 +1,11 @@
+{
+  "name": "valid-in-the-working-directory",
+  "args": [
+    "check"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "OK  project-policy.json is a valid project-policy contract, schema_version 1\n",
+    "stderr": ""
+  }
+}

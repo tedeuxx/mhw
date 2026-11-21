@@ -1,0 +1,12 @@
+{
+  "name": "valid-relative-project",
+  "args": [
+    "check",
+    "--project=a/./b"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "OK  a/b/project-policy.json is a valid project-policy contract, schema_version 1\n",
+    "stderr": ""
+  }
+}

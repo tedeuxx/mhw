@@ -1,0 +1,12 @@
+{
+  "name": "malformed-control-character",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Invalid control character at)\n"
+  }
+}

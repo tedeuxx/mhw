@@ -703,13 +703,11 @@ def main(argv):
         print("mhw: mhw check is the Node command now; run ./mhw check or node bin/mhw.js check", file=sys.stderr)
         return 2
     if command == "policy":
-        # ADR-0015 lock 3 (Issue #245): validate a project's contract; reads one file, installs nothing.
-        if not rest or rest[0] != "check":
-            print("mhw: policy takes one subcommand, check [--project=DIR | --file=PATH]", file=sys.stderr)
-            return 2
-        sys.path.insert(0, str(HERE / "project-policy"))
-        import project_policy
-        return project_policy.main(rest)
+        # Node since #498 (S28 of #470): ./mhw and bin/mhw.js run src/commands/project-policy.js, so only a
+        # direct `python3 workstation.py policy` arrives here; it names the command, as scan does.
+        print("mhw: mhw policy check is the Node command now; run ./mhw policy check or node bin/mhw.js policy check",
+              file=sys.stderr)
+        return 2
     overlay, verbose, admin, wanted, method = None, False, False, None, False
     yes, no_admin = False, False
     for arg in rest:

@@ -1,0 +1,12 @@
+{
+  "name": "not-an-object-number",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: the contract is a JSON object, this file is not\n"
+  }
+}
