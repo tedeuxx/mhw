@@ -12,7 +12,7 @@
 import { adminInstalled, adminPresent } from '../lib/readers/admin.js';
 import { darwin } from '../lib/readers/common.js';
 import {
-  SH, FRESH, capture, installArgs, managedArgs, issues, isProblem, show, heading, nextSteps, styled, interactive,
+  SH, NODE, FRESH, capture, installArgs, managedArgs, issues, isProblem, show, heading, nextSteps, styled, interactive,
   confirm, adminAccess, adminApply, ownerSteps,
 } from '../lib/lifecycle.js';
 import { wordsOf } from './status.js';
@@ -41,7 +41,7 @@ export function installPlan(adminWanted, userWanted, env, run = capture) {
   /** @type {Plan} */
   const plan = { user: 0, admin: 'skipped', admin_count: 0 };
   if (userWanted) {
-    const [code, lines] = run(SH, installArgs(['--check', '--hooks=' + hooksMode(env)], env), env);
+    const [code, lines] = run(NODE, installArgs(['--check', '--hooks=' + hooksMode(env)], env), env);
     plan.user = issues(lines) || (code ? 1 : 0);
   }
   if (adminWanted && adminSupported()) {
@@ -124,13 +124,13 @@ export function install(o, env, io, t = {}) {
   }
   if (!adminOnly) {
     heading('Installing your settings', env, io);
-    const [code, lines] = run(SH, installArgs(['--hooks=' + hooksMode(env), ...(method ? ['--method'] : [])], env), env);
+    const [code, lines] = run(NODE, installArgs(['--hooks=' + hooksMode(env), ...(method ? ['--method'] : [])], env), env);
     show(lines, verbose, io);
     if (code !== 0) failed.push('Your settings (exit ' + code + '; `' + cmd + ' install --verbose` shows why)');
     owner = ownerSteps(lines);
   }
   heading('Checking', env, io);
-  const [ccode, clines] = run(SH, installArgs(['--check', '--hooks=' + hooksMode(env)], env), env);
+  const [ccode, clines] = run(NODE, installArgs(['--check', '--hooks=' + hooksMode(env)], env), env);
   if (!adminOnly && ccode !== 0) {
     show(clines.filter(isProblem), verbose, io);
     failed.push('Your settings still differ in ' + Math.max(issues(clines), 1) + ' file(s)');

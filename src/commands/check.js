@@ -9,8 +9,9 @@
 //                                installed method cannot validate it (fail closed)
 //   Options: --overlay=DIR|none (default: the repository's overlay/).
 //
-// Read-only. It runs global/install.sh --check (its lines go straight to this process's stdout and stderr)
-// and, when an admin layer of ours is on disk, global/install-managed.sh --check, under /bin/sh, and names
+// Read-only. It runs `mhw install-user --check` on this node (global/install.sh until #503; its lines go
+// straight to this process's stdout and stderr) and, when an admin layer of ours is on disk,
+// global/install-managed.sh --check, under /bin/sh, and names
 // what differs there. The validated --overlay reaches the installers and the prerequisites through
 // WORKSTATION_OVERLAY, never their argv. The exit code is the largest of the sections'. macOS and Linux;
 // on Windows `mhw check` stays install.ps1 -Check (src/cli.js). node: modules only.
@@ -26,6 +27,16 @@ import { checkProject } from '../lib/merge-authority.js';
 /** @typedef {import('../lib/readers/common.js').Env} Env */
 /** @typedef {(line: string) => void} Out */
 
+/**
+ * The user-layer installer's --check, run on this process's node: [exe, argv] (#503; global/install.sh until then).
+ * @param {string[]} extra @param {Env} env @returns {[string, string[]]}
+ */
+export function userCheck(extra, env) {
+  const args = [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', ...extra];
+  if (managedRoot(env)) args.push('--managed-root=' + managedRoot(env));
+  return [process.execPath, args];
+}
+
 /** The installers' argv: the script, its flags, and the managed root when one is set. @param {string} script @param {string[]} extra @param {string} flag @param {Env} env */
 export function installer(script, extra, flag, env) {
   const args = [path.join(ROOT, 'global', script), ...extra];
@@ -34,12 +45,12 @@ export function installer(script, extra, flag, env) {
 }
 
 /**
- * This copy's provenance stamp, as install.sh --check computes it (its SOURCE line).
+ * This copy's provenance stamp, as `mhw install-user --check` computes it (its SOURCE line).
  * @param {Env} env
  */
 function sourceStamp(env) {
   const mode = adminInstalled(env) ? 'managed' : 'user';
-  const [, lines] = runLines('/bin/sh', installer('install.sh', ['--check', '--hooks=' + mode], '--managed-root=', env), env);
+  const [, lines] = runLines(...userCheck(['--check', '--hooks=' + mode], env), env);
   for (const l of lines) if (l.startsWith('SOURCE  ')) return l.slice('SOURCE  '.length);
   return 'none';
 }
@@ -77,7 +88,7 @@ export function check(o, env, cwd, out) {
   let code = 0;
   if (!o.prerequisitesOnly) {
     const mode = adminInstalled(env) ? 'managed' : 'user';
-    const r = runAbsolute('/bin/sh', installer('install.sh', ['--check', '--hooks=' + mode], '--managed-root=', env), { env, stdio: 'inherit' });
+    const r = runAbsolute(...userCheck(['--check', '--hooks=' + mode], env), { env, stdio: 'inherit' });
     code = r.error ? 2 : r.code;
     if (adminPresent(env)) {
       // Every admin layer of ours, stamped or from an earlier release (Issue #52), read-only.

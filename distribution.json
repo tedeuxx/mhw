@@ -27,7 +27,7 @@
       "id": "deny-floor",
       "layer": "managed",
       "paths": ["global/deny-floor.conf", "src/render/kiro-permissions.js", "src/lib/yaml-subset.js"],
-      "gap": "Rendered at user level by install.sh and into the admin layer by install-managed.sh (ADR-0016 2026-10-05 amendment; Kiro: ADR-0036, accepted 2026-10-11, where the admin file is read by Kiro IDE and the Kiro CLI V3 engine only)."
+      "gap": "Rendered at user level by mhw install-user (install.sh until #503) and into the admin layer by install-managed.sh (ADR-0016 2026-10-05 amendment; Kiro: ADR-0036, accepted 2026-10-11, where the admin file is read by Kiro IDE and the Kiro CLI V3 engine only)."
     },
     {
       "id": "paste-filter",
@@ -63,7 +63,7 @@
       "id": "user-installer",
       "layer": "user",
       "paths": [
-        "global/install.sh",
+        "src/commands/install-user.js",
         "global/install.ps1",
         "src/commands/lifecycle.js",
         "src/commands/install.js",
@@ -101,7 +101,7 @@
       "id": "project-policy-contract",
       "layer": "user",
       "paths": ["global/project-policy/"],
-      "gap": "A contract a deploying project declares, not a harness carrier: install.sh renders nothing from it. Written and tested only; mhw policy check (src/commands/project-policy.js, Node since #498) validates a project's copy (#245) and mhw delivery-gate (src/commands/delivery-gate.js, Node since #499) applies it to a revision's evidence in the reference CI/CD (#246, docs/reference-cicd.md), with the recovery gates and runbook template of #247 (docs/recovery-reference.md), but no project declares one or runs any of them (ADR-0015, #244)."
+      "gap": "A contract a deploying project declares, not a harness carrier: mhw install-user renders nothing from it. Written and tested only; mhw policy check (src/commands/project-policy.js, Node since #498) validates a project's copy (#245) and mhw delivery-gate (src/commands/delivery-gate.js, Node since #499) applies it to a revision's evidence in the reference CI/CD (#246, docs/reference-cicd.md), with the recovery gates and runbook template of #247 (docs/recovery-reference.md), but no project declares one or runs any of them (ADR-0015, #244)."
     },
     {
       "id": "documentation-baseline",

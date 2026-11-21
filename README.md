@@ -207,11 +207,14 @@ its hook entries, the deny-floor rules the installer itself added (recorded in a
 rule you wrote yourself stays even when it equals a floor rule), and its two keys. A single backup
 stays beside the file and is overwritten by the next install or uninstall.
 
-`--overlay=DIR|none` selects a profile other than the repository's `overlay/`. `global/install.sh` and
-`global/install-managed.sh` stay as the internals ([#67](https://github.com/tedeuxx/mhw/issues/67)).
+`--overlay=DIR|none` selects a profile other than the repository's `overlay/`. `mhw install-user` (the
+user layer, `src/commands/install-user.js`; it was `global/install.sh` until
+[#503](https://github.com/tedeuxx/mhw/issues/503)) and `global/install-managed.sh` stay as the internals
+([#67](https://github.com/tedeuxx/mhw/issues/67)). `mhw install-user` takes `install.sh`'s flags and
+exit codes, and runs on the node that runs mhw.
 The `sudo` route to turn a hook off is in the [breaking-glass runbook](docs/runbooks/breaking-glass.md).
 
-**What `check` reports.** `./mhw check` runs `install.sh --check` (with the hooks mode it
+**What `check` reports.** `./mhw check` runs `mhw install-user --check` (with the hooks mode it
 detects), `install-managed.sh --check` whenever any admin layer of this repository is on disk (stamped,
 or installed by an earlier release without the #66 stamp), and the prerequisites section. When the
 admin layer differs, `check`, `install` and `status` name each `STALE` and `DRIFT` target, each removed
@@ -230,10 +233,11 @@ It changes nothing.
   in `permissions.deny` and in the ownership key, and `check` exits 0. `uninstall` removes it, because
   it is in the ownership key.
 - **An exported `WORKSTATION_OVERLAY` changes the default.** `./mhw` passes `--overlay` to the
-  installers through that variable, and `install.sh` and the prerequisites check read it when no
-  `--overlay` is given. If it is exported in your shell, a plain `install.sh` or `./mhw
+  installers through that variable, and `mhw install-user` and the prerequisites check read it when no
+  `--overlay` is given. If it is exported in your shell, a plain `mhw install-user` or `./mhw
   install` uses that profile instead of the repository's `overlay/`, and no output line says so. With
-  `WORKSTATION_OVERLAY=none` exported, `install.sh` dropped the overlay's deny rules and still exited 0:
+  `WORKSTATION_OVERLAY=none` exported, `install.sh` dropped the overlay's deny rules and still exited 0
+  (measured before #503; `mhw install-user` reads the variable the same way):
   `jq '.permissions.deny | length' ~/.claude/settings.json` in the throwaway HOME read 215 for a
   default install and 194 with the variable exported (the floor's 206 or 185, plus the allow list's
   own denies). Unset it, or pass `--overlay=` explicitly.
@@ -249,7 +253,7 @@ X.Y.Z, so it matches here only when that last release is inside the range.
 Windows (PowerShell 5.1 and 7, tested in CI) renders the brief and the deny floor (Kiro's
 `permissions.yaml` included), and the working method with `-Method`. Since the #145 follow-up it also
 ~~removes the `aws-api` MCP server from Codex,~~ (removed in v7, #206) pins the session-start model and effort, and removes the
-retired `find` and `awk` allows, as `install.sh` does; these steps need Python 3.9 or later. The paste
+retired `find` and `awk` allows, as `mhw install-user` does; these steps need Python 3.9 or later. The paste
 wrapper is not ported, so no shell start-up file is written. There is no uninstall on Windows. Every
 backup is owner-only there too: its access list grants the current user alone, inheritance disabled. From a clone, or through the npm `mhw` command, which runs the same script:
 

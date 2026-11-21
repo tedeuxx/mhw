@@ -917,7 +917,7 @@ export function run(argv, opts = {}) {
     // Off by default until the plugin cutover (#63, #64): with the plugin enabled, every agent, skill
     // and command would appear twice, and the plugin's still-running hooks refuse the bare-named
     // agents. Once installed by opt-in, later runs keep the files current; uninstall removes them.
-    say('METHOD  not installed (opt-in: ' + (ctx.env.MHW_CMD || './mhw') + ' install --method, or install.sh --method; '
+    say('METHOD  not installed (opt-in: ' + (ctx.env.MHW_CMD || './mhw') + ' install --method; '
       + 'off by default until the plugin cutover, #63 #64)');
     return 0;
   }

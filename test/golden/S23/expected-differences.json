@@ -58,5 +58,16 @@
     "head": "PROJECT merge authority: FAIL the AGENTS\\.md at <TMP>/work/p is not readable UTF-8; the project brief must declare its merge-authority block\\n$",
     "replace": "<the PROJECT line for an AGENTS.md that is not UTF-8>",
     "why": "The other half of the entry above: where workstation.py stopped with a traceback, the Node check prints one PROJECT FAIL line naming the brief as not readable UTF-8, after the prerequisites section, in the place every other project finding is printed. It is a finding (exit 1), not a fail-closed exit 2, because the installed contract was read and only the project's own file is at fault, as a missing AGENTS.md already was."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "*"
+    ],
+    "base": ", or install\\.sh --method;",
+    "replace": ";",
+    "why": "#503 (S25 of #470) deleted global/install.sh: the METHOD line the working-method step prints when the method is not installed named it as the second way to opt in ('./mhw install --method, or install.sh --method'), a pointer to a file that no longer exists. It now names `install --method` only. The rest of the line, and every other line, is compared unchanged."
   }
 ]

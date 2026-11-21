@@ -468,7 +468,7 @@ group('render', { skip: !POSIX && 'the fixture names a secret, refused on Window
     const src = run(h, ['--dry-run']).stdout.split('\n').find((l) => l.startsWith('SOURCE  '));
     const ih = path.join(BASE, 'home-stamp-install-sh');
     fs.mkdirSync(ih, { recursive: true });
-    const q = spawnSync('/bin/sh', [path.join(ROOT, 'global', 'install.sh'), '--dry-run', '--managed-root=' + path.join(BASE, 'managed-root')], { env: cleanEnv(ih), encoding: 'utf8' });
+    const q = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', '--dry-run', '--managed-root=' + path.join(BASE, 'managed-root')], { env: cleanEnv(ih), encoding: 'utf8' });
     assert.ok(q.stdout.includes(src + '\n'), q.stderr);
   });
 

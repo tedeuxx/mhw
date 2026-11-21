@@ -583,7 +583,8 @@ test('Kiro V3 permissions admit what the 2.x patterns admit (an emulation of the
 // ---- install.sh end to end (the shell suite's cases 1 to 7 and 9) ----------------------------------
 
 const JQ = which('jq');
-const INSTALL = path.join(ROOT, 'global', 'install.sh');
+// The user-layer installer, `mhw install-user` (global/install.sh until #503), run on this node.
+const INSTALL = path.join(ROOT, 'bin', 'mhw.js');
 const MANAGED = path.join(ROOT, 'global', 'install-managed.sh');
 const E2E = !POSIX ? 'POSIX only (install.sh)' : (!JQ && 'jq is not on PATH');
 
@@ -598,7 +599,7 @@ function env(home, extra = {}) {
 /** @param {string} home @param {string[]} args @param {Record<string, string>} [extra] */
 function install(home, args, extra) {
   fs.mkdirSync(home, { recursive: true });
-  const p = spawnSync('/bin/sh', [INSTALL, ...args], { encoding: 'utf8', env: env(home, extra), timeout: 600000 });
+  const p = spawnSync(process.execPath, [INSTALL, 'install-user', ...args], { encoding: 'utf8', env: env(home, extra), timeout: 600000 });
   return { code: p.status, out: p.stdout + p.stderr, stdout: p.stdout };
 }
 
@@ -950,7 +951,7 @@ test('install.sh: an npm layout Edit-denies its own package directory, a checkou
     if (layout === 'npm-with-git') fs.writeFileSync(path.join(pkg, '.git'), 'gitdir: /nowhere\n');
     const h = path.join(d, 'home');
     fs.mkdirSync(h);
-    const p = spawnSync('/bin/sh', [path.join(pkg, 'global', 'install.sh'), '--managed-root=' + path.join(d, 'root')], { encoding: 'utf8', env: env(h) });
+    const p = spawnSync(process.execPath, [path.join(pkg, 'bin', 'mhw.js'), 'install-user', '--managed-root=' + path.join(d, 'root')], { encoding: 'utf8', env: env(h) });
     assert.equal(p.status, 0, layout + p.stdout + p.stderr);
     const whole = denyOf(h + '/.claude/settings.json').filter((x) => /^Edit\(\/\/.*\/\*\*\)$/.test(x) && !x.endsWith('/overlay/**)'));
     assert.deepEqual(whole, layout === 'npm' ? ['Edit(/' + fs.realpathSync(pkg) + '/**)'] : [], layout);

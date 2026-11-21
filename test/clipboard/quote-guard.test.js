@@ -1,10 +1,11 @@
 // The single-quote guards of the rendered prompt-hook command (#488, PR #536 QA): since the start fallback the
 // command is a /bin/sh -c '...', so a path holding a single quote would end the script early. Each of the
 // three guards is run here, out of process, in throwaway HOMEs and a throwaway --root, never the real ones:
-//   global/install.sh            the data directory, node and package paths (its paste_ok check)
-//   global/install-managed.sh    the admin bin directory ($bin), and the node read back from install.sh's
-//                                render (reached through a stand-in install.sh, since the real one refuses
-//                                such a node first)
+//   mhw install-user             the data directory, node and package paths (its paste_ok check;
+//                                global/install.sh until #503)
+//   global/install-managed.sh    the admin bin directory ($bin), and the node read back from the user-layer
+//                                render (reached through a stand-in bin/mhw.js, since the real installer
+//                                refuses such a node first)
 // Each asserts REFUSE, exit 2 and that no prompt hook is registered.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -42,13 +43,13 @@ function noHook(home) {
   assert.ok(!fs.existsSync(path.join(home, '.kiro', 'hooks', NAME + '-paste-filter.json')), 'a Kiro hook file was written');
 }
 
-test('install.sh refuses a data directory holding a single quote: REFUSE, exit 2, no prompt hook', { skip: SKIP }, () => {
+test('mhw install-user refuses a data directory holding a single quote: REFUSE, exit 2, no prompt hook', { skip: !POSIX && 'POSIX' }, () => {
   const d = fresh();
   const home = path.join(d, 'home');
   const xdg = path.join(d, "xdg-q'uote");
   fs.mkdirSync(home);
   fs.mkdirSync(xdg);
-  const r = spawnSync('/bin/sh', [path.join(ROOT, 'global', 'install.sh'), '--overlay=none', '--shell-rc=none'],
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', '--overlay=none', '--shell-rc=none', '--managed-root=' + path.join(d, 'admin')],
     { env: envFor(home, { XDG_DATA_HOME: xdg, MHW_NODE: process.execPath }), encoding: 'utf8', timeout: 300000 });
   assert.equal(r.status, 2, r.stdout + r.stderr);
   assert.match(r.stderr, /^REFUSE {2}paste filter: the data directory, node or package path holds a quote \(single or double\), backslash, dollar sign or backtick$/m);
@@ -68,8 +69,9 @@ test('install-managed.sh refuses an admin directory holding a single quote: REFU
 });
 
 test('install-managed.sh refuses a rendered node path holding a single quote: REFUSE, exit 2, nothing staged', { skip: SKIP }, () => {
-  // A copy of install-managed.sh beside a stand-in install.sh that renders what install.sh would, with a node
-  // whose path holds a single quote (the real install.sh refuses that node before install-managed.sh sees it).
+  // A copy of install-managed.sh beside a stand-in bin/mhw.js whose `install-user` renders what the real one
+  // would, with a node whose path holds a single quote (the real one refuses that node before
+  // install-managed.sh sees it).
   const d = fresh();
   const tree = path.join(d, 'tree');
   fs.mkdirSync(path.join(tree, 'global'), { recursive: true });
@@ -80,15 +82,15 @@ test('install-managed.sh refuses a rendered node path holding a single quote: RE
     + "\" \"/x/bin/mhw.js\" hook prompt --harness claude --config \"/x/clipboard.conf\" || exit 0'";
   const settings = JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: cmd, timeout: 30 }] }] },
     permissions: { deny: ['Bash(sudo:*)'] } });
-  fs.writeFileSync(path.join(tree, 'global', 'install.sh'), [
-    '#!/bin/sh',
-    '# stand-in for the S17 quote-guard test: renders a user layer whose prompt hook names a quoted node',
-    'd="$HOME/.local/share/' + NAME + '"',
-    'mkdir -p "$d" "$HOME/.claude"',
-    'printf "# managed-by: ' + NAME + '; source: x; release: v0.0.1; commit: ' + 'a'.repeat(40) + '; do not edit\\n" > "$d/clipboard.conf"',
-    "cat > \"$HOME/.claude/settings.json\" <<'JSON'",
-    settings,
-    'JSON',
+  fs.mkdirSync(path.join(tree, 'bin'));
+  fs.writeFileSync(path.join(tree, 'bin', 'mhw.js'), [
+    '// stand-in for the S17 quote-guard test: renders a user layer whose prompt hook names a quoted node',
+    "import fs from 'node:fs';",
+    "const d = process.env.HOME + '/.local/share/" + NAME + "';",
+    "fs.mkdirSync(d, { recursive: true });",
+    "fs.mkdirSync(process.env.HOME + '/.claude', { recursive: true });",
+    "fs.writeFileSync(d + '/clipboard.conf', " + JSON.stringify('# managed-by: ' + NAME + '; source: x; release: v0.0.1; commit: ' + 'a'.repeat(40) + '; do not edit\n') + ');',
+    "fs.writeFileSync(process.env.HOME + '/.claude/settings.json', " + JSON.stringify(settings + '\n') + ');',
     '',
   ].join('\n'));
   const root = path.join(d, 'root');

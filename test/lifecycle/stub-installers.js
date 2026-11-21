@@ -1,4 +1,4 @@
-// Recording stand-ins for global/install.sh and global/install-managed.sh (#495, S24 of #470), for the
+// Recording stand-ins for the user-layer installer (mhw install-user, global/install.sh until #503) and global/install-managed.sh (#495, S24 of #470), for the
 // lifecycle parity cases marked `stub`. Each appends one line per run to $STUB_LOG: its arguments, and the
 // environment the lifecycle command hands the installers (WORKSTATION_OVERLAY, MHW_NODE, MHW_CMD and
 // WORKSTATION_MANAGED_ROOT), so the golden pins the exact argv and env, which the written-tree comparison
@@ -10,12 +10,24 @@ const LOG = `{ printf '%s' "$(basename "$0")"; for a in "$@"; do printf ' [%s]' 
   printf ' | overlay=%s node=%s cmd=%s root=%s\\n' "\${WORKSTATION_OVERLAY-<unset>}" "\${MHW_NODE-<unset>}" "\${MHW_CMD-<unset>}" "\${WORKSTATION_MANAGED_ROOT-<unset>}"; } >> "$STUB_LOG"
 `;
 
-const INSTALL = `#!/bin/sh
-${LOG}case " $* " in
-  *" --check "*) if [ -f "$STUB_STATE" ]; then echo "OK      stub user layer"; exit 0; fi; echo "MISSING stub user layer"; exit 1 ;;
-  *" --uninstall "*) rm -f "$STUB_STATE"; echo "REMOVED stub user layer"; exit 0 ;;
-  *) : > "$STUB_STATE"; echo "WROTE   stub user layer"; exit 0 ;;
-esac
+// The user layer is `mhw install-user` since #503 (S25): its stand-in replaces src/commands/install-user.js
+// and logs the same line, named install-user (test/golden/S24/expected-differences.json).
+const INSTALL_USER = `import fs from 'node:fs';
+export function main(argv, env) {
+  const v = (k) => (env[k] === undefined ? '<unset>' : env[k]);
+  fs.appendFileSync(env.STUB_LOG, 'install-user' + argv.map((a) => ' [' + a + ']').join('')
+    + ' | overlay=' + v('WORKSTATION_OVERLAY') + ' node=' + v('MHW_NODE') + ' cmd=' + v('MHW_CMD') + ' root=' + v('WORKSTATION_MANAGED_ROOT') + '\\n');
+  const out = (s) => fs.writeSync(1, s + '\\n');
+  if (argv.includes('--check')) {
+    if (fs.existsSync(env.STUB_STATE)) { out('OK      stub user layer'); return 0; }
+    out('MISSING stub user layer');
+    return 1;
+  }
+  if (argv.includes('--uninstall')) { fs.rmSync(env.STUB_STATE, { force: true }); out('REMOVED stub user layer'); return 0; }
+  fs.writeFileSync(env.STUB_STATE, '');
+  out('WROTE   stub user layer');
+  return 0;
+}
 `;
 
 const MANAGED = `#!/bin/sh
@@ -35,10 +47,9 @@ esac
 
 /** Replace a tree's two installers with the recorders. @param {string} tree */
 export function stubInstallers(tree) {
-  for (const [name, text] of [['install.sh', INSTALL], ['install-managed.sh', MANAGED]]) {
-    fs.writeFileSync(path.join(tree, 'global', name), text);
-    fs.chmodSync(path.join(tree, 'global', name), 0o700);
-  }
+  fs.writeFileSync(path.join(tree, 'global', 'install-managed.sh'), MANAGED);
+  fs.chmodSync(path.join(tree, 'global', 'install-managed.sh'), 0o700);
+  fs.writeFileSync(path.join(tree, 'src', 'commands', 'install-user.js'), INSTALL_USER);
 }
 
 /** The recorders' environment for a case directory. @param {string} dir */

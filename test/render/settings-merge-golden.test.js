@@ -4,8 +4,9 @@
 //           code, stdout, stderr and the throwaway HOME's tree (path, kind, mode, and each file's text),
 //           recorded from the base revision's install.sh: its functions cut out of it and run the way
 //           install.sh ran them (set -eu), on frozen floor inputs (test/golden/S20/inputs).
-//   head:   the same functions cut out of this tree's install.sh, which run the Node steps, so the shell
-//           wiring is held to the golden too.
+//   head:   since #503 (S25) deleted install.sh, the same steps of `mhw install-user` (mergeSettings,
+//           uninstallUser, reportFloor), each run alone by test/helpers/install-step-driver.js, so the wiring is
+//           held to the golden too; until then the same functions cut out of this tree's install.sh.
 //   live:   where the base revision still holds the jq programs (until this slice merges), both run on the
 //           same inputs. MHW_UPDATE_GOLDEN=1 rewrites the goldens from the base side, never from Node.
 // POSIX only: install.sh never runs on Windows (install.ps1 merges its own settings). The pure functions are
@@ -100,9 +101,10 @@ function runScenario(sc, tree_) {
   const runs = [];
   for (const r of sc.runs) {
     for (const c of r.before || []) apply(d, c);
-    const p = spawnSync('/bin/sh', ['-c', DRIVER], {
+    const p = spawnSync(tree_ === ROOT ? process.execPath : '/bin/sh', tree_ === ROOT ? [path.join(ROOT, 'test', 'helpers', 'install-step-driver.js')] : ['-c', DRIVER], {
       encoding: 'utf8',
       env: { PATH: process.env.PATH || '', HOME: d.H, TMPDIR: path.join(T, 'tmp'), LANG: 'C', MHW_NODE: process.execPath,
+        A_WRAP_NODE: '/opt/s20/bin/node', A_WRAP_MHW: '/opt/s20/mhw/bin/mhw.js',
         A_INSTALL_SH: path.join(tree_, 'global', 'install.sh'), A_SCRIPT_DIR: path.join(tree_, 'global'),
         A_MODE: r.mode || 'install', A_HOOKS: r.hooks || 'user', A_PASTE_OK: r.paste === false ? '0' : '1', A_STAMP: r.stamp || STAMP,
         A_MANAGED_ROOT: d.A, A_FLOOR: path.join(INPUTS, 'deny-floor.conf'),
@@ -180,7 +182,7 @@ test('live: the Node steps match the base revision\'s jq programs on the same in
   const base = path.join(freshDir('base'), 'tree');
   if (!rev) return skipOrFail(t, 'no base revision (MHW_PARITY_BASE unset, no merge-base with origin/rc/next)');
   if (!extractRevision(ROOT, rev, base)) return skipOrFail(t, 'base revision ' + rev + ' is not readable here');
-  if (!fs.readFileSync(path.join(base, 'global', 'install.sh'), 'utf8').includes(BASE_MARKER)) {
+  if (!fs.existsSync(path.join(base, 'global', 'install.sh')) || !fs.readFileSync(path.join(base, 'global', 'install.sh'), 'utf8').includes(BASE_MARKER)) {
     return t.skip('the base revision merges settings.json without jq (this slice has merged)');
   }
   if (!which('jq')) return skipOrFail(t, 'jq is not on PATH; the base revision needs it');

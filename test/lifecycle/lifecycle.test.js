@@ -159,7 +159,8 @@ test('an admin layer that was planned and not installed is not a success (PR #11
 });
 
 test('a failed admin-layer removal still removes the user layer, and the uninstall is incomplete (QA U2 on PR #542)', { skip: !POSIX && 'the admin layer is macOS and Linux only' }, () => {
-  // workstation.py went on to install.sh --uninstall after install-managed.sh --remove failed; so does Node.
+  // workstation.py went on to install.sh --uninstall after install-managed.sh --remove failed; so does Node, with
+  // the user-layer installer that replaced it (mhw install-user, #503).
   const b = box('remove-fails');
   const dropin = b.root + (process.platform === 'darwin' ? '/Library/Application Support/ClaudeCode' : '/etc/claude-code')
     + '/managed-settings.d/50-personal-multi-harness-workstation-configuration.json';
@@ -178,7 +179,7 @@ test('a failed admin-layer removal still removes the user layer, and the uninsta
   assert.equal(code, 1, s.text);
   assert.equal(calls.length, 2, JSON.stringify(calls));
   assert.ok(calls[0].includes('--remove') && calls[0].some((a) => a.endsWith('install-managed.sh')), JSON.stringify(calls[0]));
-  assert.ok(calls[1].includes('--uninstall') && calls[1].some((a) => a.endsWith('install.sh')), JSON.stringify(calls[1]));
+  assert.ok(calls[1].includes('--uninstall') && calls[1].includes('install-user') && calls[1][0] === process.execPath, JSON.stringify(calls[1]));
   assert.ok(s.text.includes('==> Removing your settings\n'), s.text);
   assert.ok(s.text.includes('Uninstall incomplete:\n  - System-wide protections (exit 5; `'), s.text);
   assert.ok(!s.text.includes('Uninstall complete.'), s.text);

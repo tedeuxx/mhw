@@ -61,7 +61,7 @@ function installer(dir, args, extra = {}) {
   fs.mkdirSync(path.join(dir, 'home'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'admin'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'tmp'), { recursive: true });
-  const p = spawnSync('/bin/sh', [path.join(ROOT, 'global', 'install.sh'), '--overlay=none', '--shell-rc=none',
+  const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', '--overlay=none', '--shell-rc=none',
     '--managed-root=' + path.join(dir, 'admin'), ...args], {
     encoding: 'utf8',
     env: { PATH: process.env.PATH || '', HOME: path.join(dir, 'home'), TMPDIR: path.join(dir, 'tmp'), LANG: 'C', MHW_NODE: process.execPath, ...extra },
@@ -319,7 +319,7 @@ test('prerequisites: jq is no longer required by the workstation', () => {
   assert.ok(jq, 'jq is still declared, as optional');
   assert.equal(jq.required, 'optional');
   assert.ok(Object.values(jq.lanes || {}).every((v) => v !== 'required'), JSON.stringify(jq.lanes));
-  assert.ok(!fs.readFileSync(path.join(ROOT, 'global', 'install.sh'), 'utf8').match(/\bjq (-|--)/), 'install.sh runs no jq');
+  assert.ok(!fs.readFileSync(path.join(ROOT, 'src', 'commands', 'install-user.js'), 'utf8').match(/\bjq (-|--)/), 'the user-layer installer runs no jq');
 });
 
 test('the settings step is a script run by node (it runs as its own program)', { skip: !POSIX && 'POSIX only' }, () => {

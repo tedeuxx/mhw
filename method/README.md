@@ -19,7 +19,7 @@ Kiro `/<name>`), typing the iteration or period after it; a skill has no `argume
 description says what it takes. Unlike a command, a skill may also be loaded by the model on its own.
 
 **Installing it is opt-in until the plugin cutover (#63, #64):** `./mhw install --method`
-renders it through `global/install.sh` (on Windows, `global/install.ps1 -Method`), which runs
+renders it through `mhw install-user` (~~`global/install.sh`~~ until #503; on Windows, `global/install.ps1 -Method`), which runs
 ~~`global/method/method_render.py`~~ `src/render/method.js` (Node since #489) as its own step.
 `./mhw check`, `status` and `uninstall` cover it the same way. Every rendered file carries the
 provenance stamp (ADR-0029). No script is installed: the rites run `mhw` commands, and a script an

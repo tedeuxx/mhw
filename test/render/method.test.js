@@ -17,7 +17,6 @@ import {
   ROOT, SOURCE, MARKER, STAMP, OTHER, SCRIPTS_DIR, SKILLS, COMMANDS, byCode, methodHome, sourceCopy, tempDir, read, frontMatter,
   fieldsOf, markerLine, flatten, unstruckParagraphs, liveText, methodFiles, sourceAgents, filesUnder,
 } from '../helpers/method-home.js';
-import { which } from '../helpers/home.js';
 
 const POSIX = process.platform !== 'win32';
 /** @type {Record<string, string>} */
@@ -854,15 +853,14 @@ describe('the harness token', () => {
   });
 });
 
-describe('through the installer', { skip: !POSIX && 'install.sh is POSIX; install.test.ps1 holds install.ps1' }, () => {
-  // install.sh runs the method as its own step, with its own stamp, by the node that runs mhw; uninstall
-  // removes it. The admin root is a throwaway directory, as every installer run here.
-  const SH = which('sh');
+describe('through the installer', { skip: !POSIX && 'the user-layer installer is POSIX; install.test.ps1 holds install.ps1' }, () => {
+  // mhw install-user (install.sh until #503) runs the method as its own step, with its own stamp, by the
+  // node that runs mhw; uninstall removes it. The admin root is a throwaway directory, as every installer run here.
   /** @param {string} home @param {string[]} args */
   function installer(home, args) {
     const env = { PATH: process.env.PATH || '', HOME: home, MHW_NODE: process.execPath, WORKSTATION_MANAGED_ROOT: path.join(home, '..', 'admin'), TMPDIR: path.join(home, '..', 'tmp') };
     fs.mkdirSync(env.TMPDIR, { recursive: true });
-    const p = spawnSync(/** @type {string} */ (SH), [path.join(ROOT, 'global', 'install.sh'), ...args, '--managed-root=' + env.WORKSTATION_MANAGED_ROOT], { env, encoding: 'utf8' });
+    const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', ...args, '--managed-root=' + env.WORKSTATION_MANAGED_ROOT], { env, encoding: 'utf8' });
     return { code: p.status, out: p.stdout + p.stderr, stdout: p.stdout };
   }
 
@@ -909,7 +907,7 @@ describe('through the installer', { skip: !POSIX && 'install.sh is POSIX; instal
     const home = path.join(root, 'home');
     fs.mkdirSync(home);
     const env = { PATH: process.env.PATH || '', HOME: home, MHW_NODE: path.join(root, 'no-node'), WORKSTATION_MANAGED_ROOT: path.join(root, 'admin'), TMPDIR: root };
-    const p = spawnSync(/** @type {string} */ (SH), [path.join(ROOT, 'global', 'install.sh'), '--method', '--overlay=none', '--managed-root=' + path.join(root, 'admin')], { env, encoding: 'utf8' });
+    const p = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'mhw.js'), 'install-user', '--method', '--overlay=none', '--managed-root=' + path.join(root, 'admin')], { env, encoding: 'utf8' });
     assert.ok(p.stdout.includes('REFUSE  the working method (method/): MHW_NODE (' + env.MHW_NODE + ') is not an executable file; nothing written'), p.stdout + p.stderr);
     assert.ok(!fs.existsSync(path.join(home, '.claude', 'agents')));
   });

@@ -108,7 +108,8 @@ esac
 kiro_js() { "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "$@"; }
 case $bin in *\"*|*\\*|*\$*|*\`*|*\'*) echo "REFUSE  $bin holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac
 
-# The prompt hook's start fallback (#488, PR #536 lens B3): see install.sh, where it is explained.
+# The prompt hook's start fallback (#488, PR #536 lens B3): see src/commands/install-user.js (pasteWrap), where it
+# is explained.
 PASTE_START_NOTICE='Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.'
 paste_wrap() { # $1 harness, $2 the hook command (no single quote in it)
   case $1 in
@@ -166,17 +167,19 @@ validate_kiro() { # $1 stage: the Kiro admin document must be one Kiro accepts. 
 render() { # $1 empty stage directory
   st=$1
   mkdir -p "$st/home" "$st/bin"
-  # install.sh renders every hook file (overlay included) into a throwaway home; reuse, never duplicate.
-  if ! env -u CODEX_HOME -u XDG_DATA_HOME HOME="$st/home" sh "$script_dir/install.sh" ${overlay_arg:+"$overlay_arg"} \
+  # The user-layer installer renders every hook file (overlay included) into a throwaway home; reuse, never
+  # duplicate. It is `mhw install-user` (src/commands/install-user.js, #503), run on the node found above by
+  # absolute path; global/install.sh until then.
+  if ! env -u CODEX_HOME -u XDG_DATA_HOME HOME="$st/home" "$kiro_node" "$script_dir/../bin/mhw.js" install-user ${overlay_arg:+"$overlay_arg"} \
       > "$st/install.log" 2>&1; then
-    echo "REFUSE  install.sh could not render the hook files (see $st/install.log)" >&2
+    echo "REFUSE  mhw install-user could not render the hook files (see $st/install.log)" >&2
     exit 2
   fi
   cp "$st/home/.local/share/$NAME/clipboard.conf" "$st/bin/clipboard.conf"
   # The provenance stamp (Issue #66, ADR-0029) exactly as install.sh derived it for the same checkout,
   # read back from a file it rendered, so the admin documents and the scripts cannot name two sources.
   stamp=$(grep -m 1 -F "$MARKER_ID" "$st/bin/clipboard.conf" | sed -n 's/.*; \(release: [^;]*; commit: [^;]*\);.*/\1/p')
-  [ -n "$stamp" ] || { echo "REFUSE  install.sh rendered no provenance stamp" >&2; exit 2; }
+  [ -n "$stamp" ] || { echo "REFUSE  mhw install-user rendered no provenance stamp" >&2; exit 2; }
   # The hook's files, each stamped: a comment line on a .js file, a key of ours in package.json.
   for f in $HOOK_FILES; do
     mkdir -p "$(dirname "$st/bin/$f")"
@@ -193,10 +196,10 @@ render() { # $1 empty stage directory
   # run the same node; NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH are cleared as there.
   hook_node=$(jq -r '[.hooks.UserPromptSubmit[]?.hooks[]?.command | select(contains("hook prompt --harness"))][0] // ""' \
     "$st/home/.claude/settings.json" | sed -n 's/^\/bin\/sh -c .\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "\([^"]*\)".*/\1/p')
-  case $hook_node in /*) ;; *) echo "REFUSE  install.sh rendered no prompt hook (node not found?); nothing staged" >&2; exit 2 ;; esac
+  case $hook_node in /*) ;; *) echo "REFUSE  mhw install-user rendered no prompt hook (node not found?); nothing staged" >&2; exit 2 ;; esac
   case $hook_node in *\"*|*\\*|*\$*|*\`*|*\'*) echo "REFUSE  the node path holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac
   nodecmd="/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE \"$hook_node\" \"$bin/hook/src/commands/hook-entry.js\""
-  # The same start fallback install.sh renders (paste_wrap, copied verbatim; hook.test.js holds the two equal).
+  # The same start fallback the user-layer installer renders (pasteWrap; hook.test.js holds the two equal).
   paste_claude=$(paste_wrap claude "$nodecmd --harness claude --config \"$bin/clipboard.conf\"")
   paste_codex=$(paste_wrap codex "$nodecmd --harness codex --config \"$bin/clipboard.conf\"")
   # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin
