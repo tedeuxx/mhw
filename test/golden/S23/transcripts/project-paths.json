@@ -1,0 +1,47 @@
+{
+  "step0 check --prerequisites --overlay=none <P:none>": {
+    "code": 1
+  },
+  "step0 check --prerequisites --overlay=none <P:none> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: no AGENTS.md at <TMP>/work/none; the project brief must declare its merge-authority block\n",
+  "step0 check --prerequisites --overlay=none <P:none> stderr": "",
+  "step1 check --prerequisites --overlay=none <P:dir>": {
+    "code": 1
+  },
+  "step1 check --prerequisites --overlay=none <P:dir> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: no AGENTS.md at <TMP>/work/dir; the project brief must declare its merge-authority block\n",
+  "step1 check --prerequisites --overlay=none <P:dir> stderr": "",
+  "step2 check --prerequisites --overlay=none <P:file>": {
+    "code": 2
+  },
+  "step2 check --prerequisites --overlay=none <P:file> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT <TMP>/work/file is not a directory\n",
+  "step2 check --prerequisites --overlay=none <P:file> stderr": "",
+  "step3 check --prerequisites --overlay=none <P:missing>": {
+    "code": 2
+  },
+  "step3 check --prerequisites --overlay=none <P:missing> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT <TMP>/work/missing is not a directory\n",
+  "step3 check --prerequisites --overlay=none <P:missing> stderr": "",
+  "step4 check --prerequisites --overlay=none <P:link>": {
+    "code": 0
+  },
+  "step4 check --prerequisites --overlay=none <P:link> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step4 check --prerequisites --overlay=none <P:link> stderr": "",
+  "step5 check --prerequisites --overlay=none --project=~/proj": {
+    "code": 0
+  },
+  "step5 check --prerequisites --overlay=none --project=~/proj stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step5 check --prerequisites --overlay=none --project=~/proj stderr": "",
+  "step6 check --prerequisites --overlay=none --project=": {
+    "code": 1
+  },
+  "step6 check --prerequisites --overlay=none --project= stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: no AGENTS.md at <TMP>; the project brief must declare its merge-authority block\n",
+  "step6 check --prerequisites --overlay=none --project= stderr": "",
+  "step7 check --prerequisites --overlay=none --project=.": {
+    "code": 0
+  },
+  "step7 check --prerequisites --overlay=none --project=. stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step7 check --prerequisites --overlay=none --project=. stderr": "",
+  "step8 check --prerequisites --overlay=none --project=../p/": {
+    "code": 0
+  },
+  "step8 check --prerequisites --overlay=none --project=../p/ stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step8 check --prerequisites --overlay=none --project=../p/ stderr": ""
+}

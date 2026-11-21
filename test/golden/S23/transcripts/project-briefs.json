@@ -1,0 +1,227 @@
+{
+  "step0 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step0 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL changes method-owned merge authority: the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')\nPROJECT merge authority: FAIL changes method-owned merge authority: the brief claims it wins over the method, which reaches merge authority ('this file wins')\n",
+  "step0 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step1 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step1 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL no `<!-- merge-authority:begin -->` block: declare the loop model and the boundary triggers there and reference the method contract instead of restating it\nPROJECT merge authority: FAIL changes method-owned merge authority: the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')\nPROJECT merge authority: FAIL changes method-owned merge authority: the brief claims it wins over the method, which reaches merge authority ('this file wins')\n",
+  "step1 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step2 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step2 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step2 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step3 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step3 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL executor override: a project may not declare `executor`; the method owns the executor, the verdicts and the holds\n",
+  "step3 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step4 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step4 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL executor override: a project may not declare `merged-by`; the method owns the executor, the verdicts and the holds\n",
+  "step4 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step5 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step5 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL executor override: a project may not declare `merges`; the method owns the executor, the verdicts and the holds\n",
+  "step5 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step6 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step6 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL hold override: a project may not declare `hold`; the method owns the executor, the verdicts and the holds\n",
+  "step6 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step7 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step7 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL hold override: a project may not declare `holds-removed`; the method owns the executor, the verdicts and the holds\n",
+  "step7 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step8 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step8 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL hold override: a project may not declare `holds`; the method owns the executor, the verdicts and the holds\n",
+  "step8 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step9 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step9 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL verdict override: a project may not declare `verdict`; the method owns the executor, the verdicts and the holds\n",
+  "step9 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step10 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step10 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL class relationship override: a project may not declare `boundary`; the method owns the executor, the verdicts and the holds\n",
+  "step10 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step11 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step11 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL a boundary trigger may classify, not assign authority: 'published content, which the owner ratifies before merge' uses 'ratifies'\n",
+  "step11 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step12 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step12 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL unknown key `reviewer`: the declaration carries only contract, loop-model, integration-branch, boundary-trigger\n",
+  "step12 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step13 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step13 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL an empty `boundary-trigger`\n",
+  "step13 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step14 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step14 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the declaration carries a line that is not `key: value`: 'not a key value line'\n",
+  "step14 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step15 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step15 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the declaration needs exactly one `contract: merge-authority vN` line (found 2)\n",
+  "step15 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step16 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step16 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step16 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step17 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step17 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step17 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step18 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step18 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL loop model `trunk-multi-env` is not one the contract maps (gitflow-multi-env, trunk-single-env)\nPROJECT merge authority: FAIL the prose names loop model `trunk-single-env`, the declaration `trunk-multi-env`\n",
+  "step18 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step19 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step19 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the prose names loop model `trunk-single-env`, the declaration `gitflow-multi-env`\n",
+  "step19 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step20 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step20 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step20 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step21 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step21 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL changes method-owned merge authority: the gate escalates the boundary class: that is a fifth hold the method does not have ('escalates the boundary')\n",
+  "step21 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step22 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step22 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step22 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step23 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step23 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL no `<!-- merge-authority:begin -->` block: declare the loop model and the boundary triggers there and reference the method contract instead of restating it\n",
+  "step23 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step24 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step24 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL 2 declaration blocks; there must be exactly one\n",
+  "step24 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step25 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step25 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the declaration block is opened and never closed with `<!-- merge-authority:end -->`\n",
+  "step25 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step26 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step26 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the declaration needs exactly one `contract: merge-authority vN` line (found 0)\n",
+  "step26 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step27 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step27 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the declaration needs exactly one `contract: merge-authority vN` line (found 2)\n",
+  "step27 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step28 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step28 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL `contract: merge-authority one` does not reference the method contract (merge-authority vN)\n",
+  "step28 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step29 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step29 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step29 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step30 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step30 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL no `<!-- merge-authority:begin -->` block: declare the loop model and the boundary triggers there and reference the method contract instead of restating it\n",
+  "step30 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step31 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step31 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step31 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step32 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step32 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the prose describes a release candidate or an integration branch ('rc/next') but the declaration has no `integration-branch`; declare it so the contract's release-candidate hold applies\n",
+  "step32 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step33 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step33 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL hold override: a project may not declare `rc-hold`; the method owns the executor, the verdicts and the holds\n",
+  "step33 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step34 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step34 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL executor override: a project may not declare `promotion-executor`; the method owns the executor, the verdicts and the holds\n",
+  "step34 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step35 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step35 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the declaration carries 2 `integration-branch` lines; at most one\n",
+  "step35 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step36 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step36 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the declaration carries 2 `integration-branch` lines; at most one\nPROJECT merge authority: FAIL `integration-branch: `not a branch!`` is not a branch name\n",
+  "step36 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step37 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step37 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL `integration-branch` is declared, but the contract gives `gitflow-multi-env` no integration-branch variant\n",
+  "step37 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step38 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step38 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step38 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step39 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step39 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL changes method-owned merge authority: the brief claims it wins over the method, which reaches merge authority ('this file wins')\n",
+  "step39 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step40 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step40 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step40 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step41 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step41 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL changes method-owned merge authority: the boundary class is held for the owner: that is a fifth hold the method does not have ('boundary class is held')\nPROJECT merge authority: FAIL changes method-owned merge authority: the gate does not merge the boundary class: that changes the method's executor ('never merges the boundary')\nPROJECT merge authority: FAIL changes method-owned merge authority: the gate does not merge the boundary class: that changes the method's executor ('not merge boundary')\n",
+  "step41 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step42 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step42 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the prose names loop model `gitflow-multi-env`, the declaration `trunk-single-env`\n",
+  "step42 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step43 check --prerequisites --overlay=none <P:p>": {
+    "code": 0
+  },
+  "step43 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: OK (contract v3)\n",
+  "step43 check --prerequisites --overlay=none <P:p> stderr": "",
+  "step44 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step44 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\nPROJECT merge authority: FAIL the project declares format v0, which the installed contract no longer reads (it reads v1); update the `contract` line\n",
+  "step44 check --prerequisites --overlay=none <P:p> stderr": ""
+}

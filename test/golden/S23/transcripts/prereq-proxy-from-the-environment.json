@@ -1,0 +1,26 @@
+{
+  "step0 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step0 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nOK      tfc [optional]: account, no local client to detect · authenticated ($TFC_API_TOKEN)\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step0 check --prerequisites <OVERLAY> stderr": "",
+  "step0 check --prerequisites <OVERLAY> recorded": "service requests:\n{\"path\":\"/api/v2/account/details\",\"auth\":\"Bearer <TOKEN>\"}\n",
+  "step1 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step1 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nNOAUTH  tfc [optional]: account, no local client to detect · not authenticated ($TFC_API_TOKEN rejected) -> STEP-tfc\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step1 check --prerequisites <OVERLAY> stderr": "",
+  "step1 check --prerequisites <OVERLAY> recorded": "service requests:\nproxy requests:\n{\"proxy\":\"GET <SERVICE>/api/v2/account/details\"}\n",
+  "step2 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step2 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nNOAUTH  tfc [optional]: account, no local client to detect · not authenticated ($TFC_API_TOKEN rejected) -> STEP-tfc\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step2 check --prerequisites <OVERLAY> stderr": "",
+  "step2 check --prerequisites <OVERLAY> recorded": "service requests:\nproxy requests:\n{\"proxy\":\"GET <SERVICE>/api/v2/account/details\"}\n",
+  "step3 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step3 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nOK      tfc [optional]: account, no local client to detect · authenticated ($TFC_API_TOKEN)\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step3 check --prerequisites <OVERLAY> stderr": "",
+  "step3 check --prerequisites <OVERLAY> recorded": "service requests:\n{\"path\":\"/api/v2/account/details\",\"auth\":\"Bearer <TOKEN>\"}\nproxy requests:\n"
+}
