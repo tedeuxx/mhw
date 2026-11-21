@@ -19,7 +19,7 @@ function harnessOf(argv) {
 
 /** JSON as Python's json.dumps(..., ensure_ascii=True) writes this one shape. @param {string} msg */
 function systemMessage(msg) {
-  return '{"systemMessage": ' + JSON.stringify(msg).replaceAll(/[\u007f-￿]/g, (c) => String.raw`\u` + c.codePointAt(0).toString(16).padStart(4, '0')) + '}\n';
+  return '{"systemMessage": ' + JSON.stringify(msg).replaceAll(/[\u007f-￿]/g, (c) => String.raw`\u` + /** @type {number} */ (c.codePointAt(0)).toString(16).padStart(4, '0')) + '}\n';
 }
 
 /**

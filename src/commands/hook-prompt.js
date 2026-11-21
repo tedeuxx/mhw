@@ -21,7 +21,6 @@ import fs from 'node:fs';
 import * as core from '../lib/clean.js';
 import { WORD } from '../lib/clean-unicode.js';
 import { readSalt } from '../lib/salt.js';
-import { stockPython } from '../lib/keychain.js';
 
 export const HARNESSES = Object.freeze(['claude', 'codex', 'kiro']);
 export const WRAPPER_MARKER = 'PMHWC_PASTE_WRAPPER';
@@ -36,8 +35,9 @@ export const HOOK_NOTICES = Object.freeze({
   notice_cleaned_too_long: 'The redacted copy is {chars} characters, too long to show here.',
   notice_too_large: 'Paste filter (ADR-0033): this prompt is over {max} bytes and was NOT checked.',
   notice_error: 'Paste filter (ADR-0033): internal error ({error}); this prompt was NOT checked.',
-  notice_no_salt: 'Paste filter (ADR-0033): the term list exists but its salt could not be read without '
-    + 'a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for '
+  // #488: the salt is a file (owner ruling, 2026-11-21); this notice named the Keychain until then.
+  notice_no_salt: 'Paste filter (ADR-0033): the term list exists but its salt file could not be read '
+    + '(missing, unreadable or not a salt; re-add your terms with mhw add-term), so term matching was NOT checked for '
     + 'this prompt (employer/client terms, health terms, colleague names).',
   notice_paste_redacted: 'Paste filter (ADR-0033): this prompt carries redacted text ({categories}); the '
     + 'original was not sent.',
@@ -326,16 +326,6 @@ function readUpTo(stdin, max) {
 }
 
 /**
- * The Keychain context the hook reads its salt with: the stock python3 for the lock probe (never one on
- * PATH: the admin layer's point is that no owner-run process can swap what the hook runs).
- * @param {Record<string, string | undefined>} env
- * @param {string} platform
- */
-function keychainCtx(env, platform) {
-  return { platform, env, python: stockPython(platform) };
-}
-
-/**
  * The deadline: DEADLINE_MS, or a shorter one from MHW_HOOK_DEADLINE_MS (tests: a whole number of
  * milliseconds below DEADLINE_MS). It can only shorten the wait, and expiry is always reported visibly.
  * @param {Record<string, string | undefined>} env
@@ -372,7 +362,7 @@ export async function run(argv, env, io = {}) {
   } catch (e) {
     return errorOutput(harness, errorClass(e)); // an unreadable settings file: visible, and the prompt passes
   }
-  const salts = io.salts || { get: () => readSalt(keychainCtx(env, platform), /** @type {Record<string, string>} */ (conf)).salt };
+  const salts = io.salts || { get: () => readSalt(/** @type {Record<string, string>} */ (conf)).salt };
   const h = harness;
   const c = conf;
   /** @type {NodeJS.Timeout | undefined} */
@@ -432,7 +422,7 @@ export function checkConfig(argv, env, opts = {}) {
   }
   let out = '';
   for (const key of ['max_bytes', 'block_categories', 'report_categories', 'show_cleaned_chars', 'salt_store',
-    'keychain_service', 'keychain_path', 'terms_file', 'health_terms_file', 'colleague_terms_file', 'salt_file']) {
+    'terms_file', 'health_terms_file', 'colleague_terms_file', 'salt_file']) {
     out += key + '=' + conf[key] + '\n';
   }
   out += 'terms=' + core.readTerms(conf.terms_file).size + '\n';

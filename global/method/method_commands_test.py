@@ -28,9 +28,44 @@ RENDER = HERE / "method_render.py"
 STAMP = "release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567"
 BASE = None
 
-sys.path.insert(0, str(REPO / "global" / "clipboard"))
 sys.path.insert(0, str(REPO / "global"))
-import clipboard_guard as guard  # noqa: E402
+
+
+class _CleaningCore:
+    """The paste filter's detector (src/lib/clean.js), run through Node: clipboard_guard.py, which this
+    suite imported, was deleted by #488 (S17). Until this suite moves to Node (S18), each text is sent
+    to test/helpers/clean-cli.mjs on stdin; the same three calls, the same answers."""
+
+    ORDER = ["employer-client-term", "credential", "email", "payment-card", "cpf", "cnpj", "phone",
+             "postal-address", "contract-value", "health", "colleague-name"]
+
+    def __init__(self):
+        self._seen = {}
+
+    def _ask(self, text):
+        if text not in self._seen:
+            node = shutil.which("node")
+            if not node:
+                raise unittest.SkipTest("node is not on PATH")
+            p = subprocess.run([node, str(REPO / "test" / "helpers" / "clean-cli.mjs")], input=json.dumps({"text": text}),
+                               capture_output=True, text=True, check=True)
+            self._seen[text] = json.loads(p.stdout)
+        return self._seen[text]
+
+    def find_spans(self, text):
+        return [tuple(s) for s in self._ask(text)["spans"]]
+
+    def categories(self, spans):
+        found = {s[2] for s in spans}
+        return [c for c in self.ORDER if c in found]
+
+    def sanitise(self, text, spans):
+        answer = self._ask(text)
+        assert [tuple(s) for s in answer["spans"]] == list(spans), "sanitise() is only asked of find_spans() results"
+        return answer["sanitised"]
+
+
+guard = _CleaningCore()
 
 # The sections each command must carry. The first four are shared; the rest are the behaviour its Issue
 # asks for. "What this command never does" holds the merge, publish and hook prohibitions.

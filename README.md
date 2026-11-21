@@ -272,10 +272,12 @@ the installer prints the line for you to add:
 ```
 
 Client and employer terms are added from the owner's own terminal, outside any agent session; only a
-salted hash is stored, outside this repository:
+salted hash is stored, outside this repository. Since #488 the salt is a `0600` file beside the term
+lists, not a Keychain item (the owner's ruling of 2026-11-21); a list made with the old Keychain salt is
+named by install and moved aside by `add-term`, and its terms are re-added:
 
 ```sh
-/usr/bin/python3 ~/.local/share/personal-multi-harness-workstation-configuration/clipboard_guard.py add-term
+mhw add-term                 # or ./mhw add-term in a checkout; --list health|colleague-name for the private lists
 ```
 
 Every installation on the owner's machine is his act, in a fresh session.

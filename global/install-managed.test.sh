@@ -51,7 +51,7 @@ sh "$inst" --check --root="$r" > /dev/null 2>&1; expect "check before apply repo
 
 # 2. the hash binds every staged file: a wrong hash or a changed file installs nothing
 sh "$inst" --apply="$stage" --sha256=0000 --root="$r" > /dev/null 2>&1; expect "apply refuses a wrong hash" 3 $?
-for f in bin/clipboard_guard.py bin/clipboard.conf claude.json requirements.toml kiro.json; do
+for f in bin/hook/src/commands/hook-entry.js bin/hook/src/lib/clean.js bin/hook/package.json bin/clipboard.conf claude.json requirements.toml kiro.json; do
   cp "$stage/$f" "$base/keep"
   printf '\n' >> "$stage/$f"
   sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply refuses a changed $f" 3 $?
@@ -199,9 +199,24 @@ else
 fi
 
 modes_ok=1
-[ -x "$bin/clipboard_guard.py" ] || modes_ok=0
-[ -f "$bin/clipboard.conf" ] && [ ! -x "$bin/clipboard.conf" ] || modes_ok=0
-[ "$modes_ok" = 1 ] && ok "the script is executable, the conf is not" || ko "the script is executable, the conf is not"
+for f in "$bin/hook/src/commands/hook-entry.js" "$bin/hook/src/commands/hook-prompt.js" "$bin/hook/src/lib/clean.js" \
+    "$bin/hook/src/lib/clean-unicode.js" "$bin/hook/src/lib/salt.js" "$bin/hook/package.json" "$bin/clipboard.conf"; do
+  [ -f "$f" ] && [ ! -x "$f" ] || modes_ok=0
+done
+[ ! -e "$bin/clipboard_guard.py" ] || modes_ok=0
+[ "$modes_ok" = 1 ] && ok "the Node hook's files and the conf are installed, none executable, and no Python core" || ko "the Node hook's files and the conf are installed, none executable, and no Python core"
+# #488: the admin layer's hook runs its own root-owned copy, with NODE_OPTIONS cleared: it blocks a
+# finding, and a planted --require never runs.
+hook_cmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$dropin")
+case $hook_cmd in
+  '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "/'*'" "'"$bin"'/hook/src/commands/hook-entry.js" --harness claude --config "'"$bin"'/clipboard.conf"')
+    ok "the admin hook names node by absolute path and runs the root-owned copy" ;;
+  *) ko "the admin hook names node by absolute path and runs the root-owned copy" "$hook_cmd" ;;
+esac
+printf 'require("fs").writeFileSync(%s, "x")\n' "\"$base/planted-ran\"" > "$base/plant.cjs"
+hook_out=$(printf '{"prompt": "mail ana@%s"}' "zyxw-mail.zyxw" | HOME="$base/hook-home" NODE_OPTIONS="--require $base/plant.cjs" sh -c "$hook_cmd")
+case $hook_out in *'"decision": "block"'*'email'*) ok "the admin hook blocks a finding" ;; *) ko "the admin hook blocks a finding" "$hook_out" ;; esac
+[ ! -e "$base/planted-ran" ] && ok "a planted NODE_OPTIONS --require does not run in the admin hook" || ko "a planted NODE_OPTIONS --require does not run in the admin hook"
 sh "$inst" --check --root="$r" > "$base/check-clean.out" 2>&1; expect "check after apply is clean" 0 $?
 # The provenance stamp (Issue #66, ADR-0029): every installed admin file carries the source's stamp,
 # the one --check prints on its SOURCE line, and that names this checkout's HEAD.
@@ -212,12 +227,12 @@ case $src_stamp in
   *) ko "the source stamp names HEAD" "'$src_stamp' vs $head_sha" ;;
 esac
 unstamped=""
-for f in "$dropin" "$req" "$kiro" "$bin/clipboard_guard.py" "$bin/clipboard.conf"; do
+for f in "$dropin" "$req" "$kiro" "$bin/hook/src/commands/hook-entry.js" "$bin/hook/package.json" "$bin/clipboard.conf"; do
   got=$(grep -m 1 -F "managed-by: $NAME" "$f" | sed -n 's/.*; \(release: [^;"]*; commit: [^;"]*\);.*/\1/p')
   [ -n "$src_stamp" ] && [ "$got" = "$src_stamp" ] || unstamped="$unstamped $f"
 done
 if [ -z "$unstamped" ]; then ok "every installed admin file carries the source's stamp"; else ko "every installed admin file carries the source's stamp" "missing in:$unstamped"; fi
-if [ "$(grep -c '^OK .*(release: ' "$base/check-clean.out")" -eq 5 ]; then ok "check reports each admin file's stamp"; else ko "check reports each admin file's stamp"; fi
+if [ "$(grep -c '^OK .*(release: ' "$base/check-clean.out")" -eq 10 ]; then ok "check reports each admin file's stamp"; else ko "check reports each admin file's stamp"; fi
 other=0123456789abcdef0123456789abcdef01234567
 for f in "$req" "$dropin" "$kiro"; do
   sed "s/; commit: [^;\"]*;/; commit: $other;/" "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
@@ -258,10 +273,10 @@ bigsha=$(python3 -I -B -c '
 import hashlib, os, sys
 d = sys.argv[1]
 h = hashlib.sha256()
-for n in ["clipboard_guard.py", "clipboard.conf", "../claude.json", "../requirements.toml", "../kiro.json"]:
+for n in sys.argv[2].split() + ["../claude.json", "../requirements.toml", "../kiro.json"]:
     data = open(os.path.normpath(os.path.join(d, "bin", n)), "rb").read()
     h.update(n.encode() + b"\0" + str(len(data)).encode() + b"\0" + data)
-print(h.hexdigest())' "$bigstage")
+print(h.hexdigest())' "$bigstage" "clipboard.conf hook/package.json hook/src/commands/hook-entry.js hook/src/commands/hook-prompt.js hook/src/lib/clean.js hook/src/lib/clean-unicode.js hook/src/lib/salt.js")
 cp "$kiro" "$base/kiro.before-big"
 sh "$inst" --apply="$bigstage" --sha256="$bigsha" --root="$r" > "$base/apply-big.out" 2>&1; expect "apply refuses a Kiro rule over the condition ceiling (hash matching)" 3 $?
 if cmp -s "$kiro" "$base/kiro.before-big" && grep -q "does not validate" "$base/apply-big.out"; then
@@ -318,7 +333,7 @@ if [ "$(grep -c '^STALE' "$base/check-legacy.out")" -eq 5 ] && grep -q '^STALE .
 sh "$inst" --apply="$stage" --sha256="$sha" --root="$r" > /dev/null 2>&1; expect "apply over an earlier release exits 0" 0 $?
 if [ ! -e "$bin/restart_guard.py" ] && [ ! -e "$bin/breaking_glass.py" ] && [ ! -e "$switches" ] \
    && [ ! -e "$bin/hitl-escalation-guard.sh" ] && [ ! -e "$bin/hitl.conf" ] \
-   && [ -x "$bin/clipboard_guard.py" ] && [ -f "$dropin" ]; then
+   && [ -f "$bin/hook/src/commands/hook-entry.js" ] && [ -f "$dropin" ]; then
   ok "apply deletes the restart guard, the switches and the picker guard, keeps the current layers"
 else
   ko "apply deletes the restart guard, the switches and the picker guard, keeps the current layers"

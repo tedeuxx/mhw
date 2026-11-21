@@ -231,6 +231,7 @@ def render_status(f, verbose=False):
         lines.append("  root brief       " + finding)
     lines.append("  protections      brief: %s · deny floor: %s · hooks registered: %s" % (
         f["brief"], f["floor"], f["hooks"]))
+    lines.append("  hook node        %s" % f.get("hook_node", "not read"))
     lines.append("  method           %s" % method_text(f.get("method")))
     lines.append("  models           %s" % models_text(f))
     lines.extend(mcp_active_lines(f))
@@ -934,7 +935,62 @@ def runtime():
 # status can name an entry an earlier install left registered: install (or install --admin) removes it.
 GUARD = "hitl-escalation-guard.sh"
 LEFTOVER = "removed picker guard still registered (Claude Code)"
-PASTE = "clipboard_guard.py"
+# The prompt hook (ADR-0033): `mhw hook prompt` in Node since #488. Its command, as both installers render
+# it: /usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "<node>" "<entry>" [hook prompt] --harness H
+# --config "<conf>". It counts only when its entry is registered AND the node and the entry it runs are
+# files. The Python core an earlier install registered is named while still registered.
+PASTE = "--harness "
+PASTE_NODE = re.compile(r'^/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "([^"]+)" "([^"]+)" (?:hook prompt )?--harness ')
+OLD_PASTE = "clipboard_guard.py"
+OLD_PASTE_LEFTOVER = "removed Python paste filter still registered (%s)"
+
+
+def _paste_parts(cmd):
+    """(node, entry) of our prompt hook command, or None when cmd is not one."""
+    m = PASTE_NODE.match(cmd)
+    return (m.group(1), m.group(2)) if m and m.group(2).endswith(("/bin/mhw.js", "/hook-entry.js")) else None
+
+
+def _paste_ok(cmds):
+    """True when one of cmds is our prompt hook whose node and entry are both files."""
+    for c in cmds:
+        parts = _paste_parts(c)
+        if parts and Path(parts[0]).is_file() and Path(parts[1]).is_file():
+            return True
+    return False
+
+
+def hook_node_text():
+    """The node the prompt hook runs, read from the hook commands installed (admin first), whether a
+    process running as the owner can replace it, and FAIL when it is missing (D6 of #470, #488)."""
+    cmds = []
+    for path in (admin_dropin(), Path.home() / ".claude" / "settings.json",
+                 Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "hooks.json"):
+        doc, _ = _json(path)
+        cmds += _commands(doc, "UserPromptSubmit")
+    nodes = []
+    for c in cmds:
+        parts = _paste_parts(c)
+        if parts and parts[0] not in nodes:
+            nodes.append(parts[0])
+    if not nodes:
+        return "no prompt hook registered"
+    out = []
+    for n in nodes:
+        p = Path(n)
+        if not p.is_file():
+            out.append("FAIL %s not found: the prompt hook cannot run" % n)
+            continue
+        try:
+            real = p.resolve()
+            owned = [q for q in [real] + list(real.parents) if q.stat().st_uid == os.getuid() or os.access(q, os.W_OK)]
+        except OSError:
+            owned = []
+        if os.getuid() != 0 and (owned or os.access(real, os.W_OK)):
+            out.append("%s (owner-writable: a process running as you can replace it)" % n)
+        else:
+            out.append("%s (not writable by you)" % n)
+    return "; ".join(out)
 # The restart guard was removed (ADR-0028). An admin layer from v2 still registers it on SessionStart and
 # PreToolUse; status names that entry until install removes it (Issue #52).
 RESTART = "restart_guard.py"
@@ -969,7 +1025,7 @@ def _json(path):
         return None, "not read"
 
 
-KIRO_HOOK = NAME + "-paste-filter.json"     # clipboard_guard.KIRO_HOOK_FILE (Issue #455)
+KIRO_HOOK = NAME + "-paste-filter.json"     # KIRO_HOOK_FILE in src/commands/paste-wrapper.js (Issue #455)
 
 
 def kiro_hook_state(data):
@@ -990,9 +1046,8 @@ def kiro_hook_state(data):
             and MARKER in str(ours[0].get("description", ""))
             and ours[0].get("trigger") in ("UserPromptSubmit", "promptSubmit")
             and isinstance(ours[0].get("action"), dict) and ours[0]["action"].get("type") == "command"
-            and PASTE in str(ours[0]["action"].get("command", ""))
-            and "--harness kiro" in str(ours[0]["action"].get("command", ""))
-            and (data / PASTE).is_file())
+            and _paste_ok([str(ours[0]["action"].get("command", ""))])
+            and "--harness kiro" in str(ours[0]["action"].get("command", "")))
     return ("paste filter (Kiro CLI V3)" if good else "paste filter (Kiro CLI V3, modified)"), state
 
 
@@ -1015,14 +1070,18 @@ def read_hooks():
         found.append(LEFTOVER)
     if _restart_registered(doc):
         found.append(restart_leftover("Claude Code"))
-    if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (data / PASTE).is_file():
+    if _paste_ok(_commands(doc, "UserPromptSubmit")):
         found.append("paste filter (Claude Code)")
+    if any(OLD_PASTE in c for c in _commands(doc, "UserPromptSubmit")):
+        found.append(OLD_PASTE_LEFTOVER % "Claude Code")
     doc, state = _json(codex_home / "hooks.json")
     unread |= state == "not read"
     if _restart_registered(doc):
         found.append(restart_leftover("Codex"))
-    if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (data / PASTE).is_file():
+    if _paste_ok(_commands(doc, "UserPromptSubmit")):
         found.append("paste filter (Codex)")
+    if any(OLD_PASTE in c for c in _commands(doc, "UserPromptSubmit")):
+        found.append(OLD_PASTE_LEFTOVER % "Codex")
     kiro, state = kiro_hook_state(data)
     unread |= state == "not read"
     if kiro:
@@ -1036,15 +1095,21 @@ def read_hooks():
         found.append(LEFTOVER)
     if _restart_registered(doc):
         found.append(restart_leftover("Claude Code"))
-    if any(PASTE in c for c in _commands(doc, "UserPromptSubmit")) and (admin_bin / PASTE).is_file():
+    if _paste_ok(_commands(doc, "UserPromptSubmit")):
         found.append("paste filter (Claude Code)")
+    if any(OLD_PASTE in c for c in _commands(doc, "UserPromptSubmit")):
+        found.append(OLD_PASTE_LEFTOVER % "Claude Code")
     req = codex_requirements()
     try:
         text = req.read_text(encoding="utf-8") if req.exists() else ""
     except OSError:
         text, unread = "", True
-    if MARKER in text and "[[hooks.UserPromptSubmit" in text and PASTE in text and (admin_bin / PASTE).is_file():
+    codex_cmds = re.findall(r'(?m)^command = "((?:[^"\\]|\\.)*)"', text)
+    codex_cmds = [json.loads('"%s"' % c) for c in codex_cmds]
+    if MARKER in text and "[[hooks.UserPromptSubmit" in text and _paste_ok(codex_cmds):
         found.append("paste filter (Codex)")
+    if MARKER in text and OLD_PASTE in text:
+        found.append(OLD_PASTE_LEFTOVER % "Codex")
     if MARKER in text and RESTART in text:
         found.append(restart_leftover("Codex"))
     result["admin"] = "not read" if unread and not found else found + (["a file not read"] if unread else [])
@@ -1192,7 +1257,7 @@ def gather(project):
             "user_issues": issues(user_lines), "admin_issues": issues(admin_lines),
             "user_lines": user_lines, "admin_lines": admin_lines, "harnesses": harness_versions(),
             "workspace": ws, "plugins": enabled_plugins(ws["root"]), "brief": brief, "floor": floor,
-            "hooks": hooks, "key": key, "runtime": runtime(), "admin_state": managed_state,
+            "hooks": hooks, "hook_node": hook_node_text(), "key": key, "runtime": runtime(), "admin_state": managed_state,
             "admin_code": admin_code,
             "settings": read_settings(ws["root"]), "permissions": permissions_text(ws["root"]),
             "method": method_state(user_lines, enabled_plugins(ws["root"])),

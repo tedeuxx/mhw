@@ -304,6 +304,8 @@ test('for kiro-cli the "NOT cleaned" notice says whether the Kiro prompt hook ch
   }
   fs.mkdirSync(path.join(home, '.kiro', 'hooks'), { recursive: true });
   fs.writeFileSync(path.join(home, '.kiro', 'hooks', w.KIRO_HOOK_FILE), '{"description": "managed-by: ' + core.PROJECT + '", "command": "x prompt-hook --harness kiro"}');
+  assert.match(w.noPasteNotice(conf, 'notice_no_bracketed_paste', '/opt/bin/kiro-cli', home), /No Kiro prompt hook/, 'the Python hook command no longer counts (#488)');
+  fs.writeFileSync(path.join(home, '.kiro', 'hooks', w.KIRO_HOOK_FILE), '{"description": "managed-by: ' + core.PROJECT + '", "command": "x hook prompt --harness kiro"}');
   const on = w.noPasteNotice(conf, 'notice_no_bracketed_paste', '/opt/bin/kiro-cli', home);
   assert.match(on, /has not enabled bracketed paste/);
   assert.match(on, /only in a trusted workspace/);

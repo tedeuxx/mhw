@@ -88,65 +88,43 @@ test('a term list or salt file that is not ASCII reads as unreadable, with its N
   b.configure('salt_store=file\n');
   fs.writeFileSync(path.join(b.overlay, 'clipboard-salt'), Buffer.from([0xe9, 0x0a]));
   r = run(['m.txt'], { cwd: b.repo, env: b.env });
-  assert.match(r.stdout, /NOTE {4}the term list's salt could not be read without a prompt/);
+  assert.match(r.stdout, /NOTE {4}the term list's salt file could not be read/);
   assert.doesNotMatch(r.stdout, /employer-client-term, \d+ chars/);
 });
 
-/** A directory on PATH holding git and nothing else. @param {string} dir */
-function gitOnly(dir) {
-  const bin = path.join(dir, 'git-only');
-  fs.mkdirSync(bin, { recursive: true });
-  fs.symlinkSync(/** @type {string} */ (GIT), path.join(bin, 'git'));
-  return bin;
-}
-
-/** A fake python3 that prints a salt and records its arguments. @param {string} dir @param {string} salt */
-function fakePython(dir, salt) {
-  const bin = path.join(dir, 'bin');
-  fs.mkdirSync(bin, { recursive: true });
-  const log = path.join(dir, 'argv.json');
-  fs.writeFileSync(path.join(bin, 'python3'), '#!' + process.execPath + '\n'
-    + 'require("fs").writeFileSync(' + JSON.stringify(log) + ', JSON.stringify(process.argv.slice(2)));\n'
-    + 'process.stdout.write(' + JSON.stringify(salt) + ');\n', { mode: 0o755 });
-  return { bin, log };
-}
-
-test('the Keychain salt is read through clipboard_guard.py, on a pipe, never in an argument', { skip: (!POSIX || !GIT) && 'POSIX, git' }, () => {
+// #488: the salt is a file, never the Keychain (owner ruling, 2026-11-21).
+test('the salt is read from its file: no process is started for it, and a missing salt gives the NOTE', { skip: (!POSIX || !GIT) && 'POSIX, git' }, () => {
   const b = box();
-  b.configure('salt_store=keychain\nkeychain_service=svc.test\n');
+  b.configure('salt_store=keychain\nkeychain_service=svc.test\n'); // the retired settings are ignored
   fs.writeFileSync(path.join(b.repo, 'm.txt'), 'one\nmet ' + TERM + '\n');
-  const py = fakePython(b.dir, SALT);
-  const env = { ...b.env, PATH: py.bin + path.delimiter + b.env.PATH };
-  const r = run(['m.txt'], { cwd: b.repo, env, platform: 'darwin' });
+  // No salt file: the NOTE, and no term match.
+  let r = run(['m.txt'], { cwd: b.repo, env: b.env, platform: 'darwin' });
   assert.equal(r.code, 0);
-  assert.match(r.stdout, /m\.txt:2: employer-client-term, 12 chars\n/);
-  const argv = JSON.parse(fs.readFileSync(py.log, 'utf8'));
-  assert.deepEqual(argv.slice(0, 3), ['-I', '-B', '-c']);
-  assert.match(argv[3], /SaltStore\(conf, interactive=False\)\.get\(\)/);
-  assert.deepEqual(argv.slice(4), [path.join(ROOT, 'global', 'clipboard'), 'svc.test', '']);
-  assert.ok(!argv.join(' ').includes(SALT), 'the salt reached an argument');
-  // A helper answer that is not a salt, or an OS without the Keychain: the salt NOTE.
-  for (const [label, e, platform] of /** @type {Array<[string, Record<string, string>, string]>} */ ([
-    ['not a salt', { ...b.env, PATH: fakePython(path.join(b.dir, 'bad'), 'nope').bin + path.delimiter + b.env.PATH }, 'darwin'],
-    ['linux', env, 'linux'],
-  ])) {
-    const out = run(['m.txt'], { cwd: b.repo, env: e, platform });
-    assert.match(out.stdout, /the term list's salt could not be read without a prompt/, label);
+  assert.match(r.stdout, /NOTE {4}the term list's salt file could not be read \(missing, unreadable or not a salt; re-add your terms with mhw add-term\); no term list was checked/);
+  assert.doesNotMatch(r.stdout, /employer-client-term, \d+ chars/);
+  // A salt file that is not a salt: the same NOTE.
+  fs.writeFileSync(path.join(b.overlay, 'clipboard-salt'), 'not-a-salt\n');
+  r = run(['m.txt'], { cwd: b.repo, env: b.env, platform: 'darwin' });
+  assert.match(r.stdout, /salt file could not be read/);
+  // The salt file: the term is found, on macOS and elsewhere alike.
+  fs.writeFileSync(path.join(b.overlay, 'clipboard-salt'), SALT + '\n', { mode: 0o600 });
+  for (const platform of ['darwin', 'linux']) {
+    r = run(['m.txt'], { cwd: b.repo, env: b.env, platform });
+    assert.match(r.stdout, /m\.txt:2: employer-client-term, 12 chars\n/, platform);
+    assert.doesNotMatch(r.stdout, /salt file could not be read/, platform);
+    assert.ok(!r.stdout.includes(SALT) && !r.stderr.includes(SALT), 'the salt reached the output');
   }
-  // No python3: the NOTE names the missing interpreter.
-  const none = run(['m.txt'], { cwd: b.repo, env: { ...b.env, PATH: gitOnly(b.dir) }, platform: 'darwin' });
-  assert.match(none.stdout, /NOTE {4}the term list's salt is in the Keychain and python3 was not found on PATH to read it .*no term list was checked/);
-  assert.doesNotMatch(none.stdout, /employer-client-term, \d+ chars/);
 });
 
 test('the salt never reaches the argv or the environment of any process mhw scan starts', { skip: (!POSIX || !GIT) && 'POSIX, git' }, () => {
   const b = box();
-  b.configure('salt_store=keychain\nkeychain_service=svc.test\n');
+  b.configure('');
+  fs.writeFileSync(path.join(b.overlay, 'clipboard-salt'), SALT + '\n', { mode: 0o600 });
   fs.writeFileSync(path.join(b.repo, 'm.txt'), 'one\nmet ' + TERM + '\n');
   b.git(['add', '-A']);
   b.git(['commit', '-q', '-m', 'add m']);
-  // Every program scan.js starts is git or python3: both are replaced by loggers on PATH. The git logger
-  // runs the real git; the python3 logger answers the salt.
+  // Every program scan.js starts is git: replaced by a logger on PATH that runs the real git. A python3
+  // logger sits beside it, to show nothing else is started.
   const bin = path.join(b.dir, 'loggers');
   fs.mkdirSync(bin);
   const log = path.join(b.dir, 'spawns.jsonl');
@@ -154,7 +132,7 @@ test('the salt never reaches the argv or the environment of any process mhw scan
   fs.writeFileSync(path.join(bin, 'git'), '#!' + process.execPath + '\n' + logLine
     + 'const r = require("child_process").spawnSync(' + JSON.stringify(GIT) + ', process.argv.slice(2), { stdio: "inherit" });\n'
     + 'process.exit(r.status === null ? 1 : r.status);\n', { mode: 0o755 });
-  fs.writeFileSync(path.join(bin, 'python3'), '#!' + process.execPath + '\n' + logLine + 'process.stdout.write(' + JSON.stringify(SALT) + ');\n', { mode: 0o755 });
+  for (const tool of ['python3', 'security']) fs.writeFileSync(path.join(bin, tool), '#!' + process.execPath + '\n' + logLine, { mode: 0o755 });
   const env = { ...b.env, PATH: bin + path.delimiter + b.env.PATH };
   for (const args of [[], ['m.txt'], ['--base=base']]) {
     const r = run(args, { cwd: b.repo, env, platform: 'darwin' });
@@ -162,41 +140,11 @@ test('the salt never reaches the argv or the environment of any process mhw scan
     assert.match(r.stdout, /m\.txt:2: employer-client-term, 12 chars\n/, JSON.stringify(args));
   }
   const spawns = fs.readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
-  assert.ok(spawns.filter((s) => s.argv[0].endsWith('git')).length > 5 && spawns.some((s) => s.argv[0].endsWith('python3')), 'both loggers ran');
+  assert.ok(spawns.length > 5 && spawns.every((s) => s.argv[0].endsWith('git')), 'scan started something other than git');
   for (const s of spawns) {
     assert.ok(!JSON.stringify(s.argv).includes(SALT), 'the salt reached the argv of ' + s.argv[0]);
     assert.ok(!JSON.stringify(s.env).includes(SALT), 'the salt reached the environment of ' + s.argv[0]);
   }
-});
-
-test('the Keychain salt child is isolated: no module from the scanned repository or PYTHONPATH runs', { skip: (!POSIX || !GIT || !which('python3')) && 'POSIX, git, python3' }, () => {
-  const b = box();
-  // A nonexistent service and keychain file: the probe answers locked or unknown, and no real Keychain is read.
-  b.configure('salt_store=keychain\nkeychain_service=mhw-s15-isolation.invalid\nkeychain_path=' + path.join(b.dir, 'no-such.keychain') + '\n');
-  fs.writeFileSync(path.join(b.repo, 'm.txt'), 'met ' + TERM + '\n');
-  const shadow = path.join(b.dir, 'pythonpath');
-  fs.mkdirSync(shadow);
-  // Every standard module clipboard_guard.py imports, planted in the scanned repository and on PYTHONPATH.
-  const modules = ['hashlib', 'hmac', 'json', 're', 'secrets', 'subprocess', 'unicodedata', 'ctypes'];
-  for (const [dir, where] of /** @type {Array<[string, string]>} */ ([[b.repo, 'cwd'], [shadow, 'pythonpath']])) {
-    for (const m of modules) {
-      const marker = path.join(b.dir, 'ran-' + where + '-' + m);
-      fs.writeFileSync(path.join(dir, m + '.py'), 'open(' + JSON.stringify(marker) + ', "w").close()\n');
-    }
-  }
-  // The process itself stands in the scanned repository, as `mhw scan` does when the owner runs it there.
-  const here = process.cwd();
-  process.chdir(b.repo);
-  let r;
-  try {
-    r = run(['m.txt'], { env: { ...b.env, PYTHONPATH: shadow }, platform: 'darwin' });
-  } finally {
-    process.chdir(here);
-  }
-  assert.equal(r.code, 0);
-  assert.match(r.stdout, /the term list's salt could not be read without a prompt/);
-  const ran = fs.readdirSync(b.dir).filter((f) => f.startsWith('ran-'));
-  assert.deepEqual(ran, [], 'a planted module ran: ' + ran.join(', '));
 });
 
 test('a PATH argument only looks a file up in git\'s list: the file opened is git\'s entry', { skip: !GIT && 'needs git' }, () => {

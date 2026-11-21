@@ -11,7 +11,6 @@
     "*.test.sh",
     "*.test.ps1",
     "*.test.stub",
-    "global/keychain_test_guard.py",
     "README.md",
     ".gitignore",
     ".gitattributes",
@@ -34,7 +33,10 @@
       "id": "paste-filter",
       "layer": "managed",
       "paths": [
-        "global/clipboard/clipboard_guard.py",
+        "src/commands/hook-entry.js",
+        "src/commands/hook-prompt.js",
+        "src/commands/add-term.js",
+        "src/lib/salt.js",
         "global/clipboard.conf",
         "global/profile/locales/pt-BR/clipboard.conf"
       ],

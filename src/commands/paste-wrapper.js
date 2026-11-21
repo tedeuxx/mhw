@@ -442,7 +442,7 @@ export function kiroHookInstalled(home) {
   } catch {
     return false;
   }
-  return text.includes('managed-by: ' + core.PROJECT) && text.includes('prompt-hook --harness kiro');
+  return text.includes('managed-by: ' + core.PROJECT) && text.includes('hook prompt --harness kiro');
 }
 
 /**
@@ -530,7 +530,7 @@ export function relay(ptyModule, real, argv0, args, conf, opts) {
   let salt = null;
   let noSalt = false;
   if (terms.size || Object.values(lists).some((h) => h.size)) {
-    salt = readSalt({ platform, python: onPath('python3', env, platform), env }, conf).salt;
+    salt = readSalt(conf).salt;
     if (!salt) {
       noSalt = true;
       say(notice(conf, 'notice_wrapper_no_salt'));

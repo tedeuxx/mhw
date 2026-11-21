@@ -100,7 +100,7 @@ def facts(**over):
 class StatusOutput(unittest.TestCase):
     def test_short_view(self):
         out = ws.render_status(facts())
-        self.assertLessEqual(len(out), 15)  # 13 since the models line (ADR-0035), 14 since the MCP active set (#219), 15 since chrome debugging (#224)
+        self.assertLessEqual(len(out), 16)  # 13 since the models line (ADR-0035), 14 since the MCP active set (#219), 15 since chrome debugging (#224), 16 since the hook node (#488)
         self.assertIn("  source           v3.1.0 @ aaaaaaa (this checkout)", out)
         self.assertIn("  installed        user: v3.1.0 @ aaaaaaa · admin: not installed", out)
         self.assertIn("  check            matches this checkout", out)
@@ -931,7 +931,7 @@ class StaleAdminLayer(unittest.TestCase):
         bin_dir.mkdir(parents=True)
         (admin / "breaking-glass").mkdir()
         for name in ("restart_guard.py", "breaking_glass.py", "hitl-escalation-guard.sh", "hitl.conf",
-                     ws.PASTE, "clipboard.conf"):
+                     ws.OLD_PASTE, "clipboard.conf"):
             (bin_dir / name).write_text("# v2.1.0\n", encoding="utf-8")
 
         def hook(cmd):
@@ -942,7 +942,7 @@ class StaleAdminLayer(unittest.TestCase):
         dropin.write_text(json.dumps({"hooks": {
             "SessionStart": hook(restart),
             "PreToolUse": hook(restart) + hook('/bin/sh "%s"' % (bin_dir / ws.GUARD)),
-            "UserPromptSubmit": hook('/usr/bin/python3 -I -B "%s" prompt-hook' % (bin_dir / ws.PASTE))}}),
+            "UserPromptSubmit": hook('/usr/bin/python3 -I -B "%s" prompt-hook' % (bin_dir / ws.OLD_PASTE))}}),
             encoding="utf-8")
         req = Path(root + "/etc/codex/requirements.toml")
         req.parent.mkdir(parents=True)
@@ -958,10 +958,10 @@ class StaleAdminLayer(unittest.TestCase):
 
     def assert_named(self, out, prefix):
         self.assertIn(prefix + "STALE restart_guard.py, breaking_glass.py, hitl-escalation-guard.sh, hitl.conf, "
-                      "breaking-glass\n", out)
+                      "clipboard_guard.py, breaking-glass\n", out)
         self.assertIn(prefix + "removed controls still installed: restart guard, picker guard, session intake "
                       "(the picker guard's intake exception), timed breaking-glass\n", out)
-        self.assertRegex(out, r"(?m)^%sDRIFT .*%s" % (re.escape(prefix), re.escape(ws.PASTE)))
+        self.assertRegex(out, r"(?m)^%sDRIFT .*clipboard\.conf" % re.escape(prefix))
         self.assertIn(prefix + ws.ADMIN_NEXT + "\n", out)
 
     def test_install_without_a_terminal_informs_then_yes_clears_it(self):
@@ -1086,27 +1086,55 @@ class Hooks(unittest.TestCase):
         self.assertEqual(ws.read_hooks(), {"user": [], "admin": []})
         self.assertEqual(ws.hooks_text(ws.read_hooks()), "admin: none · user: none")
 
-    def test_user_entries_count_only_with_their_script(self):
+    def node_cmd(self, node, entry, harness):
+        """The prompt hook command as install.sh renders it since #488."""
+        return ('/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "%s" "%s" hook prompt --harness %s --config "%s"'
+                % (node, entry, harness, self.data / "clipboard.conf"))
+
+    def test_user_entries_count_only_with_their_node_and_entry(self):
         settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
-        doc = self.entry("UserPromptSubmit", "python3 %s prompt-hook" % (self.data / ws.PASTE))
-        self.write(settings, json.dumps(doc))
+        node, entry = self.data / "node", self.data / "pkg" / "bin" / "mhw.js"
+        self.write(settings, json.dumps(self.entry("UserPromptSubmit", self.node_cmd(node, entry, "claude"))))
         self.assertEqual(ws.read_hooks()["user"], [])
-        self.write(self.data / ws.PASTE, "#\n")
+        self.write(node, "#\n")
+        self.assertEqual(ws.read_hooks()["user"], [], "the entry it runs is missing")
+        self.write(entry, "#\n")
         self.write(Path(os.environ["HOME"]) / ".codex" / "hooks.json",
-                   json.dumps(self.entry("UserPromptSubmit", "python3 %s" % (self.data / ws.PASTE))))
+                   json.dumps(self.entry("UserPromptSubmit", self.node_cmd(node, entry, "codex"))))
         self.assertEqual(ws.read_hooks()["user"], ["paste filter (Claude Code)", "paste filter (Codex)"])
+        self.assertIn(str(node), ws.hook_node_text())
+        node.unlink()
+        self.assertTrue(ws.hook_node_text().startswith("FAIL %s not found" % node), ws.hook_node_text())
+
+    def test_the_python_hook_left_registered_is_named(self):
+        settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
+        self.write(settings, json.dumps(self.entry("UserPromptSubmit", "python3 %s prompt-hook" % (self.data / ws.OLD_PASTE))))
+        self.write(self.data / ws.OLD_PASTE, "#\n")
+        self.assertEqual(ws.read_hooks()["user"], [ws.OLD_PASTE_LEFTOVER % "Claude Code"])
+        self.assertEqual(ws.hook_node_text(), "no prompt hook registered")
+
+    def test_hook_node_names_an_owner_writable_node(self):
+        settings = Path(os.environ["HOME"]) / ".claude" / "settings.json"
+        node, entry = self.data / "node", self.data / "bin" / "mhw.js"
+        self.write(node, "#\n")
+        self.write(entry, "#\n")
+        self.write(settings, json.dumps(self.entry("UserPromptSubmit", self.node_cmd(node, entry, "claude"))))
+        if os.getuid() != 0:
+            self.assertEqual(ws.hook_node_text(), "%s (owner-writable: a process running as you can replace it)" % node)
 
     def test_the_kiro_hook_file_is_present_modified_or_absent(self):
         """Issue #455: the Kiro CLI V3 hook file, as install renders it, then edited, then gone."""
         kiro = Path(os.environ["HOME"]) / ".kiro" / "hooks" / ws.KIRO_HOOK
-        cmd = "/usr/bin/python3 -I -B \"%s\" prompt-hook --harness kiro --config \"x\"" % (self.data / ws.PASTE)
+        node, entry = self.data / "node", self.data / "bin" / "mhw.js"
+        cmd = self.node_cmd(node, entry, "kiro")
         doc = {"version": "v1", "hooks": [{"description": ws.MARKER + "; source: global/install.sh",
                                            "name": "paste filter", "trigger": "UserPromptSubmit",
                                            "action": {"type": "command", "command": cmd}, "timeout": 30}]}
         self.assertEqual(ws.read_hooks()["user"], [])
         self.write(kiro, json.dumps(doc))
-        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3, modified)"], "its core is missing")
-        self.write(self.data / ws.PASTE, "#\n")
+        self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3, modified)"], "its node and entry are missing")
+        self.write(node, "#\n")
+        self.write(entry, "#\n")
         self.assertEqual(ws.read_hooks()["user"], ["paste filter (Kiro CLI V3)"])
         doc["hooks"][0]["action"]["command"] = cmd.replace("--harness kiro", "--harness codex")
         self.write(kiro, json.dumps(doc))
@@ -1150,15 +1178,19 @@ class Hooks(unittest.TestCase):
         root = os.environ["WORKSTATION_MANAGED_ROOT"]
         bin_dir = Path(root + ("/Library/Application Support/" if sys.platform == "darwin" else "/etc/") + ws.NAME + "/bin")
         doc = self.entry("PreToolUse", "/bin/sh \"%s\"" % (bin_dir / ws.GUARD))
-        doc["hooks"].update(self.entry("UserPromptSubmit", "py \"%s\"" % (bin_dir / ws.PASTE))["hooks"])
+        node, entry = self.data / "node", bin_dir / "hook" / "src" / "commands" / "hook-entry.js"
+        admin_cmd = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "%s" "%s" --harness claude --config "x"' % (node, entry)
+        doc["hooks"].update(self.entry("UserPromptSubmit", admin_cmd)["hooks"])
         # The removed picker guard's entry (an admin layer installed before Issue #60) is a leftover.
         doc[ws.NAME] = "stamp"
         self.write(ws.admin_dropin(), json.dumps(doc))
         req = Path(os.environ["WORKSTATION_MANAGED_ROOT"] + "/etc/codex/requirements.toml")
-        self.write(req, "[[hooks.UserPromptSubmit]]\ncommand = \"%s\"\n" % (bin_dir / ws.PASTE))
-        self.write(bin_dir / ws.PASTE, "#\n")
+        codex_cmd = json.dumps(admin_cmd.replace("--harness claude", "--harness codex"))
+        self.write(req, "[[hooks.UserPromptSubmit]]\ncommand = %s\n" % codex_cmd)
+        self.write(node, "#\n")
+        self.write(entry, "#\n")
         self.assertEqual(ws.read_hooks()["admin"], [ws.LEFTOVER, "paste filter (Claude Code)"])
-        self.write(req, "# %s\n[[hooks.UserPromptSubmit]]\ncommand = \"%s\"\n" % (ws.MARKER, bin_dir / ws.PASTE))
+        self.write(req, "# %s\n[[hooks.UserPromptSubmit]]\ncommand = %s\n" % (ws.MARKER, codex_cmd))
         self.assertEqual(ws.read_hooks()["admin"], [ws.LEFTOVER, "paste filter (Claude Code)",
                                                     "paste filter (Codex)"])
 

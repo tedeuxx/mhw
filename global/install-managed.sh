@@ -33,10 +33,15 @@ set -eu
 NAME="personal-multi-harness-workstation-configuration"
 MARKER_ID="managed-by: $NAME"
 DROPIN="50-$NAME.json"
-FILES="clipboard_guard.py clipboard.conf"
+# The prompt hook in Node (#488, S17 of #470): a root-owned copy of the files `mhw hook prompt` runs, so no
+# process running as the owner can change the code the admin layer runs. The node binary is the one
+# install.sh found; when it sits in a directory the owner can write (Homebrew, nvm), that binary is the
+# residual, and `mhw status` names it.
+HOOK_FILES="hook/package.json hook/src/commands/hook-entry.js hook/src/commands/hook-prompt.js hook/src/lib/clean.js hook/src/lib/clean-unicode.js hook/src/lib/salt.js"
+FILES="clipboard.conf $HOOK_FILES"
 # Removed by ADR-0028 (restart guard, switches) and by ADR-0013's 2026-10-05 amendment (HITL picker
 # guard); an earlier --apply installed them. Deleted by --apply and --remove, reported by --check.
-LEGACY="restart_guard.py breaking_glass.py hitl-escalation-guard.sh hitl.conf"
+LEGACY="restart_guard.py breaking_glass.py hitl-escalation-guard.sh hitl.conf clipboard_guard.py"   # the Python hook core (#488)
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 mode=render
@@ -155,19 +160,37 @@ render() { # $1 empty stage directory
     echo "REFUSE  install.sh could not render the hook files (see $st/install.log)" >&2
     exit 2
   fi
-  for f in $FILES; do cp "$st/home/.local/share/$NAME/$f" "$st/bin/$f"; done
-  py="/usr/bin/python3 -I -B"
-  paste_claude="$py \"$bin/clipboard_guard.py\" prompt-hook --harness claude --config \"$bin/clipboard.conf\""
-  paste_codex="$py \"$bin/clipboard_guard.py\" prompt-hook --harness codex --config \"$bin/clipboard.conf\""
+  cp "$st/home/.local/share/$NAME/clipboard.conf" "$st/bin/clipboard.conf"
+  # The provenance stamp (Issue #66, ADR-0029) exactly as install.sh derived it for the same checkout,
+  # read back from a file it rendered, so the admin documents and the scripts cannot name two sources.
+  stamp=$(grep -m 1 -F "$MARKER_ID" "$st/bin/clipboard.conf" | sed -n 's/.*; \(release: [^;]*; commit: [^;]*\);.*/\1/p')
+  [ -n "$stamp" ] || { echo "REFUSE  install.sh rendered no provenance stamp" >&2; exit 2; }
+  # The hook's files, each stamped: a comment line on a .js file, a key of ours in package.json.
+  for f in $HOOK_FILES; do
+    mkdir -p "$(dirname "$st/bin/$f")"
+    case $f in
+      hook/package.json)
+        printf '{"type": "module", "%s": "%s; source: global/install-managed.sh; %s; do not edit, re-run the installer"}\n' \
+          "$NAME" "$MARKER_ID" "$stamp" > "$st/bin/$f" ;;
+      *)
+        { printf '// %s; source: %s; %s; do not edit, re-run the installer\n' "$MARKER_ID" "${f#hook/}" "$stamp"
+          cat "$script_dir/../${f#hook/}"; } > "$st/bin/$f" ;;
+    esac
+  done
+  # The node install.sh rendered into the user hook (the first quoted word of its command), so both layers
+  # run the same node; NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH are cleared as there.
+  hook_node=$(jq -r '[.hooks.UserPromptSubmit[]?.hooks[]?.command | select(contains("hook prompt --harness"))][0] // ""' \
+    "$st/home/.claude/settings.json" | sed -n 's/^\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "\([^"]*\)".*/\1/p')
+  case $hook_node in /*) ;; *) echo "REFUSE  install.sh rendered no prompt hook (node not found?); nothing staged" >&2; exit 2 ;; esac
+  case $hook_node in *\"*|*\\*|*\$*|*\`*) echo "REFUSE  the node path holds a quote, backslash, dollar sign or backtick" >&2; exit 2 ;; esac
+  nodecmd="/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH \"$hook_node\" \"$bin/hook/src/commands/hook-entry.js\""
+  paste_claude="$nodecmd --harness claude --config \"$bin/clipboard.conf\""
+  paste_codex="$nodecmd --harness codex --config \"$bin/clipboard.conf\""
   # The deny floor exactly as install.sh rendered it (global entries, then the overlay's), so the admin
   # copy cannot drift from the user copy: the throwaway home started empty, so its deny list is the floor
   # plus the allow list's own Edit protections (ADR-0031), which are user-level and named by their owner key.
   jq -c '.permissions.deny - (.["personal-multi-harness-workstation-configuration-owned-allow"].deny // [])' \
     "$st/home/.claude/settings.json" > "$st/floor.json"
-  # The provenance stamp (Issue #66, ADR-0029) exactly as install.sh derived it for the same checkout,
-  # read back from a file it rendered, so the admin documents and the scripts cannot name two sources.
-  stamp=$(grep -m 1 -F "$MARKER_ID" "$st/bin/clipboard.conf" | sed -n 's/.*; \(release: [^;]*; commit: [^;]*\);.*/\1/p')
-  [ -n "$stamp" ] || { echo "REFUSE  install.sh rendered no provenance stamp" >&2; exit 2; }
   # JSON has no comment: one top-level key of ours carries the stamp. Claude Code ignores a key it does
   # not know (measured on 2.1.289 through --settings; see ADR-0029).
   jq -n --arg ps "$paste_claude" --slurpfile f "$st/floor.json" --arg sk "$NAME" \
@@ -288,7 +311,7 @@ case $mode in
     work=$(mktemp -d "${TMPDIR:-/tmp}/pmhwc-apply.XXXXXX")
     trap 'rm -rf "$work"' EXIT
     mkdir "$work/bin"
-    for f in $FILES; do cp "$stage/bin/$f" "$work/bin/$f"; done
+    for f in $FILES; do mkdir -p "$(dirname "$work/bin/$f")"; cp "$stage/bin/$f" "$work/bin/$f"; done
     cp "$stage/claude.json" "$stage/requirements.toml" "$stage/kiro.json" "$work/"
     [ "$(stage_hash "$work")" = "$sha" ] || { echo "REFUSE  the stage does not match its hash; nothing installed" >&2; exit 3; }
     validate "$work" || { echo "REFUSE  the stage does not validate; nothing installed" >&2; exit 3; }
@@ -306,6 +329,10 @@ case $mode in
     [ -n "$root" ] || chown 0:0 "$base" "$bin"
     for f in $FILES; do
       case $f in *.sh|*.py) m=755 ;; *) m=644 ;; esac
+      d=$(dirname "$bin/$f")
+      mkdir -p "$d"
+      chmod 755 "$d"
+      [ -n "$root" ] || chown 0:0 "$d"
       put "$work/bin/$f" "$bin/$f" "$m"
     done
     put "$work/claude.json" "$claude_file" 644
@@ -322,6 +349,7 @@ case $mode in
   remove)
     is_root_run || { echo "REFUSE  --remove needs administrator privilege (sudo)" >&2; exit 2; }
     for f in $FILES $LEGACY; do rm -f "$bin/$f"; done
+    rmdir "$bin/hook/src/commands" "$bin/hook/src/lib" "$bin/hook/src" "$bin/hook" 2>/dev/null || true
     rm -f "$switches"/*.json "$claude_file"
     if [ -e "$codex_file" ] && ! codex_foreign; then rm -f "$codex_file"; fi
     if kiro_foreign; then echo "NOTE    $kiro_file is NOT managed by this project; left alone"

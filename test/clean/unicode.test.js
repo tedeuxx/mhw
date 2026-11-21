@@ -48,13 +48,13 @@ test('live: the recorded CPython re-records the tables the module pins', (t) => 
     return;
   }
   // clipboard_guard.py was deleted by #488 (S17): the base revision's copy while the base still holds it.
-  const d = clipboardDir('clipboard_guard.py', LIVE_REQUIRED);
-  if (!d.dir) {
-    if (d.fail) assert.fail('MHW_S15_LIVE_REQUIRED=1: ' + d.why);
-    t.skip(d.why);
+  const base = clipboardDir('clipboard_guard.py', LIVE_REQUIRED);
+  if (!base.dir) {
+    if (base.fail) assert.fail('MHW_S15_LIVE_REQUIRED=1: ' + base.why);
+    t.skip(base.why);
     return;
   }
-  const r = spawnSync(p.py, ['-B', RECORDER, 'unicode', d.dir], { encoding: 'utf8', maxBuffer: 64 << 20 });
+  const r = spawnSync(p.py, ['-B', RECORDER, 'unicode', base.dir], { encoding: 'utf8', maxBuffer: 64 << 20 });
   assert.equal(r.status, 0, r.stderr);
   const d = JSON.parse(r.stdout);
   assert.equal(d.cpython, U.CPYTHON);

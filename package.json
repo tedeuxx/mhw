@@ -29,7 +29,6 @@
     "!global/**/*.test.sh",
     "!global/**/*.test.ps1",
     "!global/**/*.test.stub",
-    "!global/keychain_test_guard.py",
     "method/",
     "!method/scripts/*.test.*",
     "!method/scripts/fixtures/",

@@ -1,7 +1,7 @@
 // The cleaning core (#486, S15 of #470): the detection and redaction engine of
 // global/clipboard/clipboard_guard.py (ADR-0011, ADR-0033) ported to Node. Terms, credentials and
 // personal data, the same eleven categories in the same order, the same spans in the same order.
-// clipboard_guard.py stays: the prompt hook and the paste wrapper still run it, until their slices move.
+// clipboard_guard.py was deleted by #488 (S17): the prompt hook, the paste wrapper and mhw scan all run this core.
 //
 // Fail-open is the risk this file is built against: Python's re and JavaScript's RegExp disagree on
 // \w, \d, \s, \b, case-insensitive matching and $, and a pattern that silently matches less reports
@@ -47,9 +47,9 @@ export const DEFAULTS = Object.freeze({
   block_categories: CATEGORY_ORDER.filter((c) => !REPORT_ONLY_DEFAULT.includes(c)).join(','),
   report_categories: REPORT_ONLY_DEFAULT.join(','),
   show_cleaned_chars: '8000',
-  salt_store: '',
-  keychain_service: PROJECT + '.clipboard-salt',
-  keychain_path: '',
+  // Since #488 the salt is a file on every system (owner ruling, 2026-11-21): salt_store is always
+  // "file", and the Keychain keys (keychain_service, keychain_path) are no longer read.
+  salt_store: 'file',
   terms_file: '',
   health_terms_file: '',
   colleague_terms_file: '',
@@ -723,8 +723,8 @@ export function pyInt(s) {
 
 /**
  * clipboard_guard.load_config(): key=value per line, '#' comments, last value wins; an invalid value falls
- * back to its default. Throws PyError with the class Python raised (an unreadable or undecodable file,
- * a keychain_path that is not absolute).
+ * back to its default. Throws PyError with the class Python raised (an unreadable or undecodable file).
+ * salt_store is always "file" since #488, whatever the file says.
  * @param {string | null | undefined} file
  * @param {{ env?: Record<string, string | undefined>, platform?: string, defaults?: Readonly<Record<string, string>> }} [opts]
  *   defaults: the keys this reader knows and their values (the prompt hook adds its notices, #488)
@@ -760,15 +760,13 @@ export function loadConfig(file, opts = {}) {
   if (!wanted.length || wanted.some((c) => !CATEGORY_ORDER.includes(c))) conf.block_categories = DEFAULTS.block_categories;
   const report = conf.report_categories.split(',').map(strip).filter(Boolean);
   if (report.some((c) => !CATEGORY_ORDER.includes(c))) conf.report_categories = DEFAULTS.report_categories;
-  if (conf.salt_store !== 'keychain' && conf.salt_store !== 'file') conf.salt_store = platform === 'darwin' ? 'keychain' : 'file';
+  conf.salt_store = 'file'; // #488: no Keychain store any more
   const overlay = localOverlayDir(env, platform);
   if (!conf.terms_file) conf.terms_file = path.join(overlay, 'clipboard-terms');
   if (!conf.salt_file) conf.salt_file = path.join(overlay, 'clipboard-salt');
   for (const [cat, key] of Object.entries(TERM_LISTS)) {
     if (!conf[key]) conf[key] = path.join(overlay, LIST_FILES[/** @type {keyof typeof LIST_FILES} */ (cat)]);
   }
-  const kc = conf.keychain_path;
-  if (kc && (!path.isAbsolute(kc) || /["\\\n\r]/.test(kc))) throw new PyError('ValueError');
   return conf;
 }
 

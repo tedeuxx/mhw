@@ -36,19 +36,23 @@ targets() {
   echo "$targets_home/.claude/CLAUDE.md $targets_home/.codex/AGENTS.md $targets_home/.kiro/steering/workstation-global-brief.md"
   echo "$targets_home/.claude/settings.json"
   echo "$targets_home/.codex/rules/workstation-deny-floor.rules"
-  echo "$(data "$targets_home")/clipboard_guard.py $(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
+  echo "$(data "$targets_home")/clipboard.conf $targets_home/.codex/hooks.json"
   echo "$(data "$targets_home")/paste-filter.sh"
 }
 plist() { echo "$1/Library/LaunchAgents/local.personal-multi-harness-workstation-configuration.clipboard-guard.plist"; }
-clip_src="$(cd "$(dirname "$0")" && pwd)/clipboard/clipboard_guard.py"
 wrap_mhw="$(cd "$(dirname "$0")/.." && pwd)/bin/mhw.js"
 wrap_node=$(command -v node)
+# The prompt hook command install.sh renders since #488: `mhw hook prompt` on that node, by absolute
+# path, with NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH cleared.
+hook_cmd() { # $1 harness, $2 clipboard.conf
+  printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$2"
+}
 fingerprint() { for f in $(targets "$1"); do cksum "$f" 2>/dev/null || echo "absent $f"; done; }
 ours() { # number of entries of the removed HITL picker guard in a settings file (must stay 0)
   jq '[.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/hitl-escalation-guard.sh"))] | length' "$1"
 }
 pours() { # number of paste-filter entries of ours (UserPromptSubmit) in a settings file
-  jq '[.hooks.UserPromptSubmit[]?.hooks[]? | select(.command | contains("personal-multi-harness-workstation-configuration/clipboard_guard.py"))] | length' "$1"
+  jq '[.hooks.UserPromptSubmit[]?.hooks[]? | select(.command | contains("/bin/mhw.js\" hook prompt --harness ") or contains("personal-multi-harness-workstation-configuration/clipboard_guard.py"))] | length' "$1"
 }
 # A synthetic AWS-shaped key, assembled at run time so this file holds no scanner-shaped string.
 synthetic_key="AKI""AQQQQRRRRSSSSTTTT"
@@ -75,7 +79,7 @@ HOME="$h" sh "$inst" --dry-run > "$base/dry.out"; expect "dry-run exits 0" 0 $?
 n=$(find "$h" -type f | wc -l | tr -d ' ')
 if [ "$n" -eq 0 ]; then ok "dry-run wrote no file"; else ko "dry-run wrote $n file(s)"; fi
 if grep -q '^WOULD WRITE' "$base/dry.out"; then ok "dry-run prints targets"; else ko "dry-run printed no target"; fi
-if grep -q '^WOULD MERGE' "$base/dry.out" && grep -q '^+.*clipboard_guard.py' "$base/dry.out"; then
+if grep -q '^WOULD MERGE' "$base/dry.out" && grep -q '^+.*hook prompt --harness claude' "$base/dry.out"; then
   ok "dry-run prints the settings diff"
 else
   ko "dry-run printed no settings diff"
@@ -359,12 +363,8 @@ fi
 
 # 2c. the paste filter (ADR-0011): the core, its settings, a UserPromptSubmit entry for Claude Code and
 # a managed hooks.json for Codex; and NO LaunchAgent: the always-on watcher is withdrawn
-cg="$(data "$h")/clipboard_guard.py"
-if sed 2d "$cg" | cmp -s - "$clip_src" && sed -n 2p "$cg" | grep -q '^# managed-by: personal-multi-harness-workstation-configuration'; then
-  ok "paste filter core installed: the source plus a marker on line 2"
-else
-  ko "installed paste filter core differs from its source"
-fi
+# #488: the hook is `mhw hook prompt` (Node); no Python core is installed any more.
+if [ ! -e "$(data "$h")/clipboard_guard.py" ]; then ok "no Python paste filter core is installed (#488)"; else ko "the Python core was installed"; fi
 cc="$(data "$h")/clipboard.conf"
 if grep -qx 'block_categories=employer-client-term,credential,email,payment-card,cpf,cnpj,phone,health,colleague-name' "$cc" && grep -q '^notice_blocked=Filtro de colagem' "$cc"; then
   ok "paste filter settings carry the generic categories and the overlay's notices"
@@ -373,14 +373,14 @@ else
 fi
 if [ -e "$(data "$h")/local-overlay" ]; then ko "the installer created the local overlay (term list or salt)"; else ok "the installer wrote no term list and no salt"; fi
 s="$h/.claude/settings.json"
-want_claude="/usr/bin/python3 -I -B \"$cg\" prompt-hook --harness claude --config \"$cc\""
+want_claude=$(hook_cmd claude "$cc")
 if [ "$(pours "$s")" -eq 1 ] && jq -e --arg c "$want_claude" '[.hooks.UserPromptSubmit[].hooks[] | select(.command == $c and .timeout == 30)] | length == 1' "$s" >/dev/null; then
   ok "settings carry exactly one UserPromptSubmit entry running the installed core for claude"
 else
   ko "the Claude Code paste-filter entry is missing or wrong"
 fi
 ch="$h/.codex/hooks.json"
-want_codex="/usr/bin/python3 -I -B \"$cg\" prompt-hook --harness codex --config \"$cc\""
+want_codex=$(hook_cmd codex "$cc")
 if jq -e --arg c "$want_codex" '(.description | startswith("managed-by: personal-multi-harness-workstation-configuration"))
       and ([.hooks.UserPromptSubmit[].hooks[] | select(.command == $c and .type == "command")] | length == 1)
       and (.hooks | keys == ["UserPromptSubmit"])' "$ch" >/dev/null; then
@@ -992,18 +992,39 @@ done
 h="$base/home-xdg"; x="$base/xdg-data"; mkdir -p "$h" "$x"
 HOME="$h" XDG_DATA_HOME="$x" sh "$inst" > /dev/null; expect "install with XDG_DATA_HOME set" 0 $?
 xd="$x/personal-multi-harness-workstation-configuration"
-if [ -f "$xd/clipboard_guard.py" ] && [ -f "$xd/clipboard.conf" ] && [ ! -e "$(data "$h")" ]; then
+if [ -f "$xd/clipboard.conf" ] && [ ! -e "$(data "$h")" ]; then
   ok "the paste filter and its config are under XDG_DATA_HOME, nothing under ~/.local/share"
 else
   ko "XDG_DATA_HOME not honoured"
 fi
-if jq -e --arg d "$xd/clipboard_guard.py" '[.hooks.UserPromptSubmit[].hooks[] | select(.command | contains($d))] | length == 1' "$h/.claude/settings.json" >/dev/null \
-   && grep -qF "$xd/clipboard_guard.py" "$h/.codex/hooks.json"; then
-  ok "both paste-filter entries run the core from XDG_DATA_HOME"
+if jq -e --arg d "$xd/clipboard.conf" '[.hooks.UserPromptSubmit[].hooks[] | select(.command | contains($d))] | length == 1' "$h/.claude/settings.json" >/dev/null \
+   && grep -qF "$xd/clipboard.conf" "$h/.codex/hooks.json"; then
+  ok "both paste-filter entries read their settings from XDG_DATA_HOME"
 else
   ko "the paste-filter entries do not point at XDG_DATA_HOME"
 fi
 HOME="$h" XDG_DATA_HOME="$x" sh "$inst" --check > /dev/null; expect "check with XDG_DATA_HOME set" 0 $?
+
+# 12b. #488: an install over an earlier release retires the Python core it left, replaces its hook
+# entry, and names a term list hashed with the Keychain salt (no salt file) instead of migrating it.
+h="$base/home-488"; mkdir -p "$(data "$h")/local-overlay" "$h/.claude"
+printf '#!/usr/bin/python3\n# managed-by: personal-multi-harness-workstation-configuration; source: global/clipboard/clipboard_guard.py; release: v1.0.0; commit: x; do not edit, re-run the installer\n' > "$(data "$h")/clipboard_guard.py"
+printf '%s\n' '{"hooks":{"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/usr/bin/python3 -I -B /x/personal-multi-harness-workstation-configuration/clipboard_guard.py prompt-hook --harness claude"}]}]}}' > "$h/.claude/settings.json"
+printf '# header\n%s\n' "$(printf 'ab%.0s' $(seq 32))" > "$(data "$h")/local-overlay/clipboard-terms"
+HOME="$h" sh "$inst" > "$base/488.out" 2>&1; expect "install over a Python-core release" 0 $?
+if [ ! -e "$(data "$h")/clipboard_guard.py" ] && grep -q '^REMOVED .*clipboard_guard.py (the Python prompt hook core' "$base/488.out" \
+   && [ "$(pours "$h/.claude/settings.json")" -eq 1 ] \
+   && jq -e --arg c "$(hook_cmd claude "$(data "$h")/clipboard.conf")" '[.hooks.UserPromptSubmit[].hooks[] | select(.command == $c)] | length == 1' "$h/.claude/settings.json" >/dev/null; then
+  ok "the Python core is retired and its hook entry replaced by mhw hook prompt"
+else
+  ko "the Python core or its entry survived an install"
+fi
+if grep -q '^SKIP    .*clipboard-terms: its hashes were made with the macOS Keychain salt, which mhw no longer reads (#488); nothing was migrated' "$base/488.out" \
+   && [ ! -e "$(data "$h")/local-overlay/clipboard-salt" ]; then
+  ok "a Keychain-salted term list is named, not migrated, and no salt is created by install"
+else
+  ko "the orphaned term list was not named"
+fi
 
 # 13. a data path the hook command cannot quote safely: the paste filter is refused, not mis-quoted,
 # and an entry of ours already in the settings is removed rather than left pointing at a stale path
@@ -1033,7 +1054,7 @@ else
 fi
 if jq -e '[.hooks.PreToolUse[]?.hooks[]? | select(.command == "/foreign/guard.sh")] | length == 1' "$s" >/dev/null \
    && jq -e '.permissions.deny | index("Bash(sudo:*)") != null' "$s" >/dev/null \
-   && [ -f "$h/.claude/CLAUDE.md" ] && [ -f "$(data "$h")/clipboard_guard.py" ]; then
+   && [ -f "$h/.claude/CLAUDE.md" ] && [ -f "$(data "$h")/clipboard.conf" ]; then
   ok "managed mode keeps foreign hooks, the deny floor, the brief and the hook scripts"
 else
   ko "managed mode removed something that is not a user-level hook of ours"
@@ -1472,7 +1493,7 @@ fi
 hh="$base/kirohook"; mkdir -p "$hh"
 kh="$hh/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json"
 HOME="$hh" sh "$inst" > "$base/kh.out" 2>&1; expect "install renders the Kiro hook" 0 $?
-khc="/usr/bin/python3 -I -B \"$(data "$hh")/clipboard_guard.py\" prompt-hook --harness kiro --config \"$(data "$hh")/clipboard.conf\""
+khc=$(hook_cmd kiro "$(data "$hh")/clipboard.conf")
 if jq -e --arg c "$khc" '.version == "v1" and (.hooks | length == 1)
       and (.hooks[0] | (.description | startswith("managed-by: personal-multi-harness-workstation-configuration; source: global/install.sh"))
         and .trigger == "UserPromptSubmit" and .action == {type: "command", command: $c} and .timeout == 30

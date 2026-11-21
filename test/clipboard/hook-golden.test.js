@@ -15,7 +15,7 @@ import { spawnSync } from 'node:child_process';
 import * as core from '../../src/lib/clean.js';
 import * as hook from '../../src/commands/hook-prompt.js';
 import * as addTerm from '../../src/commands/add-term.js';
-import { addTermHashes, KEYCHAIN_READ_SECONDS } from '../../src/lib/keychain.js';
+import { addTermHashes } from '../../src/lib/salt.js';
 import { KIRO_HOOK_FILE } from '../../src/commands/paste-wrapper.js';
 import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
 import { ROOT, recordedPython, clipboardDir } from '../helpers/s15.js';
@@ -54,8 +54,8 @@ function confDir(work, name, over) {
 /** @param {string[]} terms */
 const hashes = (terms) => terms.flatMap((t) => core.termForms(t).map((f) => core.termHash(SALT, f)));
 
-/** @param {string} work @param {string} d */
-function procEnv(work, d) {
+/** @param {string} d */
+function procEnv(d) {
   const home = path.join(d, 'home');
   fs.mkdirSync(home, { recursive: true });
   return { HOME: home, PATH: '/usr/bin:/bin', LC_ALL: 'C' };
@@ -93,7 +93,7 @@ async function nodeAnswers() {
       fs.writeFileSync(p, at < 0 ? text : Buffer.concat([text.subarray(0, at), Buffer.from([0xff]), text.subarray(at + 7)]));
       args.push('--config', p);
     }
-    const r = spawnSync(process.execPath, [MHW, 'hook', 'prompt', ...args], { input: Buffer.from(c.stdin, 'hex'), env: procEnv(work, d), timeout: 60000 });
+    const r = spawnSync(process.execPath, [MHW, 'hook', 'prompt', ...args], { input: Buffer.from(c.stdin, 'hex'), env: procEnv(d), timeout: 60000 });
     return { name: c.name, stdout: norm(work, r.stdout.toString('utf8')), stderr: norm(work, r.stderr.toString('utf8')), code: r.status };
   }) : null;
   const checkConfig = [];
@@ -101,7 +101,7 @@ async function nodeAnswers() {
     const { d, p } = confDir(work, 'check-config', { block_categories: 'credential,email', show_cleaned_chars: '77' });
     addTermHashes(hook.loadConfig(p).terms_file, hashes(['Zyxw Quillon']));
     for (const [name, extra] of /** @type {Array<[string, string[]]>} */ ([['file', ['--config', p]], ['missing', ['--config', path.join(d, 'none.conf')]], ['unknown-flag', ['--config']]])) {
-      const r = hook.checkConfig(extra, procEnv(work, d));
+      const r = hook.checkConfig(extra, procEnv(d));
       checkConfig.push({ name, stdout: norm(work, r.stdout), stderr: norm(work, r.stderr), code: r.code });
     }
   }
@@ -109,9 +109,8 @@ async function nodeAnswers() {
   const conf = hook.loadConfig(addConf);
   fs.mkdirSync(path.dirname(conf.salt_file), { recursive: true });
   fs.writeFileSync(conf.salt_file, SALT + '\n');
-  const ctx = { platform: process.platform, env: {}, python: null };
   const addAnswers = CASES.add_term.map((c) => {
-    const r = addTerm.addEntered(conf, c.first, c.second, c.list, ctx);
+    const r = addTerm.addEntered(conf, c.first, c.second, c.list);
     return { name: c.name, out: norm(work, r.out), code: r.code };
   });
   /** @type {Record<string, string>} */
@@ -123,7 +122,7 @@ async function nodeAnswers() {
   files.dir_mode = '0o' + (fs.statSync(path.dirname(conf.terms_file)).mode & 0o777).toString(8);
   const constants = {
     WRAPPER_MARKER: hook.WRAPPER_MARKER, WRAPPER_MARKER_VALUE: hook.WRAPPER_MARKER_VALUE, HARNESSES: [...hook.HARNESSES],
-    KEYCHAIN_READ_SECONDS, AGENT_MARKERS: [...addTerm.AGENT_MARKERS], KIRO_HOOK_FILE,
+    AGENT_MARKERS: [...addTerm.AGENT_MARKERS], KIRO_HOOK_FILE,
     notices: Object.fromEntries(Object.entries(hook.DEFAULTS).filter(([k]) => k.startsWith('notice_')).sort((a, b) => (a[0] < b[0] ? -1 : Number(a[0] > b[0])))),
     settings: Object.fromEntries(Object.entries(hook.DEFAULTS).filter(([k]) => !k.startsWith('notice_')).sort((a, b) => (a[0] < b[0] ? -1 : Number(a[0] > b[0])))),
   };
@@ -140,6 +139,47 @@ function canon(v) {
 const EXPECTED = readGolden('S17', 'expected-differences.json').differences;
 
 /**
+ * The Python original's answer with every declared difference applied: what the head must answer.
+ * @param {any} want all the original's answers
+ * @param {string} section
+ * @param {any} w one answer of that section
+ */
+function expectedOf(want, section, w) {
+  let e = { ...w };
+  for (const d of EXPECTED) {
+    if (d.section !== section || !d.cases.includes(w.name)) continue;
+    if (d.answer) {
+      const twin = want[section].find((/** @type {any} */ a) => a.name === 'dirty/' + w.name.split('/')[1]);
+      e = { ...twin, name: w.name };
+    }
+    for (const k of ['stdout', 'stderr', 'out']) {
+      if (typeof e[k] !== 'string') continue;
+      if (d.drop_lines) e[k] = e[k].split('\n').filter((/** @type {string} */ l) => !d.drop_lines.some((/** @type {string} */ p) => l.startsWith(p))).join('\n');
+      if (d.replace) e[k] = e[k].replaceAll(d.replace.base, d.replace.head);
+    }
+  }
+  return e;
+}
+
+/** The recorded constants with the declared patches applied. @param {any} c */
+function expectedConstants(c) {
+  const e = structuredClone(c);
+  for (const d of EXPECTED) {
+    if (d.section !== 'constants') continue;
+    for (const p of d.constants.delete) {
+      const [a, b] = p.split('.');
+      if (b) delete e[a][b];
+      else delete e[a];
+    }
+    for (const [p, v] of Object.entries(d.constants.set)) {
+      const [a, b] = p.split('.');
+      e[a][b] = v;
+    }
+  }
+  return e;
+}
+
+/**
  * Where the two answer sets differ, minus the declared differences.
  * @param {any} want the Python original's answers
  * @param {any} got Node's
@@ -153,22 +193,21 @@ function diff(want, got) {
     const byName = new Map(got[section].map((/** @type {any} */ a) => [a.name, a]));
     if (want[section].length !== got[section].length) out.push(section + ': case count');
     for (const w of want[section]) {
-      const declared = EXPECTED.find((/** @type {any} */ d) => d.section === section && d.cases.includes(w.name));
       const g = byName.get(w.name);
-      const expectedGot = declared ? { ...w, ...declared.head } : w;
-      if (canon(expectedGot) !== canon(g)) out.push(section + ' ' + w.name + '\n  python ' + canon(w) + '\n  node   ' + canon(g));
+      const e = expectedOf(want, section, w);
+      if (canon(e) !== canon(g)) out.push(section + ' ' + w.name + '\n  expected ' + canon(e) + '\n  node     ' + canon(g));
     }
   }
-  for (const k of ['add_term_files', 'constants']) {
-    if (canon(want[k]) !== canon(got[k])) out.push(k + '\n  python ' + canon(want[k]) + '\n  node   ' + canon(got[k]));
-  }
+  if (canon(want.add_term_files) !== canon(got.add_term_files)) out.push('add_term_files\n  python ' + canon(want.add_term_files) + '\n  node   ' + canon(got.add_term_files));
+  const ec = expectedConstants(want.constants);
+  if (canon(ec) !== canon(got.constants)) out.push('constants\n  expected ' + canon(ec) + '\n  node     ' + canon(got.constants));
   return out;
 }
 
-test('every declared difference names its section, its cases, why, and the head answer', () => {
+test('every declared difference names its section, its cases, why, and what changes', () => {
   for (const d of EXPECTED) {
-    assert.ok(['decision', 'cli', 'check_config', 'add_term'].includes(d.section), d.what);
-    assert.ok(d.cases.length && d.why && d.head && d.what, d.what);
+    assert.ok(['decision', 'cli', 'check_config', 'add_term', 'constants', 'scan'].includes(d.section), d.what);
+    assert.ok(d.cases.length && d.why && d.what && (d.replace || d.answer || d.constants || d.drop_lines), d.what);
   }
 });
 

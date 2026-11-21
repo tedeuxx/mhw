@@ -274,6 +274,60 @@ macOS through the vendored pty); not installed on the reference machine.
 - **`mhw status` checks the installed functions.** It prints `PASTE FAIL` when the node or the `mhw.js`
   they name is gone.
 
+## Amendment 2026-11-21: the prompt hook moves to Node, and the salt leaves the Keychain (#488)
+
+*S17 of #470 (#488). It records two changes: a change in protection, decided by the owner, and a
+runtime change.*
+
+**The salt is a file now, not a Keychain item.** The owner ruled on #488 (2026-11-21,
+[comment](https://github.com/tedeuxx/mhw/issues/488#issuecomment-7062064253) and the follow-up after it):
+«voce nao precisa nada disso num cofre acredito. é over engineering». In English: the salt does not
+need a vault. A second ruling, «Embaralha, chave em arquivo», keeps the terms as salted hashes and moves
+only the key to a file. ADR-0008 is unchanged: no term is stored in plain text.
+
+- **Where the salt lives.** `<data dir>/local-overlay/clipboard-salt`, a `0600` file in a `0700`
+  directory, on every operating system. `mhw add-term` creates it atomically on first use: a new file is
+  opened exclusively at `0600` and renamed into place. The settings `salt_store=keychain`,
+  `keychain_service` and `keychain_path` are no longer read.
+- **What was removed.** The Keychain store went, and with it the Security.framework lock probe and every
+  `/usr/bin/security` call made for the salt. No Python runs on the hook path, the scan path or the
+  paste-wrapper path. The reason was measured first, on a throwaway keychain on the GitHub macOS runner
+  (run 44858243105). `security show-keychain-info` and the `-w` read both blocked on a locked keychain
+  until they were killed. The attribute read answered the same whether the keychain was locked or not.
+  So no `/usr/bin/security` route could read the salt without risking an unlock dialog, and Node cannot
+  make the in-process call the Python probe made.
+- **The trade-off.** Any process running as the owner, agents included, can read the salt file. With it,
+  that process can test guesses against the hashed lists; the lists themselves stay unreadable as text.
+  This is not entirely new. ADR-0011's evidence table already recorded that any same-user process could
+  read the Keychain salt without a prompt while the keychain was unlocked. What changes is that no
+  locked keychain stands in the way any more.
+- **Migration: none, on purpose.** Reading the old Keychain salt at install is the read that blocks on
+  a locked keychain, so install does not read it. When a term list holds hashes and no salt file exists,
+  install prints a `SKIP` line that names the list and tells the owner to re-add his terms. Until he
+  does, the hook and `mhw scan` say term matching is off. When `mhw add-term` then creates the new
+  salt, it moves each orphaned list aside to `<list>.old-salt` and names it, so no dead hash is mistaken
+  for coverage.
+
+**The prompt hook is `mhw hook prompt --harness claude|codex|kiro` (D6 of #470).** Its decision, its
+redacted copy and its exit contract on each agent harness are unchanged. `test/golden/S17/answers.json`
+holds 232 answers recorded from clipboard_guard.py, and `test/golden/S17/expected-differences.json`
+declares every difference.
+
+- **The command line.** It is
+  `/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH "<node>" "<package>/bin/mhw.js" hook prompt …`.
+  Node is named by absolute path, and the variables that could make it load other code first are
+  cleared. A test plants `NODE_OPTIONS=--require` and shows that the planted file never runs.
+- **The admin layer runs a root-owned copy.** The copied files are hook-entry.js, hook-prompt.js and the
+  cleaning core, so no process running as the owner can change the code it runs.
+- **The residual: the node binary.** `/usr/bin/python3` was root-owned. A Homebrew or nvm node is not,
+  so a process running as the owner can replace the binary both layers run. `mhw status` prints the
+  node's path on its `hook node` line and names it `owner-writable`. A missing node is reported as
+  `FAIL`. This is to be carried into the runtime ADR the migration ends with (#470), not hidden here.
+- **Fail-open, pinned out of process.** A hook module that is missing, does not parse or throws gives
+  the error notice, by its class only. So does a payload read that stalls past 20 s. On Claude Code and
+  Codex the notice is visible. On Kiro it goes to stderr at exit 0, as before, and Kiro drops stderr
+  there. That Kiro gap is unchanged by this slice.
+
 ## Links
 
 - ADR-0011 (superseded; the history). ADR-0005 (no log). ADR-0008 (no persistence). ADR-0025 (admin
