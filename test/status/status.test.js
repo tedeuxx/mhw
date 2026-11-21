@@ -691,7 +691,7 @@ describe('inputs on which workstation.py stopped with a traceback read as unread
     const outside = { PATH: process.env.PATH || '', HOME: env.HOME };
     assert.deepEqual(workspace('', outside, dir), workspace(null, outside, dir));
   });
-  test('an empty --project= is unset: the git root of the current directory, as Python read it (PR #535 lens 3)', { skip: !which('git') && 'needs git' }, () => {
+  test('an empty --project= is unset: the git root of the current directory, as Python read it (PR #535 lens 3)', { skip: (!POSIX && 'POSIX only: the readers name paths as pathlib does on POSIX, and on Windows mhw status is install.ps1 -Check') || (!which('git') && 'needs git') }, () => {
     const repo = path.join(dir, 'repo');
     const sub = path.join(repo, 'src', 'lib');
     fs.mkdirSync(sub, { recursive: true });
