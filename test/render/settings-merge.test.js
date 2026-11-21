@@ -9,8 +9,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { parse, stringify, equal, JqNumber } from '../../src/lib/jq-json.js';
-import { merged, unmerged, jqIndexed, pasteGroup, dedupe, stampOf, stampValue, main, OWN_KEY, STAMP_KEY, HOOK_ID, PASTE_ID }
+import { parse, stringify, equal, compact, JqNumber } from '../../src/lib/jq-json.js';
+import { merged, unmerged, jqIndexed, pasteGroup, dedupe, stampOf, stampValue, main, OWN_KEY, STAMP_KEY, HOOK_ID, PASTE_ID, OLD_PASTE_ID }
   from '../../src/render/settings-merge.js';
 import { denied, report } from '../../src/render/floor-report.js';
 
@@ -390,4 +390,101 @@ test('no Codex or Kiro allow list beside a refused Codex or Kiro floor', { skip:
   assert.match(r.err, /^REFUSE  the Kiro allow list: its deny floor was not written/m);
   assert.ok(!fs.existsSync(path.join(kiro, 'home', '.kiro', 'agents', 'workstation.json')));
   assert.ok(fs.existsSync(path.join(kiro, 'home', '.codex', 'rules', 'workstation-allow-list.rules')), 'the Codex allow list still lands beside its floor');
+});
+
+test('the FLOOR report, every carried-by branch and every count, on a partial or foreign layer (QA B2)', () => {
+  const dir = freshDir('carried');
+  const floorClaude = path.join(dir, 'floor.claude');
+  const floorCodex = path.join(dir, 'floor.codex');
+  const floor = path.join(dir, 'deny-floor.conf');
+  // Listed twice: the report counts each rule once (jq's unique).
+  fs.writeFileSync(floorClaude, 'Bash(a:*)\nBash(a:*)\nBash(b:*)\n');
+  fs.writeFileSync(floorCodex, 'a\nb\n');
+  fs.writeFileSync(floor, 'cmd a\ncmd b\n');
+  const MARK = '# managed-by: personal-multi-harness-workstation-configuration\n';
+  const rulesOf = (/** @type {string[]} */ words) => MARK + words.map((w) => '  { pattern = [{ token = "' + w + '" }], decision = "forbidden" },\n').join('');
+  const deny = (/** @type {string[]} */ rules) => JSON.stringify({ permissions: { deny: rules } });
+  const full = deny(['Bash(a:*)', 'Bash(b:*)']);
+  const deep = '{"permissions": {"deny": ["Bash(a:*)", "Bash(b:*)"]}, "x": ' + '['.repeat(300) + ']'.repeat(300) + '}';
+  /**
+   * @type {Array<{ name: string, user?: string, codexUser?: boolean, adminClaude?: string, adminCodex?: string[],
+   *   claude: string, codex: string, carried: RegExp }>}
+   */
+  const cases = [
+    { name: 'none', claude: 'user layer 0/2 rules; admin layer 0/2 rules', codex: 'user rules file absent; admin requirements 0/2', carried: /NO complete layer/ },
+    { name: 'user layer only', user: full, codexUser: true, claude: 'user layer 2/2 rules; admin layer 0/2 rules',
+      codex: 'user rules file present; admin requirements 0/2', carried: /the user layer only;/ },
+    { name: 'user layer missing a rule', user: deny(['Bash(a:*)']), codexUser: true, claude: 'user layer 1/2 rules; admin layer 0/2 rules',
+      codex: 'user rules file present; admin requirements 0/2', carried: /NO complete layer/ },
+    { name: 'no Codex user file', user: full, claude: 'user layer 2/2 rules; admin layer 0/2 rules', codex: 'user rules file absent; admin requirements 0/2',
+      carried: /NO complete layer/ },
+    { name: 'admin complete', adminClaude: full, adminCodex: ['a', 'b'], claude: 'user layer 0/2 rules; admin layer 2/2 rules',
+      codex: 'user rules file absent; admin requirements 2/2', carried: /carried by: the admin layer;/ },
+    { name: 'Codex admin incomplete', user: full, codexUser: true, adminClaude: full, adminCodex: ['a'], claude: 'user layer 2/2 rules; admin layer 2/2 rules',
+      codex: 'user rules file present; admin requirements 1/2', carried: /the user layer; the admin copy is INCOMPLETE/ },
+    { name: 'Codex admin words that are not floor rules', user: full, codexUser: true, adminClaude: full, adminCodex: ['x', 'y'],
+      claude: 'user layer 2/2 rules; admin layer 2/2 rules', codex: 'user rules file present; admin requirements 0/2', carried: /the admin copy is INCOMPLETE/ },
+    { name: 'Claude admin incomplete', user: full, codexUser: true, adminClaude: deny(['Bash(b:*)']), adminCodex: ['a', 'b'],
+      claude: 'user layer 2/2 rules; admin layer 1/2 rules', codex: 'user rules file present; admin requirements 2/2', carried: /the admin copy is INCOMPLETE/ },
+    { name: 'files deeper than 256 levels', user: deep, codexUser: true, adminClaude: deep, adminCodex: ['a', 'b'],
+      claude: 'user layer 0/2 rules (not read: not strict JSON); admin layer 0/2 rules (not read: not strict JSON)',
+      codex: 'user rules file present; admin requirements 2/2', carried: /NO complete layer/ },
+  ];
+  for (const c of cases) {
+    const d = path.join(dir, c.name.replaceAll(' ', '-'));
+    const root = path.join(d, 'admin');
+    fs.mkdirSync(root, { recursive: true });
+    const settings = path.join(d, 'settings.json');
+    if (c.user) fs.writeFileSync(settings, c.user);
+    const rules = path.join(d, 'rules');
+    if (c.codexUser) fs.writeFileSync(rules, MARK);
+    if (c.adminClaude) {
+      const f = path.join(root, 'etc', 'claude-code', 'managed-settings.d', '50-personal-multi-harness-workstation-configuration.json');
+      fs.mkdirSync(path.dirname(f), { recursive: true });
+      fs.writeFileSync(f, c.adminClaude);
+    }
+    if (c.adminCodex) {
+      fs.mkdirSync(path.join(root, 'etc', 'codex'), { recursive: true });
+      fs.writeFileSync(path.join(root, 'etc', 'codex', 'requirements.toml'), rulesOf(c.adminCodex));
+    }
+    const out = /** @type {string[]} */ ([]);
+    report({ '--settings': settings, '--floor-claude': floorClaude, '--floor-codex': floorCodex, '--floor': floor, '--stamp': STAMP,
+      '--codex-rules': rules, '--managed-root': root, '--cmd': 'mhw' },
+    { out: (s) => out.push(s), err: () => {}, platform: 'linux', env: { HOME: d, USERPROFILE: d } });
+    const text = out.join('');
+    assert.ok(text.includes('FLOOR   Claude Code: ' + c.claude + '\n'), c.name + ':\n' + text);
+    assert.ok(text.includes('FLOOR   Codex: ' + c.codex + ' prefix rules\n'), c.name + ':\n' + text);
+    assert.match(text.split('\n').filter((l) => l.startsWith('FLOOR   carried by:')).join('\n'), c.carried, c.name + ':\n' + text);
+  }
+});
+
+test('compact: jq\'s tostring form (no whitespace, keys in order, number literals and escapes kept)', () => {
+  assert.equal(compact(parse('{"b": [1.50, {"k": "v\\u007f"}], "a": null, "t": true, "f": false, "n": 1e2}')),
+    '{"b":[1.50,{"k":"v\\u007f"}],"a":null,"t":true,"f":false,"n":1E+2}');
+  assert.equal(compact(parse('[]')), '[]');
+  assert.equal(compact(parse('{}')), '{}');
+  assert.equal(compact('café\n'), '"café\\n"');
+});
+
+test('the prompt hook: from the Python core\'s id or a stale Node one, install leaves exactly one group of ours, again is a no-op, uninstall removes both (QA B1)', () => {
+  const cmd = '/usr/bin/env "/n/node" "/p/bin/mhw.js" hook prompt --harness claude --config "/c"';
+  const start = obj(JSON.stringify({ hooks: { UserPromptSubmit: [
+    { hooks: [{ type: 'command', command: '/usr/bin/python3 /old/' + OLD_PASTE_ID + ' prompt-hook' }] },
+    { hooks: [{ type: 'command', command: '"/old/node" "/old/bin/mhw.js" hook prompt --harness claude' }, { type: 'command', command: '/foreign' }] }] } }));
+  const once = merged(start, ['Bash(a:*)'], pasteGroup(cmd), STAMP);
+  const ups = /** @type {any} */ (once).get('hooks').get('UserPromptSubmit');
+  const oursIn = (/** @type {any[]} */ groups) => groups.flatMap((g) => g.get('hooks')).filter((h) => {
+    const c = String(h.get('command'));
+    return c.includes(PASTE_ID) || c.includes(OLD_PASTE_ID);
+  }).length;
+  assert.equal(oursIn(ups), 1, stringify(once));
+  assert.ok(equal(ups.at(-1), pasteGroup(cmd)));
+  assert.equal(ups[0].get('hooks')[0].get('command'), '/foreign');
+  const twice = merged(once, ['Bash(a:*)'], pasteGroup(cmd), STAMP);
+  assert.equal(stringify(twice), stringify(once), 'install again changes nothing');
+  const back = /** @type {any} */ (unmerged(once, ['Bash(a:*)']));
+  assert.equal(oursIn(back.get('hooks').get('UserPromptSubmit')), 0);
+  // Uninstall straight from the start removes the old and the stale Node entries too.
+  const fromStart = /** @type {any} */ (unmerged(start, ['Bash(a:*)']));
+  assert.equal(oursIn(fromStart.get('hooks').get('UserPromptSubmit')), 0);
 });
