@@ -25,8 +25,9 @@ import { extractRevision } from '../helpers/parity.js';
 const SLICE = 'S30';
 const POSIX = process.platform !== 'win32';
 const REQUIRED = process.env.MHW_S30_LIVE_REQUIRED === '1';
-/** @type {import('../helpers/s30.js').ExpectedDifference[]} */
-const expected = readGolden(SLICE, 'expected-differences.json');
+/** @type {{ differences: import('../helpers/s30.js').ExpectedDifference[], residuals: Array<{ what: string, why: string, pinned: string }> }} */
+const declared = readGolden(SLICE, 'expected-differences.json');
+const expected = declared.differences;
 const cleanups = /** @type {Array<() => void>} */ ([]);
 after(() => cleanups.forEach((c) => c()));
 
@@ -40,6 +41,15 @@ test('every case has a golden transcript and every expected difference names a c
     for (const name of e.case) assert.ok(names.has(name) || name === '*', 'unknown case ' + name);
     assert.ok(e.why && e.why.length > 40, 'an expected difference states why');
     for (const side of /** @type {const} */ (['base', 'head'])) if (e[side]) new RegExp(e[side]);
+  }
+  // A residual no golden reaches is pinned by a named test that exists.
+  const suite = fs.readFileSync(path.join(ROOT, 'test', 'ci', 'method-issue-sync.test.js'), 'utf8');
+  assert.ok(declared.residuals.length >= 2);
+  for (const r of declared.residuals) {
+    assert.ok(r.what && r.why && r.why.length > 40, 'a residual states why');
+    const [file, title] = r.pinned.split(': ');
+    assert.equal(file, 'test/ci/method-issue-sync.test.js');
+    assert.ok(suite.includes("test('" + title + "'"), 'no test named ' + title);
   }
   // The verbs the acceptance criteria name are in the goldens: a refused or abandoned sync is red.
   const verify = golden.verify.steps.map((/** @type {{ code: number }} */ s) => s.code);

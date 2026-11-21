@@ -230,6 +230,43 @@ describe('the workflow', { skip: NO_RUBY }, () => {
     assert.ok(!args.includes('--allowed-tools') && !args.includes('--dangerously'));
   });
 
+  // Every place the action or the agent's node reads configuration, as closed sets (QA on PR #541, B2):
+  // a setting outside --allowedTools that widened what the agent may run would otherwise pass.
+  test('the action\'s inputs are a closed set', () => {
+    assert.deepEqual(Object.keys(claudeStep().with).sort((a, b) => a.localeCompare(b)),
+      ['claude_args', 'claude_code_oauth_token', 'github_token', 'prompt']);
+  });
+
+  test('claude_args is exactly four flags, each once, each with one value; --setting-sources is user', () => {
+    const tokens = [...claudeStep().with.claude_args.matchAll(/"[^"]*"|\S+/g)].map((m) => m[0]);
+    /** @type {Record<string, string>} */
+    const flags = {};
+    for (let i = 0; i < tokens.length; i += 2) {
+      assert.match(tokens[i], /^--[a-zA-Z-]+$/, 'a flag at token ' + i + ': ' + tokens[i]);
+      assert.ok(i + 1 < tokens.length && !tokens[i + 1].startsWith('-'), tokens[i] + ' has one value');
+      assert.ok(!(tokens[i] in flags), tokens[i] + ' is given once');
+      flags[tokens[i]] = tokens[i + 1].replace(/^"|"$/g, '');
+    }
+    assert.deepEqual(Object.keys(flags).sort((a, b) => a.localeCompare(b)), ['--allowedTools', '--disallowedTools', '--max-turns', '--setting-sources']);
+    assert.equal(flags['--setting-sources'], 'user');
+    assert.equal(flags['--allowedTools'], ALLOWED_TOOLS);
+  });
+
+  test('no NODE_ variable is set at the workflow, a job or a step', () => {
+    load();
+    /** @type {Array<[string, Obj | undefined]>} */
+    const levels = [['workflow', doc.env]];
+    for (const [name, job] of Object.entries(jobs)) {
+      levels.push(['job ' + name, job.env]);
+      for (const step of job.steps || []) levels.push(['a step of ' + name, step.env]);
+    }
+    assert.ok(levels.length > 10);
+    for (const [where, env] of levels) {
+      for (const name of Object.keys(env || {})) assert.doesNotMatch(name, /^NODE_/i, name + ' at ' + where + ' would change how node runs');
+    }
+    assert.doesNotMatch(text, /NODE_OPTIONS/, 'NODE_OPTIONS is nowhere in the workflow');
+  });
+
   test('no other node or Bash rule exists anywhere in the workflow', () => {
     load();
     const rules = [...text.matchAll(/Bash\([^)]*\)/g)].map((m) => m[0]);
@@ -894,6 +931,14 @@ describe('the script', { skip: !POSIX && 'the stub gh is a POSIX executable; the
     assert.equal(p.code, 4);
     assert.equal(p.stderr, 'gh: HTTP 502\n');
     assert.equal(p.stdout, '');
+    // The child's environment: one token, never GITHUB_TOKEN or GH_ENTERPRISE_TOKEN beside it.
+    writeGh('gh', '#!/bin/sh\nenv | grep -E "^(GH_TOKEN|GITHUB_TOKEN|GH_ENTERPRISE_TOKEN|GH_PROMPT_DISABLED)=" | sed "s/=.*//" | sort\n');
+    const env = run(['find-twin'], { env: { GH_ENTERPRISE_TOKEN: 'tok-enterprise' } });
+    assert.equal(env.code, 1, 'the reply is not JSON');
+    writeGh('gh', '#!/bin/sh\nenv | grep -E "^(GH_TOKEN|GITHUB_TOKEN|GH_ENTERPRISE_TOKEN|GH_PROMPT_DISABLED)=" | sed "s/=.*//" | sort | tr "\\n" " " >&2; exit 5\n');
+    const seen = run(['find-twin'], { env: { GH_ENTERPRISE_TOKEN: 'tok-enterprise' } });
+    assert.equal(seen.code, 5);
+    assert.equal(seen.stderr, 'GH_PROMPT_DISABLED GH_TOKEN ');
     writeGh('gh', '#!/bin/sh\nkill -TERM $$\n');
     assert.equal(run(['verify']).code, 256 - 15, 'a gh killed by a signal is the exit code Python gave it');
   });
