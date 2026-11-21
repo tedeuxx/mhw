@@ -365,6 +365,29 @@ jobs:
           fi
           echo "$out" | grep -E "^ *ok [0-9]+ - live: the Node steps match" | grep -vq SKIP
 
+      # #492 (S21 of #470): the live arm of test/render/shell-rc-golden.test.js runs the base revision's
+      # rc_* and shell_rc_* functions (shell and awk) beside the head's startup_step, which runs
+      # src/render/shell-rc.js, on every case, in throwaway HOMEs. MHW_S21_LIVE_REQUIRED=1 is the
+      # requirement: while the base's install.sh still holds rc_scan the live line must be reported and not
+      # as SKIP; once it does not (this slice has merged), the step says the arm retired and passes, as the
+      # S14 step does (#534). A missing base fails. The golden arm runs in npm test on macOS and Linux.
+      - name: S21 live parity against the shell functions
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S21_LIVE_REQUIRED: "1"
+        run: |
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/render/shell-rc-golden.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          if ! git show "$base:global/install.sh" 2>/dev/null | grep -qF 'rc_scan() {'; then
+            echo "S21 live arm retired: base $base no longer holds the shell functions"
+            exit 0
+          fi
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: the Node step matches" | grep -vq SKIP
+
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
   # HOME. Fails on any `npm ls -g --all` problem (an UNMET DEPENDENCY among them), on an installed

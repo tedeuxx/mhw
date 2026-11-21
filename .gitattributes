@@ -49,3 +49,5 @@ test/golden/S20/** -text
 test/golden/S28/** -text
 # Golden transcripts, frozen inputs, the prose corpus answers and the declared differences of the S23 parity tests (#494): byte for byte on every OS.
 test/golden/S23/** -text
+# Golden transcripts and the declared differences of the S21 parity test (#492): byte for byte on every OS.
+test/golden/S21/** -text
