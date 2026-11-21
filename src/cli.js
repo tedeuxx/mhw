@@ -7,7 +7,8 @@
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
 // `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
-// and `mhw scan` (#486); new in Node: `mhw docs-baseline check` and `mhw onboard` (#523).
+// `mhw scan` (#486) and `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux); new in Node:
+// `mhw docs-baseline check` and `mhw onboard` (#523).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
 // PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
@@ -31,6 +32,7 @@ import { main as mcpLaunchMain } from './commands/mcp-launch.js';
 import { main as scanMain } from './commands/scan.js';
 import { main as pasteWrapperMain, statusLine as pasteStatusLine } from './commands/paste-wrapper.js';
 import { checkMain as docsBaselineMain, onboardMain } from './commands/docs-baseline.js';
+import { main as statusMain } from './commands/status.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -211,6 +213,8 @@ export function main(argv, platform, env, opts = {}) {
     printNodeLine(opts.nodeVersion || process.version);
     // #487: whether the paste wrapper's pty library loads here; a FAIL names the reason. Never the exit code.
     fs.writeSync(1, pasteStatusLine(env, platform) + '\n');
+    // #493 (S22): the status view itself is Node on macOS and Linux; Windows keeps install.ps1 -Check.
+    if (platform !== 'win32') return statusMain(argv.slice(1), env);
   }
   if (platform !== 'win32') {
     // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.

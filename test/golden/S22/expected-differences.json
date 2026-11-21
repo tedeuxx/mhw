@@ -1,0 +1,37 @@
+[
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "./mhw status runs the Node command now: the mhw shell script sends status to node bin/mhw.js, as it already did for scan, so `./mhw status` prints the NODE and PASTE lines first, which only `node bin/mhw.js status` (and the npm command) printed before, and it needs node (26 or later) on PATH instead of python3. Every case runs through bin/mhw.js, where both sides print those two lines, so no transcript shows it. A direct `python3 global/workstation.py status` now says it is the Node command and exits 2, as `workstation.py scan` has since #486."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "The installers' --check runs under /bin/sh by absolute path; workstation.py ran `sh` looked up on PATH (subprocess with a bare name). The S01 convention is that an interpreter goes by absolute path, never looked up on PATH. git, gh and each agent harness CLI are still the first on PATH, as they were, found through src/lib/onpath.js (absolute PATH entries only: a relative entry, which Python's lookup used, is skipped) and run by absolute path, never through a shell."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "Inputs on which workstation.py stopped with a Python traceback and printed no status at all, where the Node view prints its lines and reads the input as unreadable or absent: a drop-in whose stamp key is not a string, or a drop-in that is a JSON list naming the project (TypeError); a Kiro hook file that is JSON but not an object (AttributeError: read as modified); a hooks value that is truthy but not an object (AttributeError: no hook counted); a Codex config.toml, a requirements.toml or a .workstation-version that is not UTF-8 (UnicodeDecodeError: the TOML reads as unread, the key file's bad bytes as U+FFFD); a settings file nested past Python's recursion limit (RecursionError: not read); no git on PATH with no --project (FileNotFoundError: not in a git repository); an agent harness whose --version prints bytes that are not UTF-8 (UnicodeDecodeError: its first line with U+FFFD). Pinned in test/status/status.test.js where a case can build the input; status never crashes on what it reads, which is the property the owner-action reader already held."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "The forms that said Node could not be found or failed are gone, because the reader is no longer a separate node process: `chrome debugging not read (node 26 or later is required to read it)`, `not read (mhw chrome-debugging could not run)` and `not read (mhw chrome-debugging --mode=status exited N)` (workstation.py spawned `mhw chrome-debugging --mode=status`; the Node view calls its statusText in process, the same function and the same lines), and `mcp connect      not run (node 26 or later is required)` (the connection check is spawned with the node running status). The `not read (...)` forms the reader itself prints (no profile path for the system, Local State not readable JSON) are unchanged and are in the goldens or in test/render/chrome-debugging.test.js."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "Two path details: --overlay=~user/x is not expanded (only ~ and ~/ are, from HOME; Python's expanduser also looked other users up), so it is refused as not a directory unless such a relative path exists; and --project=DIR resolves a link followed by .. lexically first (path.resolve, then the links of what exists), where pathlib resolved each link before its .. . Neither changes what an ordinary path names. On Windows `mhw status` is unchanged: it stays install.ps1 -Check after the NODE and PASTE lines (src/cli.js, test/cli.test.js)."
+  }
+]
