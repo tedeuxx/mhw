@@ -93,6 +93,12 @@ describe('the declaration', () => {
     }
   });
 
+  test('the base URL override reads every recorded input as urlsplit did (lens F3 on PR #538)', () => {
+    const golden = JSON.parse(fs.readFileSync(path.join(REPO, 'test', 'golden', 'S23', 'base-url.json'), 'utf8'));
+    assert.ok(golden.cases.length >= 37);
+    for (const [input, want] of golden.cases) assert.equal(pq.baseUrl({ X: input }, 'X', 'D'), want, JSON.stringify(input));
+  });
+
   test('the merge standard is the closed set of three', () => {
     // #206: the standard file names exactly the three settings gh repo view reads.
     assert.deepEqual(pq.repoStandard().map(([k]) => k), ['allow_merge_commit', 'allow_rebase_merge', 'allow_squash_merge']);
@@ -234,6 +240,35 @@ describe('presence', { skip: !SHELL && 'needs a POSIX sh' }, () => {
     const [code, out] = s.check();
     assert.equal(code, 2, out);
     assert.ok(out.includes('declaration invalid, nothing checked'));
+  });
+
+  test('no probe child gets a declared token: every auth.env variable is removed from its environment (#494)', () => {
+    // Logging shims: each probe child writes its name and the canary count of its own environment.
+    const log = path.join(s.h.dir, 'children.log');
+    const canary = 'CANARY_SECRET_VALUE_S23';
+    /** @param {string} name @param {string} body */
+    const logged = (name, body) => s.shim(name, '#!/bin/sh\nprintf \'%s %s\\n\' "' + name + ' $*" "$(/usr/bin/env | /usr/bin/grep -c ' + canary + ')" >> \'' + log + '\'\n' + body);
+    logged('git', "case \"$1\" in -C) echo 'git@github.com:owner-x/repo-y.git' ;; *) echo 'git version 2.3.4' ;; esac\n");
+    logged('terraform', "echo 'Terraform v1.9.0'\n");
+    logged('gh', GH_SHIM.replace('#!/bin/sh\n', ''));
+    s.declare([item('git', { version: { args: ['--version'] } }), item('tf', { cmd: 'terraform', version: { args: ['version'] } }), GH_ITEM,
+      item('sonar', { required: 'optional', presence: { kind: 'account' }, auth: { kind: 'sonarcloud-token', env: 'SONAR_TOKEN' } }),
+      item('tfc', { required: 'optional', presence: { kind: 'account' }, auth: { kind: 'tfc-token', env: 'MY_TFC_TOKEN' } })]);
+    // No github_repos: the merge-settings read falls back to this checkout's origin through git.
+    Object.assign(s.env, { SONAR_TOKEN: canary, MY_TFC_TOKEN: canary, UNDECLARED_NAME: 'kept', WORKSTATION_GITHUB_URL: 'http' + '://127.0.0.1:9',
+      WORKSTATION_SONAR_URL: 'http' + '://127.0.0.1:9', WORKSTATION_TFC_URL: 'http' + '://127.0.0.1:9' });
+    const [code, out] = s.check();
+    assert.equal(code, 0, out);
+    assert.ok(!out.includes(canary));
+    const lines = fs.readFileSync(log, 'utf8').trim().split('\n');
+    for (const name of ['git --version', 'git -C', 'terraform version', 'gh --version', 'gh auth status', 'gh repo view']) {
+      assert.ok(lines.some((l) => l.startsWith(name)), name + ' ran: ' + lines.join(' | '));
+    }
+    assert.deepEqual(lines.filter((l) => !l.endsWith(' 0')), [], 'a probe child saw a declared token');
+    // The removal is by name, and only the declared names go: the probe environment keeps everything else.
+    const kept = pq.withoutTokens({ SONAR_TOKEN: 'x', MY_TFC_TOKEN: 'y', PATH: '/p', UNDECLARED_NAME: 'kept' },
+      [item('a', { auth: { kind: 'sonarcloud-token', env: 'SONAR_TOKEN' } }), item('b', { auth: { kind: 'tfc-token', env: 'MY_TFC_TOKEN' } }), item('c')]);
+    assert.deepEqual(kept, { PATH: '/p', UNDECLARED_NAME: 'kept' });
   });
 
   test('the repository declaration with nothing on PATH', () => {

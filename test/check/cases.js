@@ -312,6 +312,19 @@ export const CASES = [
     ],
   },
   {
+    // #494, lens F1 on PR #538: prerequisites.py handed every probe child the caller's environment, tokens
+    // included; the Node check removes each declared auth.env variable first. The shim answers another
+    // version when it can see a token, so the transcript shows which side passed it on (declared).
+    name: 'prereq-tokens-not-inherited',
+    mode: 'bare',
+    env: { SONAR_TOKEN: TOKEN, TFC_API_TOKEN: TOKEN, WORKSTATION_SONAR_URL: 'http://127.0.0.1:9', WORKSTATION_TFC_URL: 'http://127.0.0.1:9' },
+    setup: (w) => {
+      shim(w, 'git', '#!/bin/sh\nif [ -n "$SONAR_TOKEN$TFC_API_TOKEN" ]; then echo \'git version 9.9.9\'; else echo \'git version 2.3.4\'; fi\n');
+      declare(w, [item('alpha', { version: { args: ['--version'] } }), ...SERVICE_ITEMS]);
+    },
+    steps: [P()],
+  },
+  {
     name: 'full-install-then-check',
     mode: 'full',
     env: EMPTY_DECL,

@@ -16,7 +16,10 @@
 // compared with global/github-repo-settings.json; and HTTPS GETs (src/lib/http-get.js, a worker thread
 // the check waits for) that send a token only when it is already in the environment (SONAR_TOKEN, TFC_API_TOKEN), plus a
 // SonarCloud project lookup when the overlay names a project key. A credential is never read from anywhere
-// but the environment, never printed, never written, and never handed to another process.
+// but the environment, never printed and never written. No probe child gets one: every variable a
+// declared item names as its auth.env is removed from a probe's environment (withoutTokens, #494; the
+// Python original passed them on). The GET starts no process. The installers' --check that mhw check runs
+// before this section inherits the caller's environment, as before.
 //
 // Owner-specific values live in the untracked overlay file prerequisites.local.json (gitignored by
 // *.local.json): {"lanes": [...], "github_repos": ["OWNER/REPO"], "sonar_projects": ["KEY"]}. "lanes"
@@ -251,6 +254,21 @@ export function loadOverlay(lanes, env) {
 // Probes: the only places a process or network call happens.
 
 /**
+ * The environment a probe child gets: env without every variable an item's auth.env names, so a
+ * declared token (SONAR_TOKEN, TFC_API_TOKEN) never reaches git, gh, terraform or any --version query.
+ * prerequisites.py passed them on; this narrows that (#494, declared in test/golden/S23).
+ * @param {Env} env @param {Item[]} items
+ */
+export function withoutTokens(env, items) {
+  const out = { ...env };
+  for (const item of items) {
+    const name = isDict(item.auth) ? item.auth.env : undefined;
+    if (typeof name === 'string') delete out[name];
+  }
+  return out;
+}
+
+/**
  * [exit code, combined output, stripped]. 127 when the command cannot be run, 124 on timeout.
  * @param {string} exe an absolute path @param {string[]} args @param {Env} env
  * @returns {[number, string]}
@@ -267,10 +285,15 @@ export function probe(exe, args, env) {
  * @param {Env} env @param {string} name @param {string} fallback
  */
 export function baseUrl(env, name, fallback) {
-  const value = env[name] || '';
-  if (!value) return fallback;
-  // urllib.parse.urlsplit, as far as the check needs it: the scheme (lower-cased), the netloc up to the
-  // first / ? or #, and what follows, which may only be an empty path, query and fragment.
+  const raw = env[name] || '';
+  if (!raw) return fallback;
+  // urllib.parse.urlsplit, as far as the check needs it. First its two sanitisations (CPython 3.14): the
+  // leading C0 controls and spaces stripped, then every \t, \r and \n removed. Then the scheme
+  // (lower-cased), the netloc up to the first / ? or #, and what follows, which may only be an empty
+  // path, query and fragment.
+  let start = 0;
+  while (start < raw.length && raw.charCodeAt(start) <= 0x20) start++;
+  const value = raw.slice(start).replaceAll(/[\t\r\n]/g, '');
   const sep = value.indexOf('://');
   if (sep < 1) return fallback;
   const scheme = value.slice(0, sep).toLowerCase();
@@ -365,17 +388,18 @@ export function versionDrift(item, found) {
 
 /**
  * [state, text]. state: ok, no, unchecked, unreachable, or null when the item declares no auth.
- * @param {Item} item @param {string | null} presentPath @param {Env} env
+ * @param {Item} item @param {string | null} presentPath @param {Env} env the caller's environment (the token
+ *   is read from it) @param {Env} [probeEnv] what a probe child gets: env without the declared tokens
  * @returns {[string | null, string]}
  */
-export function checkAuth(item, presentPath, env) {
+export function checkAuth(item, presentPath, env, probeEnv = env) {
   const auth = item.auth;
   if (auth === undefined || auth === null) return [null, ''];
   const kind = auth.kind;
   if (kind === 'none') return ['unchecked', NO_PROBE];
   if (kind === 'gh-auth-status') {
     if (!presentPath) return ['unchecked', 'authentication not checked (gh missing)'];
-    const [code, out] = probe(presentPath, ['auth', 'status'], env); // output names the account: classified only
+    const [code, out] = probe(presentPath, ['auth', 'status'], probeEnv); // output names the account: classified only
     if (code === 0) return ['ok', 'authenticated'];
     if (out.toLowerCase().includes('not logged in')) return ['no', 'not authenticated'];
     // gh auth status contacts GitHub: offline, it fails like a rejected token. Ask GitHub, no token.
@@ -461,9 +485,10 @@ export function repoSettings(gh, repo, standard, env) {
 /**
  * [[state, text]]. state: ok, drift, unchecked.
  * @param {Item} item @param {string | null} authState @param {Overlay} overlay @param {string | null} gh @param {Env} env
+ * @param {Env} [probeEnv] what a probe child gets: env without the declared tokens
  * @returns {Array<[string, string]>}
  */
-export function checkPreferred(item, authState, overlay, gh, env) {
+export function checkPreferred(item, authState, overlay, gh, env, probeEnv = env) {
   const preferred = item.preferred;
   if (preferred === undefined || preferred === null) return [];
   if (preferred.kind === 'github-repo-settings') {
@@ -476,10 +501,10 @@ export function checkPreferred(item, authState, overlay, gh, env) {
       if (!(e instanceof DeclarationError)) throw e;
       return [['unchecked', 'merge settings not checked (' + e.message + ')']];
     }
-    const origin = overlay.github_repos.length ? null : originRepo(env);
+    const origin = overlay.github_repos.length ? null : originRepo(probeEnv);
     const repos = overlay.github_repos.length ? overlay.github_repos : origin ? [origin] : [];
     if (!repos.length) return [['unchecked', 'merge settings not checked (no GitHub origin and none in the overlay)']];
-    return repos.map((repo) => repoSettings(gh, repo, standard, env));
+    return repos.map((repo) => repoSettings(gh, repo, standard, probeEnv));
   }
   const keys = overlay.sonar_projects;
   if (!keys.length) return [['unchecked', 'project not checked (no project key in the overlay)']];
@@ -513,14 +538,15 @@ export function requirement(item, active) {
 /**
  * { tag, fatal, line } for one item. Pure apart from the probes above.
  * @param {Item} item @param {Overlay} overlay @param {Env} env @param {string} [system]
+ * @param {Env} [probeEnv] what a probe child gets: env without the declared tokens (report() builds it)
  */
-export function evaluate(item, overlay, env, system = systemName()) {
+export function evaluate(item, overlay, env, system = systemName(), probeEnv = env) {
   const [fatal, label] = requirement(item, overlay.lanes);
   const head = item.id + ' [' + label + ']';
   if (Array.isArray(item.os) && item.os.length && !item.os.includes(system)) {
     return { tag: 'SKIP', fatal: false, line: head + ': not applicable on ' + system };
   }
-  const [state, presenceText, p, found] = checkPresence(item, env);
+  const [state, presenceText, p, found] = checkPresence(item, probeEnv);
   const parts = [presenceText];
   /** @type {string | null} */
   let authState = null;
@@ -530,9 +556,9 @@ export function evaluate(item, overlay, env, system = systemName()) {
   /** @type {Array<[string, string]>} */
   let prefs = [];
   if (state !== 'missing') {
-    [authState, authText] = checkAuth(item, p, env);
+    [authState, authText] = checkAuth(item, p, env, probeEnv);
     drift = state === 'present' ? versionDrift(item, found) : null;
-    prefs = checkPreferred(item, authState, overlay, p, env);
+    prefs = checkPreferred(item, authState, overlay, p, env, probeEnv);
   }
   if (authText) parts.push(authText);
   if (drift) parts.push(drift);
@@ -567,7 +593,10 @@ export function report(env, o = {}) {
   const active = overlay.lanes.length ? overlay.lanes.join(', ') : 'none beyond the overall requirement';
   const lines = ['PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: ' + active];
   if (note) lines.push('PREREQ  ' + note);
-  const results = doc.items.map((/** @type {Item} */ item) => evaluate(item, overlay, env, o.system));
+  // #494: no probe child gets a token the declaration names (git, gh, terraform and every --version run
+  // with them removed); the token is read from env, by this process, only.
+  const probeEnv = withoutTokens(env, doc.items);
+  const results = doc.items.map((/** @type {Item} */ item) => evaluate(item, overlay, env, o.system, probeEnv));
   for (const r of results) lines.push(r.tag.padEnd(7) + ' ' + r.line);
   const missing = results.filter((/** @type {{ fatal: boolean }} */ r) => r.fatal).length;
   lines.push('PREREQ  ' + missing + ' required item(s) missing; check-only, nothing was applied');

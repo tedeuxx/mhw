@@ -1,6 +1,18 @@
 [
   {
     "case": [
+      "prereq-tokens-not-inherited"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "present \\(git 9\\.9\\.9\\)",
+    "head": "present \\(git 2\\.3\\.4\\)",
+    "replace": "present (git <the version a probe child reports>)",
+    "why": "A narrowing (lens F1 on PR #538): prerequisites.py ran every probe child (git, gh, terraform, each --version) with the caller's whole environment, so SONAR_TOKEN and TFC_API_TOKEN reached them. The Node check removes every variable a declaration item names as its auth.env before it starts a probe; the token is read only by this process, for its own GET. The case's git shim reports 9.9.9 when it can see a token and 2.3.4 when it cannot, so the base shows the token passed on and the head shows it withheld. test/check/prerequisites.test.js holds the same property with logging shims."
+  },
+  {
+    "case": [
       "project-not-utf8"
     ],
     "stream": [

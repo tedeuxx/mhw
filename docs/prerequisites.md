@@ -63,13 +63,23 @@ refused as an invalid declaration.
 - **SonarCloud:** with `SONAR_TOKEN` in the environment, a GET of `/api/authentication/validate`; with
   project keys in the overlay, a GET of `/api/components/show` per key (with the token if present).
 - **HCP Terraform:** with `TFC_API_TOKEN` in the environment, a GET of `/api/v2/account/details`.
-- Every GET runs in a worker thread (`src/lib/http-get.js`) that the check waits for, so no process is
-  started and the token never appears in an argv or a child's environment. It does not use an HTTP
-  proxy from the environment, where Python's `urllib` did (#494).
+- Every GET runs in a worker thread (`src/lib/http-get.js`) that the check waits for, so the GET starts
+  no process and the token is sent only as its `Authorization` header.
+- No probe child (`git`, `gh`, `terraform`, any `--version` query) gets a token: every variable a
+  declared item names as its `auth.env` is removed from a probe's environment first. The Python
+  checker passed them on (#494, a declared narrowing). The installers' `--check`, which the full
+  `mhw check` runs before this section, still inherits the caller's environment.
+- Proxies: Python's `urllib` always honoured the `*_proxy` variables. Node's `fetch` uses none unless
+  `NODE_USE_ENV_PROXY=1` (or `--use-env-proxy`) is set, and then honours `HTTP_PROXY`, `HTTPS_PROXY` and
+  `NO_PROXY` (measured on Node 25.9). That is kept as Node has it: set `NODE_USE_ENV_PROXY=1` where egress
+  needs a proxy. A GET that cannot get through reads `NOCHECK`, never `OK`.
+- `PATH` entries that are not absolute (a relative directory, an empty entry, `.`) are not searched, so a
+  tool found only through one reads `MISSING`. Python's `shutil.which` searched them (#494).
 - With no token in the environment the line reads `not checked (credential not available)` and no call
   is made. A token is read from the environment only, never printed, never written, and never sent
   after a redirect. A service URL override is honoured only for a plain-HTTP `127.0.0.1` address with
-  a port (tests).
+  a port (tests), read as `urllib.parse.urlsplit` reads it: leading control characters and spaces
+  stripped, then every tab, carriage return and newline removed (`test/golden/S23/base-url.json`).
 
 ## Owner-specific values: the untracked overlay
 
