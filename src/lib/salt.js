@@ -1,40 +1,99 @@
-// The term lists' salt, read without a prompt (#486; shared with the paste wrapper since #487). A file
-// store is read here. The macOS Keychain is read the way the prompt hook reads it, by clipboard_guard.py's
-// own SaltStore(interactive=False): a non-interactive lock probe through Security.framework, then a
-// bounded `security` read. Node has no such probe, so until the hook moves to Node this one step runs
-// clipboard_guard.py: an absolute python3, isolated (-I) and from clipboard_guard.py's own directory, so
-// nothing in the current directory or on PYTHONPATH is imported. The salt reaches this process on a
-// pipe, never in an argument or a file. node: modules only.
+// The term lists' salt (#486, #487, #488). The salt keys every term hash. Since #488 it is a file and only a
+// file, on every operating system. The owner ruled on 2026-11-21 (#488): «voce nao precisa nada disso num
+// cofre acredito. é over engineering». The salt lives at conf.salt_file, by default
+// <data dir>/local-overlay/clipboard-salt, mode 0600 in a 0700 directory, created atomically on first use
+// by add-term. The terms stay salted hashes, never plain text (ADR-0008).
+//
+// The macOS Keychain store is gone, and with it the lock probe and every call to the macOS security tool for the
+// salt. A Node probe could not read the lock state without risking an unlock dialog: on a locked keychain,
+// `security show-keychain-info` and the `-w` read both blocked until killed (CI, run 44858243105). The
+// trade-off: any process running as the owner, agents included, can read the salt and so test guesses
+// against the hashed lists. The lists themselves stay unreadable.
+//
+// Nothing here prints, logs or passes the salt on: it is returned to the caller in process. node: modules
+// only (convention 5 of #470: the prompt hook runs this file).
+import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import * as core from './clean.js';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-export const CLIPBOARD_DIR = path.join(ROOT, 'global', 'clipboard');
-const KEYCHAIN_READ = 'import sys\nsys.path.insert(0, sys.argv[1])\nimport clipboard_guard as g\n'
-  + 'conf = dict(g.DEFAULTS, salt_store="keychain", keychain_service=sys.argv[2], keychain_path=sys.argv[3])\n'
-  + 'v = g.SaltStore(conf, interactive=False).get()\nsys.stdout.write(v or "")\n';
+/**
+ * The salt for the term lists, or null (absent, unreadable, or not 64 lowercase hex digits). Never prompts.
+ * @param {Record<string, string>} conf
+ * @returns {{ salt: string | null }}
+ */
+export function readSalt(conf) {
+  return { salt: core.fileSalt(conf.salt_file) };
+}
+
+/** A user-only directory (0700), created when missing. @param {string} dir */
+export function privateDir(dir) {
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  fs.chmodSync(dir, 0o700);
+}
+
+/** Write by rename: a 0600 file created exclusively beside it. @param {string} file @param {string} content */
+export function atomicWrite(file, content) {
+  const tmp = file + '.new.' + process.pid;
+  const fd = fs.openSync(tmp, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL, 0o600);
+  try {
+    fs.writeSync(fd, content);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.chmodSync(tmp, 0o600);
+  fs.renameSync(tmp, file);
+}
 
 /**
- * The salt for the term lists, or null, read without a prompt; noPython when the Keychain read had no
- * python3 to run it.
- * @param {{ platform: string, python: string | null, env: Record<string, string | undefined> }} ctx
- *   python: an absolute path, or null
+ * The salt, created when there is none: 32 random bytes as hex, written atomically with mode 0600 in a
+ * 0700 directory, then read back. created: whether this call wrote it.
  * @param {Record<string, string>} conf
- * @returns {{ salt: string | null, noPython?: boolean }}
+ * @returns {{ salt: string, created: boolean }}
  */
-export function readSalt(ctx, conf) {
-  if (conf.salt_store !== 'keychain') return { salt: core.fileSalt(conf.salt_file) };
-  // Off macOS there is no Security.framework, and clipboard_guard.py's probe answers "unknown" there.
-  if (ctx.platform !== 'darwin') return { salt: null };
-  if (!ctx.python) return { salt: null, noPython: true };
-  // -I (isolated: no current directory, no PYTHONPATH, no user site on sys.path, no PYTHON* variable):
-  // the child imports hashlib, hmac, json, re, secrets, subprocess and unicodedata, and without it a
-  // module of one of those names in the current directory, or on PYTHONPATH, would run. The child also
-  // runs in clipboard_guard.py's own directory.
-  const p = spawnSync(ctx.python, ['-I', '-B', '-c', KEYCHAIN_READ, CLIPBOARD_DIR, conf.keychain_service, conf.keychain_path || ''],
-    { cwd: CLIPBOARD_DIR, env: ctx.env, stdio: ['ignore', 'pipe', 'ignore'], timeout: 15000, shell: false, windowsHide: true, encoding: 'utf8' });
-  const value = p.status === 0 && typeof p.stdout === 'string' ? p.stdout : '';
-  return { salt: /^[0-9a-f]{64}$/.test(value) ? value : null };
+export function saltOrCreate(conf) {
+  const have = core.fileSalt(conf.salt_file);
+  if (have) return { salt: have, created: false };
+  const value = crypto.randomBytes(32).toString('hex');
+  privateDir(path.dirname(conf.salt_file));
+  atomicWrite(conf.salt_file, value + '\n');
+  if (core.fileSalt(conf.salt_file) !== value) throw new Error('the salt was written but does not read back');
+  return { salt: value, created: true };
+}
+
+/**
+ * Add salted hashes to a term list (0600 in a 0700 directory), keeping it sorted and unique, with the header.
+ * @param {string} file
+ * @param {string[]} hashes
+ * @returns {number} how many were new, counted as clipboard_guard.add_term_hashes() counted them
+ */
+export function addTermHashes(file, hashes) {
+  privateDir(path.dirname(file));
+  const current = core.readTerms(file);
+  const fresh = hashes.filter((h) => !current.has(h));
+  const lines = [...new Set([...current, ...fresh])].sort((a, b) => (a < b ? -1 : Number(a > b)));
+  atomicWrite(file, core.TERMS_HEADER + lines.map((h) => h + '\n').join(''));
+  return fresh.length;
+}
+
+/** The three term list files a configuration names. @param {Record<string, string>} conf */
+export function listFiles(conf) {
+  return [conf.terms_file, ...Object.values(core.TERM_LISTS).map((k) => conf[k])];
+}
+
+/**
+ * Term lists that hold hashes while no salt file exists: hashed with a salt mhw no longer has (before #488
+ * the macOS default was the Keychain). Their hashes can never match again.
+ * @param {Record<string, string>} conf
+ * @returns {Array<[string, number]>} [file, hash count]
+ */
+export function orphanedLists(conf) {
+  if (core.fileSalt(conf.salt_file)) return [];
+  /** @type {Array<[string, number]>} */
+  const out = [];
+  for (const f of listFiles(conf)) {
+    const n = core.readTerms(f).size;
+    if (n > 0) out.push([f, n]);
+  }
+  return out;
 }

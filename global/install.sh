@@ -51,7 +51,7 @@
 # The always-on clipboard watcher is WITHDRAWN (ADR-0011): no LaunchAgent is written any more, and a
 # managed plist left by an earlier version is removed on install. launchctl is never run: the installer
 # prints the bootout command for the owner. The term list is never written by this installer (only
-# `clipboard_guard.py add-term` does).
+# `mhw add-term` does).
 # The paste wrapper (ADR-0011, automatic cleaning at the paste boundary) is `mhw paste-wrapper`, Node since
 # #487 (S16 of #470), run from this package by the node that runs mhw; a managed shell snippet defines
 # claude, codex and kiro-cli functions that run the CLIs through it. The Python copy an earlier install
@@ -62,14 +62,14 @@
 set -eu
 
 MARKER_ID="managed-by: personal-multi-harness-workstation-configuration"
-# The stamp key, the deny-floor ownership record and the hook ids of settings.json (current and removed
-# hooks) are src/render/settings-merge.js's (#491).
+# The stamp key, the deny-floor ownership record and the hook ids of settings.json (the prompt hook, Node
+# since #488, the Python core an earlier install merged, and the removed hooks) are
+# src/render/settings-merge.js's (#491).
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_root=$(dirname "$script_dir")
 src="$script_dir/AGENTS.md"
 floor_src="$script_dir/deny-floor.conf"
-clip_src="$script_dir/clipboard/clipboard_guard.py"
 clip_conf_src="$script_dir/clipboard.conf"
 CLIP_LABEL="local.personal-multi-harness-workstation-configuration.clipboard-guard"
 
@@ -105,7 +105,7 @@ case $shell_rc in
   *) echo "--shell-rc needs an absolute path, got: $shell_rc" >&2; exit 2 ;;
 esac
 
-for f in "$src" "$floor_src" "$clip_src" "$clip_conf_src"; do
+for f in "$src" "$floor_src" "$clip_conf_src"; do
   [ -f "$f" ] || { echo "source not found: $f" >&2; exit 2; }
 done
 if [ -n "$overlay" ] && [ ! -d "$overlay" ]; then
@@ -138,7 +138,7 @@ restart_dest="$data_dir/restart_guard.py"        # removed (ADR-0028); retired b
 glass_dest="$data_dir/breaking_glass.py"         # removed (ADR-0028); retired below
 glasscmd_dest="$HOME/.claude/commands/breaking-glass.md"   # removed (ADR-0028); retired below
 settings="$HOME/.claude/settings.json"
-clip_dest="$data_dir/clipboard_guard.py"
+clip_dest="$data_dir/clipboard_guard.py"        # the Python hook core, removed (#488); retired below
 clip_conf_dest="$data_dir/clipboard.conf"
 wrap_dest="$data_dir/paste_wrapper.py"            # the Python wrapper, removed (#487); retired below
 snippet_dest="$data_dir/paste-filter.sh"
@@ -146,7 +146,7 @@ clip_plist="$HOME/Library/LaunchAgents/$CLIP_LABEL.plist"
 codex_rules="${CODEX_HOME:-$HOME/.codex}/rules/workstation-deny-floor.rules"
 codex_hooks="${CODEX_HOME:-$HOME/.codex}/hooks.json"
 # Kiro CLI V3's user-level hook file (Issue #455): the engine loads every *.json in ~/.kiro/hooks (read
-# from the bundle, kas 2.35.2; not measured). The name is clipboard_guard.KIRO_HOOK_FILE.
+# from the bundle, kas 2.35.2; not measured). The name is KIRO_HOOK_FILE in src/commands/paste-wrapper.js.
 kiro_hook="$HOME/.kiro/hooks/personal-multi-harness-workstation-configuration-paste-filter.json"
 
 sha256_of() {
@@ -313,6 +313,10 @@ esac
 # Set when merge_settings refused (exit 2 or 3): the deny floor is then not in settings.json, so allow_step
 # writes no allow list beside it (#491; jq's absence held this until then, and a refused merge did not).
 merge_refused=
+# Set when the Codex deny-floor file or the Kiro floor was refused: that harness's allow files are then not
+# written either, so no harness gets an allow list without its floor (#491, PR #539 lens F3).
+codex_floor_refused=
+kiro_floor_refused=
 if [ -z "$allow_why" ]; then
   "$allow_node" "$allow_js" --phase=parse "--source=$script_dir/allow-list.conf" "--overlay=$overlay" \
     "--floor-codex=$floor_codex" || exit 2
@@ -323,9 +327,12 @@ clip_conf="$work/clipboard.conf"
 cat "$clip_conf_src" > "$clip_conf"
 if [ -n "$overlay" ] && [ -f "$overlay/clipboard.conf" ]; then cat "$overlay/clipboard.conf" >> "$clip_conf"; fi
 
-# The paste filter's hook command (ADR-0011): the installed core, on the stock python3, isolated (-I)
-# and writing no bytecode (-B). Paths go inside double quotes, so a path holding a character that is
-# special there, or in JSON, is refused rather than mis-quoted.
+# The paste filter's hook command (ADR-0011; Node since #488): `mhw hook prompt`, run by the same node the
+# paste wrapper uses (wrap_node below), by absolute path, with NODE_OPTIONS, NODE_ICU_DATA, NODE_PATH and
+# NODE_COMPILE_CACHE cleared by /usr/bin/env, so no variable of the session can make node load other code,
+# other Unicode data or a compiled cache from elsewhere first (the Node counterpart of python3 -I). A node in a directory the owner can write (Homebrew,
+# nvm) is not root-owned, as /usr/bin/python3 was: mhw status names that. Paths go inside double quotes,
+# so a path holding a character that is special there, or in JSON, is refused rather than mis-quoted.
 paste_ok=1
 # The paste wrapper's command (#487): the node that runs mhw (MHW_NODE, set by bin/mhw.js; an absolute
 # path), else the first node on PATH, and this package's bin/mhw.js, both by absolute path. The rule of
@@ -357,20 +364,44 @@ case $wrap_node in
   *) wrap_node=$wrap_path_node ;;
 esac
 wrap_mhw="$repo_root/bin/mhw.js"
-case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`]*) paste_ok=0 ;; esac
+case "$clip_dest$clip_conf_dest$wrap_dest$wrap_node$wrap_mhw" in *[\"\\\$\`\']*) paste_ok=0 ;; esac   # a single quote too: the hook command is a /bin/sh -c '...' (#488)
+# The start fallback (#488, PR #536 lens B3): when node or the entry is missing or does not start, the
+# hook still says the prompt was NOT checked, in the harness's own protocol. Claude Code and Codex: the
+# notice as {"systemMessage": ...} and exit 0 (the hook itself always exits 0 there). Kiro: exit 2 with the
+# notice on stderr, the only answer Kiro shows; the hook's own exit 2 (a block) passes through. A healthy
+# hook's output and exit code are unchanged. The whole command is an explicit /bin/sh -c '...', so it means
+# the same whether the agent harness runs it through a shell (Claude Code, documented) or splits it into
+# words itself (Codex's hook runner and Kiro were read from their bundles, not measured).
+PASTE_START_NOTICE='Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.'
+paste_wrap() { # $1 harness, $2 the hook command (no single quote in it)
+  case $1 in
+    kiro) printf '%s' "/bin/sh -c '$2 || { [ \$? -eq 2 ] && exit 2; printf \"%s\\n\" \"$PASTE_START_NOTICE\" >&2; exit 2; }'" ;;
+    *) printf '%s' "/bin/sh -c '$2 || { printf \"%s\\n\" \"{\\\"systemMessage\\\": \\\"$PASTE_START_NOTICE\\\"}\"; exit 0; }'" ;;
+  esac
+}
+# A rendered command as a JSON string's body: backslashes first, then double quotes.
+json_body() { sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 paste_cmd() {
-  printf '/usr/bin/python3 -I -B "%s" prompt-hook --harness %s --config "%s"' "$clip_dest" "$1" "$clip_conf_dest"
+  paste_wrap "$1" "$(printf '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness %s --config "%s"' "$wrap_node" "$wrap_mhw" "$1" "$clip_conf_dest")"
 }
 if [ "$paste_ok" = 0 ]; then
-  echo "REFUSE  paste filter: the data directory, node or package path holds a quote, backslash, dollar sign or backtick" >&2
-elif [ ! -e /usr/bin/python3 ]; then
+  echo "REFUSE  paste filter: the data directory, node or package path holds a quote (single or double), backslash, dollar sign or backtick" >&2
+else
+  case $wrap_node in
+    /*) ;;
+    *)
+      paste_ok=0
+      if [ "$wrap_refused" = 1 ]; then
+        echo "REFUSE  paste filter: MHW_NODE (${MHW_NODE:-}) is not an executable file; the hook is not registered" >&2
+      else
+        echo "REFUSE  paste filter: node (26 or later) not found; the hook is not registered" >&2
+      fi
+      ;;
+  esac
+fi
+if [ "$paste_ok" = 1 ] && [ ! -x /usr/bin/env ]; then
   paste_ok=0
-  echo "REFUSE  paste filter: /usr/bin/python3 not found; the hook is not registered" >&2
-elif [ "$(uname -s)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then
-  # /usr/bin/python3 is a Command Line Tools shim: without them it opens an install prompt instead of
-  # running, which would be an OS dialog on every prompt submission.
-  paste_ok=0
-  echo "REFUSE  paste filter: the Command Line Tools (which provide /usr/bin/python3) are not installed" >&2
+  echo "REFUSE  paste filter: /usr/bin/env not found; the hook is not registered" >&2
 fi
 
 status=0
@@ -666,14 +697,6 @@ render() {
         awk '{ printf "prefix_rule(pattern=["; for (i = 1; i <= NF; i++) printf "%s\"%s\"", (i > 1 ? ", " : ""), $i; print "], decision=\"forbidden\")" }' "$floor_codex"
       } > "$2"
       ;;
-    clipscript)
-      {
-        sed -n 1p "$clip_src"
-        printf '# %s; source: global/clipboard/clipboard_guard.py; %s; do not edit, re-run the installer\n' \
-          "$MARKER_ID" "$stamp"
-        sed 1d "$clip_src"
-      } > "$2"
-      ;;
     clipconf)
       {
         printf '# %s; source: global/clipboard.conf + overlay; %s; do not edit, re-run the installer\n' \
@@ -708,7 +731,7 @@ render() {
         printf '{\n  "description": "%s; source: global/install.sh (paste filter, ADR-0011); %s; do not edit, re-run the installer",\n' \
           "$MARKER_ID" "$stamp"
         printf '  "hooks": {\n    "UserPromptSubmit": [\n      {\n        "hooks": [\n'
-        printf '          {"type": "command", "command": "%s", "timeout": 30}\n' "$(paste_cmd codex | sed 's/"/\\"/g')"
+        printf '          {"type": "command", "command": "%s", "timeout": 30}\n' "$(paste_cmd codex | json_body)"
         printf '        ]\n      }\n    ]\n  }\n}\n'
       } > "$2"
       ;;
@@ -723,7 +746,7 @@ render() {
           "$MARKER_ID" "$stamp"
         printf '      "name": "paste filter (personal-multi-harness-workstation-configuration)",\n'
         printf '      "trigger": "UserPromptSubmit",\n'
-        printf '      "action": {"type": "command", "command": "%s"},\n' "$(paste_cmd kiro | sed 's/"/\\"/g')"
+        printf '      "action": {"type": "command", "command": "%s"},\n' "$(paste_cmd kiro | json_body)"
         printf '      "timeout": 30\n    }\n  ]\n}\n'
       } > "$2"
       ;;
@@ -771,6 +794,7 @@ stamp_of() {
 }
 
 process() {
+  process_refused=   # set when the destination is refused (unmanaged): the caller can tell
   kind=$1
   dest=$2
   keep_backup=${3:-}   # "backup": install keeps the file it replaces as <dest>.pmhwc-backup, 0600
@@ -779,6 +803,7 @@ process() {
 
   if [ -e "$dest" ] && ! is_managed "$dest"; then
     echo "REFUSE  $dest: exists and is NOT managed by this project; move it aside or merge it by hand" >&2
+    process_refused=1
     raise 3
     return 0
   fi
@@ -831,8 +856,9 @@ process() {
 # entry of ours exists, it is the wanted one, and every floor rule is already in permissions.deny, nothing
 # is written. The deny floor is a UNION: a missing floor rule is appended, every existing deny entry is kept
 # in its place, none is removed. A file jq or strict JSON cannot read is refused and left untouched (exit 3);
-# so is one whose hooks or permissions section has another shape. Any refusal sets merge_refused, and
-# allow_step then writes no allow list. A backup or write that fails stops the installer (exit 1).
+# so is one whose hooks or permissions section has another shape. Any refusal, and any exit but 0 outside
+# --check (where 1 is drift), sets merge_refused, and allow_step then writes no allow list. A backup or
+# write that fails stops the installer (exit 1).
 merge_settings() {
   if [ -n "$settings_why" ]; then
     echo "REFUSE  $settings: $settings_why to merge the hook entry and the deny floor; left untouched" >&2
@@ -845,9 +871,12 @@ merge_settings() {
   merge_rc=0
   "$allow_node" "$settings_js" --phase=merge "--mode=$mode" "--settings=$settings" "--floor-claude=$floor_claude" \
     "--stamp=$stamp" ${merge_paste:+"$merge_paste"} || merge_rc=$?
-  case $merge_rc in
-    0|1) raise "$merge_rc" ;;
-    4) exit 1 ;;
+  # Exit 1 is drift only under --check: elsewhere it is node's own exit code for an uncaught exception,
+  # so it is a refusal like 2 and 3 (PR #539 lens F1), and allow_step writes nothing beside it.
+  case $mode:$merge_rc in
+    *:0) ;;
+    check:1) raise 1 ;;
+    *:4) exit 1 ;;
     *) merge_refused=1; raise "$merge_rc" ;;
   esac
 }
@@ -960,6 +989,7 @@ models_step() {
 kiro_step() {
   # The node lookup of models_step (PR #515 lens A1): an absolute MHW_NODE that is not an executable file
   # is refused, never replaced by another node.
+  kiro_floor_refused=1   # until the renderer says otherwise
   kiro_node=${MHW_NODE:-}
   case $kiro_node in
     /*) if [ ! -f "$kiro_node" ] || [ ! -x "$kiro_node" ]; then
@@ -975,8 +1005,12 @@ kiro_step() {
        raise 2
        return 0 ;;
   esac
+  kiro_rc=0
   "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "--mode=$mode" "--stamp=$stamp" "--floor=$floor" \
-    "--floor-from=$floor_from" || raise $?
+    "--floor-from=$floor_from" || kiro_rc=$?
+  raise "$kiro_rc"
+  # The Kiro allow agent is not written beside a floor that was not (#491): any exit but 0, outside --check.
+  case $mode:$kiro_rc in *:0|check:*) kiro_floor_refused= ;; *) ;; esac
 }
 # The retired-server removal (mcp_retire.py, ADR-0035 decision 2, #145) was removed in v7 (Issue #206):
 # an aws-api table still in the Codex configuration is removed by hand.
@@ -1047,10 +1081,15 @@ allow_step() {
     raise 2
     return 0
   fi
+  allow_refused=
+  if [ "$mode" != check ]; then
+    [ -n "$codex_floor_refused" ] && allow_refused=codex
+    [ -n "$kiro_floor_refused" ] && allow_refused=${allow_refused:+$allow_refused,}kiro
+  fi
   "$allow_node" "$allow_js" --phase=step "--mode=$mode" "--stamp=$stamp" "--source=$script_dir/allow-list.conf" \
     "--overlay=$overlay" "--retired=$script_dir/allow-retired.conf" "--floor-codex=$floor_codex" \
     "--floor-claude=$floor_claude" "--managed-root=${managed_root:-/}" "--settings=$settings" "--home=$HOME" \
-    "--codex-home=${CODEX_HOME:-}" "--repo-root=$repo_root" "--cmd=${MHW_CMD:-./mhw}" || raise $?
+    "--codex-home=${CODEX_HOME:-}" "--repo-root=$repo_root" "--cmd=${MHW_CMD:-./mhw}" "--refused-floor=$allow_refused" || raise $?
 }
 # Uninstall: our files go, and only the allow rules and permission mode this installer added leave
 # settings.json (a rule the owner wrote himself stays).
@@ -1121,8 +1160,22 @@ elif [ -d "$restart_state" ]; then
   esac
 fi
 process codexrules "$codex_rules"
-process clipscript "$clip_dest"
+codex_floor_refused=$process_refused   # the Codex allow list is not written beside a refused floor (#491)
+retire "$clip_dest" "the Python prompt hook core, replaced by mhw hook prompt (Node, #488)"
 process clipconf "$clip_conf_dest"
+# The term lists' salt is a 0600 file since #488 (owner ruling, 2026-11-21: no Keychain). A list that
+# holds hashes while no salt file exists was hashed with the macOS Keychain salt of an earlier install.
+# It is NOT migrated: reading the Keychain without risking an unlock dialog is what Node cannot do (on a
+# locked keychain the read blocked until killed, CI run 44858243105). The owner re-adds the terms; the
+# hook and mhw scan say term matching is off until then, and add-term moves the old list aside.
+salt_lo="$data_dir/local-overlay"
+if [ "$mode" != uninstall ] && [ ! -f "$salt_lo/clipboard-salt" ]; then
+  for salt_list in clipboard-terms clipboard-terms-health clipboard-terms-colleague; do
+    if [ -f "$salt_lo/$salt_list" ] && grep -Eq '^[0-9a-f]{64}$' "$salt_lo/$salt_list"; then
+      echo "SKIP    $salt_lo/$salt_list: its hashes were made with the macOS Keychain salt, which mhw no longer reads (#488); nothing was migrated. Re-add each term with mhw add-term; until then term matching is off and every prompt says so"
+    fi
+  done
+fi
 if [ "$paste_ok" = 1 ]; then
   if [ "$hooks_mode" = user ]; then
     process codexhooks "$codex_hooks"

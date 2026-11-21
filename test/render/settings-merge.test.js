@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { parse, stringify, equal, JqNumber } from '../../src/lib/jq-json.js';
 import { merged, unmerged, jqIndexed, pasteGroup, dedupe, stampOf, stampValue, main, OWN_KEY, STAMP_KEY, HOOK_ID, PASTE_ID }
   from '../../src/render/settings-merge.js';
-import { deniedCount, report } from '../../src/render/floor-report.js';
+import { denied, report } from '../../src/render/floor-report.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const POSIX = process.platform !== 'win32';
@@ -184,7 +184,7 @@ test('the floor report: user-only, admin complete, admin incomplete and none', (
   assert.match(run(), /carried by: the admin layer;/);
   // A deep file reads as none of the floor, never as all of it.
   fs.writeFileSync(settings, '{"permissions": {"deny": ["Bash(a:*)"]}, "x": ' + '['.repeat(300) + ']'.repeat(300) + '}');
-  assert.equal(deniedCount(settings, ['Bash(a:*)']), 0);
+  assert.deepEqual(denied(settings, ['Bash(a:*)']), { n: 0, note: ' (not read: not strict JSON)' });
 });
 
 // ---- install.sh, end to end (POSIX) ----------------------------------------------------------------

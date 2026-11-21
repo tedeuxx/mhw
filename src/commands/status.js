@@ -20,7 +20,7 @@ import { NAME, KEY_FILE, MARKER, inHome, codexHome, managedRoot, isFile, readTex
   splitlines, readJson, get, pathlibJoin } from '../lib/readers/common.js';
 import { keyVerdict, readKey, mismatchLine } from '../lib/readers/version-key.js';
 import { adminDropin, adminState, adminInstalled, adminPresent, adminStamp, adminReport, issues, leadingWord } from '../lib/readers/admin.js';
-import { readHooks, hooksText } from '../lib/readers/hooks.js';
+import { readHooks, hooksText, hookNodeText, termListsState } from '../lib/readers/hooks.js';
 import { readSettings, enabledPlugins, methodState, permissionsText, unreadSources, METHOD_PLUGIN } from '../lib/readers/settings.js';
 import { workspace } from '../lib/readers/workspace.js';
 import { harnessVersions, runtime } from '../lib/readers/host.js';
@@ -43,7 +43,8 @@ export { MARKER };
  *   runtime: string, admin_state?: string, admin_code?: number, settings?: Setting[], permissions?: string,
  *   method?: { installed: boolean | null, duplicate: string[], unread?: string }, npm?: string[], chrome_debugging?: string | null,
  *   unread?: import('../lib/readers/settings.js').Unread[],
- *   owner_actions?: string }} Facts
+ *   owner_actions?: string, hook_node?: string, terms?: [boolean, string] }} Facts
+ *   hook_node, terms: #488 (the prompt hook's node, and the term lists the salt file does not cover)
  */
 
 /** An npm install of this repository (Issue #68, ADR-0034): package.json present, no .git. @param {string} root */
@@ -492,6 +493,9 @@ export function renderStatus(f, verbose = false) {
     ' · workspace: ' + wsText + ' · plugin: ' + pluginText);
   for (const finding of ws.brief || []) lines.push('  root brief       ' + finding);
   lines.push('  protections      brief: ' + f.brief + ' · deny floor: ' + f.floor + ' · hooks registered: ' + f.hooks);
+  // #488: the node the prompt hook runs, and any hashed term list the salt file does not cover.
+  lines.push('  hook node        ' + (f.hook_node ?? 'not read'));
+  lines.push('  term lists       ' + (f.terms ? f.terms[1] : 'not read'));
   lines.push('  method           ' + methodText(f.method));
   lines.push('  models           ' + modelsText(f));
   lines.push(...mcpActiveLines(f));
@@ -549,7 +553,9 @@ export function renderSummary(f, env) {
   lines.push('  cannot override  ' + cannotOverride(f));
   // The installers' --check drift rides on the protections item (Issue #38).
   const drift = driftText(f.user_lines || [], f.admin_lines || [], f.admin_code || 0, env);
-  lines.push('  protections      brief ' + f.brief + ' · hooks ' + f.hooks + (drift ? ' · ' + drift : '') +
+  // #488: a term list the salt no longer covers rides on the protections item too, so it is never silent.
+  const terms = f.terms && !f.terms[0] ? ' · TERMS ' + f.terms[1] : '';
+  lines.push('  protections      brief ' + f.brief + ' · hooks ' + f.hooks + (drift ? ' · ' + drift : '') + terms +
     ' · evidence: installed; loaded and enforced need a session canary');
   lines.push('  permission mode  ' + settingsText(settings, MODE_KEYS, shown, f.unread) + '; session flags: ' +
     shown.map((h) => h + ' ' + NATIVE_VIEW[h]).join(', '));
@@ -661,7 +667,7 @@ export function gather(project, env, cwd) {
     source, user_stamps: userStamps, admin, admin_stamp: stamp,
     user_issues: issues(userLines), admin_issues: issues(adminLines),
     user_lines: userLines, admin_lines: adminLines, harnesses: harnessVersions(env),
-    workspace: ws, plugins, brief, floor, hooks, key, runtime: runtime(env), admin_state: managedState,
+    workspace: ws, plugins, brief, floor, hooks, hook_node: hookNodeText(env), terms: termListsState(env), key, runtime: runtime(env), admin_state: managedState,
     admin_code: adminCode, settings: readSettings(env, ws.root), unread: unreadSources(env, ws.root),
     permissions: permissionsText(env, ws.root),
     method: methodState(env, userLines, plugins), npm: npmNotes(source, userStamps),

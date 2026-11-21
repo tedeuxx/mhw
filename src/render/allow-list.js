@@ -850,9 +850,19 @@ export function step(ctx, parsed) {
   }
   const t = targets(ctx);
   const wide = tier.codex === 'wide';
-  place(ctx, codexRules(parsed, tier.codex, stamp), t.rules, wide ? codexRules(parsed, 'narrow', stamp) : null);
-  place(ctx, codexProfile(tier.codex, stamp), t.profile, wide ? codexProfile('narrow', stamp) : null);
-  place(ctx, kiroAgent(parsed, stamp), t.kiro, null);
+  // A harness whose deny floor install.sh could not write gets no allow list either (#491, PR #539 lens F3).
+  const refused = (ctx.opts['--refused-floor'] || '').split(',').filter(Boolean);
+  const without = (/** @type {string} */ name) => {
+    ctx.err('REFUSE  the ' + name + ' allow list: its deny floor was not written (see above), and an allow list never lands without it; nothing written for ' + name + '\n');
+    raise(ctx, 2);
+  };
+  if (refused.includes('codex')) without('Codex');
+  else {
+    place(ctx, codexRules(parsed, tier.codex, stamp), t.rules, wide ? codexRules(parsed, 'narrow', stamp) : null);
+    place(ctx, codexProfile(tier.codex, stamp), t.profile, wide ? codexProfile('narrow', stamp) : null);
+  }
+  if (refused.includes('kiro')) without('Kiro');
+  else place(ctx, kiroAgent(parsed, stamp), t.kiro, null);
   ctx.out('ALLOW   Claude Code: ' + tier.claude + ' tier · Codex: ' + tier.codex + ' tier, profile ' + ALLOW_PROFILE
     + ' · Kiro: narrow tier, agent workstation (Kiro CLI 2.x reads no deny floor; the floor is in permissions.yaml, IDE and CLI V3, ADR-0036)\n');
 }
@@ -920,7 +930,7 @@ function withoutOurs(p, key, ours) {
 // ---- The command line --------------------------------------------------------------------------------
 
 const OPTIONS = new Set(['--phase', '--mode', '--stamp', '--source', '--overlay', '--retired', '--floor-codex',
-  '--floor-claude', '--managed-root', '--settings', '--home', '--codex-home', '--repo-root', '--cmd']);
+  '--floor-claude', '--managed-root', '--settings', '--home', '--codex-home', '--repo-root', '--cmd', '--refused-floor']);
 const REQUIRED = {
   parse: ['--source', '--floor-codex'],
   step: ['--mode', '--stamp', '--source', '--retired', '--floor-codex', '--settings', '--home', '--repo-root'],
@@ -929,7 +939,7 @@ const REQUIRED = {
 const USAGE = 'usage: ' + PROG + ' --phase=parse --source=FILE [--overlay=DIR] --floor-codex=FILE\n'
   + '       ' + PROG + ' --phase=step --mode=install|check|dry-run --stamp=STAMP --source=FILE [--overlay=DIR]\n'
   + '           --retired=FILE --floor-codex=FILE [--floor-claude=FILE] [--managed-root=DIR] --settings=FILE\n'
-  + '           --home=DIR [--codex-home=DIR] --repo-root=DIR [--cmd=TEXT]\n'
+  + '           --home=DIR [--codex-home=DIR] --repo-root=DIR [--cmd=TEXT] [--refused-floor=codex,kiro]\n'
   + '       ' + PROG + ' --phase=uninstall --settings=FILE --home=DIR [--codex-home=DIR]\n';
 
 /** @param {string[]} argv */
@@ -945,6 +955,7 @@ function usable(argv, opts) {
   const phase = opts['--phase'] ?? '';
   if (phase !== 'parse' && phase !== 'step' && phase !== 'uninstall') return '';
   if (REQUIRED[phase].some((k) => !opts[k])) return '';
+  if (!(opts['--refused-floor'] || '').split(',').filter(Boolean).every((h) => h === 'codex' || h === 'kiro')) return '';
   return phase === 'step' && !['install', 'check', 'dry-run'].includes(opts['--mode']) ? '' : phase;
 }
 

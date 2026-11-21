@@ -11,7 +11,8 @@
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { isManaged } from '../lib/marker.js';
-import { parse, JqDepthError, JqParseError, codepointCompare } from '../lib/jq-json.js';
+import { codepointCompare } from '../lib/jq-json.js';
+import { readSettings } from './settings-merge.js';
 import { shellCount, codexAdminWords, records } from './allow-list.js';
 import { main as kiroMain } from './kiro-permissions.js';
 
@@ -30,37 +31,23 @@ function isFile(file) {
 }
 
 /**
- * A settings file's value as jq read it for the count: strict JSON; else, what jq 1.7.1 reads beyond JSON
- * (NaN, a byte-order mark, several documents: the last one) read leniently; nesting past 256 levels and
- * anything jq refuses read as nothing. @param {string} file @returns {JqValue | undefined}
+ * report_floor's count of the floor rules a Claude Code settings file denies:
+ * `[(.permissions.deny? // [])[] | select(. as $r | $f | index($r))] | unique | length`. The file is read
+ * with the merge's own reader: what is not strict JSON (NaN, a byte-order mark, several documents, nesting
+ * past 256) counts 0 and is named, so the report never credits a file the merge refused (PR #539 lens F2).
+ * @param {string} file @param {string[]} want the floor rules as jq's unique left them (sorted by code point)
+ * @returns {{ n: number, note: string }}
  */
-function readForCount(file) {
-  let text;
-  try {
-    text = fs.readFileSync(file, 'utf8');
-  } catch {
-    return undefined;
-  }
-  for (const jqOnly of [false, true]) {
-    try {
-      return parse(text, { jqOnly });
-    } catch (e) {
-      if (e instanceof JqDepthError) return undefined;
-      if (!(e instanceof JqParseError)) throw e;
-    }
-  }
-  return undefined;
+export function denied(file, want) {
+  if (!isFile(file)) return { n: 0, note: '' };
+  const r = readSettings(file);
+  if (r.kind === 'jq-only') return { n: 0, note: ' (not read: not strict JSON)' };
+  if (r.kind !== 'object') return { n: 0, note: '' };
+  return { n: deniedIn(r.value, want), note: '' };
 }
 
-/**
- * report_floor's count of the floor rules a Claude Code settings file denies:
- * `[(.permissions.deny? // [])[] | select(. as $r | $f | index($r))] | unique | length`, 0 where jq failed.
- * @param {string} file @param {string[]} want the floor rules as jq's unique left them (sorted by code point)
- */
-export function deniedCount(file, want) {
-  if (!isFile(file)) return 0;
-  const v = readForCount(file);
-  if (!(v instanceof Map)) return 0;
+/** The count over a read object. @param {Map<string, JqValue>} v @param {string[]} want */
+function deniedIn(v, want) {
   const perms = v.get('permissions') ?? null;
   let deny = perms instanceof Map ? (perms.get('deny') ?? null) : null;
   if (deny === null || deny === false) deny = [];
@@ -99,15 +86,17 @@ export function report(o, io) {
   const nWant = want.length;
   const codexWords = records(textOf(o['--floor-codex']));
   const nCodex = codexWords.filter((l) => l.length > 0).length;
-  const nUser = deniedCount(o['--settings'], want);
-  const nAdmin = deniedCount(mClaude, want);
+  const user = denied(o['--settings'], want);
+  const admin = denied(mClaude, want);
+  const nUser = user.n;
+  const nAdmin = admin.n;
   let nCodexAdmin = 0;
   if (isFile(mCodex) && isManaged(textOf(mCodex))) {
     nCodexAdmin = codexAdminWords(textOf(mCodex)).filter((l) => codexWords.includes(l)).length;
   }
   const rules = o['--codex-rules'];
   const codexUser = isFile(rules) && isManaged(textOf(rules)) ? 'present' : 'absent';
-  io.out('FLOOR   Claude Code: user layer ' + nUser + '/' + nWant + ' rules; admin layer ' + nAdmin + '/' + nWant + ' rules\n');
+  io.out('FLOOR   Claude Code: user layer ' + nUser + '/' + nWant + ' rules' + user.note + '; admin layer ' + nAdmin + '/' + nWant + ' rules' + admin.note + '\n');
   io.out('FLOOR   Codex: user rules file ' + codexUser + '; admin requirements ' + nCodexAdmin + '/' + nCodex + ' prefix rules\n');
   const kiroArgs = ['--mode=report', '--stamp=' + o['--stamp'], '--floor=' + o['--floor']];
   if (o['--floor-from']) kiroArgs.push('--floor-from=' + o['--floor-from']);

@@ -69,6 +69,18 @@ export const SCENARIOS = [
     SessionStart: [{ hooks: [{ type: 'command', command: RESTART, timeout: 10 }] }],
     PreToolUse: [{ hooks: [{ type: 'command', command: RESTART + ' pre' }, { type: 'command', command: '/foreign/pre.sh' }] }] } }) + '\n')],
   runs: [check, install, uninstall] },
+  // The prompt hook is Node since #488: an entry of the Python core (PASTE above) is always removed, every
+  // group filtered and any group left empty dropped; a stale Node entry is replaced like any entry of ours.
+  { name: 'stale-node-paste', setup: [settings(JSON.stringify({ hooks: { UserPromptSubmit: [
+    { hooks: [{ type: 'command', command: '"/old/node" "/old/bin/mhw.js" hook prompt --harness claude' }, { type: 'command', command: '/foreign/x' }] }] } }) + '\n')],
+  runs: [check, install, uninstall] },
+  { name: 'old-paste-strip-quirks', setup: [settings(JSON.stringify({ hooks: { UserPromptSubmit: [
+    { hooks: [{ type: 'command', command: PASTE }] }, { matcher: 'empty', hooks: [] }, { hooks: { k: { command: '/foreign/y' } } }] } }) + '\n')],
+  runs: [install, uninstall] },
+  { name: 'old-paste-group-without-hooks', setup: [settings(JSON.stringify({ hooks: { UserPromptSubmit: [
+    { hooks: [{ type: 'command', command: PASTE }] }, { matcher: 'no hooks key' }] } }) + '\n')], runs: [install, uninstall] },
+  { name: 'old-paste-after-a-bad-group', setup: [settings(JSON.stringify({ hooks: { UserPromptSubmit: [
+    { hooks: [{ type: 'command', command: '/foreign/z' }] }, 'not a group'] } }) + '\n')], runs: [install] },
   { name: 'paste-refused', setup: [settings(JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: PASTE }] }] } }) + '\n')],
     runs: [{ ...install, paste: false }, { ...check, paste: false }, { ...check, label: 'check with the paste filter' }] },
   { name: 'paste-refused-fresh', runs: [{ ...install, paste: false }, uninstall] },

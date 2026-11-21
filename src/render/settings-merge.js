@@ -41,7 +41,10 @@ const PROG = 'settings-merge.js';
 export const STAMP_KEY = NAME;
 /** The deny-floor rules this installer appended (Issue #67). */
 export const OWN_KEY = NAME + '-owned-deny';
-export const PASTE_ID = NAME + '/clipboard_guard.py';
+/** The prompt hook's command carries this (`mhw hook prompt`, Node since #488). */
+export const PASTE_ID = '/bin/mhw.js" hook prompt --harness ';
+/** The Python core an earlier install merged (before #488): always removed. */
+export const OLD_PASTE_ID = NAME + '/clipboard_guard.py';
 /** Removed hooks (ADR-0028; ADR-0013 2026-10-05): kept so an entry an earlier version merged is deleted. */
 export const RESTART_ID = NAME + '/restart_guard.py';
 export const HOOK_ID = NAME + '/hitl-escalation-guard.sh';
@@ -136,6 +139,29 @@ function oursCount(groups, id) {
 // ---- The merge program (merge_settings) -----------------------------------------------------------------
 
 /**
+ * The Python prompt hook an earlier install merged (#488), always removed before the Node one is placed:
+ * `if any(.hooks.UserPromptSubmit[]?.hooks[]?; ours($opid)) then .hooks.UserPromptSubmit = [
+ * .hooks.UserPromptSubmit[] | (.hooks |= map(select(ours($opid) | not))) | select(.hooks | length > 0) ]
+ * else . end`. Unlike place, it filters every group, and drops any group left with no hook.
+ * @param {JqObject} doc
+ * @returns {JqObject}
+ */
+function withoutOldPaste(doc) {
+  const hooks = index(doc, 'hooks');
+  const ups = index(hooks, 'UserPromptSubmit');
+  // jq's any stops at the first match, so a group after it is never indexed.
+  const found = iterateOpt(ups).some((g) => iterateOpt(index(g, 'hooks')).some((h) => ours(h, OLD_PASTE_ID)));
+  if (!found) return doc;
+  /** @type {JqValue[]} */
+  const groups = [];
+  for (const g of iterate(ups)) {
+    const kept = iterate(index(g, 'hooks')).filter((h) => !ours(h, OLD_PASTE_ID));
+    if (kept.length) groups.push(withKey(/** @type {JqObject} */ (g), 'hooks', kept));
+  }
+  return withKey(doc, 'hooks', withKey(/** @type {JqObject} */ (hooks), 'UserPromptSubmit', groups));
+}
+
+/**
  * One hook entry of ours per event: keep the file when it holds exactly the wanted one; otherwise drop
  * every entry of ours (and a group left empty by that) and append the wanted one, unless it is null.
  * merge_settings' `place`. @param {JqObject} doc @param {string} ev @param {string} id @param {JqValue} want
@@ -192,6 +218,7 @@ export function merged(doc, floor, paste, stamp) {
     throw new JqError('permissions has an unexpected shape');
   }
   let out = place(doc, 'PreToolUse', HOOK_ID, null);
+  out = withoutOldPaste(out);
   out = place(out, 'UserPromptSubmit', PASTE_ID, paste);
   out = place(out, 'SessionStart', RESTART_ID, null);
   out = place(out, 'PreToolUse', RESTART_ID, null);
@@ -235,6 +262,7 @@ export function unmerged(doc, floor) {
   else if ((doc.get(STAMP_KEY) ?? null) !== null) mine = floor;
   let out = drop(doc, 'PreToolUse', HOOK_ID);
   out = drop(out, 'UserPromptSubmit', PASTE_ID);
+  out = drop(out, 'UserPromptSubmit', OLD_PASTE_ID);
   out = drop(out, 'SessionStart', RESTART_ID);
   out = drop(out, 'PreToolUse', RESTART_ID);
   if (equal(out.get('hooks') ?? null, new Map())) {
@@ -521,8 +549,15 @@ export function main(argv, io = {}) {
     ctx.err('REFUSE  the deny floor ' + ctx.opts['--floor-claude'] + ' cannot be read; ' + ctx.opts['--settings'] + ' left untouched\n');
     return 2;
   }
-  if (phase === 'merge') mergeStep(ctx);
-  else uninstallStep(ctx);
+  try {
+    if (phase === 'merge') mergeStep(ctx);
+    else uninstallStep(ctx);
+  } catch (e) {
+    // Anything unforeseen is a refusal, never node's exit 1 (which install.sh would read as --check's
+    // drift): settings.json is left as it was and no allow list is written beside it (PR #539 lens F1).
+    ctx.err('REFUSE  ' + ctx.opts['--settings'] + ': the settings step failed (' + (e instanceof Error ? e.message : String(e)) + '); left untouched\n');
+    return 3;
+  }
   return ctx.status;
 }
 

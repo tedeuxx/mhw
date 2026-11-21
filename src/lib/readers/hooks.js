@@ -2,6 +2,8 @@
 // moved from global/workstation.py). A hook counts only when its entry is registered AND the script it
 // runs is present; a removed hook's entry is named whenever it is still registered, script or not.
 // node: modules only.
+import fs from 'node:fs';
+import path from 'node:path';
 import { NAME, MARKER, darwin, managedRoot, pathOf, pathlibJoin, inHome, codexHome, exists, isFile, readJson,
   readText, get, truthy, isDict } from './common.js';
 import { adminDropin, codexRequirements } from './admin.js';
@@ -13,7 +15,49 @@ import { pyStr } from '../py.js';
 // status can name an entry an earlier install left registered.
 export const GUARD = 'hitl-escalation-guard.sh';
 export const LEFTOVER = 'removed picker guard still registered (Claude Code)';
-export const PASTE = 'clipboard_guard.py';
+// The prompt hook (ADR-0033) is `mhw hook prompt` in Node since #488 (S17). Its command, as both installers
+// render it: /usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "<node>"
+// "<entry>" [hook prompt] --harness H --config "<conf>". It counts only when its entry is registered AND the
+// node and the entry it runs are files. The Python core an earlier install registered is named while it is
+// still registered.
+export const PASTE = '--harness ';
+export const OLD_PASTE = 'clipboard_guard.py';
+/** @param {string} harness */
+export const oldPasteLeftover = (harness) => 'removed Python paste filter still registered (' + harness + ')';
+const PASTE_NODE = /^(?:\/bin\/sh -c ')?\/usr\/bin\/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "([^"]+)" "([^"]+)" (?:hook prompt )?--harness /;
+
+/** [node, entry] of our prompt hook command, or null. @param {string} cmd */
+export function pasteParts(cmd) {
+  const m = PASTE_NODE.exec(cmd);
+  return m && /[\\/](?:bin[\\/]mhw|hook-entry)\.js$/.test(m[2]) ? [m[1], m[2]] : null; // either separator: the readers also run on Windows
+}
+
+/**
+ * The FAIL item for a registered prompt hook whose node or entry is gone (an npm uninstall, an nvm switch, a
+ * moved checkout), or null: the hook cannot start, so the filter must not just vanish from the list (#488,
+ * PR #536 lens B3). The rendered command's start fallback says NOT checked on each prompt; this says it here.
+ * @param {string[]} cmds
+ * @param {string} harness
+ * @returns {string | null}
+ */
+export function pasteFail(cmds, harness) {
+  if (pasteOk(cmds)) return null;
+  for (const c of cmds) {
+    const p = pasteParts(c);
+    if (!p) continue;
+    const gone = p.filter((x) => !isFile(x));
+    if (gone.length) return 'paste filter (' + harness + ') FAIL: ' + gone.join(' and ') + ' not found, the prompt hook cannot start';
+  }
+  return null;
+}
+
+/** True when one of cmds is our prompt hook whose node and entry are both files. @param {string[]} cmds */
+export function pasteOk(cmds) {
+  return cmds.some((c) => {
+    const p = pasteParts(c);
+    return p !== null && isFile(p[0]) && isFile(p[1]);
+  });
+}
 // The restart guard was removed (ADR-0028); a v2 admin layer still registers it (Issue #52).
 export const RESTART = 'restart_guard.py';
 export const KIRO_HOOK = NAME + '-paste-filter.json';
@@ -74,9 +118,11 @@ export function kiroHookState(env, data) {
     && str(get(first, 'description')).includes(MARKER)
     && ['UserPromptSubmit', 'promptSubmit'].includes(/** @type {string} */ (get(first, 'trigger')))
     && isDict(action) && get(action, 'type') === 'command'
-    && str(get(action, 'command')).includes(PASTE)
-    && str(get(action, 'command')).includes('--harness kiro')
-    && isFile(pathlibJoin(data, [PASTE]));
+    && pasteOk([str(get(action, 'command'))])
+    && str(get(action, 'command')).includes('--harness kiro');
+  void data;
+  const fail = isDict(action) ? pasteFail([str(get(action, 'command'))], 'Kiro CLI V3') : null;
+  if (!good && fail) return [fail, state];
   return [good ? 'paste filter (Kiro CLI V3)' : 'paste filter (Kiro CLI V3, modified)', state];
 }
 
@@ -88,8 +134,7 @@ export function kiroHookState(env, data) {
 export function readHooks(env) {
   const data = dataDir(env);
   const adminBin = pathOf(managedRoot(env) + (darwin() ? '/Library/Application Support/' + NAME + '/bin' : '/etc/' + NAME + '/bin'));
-  const paste = isFile(pathlibJoin(data, [PASTE]));
-  const adminPaste = isFile(pathlibJoin(adminBin, [PASTE]));
+  void adminBin;
   /** @type {Record<string, string[] | string>} */
   const result = {};
 
@@ -100,11 +145,17 @@ export function readHooks(env) {
   unread ||= state === 'not read';
   if (commands(doc, 'PreToolUse').some((c) => c.includes(GUARD))) found.push(LEFTOVER);
   if (restartRegistered(doc)) found.push(restartLeftover('Claude Code'));
-  if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(PASTE)) && paste) found.push('paste filter (Claude Code)');
+  if (pasteOk(commands(doc, 'UserPromptSubmit'))) found.push('paste filter (Claude Code)');
+  const failC = pasteFail(commands(doc, 'UserPromptSubmit'), 'Claude Code');
+  if (failC) found.push(failC);
+  if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(OLD_PASTE))) found.push(oldPasteLeftover('Claude Code'));
   [doc, state] = readJson(pathlibJoin(codexHome(env), ['hooks.json']));
   unread ||= state === 'not read';
   if (restartRegistered(doc)) found.push(restartLeftover('Codex'));
-  if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(PASTE)) && paste) found.push('paste filter (Codex)');
+  if (pasteOk(commands(doc, 'UserPromptSubmit'))) found.push('paste filter (Codex)');
+  const failX = pasteFail(commands(doc, 'UserPromptSubmit'), 'Codex');
+  if (failX) found.push(failX);
+  if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(OLD_PASTE))) found.push(oldPasteLeftover('Codex'));
   const [kiro, kstate] = kiroHookState(env, data);
   unread ||= kstate === 'not read';
   if (kiro) found.push(kiro);
@@ -116,7 +167,10 @@ export function readHooks(env) {
   unread ||= state === 'not read';
   if (commands(doc, 'PreToolUse').some((c) => c.includes(GUARD))) found.push(LEFTOVER);
   if (restartRegistered(doc)) found.push(restartLeftover('Claude Code'));
-  if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(PASTE)) && adminPaste) found.push('paste filter (Claude Code)');
+  if (pasteOk(commands(doc, 'UserPromptSubmit'))) found.push('paste filter (Claude Code)');
+  const failAC = pasteFail(commands(doc, 'UserPromptSubmit'), 'Claude Code');
+  if (failAC) found.push(failAC);
+  if (commands(doc, 'UserPromptSubmit').some((c) => c.includes(OLD_PASTE))) found.push(oldPasteLeftover('Claude Code'));
   const req = codexRequirements(env);
   let text = '';
   if (exists(req)) {
@@ -124,7 +178,19 @@ export function readHooks(env) {
     if (t === null) unread = true;
     else text = t;
   }
-  if (text.includes(MARKER) && text.includes('[[hooks.UserPromptSubmit') && text.includes(PASTE) && adminPaste) found.push('paste filter (Codex)');
+  /** @type {string[]} */
+  const codexCmds = [];
+  for (const m of text.matchAll(/^command = ("(?:[^"\\]|\\.)*")$/gm)) {
+    try {
+      codexCmds.push(JSON.parse(m[1]));
+    } catch {
+      // not a TOML basic string JSON can read: not ours
+    }
+  }
+  if (text.includes(MARKER) && text.includes('[[hooks.UserPromptSubmit') && pasteOk(codexCmds)) found.push('paste filter (Codex)');
+  const failA = text.includes(MARKER) ? pasteFail(codexCmds, 'Codex') : null;
+  if (failA) found.push(failA);
+  if (text.includes(MARKER) && text.includes(OLD_PASTE)) found.push(oldPasteLeftover('Codex'));
   if (text.includes(MARKER) && text.includes(RESTART)) found.push(restartLeftover('Codex'));
   result.admin = unread && !found.length ? 'not read' : [...found, ...(unread ? ['a file not read'] : [])];
   return result;
@@ -140,4 +206,101 @@ export function hooksText(found) {
     if (typeof value === 'string') return layer + ': ' + value;
     return layer + ': ' + (value.length ? value.join(', ') : 'none');
   }).join(' · ');
+}
+
+/**
+ * The node the prompt hook runs, read from the installed hook commands (admin first), whether a process
+ * running as the owner can replace it (or the libraries it loads), and FAIL when it is missing (D6 of #470,
+ * #488; the owner accepted an owner-writable node until S32, PR #536).
+ * @param {Env} env
+ */
+export function hookNodeText(env) {
+  /** @type {string[]} */
+  const cmds = [];
+  for (const p of [adminDropin(env), inHome(env, '.claude', 'settings.json'), pathlibJoin(codexHome(env), ['hooks.json'])]) {
+    cmds.push(...commands(readJson(p)[0], 'UserPromptSubmit'));
+  }
+  /** @type {string[]} */
+  const nodes = [];
+  for (const c of cmds) {
+    const p = pasteParts(c);
+    if (p && !nodes.includes(p[0])) nodes.push(p[0]);
+  }
+  if (!nodes.length) return 'no prompt hook registered';
+  const uid = typeof process.getuid === 'function' ? process.getuid() : -1;
+  return nodes.map((n) => {
+    if (!isFile(n)) return 'FAIL ' + n + ' not found: the prompt hook cannot run';
+    let writable = false;
+    try {
+      let q = fs.realpathSync(n);
+      for (;;) {
+        const st = fs.statSync(q);
+        if (st.uid === uid) writable = true;
+        try {
+          fs.accessSync(q, fs.constants.W_OK);
+          writable = true;
+        } catch {
+          // not writable by this process
+        }
+        const up = path.dirname(q);
+        if (up === q) break;
+        q = up;
+      }
+    } catch {
+      writable = false;
+    }
+    return uid !== 0 && writable ? n + ' (owner-writable: a process running as you can replace it, or the libraries it loads)'
+      : n + ' (not writable by you)';
+  }).join('; ');
+}
+
+const TERM_LIST_KEYS = ['terms_file', 'health_terms_file', 'colleague_terms_file'];
+const TERM_LIST_FILES = ['clipboard-terms', 'clipboard-terms-health', 'clipboard-terms-colleague'];
+const HASH_LINE = /^[0-9a-f]{64}$/;
+
+/** Hash lines in a file, 0 when it is absent or unreadable. @param {string} p */
+function hashCount(p) {
+  const text = readText(p);
+  return text === null ? 0 : text.split(/\r?\n/).filter((l) => HASH_LINE.test(l.trim())).length;
+}
+
+/**
+ * [ok, text] for the paste filter's hashed term lists and their salt file (#488). Since #488 the salt is a
+ * 0600 file; a list with hashes and no readable salt file, or a list add-term moved aside as
+ * <list>.old-salt, means term matching does not cover those terms. The paths come from the installed
+ * clipboard.conf (last value wins), else the defaults; the salt itself is only matched against its shape.
+ * @param {Env} env
+ * @returns {[boolean, string]}
+ */
+export function termListsState(env) {
+  const data = dataDir(env);
+  const local = pathlibJoin(data, ['local-overlay']);
+  /** @type {Record<string, string>} */
+  const paths = { salt_file: pathlibJoin(local, ['clipboard-salt']) };
+  TERM_LIST_KEYS.forEach((k, i) => { paths[k] = pathlibJoin(local, [TERM_LIST_FILES[i]]); });
+  for (const line of (readText(pathlibJoin(data, ['clipboard.conf'])) || '').split(/\r?\n/)) {
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim();
+    const value = line.slice(eq + 1).trim();
+    if (Object.hasOwn(paths, key) && value) paths[key] = value;
+  }
+  const salt = readText(paths.salt_file);
+  const saltOk = salt !== null && /^[0-9a-f]{64}$/.test(salt.trim());
+  /** @type {string[]} */
+  const problems = [];
+  let total = 0;
+  for (const key of TERM_LIST_KEYS) {
+    const n = hashCount(paths[key]);
+    total += n;
+    if (n && !saltOk) {
+      problems.push(paths[key] + ' holds ' + n + ' hash(es) and the salt file ' + paths.salt_file
+        + ' is missing or unreadable: term matching off: re-add with mhw add-term');
+    }
+    const old = paths[key] + '.old-salt';
+    const nOld = hashCount(old);
+    if (nOld) problems.push(old + ' holds ' + nOld + ' hash(es) made with a salt mhw no longer has: those terms are not matched: re-add with mhw add-term, then delete ' + old);
+  }
+  if (problems.length) return [false, problems.join('; ')];
+  return [true, total ? total + ' hash(es), salt file present' : 'no term list'];
 }

@@ -39,11 +39,15 @@ const BASE_MARKER = 'jq is required to merge the hook entry and the deny floor';
 // install.sh's functions, cut out of the given install.sh, then the phase, as install.sh ran it (set -eu).
 // The variables both forms read are set here: the base's jq programs read the ids and keys, the head's Node
 // steps read the node, its scripts and the reason (empty) a node was refused.
-const FUNCTIONS = 'raise|private_copy|is_managed|stamp_of|paste_cmd|merge_settings|uninstall_user|report_floor|kiro_step';
+const FUNCTIONS = 'raise|private_copy|is_managed|stamp_of|paste_wrap|json_body|paste_cmd|merge_settings|uninstall_user|report_floor|kiro_step';
 const DRIVER = [
   'set -eu',
   'MARKER_ID="managed-by: ' + NAME + '"',
-  'PASTE_ID="' + NAME + '/clipboard_guard.py"; STAMP_KEY="' + NAME + '"; OWN_KEY="' + NAME + '-owned-deny"',
+  "PASTE_ID='/bin/mhw.js\" hook prompt --harness '; OLD_PASTE_ID=\"" + NAME + '/clipboard_guard.py"',
+  'STAMP_KEY="' + NAME + '"; OWN_KEY="' + NAME + '-owned-deny"',
+  // The prompt hook's command (#488) names the node and the package: fixed paths, so both trees render the same.
+  "wrap_node=/opt/s20/bin/node; wrap_mhw=/opt/s20/mhw/bin/mhw.js",
+  "PASTE_START_NOTICE='Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked.'",
   'RESTART_ID="' + NAME + '/restart_guard.py"; HOOK_ID="' + NAME + '/hitl-escalation-guard.sh"',
   'eval "$(awk \'/^(' + FUNCTIONS + ')\\(\\) *\\{/ { print; if ($0 !~ /; *\\}$/) p = 1; next }',
   '  p { print; if ($0 ~ /^}/) p = 0 }\' "$A_INSTALL_SH")"',

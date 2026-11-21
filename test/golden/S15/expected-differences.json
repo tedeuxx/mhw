@@ -12,9 +12,9 @@
       "test": "a term list or salt file that is not ASCII reads as unreadable, with its NOTE"
     },
     {
-      "what": "The Keychain salt is read by a python3 child running clipboard_guard.py's own SaltStore.",
-      "why": "The original read it in process. Node has no equivalent of the Security.framework lock probe (ctypes) that keeps the read from raising an unlock dialog, so the one step stays Python until the prompt hook moves to Node. Same answer, same probe, same 2-second bound; the salt reaches Node on a pipe, never in an argument. The child is the first python3 on PATH, run by its absolute path with -I (isolated: no current directory, PYTHONPATH or user site on sys.path) and from clipboard_guard.py's own directory, so no module of the scanned repository runs (the original imported clipboard_guard.py from global/, also never from the current directory). Without python3 on PATH a NOTE names the missing interpreter and no term list is checked (fails visibly, never silently). This ends when the prompt hook moves to Node and carries the lock probe; until then the read depends on clipboard_guard.py staying in place.",
-      "test": "the Keychain salt is read through clipboard_guard.py, on a pipe, never in an argument"
+      "what": "The salt is read from its file only; the Keychain store is gone (#488, superseding this slice's python3 child).",
+      "why": "The original read a macOS Keychain salt in process. S15 first kept that read in a python3 child running clipboard_guard.py. S17 (#488) removed the Keychain store on the owner's ruling of 2026-11-21 (https://github.com/tedeuxx/mhw/issues/488#issuecomment-7062064253): the salt is a 0600 file in a 0700 directory, read in process, and no process is started for it. A missing or unreadable salt file prints a NOTE and no term list is checked (fails visibly, never silently). The settings salt_store=keychain, keychain_service and keychain_path are ignored.",
+      "test": "the salt is read from its file: no process is started for it, and a missing salt gives the NOTE"
     }
   ],
   "residuals": [
