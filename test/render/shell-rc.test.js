@@ -28,7 +28,7 @@ function home() {
 
 /**
  * Run the step. @param {ReturnType<typeof home>} h @param {string} mode
- * @param {{ shellRc?: string, shell?: string, uname?: string, zdotdir?: string }} [o]
+ * @param {{ shellRc?: string, shell?: string, uname?: string, zdotdir?: string, snippet?: string }} [o]
  */
 function run(h, mode, o = {}) {
   let out = '';
@@ -37,7 +37,7 @@ function run(h, mode, o = {}) {
   const env = { HOME: h.H };
   if (o.zdotdir !== undefined) env.ZDOTDIR = o.zdotdir;
   const code = main(['--mode=' + mode, '--shell-rc=' + (o.shellRc ?? ''), '--shell=' + (o.shell ?? '/bin/zsh'),
-    '--snippet=' + h.snippet, '--data-dir=' + h.data, '--uname=' + (o.uname ?? 'Darwin')],
+    '--snippet=' + (o.snippet ?? h.snippet), '--data-dir=' + h.data, '--uname=' + (o.uname ?? 'Darwin')],
   { out: (s) => { out += s; }, err: (s) => { err += s; }, env });
   return { code, out, err };
 }
@@ -277,4 +277,57 @@ test('usage: every option once, a known mode, an absolute --shell-rc, HOME set',
   assert.equal(code([...ok.slice(0, 3), '--snippet=', ...ok.slice(4)]), 2);
   assert.equal(code([...ok, '--other=1']), 2);
   assert.equal(code(ok, {}), 2);
+});
+
+test('a snippet path that would run as code is refused, exit 3, nothing written (PR #543 lens)', { skip: !POSIX && 'POSIX only' }, () => {
+  for (const c of ['"', "'", '$', '`', '\\', '\n', '\r']) {
+    const h = home();
+    fs.writeFileSync(h.H + '/.zshrc', 'export MINE=1\n');
+    const snippet = h.H + '/da' + c + 'ta/paste-filter.sh';
+    for (const mode of ['install', 'check', 'dry-run']) {
+      for (const shellRc of ['', 'none']) {
+        const r = run(h, mode, { snippet, shellRc });
+        assert.equal(r.code, 3, JSON.stringify(c) + ' ' + mode);
+        assert.equal(r.out, 'REFUSE  the shell start-up block: the snippet path ' + JSON.stringify(snippet)
+          + ' holds a quote, $, a backtick, a backslash or a line break, which a start-up file would run as code; no start-up file written\n');
+      }
+    }
+    assert.equal(read(h.H + '/.zshrc'), 'export MINE=1\n');
+    assert.deepEqual(fs.readdirSync(h.H), ['.zshrc']);
+  }
+  // The measured payload: a $(...) in HOME never reaches a start-up file, so no shell start runs it.
+  const h = home();
+  const snippet = h.H + '/x$(touch ' + h.H + '/PWNED)/paste-filter.sh';
+  assert.equal(run(h, 'install', { snippet }).code, 3);
+  assert.deepEqual(fs.readdirSync(h.H), []);
+  // Uninstall still removes a block, whatever the path.
+  fs.writeFileSync(h.H + '/.zshrc', 'a\n' + block(h.snippet));
+  assert.equal(run(h, 'uninstall', { snippet }).code, 0);
+  assert.equal(read(h.H + '/.zshrc'), 'a\n');
+});
+
+test('ZDOTDIR is resolved before the inside-HOME check: .. and a link out of HOME are never written (PR #543 lens)', { skip: !POSIX && 'POSIX only' }, () => {
+  const h = home();
+  const outside = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 's21-zout-')));
+  cleanups.push(() => fs.rmSync(outside, { recursive: true, force: true }));
+  const dotdot = h.H + '/../' + path.basename(outside);
+  fs.symlinkSync(outside, h.H + '/zlink');
+  for (const zdotdir of [dotdot, h.H + '/zlink', h.H + '/zlink/sub', h.H + '/missing/../../' + path.basename(outside)]) {
+    const r = run(h, 'install', { zdotdir });
+    assert.equal(r.code, 0, zdotdir);
+    assert.match(r.out, /^NOTE {4}automatic paste cleaning: no shell start-up file is written \(ZDOTDIR=.* is outside HOME=/, zdotdir);
+    fs.writeFileSync(outside + '/.zshrc', 'o\n' + block(h.snippet));
+    assert.equal(run(h, 'uninstall', { zdotdir }).out, '', zdotdir);
+    assert.equal(read(outside + '/.zshrc'), 'o\n' + block(h.snippet), zdotdir);
+    fs.rmSync(outside + '/.zshrc');
+    assert.deepEqual(fs.readdirSync(outside), [], zdotdir);
+  }
+  // A link that stays inside HOME, and a .. that comes back into it, are still written.
+  fs.mkdirSync(h.H + '/zreal');
+  fs.symlinkSync('zreal', h.H + '/zin');
+  for (const zdotdir of [h.H + '/zin', h.H + '/a/../zreal']) {
+    const r = run(h, 'install', { zdotdir });
+    assert.match(r.out, /^CHANGED /, zdotdir);
+    run(h, 'uninstall', { zdotdir });
+  }
 });

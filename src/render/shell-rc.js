@@ -14,7 +14,10 @@
 // ${ZDOTDIR:-$HOME}/.zshrc when that is inside HOME, bash gets ~/.bashrc and, when uname is Darwin, the bash
 // login file (the first of ~/.bash_profile and ~/.bash_login that exists, a new ~/.bash_profile when none of
 // ~/.bash_profile, ~/.bash_login and ~/.profile does; nothing when only ~/.profile does). ~/.profile is never
-// written. Another shell gets none. Uninstall reads the chosen file and every default one.
+// written. Another shell gets none. Uninstall reads the chosen file and every default one. Two checks
+// the shell functions lacked (PR #543 lens; narrower only): a snippet path holding a quote, $, a backtick,
+// a backslash or a line break is refused (it would run as code from the block), and ZDOTDIR is resolved
+// (links and '..') before the inside-HOME check.
 //
 // The block is replaced whole when it differs and never duplicated; an earlier one-line form and the
 // unmarked two-line form are replaced by it. Damaged markers (repeated, unpaired or out of order) are
@@ -184,9 +187,40 @@ const home = (ctx) => ctx.env.HOME || '';
 
 /** The default zsh start-up file, or '' when ZDOTDIR leads outside HOME. @param {Ctx} ctx */
 function zshrc(ctx) {
-  const z = (ctx.env.ZDOTDIR || home(ctx)) + '/.zshrc';
-  return z.startsWith(home(ctx) + '/') ? z : '';
+  const h = home(ctx);
+  const z = (ctx.env.ZDOTDIR || h) + '/.zshrc';
+  if (!z.startsWith(h + '/')) return '';
+  // The text check alone let ZDOTDIR=$HOME/../x through (#492, PR #543 lens): the directory is also
+  // resolved, links and '..' included, and must still be HOME or under it. Only narrows.
+  const rh = realOf(h);
+  const rz = realOf(path.dirname(z));
+  return rz === rh || rz.startsWith(rh.endsWith('/') ? rh : rh + '/') ? z : '';
 }
+
+/**
+ * The path as the kernel resolves it: the longest prefix that exists through realpath(3) (links and '..'
+ * followed in order), the rest appended. @param {string} p
+ */
+export function realOf(p) {
+  let head = p;
+  /** @type {string[]} */
+  const rest = [];
+  for (;;) {
+    try {
+      return path.join(fs.realpathSync.native(head), ...rest.reverse());
+    } catch {
+      const parent = path.dirname(head);
+      if (parent === head) return path.resolve(p);
+      rest.push(path.basename(head));
+      head = parent;
+    }
+  }
+}
+
+/** The characters a double-quoted sourced path would run as code, or that would break the block's line. */
+const UNSAFE = ['"', "'", '$', '`', '\\', '\n', '\r'];
+/** True when the snippet path holds one of them. @param {string} snippet */
+export const unsafeSnippet = (snippet) => UNSAFE.some((c) => snippet.includes(c));
 
 /**
  * The start-up file this run writes ('' with why), and on macOS bash the login file ('' with loginWhy).
@@ -354,6 +388,15 @@ function one(ctx, rc) {
 
 /** install, check and dry-run: the block in the chosen start-up file, and on macOS bash in the login file. @param {Ctx} ctx */
 function lineStep(ctx) {
+  // The block sources the snippet inside double quotes, so a quote, $, a backtick or a backslash in its
+  // path (from HOME or XDG_DATA_HOME) would run as code on every shell start (#492, PR #543 lens).
+  // Refused, nothing written and no line offered to paste. Uninstall is not refused: it only removes.
+  if (unsafeSnippet(ctx.snippet)) {
+    ctx.out('REFUSE  the shell start-up block: the snippet path ' + JSON.stringify(ctx.snippet)
+      + ' holds a quote, $, a backtick, a backslash or a line break, which a start-up file would run as code; no start-up file written\n');
+    raise(ctx, 3);
+    return;
+  }
   const p = pick(ctx);
   const line = handLine(ctx.snippet);
   if (!p.rc) {

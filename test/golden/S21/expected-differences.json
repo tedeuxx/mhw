@@ -28,5 +28,17 @@
     "stream": "stdout",
     "pattern": null,
     "why": "Not exercised by a scenario. The --shell-rc paragraph of install.sh's usage text (printed by -h) named the removed function rc_bash_login for the macOS login-file rule; it now names src/render/shell-rc.js. The help still prints the same lines 2 to 36."
+  },
+  {
+    "name": "a snippet path that would run as code is refused",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a golden scenario (the base writes such a block); pinned in shell-rc.test.js (one case per character) and by the declared test in shell-rc-golden.test.js (a HOME holding $(...), a backtick and a double quote, run through install.sh). The block sources the snippet inside double quotes, and rc_body put the path there unescaped, so a $(...), a backtick, a double quote or a backslash in it (from HOME or XDG_DATA_HOME) became code that ran on every shell start. The PR #543 lens measured this with a payload that created a PWNED file. In install, check and dry-run, the Node step now refuses any snippet path that holds a double quote, a single quote, $, a backtick, a backslash, a line feed or a carriage return. It prints 'REFUSE  the shell start-up block: the snippet path <path as JSON> holds a quote, $, a backtick, a backslash or a line break, which a start-up file would run as code; no start-up file written' and exits 3. It writes no file and offers no line to paste. This includes --shell-rc=none, where the base printed that line. Uninstall is not refused, because it only removes a block. Narrower only."
+  },
+  {
+    "name": "ZDOTDIR is resolved before the inside-HOME check",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a golden scenario; pinned in shell-rc.test.js. rc_inside_home compared text only. So ZDOTDIR=$HOME/../x, or a ZDOTDIR inside HOME that is a symbolic link pointing out of it, passed the check, and the block was written outside HOME (PR #543 lens). The text check stays. The directory is now also resolved as the kernel resolves it: realpath(3) of the longest existing prefix, following links and '..' in order, with the rest appended. HOME is resolved the same way, and the directory must be HOME or under it. Otherwise install prints the existing line 'no shell start-up file is written (ZDOTDIR=<value> is outside HOME=<home>)', and uninstall does not touch that file. A link that stays inside HOME, and a '..' that comes back into HOME, are still written. Only the directory is resolved: a ~/.zshrc that is itself a link to a dotfiles checkout elsewhere is still written through, as before. Narrower only."
   }
 ]

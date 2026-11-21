@@ -71,11 +71,11 @@ function freshDir(label) {
  * Run one scenario through the install.sh of the given tree (the head's runs the Node step).
  * @param {import('./shell-rc-cases.js').Scenario} sc
  * @param {string} tree_ the tree whose install.sh (and src/render) runs
- * @param {{ settingsWhy?: string, node?: string }} [o] a refused node's reason; another node program
+ * @param {{ settingsWhy?: string, node?: string, homeName?: string }} [o] a refused node's reason; another node program; the HOME directory's name
  */
 function runScenario(sc, tree_, o = {}) {
   const T = freshDir(sc.name);
-  const d = { T, H: path.join(T, 'home'), O: path.join(T, 'out') };
+  const d = { T, H: path.join(T, o.homeName || 'home'), O: path.join(T, 'out') };
   for (const dir of [d.H, d.O, path.join(T, 'tmp'), path.join(T, 'bin')]) fs.mkdirSync(dir);
   fs.writeFileSync(path.join(T, 'bin', 'uname'), '#!/bin/sh\nprintf \'%s\\n\' "$A_UNAME"\n', { mode: 0o755 });
   /** @param {import('./shell-rc-cases.js').Change} c */
@@ -165,6 +165,19 @@ test('declared: install.sh reads the step\'s exit codes; a write that fails stop
   assert.equal(ro[0].code, 1);
   assert.equal(ro[0].stderr, 'REFUSE  <T>/home/ro/rc.pmhwc-backup: the backup could not be created exclusively; no backup written\n');
   assert.equal(ro[1].code, 1, 'the block was not written');
+});
+
+test('declared: a HOME that would put code into the start-up block is refused through install.sh, exit 3 (PR #543 lens)', { skip: !POSIX && 'POSIX only' }, () => {
+  for (const homeName of ['h$(touch PWNED)', 'h`touch PWNED`', 'h"q']) {
+    const runs = runScenario({ name: 'unsafe-home', setup: [{ write: 'H/.zshrc', text: 'export MINE=1\n' }],
+      runs: [{ mode: 'install' }, { mode: 'check' }, { mode: 'dry-run' }] }, ROOT, { homeName });
+    for (const r of runs) {
+      assert.equal(r.code, 3, homeName + ' ' + r.run);
+      assert.match(r.stdout, /^REFUSE {2}the shell start-up block: the snippet path ".*" holds a quote, \$, a backtick, a backslash or a line break, which a start-up file would run as code; no start-up file written\n$/, homeName);
+      assert.deepEqual(r.tree.home.map((e) => e.path), ['.zshrc'], homeName);
+      assert.equal(r.tree.home[0].data, 'export MINE=1\n', homeName);
+    }
+  }
 });
 
 test('live: the Node step matches the base revision\'s shell functions on the same inputs', (t) => {
