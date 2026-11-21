@@ -956,7 +956,7 @@ models_step() {
 # node that runs mhw (MHW_NODE, set by bin/mhw.js), else node on PATH, by absolute path. The owner's own
 # rules are kept and a 0600 backup is left beside it; uninstall removes only the deny rules it appended, as
 # it appended them, never one of the owner's, unless his rule is byte-identical to the one it appended,
-# which it cannot tell apart. $1: another mode.
+# which it cannot tell apart. Its report mode runs inside src/render/floor-report.js (#491).
 kiro_step() {
   # The node lookup of models_step (PR #515 lens A1): an absolute MHW_NODE that is not an executable file
   # is refused, never replaced by another node.
@@ -975,8 +975,8 @@ kiro_step() {
        raise 2
        return 0 ;;
   esac
-  "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "--mode=${1:-$mode}" "--stamp=$stamp" "--floor=$floor" \
-    "--floor-from=$floor_from" ${2:+"$2"} || raise $?
+  "$kiro_node" "$script_dir/../src/render/kiro-permissions.js" "--mode=$mode" "--stamp=$stamp" "--floor=$floor" \
+    "--floor-from=$floor_from" || raise $?
 }
 # The retired-server removal (mcp_retire.py, ADR-0035 decision 2, #145) was removed in v7 (Issue #206):
 # an aws-api table still in the Codex configuration is removed by hand.
