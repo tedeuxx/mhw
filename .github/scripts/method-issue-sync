@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+// The agent's one shell in .github/workflows/method-issue-sync.yml (#500, QA B4 on PR #541): an executable
+// regular file the workflow runs by path, never `node <script>`. Because it is a file and not a directory,
+// the kernel refuses `.github/scripts/method-issue-sync/../<anything>` with ENOTDIR before any program
+// starts, as Python refused `<script>.py/../<anything>`; `node <script>.js/../<anything>` would run
+// <anything>, since node resolves its entry path as text. The commands are in ./method-issue-sync.js.
+// It is ESM by the root package.json's "type": "module" (the sparse checkout carries it).
+import { main } from './method-issue-sync.js';
+
+process.exitCode = main(process.argv.slice(2));
