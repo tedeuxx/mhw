@@ -1,0 +1,62 @@
+[
+  {
+    "name": "the dry run's note on re-serialisation",
+    "stream": "stdout",
+    "pattern": "^  note: the file is re-serialized ",
+    "why": "merge_settings said 'note: the file is re-serialized by jq (4-space indent), so whitespace and escaping may change;'. jq no longer runs, so the line now reads 'note: the file is re-serialized (4-space indent, as jq wrote it), so whitespace and escaping may change;'. The line is removed from both sides before comparing; the line after it, the diff and the file tree are still compared. install.test.sh's check for the word 're-serialized' still holds."
+  },
+  {
+    "name": "the dry-run hunk alignment",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "A dry run prints the hunks of a unified diff of the settings, keys sorted. merge_settings ran the diff on PATH; the Node step prints src/lib/unified-diff.js's hunks (S19). Two diff programs may line up a repeated line ('          {', '          },') differently and both be right: in scenario stale-picker-guard, Apple diff (the goldens were recorded with it) and the Node step do. Both arms therefore compare each run of hunk lines as its sorted removed lines and its sorted added lines, with the hunk headers and context dropped; every changed line is still compared, and so is the file tree. Display only: a dry run writes nothing."
+  },
+  {
+    "name": "a settings.json jq reads and strict JSON does not is refused",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Exercised by the declared scenarios jq-only-* (their Node side is held to its own golden, <name>.node.json, beside the shell's transcript). jq 1.7.1 reads what strict JSON does not: NaN and Infinity, leading zeros, one byte-order mark, several documents, input cut at a NUL (src/lib/jq-json.js, classify; S19). merge_settings rewrote such a file (NaN became null; two documents became two merged documents in one file), reported DRIFT on --check and rewrote it again on uninstall. The Node step prints 'REFUSE  <settings>: not readable by the settings merge (jq reads it, strict JSON does not: NaN, a byte-order mark, several documents, nesting past 256 levels or the like); left untouched', exits 3 in every mode and leaves the file byte for byte; install.sh then writes no allow list either (see 'an allow list never lands beside a refused merge'). The floor report no longer counts such a file at all: see 'the FLOOR report reads settings.json as the merge does'."
+  },
+  {
+    "name": "nesting past 256 levels is refused on every build",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Exercised by the declared scenarios jq-deep-300-levels and jq-deep-10000-levels (shellActs false). Apple's jq 1.7.1 (the recording machine) refuses nesting past 256: merge_settings printed 'REFUSE  <settings>: not a readable JSON object; left untouched' and the report counted 0. The Ubuntu build on the CI runners reads it, so there merge_settings merged and rewrote the file (#502 records the same of the S10 models step). The Node step refuses it on every build with the jq-only line above, exit 3, the file untouched, and counts 0 in the report; 10,000 levels is that refusal, not a stack overflow. The live arm on Linux compares the Node side with its own golden, never with that runner's shell."
+  },
+  {
+    "name": "uninstall no longer empties a settings.json whose hooks or permissions is not an object",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Exercised by the declared scenarios uninstall-hooks-a-string, uninstall-hooks-an-array and uninstall-permissions-a-string. uninstall_user's jq program printed nothing for a file whose hooks was a string, an array, a number or a boolean, or whose permissions was not an object (an if over an empty generator), and the shell wrote that nothing: settings.json became an empty file, with 'UNMERGED' and exit 0, every key of the owner's lost but for the backup. The Node step prints 'REFUSE  <settings>: not a readable JSON object of the expected shape; left untouched', exits 3 and leaves the file byte for byte, so the deny floor it holds stays. Narrower only."
+  },
+  {
+    "name": "an allow list never lands beside a refused merge",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a golden scenario (the allow step is not in the driver); pinned in settings-merge.test.js. allow_step refused only when jq was missing, so a merge refused on the file's shape (a hooks.UserPromptSubmit that is a string, for one) left settings.json without the deny floor while the allow step merged its allow list into it: measured on the base revision, 'FLOOR   Claude Code: user layer 0/185 rules' beside ten allow rules. Now merge_settings sets merge_refused on any refusal (exit 2 or 3, a missing or refused node included), and allow_step, in install and dry-run mode, prints 'REFUSE  the allow list: the deny floor was not merged into <settings> (see above), and an allow list never lands without it; nothing written', raises 2 and writes nothing, the Codex and Kiro allow files included, as when jq was missing. --check only reads and still reports. Narrower only. A settings step that exits 1 outside --check is a refusal too: exit 1 is drift under --check only, and elsewhere it is node's own exit code for an uncaught exception, which the shell used to read as success (PR #539 lens F1, measured with a throw at the start of mergeStep: ten allow rules and none of the 185 floor rules). settings-merge.js also catches anything unforeseen itself: 'REFUSE  <settings>: the settings step failed (<error>); left untouched', exit 3."
+  },
+  {
+    "name": "jq is no longer needed; node is",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a scenario; pinned in settings-merge.test.js. merge_settings printed 'REFUSE  <settings>: jq is required to merge the hook entry and the deny floor' (exit 2), uninstall_user 'REFUSE  <settings>: jq is required to remove our entries', and report_floor 'FLOOR   not reported: jq is required' (no status). The same node lookup as the allow list now runs both steps (MHW_NODE, an absolute path, else node on PATH; an MHW_NODE that is not an executable file, or a program that does not run as node, is refused, never replaced). Without one: 'REFUSE  <settings>: <reason> to merge the hook entry and the deny floor; left untouched', 'REFUSE  <settings>: <reason> to remove our entries; left untouched' and 'FLOOR   not reported: <reason>', each raising 2 (the Kiro report it replaces raised 2 without a node too). global/prerequisites.json lists jq as optional: only install-managed.sh, the admin layer, still runs it, until #496."
+  },
+  {
+    "name": "a write that fails stops the installer with one REFUSE line",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a golden scenario (the shell side's messages are its programs' own and differ between Apple and GNU tools); pinned in settings-merge.test.js. When the backup, the directory or the file could not be written, merge_settings and uninstall_user stopped install.sh at once under set -e, exit 1, with private_copy's REFUSE line or the message of mkdir, cp or mv. The Node step prints 'REFUSE  <settings>.pmhwc-backup: the backup could not be created exclusively; no backup written' or 'REFUSE  <settings>: could not be written (<error>)' and exits 4, and install.sh then exits 1 at once, as before: nothing after it runs, and settings.json is left as it was."
+  },
+  {
+    "name": "the FLOOR report reads settings.json as the merge does",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Exercised by the declared scenarios jq-only-* (their report runs). report_floor counted a user or admin Claude Code file with jq, so a file jq reads and strict JSON does not (a byte-order mark, NaN, several documents) was credited: after the merge refused such a file, the same run printed 'user layer 185/185 rules' and 'carried by: the user layer only' (PR #539 lens F2). floor-report.js now reads both files with the merge's own reader: such a file counts 0 and the line says so, 'user layer 0/185 rules (not read: not strict JSON)' (or 'admin layer ...'), and the carrier line follows from that count. Of several documents jq printed one count per document; nesting past 256 counted 0 on Apple's jq and still does. Narrower only: the report never credits a floor from a file the merge would not read."
+  },
+  {
+    "name": "no Codex or Kiro allow list beside a refused Codex or Kiro floor",
+    "stream": "stderr",
+    "pattern": null,
+    "why": "Not exercised by a golden scenario (the allow step is not in the driver); pinned in settings-merge.test.js. Base behaviour, measured on PR #539 (lens F3): an unmanaged ~/.codex/rules/workstation-deny-floor.rules was refused (exit 3) and the Codex allow rules and profile were written anyway; an unreadable ~/.kiro/settings/permissions.yaml was refused and the Kiro allow agent was written anyway. Now install.sh records a refused Codex floor (process codexrules) and a Kiro floor step that did not end in 0, and passes --refused-floor=codex,kiro to the allow step outside --check, which prints 'REFUSE  the Codex allow list: its deny floor was not written (see above), and an allow list never lands without it; nothing written for Codex' (or Kiro), raises 2 and writes nothing for that harness. The other harnesses are written as before, each beside its own floor. Narrower only."
+  }
+]
