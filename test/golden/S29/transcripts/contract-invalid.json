@@ -1,0 +1,12 @@
+{
+  "name": "contract-invalid",
+  "args": [
+    "contract",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: FAIL  $.severity.tolerated[0]: const (medium-or-higher findings tolerated)\nBLOCK  contract: FAIL  1 finding(s); the contract is not valid\n"
+  }
+}

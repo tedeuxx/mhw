@@ -1,0 +1,13 @@
+{
+  "name": "classify-blank",
+  "args": [
+    "classify",
+    "--project={BASE}/project",
+    "--rules= , "
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  classify: no rule matched (an unclassified change blocks before approval)\n"
+  }
+}

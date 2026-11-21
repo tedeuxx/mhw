@@ -1,0 +1,14 @@
+{
+  "name": "plan-revision-abbreviated",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaa",
+    "--prod-revision=none"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: --revision must be a full 40-character commit SHA\n"
+  }
+}

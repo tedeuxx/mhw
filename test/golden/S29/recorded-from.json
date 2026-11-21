@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S29 golden transcripts were recorded from (python3 -B global/project-policy/delivery_gate.py at the base revision, macOS, which ran the base's node bin/mhw.js policy check with PATH's node). The live arm compares only on this version: the malformed-JSON and UTF-8 reasons are CPython's own messages, and its integer-digit limit can change between releases."
+}

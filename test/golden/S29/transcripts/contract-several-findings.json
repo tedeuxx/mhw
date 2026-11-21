@@ -1,0 +1,12 @@
+{
+  "name": "contract-several-findings",
+  "args": [
+    "contract",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: FAIL  $.coverage.threshold_percent: minimum (coverage below the mhw floor of 85 percent)\nBLOCK  contract: FAIL  $.madr.status: const (project MADR not ratified)\nBLOCK  contract: FAIL  2 finding(s); the contract is not valid\n"
+  }
+}

@@ -49,7 +49,7 @@ rollback_target: every critical user journey and risk scenario of the contract>
 
 A test is a rehearsal of steps 1 to 3 against a non-production copy or a planned PROD exercise. After
 each test, add one record line in exactly this form, and set the contract's `recovery.runbook.last_tested`
-to its date. `delivery_gate.py recovery-plan` reads these lines: it needs one dated `last_tested`, and
+to its date. `mhw delivery-gate recovery-plan` (Node 26, mhw #499; no Python) reads these lines: it needs one dated `last_tested`, and
 every record of that date must be within the recovery-time objective. Strike an invalid record with
 `~~...~~` rather than deleting it; a struck record is not read.
 

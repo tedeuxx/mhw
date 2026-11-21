@@ -1,0 +1,14 @@
+{
+  "name": "environment-usage-a-project",
+  "args": [
+    "environment",
+    "--name=x",
+    "--protection=y",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: unknown, empty or repeated argument --project=<BASE>/project\n"
+  }
+}

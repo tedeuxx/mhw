@@ -1,0 +1,12 @@
+{
+  "name": "contract-madr-other-case",
+  "args": [
+    "contract",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: the project MADR docs/ADR/0001-fixture-quality-bar.md is missing, unreadable or outside the project\n"
+  }
+}

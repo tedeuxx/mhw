@@ -1,0 +1,13 @@
+{
+  "name": "classify-a-word",
+  "args": [
+    "classify",
+    "--project={BASE}/project",
+    "--rules=x"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  classify: \"x\" is not a rule index of the contract (0 to 1)\n"
+  }
+}

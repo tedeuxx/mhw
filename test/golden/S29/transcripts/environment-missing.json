@@ -1,0 +1,13 @@
+{
+  "name": "environment-missing",
+  "args": [
+    "environment",
+    "--name=production-owner-approval",
+    "--protection={BASE}/env.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  environment: the protection read is for null, not production-owner-approval (a missing environment is created unprotected when a job names it)\n"
+  }
+}

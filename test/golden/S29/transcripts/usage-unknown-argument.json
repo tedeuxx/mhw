@@ -1,0 +1,12 @@
+{
+  "name": "usage-unknown-argument",
+  "args": [
+    "contract",
+    "--bogus=1"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: unknown, empty or repeated argument --bogus=1\n"
+  }
+}

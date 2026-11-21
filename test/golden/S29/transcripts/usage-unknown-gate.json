@@ -1,0 +1,11 @@
+{
+  "name": "usage-unknown-gate",
+  "args": [
+    "nothing"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: a gate: contract, container, installed-stg, classify, environment, recovery-plan or prod-validation\n"
+  }
+}

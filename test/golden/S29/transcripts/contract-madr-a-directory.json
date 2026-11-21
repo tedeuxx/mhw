@@ -1,0 +1,12 @@
+{
+  "name": "contract-madr-a-directory",
+  "args": [
+    "contract",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: the project MADR docs/adr/dir.md is missing, unreadable or outside the project\n"
+  }
+}

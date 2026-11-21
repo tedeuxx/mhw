@@ -1,0 +1,14 @@
+{
+  "name": "plan-broken-contract",
+  "args": [
+    "recovery-plan",
+    "--project={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--prod-revision=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: FAIL  $.recovery.operator: required (recovery not prepared)\nBLOCK  contract: FAIL  $.recovery.recovery_time_objective_minutes: required (recovery not prepared)\nBLOCK  contract: FAIL  $.recovery.runbook: required (recovery not prepared)\nBLOCK  contract: FAIL  3 finding(s); the contract is not valid\n"
+  }
+}

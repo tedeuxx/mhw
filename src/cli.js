@@ -10,7 +10,8 @@
 // `mhw scan` (#486), `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
 // (#494; macOS and Linux, Windows keeps install.ps1 -Check), and `mhw hook prompt`, `mhw hook
 // check-config` and `mhw add-term` (#488); new in Node:
-// `mhw docs-baseline check` and `mhw onboard` (#523), and `mhw policy check` (#498, S28; on Windows too).
+// `mhw docs-baseline check` and `mhw onboard` (#523), `mhw policy check` (#498, S28; on Windows too), and
+// `mhw delivery-gate` (#499, S29; on Windows too), the reference CI/CD's evidence and recovery gates.
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
 // PATH through src/lib/onpath.js (absolute entries only) and then run it by that absolute path: mhw scan
@@ -39,6 +40,7 @@ import { main as addTermMain } from './commands/add-term.js';
 import { main as statusMain } from './commands/status.js';
 import { main as checkMain } from './commands/check.js';
 import { main as policyMain } from './commands/project-policy.js';
+import { main as deliveryGateMain } from './commands/delivery-gate.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'tedeuxx/mhw';
@@ -190,6 +192,7 @@ const MOVED = {
   'docs-baseline': docsBaselineMain,
   onboard: onboardMain,
   policy: policyMain, // #498, S28: mhw policy check, the project-policy validator (ADR-0015 lock 3)
+  'delivery-gate': deliveryGateMain, // #499, S29: the reference CI/CD's gates (ADR-0015 locks 4 and 5)
 };
 
 /**

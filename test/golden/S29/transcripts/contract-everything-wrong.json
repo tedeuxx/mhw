@@ -1,0 +1,13 @@
+{
+  "name": "contract-everything-wrong",
+  "args": [
+    "contract",
+    "--project={BASE}/project",
+    "--repository=someone/else"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: it governs tedeuxx/mhw, this run is in someone/else\nBLOCK  contract: the project MADR docs/adr/0001-fixture-quality-bar.md has no status line reading accepted\nBLOCK  contract: the recovery runbook docs/recovery-runbook.md is missing or outside the project\n"
+  }
+}

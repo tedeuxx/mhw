@@ -1,0 +1,13 @@
+{
+  "name": "classify-stricter-low-approval",
+  "args": [
+    "classify",
+    "--project={BASE}/project",
+    "--rules=1"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "class=low\napproval=owner-exact-revision\n",
+    "stderr": ""
+  }
+}

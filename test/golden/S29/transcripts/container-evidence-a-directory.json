@@ -1,0 +1,17 @@
+{
+  "name": "container-evidence-a-directory",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/project",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--container-image=python@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  evidence: <BASE>/project is missing or unreadable (Is a directory)\n"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "contract-madr-missing",
+  "args": [
+    "contract",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: the project MADR docs/adr/0002-absent.md is missing, unreadable or outside the project\n"
+  }
+}

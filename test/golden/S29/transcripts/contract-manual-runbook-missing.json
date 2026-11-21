@@ -1,0 +1,12 @@
+{
+  "name": "contract-manual-runbook-missing",
+  "args": [
+    "contract",
+    "--project={BASE}/project"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  contract: the recovery runbook docs/recovery-runbook.md is missing or outside the project\n"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "classify-usage-two-rules",
+  "args": [
+    "classify",
+    "--project={BASE}/project",
+    "--rules=1",
+    "--rules=0"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "delivery_gate: classify needs exactly one --rules=I[,J...] (it may be empty)\n"
+  }
+}

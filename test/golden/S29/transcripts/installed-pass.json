@@ -1,0 +1,15 @@
+{
+  "name": "installed-pass",
+  "args": [
+    "installed-stg",
+    "--project={BASE}/project",
+    "--evidence={BASE}/ev.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "run": {
+    "code": 0,
+    "stdout": "OK  installed-stg: STG runs aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa and its tests pass\n",
+    "stderr": ""
+  }
+}

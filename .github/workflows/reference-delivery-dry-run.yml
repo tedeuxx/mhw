@@ -6,6 +6,9 @@
 # The prod call reads installed-STG evidence from a local stand-in on the runner, not from an STG.
 # The fixture's seven security results are constants; docs/reference-cicd.md says what that leaves
 # unmeasured. Not a required check: it runs only when the reference or the policy files change.
+# The gates are Node (`mhw delivery-gate`, #499). The fixture is a small Python project on purpose, a
+# declared fixture (test/declared-fixtures.json): its test commands below are the project's, run in its
+# python image and on the runner, never mhw's.
 name: reference delivery dry run
 
 on:
@@ -15,6 +18,10 @@ on:
       - ".github/workflows/reference-delivery-gate.yml"
       - ".github/workflows/reference-delivery-dry-run.yml"
       - "global/project-policy/**"
+      - "src/commands/delivery-gate.js"
+      - "src/commands/project-policy.js"
+      - "bin/mhw.js"
+      - "src/cli.js"
       - "docs/reference-cicd.md"
 
 permissions: {}
@@ -52,7 +59,8 @@ jobs:
       test-command: python3 -B container_tests.py
       stg-test-command: python3 -B stg_stand_in_tests.py
       # Rule 1 of the fixture's contract, "Every other change": low risk, automatic approval, so this
-      # run reads no environment. The high-risk branch is in delivery_gate_test.py, not in this run.
+      # run reads no environment. The high-risk branch is in test/project-policy/delivery-gate.test.js, not
+      # in this run.
       risk-rules: "1"
       evidence-retention-days: 7
 

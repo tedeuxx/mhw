@@ -1,0 +1,17 @@
+{
+  "name": "container-evidence-missing",
+  "args": [
+    "container",
+    "--project={BASE}/project",
+    "--evidence={BASE}/none.json",
+    "--revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--checkout-head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--container-image=python@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "--no-container-check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "BLOCK  evidence: <BASE>/none.json is missing or unreadable (No such file or directory)\n"
+  }
+}
