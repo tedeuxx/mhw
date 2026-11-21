@@ -1,0 +1,25 @@
+{
+  "comment": "differences: on the named cases' streams, the base pattern is replaced on the original's side and the head pattern on the Node script's, both with replace, before the transcripts are compared. Nothing else may differ. residuals: behaviours no golden case exercises, because the original stopped with a traceback there, named so they are not discovered later (#470, convention 3). Each residual is pinned by the test named in its pinned field.",
+  "differences": [
+    {
+      "case": ["usage"],
+      "stream": ["stderr"],
+      "base": "^usage: method_issue_sync\\.py COMMAND \\[ARGS\\]$",
+      "head": "^usage: method-issue-sync\\.js COMMAND \\[ARGS\\]$",
+      "replace": "usage: <the script> COMMAND [ARGS]",
+      "why": "The usage text names the script, and the script is .github/scripts/method-issue-sync.js now. Every other line of the usage, the exit code 2 and the stream are compared."
+    }
+  ],
+  "residuals": [
+    {
+      "what": "A gh reply that is not JSON, or not the shape asked for (a list where an object is read, a body that is not a string), exits 1 with one stderr line, `method-issue-sync: <reason>`.",
+      "why": "method_issue_sync.py stopped there with a Python traceback (json.JSONDecodeError, AttributeError, TypeError, KeyError), also exit 1. The exit code is the same; the traceback, which named the script's own lines, is one line now. Nothing was sent to GitHub after it on either side. gh never gives such a reply, and the stub gh cannot produce one, so no golden case reaches it.",
+      "pinned": "test/ci/method-issue-sync.test.js: a reply that is not JSON is exit 1 with one line, never a stack trace"
+    },
+    {
+      "what": "gh is looked up on the absolute PATH entries only, and run by absolute path; with none, the script exits 1 with `gh is not on PATH (absolute entries only)` and sends nothing.",
+      "why": "Python's subprocess looked gh up on every PATH entry, a relative one included, so the working directory could decide which gh ran, and with no gh it stopped with a FileNotFoundError traceback, exit 1. The S01 convention is that a program is found through src/lib/onpath.js (absolute entries only) and run by absolute path. On the workflow's runner PATH holds only absolute entries, so the same gh runs on both sides.",
+      "pinned": "test/ci/method-issue-sync.test.js: gh is looked up on absolute PATH entries only, and its absence is exit 1"
+    }
+  ]
+}
