@@ -29,6 +29,11 @@ os.environ.pop("PMHWC_PASTE_WRAPPER", None)
 os.environ["SHELL"] = "/bin/sh"
 
 STAMP = "release: v3.1.0; commit: " + "a" * 40
+# Fixture names the status view used to export; the status view is Node since #493 (S22 of #470), so
+# the install cases that still build these files name them here.
+KEY_FILE = ".workstation-version"
+PASTE = "clipboard_guard.py"
+GUARD = "hitl-escalation-guard.sh"
 # The installer's own FLOOR line for a user-only floor, word for word (global/install.sh).
 USER_FLOOR = ("the user layer only; a session flag can drop it (--setting-sources project, measured); install the "
               "admin copy with ./mhw install --admin")
@@ -112,7 +117,10 @@ class InstallLines(unittest.TestCase):
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq"), "needs a POSIX sh and jq")
 class EndToEnd(unittest.TestCase):
-    """The real installers in a throwaway HOME and admin root: status must read their output right."""
+    """The real installers in a throwaway HOME and admin root: install, then check. The status view of the
+    same installs is Node since #493 (S22 of #470): test/status/status-golden.test.js (cases user-only,
+    user-only-projects, drift) holds what this test used to assert about it, with a stand-in gh and stub
+    agent harness CLIs instead of the ones on this machine's PATH."""
 
     def run_ws(self, *args):
         p = subprocess.run([str(ws.ROOT / "mhw")] + list(args), env=self.env, cwd=self.base,
@@ -123,66 +131,29 @@ class EndToEnd(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="workstation-e2e-")
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name)
-        for d in ("home", "root", "tmp", "proj"):
+        for d in ("home", "root", "tmp"):
             (self.base / d).mkdir()
-        (self.base / "proj" / ws.KEY_FILE).write_text("# test\n>=999 <1000\n", encoding="utf-8")
+        empty = self.base / "prereq.json"
+        empty.write_text('{"lanes": {}, "items": []}', encoding="utf-8")
         self.env = {"PATH": os.environ["PATH"], "HOME": str(self.base / "home"),
-                    "TMPDIR": str(self.base / "tmp"), "WORKSTATION_MANAGED_ROOT": str(self.base / "root")}
+                    "TMPDIR": str(self.base / "tmp"), "WORKSTATION_MANAGED_ROOT": str(self.base / "root"),
+                    "WORKSTATION_PREREQUISITES": str(empty)}
 
-    def test_install_then_status(self):
+    def test_install_then_check(self):
         code, out = self.run_ws("install", "--yes", "--no-admin", "--overlay=none")
         self.assertEqual(code, 0, out)
         self.assertIn("\nInstallation successful!\n", out)
         self.assertNotIn("System-wide", out)
-        project = "--project=" + str(self.base / "proj")
-        code, out = self.run_ws("status", "--overlay=none", project)
-        self.assertEqual(code, 0)
-        source = re.search(r"^  source           (.*) \(this checkout\)$", out, re.M).group(1)
-        self.assertIn("  installed        user: %s · admin: not installed\n" % source, out)
-        self.assertIn("  check            matches this checkout\n", out)
-        self.assertIn("managed: absent · user: installed", out)
-        self.assertIn("brief: installed in 3/3 agent harnesses", out)
         # --overlay=none reached the installer: the brief names no overlay as its source.
         marker = (self.base / "home" / ".claude" / "CLAUDE.md").read_text(encoding="utf-8").splitlines()[0]
         self.assertIn("source: global/AGENTS.md;", marker)
-        self.assertIn("  version key      >=999 <1000: mismatch\n", out)
-        self.assertIn("Workstation version key: required >=999 <1000, installed ", out)
-        self.assertIn("hooks registered: admin: none · user: "
-                      "paste filter (Claude Code), paste filter (Codex), paste filter (Kiro CLI V3)\n", out)
-        # The allow list (Issue #83): no admin floor, so the narrow tier, sized from the source itself.
-        conf = (ws.HERE / "allow-list.conf").read_text(encoding="utf-8").splitlines()
-        narrow = sum(1 for line in conf if line.startswith("narrow "))
-        self.assertIn("  permissions      Claude Code: default (none set), %d allow rules · Codex: profile "
-                      "workstation (on-request, read-only; with --profile workstation), %d allow rules · Kiro: agent "
-                      "workstation, %d trusted commands\n" % (narrow, narrow, narrow), out)
-        # The summary is fed by the same gathered facts: same stamp, key and hooks as the status view.
-        code, out = self.run_ws("status", "--summary", "--overlay=none", project)
-        self.assertEqual(code, 0)
-        self.assertLessEqual(len(out.splitlines()), 11, out)
-        # The real gh (if any) in a throwaway HOME with no token: the owner-action count is not read, never 0.
-        short = source.split(" (")[0]
-        self.assertIn("  workstation      %s · source: %s %s · version key: >=999 <1000 mismatch · owner "
-                      "actions: not read (" % (short, ws.SOURCE_NAME.split()[-1], short), out)
-        self.assertIn("· hooks admin: none · user: paste filter (Claude Code)", out)
-        self.assertRegex(out, r"(?m)^  Workstation version key: required >=999 <1000, installed ")
-        # No admin layer: the floor is never listed as locked, and the installer's words arrive whole.
-        _, verbose = self.run_ws("status", "--verbose", "--overlay=none", project)
-        carried = re.search(r"(?m)^  \| FLOOR   carried by: (.*)$", verbose).group(1)
-        self.assertIn("  cannot override  nothing (no admin layer) · deny floor NOT locked: %s\n" % carried, out)
-        # The hooks moved out of the user layer with no admin layer: status must not claim them. Kiro's
-        # stays at user level (it has no admin layer for hooks, Issue #455), so it is the only one named.
-        subprocess.run(["sh", str(ws.INSTALL), "--overlay=none", "--hooks=managed"], env=self.env,
-                       capture_output=True, check=False)
-        code, out = self.run_ws("status", "--overlay=none", project)
-        self.assertIn("hooks registered: admin: none · user: paste filter (Kiro CLI V3)\n", out)
-        code, out = self.run_ws("install", "--yes", "--no-admin", "--overlay=none")
-        # A hand edit to one installed file is a difference status must count.
+        code, out = self.run_ws("check", "--overlay=none")
+        self.assertEqual(code, 0, out)
+        # A hand edit to one installed file is a difference check must fail on.
         brief = self.base / "home" / ".claude" / "CLAUDE.md"
         brief.write_text(brief.read_text(encoding="utf-8") + "edited\n", encoding="utf-8")
-        code, out = self.run_ws("status", "--overlay=none", project)
-        self.assertIn("  check            1 target(s) differ; run ./mhw install\n", out)
-        code, _ = self.run_ws("check", "--overlay=none")
-        self.assertNotEqual(code, 0)
+        code, out = self.run_ws("check", "--overlay=none")
+        self.assertNotEqual(code, 0, out)
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("jq") and os.access("/usr/bin/python3", os.X_OK),
@@ -212,7 +183,7 @@ class StaleAdminLayer(unittest.TestCase):
         bin_dir.mkdir(parents=True)
         (admin / "breaking-glass").mkdir()
         for name in ("restart_guard.py", "breaking_glass.py", "hitl-escalation-guard.sh", "hitl.conf",
-                     ws.PASTE, "clipboard.conf"):
+                     PASTE, "clipboard.conf"):
             (bin_dir / name).write_text("# v2.1.0\n", encoding="utf-8")
 
         def hook(cmd):
@@ -222,8 +193,8 @@ class StaleAdminLayer(unittest.TestCase):
         dropin.parent.mkdir(parents=True)
         dropin.write_text(json.dumps({"hooks": {
             "SessionStart": hook(restart),
-            "PreToolUse": hook(restart) + hook('/bin/sh "%s"' % (bin_dir / ws.GUARD)),
-            "UserPromptSubmit": hook('/usr/bin/python3 -I -B "%s" prompt-hook' % (bin_dir / ws.PASTE))}}),
+            "PreToolUse": hook(restart) + hook('/bin/sh "%s"' % (bin_dir / GUARD)),
+            "UserPromptSubmit": hook('/usr/bin/python3 -I -B "%s" prompt-hook' % (bin_dir / PASTE))}}),
             encoding="utf-8")
         req = Path(root + "/etc/codex/requirements.toml")
         req.parent.mkdir(parents=True)
@@ -242,7 +213,7 @@ class StaleAdminLayer(unittest.TestCase):
                       "breaking-glass\n", out)
         self.assertIn(prefix + "removed controls still installed: restart guard, picker guard, session intake "
                       "(the picker guard's intake exception), timed breaking-glass\n", out)
-        self.assertRegex(out, r"(?m)^%sDRIFT .*%s" % (re.escape(prefix), re.escape(ws.PASTE)))
+        self.assertRegex(out, r"(?m)^%sDRIFT .*%s" % (re.escape(prefix), re.escape(PASTE)))
         self.assertIn(prefix + ws.ADMIN_NEXT + "\n", out)
 
     def test_install_without_a_terminal_informs_then_yes_clears_it(self):
@@ -256,14 +227,8 @@ class StaleAdminLayer(unittest.TestCase):
         code, out = self.run_ws("check")
         self.assertNotEqual(code, 0, out)
         self.assert_named(out, "ADMIN   ")
-        code, out = self.run_ws("status", "--project=" + str(self.base / "proj"))
-        self.assertEqual(code, 0, out)
-        self.assertNotIn("matches this checkout", out)
-        self.assertRegex(out, r"(?m)^  check            \d+ target\(s\) differ \(admin layer: \d+\); run "
-                              r"\./mhw install$")
-        self.assert_named(out, "  admin layer      ")
-        self.assertIn("removed restart guard still registered (Claude Code)", out)
-        self.assertIn("removed restart guard still registered (Codex)", out)
+        # What status says about this admin layer is the S22 golden stale-admin-layer (#493), with a
+        # stand-in gh; this test no longer runs status on this machine's PATH.
 
         # One install: the admin layer first (root override, so no sudo), then the user layer.
         code, out = self.run_ws("install", "--yes")
@@ -277,9 +242,6 @@ class StaleAdminLayer(unittest.TestCase):
         code, out = self.run_ws("check")
         self.assertEqual(code, 0, out)
         self.assertNotIn("STALE", out)
-        code, out = self.run_ws("status", "--project=" + str(self.base / "proj"))
-        self.assertIn("  check            matches this checkout\n", out)
-        self.assertNotIn("restart guard", out)
 
 
 class Overlay(unittest.TestCase):
@@ -303,7 +265,7 @@ class Overlay(unittest.TestCase):
         real = ws.run
         ws.run = lambda *a, **k: calls.append(a) or (0, [])
         try:
-            for cmd in ("install", "check", "status", "uninstall", "update"):
+            for cmd in ("install", "check", "uninstall", "update"):  # status: test/status/status.test.js (#493)
                 with self.subTest(cmd=cmd):
                     self.assertEqual(ws.main([cmd, "--overlay=/nonexistent/overlay/dir"]), 2)
         finally:

@@ -32,7 +32,7 @@ const ENV = { HOME: '/h' };
 function tmp(label = 's22') {
   return fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-' + label + '-')));
 }
-/** @param {string} file @param {string} text */
+/** @param {string} file @param {string | Buffer} text */
 function write(file, text) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, text);
