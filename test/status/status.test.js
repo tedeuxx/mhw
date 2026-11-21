@@ -30,7 +30,8 @@ const ENV = { HOME: '/h' };
 
 /** A throwaway directory, removed after the test. */
 function tmp(label = 's22') {
-  return fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-' + label + '-')));
+  // .native: on Windows it expands an 8.3 short name (RUNNER~1), as the paths git prints are expanded.
+  return fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'mhw-' + label + '-')));
 }
 /** @param {string} file @param {string | Buffer} text */
 function write(file, text) {

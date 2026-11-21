@@ -15,7 +15,6 @@ checkout and as mhw after an npm install (Issue #68). Its deprecated alias, ./wo
     ./mhw status --summary              the session-start runtime summary an agent harness relays (#80)
     ./mhw status --mcp-connect[=SECONDS]  also start each MCP active-set server and say whether it answers
                                         (opt-in: it starts processes; exit 1 when one fails; #219)
-                                        Node since #493 (src/commands/status.js); ./mhw runs it there
     ./mhw check                         exit non-zero when an installed target differs from this checkout
                                           (the admin layer included, stamped or from an earlier release),
                                           or a required prerequisite is missing (global/prerequisites.json)
@@ -54,8 +53,9 @@ Options for every subcommand: --overlay=DIR|none (default: the repository's over
 the project-brief section runs only when it is given).
 
 global/install.sh and global/install-managed.sh stay the internals: this file decides their flags and
-summarises their output, it renders nothing itself. The version key (Issue #57) is read by mhw status,
-in Node since #493 (src/lib/readers/version-key.js).
+summarises their output, it renders nothing itself. Version key (Issue #57): a project declares the
+workstation release range it needs in a .workstation-version file, for example ">=3.1 <4"; status
+compares it with the installed provenance stamp (ADR-0029) and never fails on a mismatch.
 
 Environment, tests and probes only: WORKSTATION_MANAGED_ROOT prefixes every admin-layer path.
 Standard library only, Python 3.9+. Never writes outside what install.sh writes. sudo runs only for
