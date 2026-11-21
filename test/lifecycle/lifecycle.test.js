@@ -158,7 +158,7 @@ test('an admin layer that was planned and not installed is not a success (PR #11
   assert.deepEqual(filesUnder(b.root), []);
 });
 
-test('a failed admin-layer removal still removes the user layer, and the uninstall is incomplete (QA U2 on PR #542)', () => {
+test('a failed admin-layer removal still removes the user layer, and the uninstall is incomplete (QA U2 on PR #542)', { skip: !POSIX && 'the admin layer is macOS and Linux only' }, () => {
   // workstation.py went on to install.sh --uninstall after install-managed.sh --remove failed; so does Node.
   const b = box('remove-fails');
   const dropin = b.root + (process.platform === 'darwin' ? '/Library/Application Support/ClaudeCode' : '/etc/claude-code')
