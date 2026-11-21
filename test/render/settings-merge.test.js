@@ -332,3 +332,62 @@ test('the settings step is a script run by node (it runs as its own program)', {
   assert.equal(p.stdout, 'MERGED  ' + s + '\n');
   assert.deepEqual(obj(fs.readFileSync(s, 'utf8')).get('permissions').get('deny'), ['Bash(a:*)']);
 });
+
+test('an unexpected failure of the settings step is a refusal (exit 3), never the exit 1 of drift', () => {
+  const dir = freshDir('throw');
+  const floor = path.join(dir, 'floor');
+  fs.writeFileSync(floor, 'Bash(a:*)\n');
+  const err = /** @type {string[]} */ ([]);
+  const code = main(['--phase=merge', '--mode=install', '--settings=' + path.join(dir, 's.json'), '--floor-claude=' + floor, '--stamp=' + STAMP],
+    { out: () => { throw new TypeError('probe'); }, err: (s) => err.push(s) });
+  assert.equal(code, 3);
+  assert.match(err.join(''), /^REFUSE  .*s\.json: the settings step failed \(probe\); left untouched$/m);
+});
+
+/** The Claude, Codex and Kiro allow files of a scenario directory that exist. @param {string} dir */
+function allowFiles(dir) {
+  const h = path.join(dir, 'home');
+  const found = [h + '/.codex/rules/workstation-allow-list.rules', h + '/.codex/workstation.config.toml', h + '/.kiro/agents/workstation.json']
+    .filter((f) => fs.existsSync(f));
+  const s = settingsOf(dir);
+  if (fs.existsSync(s) && fs.readFileSync(s, 'utf8').includes('"' + ALLOW_KEY + '"')) found.push(s);
+  return found;
+}
+
+test('a settings step that exits 1 outside --check (node\'s exit for an uncaught exception) writes no allow list for any harness', { skip: !POSIX && 'POSIX only' }, () => {
+  const dir = freshDir('exit1');
+  // A node that is node for everything but the settings step, which fails as an uncaught exception does.
+  const stub = path.join(dir, 'node-stub');
+  fs.writeFileSync(stub, '#!/bin/sh\ncase "$1" in */settings-merge.js) echo "TypeError: probe" >&2; exit 1 ;; esac\nexec "'
+    + process.execPath + '" "$@"\n');
+  fs.chmodSync(stub, 0o755);
+  const r = installer(dir, [], { MHW_NODE: stub });
+  assert.match(r.err, /^REFUSE  the allow list: the deny floor was not merged into /m, r.err);
+  assert.deepEqual(allowFiles(dir), []);
+  // --check still reads a 1 as drift there.
+  const c = installer(dir, ['--check'], { MHW_NODE: stub });
+  assert.doesNotMatch(c.err, /^REFUSE  the allow list/m);
+});
+
+test('no Codex or Kiro allow list beside a refused Codex or Kiro floor', { skip: !POSIX && 'POSIX only' }, () => {
+  const codex = freshDir('codex-floor');
+  const rules = path.join(codex, 'home', '.codex', 'rules', 'workstation-deny-floor.rules');
+  fs.mkdirSync(path.dirname(rules), { recursive: true });
+  fs.writeFileSync(rules, 'prefix_rule(pattern=["mine"], decision="forbidden")\n');
+  let r = installer(codex, []);
+  assert.match(r.err, /^REFUSE  .*workstation-deny-floor\.rules: exists and is NOT managed/m);
+  assert.match(r.err, /^REFUSE  the Codex allow list: its deny floor was not written/m);
+  const h = path.join(codex, 'home');
+  assert.ok(!fs.existsSync(h + '/.codex/rules/workstation-allow-list.rules') && !fs.existsSync(h + '/.codex/workstation.config.toml'));
+  assert.ok(fs.existsSync(h + '/.kiro/agents/workstation.json'), 'the Kiro allow agent still lands beside its floor');
+  assert.ok(fs.readFileSync(settingsOf(codex), 'utf8').includes('"' + ALLOW_KEY + '"'), 'the Claude allow list lands beside its floor');
+  const kiro = freshDir('kiro-floor');
+  const yaml = path.join(kiro, 'home', '.kiro', 'settings', 'permissions.yaml');
+  fs.mkdirSync(path.dirname(yaml), { recursive: true });
+  fs.writeFileSync(yaml, 'rules: [unclosed\n');
+  r = installer(kiro, []);
+  assert.match(r.out + r.err, /^REFUSE  .*permissions\.yaml/m, r.out);
+  assert.match(r.err, /^REFUSE  the Kiro allow list: its deny floor was not written/m);
+  assert.ok(!fs.existsSync(path.join(kiro, 'home', '.kiro', 'agents', 'workstation.json')));
+  assert.ok(fs.existsSync(path.join(kiro, 'home', '.codex', 'rules', 'workstation-allow-list.rules')), 'the Codex allow list still lands beside its floor');
+});

@@ -618,13 +618,16 @@ The merge into `~/.claude/settings.json`, its uninstall half and the `FLOOR` rep
 `install.sh`. They are now `src/render/settings-merge.js` and `src/render/floor-report.js` (S20 of #470),
 read and written the way jq 1.7.1 did (`src/lib/jq-json.js`). In every recorded scenario the file they write
 is byte for byte the jq program's: the union, the kept order, the ownership record and the stamp key are
-unchanged (`test/golden/S20`). Three behaviours are narrower than before, and none removes a floor rule:
+unchanged (`test/golden/S20`). Four behaviours are narrower than before, and none removes a floor rule:
 
 - a file jq reads and strict JSON does not, and nesting past 256 levels, is refused (exit 3) instead of
   rewritten;
 - uninstall refuses a `hooks` or `permissions` of another shape instead of emptying the file;
-- where the merge refuses, `install.sh` writes no allow list either (ADR-0031), so allow rules never land
-  in a file the floor did not reach.
+- where the merge refuses (or its step fails in any way), `install.sh` writes no allow list either
+  (ADR-0031), so allow rules never land in a file the floor did not reach; likewise no Codex or Kiro allow
+  list is written beside a Codex or Kiro floor that was refused;
+- the `FLOOR` report reads `settings.json` as the merge does, so it never credits a floor from a file the
+  merge refused.
 
 jq is no longer needed for the user layer. `install-managed.sh` still needs it for the admin layer until
 #496. Evidence level: *written and tested*; not installed on the reference machine. Version cut: **patch**.

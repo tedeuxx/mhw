@@ -82,7 +82,7 @@
   {
     "run": "report",
     "code": 0,
-    "stdout": "FLOOR   Claude Code: user layer 1/185 rules; admin layer 0/185 rules\nFLOOR   Codex: user rules file absent; admin requirements 0/161 prefix rules\nFLOOR   Kiro: user permissions.yaml absent (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json absent (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   carried by: NO complete layer; run ./mhw install\n",
+    "stdout": "FLOOR   Claude Code: user layer 0/185 rules (not read: not strict JSON); admin layer 0/185 rules\nFLOOR   Codex: user rules file absent; admin requirements 0/161 prefix rules\nFLOOR   Kiro: user permissions.yaml absent (read by Kiro IDE and Kiro CLI V3, documented; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   Kiro: admin managed-settings.json absent (read by Kiro IDE 1.2.56 and the Kiro CLI V3 engine as the administration scope, read from their bundles; Kiro CLI 2.x does not read it; not enforced-measured; ADR-0036)\nFLOOR   carried by: NO complete layer; run ./mhw install\n",
     "stderr": "",
     "tree": [
       {
