@@ -36,14 +36,16 @@ Each is raised one at a time, when a slice reaches it.
    for backlog grooming and its safeguards. Since 2026-11-20 it is the one record in this index that is
    proposed. The switch to `scrum` it records is already the owner's ruling.~~
    *Ratified on 2026-11-20 ([«Ratificar»](https://github.com/tedeuxx/mhw/issues/522#issuecomment-7050932440)).
-   ~~No record in this index is proposed.~~ ADR-0044 is, since #523 (ask 6), and ADR-0042, since #487 (ask 7).*
-6. **Ratify [ADR-0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md)** and
+   ~~No record in this index is proposed.~~ ~~ADR-0044 is, since #523 (ask 6), and ADR-0042, since #487 (ask 7).~~*
+6. ~~**Ratify [ADR-0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md)** and
    ADR-0015's 2026-11-20 amendment ([#523](https://github.com/tedeuxx/mhw/issues/523)): the
-   documentation baseline, its check and the add-only override. Both are proposed and agent-written.
-7. **Ratify ADR-0042** ([#487](https://github.com/tedeuxx/mhw/issues/487), PR #521): node-pty 1.1.0
+   documentation baseline, its check and the add-only override. Both are proposed and agent-written.~~
+   *Ratified on 2026-11-20 ([«Ratificar os dois»](https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698)).*
+7. ~~**Ratify ADR-0042** ([#487](https://github.com/tedeuxx/mhw/issues/487), PR #521): node-pty 1.1.0
    vendored as the paste wrapper's pty, with the macOS binaries byte-identical to npm and the Linux ones
    built by this repository's CI from the pinned source (no npm integrity covers those). The Linux build
-   is already the owner's decision on PR #521; the record as a whole is proposed.
+   is already the owner's decision on PR #521; the record as a whole is proposed.~~
+   *Ratified on 2026-11-20 ([«Ratificar»](https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611)). No record in this index is proposed.*
 
 ## Index
 
@@ -63,7 +65,7 @@ Each is raised one at a time, when a slice reaches it.
 | [0012](0012-operational-judgement-delegated-to-the-harness.md) | Operational judgement delegated to the agent harness | accepted; the operating rule ~~proposed~~ accepted 2026-11-17 |
 | [0013](0013-hitl-escalation-calibration.md) | Escalation calibration; the picker guard removed | accepted; the guard removed 2026-10-05 |
 | [0014](0014-purpose-boundary-firewall-vs-plugin.md) | This repository is the firewall, the plugin the way of working | accepted, in full 2026-11-17; reversed in part by ~~the proposed~~ the accepted 0032 |
-| [0015](0015-master-of-first-principles-ethical-locks-on-own-aims.md) | Ethical locks on the owner's own aims | accepted; first concrete lock ratified 2026-10-17 |
+| [0015](0015-master-of-first-principles-ethical-locks-on-own-aims.md) | Ethical locks on the owner's own aims | accepted; first concrete lock ratified 2026-10-17; the 2026-11-20 amendment accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698)) |
 | [0016](0016-user-level-deny-floor-rendered-per-harness.md) | The deny floor, rendered per agent harness | accepted; the admin-layer amendment and the 2026-10-24 presence amendment (0040) ~~proposed~~ accepted 2026-11-17 |
 | [0017](0017-single-source-mcp-with-secret-indirection.md) | One MCP definition, credentials from the OS secret store | ~~proposed~~ accepted 2026-11-17 |
 | [0018](0018-portable-personal-profile-and-unified-harness-management.md) | Portable personal profile (the owner overlay) | ~~proposed design~~ accepted 2026-11-17 |
@@ -90,6 +92,6 @@ Each is raised one at a time, when a slice reaches it.
 | [0039](0039-codex-managed-daemon-version-and-headroom.md) | Review Codex daemon descriptor configuration without managing it (2026-10-18) | ~~proposed~~ accepted 2026-11-17 |
 | [0040](0040-presence-conditioned-secret-renewal-through-the-browser.md) | With the owner present, the agent may create or renew a secret through his browser, copying without reading; the Bash denies unchanged (2026-10-24) | ~~proposed~~ accepted 2026-11-17; ~~canary owed~~ real-page canary passed for the script route on 2026-10-29, rerun owed under the D8 launch |
 | [0041](0041-mcp-active-set-native-switch-off-per-harness.md) | The MCP active set, turned off natively in each agent harness outside it (2026-10-24) | ~~proposed~~ accepted 2026-11-17 |
-| [0042](0042-node-pty-vendored-for-the-paste-wrapper.md) | node-pty 1.1.0, vendored with its macOS prebuilds from npm and Linux pty.node built by our CI from the pinned source, is the paste wrapper's pty; where it cannot load the wrapper refuses visibly (2026-11-20, #487) | proposed |
+| [0042](0042-node-pty-vendored-for-the-paste-wrapper.md) | node-pty 1.1.0, vendored with its macOS prebuilds from npm and Linux pty.node built by our CI from the pinned source, is the paste wrapper's pty; where it cannot load the wrapper refuses visibly (2026-11-20, #487) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/487#issuecomment-7053800611)) |
 | [0043](0043-backlog-grooming-batch-confirmation-and-scrum-for-mhw.md) | Backlog grooming closes and rewrites the owner's Issues on one batch confirmation, under safeguards; mhw runs `scrum`, scoped by `loop-mode-repos` (2026-11-20) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/522#issuecomment-7050932440)) |
-| [0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md) | A declared documentation baseline kept current by every merge request (`mhw docs-baseline check`, `mhw onboard`), and an add-only test/DoD override in `project-policy.json` with a coverage floor of 85; amends 0015 (2026-11-20) | proposed |
+| [0044](0044-documentation-and-dod-baseline-with-an-add-only-override.md) | A declared documentation baseline kept current by every merge request (`mhw docs-baseline check`, `mhw onboard`), and an add-only test/DoD override in `project-policy.json` with a coverage floor of 85; amends 0015 (2026-11-20) | ~~proposed~~ accepted 2026-11-20 ([ratification](https://github.com/tedeuxx/mhw/issues/523#issuecomment-7053423698)) |
