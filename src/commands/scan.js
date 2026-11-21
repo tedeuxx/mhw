@@ -25,14 +25,10 @@
 // half of health and colleague-name, are matched only where the owner's hashed lists and their salt are
 // readable without a prompt; a NOTE line says so whenever they are not (in CI, every time).
 //
-// The salt in the macOS Keychain is read the way the prompt hook reads it, by clipboard_guard.py's own
-// SaltStore(interactive=False): a non-interactive lock probe through Security.framework, then a bounded
-// `security` read (src/lib/salt.js since #487). Node has no such probe, so until the hook moves to Node this one step runs
-// clipboard_guard.py: the first python3 on PATH (absolute entries only), run by its absolute path, isolated
-// (-I) and from clipboard_guard.py's own directory, so nothing in the scanned repository or on PYTHONPATH
-// is imported. Without python3 a NOTE says so and no term list is checked. The salt reaches this process
-// on a pipe, never in an argument or a file. Reads files and git objects;
-// writes nothing. node: modules only.
+// The salt is read the way the prompt hook reads it, from its file (src/lib/salt.js): since #488 it is a
+// file on every system (owner ruling, 2026-11-21), so no process is started for it and the Keychain is never
+// read. A missing or unreadable salt file gets a NOTE and no term list is checked. The salt never leaves this
+// process. Reads files and git objects; writes nothing. node: modules only.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -40,7 +36,6 @@ import { onPath } from '../lib/onpath.js';
 import * as core from '../lib/clean.js';
 import { readSalt } from '../lib/salt.js';
 
-export { CLIPBOARD_DIR } from '../lib/salt.js';
 const NO_REPOSITORY = 'not inside a git repository; mhw scan needs one, in every mode';
 const NO_GIT = 'git was not found on PATH; mhw scan needs it in this mode';
 const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
@@ -52,7 +47,7 @@ const ATTRIBUTION_TRAILER = new RegExp(String.raw`(?<![^\n])` + core.ci('co-auth
 
 /**
  * @typedef {{ cwd: string, env: Record<string, string | undefined>, platform: string, out: string[], git: string | null,
- *   python: string | null }} Ctx
+ * }} Ctx
  * @typedef {[string, string | null, string | null]} Target [label, path or null, skip reason or null]
  * @typedef {[string, string, boolean]} Commit [short sha, full sha, is a merge]
  */
@@ -225,13 +220,10 @@ function termDetector(ctx, conf) {
     }
   }
   if (!terms.size && !Object.values(lists).some((h) => h.size)) return [terms, null, lists];
-  const { salt, noPython } = readSalt(ctx, conf);
-  if (!salt && noPython) {
-    ctx.out.push("NOTE    the term list's salt is in the Keychain and python3 was not found on PATH to read it "
-      + '(until the prompt hook moves to Node, clipboard_guard.py reads it); no term list was checked '
-      + '(employer-client-term, and the term half of health and colleague-name)\n');
-  } else if (!salt) {
-    ctx.out.push("NOTE    the term list's salt could not be read without a prompt; no term list was checked "
+  const { salt } = readSalt(conf);
+  if (!salt) {
+    ctx.out.push("NOTE    the term list's salt file could not be read (missing, unreadable or not a salt; re-add your "
+      + 'terms with mhw add-term); no term list was checked '
       + '(employer-client-term, and the term half of health and colleague-name)\n');
   }
   return [terms, salt, lists];
@@ -463,7 +455,7 @@ export function run(argv, opts = {}) {
   const env = opts.env || process.env;
   const platform = opts.platform || process.platform;
   /** @type {Ctx} */
-  const ctx = { cwd: opts.cwd || process.cwd(), env, platform, out: [], git: onPath('git', env, platform), python: onPath('python3', env, platform) };
+  const ctx = { cwd: opts.cwd || process.cwd(), env, platform, out: [], git: onPath('git', env, platform) };
   const fail = (/** @type {string} */ msg) => ({ code: 2, stdout: ctx.out.join(''), stderr: 'mhw scan: ' + msg + '\n' });
   /** @type {string | null} */
   let base = null;

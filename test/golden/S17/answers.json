@@ -1,0 +1,1537 @@
+{
+  "add_term": [
+    {
+      "code": 0,
+      "name": "term",
+      "out": "added: 2 new hash(es) to <T>/add-term/lo/terms. The term itself was not stored anywhere.\n"
+    },
+    {
+      "code": 0,
+      "name": "again-no-new",
+      "out": "added: 0 new hash(es) to <T>/add-term/lo/terms. The term itself was not stored anywhere.\n"
+    },
+    {
+      "code": 0,
+      "name": "one-word",
+      "out": "added: 1 new hash(es) to <T>/add-term/lo/terms. The term itself was not stored anywhere.\n"
+    },
+    {
+      "code": 1,
+      "name": "differ",
+      "out": "not added: the two entries differ.\n"
+    },
+    {
+      "code": 1,
+      "name": "too-short",
+      "out": "not added: a term has 1 to 6 words and at least 3 letters or digits.\n"
+    },
+    {
+      "code": 1,
+      "name": "short-words",
+      "out": "not added: a term has 1 to 6 words and at least 3 letters or digits.\n"
+    },
+    {
+      "code": 0,
+      "name": "three-chars",
+      "out": "added: 2 new hash(es) to <T>/add-term/lo/terms. The term itself was not stored anywhere.\n"
+    },
+    {
+      "code": 1,
+      "name": "too-many-words",
+      "out": "not added: a term has 1 to 6 words and at least 3 letters or digits.\n"
+    },
+    {
+      "code": 0,
+      "name": "six-words",
+      "out": "added: 2 new hash(es) to <T>/add-term/lo/terms. The term itself was not stored anywhere.\n"
+    },
+    {
+      "code": 1,
+      "name": "empty",
+      "out": "not added: a term has 1 to 6 words and at least 3 letters or digits.\n"
+    },
+    {
+      "code": 1,
+      "name": "punctuation-only",
+      "out": "not added: a term has 1 to 6 words and at least 3 letters or digits.\n"
+    },
+    {
+      "code": 0,
+      "name": "accents",
+      "out": "added: 2 new hash(es) to <T>/add-term/lo/terms. The term itself was not stored anywhere.\n"
+    },
+    {
+      "code": 0,
+      "name": "health",
+      "out": "added: 2 new hash(es) to <T>/add-term/lo/terms-health. The term itself was not stored anywhere.\n"
+    },
+    {
+      "code": 0,
+      "name": "colleague",
+      "out": "added: 2 new hash(es) to <T>/add-term/lo/terms-colleague. The term itself was not stored anywhere.\n"
+    }
+  ],
+  "add_term_files": {
+    "colleague_terms_file": "# personal-multi-harness-workstation-configuration clipboard terms v1: HMAC-SHA256(salt, normalised term), one per line; never plaintext\n70a870f1ac9ffccef56f6054b9f1d61ec72c69fcc95e507f909015061808152b\n99333f162a92c2a01891223d928cff5b28f3e015fb8668bac3010be77c398b55\n",
+    "colleague_terms_file_mode": "0o600",
+    "dir_mode": "0o700",
+    "health_terms_file": "# personal-multi-harness-workstation-configuration clipboard terms v1: HMAC-SHA256(salt, normalised term), one per line; never plaintext\n39e8e15cf2d6e6e0b7a037c31e6d8b6e41602f825051ac42eae43841af7ca711\nd5d10e4f65fa67f1632b034c059fb352600faddb284ee7afa41480cbdaebe351\n",
+    "health_terms_file_mode": "0o600",
+    "terms_file": "# personal-multi-harness-workstation-configuration clipboard terms v1: HMAC-SHA256(salt, normalised term), one per line; never plaintext\n06cec23d7a8593e18457ec92c53a0bd7db3a5d71c3d347d8f4c6e6f3129fff25\n0b196e3064b396154cc8866bec10013c15db9dd2e5fce0108599c5efde2747eb\n3489ad2c9fce74e1d6b4a1368759884d0ed97045ce3fe10e56389a759856e0df\n4ac3ba798b0bd780cf9c24f34dab801e8540602f161a5ce9ef4006194ce5c49d\n6186024a703a4b6b7b11061ef6cfeccce5adb6dfc78ec383a60c17d32367d8cd\na4460a9288e6d91da974f1a655a616426aa839dd8ad2dcc73238465153f24dba\na94a5fa3512db346577bc0054d3ac1f3726bd212b2ff2617f9ea1d11afbd3969\nec357015173b648594ee59aef238874430bcf19b464b56555a1843d9495042d4\nf028720b9e359b32d735c2ee7eff4ef46debec1f1d4262fa7fe68a62a9510393\n",
+    "terms_file_mode": "0o600"
+  },
+  "check_config": [
+    {
+      "code": 0,
+      "name": "file",
+      "stderr": "",
+      "stdout": "max_bytes=1000000\nblock_categories=credential,email\nreport_categories=postal-address,contract-value\nshow_cleaned_chars=77\nsalt_store=file\nkeychain_service=personal-multi-harness-workstation-configuration.clipboard-salt\nkeychain_path=\nterms_file=<T>/check-config/lo/terms\nhealth_terms_file=<T>/check-config/lo/terms-health\ncolleague_terms_file=<T>/check-config/lo/terms-colleague\nsalt_file=<T>/check-config/lo/salt\nterms=2\nhealth_terms=0\ncolleague_name_terms=0\n"
+    },
+    {
+      "code": 0,
+      "name": "missing",
+      "stderr": "",
+      "stdout": "max_bytes=1000000\nblock_categories=employer-client-term,credential,email,payment-card,cpf,cnpj,phone,health,colleague-name\nreport_categories=postal-address,contract-value\nshow_cleaned_chars=8000\nsalt_store=file\nkeychain_service=personal-multi-harness-workstation-configuration.clipboard-salt\nkeychain_path=\nterms_file=<T>/check-config/home/.local/share/personal-multi-harness-workstation-configuration/local-overlay/clipboard-terms\nhealth_terms_file=<T>/check-config/home/.local/share/personal-multi-harness-workstation-configuration/local-overlay/clipboard-terms-health\ncolleague_terms_file=<T>/check-config/home/.local/share/personal-multi-harness-workstation-configuration/local-overlay/clipboard-terms-colleague\nsalt_file=<T>/check-config/home/.local/share/personal-multi-harness-workstation-configuration/local-overlay/clipboard-salt\nterms=0\nhealth_terms=0\ncolleague_name_terms=0\n"
+    },
+    {
+      "code": 2,
+      "name": "unknown-flag",
+      "stderr": "unknown or incomplete argument: --config (no term is ever taken from arguments)\n",
+      "stdout": ""
+    }
+  ],
+  "cli": [
+    {
+      "code": 2,
+      "name": "no-harness",
+      "stderr": "prompt-hook: --harness must be one of claude, codex, kiro\n",
+      "stdout": ""
+    },
+    {
+      "code": 2,
+      "name": "bad-harness",
+      "stderr": "prompt-hook: --harness must be one of claude, codex, kiro\n",
+      "stdout": ""
+    },
+    {
+      "code": 2,
+      "name": "harness-no-value",
+      "stderr": "unknown or incomplete argument: <T>/c-harness-no-value/clipboard.conf (no term is ever taken from arguments)\n",
+      "stdout": ""
+    },
+    {
+      "code": 2,
+      "name": "unknown-flag",
+      "stderr": "unknown or incomplete argument: --verbose (no term is ever taken from arguments)\n",
+      "stdout": ""
+    },
+    {
+      "code": 2,
+      "name": "list-flag",
+      "stderr": "unknown or incomplete argument: --list (no term is ever taken from arguments)\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "dirty/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "clean/claude",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "config-is-a-directory/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (IsADirectoryError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "config-missing/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "config-keychain-relative/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "config-not-utf8/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "dirty/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "clean/codex",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "config-is-a-directory/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (IsADirectoryError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "config-missing/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "config-keychain-relative/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "config-not-utf8/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "dirty/kiro",
+      "stderr": "Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nmail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "clean/kiro",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "config-is-a-directory/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (IsADirectoryError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 2,
+      "name": "config-missing/kiro",
+      "stderr": "Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nmail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "config-keychain-relative/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "config-not-utf8/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    }
+  ],
+  "constants": {
+    "AGENT_MARKERS": [
+      "CLAUDECODE",
+      "CLAUDE_CODE_ENTRYPOINT",
+      "AI_AGENT",
+      "CODEX_SANDBOX",
+      "CODEX_SANDBOX_NETWORK_DISABLED"
+    ],
+    "HARNESSES": [
+      "claude",
+      "codex",
+      "kiro"
+    ],
+    "KEYCHAIN_READ_SECONDS": 2,
+    "KIRO_HOOK_FILE": "personal-multi-harness-workstation-configuration-paste-filter.json",
+    "WRAPPER_MARKER": "PMHWC_PASTE_WRAPPER",
+    "WRAPPER_MARKER_VALUE": "1",
+    "notices": {
+      "notice_blocked": "Paste filter (ADR-0033): {categories} in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.",
+      "notice_bracketed_paste_off": "Paste filter (ADR-0033): {program} turned bracketed paste off, so pastes are NOT cleaned until it turns it back on.",
+      "notice_cleaned_too_long": "The redacted copy is {chars} characters, too long to show here.",
+      "notice_error": "Paste filter (ADR-0033): internal error ({error}); this prompt was NOT checked.",
+      "notice_kiro_hook_off": "No Kiro prompt hook from this project is installed, so nothing checks a prompt.",
+      "notice_kiro_hook_on": "The Kiro prompt hook checks each prompt instead, but only in a trusted workspace: in an untrusted one Kiro runs no hooks, so nothing checks.",
+      "notice_no_bracketed_paste": "Paste filter (ADR-0033): {program} has not enabled bracketed paste, so pastes in this session are NOT cleaned.",
+      "notice_no_salt": "Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).",
+      "notice_paste_error": "[paste filter (ADR-0033): internal error ({error}), the paste was NOT forwarded]",
+      "notice_paste_redacted": "Paste filter (ADR-0033): this prompt carries redacted text ({categories}); the original was not sent.",
+      "notice_paste_too_large": "[paste filter (ADR-0033): a paste over {max} bytes was NOT forwarded, it could not be checked]",
+      "notice_report_only": "Paste filter (ADR-0033): {categories} in this prompt (report-only: it was sent unchanged).",
+      "notice_session_report_only": "Paste filter (ADR-0033): {count} paste(s) in this session carried report-only categories ({categories}) and were forwarded unchanged.",
+      "notice_session_summary": "Paste filter (ADR-0033): {count} paste(s) cleaned in this session ({categories}); {replaced} paste(s) replaced by a notice.",
+      "notice_too_large": "Paste filter (ADR-0033): this prompt is over {max} bytes and was NOT checked.",
+      "notice_wrapper_args_unmarked": "Paste filter (ADR-0033): a command-line argument carries {categories} or could not be checked, so this session is NOT marked and the prompt hook checks every prompt.",
+      "notice_wrapper_no_salt": "Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt, so term matching (employer/client terms, health terms, colleague names) is NOT applied in this session."
+    },
+    "settings": {
+      "block_categories": "employer-client-term,credential,email,payment-card,cpf,cnpj,phone,health,colleague-name",
+      "colleague_terms_file": "",
+      "health_terms_file": "",
+      "keychain_path": "",
+      "keychain_service": "personal-multi-harness-workstation-configuration.clipboard-salt",
+      "max_bytes": "1000000",
+      "report_categories": "postal-address,contract-value",
+      "salt_file": "",
+      "salt_store": "",
+      "show_cleaned_chars": "8000",
+      "terms_file": ""
+    }
+  },
+  "decision": [
+    {
+      "code": 0,
+      "name": "clean/claude",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "clean/codex",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "clean/kiro",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "employer-client-term/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nnotes for [REDACTED:employer-client-term]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "employer-client-term/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nnotes for [REDACTED:employer-client-term]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "employer-client-term/kiro",
+      "stderr": "Paste filter (ADR-0033): employer-client-term in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nnotes for [REDACTED:employer-client-term]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "email/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "email/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "email/kiro",
+      "stderr": "Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nmail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "cpf/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): cpf in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nCPF [REDACTED:cpf]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "cpf/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): cpf in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nCPF [REDACTED:cpf]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "cpf/kiro",
+      "stderr": "Paste filter (ADR-0033): cpf in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nCPF [REDACTED:cpf]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "cnpj/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): cnpj in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nCNPJ [REDACTED:cnpj]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "cnpj/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): cnpj in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nCNPJ [REDACTED:cnpj]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "cnpj/kiro",
+      "stderr": "Paste filter (ADR-0033): cnpj in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nCNPJ [REDACTED:cnpj]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "payment-card/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): payment-card in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\ncard [REDACTED:payment-card]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "payment-card/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): payment-card in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\ncard [REDACTED:payment-card]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "payment-card/kiro",
+      "stderr": "Paste filter (ADR-0033): payment-card in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\ncard [REDACTED:payment-card]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "credential-aws/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "credential-aws/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "credential-aws/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nuse [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "credential-github/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "credential-github/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "credential-github/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nuse [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "credential-slack/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "credential-slack/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "credential-slack/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nuse [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "credential-google/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "credential-google/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "credential-google/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nuse [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "credential-stripe/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "credential-stripe/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "credential-stripe/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nuse [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "credential-anthropic/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "credential-anthropic/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "credential-anthropic/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nuse [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "credential-jwt/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "credential-jwt/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "credential-jwt/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nuse [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "credential-private-key/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "credential-private-key/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nuse [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "credential-private-key/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nuse [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "block-message/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "block-message/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "block-message/kiro",
+      "stderr": "Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "paste-markers/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nlook at this\\nkey [REDACTED:credential]\\nthanks\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "paste-markers/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nlook at this\\nkey [REDACTED:credential]\\nthanks\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "paste-markers/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nlook at this\nkey [REDACTED:credential]\nthanks\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "paste-markers-edges/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\n<pasted_contentX>\\nkey [REDACTED:credential]\\n\\r<pasted_content>\\nb\\n\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "paste-markers-edges/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\n<pasted_contentX>\\nkey [REDACTED:credential]\\n\\r<pasted_content>\\nb\\n\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "paste-markers-edges/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\n<pasted_contentX>\nkey [REDACTED:credential]\n\r<pasted_content>\nb\n\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "narrow-email-off/claude",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "narrow-email-off/codex",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "narrow-email-off/kiro",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "narrow-credential-on/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nkey [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "narrow-credential-on/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nkey [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "narrow-credential-on/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nkey [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "block-typo/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "block-typo/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "block-typo/kiro",
+      "stderr": "Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nmail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "phone/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): phone in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nligue [REDACTED:phone] hoje\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "phone/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): phone in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nligue [REDACTED:phone] hoje\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "phone/kiro",
+      "stderr": "Paste filter (ADR-0033): phone in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nligue [REDACTED:phone] hoje\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "health-code/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): health in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\natestado com [REDACTED:health] anexo\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "health-code/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): health in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\natestado com [REDACTED:health] anexo\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "health-code/kiro",
+      "stderr": "Paste filter (ADR-0033): health in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\natestado com [REDACTED:health] anexo\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "colleague-phrase/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): colleague-name in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nminha gestora [REDACTED:colleague-name] pediu\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "colleague-phrase/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): colleague-name in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nminha gestora [REDACTED:colleague-name] pediu\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "colleague-phrase/kiro",
+      "stderr": "Paste filter (ADR-0033): colleague-name in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nminha gestora [REDACTED:colleague-name] pediu\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "report-only-address/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): postal-address in this prompt (report-only: it was sent unchanged).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "report-only-address/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): postal-address in this prompt (report-only: it was sent unchanged).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "report-only-address/kiro",
+      "stderr": "Paste filter (ADR-0033): postal-address in this prompt (report-only: it was sent unchanged).\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "report-only-contract/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): contract-value in this prompt (report-only: it was sent unchanged).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "report-only-contract/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): contract-value in this prompt (report-only: it was sent unchanged).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "report-only-contract/kiro",
+      "stderr": "Paste filter (ADR-0033): contract-value in this prompt (report-only: it was sent unchanged).\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "report-only-phone/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): phone in this prompt (report-only: it was sent unchanged).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "report-only-phone/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): phone in this prompt (report-only: it was sent unchanged).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "report-only-phone/kiro",
+      "stderr": "Paste filter (ADR-0033): phone in this prompt (report-only: it was sent unchanged).\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "report-both-blocks/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): phone in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nligue [REDACTED:phone] hoje\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "report-both-blocks/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): phone in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nligue [REDACTED:phone] hoje\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "report-both-blocks/kiro",
+      "stderr": "Paste filter (ADR-0033): phone in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nligue [REDACTED:phone] hoje\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "category-off/claude",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "category-off/codex",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "category-off/kiro",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "report-empty/claude",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "report-empty/codex",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "report-empty/kiro",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "report-typo/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): postal-address in this prompt (report-only: it was sent unchanged).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "report-typo/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): postal-address in this prompt (report-only: it was sent unchanged).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "report-typo/kiro",
+      "stderr": "Paste filter (ADR-0033): postal-address in this prompt (report-only: it was sent unchanged).\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "private-colleague/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): colleague-name in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nask [REDACTED:colleague-name]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "private-colleague/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): colleague-name in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nask [REDACTED:colleague-name]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "private-colleague/kiro",
+      "stderr": "Paste filter (ADR-0033): colleague-name in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nask [REDACTED:colleague-name]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "private-health/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): health in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nnotes: [REDACTED:health]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "private-health/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): health in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nnotes: [REDACTED:health]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "private-health/kiro",
+      "stderr": "Paste filter (ADR-0033): health in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nnotes: [REDACTED:health]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "no-salt-term/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "no-salt-term/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "no-salt-term/kiro",
+      "stderr": "Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "no-salt-generic-blocks/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\nPaste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).\\n\\nhello key [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "no-salt-generic-blocks/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\nPaste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).\\n\\nhello key [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "no-salt-generic-blocks/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\nPaste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).\n\nhello key [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "no-salt-clean/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "no-salt-clean/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "no-salt-clean/kiro",
+      "stderr": "Paste filter (ADR-0033): the term list exists but its salt could not be read without a prompt (Keychain locked, slow or item missing), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names).\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "too-large/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): this prompt is over 100 bytes and was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "too-large/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): this prompt is over 100 bytes and was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "too-large/kiro",
+      "stderr": "Paste filter (ADR-0033): this prompt is over 100 bytes and was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "too-large-raw/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): this prompt is over 1 bytes and was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "too-large-raw/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): this prompt is over 1 bytes and was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "too-large-raw/kiro",
+      "stderr": "Paste filter (ADR-0033): this prompt is over 1 bytes and was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "long-copy/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\nThe redacted copy is 226 characters, too long to show here.\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "long-copy/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\nThe redacted copy is 226 characters, too long to show here.\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "long-copy/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\nThe redacted copy is 226 characters, too long to show here.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "long-copy-edge/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nkey [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "long-copy-edge/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nkey [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "long-copy-edge/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nkey [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "bad-json/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "bad-json/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "bad-json/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "prompt-not-string/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "prompt-not-string/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "prompt-not-string/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "payload-array/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "payload-array/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "payload-array/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "payload-null/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "payload-null/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "payload-null/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "no-prompt/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "no-prompt/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "no-prompt/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (ValueError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "bad-utf8/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "bad-utf8/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "bad-utf8/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "bom/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "bom/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "bom/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "lone-surrogate/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeEncodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "lone-surrogate/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeEncodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "lone-surrogate/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeEncodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "empty-stdin/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "empty-stdin/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "empty-stdin/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "unicode-escape/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail \\u00e9 [REDACTED:email] \\ud83d\\ude00 fim\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "unicode-escape/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail \\u00e9 [REDACTED:email] \\ud83d\\ude00 fim\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "unicode-escape/kiro",
+      "stderr": "Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nmail é [REDACTED:email] 😀 fim\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "unicode-redacted-copy/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nol\\u00e1 \\ud83d\\ude00 [REDACTED:email] \\u00e7\\u00e3o\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "unicode-redacted-copy/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nol\\u00e1 \\ud83d\\ude00 [REDACTED:email] \\u00e7\\u00e3o\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "unicode-redacted-copy/kiro",
+      "stderr": "Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nolá 😀 [REDACTED:email] ção\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "redacted-markers/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): this prompt carries redacted text (credential, email); the original was not sent.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "redacted-markers/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): this prompt carries redacted text (credential, email); the original was not sent.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "redacted-markers/kiro",
+      "stderr": "Paste filter (ADR-0033): this prompt carries redacted text (credential, email); the original was not sent.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "redacted-unknown/claude",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "redacted-unknown/codex",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "redacted-unknown/kiro",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "redacted-and-report/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): postal-address in this prompt (report-only: it was sent unchanged). Paste filter (ADR-0033): this prompt carries redacted text (email); the original was not sent.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "redacted-and-report/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): postal-address in this prompt (report-only: it was sent unchanged). Paste filter (ADR-0033): this prompt carries redacted text (email); the original was not sent.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "redacted-and-report/kiro",
+      "stderr": "Paste filter (ADR-0033): postal-address in this prompt (report-only: it was sent unchanged). Paste filter (ADR-0033): this prompt carries redacted text (email); the original was not sent.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "bad-template/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nkey [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "bad-template/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nkey [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "bad-template/kiro",
+      "stderr": "Paste filter (ADR-0033): credential in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nkey [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "template-overlay/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"BLOCKED: credential {literal}\\n\\nkey [REDACTED:credential]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "template-overlay/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"BLOCKED: credential {literal}\\n\\nkey [REDACTED:credential]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "template-overlay/kiro",
+      "stderr": "BLOCKED: credential {literal}\n\nkey [REDACTED:credential]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "bad-max-bytes/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "bad-max-bytes/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "bad-max-bytes/kiro",
+      "stderr": "Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nmail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "duplicate-keys/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "duplicate-keys/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "duplicate-keys/kiro",
+      "stderr": "Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nmail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "extra-fields/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "extra-fields/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nmail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "extra-fields/kiro",
+      "stderr": "Paste filter (ADR-0033): email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nmail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "marker-set/claude",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "marker-set/codex",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 2,
+      "name": "marker-set/kiro",
+      "stderr": "Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "marker-set-bad-json/claude",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "marker-set-bad-json/codex",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "marker-set-bad-json/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "marker-wrong/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "marker-wrong/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "marker-wrong/kiro",
+      "stderr": "Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "marker-wrong-bad-json/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "marker-wrong-bad-json/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "marker-wrong-bad-json/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "marker-empty/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "marker-empty/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "marker-empty/kiro",
+      "stderr": "Paste filter (ADR-0033): employer-client-term, credential, email in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\ndeploy for [REDACTED:employer-client-term] with [REDACTED:credential], mail [REDACTED:email]\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "marker-empty-bad-json/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "marker-empty-bad-json/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "marker-empty-bad-json/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "nonascii-terms_file/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-terms_file/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-terms_file/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "nonascii-health_terms_file/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-health_terms_file/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-health_terms_file/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "nonascii-colleague_terms_file/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-colleague_terms_file/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-colleague_terms_file/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "nonascii-salt_file/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-salt_file/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-salt_file/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "good-file-salt/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nnotes for [REDACTED:employer-client-term]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "good-file-salt/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nnotes for [REDACTED:employer-client-term]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "good-file-salt/kiro",
+      "stderr": "Paste filter (ADR-0033): employer-client-term in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nnotes for [REDACTED:employer-client-term]\n",
+      "stdout": ""
+    }
+  ]
+}

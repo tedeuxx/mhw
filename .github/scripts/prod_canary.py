@@ -40,7 +40,7 @@ import sys
 import tarfile
 import io
 
-MARKER = "PMHWC_PASTE_WRAPPER"           # global/clipboard/clipboard_guard.py, WRAPPER_MARKER
+MARKER = "PMHWC_PASTE_WRAPPER"           # src/commands/hook-prompt.js, WRAPPER_MARKER
 NAME = "personal-multi-harness-workstation-configuration"
 WORD = re.compile(r"^[A-Za-z0-9._/~=:@+*-]+$")
 # `pack` reads the checkout this script sits in (.github/scripts/ -> the repository root); `run` needs
@@ -349,8 +349,16 @@ def check_floor(box, exp):
     # The command is compared with the one install.sh must render for this HOME, and only that expected
     # string is run: a command read from a file is never executed as given.
     data = box.home / ".local" / "share" / NAME
-    want = '/usr/bin/python3 -I -B "%s" prompt-hook --harness kiro --config "%s"' % (
-        data / "clipboard_guard.py", data / "clipboard.conf")
+    # #488: `mhw hook prompt` on the node install.sh found first on PATH (the tools directory), by absolute
+    # path, from the installed package, with NODE_OPTIONS, NODE_ICU_DATA and NODE_PATH cleared.
+    node = box.d.parent / "tools" / "node"
+    mhw_js = Path(os.path.realpath(box.d / "prefix" / "lib" / "node_modules" / "mhw")) / "bin" / "mhw.js"
+    inner = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness kiro --config "%s"' % (
+        node, mhw_js, data / "clipboard.conf")
+    # install.sh's start fallback for Kiro (paste_wrap, PR #536 lens B3), spelled out here: nothing read
+    # from a file is ever run. test/clipboard/hook.test.js holds install.sh's function to this form.
+    notice = "Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked."
+    want = "/bin/sh -c '%s || { [ $? -eq 2 ] && exit 2; printf \"%%s\\n\" \"%s\" >&2; exit 2; }'" % (inner, notice)
     got = [e["action"].get("command") for e in kentries if isinstance(e.get("action"), dict)
            and e["action"].get("type") == "command"]
     check(got == [want], "Kiro: the hook file runs the installed core in kiro mode", "got %r" % got[:2])
