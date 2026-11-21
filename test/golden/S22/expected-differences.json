@@ -83,5 +83,145 @@
     "head": "(?!)",
     "replace": "",
     "why": "Two path details: --overlay=~user/x is not expanded (only ~ and ~/ are, from HOME; Python's expanduser also looked other users up), so it is refused as not a directory unless such a relative path exists; and --project=DIR resolves a link followed by .. lexically first (path.resolve, then the links of what exists), where pathlib resolved each link before its .. . Neither changes what an ordinary path names. On Windows `mhw status` is unchanged: it stays install.ps1 -Check after the NODE and PASTE lines (src/cli.js, test/cli.test.js)."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "  hook node        [^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): mhw status prints a hook node line in the full view: the node the prompt hook runs, whether a process running as the owner can replace it or its libraries, FAIL when it is missing (D6 of #470; the owner accepted an owner-writable node until S32, PR #536). workstation.py printed none: an added line, removed from the head before the comparison."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "  term lists       [^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): mhw status prints a term lists line in the full view: a hashed list the 0600 salt file does not cover, or a list moved aside as .old-salt, is named (PR #536 lens O2). workstation.py printed none, because the salt was in the Keychain: an added line."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "drift: [0-9]+ target\\(s\\)",
+    "head": "drift: [0-9]+ target\\(s\\)",
+    "replace": "drift: <N> target(s)",
+    "why": "S17 (#488): install writes one target fewer (the Python prompt-hook core is no longer copied into the data directory), and the admin layer copies the Node hook files in its place, so the installers' --check counts differ by those files. The categories named after the count are compared."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "[^\\n]*clipboard_guard\\.py[^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): lines of the installers' --check that name the Python core (MISSING, OK or DRIFT for <data>/clipboard_guard.py or the admin bin copy) are gone from the head, which installs mhw hook prompt instead."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "[^\\n]*bin/hook/(?:package\\.json|src/[^\\n ]*)[^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): lines of install-managed.sh --check that name the admin layer's Node hook files (bin/hook/package.json and bin/hook/src/...) are new: the admin layer copies a root-owned copy of the hook's JavaScript in place of clipboard_guard.py."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "[0-9]+ target\\(s\\) differ",
+    "head": "[0-9]+ target\\(s\\) differ",
+    "replace": "<N> target(s) differ",
+    "why": "S17 (#488): the installers' --check counts change by the files S17 adds and removes (the Python core out, the admin layer's Node hook files in); the categories named are compared."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "\\(admin layer: [0-9]+\\)",
+    "head": "\\(admin layer: [0-9]+\\)",
+    "replace": "(admin layer: <N>)",
+    "why": "S17 (#488): the admin layer's target count changes by the Node hook files that replace clipboard_guard.py."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "differs from this checkout: [0-9]+ target\\(s\\)",
+    "head": "differs from this checkout: [0-9]+ target\\(s\\)",
+    "replace": "differs from this checkout: <N> target(s)",
+    "why": "S17 (#488): the admin layer's target count changes by the Node hook files that replace clipboard_guard.py."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "stamp: [0-9]+ target\\(s\\)",
+    "head": "stamp: [0-9]+ target\\(s\\)",
+    "replace": "stamp: <N> target(s)",
+    "why": "S17 (#488): the stamped target count changes by the one file install no longer writes (the Python core)."
+  },
+  {
+    "case": [
+      "*"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "  admin layer      (?:MISSING|DRIFT) [^\\n]*\\n",
+    "head": "  admin layer      (?:MISSING|DRIFT) [^\\n]*\\n",
+    "replace": "",
+    "why": "S17 (#488): the admin layer's MISSING and DRIFT lists name the Node hook files (package.json, hook-entry.js, hook-prompt.js, clean.js, clean-unicode.js) where they named clipboard_guard.py; install-managed.test.sh asserts the installed set. Left out on both sides."
+  },
+  {
+    "case": [
+      "stale-admin-layer",
+      "stale-hooks-and-legacy-dropin"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "hitl\\.conf, clipboard_guard\\.py, breaking-glass",
+    "replace": "hitl.conf, breaking-glass",
+    "why": "S17 (#488): install-managed.sh lists clipboard_guard.py among the removed hooks' files (LEGACY), so --check names an earlier release's copy as STALE beside the other leftovers."
+  },
+  {
+    "case": [
+      "stale-admin-layer",
+      "stale-hooks-and-legacy-dropin"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "head": "removed Python paste filter still registered \\((Claude Code|Codex)\\)",
+    "replace": "paste filter ($1)",
+    "why": "S17 (#488): an earlier release's Python hook entry still registered is named as a leftover to remove, not as the paste filter: the Python core no longer runs. workstation.py counted it as the paste filter when clipboard_guard.py was present."
   }
 ]

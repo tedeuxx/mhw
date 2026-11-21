@@ -1,0 +1,107 @@
+{
+  "comment": "S17 (#488): where src/commands/hook-prompt.js and add-term.js intentionally answer differently from clipboard_guard.py. Each entry is applied to the Python original's recorded answer before the comparison: 'replace' swaps a substring in stdout and stderr (base for head), 'answer' replaces the whole answer of each named case, and 'constants' patches the recorded constants. Every one follows from the owner's ruling of 2026-11-21 on #488 (https://github.com/tedeuxx/mhw/issues/488#issuecomment-7062064253): the salt is a 0600 file, never the Keychain.",
+  "differences": [
+    {
+      "what": "The no-salt notice names the salt file instead of the Keychain.",
+      "why": "Since #488 the salt is a file on every system, so 'could not be read without a prompt (Keychain locked, slow or item missing)' would name a store that no longer exists. The notice now says the salt file could not be read and how to recover (mhw add-term). Still a visible warning; generic categories still block.",
+      "section": "decision",
+      "cases": [
+        "no-salt-term/claude",
+        "no-salt-term/codex",
+        "no-salt-term/kiro",
+        "no-salt-generic-blocks/claude",
+        "no-salt-generic-blocks/codex",
+        "no-salt-generic-blocks/kiro",
+        "no-salt-clean/claude",
+        "no-salt-clean/codex",
+        "no-salt-clean/kiro"
+      ],
+      "replace": {
+        "base": "its salt could not be read without a prompt (Keychain locked, slow or item missing), so",
+        "head": "its salt file could not be read (missing, unreadable or not a salt; re-add your terms with mhw add-term), so"
+      }
+    },
+    {
+      "what": "A relative keychain_path no longer makes the settings file unreadable.",
+      "why": "keychain_path is no longer a setting (#488): the original refused a relative one with ValueError, so every prompt passed with an internal-error notice. The port ignores the key, as it ignores any unknown key, and the prompt is checked: here it blocks.",
+      "section": "cli",
+      "cases": [
+        "config-keychain-relative/claude",
+        "config-keychain-relative/codex",
+        "config-keychain-relative/kiro"
+      ],
+      "answer": "the head's answer for the same prompt with the same settings minus the keychain_path line: dirty/<harness>"
+    },
+    {
+      "what": "check-config prints salt_store=file and no keychain_service or keychain_path line.",
+      "why": "salt_store is always 'file' since #488, and the two Keychain settings are gone.",
+      "section": "check_config",
+      "cases": [
+        "file",
+        "missing"
+      ],
+      "drop_lines": [
+        "keychain_service=",
+        "keychain_path="
+      ],
+      "replace": {
+        "base": "salt_store=keychain\n",
+        "head": "salt_store=file\n"
+      }
+    },
+    {
+      "what": "The constants: no KEYCHAIN_READ_SECONDS, no keychain_service or keychain_path setting, salt_store defaults to file, and the new no-salt notice.",
+      "why": "The Keychain store, its bounded read and its two settings are removed (#488).",
+      "section": "constants",
+      "cases": [
+        "*"
+      ],
+      "constants": {
+        "delete": [
+          "KEYCHAIN_READ_SECONDS",
+          "settings.keychain_service",
+          "settings.keychain_path"
+        ],
+        "set": {
+          "settings.salt_store": "file",
+          "notices.notice_no_salt": "Paste filter (ADR-0033): the term list exists but its salt file could not be read (missing, unreadable or not a salt; re-add your terms with mhw add-term), so term matching was NOT checked for this prompt (employer/client terms, health terms, colleague names)."
+        }
+      }
+    },
+    {
+      "what": "mhw scan's NOTE for an unreadable salt names the salt file.",
+      "why": "The salt is a file since #488; 'could not be read without a prompt' described the Keychain read. The NOTE still says no term list was checked, and now how to recover. Applied by test/scan/scan.test.js to the S15 transcripts.",
+      "section": "scan",
+      "cases": [
+        "note-when-salt-unreadable",
+        "*"
+      ],
+      "replace": {
+        "base": "NOTE    the term list's salt could not be read without a prompt; no term list was checked",
+        "head": "NOTE    the term list's salt file could not be read (missing, unreadable or not a salt; re-add your terms with mhw add-term); no term list was checked"
+      }
+    }
+  ],
+  "residuals": [
+    {
+      "what": "A process running as the owner can read the salt.",
+      "why": "The owner's accepted trade-off (#488, 2026-11-21): any process running as him, agents included, can read the 0600 salt file and so test guesses against the hashed lists. The lists themselves stay hashes, never plain text (ADR-0008)."
+    },
+    {
+      "what": "Kiro's error path is still silent to the owner.",
+      "why": "As in the original: on Kiro an error or warning goes to stderr at exit 0, which Kiro drops (read from the bundle, not measured). Writing it to stdout would send it to the model as part of the prompt. Unchanged by this slice."
+    },
+    {
+      "what": "JSON that only Python accepts.",
+      "why": "Python's json.loads accepts NaN, Infinity and -Infinity; JSON.parse does not. Such a payload gets the internal-error notice (visible, never a silent pass). No agent harness is known to send one."
+    },
+    {
+      "what": "The entry file or node missing: fixed by the start fallback (PR #536 lens B3), not a residual any more.",
+      "why": "Both installers render /bin/sh -c '<hook> || <fallback>': a hook that cannot start (node or the entry gone, or the entry not parsing) prints the NOT-checked notice (systemMessage, exit 0) on Claude Code and Codex, and exits 2 with the notice on stderr on Kiro; a healthy hook passes through unchanged (test/clipboard/hook.test.js). mhw status names the missing node or entry as a FAIL item. The base exited 2 only for a missing script; a missing interpreter exited 127 and a parse error 1, neither a block. Kept here so the history of this entry is not a silent absence."
+    },
+    {
+      "what": "The admin layer runs an owner-writable node (owner ruling, 2026-11-21).",
+      "why": "Accepted now, locked at the end: https://github.com/tedeuxx/mhw/pull/536#issuecomment-7063304413. S32 (#502) must require a root-owned, self-contained node for the admin layer."
+    }
+  ]
+}

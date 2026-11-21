@@ -211,10 +211,10 @@ class StaleAdminLayer(unittest.TestCase):
 
     def assert_named(self, out, prefix):
         self.assertIn(prefix + "STALE restart_guard.py, breaking_glass.py, hitl-escalation-guard.sh, hitl.conf, "
-                      "breaking-glass\n", out)
+                      "clipboard_guard.py, breaking-glass\n", out)
         self.assertIn(prefix + "removed controls still installed: restart guard, picker guard, session intake "
                       "(the picker guard's intake exception), timed breaking-glass\n", out)
-        self.assertRegex(out, r"(?m)^%sDRIFT .*%s" % (re.escape(prefix), re.escape(PASTE)))
+        self.assertRegex(out, r"(?m)^%sDRIFT .*clipboard\.conf" % re.escape(prefix))  # #488: the Python core is STALE now
         self.assertIn(prefix + ws.ADMIN_NEXT + "\n", out)
 
     def test_install_without_a_terminal_informs_then_yes_clears_it(self):

@@ -905,6 +905,10 @@ until their slices move. There is still one detector per runtime and one answer.
   Security.framework lock probe. That child is isolated (`python3 -I`, run from `clipboard_guard.py`'s
   own directory), so no module of the scanned repository or of `PYTHONPATH` runs; without `python3` a
   NOTE names the missing interpreter. It ends when the prompt hook moves to Node and carries the probe.
+  *Amended 2026-11-21 (#488):* ~~the Keychain salt is read by a `python3` child~~. The salt is a `0600`
+  file since the owner's ruling (https://github.com/tedeuxx/mhw/issues/488#issuecomment-7062064253), so `mhw scan` reads it in process, starts no
+  process for it, and prints a NOTE when it is missing or unreadable. ADR-0033's amendment of that date
+  records why and what it costs.
 - **Fail-open, the main risk.** Python's `re` and JavaScript's `RegExp` disagree on `\w`, `\d`, `\s`,
   `\b`, case-insensitive matching, and on offsets (code points against UTF-16 units). `clean.js` uses
   none of JavaScript's own: every class, the ignore-case sets and `str.casefold()` are pinned to

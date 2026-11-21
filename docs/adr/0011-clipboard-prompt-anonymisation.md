@@ -144,6 +144,9 @@ throttle interval.
   See the amendment under "Evidence for the Keychain path".)*
 - **Fallback (`salt_store=file`, the default off macOS):** a 0600 file in a 0700 directory, outside every
   repository: `<data dir>/local-overlay/clipboard-salt`.
+- *Amended 2026-11-21 (#488, the owner's ruling: https://github.com/tedeuxx/mhw/issues/488#issuecomment-7062064253):* ~~macOS default: Keychain~~. The salt is
+  that file on every system; the Keychain store, its lock probe and every `security` call for the salt are
+  removed. The trade-off and the migration are in ADR-0033's amendment of the same date.
 
 ### The term list
 

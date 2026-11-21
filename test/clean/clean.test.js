@@ -14,7 +14,7 @@ import { spawnSync } from 'node:child_process';
 import * as clean from '../../src/lib/clean.js';
 import { CASES, SALT } from './corpus.js';
 import { readGolden, writeGolden, UPDATE } from '../helpers/golden.js';
-import { CPYTHON, RECORDER, CLIPBOARD, recordedPython } from '../helpers/s15.js';
+import { CPYTHON, RECORDER, clipboardDir, recordedPython } from '../helpers/s15.js';
 
 const SLICE = 'S15';
 const LIVE_REQUIRED = process.env.MHW_S15_LIVE_REQUIRED === '1';
@@ -54,9 +54,9 @@ export function nodeAnswer(c) {
   };
 }
 
-/** @param {string} py @returns {Answer[]} */
-function pythonAnswers(py) {
-  const p = spawnSync(py, ['-B', RECORDER, 'corpus', CLIPBOARD], { input: JSON.stringify(CASES), encoding: 'utf8', maxBuffer: 64 << 20 });
+/** @param {string} py @param {string} dir the directory holding clipboard_guard.py @returns {Answer[]} */
+function pythonAnswers(py, dir) {
+  const p = spawnSync(py, ['-B', RECORDER, 'corpus', dir], { input: JSON.stringify(CASES), encoding: 'utf8', maxBuffer: 64 << 20 });
   assert.equal(p.status, 0, p.stderr);
   return JSON.parse(p.stdout).cases.map((/** @type {Answer} */ a) => ({ ...a, tokens: digestTokens(a.tokens) }));
 }
@@ -107,7 +107,14 @@ test('live: the recorded CPython answers the corpus as clean.js does', (t) => {
     t.skip(p.why);
     return;
   }
-  const answers = pythonAnswers(p.py);
+  // clipboard_guard.py was deleted by #488 (S17): the base revision's copy while the base still holds it.
+  const d = clipboardDir('clipboard_guard.py', LIVE_REQUIRED);
+  if (!d.dir) {
+    if (d.fail) assert.fail('MHW_S15_LIVE_REQUIRED=1: ' + d.why);
+    t.skip(d.why);
+    return;
+  }
+  const answers = pythonAnswers(p.py, d.dir);
   if (UPDATE) writeGolden(SLICE, 'corpus.json', { cpython: CPYTHON, salt: SALT, cases: answers });
   assert.deepEqual(compare(answers, nodeAnswer), []);
 });
