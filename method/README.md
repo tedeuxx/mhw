@@ -20,8 +20,10 @@ description says what it takes. Unlike a command, a skill may also be loaded by 
 
 **Installing it is opt-in until the plugin cutover (#63, #64):** `./mhw install --method`
 renders it through `global/install.sh` (on Windows, `global/install.ps1 -Method`), which runs
-`global/method/method_render.py` as its own step. `./mhw check`, `status` and `uninstall` cover
-it the same way. Every rendered file carries the provenance stamp (ADR-0029).
+~~`global/method/method_render.py`~~ `src/render/method.js` (Node since #489) as its own step.
+`./mhw check`, `status` and `uninstall` cover it the same way. Every rendered file carries the
+provenance stamp (ADR-0029). No script is installed: the rites run `mhw` commands, and a script an
+earlier version installed is reported `STALE` by `check` and removed by the next install.
 
 The method carries **no hooks**. Edit the source here, never a rendered file; the next install
 overwrites a rendered file and `check` reports the difference as `DRIFT`.

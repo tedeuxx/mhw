@@ -14,9 +14,11 @@ purpose: "give the closing of an iteration an object, so improvement stops being
 > session checks that replaced the plugin's reporting hooks are in `agents-configuration`, *Session-start
 > and end-of-turn checks*.
 >
-> **The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
+> ~~**The scripts this rite runs ship with the method (#170).** `{{method-scripts}}` in this text is the
 > directory the method installs them to, the same for every agent harness, so the rite runs them from
-> any repository.
+> any repository.~~ *(Struck 2026-11-21, #489: the method installs no script; the rite runs `mhw`
+> commands.)* Where `{{method-scripts}}` appears in this text, it is the directory the method installs
+> the documents a rite reads to, the same for every agent harness.
 
 > **A skill, not a command, since 2026-10-26** (the owner: *"para mim sao skills"*). Invoke it by name:
 > Claude Code `/sprint-retrospective`, Codex `$sprint-retrospective`, Kiro `/sprint-retrospective`. Any agent harness may also load it

@@ -12,10 +12,12 @@ observe a gate follow the contract, and a paraphrase outside the parsed surface 
 """
 import contextlib
 import io
+import json
 import os
 import re
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -202,11 +204,18 @@ class MethodCopiesMatchTheContract(unittest.TestCase):
                 self.assertTrue(ma.method_copy_findings(mutated, CONTRACT, verdicts))
 
     def test_the_gate_preloads_the_contract_and_its_description_carries_the_mapping(self):
-        # The rendered agent metadata (the description) is an operational copy too.
-        sys.path.insert(0, str(HERE / "method"))
-        import method_render as mr
-        fields, _ = mr.split_front_matter((REPO / "method/agents/quality-assurance.md").read_text(encoding="utf-8"),
-                                          "qa")
+        # The rendered agent metadata (the description) is an operational copy too. The front matter is read
+        # by the renderer's own parser, src/render/method.js (Node since #489; method_render.py until then).
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node is not on PATH")
+        script = ("import {splitFrontMatter} from %s; import fs from 'node:fs'; "
+                  "const {fields} = splitFrontMatter(fs.readFileSync(0, 'utf8'), 'qa'); "
+                  "process.stdout.write(JSON.stringify(Object.fromEntries(fields)));"
+                  % json.dumps((REPO / "src" / "render" / "method.js").as_uri()))
+        p = subprocess.run([node, "--input-type=module", "-e", script], capture_output=True, text=True, check=True,
+                           input=(REPO / "method/agents/quality-assurance.md").read_text(encoding="utf-8"))
+        fields = json.loads(p.stdout)
         self.assertIn("merge-authority", fields["skills"])
         desc = fields["description"].lower()
         for key in ("safe", "boundary", "on-hold"):
