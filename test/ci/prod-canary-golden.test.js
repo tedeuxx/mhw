@@ -46,7 +46,8 @@ test('every case has a golden transcript and every expected difference names a c
   const suite = fs.readFileSync(path.join(ROOT, 'test', 'ci', 'prod-canary.test.js'), 'utf8');
   for (const r of declared.residuals) {
     assert.ok(r.what && r.why && r.why.length > 40, 'a residual states why');
-    const [file, title] = r.pinned.split(': ');
+    const cut = r.pinned.indexOf(': ');
+    const [file, title] = [r.pinned.slice(0, cut), r.pinned.slice(cut + 2)];
     assert.equal(file, 'test/ci/prod-canary.test.js');
     assert.ok(suite.includes("test('" + title + "'"), 'no test named ' + title);
   }

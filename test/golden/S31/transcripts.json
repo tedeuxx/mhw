@@ -47,7 +47,7 @@
         {
           "path": "package/bin/mhw.js",
           "mode": "644:file",
-          "sha256": "adb5451b72d60ac8584f47e1359bf6369959af91d7379e2db4b80231f71f735a"
+          "sha256": "f38f3e8f70444610a4c16091f7430e704323eb4ad6b1b303356dae0b53eeeb8e"
         },
         {
           "path": "package/global/deny-floor.conf",
@@ -79,7 +79,7 @@
         {
           "path": "package/bin/mhw.js",
           "mode": "644:file",
-          "sha256": "adb5451b72d60ac8584f47e1359bf6369959af91d7379e2db4b80231f71f735a"
+          "sha256": "f38f3e8f70444610a4c16091f7430e704323eb4ad6b1b303356dae0b53eeeb8e"
         },
         {
           "path": "package/global/deny-floor.conf",
@@ -111,7 +111,7 @@
         {
           "path": "package/bin/mhw.js",
           "mode": "644:file",
-          "sha256": "adb5451b72d60ac8584f47e1359bf6369959af91d7379e2db4b80231f71f735a"
+          "sha256": "f38f3e8f70444610a4c16091f7430e704323eb4ad6b1b303356dae0b53eeeb8e"
         },
         {
           "path": "package/global/deny-floor.conf",
@@ -143,7 +143,7 @@
         {
           "path": "package/bin/mhw.js",
           "mode": "644:file",
-          "sha256": "adb5451b72d60ac8584f47e1359bf6369959af91d7379e2db4b80231f71f735a"
+          "sha256": "f38f3e8f70444610a4c16091f7430e704323eb4ad6b1b303356dae0b53eeeb8e"
         },
         {
           "path": "package/global/deny-floor.conf",
