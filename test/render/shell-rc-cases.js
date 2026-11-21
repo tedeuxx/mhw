@@ -4,7 +4,8 @@
 // test/golden/S21/transcripts records the base's. Each scenario is one throwaway directory:
 //   T/home  the HOME (its tree is what a transcript records after each run)
 //   T/out   a directory outside HOME (its tree is recorded too: a ZDOTDIR there is never written)
-// Paths in a fixture change, a ZDOTDIR and a --shell-rc start with H/ (HOME) or O/ (outside). These are the
+// Paths in a fixture change, a ZDOTDIR and a --shell-rc start with H/ (HOME), O/ (outside) or S/ (<T>/homex, a
+// sibling of HOME, recorded when it exists); a fixture text or link target may say @H or @O for their paths. These are the
 // rc_* cases of global/install.test.sh, and the ones around them, as scenarios.
 
 export const NAME = 'personal-multi-harness-workstation-configuration';
@@ -103,6 +104,9 @@ export const SCENARIOS = [
   { name: 'zdotdir-inside-home', zdotdir: 'H/zdot', runs: [install, check, uninstall] },
   { name: 'zdotdir-outside-home', zdotdir: 'O/zdot', setup: [{ write: 'O/zdot/.zshrc', text: 'export OWNER_ZSH=1\n' + OURS }],
     runs: [check, dry, install, uninstall] },
+  // A sibling of HOME whose name starts with HOME's (<T>/homex) is outside HOME (PR #543 QA, M23).
+  { name: 'zdotdir-sibling-of-home', zdotdir: 'S', setup: [{ write: 'S/.zshrc', text: 'export Z=1\n' + OURS }],
+    runs: [check, install, uninstall] },
   { name: 'zdotdir-outside-home-shell-rc', zdotdir: 'O/zdot', setup: [{ write: 'O/zdot/.zshrc', text: OURS }], runs: [r(install), r(uninstall)] },
   // The shell decides the file.
   { name: 'bash-linux', shell: '/bin/bash', uname: 'Linux',
@@ -127,6 +131,13 @@ export const SCENARIOS = [
     runs: [install, { mode: 'uninstall', label: 'uninstall after the owner added a line',
       before: [{ write: 'H/.bash_profile', text: 'export LATER=1\n' + OURS }] }] },
   { name: 'bash-bare-name', shell: 'bash', uname: 'Linux', runs: [install, uninstall] },
+  // Uninstall deletes a file install created only when nothing but the block is in it, and never a link
+  // (PR #543 QA, M11 and M12): blank lines the owner added stay; a link the owner put there stays.
+  { name: 'created-then-blank-lines', runs: [install,
+    { mode: 'uninstall', label: 'uninstall after the owner added blank lines', before: [{ write: 'H/.zshrc', text: '\n\n' + OURS }] }] },
+  { name: 'created-then-linked', runs: [install,
+    { mode: 'uninstall', label: 'uninstall after the owner replaced it with a link',
+      before: [{ rm: 'H/.zshrc' }, { write: 'O/dot/zshrc', text: OURS }, { symlink: 'H/.zshrc', to: '@O/dot/zshrc' }] }] },
   // No file: another shell, SHELL empty, --shell-rc=none.
   { name: 'fish', shell: '/usr/local/bin/fish', setup: [{ write: 'H/.zshrc', text: 'z\n' + OURS }], runs: [check, dry, install, uninstall] },
   // SHELL empty, not unset: a shell that sets SHELL itself when it is unset (bash as sh does, from the

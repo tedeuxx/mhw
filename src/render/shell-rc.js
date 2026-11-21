@@ -189,9 +189,11 @@ const home = (ctx) => ctx.env.HOME || '';
 function zshrc(ctx) {
   const h = home(ctx);
   const z = (ctx.env.ZDOTDIR || h) + '/.zshrc';
-  if (!z.startsWith(h + '/')) return '';
-  // The text check alone let ZDOTDIR=$HOME/../x through (#492, PR #543 lens): the directory is also
-  // resolved, links and '..' included, and must still be HOME or under it. Only narrows.
+  // A relative ZDOTDIR is never inside HOME (the text check it replaces said so), whatever the cwd.
+  if (!z.startsWith('/')) return '';
+  // The text check alone let ZDOTDIR=$HOME/../x through (#492, PR #543 lens): the directory is resolved,
+  // links and '..' included, and must be HOME or under it, compared with the trailing '/' so a sibling such
+  // as $HOME-x is outside (PR #543 QA). Only narrows.
   const rh = realOf(h);
   const rz = realOf(path.dirname(z));
   return rz === rh || rz.startsWith(rh.endsWith('/') ? rh : rh + '/') ? z : '';
@@ -442,7 +444,9 @@ function uninstallStep(ctx) {
     const kept = write(ctx, rc, s.stripped);
     ctx.out('CHANGED ' + rc + ': paste-wrapper start-up block present -> absent (' + kept + ')\n');
   }
-  fs.rmSync(createdList(ctx), { force: true });
+  // A refused file (damaged markers, unreadable) still holds its block: the list stays, so the uninstall
+  // that finally removes it can still delete a file install created (PR #543 QA advisory).
+  if (ctx.status < 3) fs.rmSync(createdList(ctx), { force: true });
 }
 
 // ---- The command line ----------------------------------------------------------------------------------

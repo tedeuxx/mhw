@@ -331,3 +331,79 @@ test('ZDOTDIR is resolved before the inside-HOME check: .. and a link out of HOM
     run(h, 'uninstall', { zdotdir });
   }
 });
+
+// One row per limb of the predicates that decide whether uninstall deletes or touches a file (PR #543 QA B1):
+// the file holds nothing but the block (not only blank lines), it is not a link, install created it, and a
+// default ZDOTDIR is HOME or under it (a sibling whose name starts with HOME's is not).
+test('uninstall deletes a file only when every limb holds', { skip: !POSIX && 'POSIX only' }, () => {
+  /** @type {Array<{ limb: string, prep: (h: ReturnType<typeof home>, o: string) => void, zdotdir?: (h: ReturnType<typeof home>) => string,
+   *   want: (h: ReturnType<typeof home>, o: string) => void }>} */
+  const rows = [
+    { limb: 'only the block (blank lines are the owner\'s)', prep: (h) => fs.writeFileSync(h.H + '/.zshrc', '\n\n' + block(h.snippet)),
+      want: (h) => assert.equal(read(h.H + '/.zshrc'), '\n\n') },
+    { limb: 'not a link', prep: (h, o) => {
+      fs.rmSync(h.H + '/.zshrc');
+      fs.writeFileSync(o + '/zshrc', block(h.snippet));
+      fs.symlinkSync(o + '/zshrc', h.H + '/.zshrc');
+    }, want: (h, o) => {
+      assert.equal(fs.lstatSync(h.H + '/.zshrc').isSymbolicLink(), true);
+      assert.equal(read(o + '/zshrc'), '');
+    } },
+    { limb: 'install created it', prep: (h) => fs.rmSync(path.join(h.data, CREATED_LIST)),
+      want: (h) => assert.equal(read(h.H + '/.zshrc'), '') },
+    { limb: 'all hold: deleted', prep: () => {}, want: (h) => assert.equal(fs.existsSync(h.H + '/.zshrc'), false) },
+  ];
+  for (const r of rows) {
+    const h = home();
+    const o = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 's21-limb-')));
+    cleanups.push(() => fs.rmSync(o, { recursive: true, force: true }));
+    assert.equal(run(h, 'install').code, 0, r.limb);
+    r.prep(h, o);
+    assert.equal(run(h, 'uninstall').code, 0, r.limb);
+    r.want(h, o);
+  }
+  // A ZDOTDIR that is a sibling of HOME (HOME + 'x'): never written, never touched by uninstall.
+  const h = home();
+  const sib = h.H + 'x';
+  fs.mkdirSync(sib);
+  cleanups.push(() => fs.rmSync(sib, { recursive: true, force: true }));
+  fs.writeFileSync(sib + '/.zshrc', 'export Z=1\n' + block(h.snippet));
+  assert.match(run(h, 'install', { zdotdir: sib }).out, /is outside HOME=/);
+  assert.equal(run(h, 'uninstall', { zdotdir: sib }).out, '');
+  assert.equal(read(sib + '/.zshrc'), 'export Z=1\n' + block(h.snippet));
+});
+
+test('a refused file keeps the created-files list, so a later uninstall still deletes what install created', { skip: (!POSIX && 'POSIX only') || (ROOT_USER && 'root reads every file') }, () => {
+  const h = home();
+  run(h, 'install', { shell: '/bin/bash', uname: 'Linux' });
+  fs.writeFileSync(h.H + '/.zshrc', 'x\n' + BEGIN + '\n');
+  assert.equal(run(h, 'uninstall', { shell: '/bin/bash' }).code, 3);
+  assert.equal(fs.existsSync(path.join(h.data, CREATED_LIST)), true, 'kept beside a damaged file');
+  fs.writeFileSync(h.H + '/.bashrc', block(h.snippet));
+  fs.writeFileSync(h.H + '/.zshrc', 'x\n');
+  assert.equal(run(h, 'uninstall', { shell: '/bin/bash' }).code, 0);
+  assert.equal(fs.existsSync(h.H + '/.bashrc'), false, 'the created ~/.bashrc is deleted, not emptied');
+  assert.equal(fs.existsSync(path.join(h.data, CREATED_LIST)), false);
+});
+
+test('a NUL byte in a start-up file is kept (the base awk lost the byte after it)', { skip: !POSIX && 'POSIX only' }, () => {
+  const h = home();
+  const owner = Buffer.from('a\0b\nexport X=1\n', 'latin1');
+  fs.writeFileSync(h.H + '/.zshrc', owner);
+  run(h, 'install');
+  run(h, 'uninstall');
+  assert.deepEqual(fs.readFileSync(h.H + '/.zshrc'), owner);
+});
+
+test('a relative ZDOTDIR is outside HOME, even from a cwd inside HOME', { skip: !POSIX && 'POSIX only' }, () => {
+  const h = home();
+  fs.mkdirSync(h.H + '/zdot');
+  const cwd = process.cwd();
+  try {
+    process.chdir(h.H);
+    assert.match(run(h, 'install', { zdotdir: 'zdot' }).out, /^NOTE {4}automatic paste cleaning: no shell start-up file is written \(ZDOTDIR=zdot is outside HOME=/);
+  } finally {
+    process.chdir(cwd);
+  }
+  assert.deepEqual(fs.readdirSync(h.H + '/zdot'), []);
+});

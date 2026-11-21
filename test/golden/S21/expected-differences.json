@@ -18,6 +18,18 @@
     "why": "Not exercised by a golden scenario (the shell side's message is awk's own); pinned in shell-rc.test.js. Measured on the base revision with a 0000 ~/.zshrc: rc_scan's awk printed 'awk: can't open file <file>' and the failed command substitution stopped install.sh under set -e, exit 2, in install and in uninstall alike, so nothing after the step ran (on uninstall: uninstall_user and the method step). The Node step prints 'REFUSE  <file>: cannot be read (EACCES); nothing written' (or 'nothing removed' on uninstall), raises 3 and leaves the file as it was, and the installer's later steps run, as they do after the other REFUSE lines of this step."
   },
   {
+    "name": "a refused file keeps the list of files install created",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a golden scenario (no scenario refuses a file after install recorded one); pinned in shell-rc.test.js. shell_rc_uninstall removed shell-rc-created.list at its end whatever happened. After a REFUSE for damaged markers, the list was gone. A later uninstall, once the owner had fixed the markers, then emptied a file that install had created instead of deleting it. After an unreadable file, the base stopped before reaching that point, so it kept the list. Now, when any file of the run was refused (status 3), the list stays, so the uninstall that finally removes the block still deletes a file install created (PR #543 QA advisory). Narrower only: the list is kept in more cases, and nothing is deleted that was not deleted before."
+  },
+  {
+    "name": "a NUL byte in a start-up file is kept",
+    "stream": "stdout",
+    "pattern": null,
+    "why": "Not exercised by a golden scenario (the shell side's bytes depend on the awk build); pinned in shell-rc.test.js. The base's awk lost the byte after a NUL. The PR #543 QA probe showed this on macOS: 'a\\0b' came back as 'a\\0' after install and uninstall. The Node step reads and writes bytes, so the owner's file comes back byte for byte. A difference that goes the good way."
+  },
+  {
     "name": "an unforeseen failure of the step is a refusal",
     "stream": "stderr",
     "pattern": null,
@@ -39,6 +51,6 @@
     "name": "ZDOTDIR is resolved before the inside-HOME check",
     "stream": "stdout",
     "pattern": null,
-    "why": "Not exercised by a golden scenario; pinned in shell-rc.test.js. rc_inside_home compared text only. So ZDOTDIR=$HOME/../x, or a ZDOTDIR inside HOME that is a symbolic link pointing out of it, passed the check, and the block was written outside HOME (PR #543 lens). The text check stays. The directory is now also resolved as the kernel resolves it: realpath(3) of the longest existing prefix, following links and '..' in order, with the rest appended. HOME is resolved the same way, and the directory must be HOME or under it. Otherwise install prints the existing line 'no shell start-up file is written (ZDOTDIR=<value> is outside HOME=<home>)', and uninstall does not touch that file. A link that stays inside HOME, and a '..' that comes back into HOME, are still written. Only the directory is resolved: a ~/.zshrc that is itself a link to a dotfiles checkout elsewhere is still written through, as before. Narrower only."
+    "why": "Not exercised by a golden scenario; pinned in shell-rc.test.js. rc_inside_home compared text only. So ZDOTDIR=$HOME/../x, or a ZDOTDIR inside HOME that is a symbolic link pointing out of it, passed the check, and the block was written outside HOME (PR #543 lens). The text check is replaced by two checks. First, a relative ZDOTDIR is outside HOME, as the text check already made it, whatever the cwd. Second, the directory is resolved as the kernel resolves it: realpath(3) of the longest existing prefix, following links and '..' in order, with the rest appended. HOME is resolved the same way, and the directory must be HOME itself or begin with HOME plus '/'. That way a sibling such as $HOME-x stays outside, as it did under the text check (PR #543 QA, M23). Otherwise install prints the existing line 'no shell start-up file is written (ZDOTDIR=<value> is outside HOME=<home>)', and uninstall does not touch that file. A link that stays inside HOME, and a '..' that comes back into HOME, are still written. Only the directory is resolved: a ~/.zshrc that is itself a link to a dotfiles checkout elsewhere is still written through, as before. Narrower only."
   }
 ]

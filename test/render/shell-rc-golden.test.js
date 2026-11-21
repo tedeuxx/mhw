@@ -75,11 +75,14 @@ function freshDir(label) {
  */
 function runScenario(sc, tree_, o = {}) {
   const T = freshDir(sc.name);
-  const d = { T, H: path.join(T, o.homeName || 'home'), O: path.join(T, 'out') };
+  const H = path.join(T, o.homeName || 'home');
+  // S: a sibling of HOME whose name starts with HOME's (<T>/homex), outside HOME; recorded only when used.
+  const d = { T, H, O: path.join(T, 'out'), S: H + 'x' };
   for (const dir of [d.H, d.O, path.join(T, 'tmp'), path.join(T, 'bin')]) fs.mkdirSync(dir);
   fs.writeFileSync(path.join(T, 'bin', 'uname'), '#!/bin/sh\nprintf \'%s\\n\' "$A_UNAME"\n', { mode: 0o755 });
+  const sub = (/** @type {string} */ s) => s.replaceAll('@H', d.H).replaceAll('@O', d.O);
   /** @param {import('./shell-rc-cases.js').Change} c */
-  const apply = (c) => applyChange(d, 'text' in c ? { ...c, text: c.text.replaceAll('@H', d.H) } : c, () => {});
+  const apply = (c) => applyChange(d, 'text' in c ? { ...c, text: sub(c.text) } : 'to' in c ? { ...c, to: sub(c.to) } : c, () => {});
   for (const c of sc.setup || []) apply(c);
   const norm = (/** @type {string} */ s) => s.split(T).join('<T>');
   const runs = [];
@@ -94,7 +97,7 @@ function runScenario(sc, tree_, o = {}) {
     if (sc.zdotdir) env.ZDOTDIR = at(d, sc.zdotdir);
     const p = spawnSync('/bin/sh', ['-c', DRIVER], { encoding: 'utf8', env });
     runs.push({ run: r.label || r.mode + (r.shellRc ? ' --shell-rc' : ''), code: p.status, stdout: norm(p.stdout), stderr: norm(p.stderr),
-      tree: { home: tree(d.H, norm), out: tree(d.O, norm) } });
+      tree: { home: tree(d.H, norm), out: tree(d.O, norm), ...(fs.existsSync(d.S) ? { sibling: tree(d.S, norm) } : {}) } });
   }
   return runs;
 }
