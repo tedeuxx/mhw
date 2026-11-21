@@ -166,7 +166,10 @@ was not checked for this runbook).
   edit the Issue controls that text. That is an instruction to a model, not a guarantee.
 - The agent has one shell route, the executable `.github/scripts/method-issue-sync` (Node since #500: its
   allow rule is exactly `Bash(.github/scripts/method-issue-sync:*)`, no rule names `node`, and a path
-  through it, `<it>/../<file>`, fails with ENOTDIR in the kernel), and no file-reading tools. The
+  through it, `<it>/../<file>`, fails with ENOTDIR in the kernel), and no Read, Glob or Grep tool.
+  Claude Code's built-in read-only commands (`cat`, `head`) still read files in the working directory,
+  the public checkout; the input files, the environment and paths outside it were refused (measured by
+  the agents-lead lens on PR #541, Claude Code 2.1.296 and 2.1.330, macOS). The
   script writes only to the twin (found by the marker), refuses a body file outside the run's scratch
   directory, refuses a body or title shaped like a credential, and mirrors state only in the direction
   the mhw Issue is in. It also refuses a title or body containing any 12-character run of a token the

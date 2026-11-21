@@ -1013,9 +1013,13 @@ the `*.md` form on Claude Code 2.1.296 and 2.1.330 (PR #541); it is not measured
 matches nothing there, the body write is denied and `verify` fails red. With the executable this barrier
 is a second one, for the files the agent writes.
 
-**Consequence.** `src/lib` is now on disk in the agent's job. The agent has no file-reading tool and its
-one write rule reaches only `*.md` files in `${{ runner.temp }}/method-sync`, so it can neither read nor change those
-files; a change to `src/lib/py.js` or `src/lib/onpath.js` is a change to this boundary and is reviewed
+**Consequence.** `src/lib` is now on disk in the agent's job. The agent has no Read, Glob or Grep tool, but
+Claude Code's built-in read-only commands (`cat`, `head`) still read files under the working directory,
+which is the public checkout, `src/lib` included (measured by the `agents-lead` lens on PR #541: Claude Code
+2.1.296 and 2.1.330, macOS). That costs nothing while the repository is public. The input files, `env`,
+`printenv` and paths outside the working directory were refused. Its one write rule reaches only `*.md`
+files in `${{ runner.temp }}/method-sync`, and its one shell route is the executable, so it can neither
+change nor execute those files; a change to `src/lib/py.js` or `src/lib/onpath.js` is a change to this boundary and is reviewed
 as one.
 
 **Evidence level.** *Written and tested*: golden transcripts recorded from the Python original with its
