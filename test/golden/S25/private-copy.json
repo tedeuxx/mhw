@@ -192,7 +192,7 @@
         ],
         "settings.json.pmhwc-backup": [
           "link",
-          "755",
+          "-",
           "victim-fifo"
         ],
         "victim-fifo": [
@@ -212,7 +212,7 @@
         ],
         "settings.json.pmhwc-backup": [
           "link",
-          "755",
+          "-",
           "/dev/null"
         ]
       }
@@ -227,7 +227,7 @@
         ],
         "settings.json.pmhwc-backup": [
           "link",
-          "755",
+          "-",
           "victim-dir"
         ],
         "victim-dir": [

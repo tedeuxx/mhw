@@ -469,7 +469,8 @@ test('a Claude Code settings.json jq refuses is refused here too, as the setting
     let out = '';
     const code = run(['--mode=install', '--policy=' + policy, '--home=' + home], { env: { HOME: home }, out: (t) => { out += t; }, err: () => {} });
     assert.equal(code, 3, label);
-    assert.ok(out.includes('REFUSE  ' + file + ': not readable as its format; model defaults left untouched'), label + ': ' + out);
+    // The path is printed as the platform prints it (str(Path) on Windows), so only its tail is compared.
+    assert.match(out, /^REFUSE {2}.*settings\.json: not readable as its format; model defaults left untouched$/m, label + ': ' + out);
     assert.equal(fs.readFileSync(file, 'utf8'), text, label);
     assert.deepEqual(fs.readdirSync(path.dirname(file)).sort(), ['settings.json'], label);
   }

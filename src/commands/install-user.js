@@ -67,10 +67,10 @@ class Exit extends Error {
   }
 }
 
-/** @param {number} fd @param {string | Buffer} text */
+/** Every byte of text, written synchronously. @param {number} fd @param {string | Buffer} text */
 function write(fd, text) {
-  if (typeof text === 'string') fs.writeSync(fd, text);
-  else fs.writeSync(fd, text);
+  const b = typeof text === 'string' ? Buffer.from(text, 'utf8') : text;
+  for (let off = 0; off < b.length;) off += fs.writeSync(fd, b, off, b.length - off);
 }
 
 /** This process's output, written synchronously so it interleaves with the renderers' inherited output. */
@@ -813,6 +813,21 @@ function removeJson(dir) {
 // ------------------------------------------------------------------------------------------- the steps
 
 /**
+ * $SHELL as install.sh saw it. Unset, /bin/sh on macOS (bash) set it to the user's login shell, and on
+ * Linux (dash) left it unset; both are kept, so a run without SHELL picks the same start-up file as before.
+ * @param {Env} env
+ */
+export function shellOf(env) {
+  if (env.SHELL !== undefined) return env.SHELL;
+  if (process.platform !== 'darwin') return '';
+  try {
+    return os.userInfo().shell || '';
+  } catch {
+    return '';
+  }
+}
+
+/**
  * The shell start-up block that activates the paste wrapper (Issue #145): src/render/shell-rc.js (#492),
  * run by the node the settings merge runs. Its exit code: 1 is drift under --check only (elsewhere node's own
  * exit for an uncaught exception, so a refusal), 3 a refused file, 4 a write that failed, which stops the run.
@@ -825,7 +840,7 @@ export function startupStep(ctx) {
     return;
   }
   const rc = runNode(ctx, /** @type {string} */ (ctx.allowNode), [ctx.scriptDir + '/../src/render/shell-rc.js', '--mode=' + ctx.mode,
-    '--shell-rc=' + ctx.shellRc, '--shell=' + (ctx.env.SHELL || ''), '--snippet=' + ctx.paths.snippetDest,
+    '--shell-rc=' + ctx.shellRc, '--shell=' + shellOf(ctx.env), '--snippet=' + ctx.paths.snippetDest,
     '--data-dir=' + ctx.dataDir, '--uname=' + (ctx.uname || os.type())]);
   if (rc === 0) return;
   if (ctx.mode === 'check' && rc === 1) raise(ctx, 1);

@@ -79,7 +79,9 @@ function outcome(dir) {
     const p = path.join(dir, name);
     const st = fs.lstatSync(p);
     const mode = (st.mode & 0o777).toString(8);
-    if (st.isSymbolicLink()) out[name] = ['link', mode, fs.readlinkSync(p)];
+    // A link's own mode is the OS's (0755 on macOS, 0777 on Linux), never the copy's: not compared, since the
+    // shell outcomes are recorded on one OS (#503).
+    if (st.isSymbolicLink()) out[name] = ['link', '-', fs.readlinkSync(p)];
     else if (st.isFIFO()) out[name] = ['fifo', mode, ''];
     else if (st.isDirectory()) out[name] = ['dir', mode, fs.readdirSync(p).sort().join('|')];
     else out[name] = ['file', mode, fs.readFileSync(p).toString('base64')];
