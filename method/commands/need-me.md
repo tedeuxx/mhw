@@ -42,7 +42,8 @@ Read the minimum, scoped to this session; never the whole backlog.
    repository does not have also prints `[]` and exits 0. So when the list is empty, confirm the label
    exists with `gh label list --repo tedeuxx/mhw --limit 1000 --json name`. If `owner-action` is not
    among the names, or either call fails, say the queue was **not read** and why. Never report it as
-   empty.
+   empty. These are the same two read-only calls `mhw status` makes, in that order (its reader is
+   Node since #493).
 
 Then filter: drop what is yours to decide (above), and drop what is already answered on the tracker.
 An answer given only in this conversation counts as an answer, and you record it (below) before you

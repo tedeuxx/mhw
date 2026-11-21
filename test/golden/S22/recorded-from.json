@@ -1,0 +1,4 @@
+{
+  "cpython": "3.14.6",
+  "why": "The CPython the S22 golden transcripts were recorded from (the base revision's global/workstation.py status view, macOS). The live arm compares only on this version, as the S10, S13 and S14 arms do: the installers' own Python steps run on both sides, and a traceback's text changes between CPython releases."
+}

@@ -1,0 +1,47 @@
+{
+  "step0 status --bogus": {
+    "code": 2
+  },
+  "step0 status --bogus stdout": "NODE    <the NODE line>\nPASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)\n",
+  "step0 status --bogus stderr": "mhw: unknown argument for status: --bogus\n",
+  "step1 status --mcp-connect=0": {
+    "code": 2
+  },
+  "step1 status --mcp-connect=0 stdout": "NODE    <the NODE line>\nPASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)\n",
+  "step1 status --mcp-connect=0 stderr": "mhw: unknown argument for status: --mcp-connect=0\n",
+  "step2 status --mcp-connect=99999": {
+    "code": 2
+  },
+  "step2 status --mcp-connect=99999 stdout": "NODE    <the NODE line>\nPASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)\n",
+  "step2 status --mcp-connect=99999 stderr": "mhw: unknown argument for status: --mcp-connect=99999\n",
+  "step3 status --mcp-connect=x": {
+    "code": 2
+  },
+  "step3 status --mcp-connect=x stdout": "NODE    <the NODE line>\nPASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)\n",
+  "step3 status --mcp-connect=x stderr": "mhw: unknown argument for status: --mcp-connect=x\n",
+  "step4 status --overlay=/nonexistent/s22": {
+    "code": 2
+  },
+  "step4 status --overlay=/nonexistent/s22 stdout": "NODE    <the NODE line>\nPASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)\n",
+  "step4 status --overlay=/nonexistent/s22 stderr": "mhw: --overlay takes 'none' or an existing directory\n",
+  "step5 status --overlay=-x": {
+    "code": 2
+  },
+  "step5 status --overlay=-x stdout": "NODE    <the NODE line>\nPASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)\n",
+  "step5 status --overlay=-x stderr": "mhw: --overlay takes 'none' or an existing directory\n",
+  "step6 status --overlay=": {
+    "code": 2
+  },
+  "step6 status --overlay= stdout": "NODE    <the NODE line>\nPASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)\n",
+  "step6 status --overlay= stderr": "mhw: --overlay takes 'none' or an existing directory\n",
+  "step7 status --yes": {
+    "code": 2
+  },
+  "step7 status --yes stdout": "NODE    <the NODE line>\nPASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)\n",
+  "step7 status --yes stderr": "mhw: unknown argument for status: --yes\n",
+  "step8 status --project": {
+    "code": 2
+  },
+  "step8 status --project stdout": "NODE    <the NODE line>\nPASTE   ok    the paste wrapper loads its pty library (node-pty 1.1.0)\n",
+  "step8 status --project stderr": "mhw: unknown argument for status: --project\n"
+}
