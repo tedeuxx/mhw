@@ -3,7 +3,8 @@
 Issue [#89](https://github.com/tedeuxx/mhw/issues/89),
 check-only scope (owner decision, 2026-10-05). The declaration is
 [`global/prerequisites.json`](../global/prerequisites.json); the checker is
-[`global/prerequisites.py`](../global/prerequisites.py), run as the last section of `./mhw check`.
+~~`global/prerequisites.py`~~ [`src/lib/prerequisites.js`](../src/lib/prerequisites.js) (Node since
+[#494](https://github.com/tedeuxx/mhw/issues/494)), run as the last section of `./mhw check`.
 
 ```sh
 ./mhw check                  # installed targets, then prerequisites
@@ -37,10 +38,10 @@ not failed: repairing them is the owner's act, and this command never prompts fo
 
 ## The probes, a closed set
 
-The declaration can only choose among probes implemented in `prerequisites.py`; anything else is
+The declaration can only choose among probes implemented in `prerequisites.js`; anything else is
 refused as an invalid declaration.
 
-- **Tools:** `command -v`, then the one invocation `COMMANDS` in `prerequisites.py` allows for that
+- **Tools:** `command -v`, then the one invocation `COMMANDS` in `prerequisites.js` allows for that
   command: its version query (`--version`, or `version` for Terraform), or for `xcode-select` alone its
   path query `-p`. The command name and its arguments are taken from that constant table, never from
   the declaration's strings. The agent harnesses (`claude`, `codex`, `kiro-cli`) are run with
@@ -62,10 +63,25 @@ refused as an invalid declaration.
 - **SonarCloud:** with `SONAR_TOKEN` in the environment, a GET of `/api/authentication/validate`; with
   project keys in the overlay, a GET of `/api/components/show` per key (with the token if present).
 - **HCP Terraform:** with `TFC_API_TOKEN` in the environment, a GET of `/api/v2/account/details`.
+- Every GET runs in a worker thread (`src/lib/http-get.js`) that the check waits for, so the GET starts
+  no process and the token is sent only as its `Authorization` header.
+- No probe child (`git`, `gh`, `terraform`, any `--version` query) gets a token: every variable a
+  declared item names as its `auth.env` is removed from a probe's environment first. The Python
+  checker passed them on (#494, a declared narrowing). The installers' `--check`, which the full
+  `mhw check` runs before this section, still inherits the caller's environment.
+- Proxies: like Python's `urllib`, the GET honours `http_proxy`, `https_proxy` and `no_proxy` (either
+  case) from the caller's environment: its worker runs with `--use-env-proxy` and those variables only.
+  On Node 26, the `engines.node` floor, the result is the same as with `urllib` (golden case
+  `prereq-proxy-from-the-environment`, compared in CI on 26.13.1). The residual: the macOS system proxy
+  settings, which `urllib` read when no variable was set, are not read. A GET that cannot get through
+  reads `NOCHECK`, never `OK`.
+- `PATH` entries that are not absolute (a relative directory, an empty entry, `.`) are not searched, so a
+  tool found only through one reads `MISSING`. Python's `shutil.which` searched them (#494).
 - With no token in the environment the line reads `not checked (credential not available)` and no call
   is made. A token is read from the environment only, never printed, never written, and never sent
   after a redirect. A service URL override is honoured only for a plain-HTTP `127.0.0.1` address with
-  a port (tests).
+  a port (tests), read as `urllib.parse.urlsplit` reads it: leading control characters and spaces
+  stripped, then every tab, carriage return and newline removed (`test/golden/S23/base-url.json`).
 
 ## Owner-specific values: the untracked overlay
 
@@ -80,7 +96,8 @@ ignored and named in a `PREREQ` line.
 
 ## Evidence level
 
-*Written and tested.* The suite `global/prerequisites_test.py` runs `./mhw check
+*Written and tested.* ~~The suite `global/prerequisites_test.py`~~ Since #494 the suite
+`test/check/prerequisites.test.js` runs `mhw check
 --prerequisites` with fake tool shims on a `PATH` holding nothing else, a throwaway `HOME`, a stub `gh`
 that never contacts GitHub, and a loopback HTTP server standing in for SonarCloud and HCP Terraform:
 present, missing (required, optional, lane-activated), version drift, unauthenticated, settings drift,
@@ -92,6 +109,11 @@ machine (2026-10-05): `gh auth status` and the merge-settings `--check` of this 
 adds an unreadable repository and an absent field, and five source mutations of the new read each
 turned it red (one only after the stub learned to print a document on a failed read).
 The SonarCloud and HCP Terraform calls have not been run against the real services.
+*Amended 2026-11-21 (#494, S23 of #470):* the check is Node. `test/golden/S23/` holds the Python
+original's transcripts of these cases and more, and the Node check reproduces them (one declared
+difference, an `AGENTS.md` that is not UTF-8). Since then `node` is a required item at the `engines.node`
+floor (26). `python3` stays required, because `mhw install`, `update` and `uninstall` still run
+`global/workstation.py`.
 
 ## Not covered
 

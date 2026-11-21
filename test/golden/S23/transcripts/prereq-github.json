@@ -1,0 +1,50 @@
+{
+  "step0 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step0 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nOK      gh [required]: present (gh 2.40.1) · authenticated · merge settings match the standard (owner-x/repo-y)\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step0 check --prerequisites <OVERLAY> stderr": "",
+  "step0 check --prerequisites <OVERLAY> recorded": "gh calls:\n--version\nauth status\nrepo view owner-x/repo-y --json mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed\n",
+  "step1 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step1 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nDRIFT   gh [required]: present (gh 2.40.1) · authenticated · drift owner-x/repo-y: allow_squash_merge=true (standard: false) -> STEP-gh\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step1 check --prerequisites <OVERLAY> stderr": "",
+  "step1 check --prerequisites <OVERLAY> recorded": "gh calls:\n--version\nauth status\nrepo view owner-x/repo-y --json mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed\n\nrepo.json: {\"mergeCommitAllowed\":true,\"squashMergeAllowed\":true,\"rebaseMergeAllowed\":false}",
+  "step2 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step2 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nOK      gh [required]: present (gh 2.40.1) · authenticated · merge settings not checked (owner-x/repo-y not readable with this login)\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step2 check --prerequisites <OVERLAY> stderr": "",
+  "step3 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step3 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nDRIFT   gh [required]: present (gh 2.40.1) · authenticated · drift owner-x/repo-y: allow_rebase_merge=unknown (standard: false); allow_squash_merge=unknown (standard: false) -> STEP-gh\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step3 check --prerequisites <OVERLAY> stderr": "",
+  "step4 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step4 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nOK      gh [required]: present (gh 2.40.1) · authenticated · merge settings not checked (owner-x/repo-y not readable with this login)\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step4 check --prerequisites <OVERLAY> stderr": "",
+  "step5 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step5 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nDRIFT   gh [required]: present (gh 2.40.1) · authenticated · drift owner-x/repo-y: allow_merge_commit=unknown (standard: true) -> STEP-gh\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step5 check --prerequisites <OVERLAY> stderr": "",
+  "step6 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step6 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nNOAUTH  gh [required]: present (gh 2.40.1) · not authenticated · merge settings not checked (credential not available) -> STEP-gh\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step6 check --prerequisites <OVERLAY> stderr": "",
+  "step6 check --prerequisites <OVERLAY> recorded": "gh calls:\n--version\nauth status\nrepo view owner-x/repo-y --json mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed\n--version\nauth status\nrepo view owner-x/repo-y --json mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed\n--version\nauth status\nrepo view owner-x/repo-y --json mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed\n--version\nauth status\nrepo view owner-x/repo-y --json mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed\n--version\nauth status\n",
+  "step7 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step7 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nNOCHECK gh [required]: present (gh 2.40.1) · authentication not checked (GitHub unreachable) · merge settings not checked (credential not available) -> STEP-gh\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step7 check --prerequisites <OVERLAY> stderr": "",
+  "step8 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step8 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nOK      gh [required]: present (gh 2.40.1) · authenticated · merge settings match the standard (owner-x/repo-y) · merge settings match the standard (owner-x/repo-z)\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step8 check --prerequisites <OVERLAY> stderr": ""
+}

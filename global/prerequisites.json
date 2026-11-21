@@ -1,5 +1,5 @@
 {
-  "description": "Prerequisite tools and subscriptions of the managed workstation and its delivery lanes (Issue #89). Generic: no account, project key or credential value. Read by global/prerequisites.py for ./mhw check; check-only, nothing here is ever applied. Owner-specific values (active lanes, repositories, Sonar project keys) go in the untracked overlay/prerequisites.local.json.",
+  "description": "Prerequisite tools and subscriptions of the managed workstation and its delivery lanes (Issue #89). Generic: no account, project key or credential value. Read by src/lib/prerequisites.js for mhw check; check-only, nothing here is ever applied. Owner-specific values (active lanes, repositories, Sonar project keys) go in the untracked overlay/prerequisites.local.json.",
   "schema": 1,
   "lanes": {
     "workstation": "use the agent harnesses under the managed configuration",
@@ -102,9 +102,9 @@
      "presence": {"kind": "manual"},
      "manual": "Any current terminal enables it; the paste wrapper relies on it (ADR-0011)"},
     {"id": "node", "name": "Node.js with npm", "category": "local-tool",
-     "required": "optional", "lanes": {"site": "required"},
-     "presence": {"commands": ["node"]}, "version": {"args": ["--version"], "minimum": "22"},
-     "manual": "Node.js 22 with npm: https://nodejs.org/en/download"},
+     "required": "required", "lanes": {"workstation": "required", "delivery": "required", "site": "required"},
+     "presence": {"commands": ["node"]}, "version": {"args": ["--version"], "minimum": "26"},
+     "manual": "Node.js 26 or later with npm, the engines.node floor mhw runs on (D11 of the Node runtime requirements): https://nodejs.org/en/download"},
     {"id": "terraform", "name": "Terraform CLI", "category": "local-tool",
      "required": "optional", "lanes": {"site": "required"},
      "presence": {"commands": ["terraform"]}, "version": {"args": ["version"], "minimum": "1.9"},

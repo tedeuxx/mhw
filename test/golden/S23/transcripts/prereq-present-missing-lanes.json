@@ -1,0 +1,17 @@
+{
+  "step0 check --prerequisites <OVERLAY>": {
+    "code": 0
+  },
+  "step0 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nOK      alpha [required]: present (git 2.3.4)\nABSENT  beta [optional]: missing (jq not found) -> STEP-beta\nABSENT  gamma [optional; required for site]: missing (checkov not found) -> STEP-gamma\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step0 check --prerequisites <OVERLAY> stderr": "",
+  "step1 check --prerequisites <OVERLAY>": {
+    "code": 1
+  },
+  "step1 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: site\nPREREQ  prerequisites.local.json: invalid lanes ignored\nOK      alpha [required]: present (git 2.3.4)\nABSENT  beta [optional]: missing (jq not found) -> STEP-beta\nMISSING gamma [optional; required for site]: missing (checkov not found) -> STEP-gamma\nPREREQ  1 required item(s) missing; check-only, nothing was applied\n",
+  "step1 check --prerequisites <OVERLAY> stderr": "",
+  "step2 check --prerequisites <OVERLAY>": {
+    "code": 1
+  },
+  "step2 check --prerequisites <OVERLAY> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nMISSING alpha [required]: missing (git not found) -> STEP-alpha\nABSENT  beta [optional]: missing (jq not found) -> STEP-beta\nABSENT  gamma [optional; required for site]: missing (checkov not found) -> STEP-gamma\nPREREQ  1 required item(s) missing; check-only, nothing was applied\n",
+  "step2 check --prerequisites <OVERLAY> stderr": ""
+}

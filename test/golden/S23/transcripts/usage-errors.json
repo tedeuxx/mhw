@@ -1,0 +1,52 @@
+{
+  "step0 check --bogus": {
+    "code": 2
+  },
+  "step0 check --bogus stdout": "",
+  "step0 check --bogus stderr": "mhw: unknown argument for check: --bogus\n",
+  "step1 check --verbose": {
+    "code": 2
+  },
+  "step1 check --verbose stdout": "",
+  "step1 check --verbose stderr": "mhw: unknown argument for check: --verbose\n",
+  "step2 check -v": {
+    "code": 2
+  },
+  "step2 check -v stdout": "",
+  "step2 check -v stderr": "mhw: unknown argument for check: -v\n",
+  "step3 check --yes": {
+    "code": 2
+  },
+  "step3 check --yes stdout": "",
+  "step3 check --yes stderr": "mhw: unknown argument for check: --yes\n",
+  "step4 check --overlay=/nonexistent/s23": {
+    "code": 2
+  },
+  "step4 check --overlay=/nonexistent/s23 stdout": "",
+  "step4 check --overlay=/nonexistent/s23 stderr": "mhw: --overlay takes 'none' or an existing directory\n",
+  "step5 check --overlay=-x": {
+    "code": 2
+  },
+  "step5 check --overlay=-x stdout": "",
+  "step5 check --overlay=-x stderr": "mhw: --overlay takes 'none' or an existing directory\n",
+  "step6 check --overlay=": {
+    "code": 2
+  },
+  "step6 check --overlay= stdout": "",
+  "step6 check --overlay= stderr": "mhw: --overlay takes 'none' or an existing directory\n",
+  "step7 check --project": {
+    "code": 2
+  },
+  "step7 check --project stdout": "",
+  "step7 check --project stderr": "mhw: unknown argument for check: --project\n",
+  "step8 check --prerequisites --summary": {
+    "code": 2
+  },
+  "step8 check --prerequisites --summary stdout": "",
+  "step8 check --prerequisites --summary stderr": "mhw: unknown argument for check: --summary\n",
+  "step9 check --prerequisites --overlay=work": {
+    "code": 0
+  },
+  "step9 check --prerequisites --overlay=work stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step9 check --prerequisites --overlay=work stderr": ""
+}

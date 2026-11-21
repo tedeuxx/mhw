@@ -7,8 +7,9 @@
 // Moved commands (the strangler's later steps) are answered here on every OS: `mhw delivery` (#474),
 // `mhw milestone` (#475), `mhw worklog` and `mhw launch-line` (#476), `mhw rite-cadence` (#477),
 // `mhw funnel-review` (#478), `mhw profile` (#479), `mhw chrome-debugging` (#480), `mhw mcp launch` (#483)
-// `mhw scan` (#486), `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), and `mhw hook
-// prompt`, `mhw hook check-config` and `mhw add-term` (#488); new in Node:
+// `mhw scan` (#486), `mhw status` (#493, after its NODE and PASTE lines; macOS and Linux), `mhw check`
+// (#494; macOS and Linux, Windows keeps install.ps1 -Check), and `mhw hook prompt`, `mhw hook
+// check-config` and `mhw add-term` (#488); new in Node:
 // `mhw docs-baseline check` and `mhw onboard` (#523), and `mhw policy check` (#498, S28; on Windows too).
 // Every path is resolved from this file's own location, never from the current directory. Interpreters
 // this file runs go by absolute path, never looked up on PATH. A moved command may look a program up on
@@ -36,6 +37,7 @@ import { runHook } from './commands/hook-entry.js';
 import { checkConfig } from './commands/hook-prompt.js';
 import { main as addTermMain } from './commands/add-term.js';
 import { main as statusMain } from './commands/status.js';
+import { main as checkMain } from './commands/check.js';
 import { main as policyMain } from './commands/project-policy.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -253,6 +255,8 @@ export function main(argv, platform, env, opts = {}) {
     // #493 (S22): the status view itself is Node on macOS and Linux; Windows keeps install.ps1 -Check.
     if (platform !== 'win32') return statusMain(argv.slice(1), env);
   }
+  // #494 (S23): mhw check is Node on macOS and Linux; Windows keeps install.ps1 -Check.
+  if (argv[0] === 'check' && platform !== 'win32') return checkMain(argv.slice(1), env);
   if (platform !== 'win32') {
     // MHW_NODE: the node running this file, so `mhw update` finds npm beside it by absolute path.
     const childEnv = Object.assign({}, env, { MHW_NODE: process.execPath });
