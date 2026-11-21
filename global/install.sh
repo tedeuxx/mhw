@@ -27,7 +27,7 @@
 #   --shell-rc=FILE             the shell start-up file that gets the paste wrapper's managed block (an
 #                               absolute path). Default (Issue #145): from $SHELL, zsh ${ZDOTDIR:-~}/.zshrc,
 #                               bash ~/.bashrc, plus on macOS the login file (~/.bash_profile, see
-#                               rc_bash_login); another shell gets none. --shell-rc=none writes none.
+#                               src/render/shell-rc.js); another shell gets none. --shell-rc=none writes none.
 #                               --check reports it; --dry-run writes nothing; --uninstall removes the block
 #   --method                    opt-in (Issue #61): render the working method (method/) too. Off by default
 #                               until the plugin cutover (#63, #64); once rendered, later runs keep it
@@ -56,7 +56,7 @@
 # #487 (S16 of #470), run from this package by the node that runs mhw; a managed shell snippet defines
 # claude, codex and kiro-cli functions that run the CLIs through it. The Python copy an earlier install
 # put beside the core is retired. The installer never sources that snippet. Since Issue #145 it adds one marked block that sources it to the
-# shell start-up file (see shell_rc_line), with a backup; uninstall removes exactly that block.
+# shell start-up file (see startup_step), with a backup; uninstall removes exactly that block.
 # The wrapper exports a session marker; the prompt hook stays as the safety net and blocks only where
 # the marker is absent (sessions not opened through the wrapper; ADR-0011, 2026-10-05 amendment).
 set -eu
@@ -447,234 +447,34 @@ private_copy() {
 
 # The shell start-up block that activates the paste wrapper (Issue #145; it was opt-in under Issue #58).
 # install writes it into the shell's own start-up file, chosen from $SHELL (zsh: ${ZDOTDIR:-~}/.zshrc;
-# bash: ~/.bashrc, and on macOS also the file a bash login shell reads, see rc_bash_login), or into
-# --shell-rc=FILE only; --shell-rc=none writes none. It is one marked block per file, replaced
-# whole when it differs, never duplicated; the earlier one-line form (a line carrying $rc_tag) is replaced
-# by it. Every write keeps the previous file as <file>.pmhwc-backup and prints old -> new; uninstall removes
-# exactly the block (and an earlier one-line form). Damaged markers are refused, nothing written.
-# A file chosen by default (not named with --shell-rc) must be inside $HOME: an inherited ZDOTDIR that
-# points elsewhere (a test run under a throwaway HOME, PR #146 lens H1) writes nothing and prints the line.
-# Byte-exactness: uninstall gives the file back as it was, except that a final newline install added to a
-# file that had none stays (awk ends every line it prints).
-rc_begin_prefix="# >>> personal-multi-harness-workstation-configuration: paste wrapper"
-rc_begin="$rc_begin_prefix (ADR-0011); managed block, mhw uninstall removes it"
-rc_end="# <<< personal-multi-harness-workstation-configuration: paste wrapper"
-rc_tag="# personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)"
-rc_body="[ -r \"$snippet_dest\" ] && . \"$snippet_dest\""
-rc_line="$rc_body  $rc_tag"
-rc_inside_home() { # rc_inside_home FILE: true when FILE is under $HOME
-  rc_check_file=$1
-  case $rc_check_file in
-    "$HOME"/*) return 0 ;;
-    *) return 1 ;;
+# bash: ~/.bashrc, and on macOS also the file a bash login shell reads), or into --shell-rc=FILE only;
+# --shell-rc=none writes none. It is one marked block per file, replaced whole when it differs, never
+# duplicated; an earlier one-line form is replaced by it. Every write keeps the previous file as
+# <file>.pmhwc-backup and prints old -> new; uninstall removes exactly the block (and an earlier form).
+# Damaged markers are refused, nothing written. A file chosen by default must be inside $HOME, and
+# ~/.profile is never written. The step is src/render/shell-rc.js (Node since #492, S21 of #470; shell
+# and awk functions until then), run by the node the settings merge runs (allow_node); without one, no
+# start-up file is changed and the line says which node was refused. Its exit code: 1 is drift under
+# --check only (elsewhere node's own exit for an uncaught exception, so a refusal), 3 a refused file,
+# 4 a write that failed, which stops the installer as set -e did.
+startup_body="[ -r \"$snippet_dest\" ] && . \"$snippet_dest\""
+shell_rc_js="$script_dir/../src/render/shell-rc.js"
+startup_step() {
+  if [ -n "$settings_why" ]; then
+    echo "REFUSE  the shell start-up block: $settings_why; no start-up file changed"
+    raise 2
+    return 0
+  fi
+  startup_rc=0
+  "$allow_node" "$shell_rc_js" "--mode=$mode" "--shell-rc=$shell_rc" "--shell=${SHELL:-}" \
+    "--snippet=$snippet_dest" "--data-dir=$data_dir" "--uname=$(uname -s)" || startup_rc=$?
+  case $mode:$startup_rc in
+    *:0) ;;
+    check:1) raise 1 ;;
+    *:4) exit 1 ;;
+    *:1) raise 3 ;;
+    *) raise "$startup_rc" ;;
   esac
-}
-rc_zshrc() { # the default zsh start-up file, or nothing when ZDOTDIR leads outside $HOME
-  rc_z="${ZDOTDIR:-$HOME}/.zshrc"
-  if rc_inside_home "$rc_z"; then printf '%s' "$rc_z"; fi
-  return 0
-}
-rc_there() { [ -e "$1" ] || [ -L "$1" ]; }
-# rc_bash_login: on macOS a bash login shell (what Terminal.app opens) reads the first of ~/.bash_profile,
-# ~/.bash_login and ~/.profile that exists, and never ~/.bashrc. Sets rc_login to the first of the two bash-only
-# files that exists, or to a new ~/.bash_profile when none of the three does. When only ~/.profile exists,
-# rc_login stays empty and rc_login_why says why: sh reads ~/.profile too (a function named kiro-cli is a syntax
-# error there), and creating ~/.bash_profile would stop bash reading ~/.profile.
-rc_bash_login() {
-  rc_login=
-  rc_login_why=
-  [ "$(uname -s)" = Darwin ] || return 0
-  if rc_there "$HOME/.bash_profile"; then rc_login="$HOME/.bash_profile"
-  elif rc_there "$HOME/.bash_login"; then rc_login="$HOME/.bash_login"
-  elif rc_there "$HOME/.profile"; then
-    rc_login_why="for a bash login shell: only ~/.profile is there, which sh also reads, and a new ~/.bash_profile would stop bash reading it"
-  else rc_login="$HOME/.bash_profile"; fi
-  return 0
-}
-rc_pick() { # sets rc (the start-up file this run writes, or empty), rc_why (why it is empty), and rc_login
-  rc=
-  rc_why=
-  rc_login=
-  rc_login_why=
-  case $shell_rc in
-    none) rc_why="--shell-rc=none"; return 0 ;;
-    ?*) rc=$shell_rc; return 0 ;;
-    *) ;;
-  esac
-  case ${SHELL:-} in
-    zsh|*/zsh)
-      rc=$(rc_zshrc)
-      [ -n "$rc" ] || rc_why="ZDOTDIR=$ZDOTDIR is outside HOME=$HOME"
-      ;;
-    bash|*/bash)
-      rc="$HOME/.bashrc"
-      rc_bash_login
-      ;;
-    *) rc_why="your shell (SHELL=${SHELL:-unset}) is neither zsh nor bash" ;;
-  esac
-  return 0
-}
-# The unmarked two-line form an owner added by hand before the managed block existed (seen on the reference
-# machine's ~/.zshrc, 2026-10-11 canary): this comment line, immediately followed by this source line, both
-# exact. With the block also present the snippet was sourced twice. Only the exact pair is recognised; either
-# line alone, or any other spelling, is the owner's and stays. A pair that opens a compound command's body (the
-# last line before it ends in then, else, do, {, && or ||) is left in place and reported (rc_leg2k): removing it
-# could leave an empty body, which bash refuses (PR #153 lens).
-rc_leg2_comment="# personal-multi-harness-workstation-configuration: clean pastes into claude/codex/kiro-cli (ADR-0011)"
-# shellcheck disable=SC2016  # the literal $HOME is the text the owner's file holds
-rc_leg2_source='. "$HOME/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh"'
-# rc_scan FILE: $work/rc.stripped (the file without our block and without an earlier form), $work/rc.block
-# (our block's lines), and the counts rc_nb (begin markers), rc_ne (end markers), rc_bad (1 when they are out
-# of order), rc_leg (earlier forms, both kinds), rc_leg2 (of which the unmarked two-line form) and rc_leg2k
-# (unmarked two-line forms left in place because they open a compound command's body).
-rc_scan() {
-  rc_scan_file=$1
-  : > "$work/rc.stripped"
-  : > "$work/rc.block"
-  rc_nb=0; rc_ne=0; rc_bad=0; rc_leg=0; rc_leg2=0; rc_leg2k=0
-  [ -f "$rc_scan_file" ] || return 0
-  # ENVIRON, not -v: awk -v would process backslash escapes in the values.
-  rc_counts=$(RC_L2C=$rc_leg2_comment RC_L2S=$rc_leg2_source awk -v bp="$rc_begin_prefix" -v e="$rc_end" -v tag="$rc_tag" \
-      -v out="$work/rc.stripped" -v blk="$work/rc.block" '
-    function emit(line) { print line > out; if (line ~ /[^ \t]/) last = line }
-    BEGIN { nb = 0; ne = 0; bad = 0; leg = 0; leg2 = 0; leg2k = 0; inb = 0; held = 0; last = ""
-            l2c = ENVIRON["RC_L2C"]; l2s = ENVIRON["RC_L2S"] }
-    held && !inb && $0 == l2s && last ~ /(then|else|do|[{]|&&|[|][|])[ \t]*$/ {
-      held = 0; leg2k++; emit(l2c); emit($0); next }
-    held && !inb && $0 == l2s { held = 0; leg++; leg2++; next }
-    held { held = 0; emit(l2c) }
-    !inb && $0 == l2c { held = 1; next }
-    index($0, bp) == 1 { nb++; if (inb) bad = 1; inb = 1; print > blk; next }
-    $0 == e { ne++; if (!inb) bad = 1; inb = 0; print > blk; next }
-    inb { print > blk; next }
-    index($0, tag) > 0 { leg++; next }
-    { emit($0) }
-    END { if (held) emit(l2c); if (inb) bad = 1; printf "%d %d %d %d %d %d\n", nb, ne, bad, leg, leg2, leg2k }' "$rc_scan_file")
-  read -r rc_nb rc_ne rc_bad rc_leg rc_leg2 rc_leg2k <<EOF
-$rc_counts
-EOF
-  return 0
-}
-rc_damaged() { [ "$rc_bad" = 1 ] || [ "$rc_nb" -gt 1 ] || [ "$rc_nb" != "$rc_ne" ]; }
-# The start-up files install created (one path per line), so uninstall can delete one it emptied: an empty
-# ~/.bash_profile left behind would stop bash reading ~/.profile. A file that was there before is never deleted.
-rc_created="$data_dir/shell-rc-created.list"
-rc_was_created() { [ -f "$rc_created" ] && grep -qxF "$1" "$rc_created"; }
-rc_write() { # rc_write FILE NEW: FILE gets NEW's content; the previous file is kept beside it
-  rc_write_file=$1
-  rc_write_new=$2
-  mkdir -p "$(dirname "$rc_write_file")"
-  if [ -e "$rc_write_file" ]; then
-    private_copy "$rc_write_file" "$rc_write_file.pmhwc-backup"
-    rc_kept="previous file kept as $rc_write_file.pmhwc-backup"
-  else
-    rc_kept="new file"
-    if ! rc_was_created "$rc_write_file"; then
-      mkdir -p "$data_dir"
-      printf '%s\n' "$rc_write_file" >> "$rc_created"
-    fi
-  fi
-  # Written through, so a start-up file that is a symbolic link (a dotfiles checkout) stays one, mode kept.
-  cat "$rc_write_new" > "$rc_write_file"
-}
-shell_rc_line() {
-  rc_pick
-  if [ -z "$rc" ]; then
-    if [ "$mode" = install ]; then
-      echo "NOTE    automatic paste cleaning: no shell start-up file is written ($rc_why); add this line to yours:"
-      echo "        $rc_line"
-    fi
-    return 0
-  fi
-  rc_login_file=$rc_login
-  shell_rc_one "$rc"
-  if [ -n "$rc_login_file" ]; then
-    shell_rc_one "$rc_login_file"
-  elif [ -n "$rc_login_why" ] && [ "$mode" = install ]; then
-    echo "NOTE    automatic paste cleaning: no bash login start-up file is written ($rc_login_why); add this line to yours:"
-    echo "        $rc_line"
-  fi
-}
-shell_rc_one() { # shell_rc_one FILE: the managed block in one start-up file
-  rc=$1
-  if [ -L "$rc" ] && [ ! -e "$rc" ]; then
-    # A link to nothing: writing through it would create its target somewhere else, or fail with a raw shell
-    # error that stops every later step. Refused visibly; the other steps still run.
-    echo "REFUSE  $rc is a symbolic link to a missing file; nothing written. Fix or remove the link, or add this line yourself:"
-    echo "        $rc_line"
-    raise 3
-    return 0
-  fi
-  if [ -e "$rc" ] && [ ! -f "$rc" ]; then
-    echo "REFUSE  $rc is not a regular file; nothing written. Add this line yourself:"
-    echo "        $rc_line"
-    raise 3
-    return 0
-  fi
-  printf '%s\n%s\n%s\n' "$rc_begin" "$rc_body" "$rc_end" > "$work/rc.want"
-  rc_scan "$rc"
-  if rc_damaged; then
-    echo "REFUSE  $rc: the paste-wrapper block's markers are damaged (missing, repeated or out of order); nothing written. Fix or remove them, then run install again"
-    raise 3
-    return 0
-  fi
-  if [ "$rc_leg2k" -gt 0 ] && [ "$mode" != uninstall ]; then
-    echo "NOTE    $rc: an unmarked two-line paste-filter source opens a compound command's body (after then, else, do, {, && or ||); left in place, since removing it could leave an empty body bash refuses. It sources the snippet a second time: remove it by hand"
-  fi
-  if [ "$rc_nb" = 1 ] && [ "$rc_leg" = 0 ] && cmp -s "$work/rc.block" "$work/rc.want"; then
-    echo "OK      $rc activates the paste wrapper (managed block)"
-    return 0
-  fi
-  if [ "$rc_leg2" -gt 0 ] && [ "$rc_nb" = 1 ]; then rc_old="sourced twice (an unmarked two-line form beside the block)"
-  elif [ "$rc_leg2" -gt 0 ]; then rc_old="an unmarked two-line form"
-  elif [ "$rc_leg" -gt 0 ]; then rc_old="the earlier one-line form"
-  elif [ "$rc_nb" = 1 ]; then rc_old="a different block"
-  else rc_old="absent"; fi
-  case $mode in
-    check)
-      if [ "$rc_old" = absent ]; then echo "MISSING $rc: no paste-wrapper start-up block; install adds it"
-      else echo "DRIFT   $rc: paste-wrapper start-up block is $rc_old; install replaces it"; fi
-      raise 1
-      ;;
-    dry-run)
-      echo "WOULD CHANGE $rc: paste-wrapper start-up block $rc_old -> present (backup $rc.pmhwc-backup):"
-      cat "$work/rc.want"
-      ;;
-    install|*)   # uninstall never reaches here (shell_rc_uninstall)
-      cat "$work/rc.stripped" "$work/rc.want" > "$work/rc.new"
-      rc_write "$rc" "$work/rc.new"
-      echo "CHANGED $rc: paste-wrapper start-up block $rc_old -> present ($rc_kept); new shells clean pastes"
-      ;;
-  esac
-}
-# Uninstall: the block (and an earlier one-line form) leaves every start-up file it may be in.
-shell_rc_uninstall() {
-  rc_seen=
-  rc_pick
-  for rc in "$rc" "$(rc_zshrc)" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.bash_login"; do
-    [ -n "$rc" ] || continue
-    case " $rc_seen " in *" $rc "*) continue ;; esac
-    rc_seen="$rc_seen $rc"
-    [ -f "$rc" ] || continue
-    rc_scan "$rc"
-    if [ "$rc_leg2k" -gt 0 ]; then
-      echo "NOTE    $rc: an unmarked two-line paste-filter source inside a compound command's body is left in place; the snippet it sources is removed, so remove that line by hand"
-    fi
-    [ "$rc_nb" = 0 ] && [ "$rc_ne" = 0 ] && [ "$rc_leg" = 0 ] && continue
-    if rc_damaged; then
-      echo "REFUSE  $rc: the paste-wrapper block's markers are damaged; nothing removed"
-      raise 3
-      continue
-    fi
-    if [ ! -s "$work/rc.stripped" ] && [ ! -L "$rc" ] && rc_was_created "$rc"; then
-      rm -f "$rc"
-      echo "REMOVED $rc (install created it and only the paste-wrapper block was in it)"
-      continue
-    fi
-    rc_write "$rc" "$work/rc.stripped"
-    echo "CHANGED $rc: paste-wrapper start-up block present -> absent ($rc_kept)"
-  done
-  rm -f "$rc_created"
 }
 
 render() {
@@ -712,7 +512,7 @@ render() {
         printf '# The paste filter at the harness-CLI paste boundary (ADR-0011). install.sh sources it from a\n'
         printf '# managed block in your shell start-up file (~/.zshrc, or ~/.bashrc and on macOS ~/.bash_profile;\n'
         printf '# Issue #145), which reads:\n'
-        printf '#   %s\n' "$rc_body"
+        printf '#   %s\n' "$startup_body"
         printf '# Then claude, codex and kiro-cli run through the wrapper, which cleans bracketed pastes before the\n'
         printf '# CLI sees them and marks the session (%s=1), so the prompt hook lets its prompts\n' "PMHWC_PASTE_WRAPPER"
         printf '# through. "command claude" (or codex, kiro-cli) runs a CLI without it, and the hook then checks.\n'
@@ -1125,7 +925,7 @@ if [ "$mode" = uninstall ]; then
   mcp_step
   chrome_step
   kiro_step
-  shell_rc_uninstall   # before uninstall_user, which removes the data directory once it is empty
+  startup_step   # before uninstall_user, which removes the data directory once it is empty
   uninstall_user
   method_step
   echo "NOTE    the admin layer is not touched here; ${MHW_CMD:-./mhw} uninstall prints its sudo line"
@@ -1187,7 +987,7 @@ if [ "$paste_ok" = 1 ]; then
   case $wrap_node in
     /*)
       process snippet "$snippet_dest"
-      shell_rc_line
+      startup_step
       ;;
     *)
       raise 2

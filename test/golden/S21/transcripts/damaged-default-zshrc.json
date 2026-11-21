@@ -1,0 +1,53 @@
+[
+  {
+    "run": "install",
+    "code": 3,
+    "stdout": "REFUSE  <T>/home/.zshrc: the paste-wrapper block's markers are damaged (missing, repeated or out of order); nothing written. Fix or remove them, then run install again\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "file",
+          "mode": "644",
+          "data": "# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "check",
+    "code": 3,
+    "stdout": "REFUSE  <T>/home/.zshrc: the paste-wrapper block's markers are damaged (missing, repeated or out of order); nothing written. Fix or remove them, then run install again\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "file",
+          "mode": "644",
+          "data": "# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "uninstall",
+    "code": 3,
+    "stdout": "REFUSE  <T>/home/.zshrc: the paste-wrapper block's markers are damaged; nothing removed\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": ".zshrc",
+          "kind": "file",
+          "mode": "644",
+          "data": "# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n"
+        }
+      ],
+      "out": []
+    }
+  }
+]
