@@ -5,12 +5,14 @@
 // Every name, value and file here is SYNTHETIC; gh is always a stand-in, never the real one.
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { which } from '../helpers/home.js';
 
 export const NAME = 'personal-multi-harness-workstation-configuration';
 
 /**
  * @typedef {{ home: string, root: string, dir: string, tree: string }} Where
- * @typedef {{ args: string[], setup?: boolean, env?: Record<string, string>, archive?: string, pre?: (w: Where) => void }} Step
+ * @typedef {{ args: string[], setup?: boolean, env?: Record<string, string>, archive?: string, cwd?: string, pre?: (w: Where) => void }} Step
  * @typedef {{ name: string, package?: boolean, stubs?: Record<string, string>, setup?: (w: Where) => void, steps: Step[] }} Case
  */
 
@@ -244,6 +246,21 @@ export const CASES = [
       putJson(path.join(w.home, '.claude.json'), { mcpServers: { 'synth-outside': { command: '/bin/echo' } } });
     }),
     steps: [S([NONE]), S([NONE, '--mcp-connect=2']), S(['--summary', NONE, '--mcp-connect=3'])],
+  },
+  {
+    // PR #535 (QA B1, lens finding 3): an empty --project= is no --project, as workstation.py's `if project:`
+    // read it: from a subdirectory of a repository the workspace is its git root, where the version key is.
+    name: 'empty-project-value',
+    setup: withProjects((w) => {
+      const git = which('git');
+      if (!git) throw new Error('needs git on PATH');
+      const repo = proj(w, 'key');
+      fs.mkdirSync(path.join(repo, 'sub', 'deeper'), { recursive: true });
+      const r = spawnSync(git, ['-C', repo, 'init', '-q'], { encoding: 'utf8' });
+      if (r.status !== 0) throw new Error('git init failed: ' + r.stderr);
+    }),
+    steps: [S([NONE, '--project='], { cwd: 'work/key/sub/deeper' }), S(['--summary', NONE, '--project='], { cwd: 'work/key/sub/deeper' }),
+      S(['--summary', NONE], { cwd: 'work/key/sub/deeper' }), S(['--summary', NONE, '--project='])],
   },
   {
     name: 'usage-errors',

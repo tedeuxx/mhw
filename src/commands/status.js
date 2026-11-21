@@ -21,7 +21,7 @@ import { NAME, KEY_FILE, MARKER, inHome, codexHome, managedRoot, isFile, readTex
 import { keyVerdict, readKey, mismatchLine } from '../lib/readers/version-key.js';
 import { adminDropin, adminState, adminInstalled, adminPresent, adminStamp, adminReport, issues, leadingWord } from '../lib/readers/admin.js';
 import { readHooks, hooksText } from '../lib/readers/hooks.js';
-import { readSettings, enabledPlugins, methodState, permissionsText, METHOD_PLUGIN } from '../lib/readers/settings.js';
+import { readSettings, enabledPlugins, methodState, permissionsText, unreadSources, METHOD_PLUGIN } from '../lib/readers/settings.js';
 import { workspace } from '../lib/readers/workspace.js';
 import { harnessVersions, runtime } from '../lib/readers/host.js';
 import * as ownerActions from '../lib/readers/owner-actions.js';
@@ -41,7 +41,8 @@ export { MARKER };
  *   harnesses: Record<string, string | null>, workspace: Workspace, plugins: string[], brief: string,
  *   floor: string, hooks: string, key: { required: string, state: string, line: string } | null,
  *   runtime: string, admin_state?: string, admin_code?: number, settings?: Setting[], permissions?: string,
- *   method?: { installed: boolean | null, duplicate: string[] }, npm?: string[], chrome_debugging?: string | null,
+ *   method?: { installed: boolean | null, duplicate: string[], unread?: string }, npm?: string[], chrome_debugging?: string | null,
+ *   unread?: import('../lib/readers/settings.js').Unread[],
  *   owner_actions?: string }} Facts
  */
 
@@ -275,11 +276,16 @@ function setting(settings, harness, key) {
   return found;
 }
 
-/** @param {Setting[]} settings @param {Record<string, string[]>} keysBy @param {string[]} harnesses */
-export function settingsText(settings, keysBy, harnesses) {
+/**
+ * @param {Setting[]} settings @param {Record<string, string[]>} keysBy @param {string[]} harnesses
+ * @param {import('../lib/readers/settings.js').Unread[]} [unread] the sources there and not readable
+ */
+export function settingsText(settings, keysBy, harnesses, unread = []) {
   /** @type {string[]} */
   const parts = [];
   for (const h of harnesses) {
+    const missed = unread.filter((u) => u.harness === h).map((u) => u.reason);
+    const notRead = missed.length ? 'not read (' + missed.join('; ') + ')' : '';
     const keys = keysBy[h] || [];
     /** @type {string[]} */
     const values = [];
@@ -287,9 +293,9 @@ export function settingsText(settings, keysBy, harnesses) {
       const hit = setting(settings, h, key);
       if (hit) values.push(key + ' ' + hit[0] + ' (' + hit[1] + ')');
     }
-    if (values.length) parts.push(h + ': ' + values.join(', '));
-    else if (keys.length) parts.push(h + ': default');
-    else parts.push(h + ': not read by this view');
+    if (!keys.length) parts.push(h + ': not read by this view');
+    else if (values.length) parts.push(h + ': ' + values.join(', ') + (notRead ? ', ' + notRead : ''));
+    else parts.push(h + ': ' + (notRead || 'default'));
   }
   return parts.join(' · ');
 }
@@ -301,7 +307,7 @@ export function settingsText(settings, keysBy, harnesses) {
  */
 export function modelsText(f) {
   const settings = f.settings || [];
-  const values = settingsText(settings, MODEL_KEYS, Object.keys(MODEL_KEYS));
+  const values = settingsText(settings, MODEL_KEYS, Object.keys(MODEL_KEYS), f.unread);
   const overridden = settings.filter(([h, layer, k]) => layer === 'workspace' && (MODEL_KEYS[h] || []).includes(k)).map(([h, , k]) => h + ' ' + k);
   const override = overridden.length ? '; overridden by the workspace: ' + overridden.join(', ') : '';
   const lines = (f.user_lines || []).filter((l) => l.includes(MODELS_TAG));
@@ -426,7 +432,18 @@ export function sourceText(source) {
   return word[word.length - 1] + ' ' + shortStamp(source);
 }
 
-/** @param {{ installed: boolean | null, duplicate: string[] } | undefined} m */
+/**
+ * The Claude Code plugin count, with the settings files there and not readable named.
+ * @param {Facts} f @param {string} suffix @param {string} none
+ */
+function pluginWords(f, suffix, none) {
+  const missed = (f.unread || []).filter((u) => u.harness === 'Claude Code').map((u) => u.reason);
+  const notRead = missed.length ? 'not read (' + missed.join('; ') + ')' : '';
+  if (f.plugins.length) return f.plugins.length + suffix + (notRead ? ', ' + notRead : '');
+  return notRead || none;
+}
+
+/** @param {{ installed: boolean | null, duplicate: string[], unread?: string } | undefined} m */
 export function methodText(m) {
   if (!m || m.installed === null) return 'not reported';
   if (!m.installed) return 'not installed (opt-in: ' + W.cmd + ' install --method, until the plugin cutover #63 #64)';
@@ -436,6 +453,7 @@ export function methodText(m) {
       ', so every agent, skill and command appears twice and its hooks refuse the bare-named agents; ' + W.cmd +
       ' install --method retires it at user scope (#130), and a project that enables it changes its own settings';
   }
+  if (m.unread) text += '; whether the plugin is also enabled in Codex is not read (' + m.unread + ')';
   return text;
 }
 
@@ -469,7 +487,7 @@ export function renderStatus(f, verbose = false) {
   const ws = f.workspace;
   const wsText = ws.name ? ws.name + ' (' + (ws.carriers.length ? ws.carriers.join(', ') : 'no carrier') + ')' : 'none (not in a git repository)';
   const plugins = f.plugins;
-  const pluginText = plugins.length ? plugins.length + ' enabled in Claude Code' : 'none enabled in Claude Code';
+  const pluginText = pluginWords(f, ' enabled in Claude Code', 'none enabled in Claude Code');
   lines.push('  layers           managed: ' + managedText(f) + ' · user: ' + (user.length ? 'installed' : 'absent') +
     ' · workspace: ' + wsText + ' · plugin: ' + pluginText);
   for (const finding of ws.brief || []) lines.push('  root brief       ' + finding);
@@ -509,7 +527,7 @@ export function renderSummary(f, env) {
   const settings = f.settings || [];
   const lines = ['Runtime summary (' + W.cmd + ' status --summary; detail: ' + W.cmd + ' status --verbose)'];
   lines.push('  agent harness    ' + (present.length ? present.map((h) => h + ' ' + f.harnesses[h]).join(' · ') : 'none detected on PATH'));
-  lines.push('  model, effort    ' + settingsText(settings, MODEL_KEYS, shown) + "; the session's own values: " +
+  lines.push('  model, effort    ' + settingsText(settings, MODEL_KEYS, shown, f.unread) + "; the session's own values: " +
     shown.map((h) => h + ' ' + NATIVE_VIEW[h]).join(', '));
   const user = sortedSet(Object.values(f.user_stamps));
   const stamp = user.length ? user.map(shortStamp).join(' / ') : 'none';
@@ -518,22 +536,22 @@ export function renderSummary(f, env) {
   const owner = f.owner_actions ? ' · owner actions: ' + f.owner_actions : '';
   lines.push('  workstation      ' + stamp + ' · source: ' + sourceText(f.source || 'none') + ' · version key: ' + keyText + owner);
   const ws = f.workspace;
-  const plugins = f.plugins;
   // The root-brief check rides on the workspace item, so the summary keeps its ten-line limit.
   const brief = (ws.brief || []).length;
   const wsText = brief ? ws.name + ' (root brief: ' + brief + ' finding(s); ' + W.cmd + ' status)' : ws.name;
   lines.push('  layers           managed: ' + managedText(f) + ' · user: ' + (user.length ? 'installed' : 'absent') +
-    ' · workspace: ' + (wsText || 'none') + ' · plugin: ' + (plugins.length ? plugins.length + ' in Claude Code' : 'none'));
+    ' · workspace: ' + (wsText || 'none') + ' · plugin: ' + pluginWords(f, ' in Claude Code', 'none'));
   const overrides = settings.filter(([, layer]) => layer === 'workspace').map(([h, , k, v]) => h + ' ' + k + ' = ' + v);
   const off = settings.filter(([, , k, v]) => k === 'disableAllHooks' && v === 'true').map(([h, layer]) => h + ' ' + layer);
   if (off.length) overrides.unshift('HOOKS OFF: disableAllHooks in ' + off.join(', '));
+  for (const u of (f.unread || []).filter((x) => x.layer === 'workspace')) overrides.push(u.harness + ' not read (' + u.reason + ')');
   lines.push('  overrides        ' + (overrides.length ? overrides.join('; ') : 'no workspace setting overrides a user default'));
   lines.push('  cannot override  ' + cannotOverride(f));
   // The installers' --check drift rides on the protections item (Issue #38).
   const drift = driftText(f.user_lines || [], f.admin_lines || [], f.admin_code || 0, env);
   lines.push('  protections      brief ' + f.brief + ' · hooks ' + f.hooks + (drift ? ' · ' + drift : '') +
     ' · evidence: installed; loaded and enforced need a session canary');
-  lines.push('  permission mode  ' + settingsText(settings, MODE_KEYS, shown) + '; session flags: ' +
+  lines.push('  permission mode  ' + settingsText(settings, MODE_KEYS, shown, f.unread) + '; session flags: ' +
     shown.map((h) => h + ' ' + NATIVE_VIEW[h]).join(', '));
   lines.push('  runtime          ' + f.runtime);
   if (key !== null && key.line) lines.push('  ' + key.line);
@@ -551,6 +569,17 @@ function summariseProtections(lines, env) {
   let floor = 'not reported';
   for (const l of lines) if (l.startsWith('FLOOR   carried by: ')) floor = l.slice('FLOOR   carried by: '.length);
   return { brief: 'installed in ' + brief + '/3 agent harnesses (an instruction)', floor, hooks: hooksText(readHooks(env)) };
+}
+
+/**
+ * The release the version key is compared with: the one release every user-level brief carries, 'none'
+ * when none carries a stamp, and 'mixed' when they carry different stamps, which matches no range.
+ * @param {Record<string, string>} userStamps
+ */
+export function keyRelease(userStamps) {
+  const stamps = sortedSet(Object.values(userStamps));
+  if (stamps.length === 1) return releaseOf(stamps[0]);
+  return stamps.length ? 'mixed' : 'none';
 }
 
 /** The version of the package at root ('v1.2.3'), or why not. @param {string} root */
@@ -622,8 +651,7 @@ export function gather(project, env, cwd) {
     // Python read it as UTF-8 and stopped on bytes that are not; here they read as U+FFFD (declared).
     const raw = fs.readFileSync(path.join(ws.root, KEY_FILE)).toString('utf8').replaceAll('\r\n', '\n').replaceAll('\r', '\n');
     const required = readKey(raw);
-    const stamps = sortedSet(Object.values(userStamps));
-    const release = stamps.length === 1 ? releaseOf(stamps[0]) : (stamps.length ? 'mixed' : 'none');
+    const release = keyRelease(userStamps);
     const [state, line] = keyVerdict(required, release);
     key = { required: required || '(empty)', state, line };
   }
@@ -634,7 +662,8 @@ export function gather(project, env, cwd) {
     user_issues: issues(userLines), admin_issues: issues(adminLines),
     user_lines: userLines, admin_lines: adminLines, harnesses: harnessVersions(env),
     workspace: ws, plugins, brief, floor, hooks, key, runtime: runtime(env), admin_state: managedState,
-    admin_code: adminCode, settings: readSettings(env, ws.root), permissions: permissionsText(env, ws.root),
+    admin_code: adminCode, settings: readSettings(env, ws.root), unread: unreadSources(env, ws.root),
+    permissions: permissionsText(env, ws.root),
     method: methodState(env, userLines, plugins), npm: npmNotes(source, userStamps),
     chrome_debugging: chromeStatus(systemName(), homeOf(env)),
     owner_actions: ownerActions.text(ownerActions.read({ env })),

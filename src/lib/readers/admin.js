@@ -2,7 +2,7 @@
 // Claude Code drop-in, our admin directory and the Codex requirements file live, whether one is present,
 // and what install-managed.sh --check said about it. global/workstation.py keeps its own copy of the
 // parts install and check use (admin_present, admin_report and issues). node: modules only.
-import { NAME, MARKER, darwin, managedRoot, pathOf, exists, readJson, readText, baseName, isDict } from './common.js';
+import { NAME, MARKER, darwin, managedRoot, pathOf, exists, readJson, readText, baseName, isDict, unreadable } from './common.js';
 import { isPyWs, loads } from '../py.js';
 import { readTextPy } from '../clean.js';
 
@@ -45,8 +45,10 @@ export function adminState(env) {
   const p = adminDropin(env);
   if (!exists(p)) return 'absent';
   const [doc, state] = readJson(p);
-  if (state !== 'read') return 'unreadable';
-  return isDict(doc) && holdsName(doc) ? 'installed' : 'legacy';
+  // A JSON value that is not an object sets no Claude Code setting, so it is not read as ours (PR #535
+  // lens): workstation.py called it legacy, or stopped on it when it was a list naming the project.
+  if (state !== 'read' || !isDict(doc)) return 'unreadable';
+  return holdsName(doc) ? 'installed' : 'legacy';
 }
 
 /**
@@ -55,7 +57,8 @@ export function adminState(env) {
  */
 export function adminInstalled(env) {
   try {
-    return holdsName(loads(readTextPy(adminDropin(env), 'utf-8')));
+    const doc = loads(readTextPy(adminDropin(env), 'utf-8'));
+    return isDict(doc) && holdsName(doc);
   } catch {
     return false;
   }
@@ -68,7 +71,11 @@ export function adminInstalled(env) {
  */
 export function adminPresent(env) {
   if (exists(adminDropin(env)) || exists(adminBase(env))) return true;
-  const text = readText(codexRequirements(env));
+  const req = codexRequirements(env);
+  // A requirements file that is there and cannot be read may be ours: it counts as present, so the admin
+  // --check runs and names it, rather than the view saying the admin layer is absent (PR #535 lens).
+  if (unreadable(req, 'text')) return true;
+  const text = readText(req);
   return text !== null && text.includes(MARKER);
 }
 

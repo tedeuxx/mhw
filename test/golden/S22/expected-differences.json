@@ -1,5 +1,55 @@
 [
   {
+    "case": [
+      "unreadable-files"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "Claude Code: default(?= · Codex: default)",
+    "head": "Claude Code: not read \\(<HOME>/\\.claude/settings\\.json is not readable UTF-8 JSON\\)(?= · Codex: default)",
+    "replace": "Claude Code: <the model, effort or mode of a settings.json that is not readable>",
+    "why": "A file that is there and cannot be read is said as not read, with the path and why, never as absent, 0 or a default (the PR #535 lens; the owner's rule for this view: never a false 0 or a stronger claim than it has). In this case the user's ~/.claude/settings.json is not JSON and the admin drop-in is not JSON. workstation.py, which did not stop on these, printed `Claude Code: default` on the models, `model, effort` and `permission mode` lines: a default claimed for a file nobody read. The Node view prints `Claude Code: not read (<path> is not readable UTF-8 JSON)`. Codex and Kiro, whose files are absent here, still read `default`, and are compared."
+  },
+  {
+    "case": [
+      "unreadable-files"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "plugin: none( enabled in Claude Code)?(?=\\n)",
+    "head": "plugin: not read \\(<HOME>/\\.claude/settings\\.json is not readable UTF-8 JSON\\)(?=\\n)",
+    "replace": "plugin: <the plugins of a settings.json that is not readable>",
+    "why": "A file that is there and cannot be read is said as not read, with the path and why, never as absent, 0 or a default (the PR #535 lens; the owner's rule for this view: never a false 0 or a stronger claim than it has). In this case the user's ~/.claude/settings.json is not JSON and the admin drop-in is not JSON. workstation.py, which did not stop on these, printed `plugin: none enabled in Claude Code` (and `plugin: none` in the summary) for the settings file the enabled plugins are read from. The Node view says it is not read, and why."
+  },
+  {
+    "case": [
+      "unreadable-files"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "Claude Code: default \\(none set\\), 0 allow rules",
+    "head": "Claude Code: mode not read \\(<ADMIN>/[^()]*50-personal-multi-harness-workstation-configuration\\.json is not readable UTF-8 JSON\\), allow rules not read \\(<HOME>/\\.claude/settings\\.json is not readable UTF-8 JSON\\)",
+    "replace": "Claude Code: <a mode and an allow list from files that are not readable>",
+    "why": "A file that is there and cannot be read is said as not read, with the path and why, never as absent, 0 or a default (the PR #535 lens; the owner's rule for this view: never a false 0 or a stronger claim than it has). In this case the user's ~/.claude/settings.json is not JSON and the admin drop-in is not JSON. workstation.py, which did not stop on these, printed `Claude Code: default (none set), 0 allow rules` on the permissions line. The mode is read in precedence order, admin first: an admin drop-in that is not readable may set the mode in effect, so the mode is not read (naming that file); the allow rules come from the user settings.json, which is not readable. The Codex and Kiro halves of the line (their files absent: `no workstation profile, 0 allow rules`, `0 trusted commands`) are compared as they are."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "The same rule on the inputs on which workstation.py stopped with a UnicodeDecodeError (PR #535 lens, finding 1), pinned in test/status/status.test.js: a Codex rules/workstation-allow-list.rules that is not UTF-8 reads `allow rules not read (<path> is not readable UTF-8)`, not `0 allow rules`; a workstation.config.toml that is not UTF-8 reads `workstation profile not read (...)`, not `no workstation profile`; a Kiro agents/workstation.json that is not readable reads `trusted commands not read (...)`; a Codex config.toml or Kiro cli.json that is not readable reads `not read (...)` on the models and permission-mode lines, in the overrides line when it is a workspace file, and on the method line as `whether the plugin is also enabled in Codex is not read (...)`; and a requirements.toml under the admin root that is not UTF-8 counts as present, so the admin --check runs and names it, where Node had read it as absent (`managed: absent`). A directory where a file belongs reads the same way (Python read it as absent)."
+  },
+  {
+    "case": [],
+    "stream": [],
+    "head": "(?!)",
+    "replace": "",
+    "why": "An admin drop-in that is JSON but not an object (a list, a string, a number, null) is `present, not read`, never installed (PR #535 lens, finding 2): Claude Code applies no settings from it. workstation.py called such a drop-in `installed (legacy, pre-#66; reinstall to update)` when it did not name the project, and stopped with a TypeError when it was a list naming it; the Node view had then read `managed: installed`. The admin --check still runs and names its drift. Pinned in test/status/status.test.js."
+  },
+  {
     "case": [],
     "stream": [],
     "head": "(?!)",
@@ -18,7 +68,7 @@
     "stream": [],
     "head": "(?!)",
     "replace": "",
-    "why": "Inputs on which workstation.py stopped with a Python traceback and printed no status at all, where the Node view prints its lines and reads the input as unreadable or absent: a drop-in whose stamp key is not a string, or a drop-in that is a JSON list naming the project (TypeError); a Kiro hook file that is JSON but not an object (AttributeError: read as modified); a hooks value that is truthy but not an object (AttributeError: no hook counted); a Codex config.toml, a requirements.toml or a .workstation-version that is not UTF-8 (UnicodeDecodeError: the TOML reads as unread, the key file's bad bytes as U+FFFD); a settings file nested past Python's recursion limit (RecursionError: not read); no git on PATH with no --project (FileNotFoundError: not in a git repository); an agent harness whose --version prints bytes that are not UTF-8 (UnicodeDecodeError: its first line with U+FFFD). Pinned in test/status/status.test.js where a case can build the input; status never crashes on what it reads, which is the property the owner-action reader already held."
+    "why": "Inputs on which workstation.py stopped with a Python traceback and printed no status at all, where the Node view prints its lines: a drop-in whose stamp key is not a string (TypeError: no stamp); a Kiro hook file that is JSON but not an object (AttributeError: read as modified); a hooks value that is truthy but not an object (AttributeError: no hook counted); a .workstation-version that is not UTF-8 (UnicodeDecodeError: its bad bytes read as U+FFFD); a settings file nested past Python's recursion limit (RecursionError: not read); no git on PATH with no --project (FileNotFoundError: not in a git repository); an agent harness whose --version prints bytes that are not UTF-8 (UnicodeDecodeError: its first line with U+FFFD). The files that are there and cannot be read (a Codex config.toml, rules file or profile, a requirements.toml, a drop-in that is not an object) are the two entries above. Pinned in test/status/status.test.js where a case can build the input; status never crashes on what it reads."
   },
   {
     "case": [],

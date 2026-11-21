@@ -125,6 +125,19 @@ export function readText(p) {
   }
 }
 
+/**
+ * Why a file that is there cannot be read, or null when it is absent or reads. A reader names a file this
+ * returns a reason for as `not read (<reason>)`, never as absent, 0 or a default (PR #535 lens): Python
+ * stopped on most of these inputs, and a negative claim about a file nobody could read is false.
+ * @param {string} p
+ * @param {'json' | 'text'} kind
+ */
+export function unreadable(p, kind) {
+  if (!exists(p)) return null;
+  if (kind === 'json') return readJson(p)[1] === 'not read' ? p + ' is not readable UTF-8 JSON' : null;
+  return readText(p) === null ? p + ' is not readable UTF-8' : null;
+}
+
 /** dict.get(key) of a parsed JSON value, or undefined when it is not a dict. @param {unknown} doc @param {string} key */
 export function get(doc, key) {
   return isDict(doc) && Object.hasOwn(/** @type {object} */ (doc), key) ? /** @type {Record<string, unknown>} */ (doc)[key] : undefined;

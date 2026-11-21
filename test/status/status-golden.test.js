@@ -118,7 +118,7 @@ function play(c, tree, o = {}) {
       const args = step.args.map((a) => (a.startsWith('<P:') ? '--project=' + path.join(base, 'work', a.slice(3, -1)) : a === '<OVERLAY>' ? '--overlay=' + path.join(base, 'overlay') : a));
       /** @type {string} */
       const before = !step.setup && o.readOnly ? JSON.stringify([tree0(home), tree0(root)]) : '';
-      const p = spawnSync(NODE, [path.join(tree, 'bin', 'mhw.js'), ...args], { env, cwd: base, encoding: 'utf8', timeout: 600000 });
+      const p = spawnSync(NODE, [path.join(tree, 'bin', 'mhw.js'), ...args], { env, cwd: step.cwd ? path.join(base, step.cwd) : base, encoding: 'utf8', timeout: 600000 });
       const label = 'step' + i + ' ' + step.args.join(' ');
       out[label] = { code: p.status };
       if (step.setup) {

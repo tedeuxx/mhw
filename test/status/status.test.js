@@ -12,8 +12,8 @@ import { spawnSync } from 'node:child_process';
 import * as st from '../../src/commands/status.js';
 import { keyVerdict, readKey, mismatchLine } from '../../src/lib/readers/version-key.js';
 import { readHooks, hooksText, LEFTOVER, GUARD, PASTE, KIRO_HOOK } from '../../src/lib/readers/hooks.js';
-import { adminState, adminInstalled, adminDropin, adminStamp, issues } from '../../src/lib/readers/admin.js';
-import { readSettings, methodState, permissionsText } from '../../src/lib/readers/settings.js';
+import { adminState, adminInstalled, adminDropin, adminStamp, adminPresent, issues } from '../../src/lib/readers/admin.js';
+import { readSettings, methodState, permissionsText, unreadSources } from '../../src/lib/readers/settings.js';
 import { rootBriefFindings, mainCheckoutOf, workspace } from '../../src/lib/readers/workspace.js';
 import * as oa from '../../src/lib/readers/owner-actions.js';
 import { which } from '../helpers/home.js';
@@ -594,14 +594,61 @@ describe('inputs on which workstation.py stopped with a traceback read as unread
     env = { HOME: path.join(dir, 'home'), WORKSTATION_MANAGED_ROOT: path.join(dir, 'root'), PATH: process.env.PATH || '' };
   });
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
-  test('a drop-in stamp key that is not a string, and a drop-in that is a list naming the project', () => {
+  test('a drop-in stamp key that is not a string reads as no stamp', () => {
     write(adminDropin(env), JSON.stringify({ [NAME]: 5 }));
     assert.equal(adminInstalled(env), true);
     assert.equal(adminStamp(env), 'none');
-    write(adminDropin(env), JSON.stringify([NAME]));
-    assert.equal(adminInstalled(env), true);
-    assert.equal(adminStamp(env), 'none');
-    assert.equal(adminState(env), 'legacy');
+  });
+  test('a drop-in that is JSON but not an object is present, not read: never installed (PR #535 lens 2)', () => {
+    for (const doc of [[NAME], [], NAME, 5, null]) {
+      write(adminDropin(env), JSON.stringify(doc));
+      assert.equal(adminInstalled(env), false, JSON.stringify(doc));
+      assert.equal(adminState(env), 'unreadable', JSON.stringify(doc));
+      assert.equal(adminStamp(env), 'none');
+      const f = facts({ admin: adminInstalled(env), admin_state: adminState(env) });
+      assert.ok(row(st.renderSummary(f, ENV), 'layers').startsWith('managed: present, not read · '));
+      assert.ok(st.renderStatus(f).includes('  installed        user: v3.1.0 @ aaaaaaa · admin: not installed'));
+    }
+  });
+  test('a requirements.toml that is there and not UTF-8 counts as present, so the admin check runs (PR #535 lens 1)', () => {
+    write(env.WORKSTATION_MANAGED_ROOT + '/etc/codex/requirements.toml', Buffer.concat([Buffer.from('# ' + MARKER + '\n'), Buffer.from([0xff, 0x0a])]));
+    assert.equal(adminPresent(env), true);
+    write(env.WORKSTATION_MANAGED_ROOT + '/etc/codex/requirements.toml', '# not ours\n');
+    assert.equal(adminPresent(env), false);
+  });
+  test('the permissions line says not read for a file that is there and cannot be read, never 0 (PR #535 lens 1)', () => {
+    const codex = path.join(env.HOME, '.codex');
+    write(path.join(codex, 'rules', 'workstation-allow-list.rules'), Buffer.concat([Buffer.from('x(decision="allow")\n'), Buffer.from([0xff, 0x0a])]));
+    write(path.join(codex, 'workstation.config.toml'), Buffer.concat([Buffer.from('sandbox_mode = "read-only"\n'), Buffer.from([0xff])]));
+    write(path.join(env.HOME, '.claude', 'settings.json'), 'not json');
+    write(path.join(env.HOME, '.kiro', 'agents', 'workstation.json'), '{');
+    const line = permissionsText(env, null);
+    assert.equal(line, 'Claude Code: mode not read (' + path.join(env.HOME, '.claude', 'settings.json') + ' is not readable UTF-8 JSON), allow rules not read (' +
+      path.join(env.HOME, '.claude', 'settings.json') + ' is not readable UTF-8 JSON) · Codex: workstation profile not read (' + path.join(codex, 'workstation.config.toml') +
+      ' is not readable UTF-8), allow rules not read (' + path.join(codex, 'rules', 'workstation-allow-list.rules') + ' is not readable UTF-8) · Kiro: agent workstation, trusted commands not read (' +
+      path.join(env.HOME, '.kiro', 'agents', 'workstation.json') + ' is not readable UTF-8 JSON)');
+    assert.ok(!/\b0 (allow rules|trusted commands)|no workstation profile|default \(none set\)/.test(line), line);
+  });
+  test('a setting source that is there and cannot be read never reads as default (PR #535 lens 1)', () => {
+    write(path.join(env.HOME, '.codex', 'config.toml'), Buffer.from([0x6d, 0x3d, 0xff, 0x0a]));
+    write(path.join(env.HOME, '.claude', 'settings.json'), '{');
+    const unread = unreadSources(env, null);
+    assert.deepEqual(unread.map((u) => u.harness + ' ' + u.layer), ['Claude Code user', 'Codex user']);
+    const f = facts({ settings: [], unread, harnesses: { 'Claude Code': '1', Codex: '1', Kiro: '1' }, plugins: [] });
+    const models = row(st.renderStatus(f), 'models');
+    assert.ok(models.startsWith('Claude Code: not read (' + path.join(env.HOME, '.claude', 'settings.json') + ' is not readable UTF-8 JSON) · Codex: not read ('), models);
+    assert.ok(models.includes('Kiro: default'), models);
+    assert.ok(row(st.renderStatus(f), 'layers').endsWith('plugin: not read (' + path.join(env.HOME, '.claude', 'settings.json') + ' is not readable UTF-8 JSON)'));
+    assert.ok(row(st.renderSummary(f, ENV), 'permission mode').startsWith('Claude Code: not read ('));
+    assert.ok(!row(st.renderSummary(f, ENV), 'model, effort').includes('Claude Code: default'));
+    const ws = path.join(dir, 'proj');
+    write(path.join(ws, '.codex', 'config.toml'), Buffer.from([0xff]));
+    const wsUnread = unreadSources(env, ws).filter((u) => u.layer === 'workspace');
+    assert.equal(row(st.renderSummary(facts({ settings: [], unread: wsUnread }), ENV), 'overrides'),
+      'Codex not read (' + path.join(ws, '.codex', 'config.toml') + ' is not readable UTF-8)');
+    const m = methodState(env, ['METHOD  installed: 1'], []);
+    assert.ok(st.methodText(m).endsWith('; whether the plugin is also enabled in Codex is not read (' + path.join(env.HOME, '.codex', 'config.toml') + ' is not readable UTF-8)'));
+    assert.equal(methodState(env, ['METHOD  not installed'], []).unread, undefined);
   });
   test('a hooks value that is truthy but not an object counts no hook', () => {
     write(path.join(env.HOME, '.claude', 'settings.json'), JSON.stringify({ hooks: ['x'] }));
@@ -619,6 +666,42 @@ describe('inputs on which workstation.py stopped with a traceback read as unread
   });
   test('no git on PATH and no --project: not in a git repository', () => {
     assert.deepEqual(workspace(null, { PATH: path.join(dir, 'nothing') }, dir), { name: '', root: null, carriers: [] });
+    assert.deepEqual(workspace('', { PATH: path.join(dir, 'nothing') }, dir), { name: '', root: null, carriers: [] });
+  });
+  test('QA ST2: an admin --check that fails with no counted line is still a difference, never `matches`', () => {
+    const out = st.renderStatus(facts({ admin_code: 3, admin_issues: 0, admin_lines: ['NOTE    could not read'] }));
+    assert.ok(out.includes('  check            1 target(s) differ (admin layer: 1); run ./mhw install'), out.join('\n'));
+    assert.ok(!out.some((l) => l.includes('matches this checkout')));
+    assert.ok(st.renderStatus(facts({ admin_code: 0, admin_issues: 0 })).includes('  check            matches this checkout'));
+  });
+  test('QA ST7: briefs carrying different stamps compare as mixed, which matches no range', () => {
+    const other = 'release: v3.2.0; commit: ' + 'b'.repeat(40);
+    assert.equal(st.keyRelease({ 'Claude Code': STAMP, Codex: other }), 'mixed');
+    assert.equal(keyVerdict('>=3.1 <4', st.keyRelease({ 'Claude Code': STAMP, Codex: other }))[0], 'mismatch');
+    assert.equal(st.keyRelease({ 'Claude Code': STAMP, Codex: STAMP }), 'v3.1.0');
+    assert.equal(st.keyRelease({}), 'none');
+  });
+  test('QA AD3: a requirements.toml without our managed-by line is not an admin layer of ours', () => {
+    write(env.WORKSTATION_MANAGED_ROOT + '/etc/codex/requirements.toml', '[hooks]\n# someone else\'s\n');
+    assert.equal(adminPresent(env), false);
+    write(env.WORKSTATION_MANAGED_ROOT + '/etc/codex/requirements.toml', '# ' + MARKER + '\n');
+    assert.equal(adminPresent(env), true);
+  });
+  test('QA B1: --project= reads as no --project, outside a git repository too', () => {
+    const outside = { PATH: process.env.PATH || '', HOME: env.HOME };
+    assert.deepEqual(workspace('', outside, dir), workspace(null, outside, dir));
+  });
+  test('an empty --project= is unset: the git root of the current directory, as Python read it (PR #535 lens 3)', { skip: !which('git') && 'needs git' }, () => {
+    const repo = path.join(dir, 'repo');
+    const sub = path.join(repo, 'src', 'lib');
+    fs.mkdirSync(sub, { recursive: true });
+    assert.equal(spawnSync(/** @type {string} */ (which('git')), ['-C', repo, 'init', '-q']).status, 0);
+    const wenv = { PATH: process.env.PATH || '', HOME: env.HOME };
+    const top = workspace('', wenv, sub);
+    assert.equal(top.name, 'repo');
+    assert.equal(fs.realpathSync.native(/** @type {string} */ (top.root)), fs.realpathSync.native(repo));
+    assert.deepEqual(workspace('', wenv, sub), workspace(null, wenv, sub));
+    assert.equal(workspace('.', wenv, sub).name, 'lib');
   });
 });
 

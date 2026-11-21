@@ -2,7 +2,7 @@
 // global/workstation.py): the session defaults each layer sets, the Claude Code plugins enabled, the
 // working method and where the plugin duplicates it, and the pre-authorisation (permission mode and
 // allow-list size). Read-only. node: modules only.
-import { pathlibJoin, inHome, codexHome, readJson, readText, get, truthy, isDict, splitlines } from './common.js';
+import { pathlibJoin, inHome, codexHome, readJson, readText, get, truthy, isDict, splitlines, unreadable } from './common.js';
 import { adminDropin } from './admin.js';
 import { dumps, pyStrip, isPyWs, cmpStr, pyLen } from '../py.js';
 import { inRanges } from '../clean.js';
@@ -121,6 +121,36 @@ export function readSettings(env, wsRoot) {
   return out;
 }
 
+/** @typedef {{ harness: string, layer: string, reason: string }} Unread */
+
+/**
+ * The session-default sources readSettings reads that are there and cannot be read, per agent harness
+ * and layer. A view that finds no value for a harness says `not read (<reason>)` for these, never
+ * `default` (PR #535 lens).
+ * @param {Env} env
+ * @param {string | null} wsRoot
+ * @returns {Unread[]}
+ */
+export function unreadSources(env, wsRoot) {
+  /** @type {Array<[string, string, string, 'json' | 'text']>} */
+  const sources = [['Claude Code', 'user', inHome(env, '.claude', 'settings.json'), 'json'],
+    ['Codex', 'user', pathlibJoin(codexHome(env), ['config.toml']), 'text'],
+    ['Kiro', 'user', inHome(env, '.kiro', 'settings', 'cli.json'), 'json']];
+  if (wsRoot) {
+    sources.push(['Claude Code', 'workspace', pathlibJoin(wsRoot, ['.claude', 'settings.json']), 'json'],
+      ['Claude Code', 'workspace', pathlibJoin(wsRoot, ['.claude', 'settings.local.json']), 'json'],
+      ['Codex', 'workspace', pathlibJoin(wsRoot, ['.codex', 'config.toml']), 'text'],
+      ['Kiro', 'workspace', pathlibJoin(wsRoot, ['.kiro', 'settings', 'cli.json']), 'json']);
+  }
+  /** @type {Unread[]} */
+  const out = [];
+  for (const [harness, layer, p, kind] of sources) {
+    const reason = unreadable(p, kind);
+    if (reason) out.push({ harness, layer, reason });
+  }
+  return out;
+}
+
 /**
  * Claude Code plugins enabled in the user settings, minus those a project settings file disables.
  * @param {Env} env
@@ -185,7 +215,7 @@ function enabledFalse(s) {
  * @param {Env} env
  * @param {string[]} userLines
  * @param {string[]} claudePlugins
- * @returns {{ installed: boolean | null, duplicate: string[] }}
+ * @returns {{ installed: boolean | null, duplicate: string[], unread?: string }}
  */
 export function methodState(env, userLines, claudePlugins) {
   /** @type {boolean | null} */
@@ -198,15 +228,23 @@ export function methodState(env, userLines, claudePlugins) {
   const dup = [];
   if (claudePlugins.some((p) => p.split('@')[0] === METHOD_PLUGIN)) dup.push('Claude Code');
   if (codexPluginEnabled(env, METHOD_PLUGIN)) dup.push('Codex');
-  return { installed, duplicate: installed ? dup : [] };
+  /** @type {{ installed: boolean | null, duplicate: string[], unread?: string }} */
+  const out = { installed, duplicate: installed ? dup : [] };
+  // A Codex config.toml that is there and cannot be read: whether the plugin is enabled there is unknown.
+  const reason = unreadable(pathlibJoin(codexHome(env), ['config.toml']), 'text');
+  if (installed && reason) out.unread = reason;
+  return out;
 }
 
 export const PROFILE = 'workstation';
 
 /**
- * [mode, layer]: the first permissions.defaultMode found in precedence order, managed first.
+ * [mode, layer]: the first permissions.defaultMode found in precedence order, managed first; [null,
+ * reason] when a layer that is there cannot be read before any mode is found, since that layer may set
+ * the mode in effect.
  * @param {Env} env
  * @param {string | null} wsRoot
+ * @returns {[string | null, string]}
  */
 export function claudeMode(env, wsRoot) {
   const layers = [['admin', adminDropin(env)]];
@@ -216,7 +254,8 @@ export function claudeMode(env, wsRoot) {
   }
   layers.push(['user', inHome(env, '.claude', 'settings.json')]);
   for (const [name, p] of layers) {
-    const [doc] = readJson(p);
+    const [doc, state] = readJson(p);
+    if (state === 'not read') return [null, /** @type {string} */ (unreadable(p, 'json'))];
     const mode = get(get(doc, 'permissions'), 'defaultMode');
     if (typeof mode === 'string') return [mode, name];
   }
@@ -272,19 +311,29 @@ function sandboxMode(text) {
  */
 export function permissionsText(env, wsRoot) {
   const [mode, layer] = claudeMode(env, wsRoot);
-  const [doc] = readJson(inHome(env, '.claude', 'settings.json'));
+  const settings = inHome(env, '.claude', 'settings.json');
+  const [doc] = readJson(settings);
   const allow = get(get(doc, 'permissions'), 'allow');
-  const nClaude = Array.isArray(allow) ? allow.length : 0;
+  const claudeRules = unreadable(settings, 'json');
+  const nClaude = claudeRules ? 'allow rules not read (' + claudeRules + ')' : (Array.isArray(allow) ? allow.length : 0) + ' allow rules';
+  const claude = mode === null ? 'mode not read (' + layer + ')' : mode + ' (' + layer + ')';
   const home = codexHome(env);
-  const rules = readText(pathlibJoin(home, ['rules', 'workstation-allow-list.rules']));
-  const nCodex = rules === null ? 0 : splitlines(rules).filter((l) => l.endsWith('decision="allow")')).length;
-  const profile = readText(pathlibJoin(home, [PROFILE + '.config.toml'])) ?? '';
-  const sandbox = sandboxMode(profile);
-  const codex = sandbox !== null
-    ? 'profile ' + PROFILE + ' (on-request, ' + sandbox + '; with --profile ' + PROFILE + ')'
-    : 'no ' + PROFILE + ' profile';
-  const [kdoc] = readJson(inHome(env, '.kiro', 'agents', 'workstation.json'));
-  const nKiro = pyLength(kiroAllowed(kdoc)) ?? 0;
-  return 'Claude Code: ' + mode + ' (' + layer + '), ' + nClaude + ' allow rules · Codex: ' + codex + ', ' + nCodex +
-    ' allow rules · Kiro: agent workstation, ' + nKiro + ' trusted commands';
+  const rulesPath = pathlibJoin(home, ['rules', 'workstation-allow-list.rules']);
+  const rules = readText(rulesPath);
+  const rulesReason = unreadable(rulesPath, 'text');
+  const nCodex = rulesReason ? 'allow rules not read (' + rulesReason + ')'
+    : (rules === null ? 0 : splitlines(rules).filter((l) => l.endsWith('decision="allow")')).length) + ' allow rules';
+  const profilePath = pathlibJoin(home, [PROFILE + '.config.toml']);
+  const profileReason = unreadable(profilePath, 'text');
+  const sandbox = sandboxMode(readText(profilePath) ?? '');
+  let codex;
+  if (profileReason) codex = PROFILE + ' profile not read (' + profileReason + ')';
+  else if (sandbox !== null) codex = 'profile ' + PROFILE + ' (on-request, ' + sandbox + '; with --profile ' + PROFILE + ')';
+  else codex = 'no ' + PROFILE + ' profile';
+  const agent = inHome(env, '.kiro', 'agents', 'workstation.json');
+  const [kdoc] = readJson(agent);
+  const agentReason = unreadable(agent, 'json');
+  const nKiro = agentReason ? 'trusted commands not read (' + agentReason + ')' : (pyLength(kiroAllowed(kdoc)) ?? 0) + ' trusted commands';
+  return 'Claude Code: ' + claude + ', ' + nClaude + ' · Codex: ' + codex + ', ' + nCodex +
+    ' · Kiro: agent workstation, ' + nKiro;
 }

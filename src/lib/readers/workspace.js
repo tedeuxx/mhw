@@ -85,7 +85,8 @@ export function rootBriefFindings(top, env) {
  */
 export function workspace(project, env, cwd) {
   let top;
-  if (project !== null) {
+  // An empty --project= is unset, as `if project:` read it: the git root of the current directory.
+  if (project) {
     top = resolvePath(path.resolve(cwd, project));
   } else {
     const git = onPath('git', env);
