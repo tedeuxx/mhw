@@ -200,7 +200,7 @@ fi
 
 modes_ok=1
 for f in "$bin/hook/src/commands/hook-entry.js" "$bin/hook/src/commands/hook-prompt.js" "$bin/hook/src/lib/clean.js" \
-    "$bin/hook/src/lib/clean-unicode.js" "$bin/hook/src/lib/salt.js" "$bin/hook/package.json" "$bin/clipboard.conf"; do
+    "$bin/hook/src/lib/clean-unicode.js" "$bin/hook/package.json" "$bin/clipboard.conf"; do
   [ -f "$f" ] && [ ! -x "$f" ] || modes_ok=0
 done
 [ ! -e "$bin/clipboard_guard.py" ] || modes_ok=0
@@ -232,7 +232,7 @@ for f in "$dropin" "$req" "$kiro" "$bin/hook/src/commands/hook-entry.js" "$bin/h
   [ -n "$src_stamp" ] && [ "$got" = "$src_stamp" ] || unstamped="$unstamped $f"
 done
 if [ -z "$unstamped" ]; then ok "every installed admin file carries the source's stamp"; else ko "every installed admin file carries the source's stamp" "missing in:$unstamped"; fi
-if [ "$(grep -c '^OK .*(release: ' "$base/check-clean.out")" -eq 10 ]; then ok "check reports each admin file's stamp"; else ko "check reports each admin file's stamp"; fi
+if [ "$(grep -c '^OK .*(release: ' "$base/check-clean.out")" -eq 9 ]; then ok "check reports each admin file's stamp"; else ko "check reports each admin file's stamp"; fi
 other=0123456789abcdef0123456789abcdef01234567
 for f in "$req" "$dropin" "$kiro"; do
   sed "s/; commit: [^;\"]*;/; commit: $other;/" "$f" > "$f.t" && cat "$f.t" > "$f" && rm "$f.t"
@@ -276,7 +276,7 @@ h = hashlib.sha256()
 for n in sys.argv[2].split() + ["../claude.json", "../requirements.toml", "../kiro.json"]:
     data = open(os.path.normpath(os.path.join(d, "bin", n)), "rb").read()
     h.update(n.encode() + b"\0" + str(len(data)).encode() + b"\0" + data)
-print(h.hexdigest())' "$bigstage" "clipboard.conf hook/package.json hook/src/commands/hook-entry.js hook/src/commands/hook-prompt.js hook/src/lib/clean.js hook/src/lib/clean-unicode.js hook/src/lib/salt.js")
+print(h.hexdigest())' "$bigstage" "clipboard.conf hook/package.json hook/src/commands/hook-entry.js hook/src/commands/hook-prompt.js hook/src/lib/clean.js hook/src/lib/clean-unicode.js")
 cp "$kiro" "$base/kiro.before-big"
 sh "$inst" --apply="$bigstage" --sha256="$bigsha" --root="$r" > "$base/apply-big.out" 2>&1; expect "apply refuses a Kiro rule over the condition ceiling (hash matching)" 3 $?
 if cmp -s "$kiro" "$base/kiro.before-big" && grep -q "does not validate" "$base/apply-big.out"; then

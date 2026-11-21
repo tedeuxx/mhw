@@ -1442,6 +1442,96 @@
       "name": "marker-empty-bad-json/kiro",
       "stderr": "Paste filter (ADR-0033): internal error (JSONDecodeError); this prompt was NOT checked.\n",
       "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "nonascii-terms_file/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-terms_file/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-terms_file/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "nonascii-health_terms_file/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-health_terms_file/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-health_terms_file/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "nonascii-colleague_terms_file/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-colleague_terms_file/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-colleague_terms_file/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "nonascii-salt_file/claude",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-salt_file/codex",
+      "stderr": "",
+      "stdout": "{\"systemMessage\": \"Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\"}\n"
+    },
+    {
+      "code": 0,
+      "name": "nonascii-salt_file/kiro",
+      "stderr": "Paste filter (ADR-0033): internal error (UnicodeDecodeError); this prompt was NOT checked.\n",
+      "stdout": ""
+    },
+    {
+      "code": 0,
+      "name": "good-file-salt/claude",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nnotes for [REDACTED:employer-client-term]\", \"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"suppressOriginalPrompt\": true}}\n"
+    },
+    {
+      "code": 0,
+      "name": "good-file-salt/codex",
+      "stderr": "",
+      "stdout": "{\"decision\": \"block\", \"reason\": \"Paste filter (ADR-0033): employer-client-term in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\\n\\nnotes for [REDACTED:employer-client-term]\"}\n"
+    },
+    {
+      "code": 2,
+      "name": "good-file-salt/kiro",
+      "stderr": "Paste filter (ADR-0033): employer-client-term in this prompt. It was NOT sent, and nothing was changed. A redacted copy is below: submit that instead, or edit your prompt.\n\nnotes for [REDACTED:employer-client-term]\n",
+      "stdout": ""
     }
   ]
 }

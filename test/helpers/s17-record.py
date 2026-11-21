@@ -59,9 +59,14 @@ def decision(c):
                       ("colleague", conf["colleague_terms_file"])):
         if lists.get(key):
             g.add_term_hashes(path, hashes(lists[key]))
+    for key, data in c.get("raw", {}).items():
+        os.makedirs(os.path.dirname(conf[key]), exist_ok=True)
+        with open(conf[key], "ab") as fh:
+            fh.write(bytes.fromhex(data))
     env = {} if c.get("marker") is None else {g.WRAPPER_MARKER: c["marker"]}
     out, err = io.StringIO(), io.StringIO()
-    rc = g.cmd_prompt_hook(conf, c["harness"], io.BytesIO(bytes.fromhex(c["payload"])), out, Salts(c.get("salt")),
+    salts = None if c.get("fileSalt") else Salts(c.get("salt"))
+    rc = g.cmd_prompt_hook(conf, c["harness"], io.BytesIO(bytes.fromhex(c["payload"])), out, salts,
                            environ=env, stderr=err)
     return {"name": c["name"], "stdout": out.getvalue(), "stderr": err.getvalue(), "code": rc}
 

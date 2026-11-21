@@ -789,15 +789,51 @@ export function readTerms(file) {
 }
 
 /**
+ * clipboard_guard.read_terms() exactly, for the prompt hook (#488, PR #536 QA B1): an OS error (absent,
+ * unreadable) is an empty list, as Python caught OSError; a file that does not decode as ASCII throws
+ * PyError('UnicodeDecodeError'), as Python raised it, so the hook prints its NOT-checked notice instead of
+ * passing the prompt silently. readTerms() above keeps mhw scan's declared reading (a NOTE).
+ * @param {string} file
+ * @returns {Set<string>}
+ */
+export function readTermsStrict(file) {
+  let text;
+  try {
+    text = readTextPy(file, 'ascii');
+  } catch (e) {
+    if (e instanceof PyError) throw e;
+    return new Set();
+  }
+  return new Set(text.split('\n').map(strip).filter((l) => HASH_LINE.test(l)));
+}
+
+/**
+ * The salt file, as clipboard_guard.SaltStore.get() read it: absent or unreadable is no salt; not ASCII
+ * throws PyError('UnicodeDecodeError') (the prompt hook's notice); otherwise the salt or null.
+ * @param {string} file
+ */
+export function fileSaltStrict(file) {
+  let value;
+  try {
+    value = strip(readTextPy(file, 'ascii'));
+  } catch (e) {
+    if (e instanceof PyError) throw e;
+    return null;
+  }
+  return /^[0-9a-f]{64}$/.test(value) ? value : null;
+}
+
+/**
  * (employer and client hashes, {category: hashes} for the private health and colleague lists).
  * @param {Record<string, string>} conf
  * @returns {[Set<string>, Record<string, Set<string>>]}
  */
-export function readTermLists(conf) {
+export function readTermLists(conf, read = readTerms) {
   /** @type {Record<string, Set<string>>} */
   const lists = {};
-  for (const [cat, key] of Object.entries(TERM_LISTS)) lists[cat] = readTerms(conf[key]);
-  return [readTerms(conf.terms_file), lists];
+  const terms = read(conf.terms_file); // the employer list first, as clipboard_guard.read_term_lists() read it
+  for (const [cat, key] of Object.entries(TERM_LISTS)) lists[cat] = read(conf[key]);
+  return [terms, lists];
 }
 
 /**

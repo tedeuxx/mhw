@@ -20,7 +20,6 @@
 import fs from 'node:fs';
 import * as core from '../lib/clean.js';
 import { WORD } from '../lib/clean-unicode.js';
-import { readSalt } from '../lib/salt.js';
 
 export const HARNESSES = Object.freeze(['claude', 'codex', 'kiro']);
 export const WRAPPER_MARKER = 'PMHWC_PASTE_WRAPPER';
@@ -140,7 +139,7 @@ export function promptDecision(conf, prompt, harness, salts) {
   if (utf8Length(prompt) > core.pyInt(conf.max_bytes)) return { systemMessage: format(conf, 'notice_too_large', { max: conf.max_bytes }) };
   /** @type {string[]} */
   const warnings = [];
-  const [terms, lists] = core.readTermLists(conf);
+  const [terms, lists] = core.readTermLists(conf, core.readTermsStrict); // an undecodable list raises (QA B1)
   let salt = null;
   if (terms.size || Object.values(lists).some((h) => h.size)) {
     salt = salts.get();
@@ -363,7 +362,8 @@ export async function run(argv, env, io = {}) {
   } catch (e) {
     return errorOutput(harness, errorClass(e)); // an unreadable settings file: visible, and the prompt passes
   }
-  const salts = io.salts || { get: () => readSalt(/** @type {Record<string, string>} */ (conf)).salt };
+  // The salt as the original read it: an undecodable salt file raises, and the hook says NOT checked (QA B1).
+  const salts = io.salts || { get: () => core.fileSaltStrict(/** @type {Record<string, string>} */ (conf).salt_file) };
   const h = harness;
   const c = conf;
   /** @type {NodeJS.Timeout | undefined} */

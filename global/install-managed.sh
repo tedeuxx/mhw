@@ -40,7 +40,7 @@ DROPIN="50-$NAME.json"
 # nghttp2, nghttp3, ngtcp2, sqlite, uvwasi, zstd, openssl@3 and icu4c under /opt/homebrew/opt, measured with
 # otool -L on node 25.9.0). A process running as the owner can replace any of them and so change what the
 # hook does. `mhw status` names the node owner-writable; the trust root is an open owner question (#536).
-HOOK_FILES="hook/package.json hook/src/commands/hook-entry.js hook/src/commands/hook-prompt.js hook/src/lib/clean.js hook/src/lib/clean-unicode.js hook/src/lib/salt.js"
+HOOK_FILES="hook/package.json hook/src/commands/hook-entry.js hook/src/commands/hook-prompt.js hook/src/lib/clean.js hook/src/lib/clean-unicode.js"
 FILES="clipboard.conf $HOOK_FILES"
 # Removed by ADR-0028 (restart guard, switches) and by ADR-0013's 2026-10-05 amendment (HITL picker
 # guard); an earlier --apply installed them. Deleted by --apply and --remove, reported by --check.

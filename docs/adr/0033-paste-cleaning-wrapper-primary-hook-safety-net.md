@@ -327,12 +327,24 @@ declares every difference.
   libnode from the Cellar, and libuv, llhttp, ada-url, simdjson, brotli, c-ares, nghttp2, nghttp3, ngtcp2,
   sqlite, uvwasi, zstd, openssl@3 and icu4c under `/opt/homebrew/opt`. Measured with `otool -L` on node
   25.9.0; the set changes with the node build. A process running as the owner can replace any of them,
-  and so change what both layers' hook does. Which node the admin layer may trust is an open owner
-  question (PR #536). `mhw status` prints the
-  node's path on its `hook node` line and names it `owner-writable`. A missing node is reported as
-  `FAIL`. This is to be carried into the runtime ADR the migration ends with (#470), not hidden here.
-- **Fail-open, pinned out of process.** A hook module that is missing, does not parse or throws gives
-  the error notice, by its class only. So does a payload read that stalls past 20 s. On Claude Code and
+  and so change what both layers' hook does. ~~Which node the admin layer may trust is an open owner
+  question (PR #536).~~ *Owner ruling, 2026-11-21 ([PR #536](https://github.com/tedeuxx/mhw/pull/536#issuecomment-7063304413)):* «Aceitar agora, travar no fim»
+  (accept it now, lock it at the end). **Dated residual, accepted 2026-11-21:** the admin layer runs an
+  owner-writable node and libraries until S32 (#502), whose runtime ADR must require a root-owned,
+  self-contained node for the admin layer. `mhw status` prints the node's path on its `hook node` line
+  and names it `owner-writable`. A missing node is reported as `FAIL`.
+- **Fail-open, pinned out of process.** ~~A hook module that is missing, does not parse or throws gives
+  the error notice~~ *(narrowed the same day, PR #536 QA B3)*: a module BELOW the entry (hook-prompt.js
+  and the cleaning core) that is missing, does not parse or throws gives the error notice, by its class
+  only, and so does a term list or salt file that does not decode (QA B1), a stdin error and a `main()`
+  that throws. So does a payload read that stalls past 20 s.
+- **Residual: the entry itself or node missing fails open.** When `bin/mhw.js`, the admin copy of
+  hook-entry.js, or the node binary is gone, the command exits 1 (a Node stack trace) or 127 (`env`),
+  no notice is printed, and the prompt passes on all three agent harnesses. The Python base exited 2
+  there (`python3` could not open the file), which every harness treats as a block. Wrapping the command
+  so that such a start failure exits 2 is possible but was not measured on any harness, so it is not
+  claimed. `mhw status` shows the paste filter as not registered and `hook node FAIL`: detection on
+  demand, not on each prompt. On Claude Code and
   Codex the notice is visible. On Kiro it goes to stderr at exit 0, as before, and Kiro drops stderr
   there. That Kiro gap is unchanged by this slice.
 

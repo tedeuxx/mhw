@@ -76,9 +76,14 @@ async function nodeAnswers() {
     for (const [key, file] of /** @type {Array<[keyof typeof lists, string]>} */ ([['employer', conf.terms_file], ['health', conf.health_terms_file], ['colleague', conf.colleague_terms_file]])) {
       if (lists[key]?.length) addTermHashes(file, hashes(/** @type {string[]} */ (lists[key])));
     }
+    for (const [key, data] of Object.entries(c.raw || {})) {
+      fs.mkdirSync(path.dirname(conf[key]), { recursive: true });
+      fs.appendFileSync(conf[key], Buffer.from(data, 'hex'));
+    }
     const env = c.marker == null ? {} : { [hook.WRAPPER_MARKER]: c.marker };
     const raw = Buffer.from(c.payload, 'hex');
-    const r = await hook.run(['--harness', c.harness, '--config', p], env, { stdin: Readable.from(raw.length ? [raw] : []), salts: { get: () => c.salt ?? null } });
+    const salts = c.fileSalt ? undefined : { get: () => c.salt ?? null };
+    const r = await hook.run(['--harness', c.harness, '--config', p], env, { stdin: Readable.from(raw.length ? [raw] : []), salts });
     decision.push({ name: c.name, stdout: r.stdout, stderr: r.stderr, code: r.code });
   }
   const cli = POSIX ? CASES.cli.map((c) => {

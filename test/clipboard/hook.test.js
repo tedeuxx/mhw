@@ -233,6 +233,76 @@ test('the hook source names no clipboard, dialog, notification or launchd tool, 
   }
 });
 
+// PR #536 QA B1: a term list or the salt file holding a byte that is not ASCII. The original raised
+// UnicodeDecodeError into its handler and said NOT checked; the hook must never pass such a prompt silently.
+test('an undecodable term list or salt file gives the NOT-checked notice on every harness, never a silent pass', { skip: !POSIX && 'POSIX' }, () => {
+  for (const key of ['terms_file', 'health_terms_file', 'colleague_terms_file', 'salt_file']) {
+    const b = box();
+    withTerm(b);
+    fs.appendFileSync(b.conf[key], Buffer.from([0x23, 0x0a, 0xe9, 0x0a]));
+    for (const harness of ['claude', 'codex', 'kiro']) {
+      const r = hookProcess(['--harness', harness, '--config', b.confPath], payload('notes for ' + TERM), b.env);
+      assert.notEqual(r.stdout + r.stderr, '', key + '/' + harness + ': a silent pass');
+      assert.match(r.stdout + r.stderr, /internal error \(UnicodeDecodeError\); this prompt was NOT checked\./, key + '/' + harness);
+      assert.equal(r.status, 0, key + '/' + harness);
+    }
+  }
+});
+
+// PR #536 QA B2: every branch that turns an exception into the notice, one row each, out of process where
+// it can be. Each row: the notice, the class name only, and neither the message nor the input in the output.
+test('every error branch of the hook prints the notice by class, never the message or the input', { skip: !POSIX && 'POSIX' }, async () => {
+  const secret = 'SECRET-' + TERM;
+  const input = payload('mail ' + EMAIL);
+  /** @param {string} out @param {RegExp} cls @param {string} label */
+  const check = (out, cls, label) => {
+    assert.match(out, /this prompt was NOT checked\./, label);
+    assert.match(out, cls, label);
+    assert.ok(!out.includes('SECRET') && !out.includes(EMAIL) && !out.toLowerCase().includes('quillon'), label + ': the message or the input leaked');
+  };
+  // 1. main() throws, with a message that quotes the input (hook-entry.js, the catch around main()).
+  const d = path.join(fresh(), 'hook');
+  fs.mkdirSync(d);
+  fs.writeFileSync(path.join(d, 'package.json'), '{"type": "module"}\n');
+  fs.copyFileSync(path.join(ROOT, 'src', 'commands', 'hook-entry.js'), path.join(d, 'hook-entry.js'));
+  fs.writeFileSync(path.join(d, 'hook-prompt.js'), 'export async function main() { throw new RangeError(' + JSON.stringify(secret) + '); }\n');
+  for (const harness of ['claude', 'kiro']) {
+    const r = spawnSync(process.execPath, [path.join(d, 'hook-entry.js'), '--harness', harness], { input, encoding: 'utf8', timeout: 30000 });
+    assert.equal(r.status, 0, 'main throws/' + harness);
+    check(r.stdout + r.stderr, /internal error \(RangeError\)/, 'main throws/' + harness);
+    if (harness === 'kiro') assert.equal(r.stdout, '');
+  }
+  // 2. bin/mhw.js cannot import hook-entry.js (its own catch).
+  const pkg = path.join(fresh(), 'pkg');
+  fs.mkdirSync(path.join(pkg, 'bin'), { recursive: true });
+  fs.writeFileSync(path.join(pkg, 'package.json'), '{"type": "module"}\n');
+  fs.copyFileSync(MHW, path.join(pkg, 'bin', 'mhw.js'));
+  for (const harness of ['claude', 'codex', 'kiro']) {
+    const r = spawnSync(process.execPath, [path.join(pkg, 'bin', 'mhw.js'), 'hook', 'prompt', '--harness', harness], { input, encoding: 'utf8', timeout: 30000 });
+    assert.equal(r.status, 0, 'no entry/' + harness);
+    check(r.stdout + r.stderr, /internal error \(Error\)/, 'no entry/' + harness);
+    if (harness === 'kiro') assert.equal(r.stdout, '');
+    else assert.deepEqual(Object.keys(JSON.parse(r.stdout)), ['systemMessage']);
+  }
+  // 3. stdin emits an error (hook-prompt.js, the catch around the payload read).
+  const b = box();
+  const { Readable } = await import('node:stream');
+  for (const harness of ['claude', 'kiro']) {
+    const stdin = new Readable({ read() { this.destroy(new TypeError(secret)); } });
+    const r = await hook.run(['--harness', harness, '--config', b.confPath], b.env, { stdin });
+    check(r.stdout + r.stderr, /internal error \(TypeError\)/, 'stdin error/' + harness);
+  }
+  // 4. a plain Error whose message quotes the input (errorClass's fallback: the class, never the message).
+  for (const harness of ['claude', 'kiro']) {
+    withTerm(b);
+    const r = await hook.run(['--harness', harness, '--config', b.confPath], b.env,
+      { stdin: Readable.from([Buffer.from(payload('notes for ' + TERM))]), salts: { get: () => { throw new Error(secret); } } });
+    check(r.stdout + r.stderr, /internal error \(Error\)/, 'plain Error/' + harness);
+  }
+  assert.equal(hook.errorClass(new Error(secret)), 'Error');
+  assert.equal(hook.errorClass({ message: secret }), 'Error');
+});
+
 // ------------------------------------------------------------------- the salt file
 
 test('the salt is a 0600 file in a 0700 directory, created atomically, and a bad salt is no salt', { skip: !POSIX && 'POSIX file modes' }, () => {
@@ -416,7 +486,7 @@ test('the admin layer copies exactly the files the hook imports', () => {
   const closure = [...seen].map((p) => path.relative(ROOT, p).split(path.sep).join('/')).sort();
   const sh = fs.readFileSync(path.join(ROOT, 'global', 'install-managed.sh'), 'utf8');
   const listed = /** @type {RegExpMatchArray} */ (sh.match(/^HOOK_FILES="([^"]*)"/m))[1].split(' ').filter((x) => x !== 'hook/package.json').map((x) => x.slice(5)).sort();
-  assert.ok(closure.includes('src/commands/hook-prompt.js') && closure.includes('src/lib/salt.js'), closure.join(' '));
+  assert.ok(closure.includes('src/commands/hook-prompt.js') && closure.includes('src/lib/clean.js'), closure.join(' '));
   assert.deepEqual(listed, closure);
 });
 

@@ -74,8 +74,9 @@ const payload = (prompt, more = {}) => hex(JSON.stringify({ hook_event_name: 'Us
 /**
  * @typedef {{ name: string, harness: string, payload: string, conf?: Record<string, string>,
  *   lists?: { employer?: string[], health?: string[], colleague?: string[] }, salt?: string | null,
- *   marker?: string | null }} DecisionCase
- *   salt: what the salt store answers (null: unreadable); marker: PMHWC_PASTE_WRAPPER's value, or absent
+ *   marker?: string | null, raw?: Record<string, string>, fileSalt?: boolean }} DecisionCase
+ *   salt: what the salt store answers (null: unreadable); marker: PMHWC_PASTE_WRAPPER's value, or absent;
+ *   raw: bytes (hex) appended to the named settings file after the lists; fileSalt: the real file store, not salt
  */
 
 /** @returns {DecisionCase[]} */
@@ -144,6 +145,14 @@ export function decisionCases() {
     all(label, payload(J('deploy for ', TERM, ' with ', CREDENTIALS.github, ', mail ', EMAIL)), { ...term, marker });
     all(label + '-bad-json', hex('nope'), { marker });
   }
+  // PR #536 QA B1: a list or a salt file holding a byte that is not ASCII. The original raised
+  // UnicodeDecodeError into the hook's handler and said NOT checked; a silent pass is the defect.
+  const bad = '230a' + 'e90a'; // '#\n' then a non-ASCII byte and a newline
+  for (const key of ['terms_file', 'health_terms_file', 'colleague_terms_file']) {
+    all('nonascii-' + key, payload('notes for ' + TERM), { ...term, raw: { [key]: bad } });
+  }
+  all('nonascii-salt_file', payload('notes for ' + TERM), { ...term, raw: { salt_file: 'e9' + '5a'.repeat(32) + '0a' }, fileSalt: true });
+  all('good-file-salt', payload('notes for ' + TERM), { ...term, raw: { salt_file: hex(SALT + '\n') }, fileSalt: true });
   return cases;
 }
 
