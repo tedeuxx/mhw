@@ -47,7 +47,7 @@ const BACKLINK_MARKER = '<!-- mhw-twin: ';
 // (docs/runbooks/method-issue-sync.md); if it is wrong, verify fails red because no twin is found.
 const TWIN_AUTHOR = 'app/tedeuxx-mhw-mirror';
 // Logins gh may report for a comment posted with the workflow's GITHUB_TOKEN.
-const BACKLINK_AUTHORS = ['github-actions', 'app/github-actions', 'github-actions[bot]'];
+const BACKLINK_AUTHORS = new Set(['github-actions', 'app/github-actions', 'github-actions[bot]']);
 // Token values a title or body must never contain any 12-character run of.
 const TOKEN_NAMES = ['MHW_SKILLS_TOKEN', 'MHW_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'GITHUB_TOKEN', 'GH_TOKEN'];
 // The inputs `stash-inputs` hands to the agent's subprocesses as 0600 files, because the env scrub drops
@@ -58,11 +58,11 @@ const MAX_RESULT_CHARS = 2000;
 const TOKEN_RUN = 12;
 
 // Python's \b in a str pattern: a word character is a letter, a number or "_" in Unicode, not only ASCII.
-const W = '[\\p{L}\\p{N}_]';
+const W = String.raw`[\p{L}\p{N}_]`;
 // Shapes of a credential; a body or title matching one is refused, never posted. Not exhaustive.
 const SECRET_PATTERNS = [
   new RegExp('(?<!' + W + ')gh[pousr]_[A-Za-z0-9]{20}', 'u'),
-  new RegExp('(?<!' + W + ')github_pat_[A-Za-z0-9_]{20}', 'u'),
+  new RegExp('(?<!' + W + String.raw`)github_pat_\w{20}`, 'u'),
   new RegExp('(?<!' + W + ')sk-ant-[A-Za-z0-9_-]{10}', 'u'),
   new RegExp('(?<!' + W + ')AKIA[0-9A-Z]{16}(?!' + W + ')', 'u'),
 ];
@@ -218,7 +218,7 @@ function requireInput(name) {
   return value;
 }
 
-const ISSUE_NUMBER = /^[1-9][0-9]{0,6}$/;
+const ISSUE_NUMBER = /^[1-9]\d{0,6}$/;
 
 function envIssue() {
   const value = requireInput('MHW_ISSUE');
@@ -354,6 +354,23 @@ function checkTitle(title) {
 }
 
 /**
+ * One component of realpath: the link's target to resolve, or the path to keep (not a link, missing, or a
+ * link already resolved or being resolved, which is a loop and is kept as it is).
+ * @param {string} newpath
+ * @param {Map<string, string | null>} seen
+ * @returns {string | { path: string }}
+ */
+function linkTarget(newpath, seen) {
+  try {
+    if (!fs.lstatSync(newpath).isSymbolicLink()) return { path: newpath };
+    if (seen.has(newpath)) return { path: seen.get(newpath) ?? newpath };
+    return fs.readlinkSync(newpath);
+  } catch {
+    return { path: newpath };
+  }
+}
+
+/**
  * os.path.realpath(p) of CPython 3.14 (POSIX, strict=False): each component in order, a link replaced by
  * its target, ".." applied to what is already resolved, a missing component or a loop kept as it is.
  * @param {string} filename
@@ -377,21 +394,9 @@ export function pyRealpath(filename) {
       continue;
     }
     const newpath = p === '/' ? p + name : p + '/' + name;
-    let target;
-    try {
-      const st = fs.lstatSync(newpath);
-      if (!st.isSymbolicLink()) {
-        p = newpath;
-        continue;
-      }
-      if (seen.has(newpath)) {
-        const cached = seen.get(newpath);
-        p = cached ?? newpath;
-        continue;
-      }
-      target = fs.readlinkSync(newpath);
-    } catch {
-      p = newpath;
+    const target = linkTarget(newpath, seen);
+    if (typeof target !== 'string') {
+      p = target.path;
       continue;
     }
     if (target.startsWith('/')) p = '/';
@@ -579,7 +584,7 @@ function cmdBacklink(issue, args) {
   }
   const comments = parse(gh(['issue', 'view', issue, '--repo', MHW_REPO, '--json', 'comments'], 'MHW_TOKEN'));
   const listed = asList(get(comments, 'comments', []));
-  if (listed.some((c) => textOr(get(c, 'body')).includes(BACKLINK_MARKER) && BACKLINK_AUTHORS.includes(authorLogin(c)))) {
+  if (listed.some((c) => textOr(get(c, 'body')).includes(BACKLINK_MARKER) && BACKLINK_AUTHORS.has(authorLogin(c)))) {
     print('the back-link is already on ' + mhwUrl(issue));
     return;
   }

@@ -145,7 +145,7 @@ export const CASES = [
     name: 'body-bom-and-crlf',
     steps: [
       body('bom.md', '\ufeff' + GOOD_BODY), run(create('bom.md')),
-      { reset: { mhw_state: 'OPEN' } }, body('crlf.md', GOOD_BODY.split('\n').join('\r\n')), run(create('crlf.md')),
+      { reset: { mhw_state: 'OPEN' } }, body('crlf.md', GOOD_BODY.replaceAll('\n', '\r\n')), run(create('crlf.md')),
       body('bomonly.md', '\ufeff'), run(['skills-comment', '900', '--body-file', '{SYNC}/bomonly.md']),
     ],
   },

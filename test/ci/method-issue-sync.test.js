@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import { which } from '../helpers/home.js';
 import { ROOT, SCRIPT, STUB, initialState, twin, DEFAULT_SKILLS } from '../helpers/s30.js';
 import { GOOD_BODY } from '../helpers/s30-cases.js';
@@ -238,7 +239,7 @@ describe('the workflow', { skip: NO_RUBY }, () => {
 
   test('every step runs the Node script and names a command it has', async () => {
     load();
-    const { COMMAND_NAMES } = await import(SCRIPT);
+    const { COMMAND_NAMES } = await import(pathToFileURL(SCRIPT).href);
     const runs = allSteps(doc).map(([, s]) => String(s.run || '')).filter((r) => r.includes('.github/scripts/'));
     assert.equal(runs.length, 4, 'stash-inputs, final-line, verify, backlink');
     for (const r of runs) {
@@ -436,7 +437,7 @@ describe('the script', { skip: !POSIX && 'the stub gh is a POSIX executable; the
   const writeGh = (name, content) => {
     const gh = path.join(bin, name);
     fs.writeFileSync(gh, content);
-    fs.chmodSync(gh, 0o755);
+    fs.chmodSync(gh, 0o700);
   };
   /** @param {string} s */
   const q = (s) => "'" + s.split("'").join("'\\''") + "'";
@@ -842,7 +843,7 @@ describe('the script', { skip: !POSIX && 'the stub gh is a POSIX executable; the
     // A relative PATH entry naming a gh in the working directory is not used.
     fs.mkdirSync(path.join(tmp, 'rel'));
     fs.copyFileSync(path.join(bin, 'gh'), path.join(tmp, 'rel', 'gh'));
-    fs.chmodSync(path.join(tmp, 'rel', 'gh'), 0o755);
+    fs.chmodSync(path.join(tmp, 'rel', 'gh'), 0o700);
     const p = run(['find-twin'], { env: { PATH: 'rel' } });
     assert.equal(p.code, 1);
     assert.equal(p.stderr, 'gh is not on PATH (absolute entries only)\n');

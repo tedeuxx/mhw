@@ -66,10 +66,37 @@ function writeGh(bin, pythonStub, python) {
   fs.mkdirSync(bin);
   const gh = path.join(bin, 'gh');
   /** @param {string} s */
-  const q = (s) => "'" + s.split("'").join("'\\''") + "'";
+  const q = (s) => "'" + s.replaceAll("'", String.raw`'\''`) + "'";
   if (pythonStub) fs.writeFileSync(gh, '#!' + python + ' -B\n' + pythonStub);
   else fs.writeFileSync(gh, '#!/bin/sh\nexec ' + q(process.execPath) + ' ' + q(STUB) + ' "$@"\n');
-  fs.chmodSync(gh, 0o755);
+  fs.chmodSync(gh, 0o700);
+}
+
+/**
+ * One step that is not a run: change the Issues or lay out a file, a directory or a link.
+ * @param {Exclude<Step, { run: string[] }>} step
+ * @param {(s: string) => string} fill
+ * @param {string} statePath
+ */
+function layOut(step, fill, statePath) {
+  /** @param {unknown} v */
+  const saveState = (v) => fs.writeFileSync(statePath, JSON.stringify(v));
+  if ('twin' in step) {
+    const st = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    st.skills.push(twin(step.twin));
+    saveState(st);
+  } else if ('reset' in step) {
+    saveState(initialState(step.reset.mhw_state, step.reset.skills ?? [], step.reset.comments ?? []));
+  } else if ('write' in step) {
+    fs.writeFileSync(fill(step.write), step.text);
+  } else if ('json' in step) {
+    fs.writeFileSync(fill(step.json), JSON.stringify(step.value));
+  } else if ('mkdir' in step) {
+    fs.mkdirSync(fill(step.mkdir));
+    if (step.mode !== undefined) fs.chmodSync(fill(step.mkdir), step.mode);
+  } else {
+    fs.symlinkSync(fill(step.target), fill(step.symlink));
+  }
 }
 
 /**
@@ -92,10 +119,9 @@ export function transcript(c, runner, opts = {}) {
     const logPath = path.join(d, 'log.jsonl');
     /** @param {unknown} v */
     const saveState = (v) => fs.writeFileSync(statePath, JSON.stringify(v));
-    const loadState = () => JSON.parse(fs.readFileSync(statePath, 'utf8'));
     saveState(initialState());
     /** @param {string} s */
-    const fill = (s) => s.split('{SYNC}').join(sync).split('{D}').join(d);
+    const fill = (s) => s.replaceAll('{SYNC}', sync).replaceAll('{D}', d);
     /** @type {Result[]} */
     const results = [];
     for (const step of c.steps) {
@@ -112,34 +138,21 @@ export function transcript(c, runner, opts = {}) {
         }
         const r = runner(step.run.map(fill), env, d);
         /** @param {string} s */
-        const norm = (s) => s.replace(/\r\n/g, '\n').split(d).join('<D>');
+        const norm = (s) => s.replaceAll('\r\n', '\n').replaceAll(d, '<D>');
         results.push({ code: r.code, stdout: norm(r.stdout), stderr: norm(r.stderr) });
-      } else if ('twin' in step) {
-        const st = loadState();
-        st.skills.push(twin(step.twin));
-        saveState(st);
-      } else if ('reset' in step) {
-        saveState(initialState(step.reset.mhw_state, step.reset.skills ?? [], step.reset.comments ?? []));
-      } else if ('write' in step) {
-        fs.writeFileSync(fill(step.write), step.text);
-      } else if ('json' in step) {
-        fs.writeFileSync(fill(step.json), JSON.stringify(step.value));
-      } else if ('mkdir' in step) {
-        fs.mkdirSync(fill(step.mkdir), { mode: step.mode ?? 0o777 });
-        if (step.mode !== undefined) fs.chmodSync(fill(step.mkdir), step.mode);
-      } else if ('symlink' in step) {
-        fs.symlinkSync(fill(step.target), fill(step.symlink));
+      } else {
+        layOut(step, fill, statePath);
       }
     }
     const subs = /** @type {Array<[string, string]>} */ ([[d, '<D>']]);
     const calls = fs.existsSync(logPath)
-      ? fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l.split(d).join('<D>')))
+      ? fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l.replaceAll(d, '<D>')))
       : [];
-    const state = JSON.parse(fs.readFileSync(statePath, 'utf8').split(d).join('<D>'));
+    const state = JSON.parse(fs.readFileSync(statePath, 'utf8').replaceAll(d, '<D>'));
     // A link's own mode is the platform's (755 on macOS, 777 on Linux), never what a command chose.
     const tree = snapshotTree(d, subs)
       .filter((e) => !/^(bin|home)(\/|$)/.test(e.path) && e.path !== 'state.json' && e.path !== 'log.jsonl')
-      .map((e) => (e.kind === 'link' ? { ...e, mode: '-', data: e.data.split(d).join('<D>') } : e));
+      .map((e) => (e.kind === 'link' ? { ...e, mode: '-', data: e.data.replaceAll(d, '<D>') } : e));
     return { steps: results, calls, state, tree };
   } finally {
     fs.rmSync(d, { recursive: true, force: true });
