@@ -1,0 +1,29 @@
+{
+  "name": "invalid-source-disallowed-not-an-mcp-tool",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/agents/browser.md: disallowed tool 'Bash' must be mcp__<server>__<tool> of a granted server; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/agents/browser.md: disallowed tool 'Bash' must be mcp__<server>__<tool> of a granted server; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    }
+  ]
+}

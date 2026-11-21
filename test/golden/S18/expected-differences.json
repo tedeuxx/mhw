@@ -1,0 +1,53 @@
+{
+  "comment": "differences: a stream pattern is replaced (with <DECLARED>, or the entry's replace) on both sides of the named case's stream (\"*\" is every case) before the transcripts are compared; a tree path drops the matching entries from both trees; a node entry states the Node outcome of a case the original passed, and that case's Node run is held to it instead. Nothing else may differ. All three are one intended difference (D9 of #470, Issue #489): the method installs no script. residuals: behaviours no golden case exercises, named so they are not discovered later (#470, convention 3).",
+  "differences": [
+    {
+      "case": "*",
+      "stream": "stdout",
+      "pattern": "; (?:\\d+ scripts|the documents its rites name) in [^\\n]*",
+      "why": "The METHOD summary line's tail. The original counted the scripts it installed (\"; 0 scripts in <dir>\" on every source this repository has held since #478); the port installs none, so the tail names what the directory still receives: \"; the documents its rites name in <dir> (no scripts: the rites run mhw commands)\". The line still opens with \"METHOD  installed: N agents, N skills, N commands\", which src/lib/readers/settings.js and install.test.ps1 read, and those counts are compared."
+    },
+    {
+      "case": "a-source-that-holds-scripts",
+      "stream": "stdout",
+      "pattern": "^[^\\n]*/method/scripts/(?:tool\\.py|helper\\.sh)[^\\n]*\\n",
+      "flags": "gm",
+      "replace": "",
+      "why": "A source holding method/scripts/*.py or *.sh (no source of this repository has since #478): the original installed each one, 0700, beside the documents and reported it (WROTE, then OK, then REMOVED on uninstall); the port neither reads nor installs a script, so those lines are absent. Every other line of the case, the document included, is compared."
+    },
+    {
+      "case": "a-source-that-holds-scripts",
+      "stream": "tree",
+      "path": "/method/scripts/(?:tool\\.py|helper\\.sh)$",
+      "why": "Same difference in the written tree: the original's 0700 copies of tool.py and helper.sh are not written by the port. The test file tool.test.py was never installed by either."
+    },
+    {
+      "case": "a-token-naming-a-shipped-script",
+      "stream": "outcome",
+      "node": { "code": 2, "stderr": "REFUSE  the working method: method/commands/listy.md: {{method-scripts}}/tool.py names no file in method/scripts/; nothing of it was written" },
+      "why": "A body naming {{method-scripts}}/<script> with that script in the source: the original installed it and rendered the path (exit 0); the port reads no script, so the name resolves to nothing and the render stops with nothing written, as for any name that is not a document. A rite now runs the mhw command instead (mhw milestone, worklog, rite-cadence, funnel-review, launch-line)."
+    }
+  ],
+  "residuals": [
+    {
+      "what": "A copy an earlier version installed is removed only where it carries the managed-by line with source: method/.",
+      "why": "The STALE removal is the original's, unchanged: every file in the scripts directory and one directory down whose first five lines carry the line is reported STALE by check and removed by install, in all three agent harnesses' carriers. A script the owner copied there by hand, or one whose line he edited away, is never touched; the consuming project that still names it learns only from that STALE line and the release note (the main risk of Issue #489)."
+    },
+    {
+      "what": "A crash prints a Node stack, not a Python traceback.",
+      "why": "Where the original raised an exception it did not catch (a source file that is not UTF-8, a directory named like a command file, a Codex TOML tomllib refuses, such as a description holding DEL), the port throws too and exits 1, with Node's message on stderr. No golden case crashes."
+    },
+    {
+      "what": "The Codex TOML is read back with the vendored smol-toml, not tomllib.",
+      "why": "The original verified each rendered Codex agent by parsing it with tomllib and refused the render when the text changed; the port does the same with smol-toml 1.9.1. The renderer writes only comment lines and key = <JSON string> lines, a form both parse identically for every text the golden cases and this repository's method/ hold; a string where the two parsers disagree (a control character smol-toml accepts) is not known."
+    },
+    {
+      "what": "On Windows, stdout lines end in \\n and paths sort case-insensitively.",
+      "why": "Python's print wrote \\r\\n to a Windows pipe; Node writes \\n, and install.ps1 reads the step's output as lines. pathlib sorts and compares Windows paths lower-cased, which the port reproduces for the order of the output lines; two source names that differ only in case are not tested on Windows. Files are written with \\r\\n there, as Python's text mode wrote them. A UNC home path and a drive-relative one are not tested."
+    },
+    {
+      "what": "The live arm also renders this repository's method/ with both and compares the trees.",
+      "why": "The golden cases use a synthetic source so they do not change with every edit to method/; the live arm, while the base revision still holds method_render.py, renders the real method/ with both renderers (install, check, dry-run, uninstall) and compares them under the same declared differences."
+    }
+  ]
+}

@@ -43,7 +43,8 @@ The owner's rulings on #61 that bound this record:
 ## Considered options
 
 1. **Copy the method into `method/` here and render it with a dedicated step (chosen).** `method/` is
-   the source; `global/method/method_render.py` writes each agent harness's user-level carrier;
+   the source; ~~`global/method/method_render.py`~~ `src/render/method.js` (since #489, see its
+   amendment) writes each agent harness's user-level carrier;
    `install.sh` calls it with its own mode and stamp. *Trade-off:* the method's text is carried as it
    stood in the plugin, so passages that describe the plugin's own files and hooks are now stale
    descriptions (see Consequences); and the plugin stays a second copy until ~~#62~~ *(struck 2026-10-12,
@@ -185,7 +186,7 @@ Measured 2026-10-05 on the reference machine, in throwaway homes under the sessi
   at "You are not logged in". Every Kiro cell is **documented**
   ([Agent configuration reference](https://kiro.dev/docs/custom-agents/configuration-reference.md),
   [Skills](https://kiro.dev/docs/skills.md)).
-- **Tests:** `global/method/method_render_test.py` asserts, per rendered file, the stamp and, per agent
+- **Tests:** ~~`global/method/method_render_test.py`~~ `test/render/method.test.js` (since #489) asserts, per rendered file, the stamp and, per agent
   and agent harness, the tool list. It was mutation-checked by breaking the renderer in a copy of the
   tree: 19 mutations (each agent harness losing an agent's tool list, its exclusions or the stamp, an
   explicit `[]` becoming absent, the read-only sandbox dropped, `--home` ignored, a source agent
@@ -945,6 +946,28 @@ The owner ratified this record on 2026-11-17, answering a picker in session with
 accepted. Parts already struck or superseded stay so. Earlier sentences here saying the status stays
 proposed, or that a part awaits ratification, are dated readings that this amendment supersedes.
 Ratification changes no evidence level stated above: it installs, loads or enforces nothing.
+
+## Amendment 2026-11-21: the renderer is Node and installs no script ([Issue #489](https://github.com/tedeuxx/mhw/issues/489), S18 of #470)
+
+The rendering step of option 1 is ~~`global/method/method_render.py`~~ `src/render/method.js`, run
+by `install.sh` and `install.ps1` on the node that runs mhw (`MHW_NODE`, else the first node on
+`PATH`); the Python renderer and its two suites (`method_render_test.py`, `method_commands_test.py`)
+are deleted, and the suites run as `node:test` (`test/render/method.test.js`,
+`test/render/method-commands.test.js`). Every file, line and exit code is the original's, held by
+golden transcripts recorded from it (`test/golden/S18/`), with one intended difference (D9 of #470):
+**no method script is installed.** The rites run `mhw` commands since #475 to #478, so the renderer
+reads no `method/scripts/*.py` or `*.sh`; a `{{method-scripts}}/<name>` must name a document one
+directory down (the #181 amendment), or the render stops. The scripts directory is still read for
+`STALE`: a script an earlier version installed carries the managed-by line with `source: method/`, so
+`check` reports it and the next install removes it, in all three agent harnesses' carriers alike. The
+METHOD summary line ends with the directory the documents go to instead of a script count.
+
+**Consequence.** A consuming project pinned to an older release that still names an installed script
+path learns of the removal only from that `STALE` line and the release note; nothing else tells it.
+
+**Evidence level.** *Written and tested* in throwaway homes, on all three operating systems for the
+golden arm, and side by side with the Python original on CPython 3.14.6 while the base revision held
+it. Not installed on the reference machine.
 
 ## Links
 

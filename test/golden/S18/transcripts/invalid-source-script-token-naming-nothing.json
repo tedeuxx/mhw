@@ -1,0 +1,29 @@
+{
+  "name": "invalid-source-script-token-naming-nothing",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/commands/listy.md: {{method-scripts}}/nope.py names no file in method/scripts/; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/commands/listy.md: {{method-scripts}}/nope.py names no file in method/scripts/; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        }
+      ]
+    }
+  ]
+}

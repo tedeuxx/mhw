@@ -8,14 +8,14 @@
 #   install.ps1 -Overlay D owner overlay directory (default: <repo>\overlay); -Overlay none for none
 #   install.ps1 -Method    opt-in (Issue #61): also render the working method; off until the plugin cutover
 #
-# Renders the brief, the deny floor and the working method (global\method\method_render.py, ADR-0032). The deny floor is merged into %USERPROFILE%\.claude\settings.json
+# Renders the brief, the deny floor and the working method (src\render\method.js, Node since #489; ADR-0032). The deny floor is merged into %USERPROFILE%\.claude\settings.json
 # (a union: no existing deny entry is removed, a backup is left beside the file) and rendered to
 # <CODEX_HOME>\rules\workstation-deny-floor.rules and, through src\render\kiro-permissions.js (Node), into
 # %USERPROFILE%\.kiro\settings\permissions.yaml (ADR-0036). Since Issue #145 it also does what install.sh does
 # since v5.2.0, through the same scripts where there is one: the session-start model and effort are pinned
 # (src\render\model-defaults.js, Node since #481; it needs node 26 or later), and the retired find and awk allows
-# leave permissions.allow. The Python steps need Python 3.9 or later; without the interpreter a step needs, it
-# prints SKIP and the run exits 2. The escalation rules
+# leave permissions.allow. Every step that runs a script runs it on node (26 or later) since #489, the last
+# Python step being the method's; without node a step prints SKIP and the run exits 2. The escalation rules
 # (ADR-0013) are instructions on every OS; the HITL picker guard hook was never ported here and is removed
 # everywhere since Issue #60. The paste filter at the harness-CLI prompt and the paste wrapper (ADR-0011)
 # are not ported either: they run on the stock /usr/bin/python3 and a POSIX pty, which Windows does not
@@ -398,32 +398,6 @@ function Merge-DenyFloor([string]$settings) {
 $settingsFile = Join-Path $home_ '.claude\settings.json'
 Merge-DenyFloor $settingsFile
 
-# Python 3.9 or later, for the steps written in Python (the same scripts install.sh runs): found once.
-$script:py = $null
-$script:pyLooked = $false
-function Get-Python {
-    if ($script:pyLooked) { return $script:py }
-    $script:pyLooked = $true
-    foreach ($c in @('python3', 'python', 'py')) {
-        $cmd = Get-Command $c -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $cmd) { continue }
-        try { $v = & $cmd.Source --version } catch { continue }
-        if ($LASTEXITCODE -eq 0 -and "$v" -match 'Python 3\.(9|[1-9][0-9])') { $script:py = $cmd.Source; break }
-    }
-    return $script:py
-}
-# Run one Python step: global\<rel> with its arguments; a missing Python is SKIP and exit 2, as install.sh.
-function Invoke-PyStep([string]$what, [string]$rel, [string[]]$a) {
-    $py = Get-Python
-    if (-not $py) {
-        Write-Output "SKIP    ${what}: Python 3.9 or later is required"
-        Set-Status 2
-        return
-    }
-    & $py -B (Join-Path $scriptDir $rel) @a
-    Set-Status $LASTEXITCODE
-}
-
 # The deny floor for Kiro IDE and Kiro CLI V3 (ADR-0036, Issue #144): the floor validated above, merged into
 # %USERPROFILE%\.kiro\settings\permissions.yaml by src\render\kiro-permissions.js in Node (#482, S11 of #470),
 # the same step install.sh runs (kiro_step), run by the node that runs mhw (MHW_NODE) or the node on PATH,
@@ -543,12 +517,33 @@ Remove-RetiredAllow $settingsFile
 Write-Output 'NOTE    the paste wrapper and the paste filter are not ported to Windows (ADR-0011); no shell start-up file is written, and no Kiro prompt hook (Issue #455)'
 
 # The working method (Issue #61, ADR-0032): agents, skills and commands from <repo>\method, rendered into
-# each agent harness's user-level carrier by global\method\method_render.py, the same step install.sh
-# runs. It gets this script's mode, its stamp and the profile directory, so it never reads HOME.
+# each agent harness's user-level carrier by src\render\method.js (Node since #489, S18 of #470;
+# global\method\method_render.py until then), the same step install.sh runs. It gets this script's mode,
+# its stamp and the profile directory, so it never reads HOME. The node lookup of the Kiro step: MHW_NODE
+# (an absolute path) or the node on PATH; an absolute MHW_NODE that is not a file is refused, never
+# replaced by another node.
 function Invoke-Method {
     $a = @("--mode=$mode", "--stamp=$stamp", "--home=$home_")
     if ($Method) { $a += '--opt-in' }
-    Invoke-PyStep 'the working method (method\)' 'method\method_render.py' $a
+    $methodNode = $null
+    if ($env:MHW_NODE -and [System.IO.Path]::IsPathRooted($env:MHW_NODE)) {
+        if (Test-Path -LiteralPath $env:MHW_NODE -PathType Leaf) { $methodNode = $env:MHW_NODE }
+        else {
+            Write-Output "REFUSE  the working method (method\): MHW_NODE ($($env:MHW_NODE)) is not a file; nothing written"
+            Set-Status 2
+            return
+        }
+    } else {
+        $found = Get-Command node -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) { $methodNode = $found.Source }
+    }
+    if (-not $methodNode) {
+        Write-Output 'SKIP    the working method (method\): node (26 or later) is required'
+        Set-Status 2
+        return
+    }
+    & $methodNode (Join-Path (Join-Path (Join-Path $repoRoot 'src') 'render') 'method.js') @a
+    Set-Status $LASTEXITCODE
     # The plugin cutover step (plugin_retire.py, #130) was removed in v7 (Issue #206), as in install.sh.
 }
 Invoke-Method

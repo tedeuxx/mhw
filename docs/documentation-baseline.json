@@ -39,7 +39,11 @@
       "id": "working-method",
       "code": [
         "method/**",
-        "global/method/**",
+        "src/render/method.js",
+        "test/render/method*.test.js",
+        "test/helpers/method-home.js",
+        "test/helpers/s18-cases.js",
+        "test/golden/S18/**",
         ".github/scripts/method_issue_sync*.py",
         ".github/workflows/method-issue-sync.yml"
       ],

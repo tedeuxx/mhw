@@ -1,0 +1,51 @@
+{
+  "name": "documents-through-a-symbolic-link-stop-the-render",
+  "runs": [
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: {{method-scripts}}/linked/README.md names no file in method/scripts/; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "outside",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "outside/README.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "# outside\n"
+        }
+      ]
+    },
+    {
+      "code": 2,
+      "stdout": "",
+      "stderr": "REFUSE  the working method: method/skills/zeta/SKILL.md: {{method-scripts}}/linkdir/README.md names no file in method/scripts/; nothing of it was written\n",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "outside",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "outside/README.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "# outside\n"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1061 @@
+{
+  "name": "a-file-the-method-cannot-read-in-a-carrier",
+  "runs": [
+    {
+      "code": 0,
+      "stdout": "WROTE   <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.claude/skills/alpha/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.agents/skills/alpha/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.kiro/skills/alpha/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.claude/skills/zeta/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.agents/skills/zeta/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.kiro/skills/zeta/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.claude/skills/zeta-two/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.agents/skills/zeta-two/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.kiro/skills/zeta-two/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.claude/commands/listy.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.agents/skills/listy/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.agents/skills/listy/agents/openai.yaml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.kiro/skills/listy/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.claude/commands/run-it.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.agents/skills/run-it/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.agents/skills/run-it/agents/openai.yaml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.kiro/skills/run-it/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.claude/agents/browser.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.codex/agents/browser.toml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.kiro/agents/browser.json (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.claude/agents/builder.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.codex/agents/builder.toml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.kiro/agents/builder.json (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.claude/agents/looker.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.codex/agents/looker.toml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nWROTE   <BASE>/home/.kiro/agents/looker.json (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nMETHOD  installed: 3 agents, 3 skills, 2 commands from method/ into Claude Code (agents, skills, commands), Codex (custom agents without a tool list, skills; commands as skills with implicit invocation off) and Kiro (agents, skills; commands as skills); 0 scripts in <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/alpha",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/alpha/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/alpha/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"alpha\"\ndescription: \"Alpha skill: reads \\\"quoted\\\" text, a backslash \\\\ and ção; use it first.\"\nmetadata:\n  purpose: \"Plain purpose text\"\n---\n# Alpha\n\nRead `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md` before acting.\nÜnïcødé line ✓ and an astral 🎉.\n"
+        },
+        {
+          "path": "home/.agents/skills/listy",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/listy/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"listy\"\ndescription: \"Owner-typed command $listy; run it only when the owner invokes it. A command whose hint and purpose are lists.\"\nmetadata:\n  purpose: [\"a\", \"b\"]\n---\n\n> **Owner-typed command `$listy`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nListy body, no leading newline.\n"
+        },
+        {
+          "path": "home/.agents/skills/listy/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/listy/agents/openai.yaml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\npolicy:\n  allow_implicit_invocation: false\n"
+        },
+        {
+          "path": "home/.agents/skills/run-it",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/run-it/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"run-it\"\ndescription: \"Owner-typed command $run-it; run it only when the owner invokes it. Runs it, owner-typed.\"\nmetadata:\n  purpose: \"Run\"\n---\n\n> **Owner-typed command `$run-it`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nThis copy is for codex. Read $ARGUMENTS.\n\n## What this command never does\n\nIt never merges, publishes or adds a hook.\n"
+        },
+        {
+          "path": "home/.agents/skills/run-it/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/run-it/agents/openai.yaml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\npolicy:\n  allow_implicit_invocation: false\n"
+        },
+        {
+          "path": "home/.agents/skills/zeta",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/zeta/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta\"\ndescription: \"Zeta: an unquoted description with a colon.\"\n---\nZeta body.\n"
+        },
+        {
+          "path": "home/.agents/skills/zeta-two",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/zeta-two/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta-two/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta-two\"\ndescription: \"Zeta two.\"\nmetadata:\n  purpose: \"Quoted purpose\"\n---\n\nZeta two body.\n"
+        },
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/agents/browser.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/browser.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: browser\ndescription: \"Reads pages.\"\ntools: Read, WebFetch, WebSearch, mcp__chrome-devtools\ndisallowedTools: mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__fill\nskills:\n  - zeta-two\n---\n\n\nBrowser body; the contract is `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md`.\n"
+        },
+        {
+          "path": "home/.claude/agents/builder.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/builder.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: builder\ndescription: \"Builds the slice.\"\ntools: Read, Grep, Glob, Write, Edit, Bash\nskills:\n  - alpha\n  - zeta\n---\nBuilder body.\n"
+        },
+        {
+          "path": "home/.claude/agents/looker.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/looker.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: looker\ndescription: \"Looks only.\"\ntools: []\n---\n\nLooker body.\n"
+        },
+        {
+          "path": "home/.claude/commands",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/commands/listy.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\ndescription: \"A command whose hint and purpose are lists.\"\nargument-hint: [\"one\", \"\\\"two\\\"\"]\n---\nListy body, no leading newline.\n"
+        },
+        {
+          "path": "home/.claude/commands/run-it.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\ndescription: \"Runs it, owner-typed.\"\nargument-hint: \"[target] [--flag]\"\n---\n\n\nThis copy is for claude-code. Read $ARGUMENTS.\n\n## What this command never does\n\nIt never merges, publishes or adds a hook.\n"
+        },
+        {
+          "path": "home/.claude/skills",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/alpha",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/alpha/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/alpha/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"alpha\"\ndescription: \"Alpha skill: reads \\\"quoted\\\" text, a backslash \\\\ and ção; use it first.\"\nmetadata:\n  purpose: \"Plain purpose text\"\n---\n# Alpha\n\nRead `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md` before acting.\nÜnïcødé line ✓ and an astral 🎉.\n"
+        },
+        {
+          "path": "home/.claude/skills/zeta",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/zeta/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta\"\ndescription: \"Zeta: an unquoted description with a colon.\"\n---\nZeta body.\n"
+        },
+        {
+          "path": "home/.claude/skills/zeta-two",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/zeta-two/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta-two/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta-two\"\ndescription: \"Zeta two.\"\nmetadata:\n  purpose: \"Quoted purpose\"\n---\n\nZeta two body.\n"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.codex/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.codex/agents/browser.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/browser.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname = \"browser\"\ndescription = \"Reads pages.\"\nsandbox_mode = \"read-only\"\ndeveloper_instructions = \"You are the `browser` agent of the owner's working method (source: method/agents/browser.md).\\n\\nPreloaded skills: $zeta-two. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\\n\\nAllowed tools for this agent: Read, WebFetch, WebSearch, mcp__chrome-devtools. Excluded tools, even within a granted server: mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__fill. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name. This agent also runs in a read-only sandbox.\\n\\n---\\n\\n\\nBrowser body; the contract is `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md`.\\n\"\n"
+        },
+        {
+          "path": "home/.codex/agents/builder.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/builder.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname = \"builder\"\ndescription = \"Builds the slice.\"\ndeveloper_instructions = \"You are the `builder` agent of the owner's working method (source: method/agents/builder.md).\\n\\nPreloaded skills: $alpha, $zeta. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\\n\\nAllowed tools for this agent: Read, Grep, Glob, Write, Edit, Bash. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name.\\n\\n---\\nBuilder body.\\n\"\n"
+        },
+        {
+          "path": "home/.codex/agents/looker.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/looker.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname = \"looker\"\ndescription = \"Looks only.\"\nsandbox_mode = \"read-only\"\ndeveloper_instructions = \"You are the `looker` agent of the owner's working method (source: method/agents/looker.md).\\n\\nPreloaded skills: none. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\\n\\nAllowed tools for this agent: none. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name. This agent also runs in a read-only sandbox.\\n\\n---\\n\\nLooker body.\\n\"\n"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/agents/browser.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"name\": \"browser\",\n  \"description\": \"Reads pages.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/browser.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\\n\\nBrowser body; the contract is `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md`.\\n\",\n  \"tools\": [\n    \"read\",\n    \"web\",\n    \"@chrome-devtools\"\n  ],\n  \"resources\": [\n    \"file://<BASE>/home/.kiro/skills/zeta-two/SKILL.md\"\n  ],\n  \"excludedTools\": [\n    \"@chrome-devtools/evaluate_script\",\n    \"@chrome-devtools/fill\"\n  ]\n}\n"
+        },
+        {
+          "path": "home/.kiro/agents/builder.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"name\": \"builder\",\n  \"description\": \"Builds the slice.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/builder.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\\n\\nBuilder body.\\n\",\n  \"tools\": [\n    \"read\",\n    \"write\",\n    \"shell\"\n  ],\n  \"resources\": [\n    \"file://<BASE>/home/.kiro/skills/alpha/SKILL.md\",\n    \"file://<BASE>/home/.kiro/skills/zeta/SKILL.md\"\n  ]\n}\n"
+        },
+        {
+          "path": "home/.kiro/agents/looker.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"name\": \"looker\",\n  \"description\": \"Looks only.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/looker.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\\n\\nLooker body.\\n\",\n  \"tools\": [],\n  \"resources\": []\n}\n"
+        },
+        {
+          "path": "home/.kiro/skills",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/alpha",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/alpha/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/alpha/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"alpha\"\ndescription: \"Alpha skill: reads \\\"quoted\\\" text, a backslash \\\\ and ção; use it first.\"\nmetadata:\n  purpose: \"Plain purpose text\"\n---\n# Alpha\n\nRead `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md` before acting.\nÜnïcødé line ✓ and an astral 🎉.\n"
+        },
+        {
+          "path": "home/.kiro/skills/listy",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/listy/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"listy\"\ndescription: \"Owner-typed command /listy; run it only when the owner invokes it. A command whose hint and purpose are lists.\"\nmetadata:\n  purpose: [\"a\", \"b\"]\n---\n\n> **Owner-typed command `/listy`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nListy body, no leading newline.\n"
+        },
+        {
+          "path": "home/.kiro/skills/run-it",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/run-it/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"run-it\"\ndescription: \"Owner-typed command /run-it; run it only when the owner invokes it. Runs it, owner-typed.\"\nmetadata:\n  purpose: \"Run\"\n---\n\n> **Owner-typed command `/run-it`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nThis copy is for kiro. Read $ARGUMENTS.\n\n## What this command never does\n\nIt never merges, publishes or adds a hook.\n"
+        },
+        {
+          "path": "home/.kiro/skills/zeta",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/zeta/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta\"\ndescription: \"Zeta: an unquoted description with a colon.\"\n---\nZeta body.\n"
+        },
+        {
+          "path": "home/.kiro/skills/zeta-two",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/zeta-two/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta-two/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta-two\"\ndescription: \"Zeta two.\"\nmetadata:\n  purpose: \"Quoted purpose\"\n---\n\nZeta two body.\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method/scripts",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/scripts/alpha-contract/README.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\n# Alpha contract\n\nThe store a rite reads.\n"
+        }
+      ]
+    },
+    {
+      "code": 1,
+      "stdout": "OK      <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/skills/alpha/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/alpha/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/alpha/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/skills/zeta/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/zeta/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/zeta/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/skills/zeta-two/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/zeta-two/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/zeta-two/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/commands/listy.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/listy/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/listy/agents/openai.yaml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/listy/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/commands/run-it.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/run-it/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/run-it/agents/openai.yaml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/run-it/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/agents/browser.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.codex/agents/browser.toml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/agents/browser.json (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/agents/builder.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.codex/agents/builder.toml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/agents/builder.json (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/agents/looker.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.codex/agents/looker.toml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/agents/looker.json (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nSTALE   <BASE>/home/.kiro/agents/nan.json: rendered by an earlier method; install removes it\nMETHOD  installed: 3 agents, 3 skills, 2 commands from method/ into Claude Code (agents, skills, commands), Codex (custom agents without a tool list, skills; commands as skills with implicit invocation off) and Kiro (agents, skills; commands as skills); 0 scripts in <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/alpha",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/alpha/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/alpha/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"alpha\"\ndescription: \"Alpha skill: reads \\\"quoted\\\" text, a backslash \\\\ and ção; use it first.\"\nmetadata:\n  purpose: \"Plain purpose text\"\n---\n# Alpha\n\nRead `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md` before acting.\nÜnïcødé line ✓ and an astral 🎉.\n"
+        },
+        {
+          "path": "home/.agents/skills/listy",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/listy/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"listy\"\ndescription: \"Owner-typed command $listy; run it only when the owner invokes it. A command whose hint and purpose are lists.\"\nmetadata:\n  purpose: [\"a\", \"b\"]\n---\n\n> **Owner-typed command `$listy`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nListy body, no leading newline.\n"
+        },
+        {
+          "path": "home/.agents/skills/listy/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/listy/agents/openai.yaml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\npolicy:\n  allow_implicit_invocation: false\n"
+        },
+        {
+          "path": "home/.agents/skills/run-it",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/run-it/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"run-it\"\ndescription: \"Owner-typed command $run-it; run it only when the owner invokes it. Runs it, owner-typed.\"\nmetadata:\n  purpose: \"Run\"\n---\n\n> **Owner-typed command `$run-it`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nThis copy is for codex. Read $ARGUMENTS.\n\n## What this command never does\n\nIt never merges, publishes or adds a hook.\n"
+        },
+        {
+          "path": "home/.agents/skills/run-it/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/run-it/agents/openai.yaml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\npolicy:\n  allow_implicit_invocation: false\n"
+        },
+        {
+          "path": "home/.agents/skills/zeta",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/zeta/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta\"\ndescription: \"Zeta: an unquoted description with a colon.\"\n---\nZeta body.\n"
+        },
+        {
+          "path": "home/.agents/skills/zeta-two",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/zeta-two/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta-two/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta-two\"\ndescription: \"Zeta two.\"\nmetadata:\n  purpose: \"Quoted purpose\"\n---\n\nZeta two body.\n"
+        },
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/agents/binary.md",
+          "kind": "file",
+          "mode": "644",
+          "hex": "ff00ff0a"
+        },
+        {
+          "path": "home/.claude/agents/browser.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/browser.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: browser\ndescription: \"Reads pages.\"\ntools: Read, WebFetch, WebSearch, mcp__chrome-devtools\ndisallowedTools: mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__fill\nskills:\n  - zeta-two\n---\n\n\nBrowser body; the contract is `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md`.\n"
+        },
+        {
+          "path": "home/.claude/agents/builder.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/builder.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: builder\ndescription: \"Builds the slice.\"\ntools: Read, Grep, Glob, Write, Edit, Bash\nskills:\n  - alpha\n  - zeta\n---\nBuilder body.\n"
+        },
+        {
+          "path": "home/.claude/agents/deep-marker.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "1\n2\n3\n4\n5\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/deep-marker.md\n"
+        },
+        {
+          "path": "home/.claude/agents/looker.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/looker.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: looker\ndescription: \"Looks only.\"\ntools: []\n---\n\nLooker body.\n"
+        },
+        {
+          "path": "home/.claude/commands",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/commands/listy.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\ndescription: \"A command whose hint and purpose are lists.\"\nargument-hint: [\"one\", \"\\\"two\\\"\"]\n---\nListy body, no leading newline.\n"
+        },
+        {
+          "path": "home/.claude/commands/run-it.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\ndescription: \"Runs it, owner-typed.\"\nargument-hint: \"[target] [--flag]\"\n---\n\n\nThis copy is for claude-code. Read $ARGUMENTS.\n\n## What this command never does\n\nIt never merges, publishes or adds a hook.\n"
+        },
+        {
+          "path": "home/.claude/skills",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/alpha",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/alpha/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/alpha/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"alpha\"\ndescription: \"Alpha skill: reads \\\"quoted\\\" text, a backslash \\\\ and ção; use it first.\"\nmetadata:\n  purpose: \"Plain purpose text\"\n---\n# Alpha\n\nRead `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md` before acting.\nÜnïcødé line ✓ and an astral 🎉.\n"
+        },
+        {
+          "path": "home/.claude/skills/zeta",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/zeta/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta\"\ndescription: \"Zeta: an unquoted description with a colon.\"\n---\nZeta body.\n"
+        },
+        {
+          "path": "home/.claude/skills/zeta-two",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/zeta-two/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta-two/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta-two\"\ndescription: \"Zeta two.\"\nmetadata:\n  purpose: \"Quoted purpose\"\n---\n\nZeta two body.\n"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.codex/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.codex/agents/browser.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/browser.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname = \"browser\"\ndescription = \"Reads pages.\"\nsandbox_mode = \"read-only\"\ndeveloper_instructions = \"You are the `browser` agent of the owner's working method (source: method/agents/browser.md).\\n\\nPreloaded skills: $zeta-two. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\\n\\nAllowed tools for this agent: Read, WebFetch, WebSearch, mcp__chrome-devtools. Excluded tools, even within a granted server: mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__fill. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name. This agent also runs in a read-only sandbox.\\n\\n---\\n\\n\\nBrowser body; the contract is `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md`.\\n\"\n"
+        },
+        {
+          "path": "home/.codex/agents/builder.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/builder.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname = \"builder\"\ndescription = \"Builds the slice.\"\ndeveloper_instructions = \"You are the `builder` agent of the owner's working method (source: method/agents/builder.md).\\n\\nPreloaded skills: $alpha, $zeta. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\\n\\nAllowed tools for this agent: Read, Grep, Glob, Write, Edit, Bash. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name.\\n\\n---\\nBuilder body.\\n\"\n"
+        },
+        {
+          "path": "home/.codex/agents/looker.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/looker.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname = \"looker\"\ndescription = \"Looks only.\"\nsandbox_mode = \"read-only\"\ndeveloper_instructions = \"You are the `looker` agent of the owner's working method (source: method/agents/looker.md).\\n\\nPreloaded skills: none. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\\n\\nAllowed tools for this agent: none. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name. This agent also runs in a read-only sandbox.\\n\\n---\\n\\nLooker body.\\n\"\n"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/agents/binary.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b22ff227d0a"
+        },
+        {
+          "path": "home/.kiro/agents/browser.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"name\": \"browser\",\n  \"description\": \"Reads pages.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/browser.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\\n\\nBrowser body; the contract is `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md`.\\n\",\n  \"tools\": [\n    \"read\",\n    \"web\",\n    \"@chrome-devtools\"\n  ],\n  \"resources\": [\n    \"file://<BASE>/home/.kiro/skills/zeta-two/SKILL.md\"\n  ],\n  \"excludedTools\": [\n    \"@chrome-devtools/evaluate_script\",\n    \"@chrome-devtools/fill\"\n  ]\n}\n"
+        },
+        {
+          "path": "home/.kiro/agents/builder.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"name\": \"builder\",\n  \"description\": \"Builds the slice.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/builder.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\\n\\nBuilder body.\\n\",\n  \"tools\": [\n    \"read\",\n    \"write\",\n    \"shell\"\n  ],\n  \"resources\": [\n    \"file://<BASE>/home/.kiro/skills/alpha/SKILL.md\",\n    \"file://<BASE>/home/.kiro/skills/zeta/SKILL.md\"\n  ]\n}\n"
+        },
+        {
+          "path": "home/.kiro/agents/looker.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"name\": \"looker\",\n  \"description\": \"Looks only.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/looker.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\\n\\nLooker body.\\n\",\n  \"tools\": [],\n  \"resources\": []\n}\n"
+        },
+        {
+          "path": "home/.kiro/agents/nan.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/nan.md; release: v9.9.8; commit: fedcba9876543210fedcba9876543210fedcba98 -->\", \"n\": NaN}\n"
+        },
+        {
+          "path": "home/.kiro/agents/prompt-not-text.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"prompt\": [\"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/x -->\"]}\n"
+        },
+        {
+          "path": "home/.kiro/skills",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/alpha",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/alpha/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/alpha/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"alpha\"\ndescription: \"Alpha skill: reads \\\"quoted\\\" text, a backslash \\\\ and ção; use it first.\"\nmetadata:\n  purpose: \"Plain purpose text\"\n---\n# Alpha\n\nRead `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md` before acting.\nÜnïcødé line ✓ and an astral 🎉.\n"
+        },
+        {
+          "path": "home/.kiro/skills/listy",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/listy/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"listy\"\ndescription: \"Owner-typed command /listy; run it only when the owner invokes it. A command whose hint and purpose are lists.\"\nmetadata:\n  purpose: [\"a\", \"b\"]\n---\n\n> **Owner-typed command `/listy`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nListy body, no leading newline.\n"
+        },
+        {
+          "path": "home/.kiro/skills/run-it",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/run-it/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"run-it\"\ndescription: \"Owner-typed command /run-it; run it only when the owner invokes it. Runs it, owner-typed.\"\nmetadata:\n  purpose: \"Run\"\n---\n\n> **Owner-typed command `/run-it`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nThis copy is for kiro. Read $ARGUMENTS.\n\n## What this command never does\n\nIt never merges, publishes or adds a hook.\n"
+        },
+        {
+          "path": "home/.kiro/skills/zeta",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/zeta/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta\"\ndescription: \"Zeta: an unquoted description with a colon.\"\n---\nZeta body.\n"
+        },
+        {
+          "path": "home/.kiro/skills/zeta-two",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/zeta-two/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta-two/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta-two\"\ndescription: \"Zeta two.\"\nmetadata:\n  purpose: \"Quoted purpose\"\n---\n\nZeta two body.\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method/scripts",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/scripts/alpha-contract/README.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\n# Alpha contract\n\nThe store a rite reads.\n"
+        }
+      ]
+    },
+    {
+      "code": 0,
+      "stdout": "OK      <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/skills/alpha/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/alpha/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/alpha/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/skills/zeta/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/zeta/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/zeta/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/skills/zeta-two/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/zeta-two/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/zeta-two/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/commands/listy.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/listy/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/listy/agents/openai.yaml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/listy/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/commands/run-it.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/run-it/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.agents/skills/run-it/agents/openai.yaml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/skills/run-it/SKILL.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/agents/browser.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.codex/agents/browser.toml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/agents/browser.json (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/agents/builder.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.codex/agents/builder.toml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/agents/builder.json (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.claude/agents/looker.md (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.codex/agents/looker.toml (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nOK      <BASE>/home/.kiro/agents/looker.json (release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567)\nREMOVED <BASE>/home/.kiro/agents/nan.json (no longer in method/)\nMETHOD  installed: 3 agents, 3 skills, 2 commands from method/ into Claude Code (agents, skills, commands), Codex (custom agents without a tool list, skills; commands as skills with implicit invocation off) and Kiro (agents, skills; commands as skills); 0 scripts in <BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts\n",
+      "stderr": "",
+      "tree": [
+        {
+          "path": "home",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/alpha",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/alpha/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/alpha/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"alpha\"\ndescription: \"Alpha skill: reads \\\"quoted\\\" text, a backslash \\\\ and ção; use it first.\"\nmetadata:\n  purpose: \"Plain purpose text\"\n---\n# Alpha\n\nRead `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md` before acting.\nÜnïcødé line ✓ and an astral 🎉.\n"
+        },
+        {
+          "path": "home/.agents/skills/listy",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/listy/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"listy\"\ndescription: \"Owner-typed command $listy; run it only when the owner invokes it. A command whose hint and purpose are lists.\"\nmetadata:\n  purpose: [\"a\", \"b\"]\n---\n\n> **Owner-typed command `$listy`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nListy body, no leading newline.\n"
+        },
+        {
+          "path": "home/.agents/skills/listy/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/listy/agents/openai.yaml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\npolicy:\n  allow_implicit_invocation: false\n"
+        },
+        {
+          "path": "home/.agents/skills/run-it",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/run-it/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"run-it\"\ndescription: \"Owner-typed command $run-it; run it only when the owner invokes it. Runs it, owner-typed.\"\nmetadata:\n  purpose: \"Run\"\n---\n\n> **Owner-typed command `$run-it`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nThis copy is for codex. Read $ARGUMENTS.\n\n## What this command never does\n\nIt never merges, publishes or adds a hook.\n"
+        },
+        {
+          "path": "home/.agents/skills/run-it/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/run-it/agents/openai.yaml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\npolicy:\n  allow_implicit_invocation: false\n"
+        },
+        {
+          "path": "home/.agents/skills/zeta",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/zeta/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta\"\ndescription: \"Zeta: an unquoted description with a colon.\"\n---\nZeta body.\n"
+        },
+        {
+          "path": "home/.agents/skills/zeta-two",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.agents/skills/zeta-two/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta-two/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta-two\"\ndescription: \"Zeta two.\"\nmetadata:\n  purpose: \"Quoted purpose\"\n---\n\nZeta two body.\n"
+        },
+        {
+          "path": "home/.claude",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/agents/binary.md",
+          "kind": "file",
+          "mode": "644",
+          "hex": "ff00ff0a"
+        },
+        {
+          "path": "home/.claude/agents/browser.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/browser.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: browser\ndescription: \"Reads pages.\"\ntools: Read, WebFetch, WebSearch, mcp__chrome-devtools\ndisallowedTools: mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__fill\nskills:\n  - zeta-two\n---\n\n\nBrowser body; the contract is `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md`.\n"
+        },
+        {
+          "path": "home/.claude/agents/builder.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/builder.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: builder\ndescription: \"Builds the slice.\"\ntools: Read, Grep, Glob, Write, Edit, Bash\nskills:\n  - alpha\n  - zeta\n---\nBuilder body.\n"
+        },
+        {
+          "path": "home/.claude/agents/deep-marker.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "1\n2\n3\n4\n5\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/deep-marker.md\n"
+        },
+        {
+          "path": "home/.claude/agents/looker.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/looker.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: looker\ndescription: \"Looks only.\"\ntools: []\n---\n\nLooker body.\n"
+        },
+        {
+          "path": "home/.claude/commands",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/commands/listy.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\ndescription: \"A command whose hint and purpose are lists.\"\nargument-hint: [\"one\", \"\\\"two\\\"\"]\n---\nListy body, no leading newline.\n"
+        },
+        {
+          "path": "home/.claude/commands/run-it.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\ndescription: \"Runs it, owner-typed.\"\nargument-hint: \"[target] [--flag]\"\n---\n\n\nThis copy is for claude-code. Read $ARGUMENTS.\n\n## What this command never does\n\nIt never merges, publishes or adds a hook.\n"
+        },
+        {
+          "path": "home/.claude/skills",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/alpha",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/alpha/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/alpha/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"alpha\"\ndescription: \"Alpha skill: reads \\\"quoted\\\" text, a backslash \\\\ and ção; use it first.\"\nmetadata:\n  purpose: \"Plain purpose text\"\n---\n# Alpha\n\nRead `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md` before acting.\nÜnïcødé line ✓ and an astral 🎉.\n"
+        },
+        {
+          "path": "home/.claude/skills/zeta",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/zeta/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta\"\ndescription: \"Zeta: an unquoted description with a colon.\"\n---\nZeta body.\n"
+        },
+        {
+          "path": "home/.claude/skills/zeta-two",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.claude/skills/zeta-two/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta-two/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta-two\"\ndescription: \"Zeta two.\"\nmetadata:\n  purpose: \"Quoted purpose\"\n---\n\nZeta two body.\n"
+        },
+        {
+          "path": "home/.codex",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.codex/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.codex/agents/browser.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/browser.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname = \"browser\"\ndescription = \"Reads pages.\"\nsandbox_mode = \"read-only\"\ndeveloper_instructions = \"You are the `browser` agent of the owner's working method (source: method/agents/browser.md).\\n\\nPreloaded skills: $zeta-two. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\\n\\nAllowed tools for this agent: Read, WebFetch, WebSearch, mcp__chrome-devtools. Excluded tools, even within a granted server: mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__fill. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name. This agent also runs in a read-only sandbox.\\n\\n---\\n\\n\\nBrowser body; the contract is `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md`.\\n\"\n"
+        },
+        {
+          "path": "home/.codex/agents/builder.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/builder.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname = \"builder\"\ndescription = \"Builds the slice.\"\ndeveloper_instructions = \"You are the `builder` agent of the owner's working method (source: method/agents/builder.md).\\n\\nPreloaded skills: $alpha, $zeta. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\\n\\nAllowed tools for this agent: Read, Grep, Glob, Write, Edit, Bash. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name.\\n\\n---\\nBuilder body.\\n\"\n"
+        },
+        {
+          "path": "home/.codex/agents/looker.toml",
+          "kind": "file",
+          "mode": "644",
+          "text": "# managed-by: personal-multi-harness-workstation-configuration; source: method/agents/looker.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname = \"looker\"\ndescription = \"Looks only.\"\nsandbox_mode = \"read-only\"\ndeveloper_instructions = \"You are the `looker` agent of the owner's working method (source: method/agents/looker.md).\\n\\nPreloaded skills: none. In Claude Code and Kiro these are loaded into your context before you start. A Codex custom agent has no preload field, so load each of them by name before you act and follow it.\\n\\nAllowed tools for this agent: none. A Codex custom agent carries no tool list (ADR-0027): here this limit is an instruction, not a control. Do not use a tool outside it. Codex documents a per-agent `mcp_servers` narrowing that this method does not render, so you inherit the parent session's MCP servers: use none that your tool list does not name. This agent also runs in a read-only sandbox.\\n\\n---\\n\\nLooker body.\\n\"\n"
+        },
+        {
+          "path": "home/.kiro",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/agents",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/agents/binary.json",
+          "kind": "file",
+          "mode": "644",
+          "hex": "7b22ff227d0a"
+        },
+        {
+          "path": "home/.kiro/agents/browser.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"name\": \"browser\",\n  \"description\": \"Reads pages.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/browser.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\\n\\nBrowser body; the contract is `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md`.\\n\",\n  \"tools\": [\n    \"read\",\n    \"web\",\n    \"@chrome-devtools\"\n  ],\n  \"resources\": [\n    \"file://<BASE>/home/.kiro/skills/zeta-two/SKILL.md\"\n  ],\n  \"excludedTools\": [\n    \"@chrome-devtools/evaluate_script\",\n    \"@chrome-devtools/fill\"\n  ]\n}\n"
+        },
+        {
+          "path": "home/.kiro/agents/builder.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"name\": \"builder\",\n  \"description\": \"Builds the slice.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/builder.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\\n\\nBuilder body.\\n\",\n  \"tools\": [\n    \"read\",\n    \"write\",\n    \"shell\"\n  ],\n  \"resources\": [\n    \"file://<BASE>/home/.kiro/skills/alpha/SKILL.md\",\n    \"file://<BASE>/home/.kiro/skills/zeta/SKILL.md\"\n  ]\n}\n"
+        },
+        {
+          "path": "home/.kiro/agents/looker.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\n  \"name\": \"looker\",\n  \"description\": \"Looks only.\",\n  \"prompt\": \"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/agents/looker.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\\n\\nLooker body.\\n\",\n  \"tools\": [],\n  \"resources\": []\n}\n"
+        },
+        {
+          "path": "home/.kiro/agents/prompt-not-text.json",
+          "kind": "file",
+          "mode": "644",
+          "text": "{\"prompt\": [\"<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/x -->\"]}\n"
+        },
+        {
+          "path": "home/.kiro/skills",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/alpha",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/alpha/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/alpha/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"alpha\"\ndescription: \"Alpha skill: reads \\\"quoted\\\" text, a backslash \\\\ and ção; use it first.\"\nmetadata:\n  purpose: \"Plain purpose text\"\n---\n# Alpha\n\nRead `<BASE>/home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md` before acting.\nÜnïcødé line ✓ and an astral 🎉.\n"
+        },
+        {
+          "path": "home/.kiro/skills/listy",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/listy/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/listy.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"listy\"\ndescription: \"Owner-typed command /listy; run it only when the owner invokes it. A command whose hint and purpose are lists.\"\nmetadata:\n  purpose: [\"a\", \"b\"]\n---\n\n> **Owner-typed command `/listy`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nListy body, no leading newline.\n"
+        },
+        {
+          "path": "home/.kiro/skills/run-it",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/run-it/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/commands/run-it.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"run-it\"\ndescription: \"Owner-typed command /run-it; run it only when the owner invokes it. Runs it, owner-typed.\"\nmetadata:\n  purpose: \"Run\"\n---\n\n> **Owner-typed command `/run-it`.** Run it only when the owner invokes it by name. Its arguments are the text he typed after the name; where this text says `$ARGUMENTS`, read that text.\n\nThis copy is for kiro. Read $ARGUMENTS.\n\n## What this command never does\n\nIt never merges, publishes or adds a hook.\n"
+        },
+        {
+          "path": "home/.kiro/skills/zeta",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/zeta/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta\"\ndescription: \"Zeta: an unquoted description with a colon.\"\n---\nZeta body.\n"
+        },
+        {
+          "path": "home/.kiro/skills/zeta-two",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.kiro/skills/zeta-two/SKILL.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "---\n# managed-by: personal-multi-harness-workstation-configuration; source: method/skills/zeta-two/SKILL.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer\nname: \"zeta-two\"\ndescription: \"Zeta two.\"\nmetadata:\n  purpose: \"Quoted purpose\"\n---\n\nZeta two body.\n"
+        },
+        {
+          "path": "home/.local",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method/scripts",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract",
+          "kind": "dir",
+          "mode": "755"
+        },
+        {
+          "path": "home/.local/share/personal-multi-harness-workstation-configuration/method/scripts/alpha-contract/README.md",
+          "kind": "file",
+          "mode": "644",
+          "text": "<!-- managed-by: personal-multi-harness-workstation-configuration; source: method/scripts/alpha-contract/README.md; release: v9.9.9; commit: 0123456789abcdef0123456789abcdef01234567; do not edit, re-run the installer -->\n# Alpha contract\n\nThe store a rite reads.\n"
+        }
+      ]
+    }
+  ]
+}
