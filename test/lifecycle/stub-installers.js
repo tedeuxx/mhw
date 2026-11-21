@@ -37,7 +37,7 @@ esac
 export function stubInstallers(tree) {
   for (const [name, text] of [['install.sh', INSTALL], ['install-managed.sh', MANAGED]]) {
     fs.writeFileSync(path.join(tree, 'global', name), text);
-    fs.chmodSync(path.join(tree, 'global', name), 0o755);
+    fs.chmodSync(path.join(tree, 'global', name), 0o700);
   }
 }
 

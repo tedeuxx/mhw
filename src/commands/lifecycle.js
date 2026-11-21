@@ -18,7 +18,7 @@ import { USAGE, DOC } from './usage.js';
 /** @typedef {import('../lib/readers/common.js').Env} Env */
 /** @typedef {import('../lib/lifecycle.js').Io} Io */
 
-const UX = ['install', 'update', 'uninstall'];
+const UX = new Set(['install', 'update', 'uninstall']);
 
 /**
  * @typedef {{ command: string, overlay: string | null, verbose: boolean, admin: boolean, wanted: string | undefined,
@@ -35,9 +35,9 @@ export function parse(command, rest) {
   const p = { command, overlay: null, verbose: false, admin: false, wanted: undefined, method: false, yes: false, noAdmin: false };
   for (const arg of rest) {
     if (arg.startsWith('--overlay=')) p.overlay = arg.slice('--overlay='.length);
-    else if ((arg === '-v' || arg === '--verbose') && UX.includes(command)) p.verbose = true;
+    else if ((arg === '-v' || arg === '--verbose') && UX.has(command)) p.verbose = true;
     else if (arg === '--admin' && command === 'install') p.admin = true;
-    else if ((arg === '-y' || arg === '--yes') && UX.includes(command)) p.yes = true;
+    else if ((arg === '-y' || arg === '--yes') && UX.has(command)) p.yes = true;
     else if (arg === '--no-admin' && command === 'install') p.noAdmin = true;
     else if (arg === '--method' && (command === 'install' || command === 'postinstall')) p.method = true;
     else if (command === 'update' && p.wanted === undefined && !arg.startsWith('-')) p.wanted = arg;

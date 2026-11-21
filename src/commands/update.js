@@ -108,7 +108,7 @@ function updateNpm(wanted, verbose, yes, env, io, root) {
     io.out(lines.join('\n') + '\n');
     return 0;
   }
-  const spec = /** @type {string} */ (lines[lines.length - 1].split(/\s+/).pop());
+  const spec = /** @type {string} */ (lines.at(-1)?.split(/\s+/).pop());
   heading('Updating mhw (' + (wanted ? 'to ' + wanted : 'to the newest release of this major version') + ')', env, io);
   const args = ['install', '-g', '--no-fund', '--no-audit', '--loglevel=error', spec];
   if (verbose) io.out('    ' + args.join(' ') + '\n');

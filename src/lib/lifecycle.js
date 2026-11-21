@@ -17,7 +17,7 @@ import tty from 'node:tty';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { managedRoot, splitlines } from './readers/common.js';
-import { issues as countIssues, leadingWord } from './readers/admin.js';
+import { leadingWord } from './readers/admin.js';
 import { runAbsolute } from './run.js';
 
 /** @typedef {import('./readers/common.js').Env} Env */
@@ -77,8 +77,8 @@ export function show(lines, verbose, io) {
   }
 }
 
-/** The target lines install fixes: neither OK nor SKIP. @param {string[]} lines */
-export const issues = countIssues;
+// The target lines install fixes: neither OK nor SKIP.
+export { issues } from './readers/admin.js';
 
 /** The lines of a problem: a REFUSE, STALE, DRIFT or MISSING line. @param {string} line */
 export const isProblem = (line) => leadingWord(line, PROBLEM) !== null;
@@ -184,8 +184,10 @@ export function ownerSteps(lines) {
     // chose no file (another shell, --shell-rc=none, a ZDOTDIR outside HOME) is the line the owner's;
     // install.sh gives the reason in parentheses, and the step repeats it rather than guessing one.
     if (line.startsWith('NOTE    automatic paste cleaning') && i + 1 < lines.length) {
-      const m = /\((.*)\); add this line/.exec(line);
-      const why = m ? ' (' + m[1] + ')' : '';
+      // re.search(r"\((.*)\); add this line"): from the first '(' to the last '); add this line'.
+      const open = line.indexOf('(');
+      const close = line.lastIndexOf('); add this line');
+      const why = open >= 0 && close > open ? ' (' + line.slice(open + 1, close) + ')' : '';
       // macOS bash: ~/.bashrc got the block, only the login file did not (only ~/.profile is there).
       const which = line.includes('no bash login start-up file') ? 'bash login start-up file' : 'shell start-up file';
       steps.push('mhw wrote no ' + which + why + '. To clean pasted text automatically, add this line to yours:\n       '
