@@ -1,0 +1,174 @@
+[
+  {
+    "run": "dry-run --shell-rc",
+    "code": 0,
+    "stdout": "WOULD CHANGE <T>/home/zshrc-throwaway: paste-wrapper start-up block absent -> present (backup <T>/home/zshrc-throwaway.pmhwc-backup):\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "export OWNER=1\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "check --shell-rc",
+    "code": 1,
+    "stdout": "MISSING <T>/home/zshrc-throwaway: no paste-wrapper start-up block; install adds it\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "export OWNER=1\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "install --shell-rc",
+    "code": 0,
+    "stdout": "CHANGED <T>/home/zshrc-throwaway: paste-wrapper start-up block absent -> present (previous file kept as <T>/home/zshrc-throwaway.pmhwc-backup); new shells clean pastes\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "export OWNER=1\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        },
+        {
+          "path": "zshrc-throwaway.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export OWNER=1\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "install again",
+    "code": 0,
+    "stdout": "OK      <T>/home/zshrc-throwaway activates the paste wrapper (managed block)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "export OWNER=1\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        },
+        {
+          "path": "zshrc-throwaway.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export OWNER=1\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "check with the block",
+    "code": 0,
+    "stdout": "OK      <T>/home/zshrc-throwaway activates the paste wrapper (managed block)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "export OWNER=1\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        },
+        {
+          "path": "zshrc-throwaway.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export OWNER=1\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "check a changed block",
+    "code": 1,
+    "stdout": "DRIFT   <T>/home/zshrc-throwaway: paste-wrapper start-up block is a different block; install replaces it\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "export OWNER=1\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\necho changed\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        },
+        {
+          "path": "zshrc-throwaway.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export OWNER=1\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "install replaces a changed block",
+    "code": 0,
+    "stdout": "CHANGED <T>/home/zshrc-throwaway: paste-wrapper start-up block a different block -> present (previous file kept as <T>/home/zshrc-throwaway.pmhwc-backup); new shells clean pastes\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "export OWNER=1\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        },
+        {
+          "path": "zshrc-throwaway.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export OWNER=1\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\necho changed\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        }
+      ],
+      "out": []
+    }
+  },
+  {
+    "run": "uninstall --shell-rc",
+    "code": 0,
+    "stdout": "CHANGED <T>/home/zshrc-throwaway: paste-wrapper start-up block present -> absent (previous file kept as <T>/home/zshrc-throwaway.pmhwc-backup)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "export OWNER=1\n"
+        },
+        {
+          "path": "zshrc-throwaway.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export OWNER=1\n# >>> personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011); managed block, mhw uninstall removes it\n[ -r \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\" ] && . \"<T>/home/.local/share/personal-multi-harness-workstation-configuration/paste-filter.sh\"\n# <<< personal-multi-harness-workstation-configuration: paste wrapper\n"
+        }
+      ],
+      "out": []
+    }
+  }
+]

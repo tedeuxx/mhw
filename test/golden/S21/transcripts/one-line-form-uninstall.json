@@ -1,0 +1,25 @@
+[
+  {
+    "run": "uninstall --shell-rc",
+    "code": 0,
+    "stdout": "CHANGED <T>/home/zshrc-throwaway: paste-wrapper start-up block present -> absent (previous file kept as <T>/home/zshrc-throwaway.pmhwc-backup)\n",
+    "stderr": "",
+    "tree": {
+      "home": [
+        {
+          "path": "zshrc-throwaway",
+          "kind": "file",
+          "mode": "644",
+          "data": "export A=1\n"
+        },
+        {
+          "path": "zshrc-throwaway.pmhwc-backup",
+          "kind": "file",
+          "mode": "600",
+          "data": "export A=1\nold line  # personal-multi-harness-workstation-configuration: paste wrapper (ADR-0011)\n"
+        }
+      ],
+      "out": []
+    }
+  }
+]
