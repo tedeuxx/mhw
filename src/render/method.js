@@ -83,10 +83,10 @@ export const SCRIPTS_TOKEN = '{{method-scripts}}';
 export const HARNESS_TOKEN = '{{agent-harness}}';
 export const HARNESSES = ['claude-code', 'codex', 'kiro'];
 const TOKEN_REF_RE = /\{\{method-scripts\}\}\/([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*)/g;
-const SEGMENT_HEAD = /^[A-Za-z0-9_]$/;
-const SEGMENT_REST = /^[A-Za-z0-9_-]*$/;
-const FILE_REST = /^[A-Za-z0-9_.-]*$/;
-const MODES = ['install', 'check', 'dry-run', 'uninstall'];
+const SEGMENT_HEAD = /^\w$/;
+const SEGMENT_REST = /^[\w-]*$/;
+const FILE_REST = /^[\w.-]*$/;
+const MODES = new Set(['install', 'check', 'dry-run', 'uninstall']);
 
 export class SourceError extends Error {}
 
@@ -271,7 +271,7 @@ function glob(base, pattern, platform) {
     }
     found = next;
   }
-  return found.sort((a, b) => comparePaths(a, b, platform)).map((parts) => join(platform, base, ...parts));
+  return found.toSorted((a, b) => comparePaths(a, b, platform)).map((parts) => join(platform, base, ...parts));
 }
 
 /** The name of the last part of a str(Path). @param {string} p @param {string} platform */
@@ -394,7 +394,7 @@ function knownFields(fields, kind, where) {
 }
 
 /** A tool list: a list as it is, or a comma-separated string. @param {Field} raw */
-const toolList = (raw) => (Array.isArray(raw) ? raw : raw.split(',').map((t) => pyStrip(t)).filter((t) => t));
+const toolList = (raw) => (Array.isArray(raw) ? raw : raw.split(',').map((t) => pyStrip(t)).filter(Boolean));
 
 /** `mcp__([A-Za-z0-9_-]+?)__([A-Za-z0-9_-]+)` fullmatch: [server, tool] or null. @param {string} t */
 export function mcpTool(t) {
@@ -692,9 +692,11 @@ export function targets(src, documents, stamp, ctx) {
   }
   for (const [name, s] of src.skills) {
     const text = skillMd(name, s.description, s.purpose, s.body, s.where, stamp);
-    out.push([join(platform, h.claude, 'skills', name, 'SKILL.md'), text, 'md']);
-    out.push([join(platform, h.agents, 'skills', name, 'SKILL.md'), text, 'md']);
-    out.push([join(platform, kiroSkills, name, 'SKILL.md'), text, 'md']);
+    out.push(
+      [join(platform, h.claude, 'skills', name, 'SKILL.md'), text, 'md'],
+      [join(platform, h.agents, 'skills', name, 'SKILL.md'), text, 'md'],
+      [join(platform, kiroSkills, name, 'SKILL.md'), text, 'md'],
+    );
   }
   for (const [name, c] of src.commands) {
     out.push(
@@ -705,9 +707,11 @@ export function targets(src, documents, stamp, ctx) {
     );
   }
   for (const [name, a] of src.agents) {
-    out.push([join(platform, h.claude, 'agents', name + '.md'), claudeAgent(a, name, stamp), 'md']);
-    out.push([join(platform, h.codex, 'agents', name + '.toml'), codexAgent(a, name, stamp), 'md']);
-    out.push([join(platform, h.kiro, 'agents', name + '.json'), kiroAgent(a, name, stamp, kiroSkills, platform), 'json']);
+    out.push(
+      [join(platform, h.claude, 'agents', name + '.md'), claudeAgent(a, name, stamp), 'md'],
+      [join(platform, h.codex, 'agents', name + '.toml'), codexAgent(a, name, stamp), 'md'],
+      [join(platform, h.kiro, 'agents', name + '.json'), kiroAgent(a, name, stamp, kiroSkills, platform), 'json'],
+    );
   }
   return out;
 }
@@ -895,7 +899,7 @@ export function run(argv, opts = {}) {
       return 2;
     }
   }
-  if (mode === null || !MODES.includes(mode)) {
+  if (mode === null || !MODES.has(mode)) {
     warn('method_render: --mode must be install, check, dry-run or uninstall');
     return 2;
   }

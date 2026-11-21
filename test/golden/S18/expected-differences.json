@@ -24,7 +24,10 @@
     {
       "case": "a-token-naming-a-shipped-script",
       "stream": "outcome",
-      "node": { "code": 2, "stderr": "REFUSE  the working method: method/commands/listy.md: {{method-scripts}}/tool.py names no file in method/scripts/; nothing of it was written" },
+      "node": {
+        "code": 2,
+        "stderr": "REFUSE  the working method: method/commands/listy.md: {{method-scripts}}/tool.py names no file in method/scripts/; nothing of it was written"
+      },
       "why": "A body naming {{method-scripts}}/<script> with that script in the source: the original installed it and rendered the path (exit 0); the port reads no script, so the name resolves to nothing and the render stops with nothing written, as for any name that is not a document. A rite now runs the mhw command instead (mhw milestone, worklog, rite-cadence, funnel-review, launch-line)."
     }
   ],
@@ -43,11 +46,15 @@
     },
     {
       "what": "On Windows, stdout lines end in \\n and paths sort case-insensitively.",
-      "why": "Python's print wrote \\r\\n to a Windows pipe; Node writes \\n, and install.ps1 reads the step's output as lines. pathlib sorts and compares Windows paths lower-cased, which the port reproduces for the order of the output lines; two source names that differ only in case are not tested on Windows. Files are written with \\r\\n there, as Python's text mode wrote them. A UNC home path and a drive-relative one are not tested."
+      "why": "Python's print wrote \\r\\n to a Windows pipe; Node writes \\n, and install.ps1 reads the step's output as lines. pathlib sorts and compares Windows paths lower-cased, which the port reproduces for the order of the output lines; two source names that differ only in case are not tested on Windows. Files are written with \\r\\n there, as Python's text mode wrote them. A UNC home path and a drive-relative one are not tested. A rendered {{method-scripts}}/<dir>/<name>.md reads <the directory with backslashes>/<dir>/<name>.md there, the two separators mixed, exactly as the original wrote it; Windows accepts both."
     },
     {
       "what": "The live arm also renders this repository's method/ with both and compares the trees.",
       "why": "The golden cases use a synthetic source so they do not change with every edit to method/; the live arm, while the base revision still holds method_render.py, renders the real method/ with both renderers (install, check, dry-run, uninstall) and compares them under the same declared differences."
+    },
+    {
+      "what": "A dry-run's byte count is compared only by the live arm.",
+      "why": "The count includes the case directory's path wherever a rendered text names the scripts directory, so it depends on where the case ran; against the recorded goldens it is folded to <N>, and test/render/method-golden.test.js holds instead that every WOULD WRITE count equals the UTF-8 length of the text install then writes."
     }
   ]
 }

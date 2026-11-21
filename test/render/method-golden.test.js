@@ -221,8 +221,11 @@ const nodeRunner = (args, env, cwd) => {
  * The declared differences of one case and stream, applied to text from either side.
  * @param {string} name @param {string} stream @param {string} text
  */
-function fold(name, stream, text) {
-  let out = text;
+function fold(name, stream, text, recorded = false) {
+  // A dry-run's byte count includes the case directory's path wherever a rendered text names the scripts
+  // directory, and that path's length differs between the recording machine and this one. Against a
+  // recording the count is folded; the live arm, both sides on one directory, compares it.
+  let out = recorded && stream === 'stdout' ? text.replace(/ \(\d+ bytes, from /g, ' (<N> bytes, from ') : text;
   for (const e of expected) {
     if ((e.case === name || e.case === '*') && e.stream === stream && e.pattern) {
       out = out.replace(new RegExp(e.pattern, e.flags || 'g'), e.replace ?? '<DECLARED>');
@@ -240,8 +243,9 @@ function foldTree(name, tree) {
 /**
  * @param {Transcript} original
  * @param {Transcript} head
+ * @param {boolean} [recorded] original is a golden recorded on another machine
  */
-function differences(original, head) {
+function differences(original, head, recorded = false) {
   /** @type {string[]} */
   const diffs = [];
   const override = expected.find((e) => e.case === head.name && e.node);
@@ -259,7 +263,7 @@ function differences(original, head) {
     const at = head.name + ' run ' + (i + 1);
     if (o.code !== h.code) diffs.push(at + ': exit ' + o.code + ' -> ' + h.code);
     for (const stream of /** @type {const} */ (['stdout', 'stderr'])) {
-      if (fold(head.name, stream, o[stream]) !== fold(head.name, stream, h[stream])) {
+      if (fold(head.name, stream, o[stream], recorded) !== fold(head.name, stream, h[stream], recorded)) {
         diffs.push(at + ': ' + stream + ' differs\n--- original\n' + o[stream] + '\n--- head\n' + h[stream]);
       }
     }
@@ -296,7 +300,7 @@ test('golden: the Node renderer matches the Python original\'s transcripts', { s
       t.diagnostic(c.name + ' skipped: ' + why);
       continue;
     }
-    diffs.push(...differences(readGolden(SLICE, goldenName(c.name)), transcript(c, nodeRunner)));
+    diffs.push(...differences(readGolden(SLICE, goldenName(c.name)), transcript(c, nodeRunner), true));
   }
   assert.deepEqual(diffs, []);
 });
@@ -383,6 +387,25 @@ test('live: this repository\'s method/ renders the same tree from both', (t) => 
   assert.deepEqual(differences(original, head), []);
 });
 
+test('a dry-run counts the bytes install writes', () => {
+  // The count the golden arm folds, held here: each WOULD WRITE names the UTF-8 length of the text install
+  // writes to that file (\n line ends, as Python counted it before text mode wrote \r\n on Windows).
+  const base = path.join(freshDir('bytes'), 'case');
+  const home = path.join(base, 'home');
+  const src = path.join(base, 'src', 'method');
+  fs.mkdirSync(home, { recursive: true });
+  writeFixture(src);
+  const env = { PATH: process.env.PATH || '', HOME: home, USERPROFILE: home };
+  const dry = nodeRunner(['--mode=dry-run', '--stamp=' + STAMP, '--source=' + src, '--opt-in'], env, base);
+  assert.equal(nodeRunner(['--mode=install', '--stamp=' + STAMP, '--source=' + src, '--opt-in'], env, base).code, 0);
+  const lines = dry.stdout.split('\n').filter((l) => l.startsWith('WOULD WRITE '));
+  assert.ok(lines.length > 20);
+  for (const l of lines) {
+    const m = /** @type {RegExpExecArray} */ (/^WOULD WRITE (.+) \((\d+) bytes, from /.exec(l));
+    assert.equal(Number(m[2]), Buffer.byteLength(fs.readFileSync(m[1], 'utf8').replaceAll('\r\n', '\n')), m[1]);
+  }
+});
+
 test('entry: node src/render/method.js runs the same renderer', () => {
   /** @type {Runner} */
   const entry = (args, env, cwd) => {
@@ -392,7 +415,7 @@ test('entry: node src/render/method.js runs the same renderer', () => {
   const diffs = [];
   for (const name of ['dry-run-install-check', 'usage-errors', 'check-names-each-difference', 'invalid-source-no-front-matter']) {
     const c = /** @type {Case} */ (CASES.find((x) => x.name === name));
-    diffs.push(...differences(readGolden(SLICE, goldenName(name)), transcript(c, entry)));
+    diffs.push(...differences(readGolden(SLICE, goldenName(name)), transcript(c, entry), true));
   }
   assert.deepEqual(diffs, []);
 });

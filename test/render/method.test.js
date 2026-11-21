@@ -14,7 +14,7 @@ import { claudeCommand, commandAsSkill, codexPolicy, marker, SourceError, HARNES
 import { parseToml } from '../../src/lib/toml.js';
 import { asUri } from '../../src/render/method.js';
 import {
-  ROOT, SOURCE, MARKER, STAMP, OTHER, SCRIPTS_DIR, SKILLS, COMMANDS, methodHome, sourceCopy, tempDir, read, frontMatter,
+  ROOT, SOURCE, MARKER, STAMP, OTHER, SCRIPTS_DIR, SKILLS, COMMANDS, byCode, methodHome, sourceCopy, tempDir, read, frontMatter,
   fieldsOf, markerLine, flatten, unstruckParagraphs, liveText, methodFiles, sourceAgents, filesUnder,
 } from '../helpers/method-home.js';
 import { which } from '../helpers/home.js';
@@ -51,7 +51,7 @@ const count = (text, re) => (text.match(re) || []).length;
 
 describe('the source shape', () => {
   test('the target set', () => {
-    assert.deepEqual(Object.keys(AGENTS).sort(), ['agents-lead', 'content-reviewer', 'content-writer', 'developer', 'product-lead',
+    assert.deepEqual(Object.keys(AGENTS).sort(byCode), ['agents-lead', 'content-reviewer', 'content-writer', 'developer', 'product-lead',
       'quality-assurance', 'scrum-master', 'tech-lead']);
     assert.deepEqual(SKILLS, ['agents-configuration', 'shell', 'documentation-standard', 'engineering-standards', 'definition-of-ready',
       'definition-of-done', 'quality-gates', 'published-voice', 'scm', 'ci', 'provisioning', 'planning-poker', 'code-review',
@@ -59,10 +59,10 @@ describe('the source shape', () => {
       // #195: the canonical merge-authority contract.
       'merge-authority',
       // The four rites moved at #130 (owner, 2026-10-12) and became skills on 2026-10-26 (owner: "para mim sao skills").
-      'sprint-planning', 'sprint-review', 'sprint-retrospective', 'funnel-review'].sort());
+      'sprint-planning', 'sprint-review', 'sprint-retrospective', 'funnel-review'].sort(byCode));
     // #198 added /handoff; #522 added /backlog-grooming.
     assert.deepEqual(COMMANDS, ['autonomy', 'new-issue', 'new-prd', 'prd-to-issues', 'what-else', 'blueprint', 'handoff', 'need-me',
-      'backlog-grooming'].sort());
+      'backlog-grooming'].sort(byCode));
   });
 
   test('no old command name is left', () => {
@@ -309,7 +309,7 @@ describe('the owner reads in the preview mode', () => {
       const lines = read(src(rel)).split('\n').map((l, n) => (l.includes(OWNER_READ) && !l.includes('~~') ? n + 1 : 0)).filter(Boolean);
       if (lines.length) found[rel] = lines;
     }
-    assert.deepEqual(Object.keys(found).sort(), OWNER_READ_SURFACES, 'the owner-read sentence drifted or moved');
+    assert.deepEqual(Object.keys(found).sort(byCode), OWNER_READ_SURFACES, 'the owner-read sentence drifted or moved');
     for (const [rel, lines] of Object.entries(found)) assert.equal(lines.length, 1, rel + ': exactly one copy');
   });
   test('the Artifact pattern still matches the phrasings it was written for', () => {
@@ -769,7 +769,9 @@ describe('render', () => {
     assert.ok(!fs.existsSync(path.join(scripts, 'funnel-review.sh')));
     assert.ok(read(src('skills/funnel-review/SKILL.md')).includes('`{{method-scripts}}/funnel-review-contract/README.md`'));
     for (const rendered of ['.claude/skills/funnel-review/SKILL.md', '.agents/skills/funnel-review/SKILL.md', '.kiro/skills/funnel-review/SKILL.md']) {
-      assert.ok(read(h.p(rendered)).includes('`' + installed + '`'), rendered);
+      // The token is replaced by the directory and the source's own /: on Windows the path mixes both, as
+      // the original's text did.
+      assert.ok(read(h.p(rendered)).includes('`' + scripts + '/funnel-review-contract/README.md`'), rendered);
     }
     const old = 'docs/funnel-review/' + 'README.md';
     const named = filesUnder(SOURCE).filter((f) => ['.md', '.sh', '.py', '.tsv'].includes(path.extname(f)) && read(f).includes(old));

@@ -16,6 +16,9 @@ export const STAMP = 'release: v9.9.9; commit: 0123456789abcdef0123456789abcdef0
 export const OTHER = 'release: v9.9.8; commit: fedcba9876543210fedcba9876543210fedcba98';
 export const SCRIPTS_DIR = '.local/share/personal-multi-harness-workstation-configuration/method/scripts';
 
+/** An explicit code-unit order for sort(). @param {string} a @param {string} b */
+export const byCode = (a, b) => (a < b ? -1 : Number(a > b));
+
 /** @type {Array<() => void>} */
 const cleanups = [];
 process.on('exit', () => cleanups.forEach((c) => c()));
@@ -79,12 +82,12 @@ export function filesUnder(dir) {
     if (e.isDirectory()) out.push(...filesUnder(q));
     else out.push(q);
   }
-  return out.sort();
+  return out.sort(byCode);
 }
 
 /** Every file under method/ with the extension, as paths relative to method/ (posix), sorted. @param {string} ext */
 export function methodFiles(ext, dir = SOURCE) {
-  return filesUnder(dir).filter((f) => f.endsWith(ext)).map((f) => path.relative(dir, f).split(path.sep).join('/')).sort();
+  return filesUnder(dir).filter((f) => f.endsWith(ext)).map((f) => path.relative(dir, f).split(path.sep).join('/')).sort(byCode);
 }
 
 /** The front matter lines of a rendered or source file. @param {string} file */
@@ -143,6 +146,6 @@ export function sourceAgents() {
 }
 
 /** The source's skill names. */
-export const SKILLS = fs.readdirSync(path.join(SOURCE, 'skills')).filter((d) => fs.existsSync(path.join(SOURCE, 'skills', d, 'SKILL.md'))).sort();
+export const SKILLS = fs.readdirSync(path.join(SOURCE, 'skills')).filter((d) => fs.existsSync(path.join(SOURCE, 'skills', d, 'SKILL.md'))).sort(byCode);
 /** The source's command names. */
-export const COMMANDS = fs.readdirSync(path.join(SOURCE, 'commands')).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3)).sort();
+export const COMMANDS = fs.readdirSync(path.join(SOURCE, 'commands')).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3)).sort(byCode);

@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { findSpans, categories, sanitise } from '../../src/lib/clean.js';
-import { ROOT, SOURCE, methodHome, sourceCopy, tempDir, read, filesUnder, methodFiles, flatten, unstruckFlat } from '../helpers/method-home.js';
+import { ROOT, SOURCE, byCode, methodHome, sourceCopy, tempDir, read, filesUnder, methodFiles, flatten, unstruckFlat } from '../helpers/method-home.js';
 import { which } from '../helpers/home.js';
 
 const POSIX = process.platform !== 'win32';
@@ -328,7 +328,7 @@ describe('rites', () => {
     /** @type {string[]} */
     const unresolved = [];
     const history = [];
-    for (const rel of filesUnder(SOURCE).map((f) => path.relative(SOURCE, f).split(path.sep).join('/')).filter((f) => f.endsWith('.md') || f.endsWith('.sh')).sort()) {
+    for (const rel of filesUnder(SOURCE).map((f) => path.relative(SOURCE, f).split(path.sep).join('/')).filter((f) => f.endsWith('.md') || f.endsWith('.sh')).sort(byCode)) {
       read(path.join(SOURCE, rel)).split('\n').forEach((line, n) => {
         const names = new Set([
           ...[...line.matchAll(new RegExp('skills/' + RITE_RE + '/SKILL\\.md', 'g'))].map((m) => m[1]),
@@ -418,7 +418,7 @@ describe('method scripts', () => {
   test('rendered paths into the scripts directory exist', () => {
     const files = ['.claude', '.agents', '.kiro', '.codex'].flatMap((d) => filesUnder(r.home.p(d)));
     assert.ok(files.length);
-    const prefix = dir + path.sep;
+    const prefix = dir + '/'; // the directory, then the source's own / (on Windows too)
     let refs = 0;
     const missing = [];
     for (const f of files) {
@@ -691,7 +691,7 @@ describe('/handoff', { skip: !POSIX && 'the launch line is POSIX shell; Windows 
 
   test('terminal and bidi controls are refused without echo', () => {
     const secret = 'SENTINELTEXT';
-    for (const [label, ch] of Object.entries({ '^C': '\x03', 'ESC[201~': '\x1b[201~', '^U': '\x15', TAB: '\t', CR: '\r', DEL: '\x7f', 'U+202E': '‮', 'U+2066': '⁦' })) {
+    for (const [label, ch] of Object.entries({ '^C': '\x03', 'ESC[201~': '\x1b[201~', '^U': '\x15', TAB: '\t', CR: '\r', DEL: '\x7f', 'U+202E': String.fromCodePoint(0x202e), 'U+2066': String.fromCodePoint(0x2066) })) {
       const out = launch('claude-code', 'Objective: fix it\nNext act: ' + ch + ' ' + secret + '; touch pwned');
       assert.equal(out.status, 1, label);
       assert.equal(out.stdout, '', label);
