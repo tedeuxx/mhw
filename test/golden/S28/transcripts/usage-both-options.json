@@ -1,0 +1,13 @@
+{
+  "name": "usage-both-options",
+  "args": [
+    "check",
+    "--project=a",
+    "--file=b"
+  ],
+  "run": {
+    "code": 2,
+    "stdout": "",
+    "stderr": "mhw policy check: --project and --file exclude each other\n"
+  }
+}

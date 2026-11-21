@@ -1,0 +1,12 @@
+{
+  "name": "recovery-nothing-but-the-mode",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.recovery.operator: required (recovery not prepared)\nFAIL  $.recovery.recovery_time_objective_minutes: required (recovery not prepared)\nFAIL  $.recovery.runbook: required (recovery not prepared)\nFAIL  3 finding(s); the contract is not valid\n"
+  }
+}

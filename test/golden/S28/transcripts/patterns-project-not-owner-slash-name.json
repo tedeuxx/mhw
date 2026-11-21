@@ -1,0 +1,12 @@
+{
+  "name": "patterns-project-not-owner-slash-name",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.project: pattern (contract invalid)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

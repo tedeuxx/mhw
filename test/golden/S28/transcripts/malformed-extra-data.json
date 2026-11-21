@@ -1,0 +1,12 @@
+{
+  "name": "malformed-extra-data",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not JSON (Extra data)\n"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "evidence-no-journeys",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.mandatory_scenarios.critical_user_journeys: minItems (missing mandatory evidence)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

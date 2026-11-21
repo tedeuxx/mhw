@@ -1,0 +1,12 @@
+{
+  "name": "unknown-key-at-the-top",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.skip_gates: additionalProperties (contract invalid)\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

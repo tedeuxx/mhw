@@ -1,0 +1,12 @@
+{
+  "name": "override-empty-criteria",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  $.baseline_override.definition_of_done.additional_criteria: minItems (baseline override invalid (it may only add))\nFAIL  1 finding(s); the contract is not valid\n"
+  }
+}

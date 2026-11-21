@@ -1,0 +1,12 @@
+{
+  "name": "malformed-not-utf-8",
+  "args": [
+    "check",
+    "--file={BASE}/project-policy.json"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  malformed: not UTF-8\n"
+  }
+}

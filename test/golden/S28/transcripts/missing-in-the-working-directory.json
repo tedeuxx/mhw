@@ -1,0 +1,11 @@
+{
+  "name": "missing-in-the-working-directory",
+  "args": [
+    "check"
+  ],
+  "run": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "FAIL  missing: no file at project-policy.json\n"
+  }
+}
