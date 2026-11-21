@@ -378,7 +378,7 @@ function uninstallStep(ctx) {
   for (const rc of [pick(ctx).rc, zshrc(ctx), h + '/.bashrc', h + '/.bash_profile', h + '/.bash_login']) {
     if (!rc || seen.has(rc)) continue;
     seen.add(rc);
-    if (!isFile(rc)) continue;
+    // A file that is not there, or not a regular file, reads as '' and holds no block.
     const text = read(ctx, rc, 'nothing removed');
     if (text === null) continue;
     const s = scan(text);
