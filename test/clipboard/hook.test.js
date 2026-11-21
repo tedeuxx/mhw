@@ -232,6 +232,12 @@ test('the rendered command\'s start fallback: a hook that cannot start says NOT 
   // /bin/sh, -c and one script.
   const cmd = rendered('claude', b.confPath);
   assert.ok(cmd.startsWith("/bin/sh -c '") && cmd.endsWith("'") && cmd.slice(12, -1).indexOf("'") < 0, cmd);
+  // The exact forms, which .github/scripts/prod_canary.py spells out for Kiro rather than run install.sh's code.
+  assert.equal(wrap('kiro', 'X'), "/bin/sh -c 'X || { [ $? -eq 2 ] && exit 2; printf \"%s\\n\" \"" + notice + "\" >&2; exit 2; }'");
+  assert.equal(wrap('claude', 'X'), "/bin/sh -c 'X || { printf \"%s\\n\" \"{\\\"systemMessage\\\": \\\"" + notice + "\\\"}\"; exit 0; }'");
+  const canary = fs.readFileSync(path.join(ROOT, '.github', 'scripts', 'prod_canary.py'), 'utf8');
+  assert.ok(canary.includes(`want = "/bin/sh -c '%s || { [ $? -eq 2 ] && exit 2; printf \\"%%s\\\\n\\" \\"%s\\" >&2; exit 2; }'" % (inner, notice)`)
+    && canary.includes('notice = "' + notice + '"'), 'prod_canary.py no longer spells out the Kiro fallback install.sh renders');
   // install-managed.sh carries the same function, verbatim.
   const managed = fs.readFileSync(path.join(ROOT, 'global', 'install-managed.sh'), 'utf8');
   assert.ok(managed.includes(WRAP_FN), 'install-managed.sh\'s paste_wrap differs from install.sh\'s');

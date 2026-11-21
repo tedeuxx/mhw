@@ -355,11 +355,10 @@ def check_floor(box, exp):
     mhw_js = Path(os.path.realpath(box.d / "prefix" / "lib" / "node_modules" / "mhw")) / "bin" / "mhw.js"
     inner = '/usr/bin/env -u NODE_OPTIONS -u NODE_ICU_DATA -u NODE_PATH -u NODE_COMPILE_CACHE "%s" "%s" hook prompt --harness kiro --config "%s"' % (
         node, mhw_js, data / "clipboard.conf")
-    # install.sh's start fallback (paste_wrap, PR #536 lens B3), run from its own source: the expected string.
-    sh = (Path(os.path.realpath(box.d / "prefix" / "lib" / "node_modules" / "mhw")) / "global" / "install.sh").read_text(encoding="utf-8")
-    fn = sh[sh.index("PASTE_START_NOTICE='"):sh.index("\n}\n", sh.index("paste_wrap() {")) + 3]
-    want = subprocess.run(["/bin/sh", "-c", fn + '\npaste_wrap "$1" "$2"', "sh", "kiro", inner],
-                          capture_output=True, text=True).stdout
+    # install.sh's start fallback for Kiro (paste_wrap, PR #536 lens B3), spelled out here: nothing read
+    # from a file is ever run. test/clipboard/hook.test.js holds install.sh's function to this form.
+    notice = "Paste filter (ADR-0033): internal error (HookStartError); this prompt was NOT checked."
+    want = "/bin/sh -c '%s || { [ $? -eq 2 ] && exit 2; printf \"%%s\\n\" \"%s\" >&2; exit 2; }'" % (inner, notice)
     got = [e["action"].get("command") for e in kentries if isinstance(e.get("action"), dict)
            and e["action"].get("type") == "command"]
     check(got == [want], "Kiro: the hook file runs the installed core in kiro mode", "got %r" % got[:2])
