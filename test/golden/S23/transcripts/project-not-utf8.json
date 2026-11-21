@@ -1,0 +1,7 @@
+{
+  "step0 check --prerequisites --overlay=none <P:p>": {
+    "code": 1
+  },
+  "step0 check --prerequisites --overlay=none <P:p> stdout": "PREREQ  prerequisites (global/prerequisites.json); lanes that also fail on a missing item: none beyond the overall requirement\nPREREQ  0 required item(s) missing; check-only, nothing was applied\n",
+  "step0 check --prerequisites --overlay=none <P:p> stderr": "<traceback>\n"
+}

@@ -88,8 +88,6 @@ def npm_package(root=ROOT):
 # The command an instruction names: mhw on PATH after an npm install, ./mhw in a checkout (Issue #68).
 CMD = "mhw" if npm_package() else "./mhw"
 FIX = CMD + " install"
-# What the installed targets are compared with: this package (npm) or this checkout.
-SOURCE_NAME = "this package" if CMD == "mhw" else "this checkout"
 # The npm package name v4.1.0 shipped, before the rename to mhw (Issue #68).
 LEGACY_PACKAGE = NAME
 # The one instruction for the upgrade from it, in status, check, the postinstall summary and the docs.
@@ -98,8 +96,10 @@ UPGRADE_FIRST = "remove the v4.1.0 package first: `npm uninstall -g %s`" % LEGAC
 
 # ---------------------------------------------------------------------------------------------------
 # Stamps and release tags. The status view, the version key and the owner-action count moved to Node
-# (#493, S22 of #470: src/commands/status.js and src/lib/readers/); install, check, update and uninstall
-# use what is left here.
+# (#493, S22 of #470: src/commands/status.js and src/lib/readers/), and check with them (#494, S23:
+# src/commands/check.js); install, update and uninstall use what is left here. short_stamp, ADMIN_NEXT,
+# NOT_RUN and stamp_in also stay as the wording and the stamp reading the Node views print, which
+# global/npm_package_test.py and global/workstation_test.py read from here.
 
 _RELEASE = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
 
@@ -118,7 +118,7 @@ def short_stamp(stamp):
 
 
 # ---------------------------------------------------------------------------------------------------
-# The admin layer and the installers' own --check, as install and check read them.
+# The admin layer and the installers' own --check, as install reads them.
 
 def managed_root():
     return os.environ.get("WORKSTATION_MANAGED_ROOT", "")
@@ -159,54 +159,7 @@ def admin_present():
         return False
 
 
-# Files an earlier release's admin layer installed for controls this release removed, by the name of the
-# control (ADR-0028: restart guard and timed breaking-glass; ADR-0013, 2026-10-05: the picker guard and
-# the session-intake exception its hitl.conf carried). install-managed.sh --check reports them as STALE.
-REMOVED_CONTROLS = (
-    ("restart_guard.py", "restart guard"),
-    ("hitl-escalation-guard.sh", "picker guard"),
-    ("hitl.conf", "session intake (the picker guard's intake exception)"),
-    ("breaking_glass.py", "timed breaking-glass"),
-    ("breaking-glass", "timed breaking-glass"),
-)
-_ENTRY = re.compile(r"(STALE|DRIFT|MISSING|STAMP|REFUSE)\s+(.*?)(?::\s.*| \([^()]*\))?$")
-
-
-def admin_findings(lines):
-    """-> ({kind: [file name]}, [removed control]) from install-managed.sh --check output."""
-    entries, removed = {}, []
-    for line in lines:
-        m = _ENTRY.match(line)
-        if not m:
-            continue
-        name = Path(m.group(2).rstrip("/")).name or m.group(2)
-        entries.setdefault(m.group(1), []).append(name)
-        if m.group(1) == "STALE":
-            for file, control in REMOVED_CONTROLS:
-                if name == file and control not in removed:
-                    removed.append(control)
-    order = [control for _, control in REMOVED_CONTROLS]
-    return entries, sorted(removed, key=order.index)
-
-
 ADMIN_NEXT = "next: %s install (it asks for your administrator password once)" % CMD
-
-
-def admin_report(lines, code, prefix="ADMIN   "):
-    """The lines that name what differs in the admin layer, each entry and removed control by name, and
-    the exact next step. Empty when the admin --check exits 0."""
-    if code == 0 and issues(lines) == 0:
-        return []
-    entries, removed = admin_findings(lines)
-    count = max(issues(lines), 1)
-    out = ["%sthe admin layer differs from %s: %d target(s)" % (prefix, SOURCE_NAME, count)]
-    for kind in ("STALE", "DRIFT", "MISSING", "STAMP", "REFUSE"):
-        if entries.get(kind):
-            out.append("%s%s %s" % (prefix, kind, ", ".join(entries[kind])))
-    if removed:
-        out.append("%sremoved controls still installed: %s" % (prefix, ", ".join(removed)))
-    out.append(prefix + ADMIN_NEXT)
-    return out
 
 
 def stamp_in(path):
@@ -220,13 +173,6 @@ def stamp_in(path):
     except OSError:
         pass
     return "none"
-
-
-def brief_paths():
-    home = Path.home()
-    codex = Path(os.environ.get("CODEX_HOME") or home / ".codex")
-    return {"Claude Code": home / ".claude" / "CLAUDE.md", "Codex": codex / "AGENTS.md",
-            "Kiro": home / ".kiro" / "steering" / "workstation-global-brief.md"}
 
 
 def run(args, capture=True):
@@ -277,39 +223,7 @@ def package_name(root=ROOT):
         return "mhw"
 
 
-def source_stamp():
-    """This copy's provenance stamp, as install.sh --check computes it (its SOURCE line)."""
-    _, lines = run(install_args(["--check", "--hooks=" + ("managed" if admin_installed() else "user")]))
-    for line in lines:
-        if line.startswith("SOURCE  "):
-            return line[len("SOURCE  "):]
-    return "none"
-
-
 NOT_RUN = "installed by npm; the workstation is not set up from it yet"
-
-
-def npm_notes(source, user_stamps, root=ROOT):
-    """Lines about the npm install itself; none for a checkout (Issue #68). A package `mhw install` has not
-    set up yet (Issue #113: npm installs nothing more): the user layer does not carry its stamp. And
-    the v4.1.0 package, under its old name, still installed beside mhw."""
-    if not npm_package(root):
-        return []
-    out = []
-    stamps = sorted(set(user_stamps.values()))
-    if source not in stamps:
-        out.append("%s: this package is %s, the user layer carries %s; run mhw install" % (
-            NOT_RUN, short_stamp(source), " / ".join(short_stamp(s) for s in stamps) if stamps else "nothing"))
-    old = root.parent / LEGACY_PACKAGE
-    if root.parent.name == "node_modules" and root.name != LEGACY_PACKAGE and (old / "package.json").is_file():
-        version = package_version(old)
-        # Both packages present means the upgrade went through by luck of route or by --force: npm refuses
-        # mhw's workstation bin while the old package owns it (EEXIST, measured with npm 11.13.0 from a
-        # tag or branch ref and from a tarball; a pinned commit happened to pass). The documented order is
-        # the same either way, so the line names it.
-        out.append("the %s package (the name before mhw) is still installed beside mhw; %s, then run mhw update "
-                   "(the user layer stays)" % (version, UPGRADE_FIRST))
-    return out
 
 
 def package_version(root):
@@ -754,43 +668,6 @@ def cmd_uninstall(verbose=False, yes=False):
     return 1 if failed or left else 0
 
 
-def cmd_check(prerequisites_only=False, project=None):
-    code = 0
-    if not prerequisites_only:
-        hooks_mode = "managed" if admin_installed() else "user"
-        code, _ = run(install_args(["--check", "--hooks=" + hooks_mode]), capture=False)
-        if admin_present():
-            # Every admin layer of ours, stamped or from an earlier release (Issue #52), read-only.
-            acode, alines = run(managed_args(["--check"]))
-            print("\n".join(alines + admin_report(alines, acode)), flush=True)
-            code = max(code, acode)
-        if npm_package():
-            notes = npm_notes(source_stamp(), {h: s for h, p in brief_paths().items() if (s := stamp_in(p)) != "none"})
-            for note in notes:
-                print("NPM     " + note, flush=True)
-    # Issue #89: present or missing, authenticated or not, drift from the preferred settings. Read-only.
-    import prerequisites
-    pcode, lines = prerequisites.report()
-    print("\n".join(lines), flush=True)
-    code = max(code, pcode)
-    if project is not None:
-        # Issue #195: the project brief against the installed merge-authority contract. Read-only.
-        code = max(code, check_project_brief(project))
-    return code
-
-
-def check_project_brief(project):
-    """The --project section of check: exit 0, 1 (findings) or 2 (cannot validate, fail closed)."""
-    import merge_authority
-    root = Path(project).expanduser().resolve()
-    if not root.is_dir():
-        print("PROJECT %s is not a directory" % project, flush=True)
-        return 2
-    mcode, lines = merge_authority.check_project(root, Path.home())
-    print("\n".join(lines), flush=True)
-    return mcode
-
-
 def valid_overlay(value):
     """The --overlay value an installer may receive: 'none', or an existing directory as an absolute,
     resolved path. Anything else -> None, and the caller refuses before any subprocess runs."""
@@ -820,6 +697,11 @@ def main(argv):
         # `python3 workstation.py status` arrives here; it names the command, as scan does.
         print("mhw: mhw status is the Node command now; run ./mhw status or node bin/mhw.js status", file=sys.stderr)
         return 2
+    if command == "check":
+        # Node since #494 (S23 of #470): ./mhw and bin/mhw.js run src/commands/check.js on macOS and Linux,
+        # so only a direct `python3 workstation.py check` arrives here; it names the command, as status does.
+        print("mhw: mhw check is the Node command now; run ./mhw check or node bin/mhw.js check", file=sys.stderr)
+        return 2
     if command == "policy":
         # ADR-0015 lock 3 (Issue #245): validate a project's contract; reads one file, installs nothing.
         if not rest or rest[0] != "check":
@@ -828,17 +710,13 @@ def main(argv):
         sys.path.insert(0, str(HERE / "project-policy"))
         import project_policy
         return project_policy.main(rest)
-    overlay, project, verbose, admin, wanted, method = None, None, False, False, None, False
-    prereq_only, yes, no_admin = False, False, False
+    overlay, verbose, admin, wanted, method = None, False, False, None, False
+    yes, no_admin = False, False
     for arg in rest:
         if arg.startswith("--overlay="):
             overlay = arg[len("--overlay="):]
-        elif arg.startswith("--project=") and command == "check":
-            project = arg[len("--project="):]
         elif arg in ("-v", "--verbose") and command in ("install", "update", "uninstall"):
             verbose = True
-        elif arg == "--prerequisites" and command == "check":
-            prereq_only = True
         elif arg == "--admin" and command == "install":
             admin = True
         elif arg in ("-y", "--yes") and command in ("install", "update", "uninstall"):
@@ -865,8 +743,6 @@ def main(argv):
         return cmd_install(admin, method, verbose, yes, no_admin)
     if command == "postinstall":
         return cmd_postinstall(method)
-    if command == "check":
-        return cmd_check(prereq_only, project)
     if command == "update":
         return cmd_update(wanted, verbose, yes)
     if command == "uninstall":

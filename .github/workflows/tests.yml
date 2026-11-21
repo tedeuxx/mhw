@@ -72,11 +72,9 @@ jobs:
             global/project-policy/reference/fixture/fixture_app.py \
             global/workstation.py global/workstation_test.py \
             .github/scripts/prod_canary.py \
-            test/helpers/s15-record.py \
-            global/merge_authority.py global/merge_authority_test.py \
+            test/helpers/s15-record.py test/helpers/s23-prose.py \
             global/method/method_render.py global/method/method_render_test.py \
             global/method/method_commands_test.py \
-            global/prerequisites.py global/prerequisites_test.py \
             global/npm_package_test.py \
             .github/scripts/method_issue_sync.py .github/scripts/method_issue_sync_test.py
       - name: node syntax check of the npm launcher and postinstall (Issue #68)
@@ -257,6 +255,31 @@ jobs:
             exit 0
           fi
           echo "$out" | grep -E "^ *ok [0-9]+ - live: the status view" | grep -vq SKIP
+      # #494 (S23 of #470): the live arms of test/check/check-golden.test.js and test/check/prose-corpus.test.js
+      # run the base revision's mhw check (global/workstation.py, prerequisites.py and merge_authority.py)
+      # beside src/commands/check.js on every case, in throwaway HOMEs and admin roots with a stand-in gh and a
+      # loopback stand-in service, and the base's merge_authority.py over the live-prose corpus, on the same
+      # CPython. MHW_S23_LIVE_REQUIRED=1 turns a skip into a failure while the base still holds
+      # merge_authority.py; once it does not (this slice has merged), the step says the arm retired and
+      # passes, as the S14 and S22 steps do (#534). A missing base fails. The golden arms run in npm test.
+      - name: S23 live parity against the recorded CPython
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+          MHW_S23_LIVE_REQUIRED: "1"
+        run: |
+          python3 --version
+          base="${MHW_PARITY_BASE:-$(git merge-base HEAD "origin/${GITHUB_BASE_REF:-rc/next}")}" || { echo "no base revision"; exit 1; }
+          [ -n "$base" ] || { echo "no base revision"; exit 1; }
+          out=$(node --test --test-reporter=tap --test-name-pattern="^live" test/check/check-golden.test.js test/check/prose-corpus.test.js) || { echo "$out"; exit 1; }
+          echo "$out"
+          if ! git cat-file -e "$base:global/merge_authority.py" 2>/dev/null; then
+            echo "S23 live arm retired: base $base no longer holds global/merge_authority.py"
+            exit 0
+          fi
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: the check of the base revision" | grep -vq SKIP
+          echo "$out" | grep -E "^ *ok [0-9]+ - live: the base revision" | grep -vq SKIP
 
   # Issue #472: the git install route of ADR-0034 (`npm install -g github:...` is a git dependency to
   # npm), through git+file:// of a commit made from this checkout, into a throwaway prefix, cache and
@@ -374,13 +397,9 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: python3 -B global/workstation_test.py
-      # Issue #195: the merge-authority contract. The method's operational copies against the canonical
-      # contract, and ./mhw check --project=DIR against synthetic project briefs in throwaway HOMEs and
-      # directories. Checks over strings and one bounded block, not a gate's behaviour.
-      - name: merge-authority suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: python3 -B global/merge_authority_test.py
+      # Issue #195: the merge-authority contract is Node since #494 (S23 of #470): the method's operational
+      # copies against the canonical contract and mhw check --project=DIR against synthetic briefs,
+      # test/check/merge-authority.test.js, in the node job (npm test) on all three OSes.
       # Issue #224: Chrome's remote-debugging key in Local State is Node since #480 (mhw chrome-debugging);
       # its suite, on fixture files only, runs in the node job (npm test, test/render/chrome-debugging.test.js).
       # ADR-0035 decision 7: mhw scan, the outbound scan, is Node since #486 (S15 of #470); its suites
@@ -432,12 +451,9 @@ jobs:
         run: |
           node --version; npm --version
           python3 -B global/npm_package_test.py
-      # Issue #89: the prerequisites section of ./mhw check. Fake tool shims on a PATH holding
-      # nothing else, a stub gh, a loopback server for SonarCloud and HCP Terraform; no network, no account.
-      - name: prerequisites suite
-        env:
-          TMPDIR: ${{ runner.temp }}
-        run: python3 -B global/prerequisites_test.py
+      # Issue #89: the prerequisites section of mhw check is Node since #494 (S23 of #470); its suite,
+      # test/check/prerequisites.test.js (fake tool shims, a stub gh, a loopback stand-in for SonarCloud and
+      # HCP Terraform; no network, no account), runs in the node job (npm test).
       # Issue #62, ADR-0032 2026-10-12 amendment: the method backlog sync. The workflow's structure (parsed
       # with the runner's ruby) and the agent's only route to GitHub, against a stub gh on PATH; no network.
       # #170: the scripts the moved rites run, with their own suites (moved from the plugin with them).

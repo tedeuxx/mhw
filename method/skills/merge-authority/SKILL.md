@@ -232,7 +232,7 @@ act: `quality-assurance` (*Classify — who may merge* and its verdict list, and
 `/autonomy` (what *ready for him* means) and the workspace delivery route (`src/commands/delivery.js`'s
 clearance literal and its `owner-check:` line). Each method copy carries a projection block generated from the contract above,
 between `<!-- merge-authority:projection` and `<!-- merge-authority:end -->`, and
-`global/merge_authority_test.py` asserts every block equals the projection, that each copy still names every verdict, that no
+~~`global/merge_authority_test.py`~~ `test/check/merge-authority.test.js` (Node since #494, which generates the projection with `src/lib/merge-authority.js`) asserts every block equals the projection, that each copy still names every verdict, that no
 copy's live prose names a retired verdict, and that no copy's live prose carries a known legacy phrase. **That is a check over strings**: it catches a changed
 executor, verdict or hold in a projection block, and a deleted verdict literal, but not a paraphrase
 elsewhere in a long brief.

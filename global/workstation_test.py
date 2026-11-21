@@ -120,7 +120,8 @@ class EndToEnd(unittest.TestCase):
     """The real installers in a throwaway HOME and admin root: install, then check. The status view of the
     same installs is Node since #493 (S22 of #470): test/status/status-golden.test.js (cases user-only,
     user-only-projects, drift) holds what this test used to assert about it, with a stand-in gh and stub
-    agent harness CLIs instead of the ones on this machine's PATH."""
+    agent harness CLIs instead of the ones on this machine's PATH. ./mhw check runs src/commands/check.js
+    since #494 (S23); test/check/check-golden.test.js holds its output."""
 
     def run_ws(self, *args):
         p = subprocess.run([str(ws.ROOT / "mhw")] + list(args), env=self.env, cwd=self.base,
@@ -265,35 +266,16 @@ class Overlay(unittest.TestCase):
         real = ws.run
         ws.run = lambda *a, **k: calls.append(a) or (0, [])
         try:
-            for cmd in ("install", "check", "uninstall", "update"):  # status: test/status/status.test.js (#493)
+            # status and check: test/status/status.test.js (#493), test/check/check.test.js (#494)
+            for cmd in ("install", "uninstall", "update"):
                 with self.subTest(cmd=cmd):
                     self.assertEqual(ws.main([cmd, "--overlay=/nonexistent/overlay/dir"]), 2)
         finally:
             ws.run = real
         self.assertEqual(calls, [])
 
-    def test_overlay_travels_in_the_environment_not_argv(self):
-        calls = []
-        real, saved = ws.run, os.environ.get(ws.OVERLAY_ENV)
-        ws.run = lambda *a, **k: calls.append(a[0]) or (0, [])
-        # The prerequisites section (#89) reads this machine's PATH; an empty declaration keeps it out.
-        empty = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
-        empty.write('{"lanes": {}, "items": []}')
-        empty.close()
-        os.environ["WORKSTATION_PREREQUISITES"] = empty.name
-        try:
-            self.assertEqual(ws.main(["check", "--overlay=none"]), 0)
-            self.assertEqual(os.environ.get(ws.OVERLAY_ENV), "none")
-        finally:
-            ws.run = real
-            os.environ.pop("WORKSTATION_PREREQUISITES", None)
-            os.unlink(empty.name)
-            if saved is None:
-                os.environ.pop(ws.OVERLAY_ENV, None)
-            else:
-                os.environ[ws.OVERLAY_ENV] = saved
-        self.assertTrue(calls)
-        self.assertFalse([a for argv in calls for a in argv if "overlay" in a])
+    # The overlay travelling in the environment, never in argv, is held for mhw check (Node since #494)
+    # by test/check/check.test.js.
 
 
 class LatestRelease(unittest.TestCase):

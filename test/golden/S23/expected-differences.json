@@ -1,0 +1,26 @@
+[
+  {
+    "case": [
+      "project-not-utf8"
+    ],
+    "stream": [
+      "stderr"
+    ],
+    "base": "^<traceback>\\n$",
+    "head": "^$",
+    "replace": "<a project AGENTS.md that is not UTF-8: reported, not a traceback>",
+    "why": "merge_authority.check_project read the project's AGENTS.md with read_text(encoding='utf-8') and caught only OSError, so a brief that is not UTF-8 raised UnicodeDecodeError (a ValueError) out of mhw check: a Python traceback on stderr and exit 1, with no PROJECT line. The Node check catches the decode error and reports it as a finding on stdout (next entry). The exit code is 1 on both sides and is compared."
+  },
+  {
+    "case": [
+      "project-not-utf8"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "base": "(?<=nothing was applied\\n)$",
+    "head": "PROJECT merge authority: FAIL the AGENTS\\.md at <TMP>/work/p is not readable UTF-8; the project brief must declare its merge-authority block\\n$",
+    "replace": "<the PROJECT line for an AGENTS.md that is not UTF-8>",
+    "why": "The other half of the entry above: where workstation.py stopped with a traceback, the Node check prints one PROJECT FAIL line naming the brief as not readable UTF-8, after the prerequisites section, in the place every other project finding is printed. It is a finding (exit 1), not a fail-closed exit 2, because the installed contract was read and only the project's own file is at fault, as a missing AGENTS.md already was."
+  }
+]
